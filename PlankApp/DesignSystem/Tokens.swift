@@ -1,13 +1,18 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Typography
 
 enum Typo {
-    static let display = Font.custom("DMSans-Light", size: 56).leading(.tight)
-    static let title = Font.custom("DMSans-SemiBold", size: 32)
-    static let heading = Font.custom("DMSans-SemiBold", size: 20)
-    static let body = Font.custom("DMSans-Regular", size: 16)
-    static let caption = Font.custom("DMSans-Medium", size: 13)
+    private static func font(_ name: String, size: CGFloat) -> Font {
+        Font(UIFont(name: name, size: size) ?? .systemFont(ofSize: size))
+    }
+
+    static let display = font("DMSans-Light", size: 56).leading(.tight)
+    static let title = font("DMSans-SemiBold", size: 32)
+    static let heading = font("DMSans-SemiBold", size: 20)
+    static let body = font("DMSans-Regular", size: 16)
+    static let caption = font("DMSans-Medium", size: 13)
 }
 
 // MARK: - Spacing (4pt base)

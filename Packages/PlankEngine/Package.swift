@@ -8,7 +8,10 @@ let package = Package(
         .library(name: "PlankEngine", targets: ["PlankEngine"]),
     ],
     targets: [
-        .target(name: "PlankEngine"),
+        .target(
+            name: "PlankEngine",
+            swiftSettings: [.swiftLanguageMode(.v5)]
+        ),
         .testTarget(
             name: "PlankEngineTests",
             dependencies: ["PlankEngine"],

@@ -1,6 +1,7 @@
 import SwiftUI
 import AVFoundation
 import PlankEngine
+import PlankVoice
 
 /// The active plank session screen.
 /// Audio-led with minimal glance-check visuals.
@@ -8,13 +9,20 @@ import PlankEngine
 struct SessionView: View {
     @State private var engine: PlankSessionEngine
     @State private var camera = CameraManager()
+    @State private var audioQueue = AudioQueue(
+        provider: ClipBundleProvider(),
+        lineLibrary: .devLibrary
+    )
     @State private var elapsedTime: TimeInterval = 0
     @State private var currentState: FormState = .notInPosition
+    @State private var sessionActive = false
     @State private var sessionEnded = false
     @State private var holdTime: TimeInterval = 0
     @State private var qualityScore: Double = 0
     @State private var showEndConfirm = false
     @State private var audioMuted = false
+    @State private var showGuideFrame = true
+    @State private var timer: Timer?
 
     let exerciseType: String
     let dayNumber: Int
@@ -34,79 +42,209 @@ struct SessionView: View {
         self._engine = State(initialValue: PlankSessionEngine())
     }
 
+    @State private var borderRotation: Double = 0
+    @State private var emergencyBlink = false
+
+    /// Form is imperfect but still planking — show colored lines, no emergency.
+    private var isFormFault: Bool {
+        switch currentState {
+        case .hipSag, .hipPike, .shoulderCreep: return true
+        default: return false
+        }
+    }
+
+    /// Completely out of position — emergency light.
+    private var isOutOfPosition: Bool {
+        currentState == .notInPosition && sessionActive
+    }
+
+    /// Short form label.
+    private var formLabel: String? {
+        switch currentState {
+        case .hipSag: return "HIPS"
+        case .hipPike: return "HIPS DOWN"
+        case .shoulderCreep: return "SHOULDERS"
+        case .notInPosition where sessionActive: return "GET BACK DOWN"
+        default: return nil
+        }
+    }
+
+    // Neon colors
+    private static let neonGreen = Color(hex: "#30FF00")
+    private static let neonPink = Color(hex: "#FF13F0")
+
+    /// Border colors based on state.
+    private var borderColors: [Color] {
+        if currentState == .goodForm {
+            return [Self.neonGreen, Self.neonGreen.opacity(0.4), Self.neonGreen, Self.neonGreen.opacity(0.6)]
+        } else if isOutOfPosition {
+            return [Self.neonPink, Self.neonPink.opacity(0.4), Self.neonPink, Self.neonPink.opacity(0.6)]
+        } else if isFormFault {
+            // Partial fault — warm amber border, no emergency
+            return [Palette.accent, Palette.accentSubtle, Palette.accent, Palette.accentSubtle]
+        } else {
+            return [Palette.accentSubtle, Palette.accentSubtle.opacity(0.2), Palette.accentSubtle, Palette.accentSubtle.opacity(0.4)]
+        }
+    }
+
+    /// Border thickness based on state.
+    private var borderWidth: CGFloat {
+        if isOutOfPosition { return 14 }
+        if currentState == .goodForm { return 10 }
+        if isFormFault { return 10 }
+        return 8
+    }
+
+    /// Timer adapts color to state for max contrast.
+    private var timerColor: Color {
+        if currentState == .goodForm { return .white }
+        if isOutOfPosition { return Palette.accentSubtle }
+        return .white
+    }
+
     var body: some View {
         ZStack {
-            // Layer 1: Camera feed (darkened, desaturated)
-            CameraPreview(session: camera.previewSession)
+            // Layer 1: Full-screen camera
+            CameraPreview(previewLayer: camera.previewLayer)
                 .ignoresSafeArea()
-                .overlay(Color.black.opacity(0.5))
-                .saturation(0.3)
 
-            // Layer 2: Pose overlay dots (color reflects form state)
-            PoseOverlay(state: currentState)
+            // Layer 2: Pose skeleton (toggleable)
+            if showGuideFrame {
+                PoseOverlay(joints: camera.detectedJoints, state: currentState)
+                    .ignoresSafeArea()
+            }
 
-            // Layer 3: Timer + context
+            // Layer 3: Rotating border — uses device screen corner radius
+            // UnsafeArea inset by half the border width so the stroke
+            // sits flush against the physical screen edge on every iPhone.
+            GeometryReader { geo in
+                let screenRadius = UIScreen.main.displayCornerRadius
+                RoundedRectangle(cornerRadius: max(screenRadius - borderWidth / 2, 0))
+                    .inset(by: borderWidth / 2)
+                    .stroke(
+                        AngularGradient(
+                            colors: borderColors + borderColors,
+                            center: .center,
+                            angle: .degrees(borderRotation)
+                        ),
+                        lineWidth: borderWidth
+                    )
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .animation(.easeInOut(duration: 0.3), value: currentState)
+
+            // Layer 4a: Good form — steady neon green glow from edges
+            if currentState == .goodForm {
+                RoundedRectangle(cornerRadius: UIScreen.main.displayCornerRadius)
+                    .fill(
+                        RadialGradient(
+                            colors: [.clear, .clear, Self.neonGreen.opacity(0.15)],
+                            center: .center,
+                            startRadius: 100,
+                            endRadius: 500
+                        )
+                    )
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
+
+            // Layer 4b: EMERGENCY — only when completely out of position (RED)
+            if isOutOfPosition {
+                Color(hex: "#FF0000")
+                    .opacity(emergencyBlink ? 0.35 : 0.08)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                    .onAppear {
+                        withAnimation(.easeInOut(duration: 0.35).repeatForever(autoreverses: true)) {
+                            emergencyBlink = true
+                        }
+                    }
+                    .onDisappear { emergencyBlink = false }
+            }
+
+            // Layer 5: Overlaid UI
             VStack {
+                // Top bar
+                HStack {
+                    Text("Day \(dayNumber)")
+                        .font(Typo.caption)
+                        .foregroundStyle(.white.opacity(0.6))
+
+                    Spacer()
+
+                    Button {
+                        showEndConfirm = true
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.7))
+                            .frame(width: 32, height: 32)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                    }
+                }
+                .padding(.horizontal, Space.screenPadding)
+                .padding(.top, Space.sm)
+
                 Spacer()
 
-                // Timer (count-up, accumulation framing)
+                // Timer — adapts color to background state
                 Text(formatTime(elapsedTime))
-                    .font(Typo.display)
-                    .foregroundStyle(Palette.textInverse)
+                    .font(.system(size: 96, weight: .heavy, design: .rounded))
+                    .foregroundStyle(timerColor)
+                    .shadow(color: .black.opacity(0.7), radius: 20, y: 6)
+                    .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
                     .contentTransition(.numericText())
+                    .animation(.easeInOut(duration: 0.3), value: currentState)
 
-                Text("Day \(dayNumber) · \(exerciseType)")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textInverse.opacity(0.6))
-                    .padding(.top, Space.xs)
-
-                Spacer()
-
-                // Camera guidance (only visible in CAMERA_BAD state)
-                if currentState == .cameraBad {
-                    Text("Move your phone back a bit")
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textInverse)
-                        .padding(Space.md)
-                        .background(Palette.stateBad.opacity(0.8))
-                        .clipShape(RoundedRectangle(cornerRadius: Radius.md))
-                        .transition(.opacity)
+                // Form fault label
+                if let label = formLabel {
+                    Text(label)
+                        .font(.system(size: 15, weight: .bold))
+                        .tracking(2)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Palette.stateBad.opacity(0.7))
+                        .clipShape(Capsule())
+                        .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                        .padding(.top, Space.sm)
                 }
 
                 Spacer()
 
                 // Bottom controls
                 HStack {
-                    // Audio toggle
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { showGuideFrame.toggle() }
+                    } label: {
+                        Image(systemName: "figure.stand")
+                            .font(.system(size: 15))
+                            .foregroundStyle(showGuideFrame ? Palette.accent : .white.opacity(0.4))
+                            .frame(width: 36, height: 36)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                    }
+
                     Button {
                         audioMuted.toggle()
                     } label: {
                         Image(systemName: audioMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                            .font(.system(size: 20))
-                            .foregroundStyle(Palette.textInverse.opacity(0.6))
-                            .frame(width: Space.minTapTarget, height: Space.minTapTarget)
+                            .font(.system(size: 15))
+                            .foregroundStyle(.white.opacity(0.4))
+                            .frame(width: 36, height: 36)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
                     }
 
                     Spacer()
-
-                    // End session (hold to confirm)
-                    Button {
-                        showEndConfirm = true
-                    } label: {
-                        Text("End Session")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.textInverse.opacity(0.5))
-                            .padding(.horizontal, Space.md)
-                            .padding(.vertical, Space.sm)
-                            .background(Palette.textInverse.opacity(0.1))
-                            .clipShape(Capsule())
-                    }
                 }
                 .padding(.horizontal, Space.screenPadding)
                 .padding(.bottom, Space.lg)
             }
         }
-        .background(Color.black)
         .alert("End Session?", isPresented: $showEndConfirm) {
             Button("End", role: .destructive) {
                 Task { await engine.endSession() }
@@ -114,9 +252,13 @@ struct SessionView: View {
             Button("Keep Going", role: .cancel) {}
         }
         .task {
+            withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) {
+                borderRotation = 360
+            }
             await startSession()
         }
         .onDisappear {
+            stopTimer()
             camera.stopSession()
         }
     }
@@ -124,22 +266,53 @@ struct SessionView: View {
     // MARK: - Session Logic
 
     private func startSession() async {
+        // Set up audio session for voice playback over speaker.
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+        try? AVAudioSession.sharedInstance().setActive(true)
+
         camera.onPoseFrame = { frame in
             Task { await engine.processFrame(frame) }
         }
         camera.startSession()
 
+        // Play setup instruction after 2 seconds if user hasn't gotten into position
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            if !sessionActive && !audioMuted {
+                await audioQueue.handleEvent(.stateChanged(.notInPosition))
+            }
+        }
+
         // Listen for events
         for await event in await engine.events {
+            // Forward all events to voice feedback.
+            if !audioMuted {
+                Task { await audioQueue.handleEvent(event) }
+            }
+
             switch event {
             case .stateChanged(let state):
                 withAnimation(.easeInOut(duration: 0.3)) {
                     currentState = state
                 }
+                // Pause/resume timer based on plank state
+                if sessionActive {
+                    if state == .notInPosition || state == .cameraBad {
+                        stopTimer()
+                    } else if timer == nil {
+                        startTimer()
+                    }
+                }
+            case .sessionStart:
+                if !sessionActive {
+                    sessionActive = true
+                    startTimer()
+                }
             case .sessionEnd(let time, let score):
                 holdTime = time
                 qualityScore = score
                 sessionEnded = true
+                stopTimer()
                 camera.stopSession()
                 onComplete(time, score, 0)
             case .milestone:
@@ -148,66 +321,173 @@ struct SessionView: View {
             default:
                 break
             }
-
-            // Update elapsed time
-            if case .stateChanged(.goodForm) = event {
-                // Start counting once in good form
-            }
         }
     }
 
-    private func formatTime(_ time: TimeInterval) -> String {
-        let minutes = Int(time) / 60
-        let seconds = Int(time) % 60
-        if minutes > 0 {
-            return "\(minutes):\(String(format: "%02d", seconds))"
+    private func startTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            elapsedTime += 1
         }
-        return "\(seconds)s"
+    }
+
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    private func formatTime(_ time: TimeInterval) -> String {
+        let total = Int(time)
+        return "\(total)s"
     }
 }
 
 // MARK: - Camera Preview
 
+/// Hosts the CameraManager-owned AVCaptureVideoPreviewLayer.
+/// The layer's rotation is managed by CameraManager's RotationCoordinator.
+class CameraPreviewView: UIView {
+    let previewLayer: AVCaptureVideoPreviewLayer
+
+    init(previewLayer: AVCaptureVideoPreviewLayer) {
+        self.previewLayer = previewLayer
+        super.init(frame: .zero)
+        layer.addSublayer(previewLayer)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        previewLayer.frame = bounds
+    }
+}
+
 struct CameraPreview: UIViewRepresentable {
-    let session: AVCaptureSession
+    let previewLayer: AVCaptureVideoPreviewLayer
 
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        previewLayer.videoGravity = .resizeAspectFill
-        previewLayer.frame = view.bounds
-        view.layer.addSublayer(previewLayer)
-        return view
+    func makeUIView(context: Context) -> CameraPreviewView {
+        CameraPreviewView(previewLayer: previewLayer)
     }
 
-    func updateUIView(_ uiView: UIView, context: Context) {
-        if let layer = uiView.layer.sublayers?.first as? AVCaptureVideoPreviewLayer {
-            layer.frame = uiView.bounds
-        }
-    }
+    func updateUIView(_ uiView: CameraPreviewView, context: Context) {}
 }
 
 // MARK: - Pose Overlay
 
+/// Body segment zones for per-area coloring.
+private enum BodyZone {
+    case shoulder  // shoulder-related bones
+    case core      // shoulder-to-hip (torso), hip-to-hip
+    case legs      // hip-to-knee, knee-to-ankle
+    case arms      // shoulder-to-elbow, elbow-to-wrist
+}
+
 struct PoseOverlay: View {
+    let joints: [JointName: CGPoint]
     let state: FormState
 
-    var overlayColor: Color {
+    /// Each bone tagged with its body zone.
+    private let bones: [(JointName, JointName, BodyZone)] = [
+        (.leftShoulder, .rightShoulder, .shoulder),
+        (.leftShoulder, .leftElbow, .arms),
+        (.leftElbow, .leftWrist, .arms),
+        (.rightShoulder, .rightElbow, .arms),
+        (.rightElbow, .rightWrist, .arms),
+        (.leftShoulder, .leftHip, .core),
+        (.rightShoulder, .rightHip, .core),
+        (.leftHip, .rightHip, .core),
+        (.leftHip, .leftKnee, .legs),
+        (.leftKnee, .leftAnkle, .legs),
+        (.rightHip, .rightKnee, .legs),
+        (.rightKnee, .rightAnkle, .legs),
+    ]
+
+    // Neon colors matching the border
+    private static let neonGreen = Color(hex: "#30FF00")
+    private static let neonPink = Color(hex: "#FF13F0")
+
+    /// Color for a specific body zone — neon green (ok) or neon pink (problem).
+    private func colorForZone(_ zone: BodyZone) -> Color {
         switch state {
-        case .goodForm: Palette.stateGood
-        case .hipSag, .shoulderCreep: Palette.stateWarn
-        case .cameraBad: Palette.stateBad
-        case .notInPosition, .shaking: .gray
+        case .shoulderCreep:
+            return zone == .shoulder ? Self.neonPink : Self.neonGreen
+        case .hipSag, .hipPike:
+            return zone == .core ? Self.neonPink : Self.neonGreen
+        case .goodForm:
+            return Self.neonGreen
+        case .cameraBad, .notInPosition, .shaking:
+            return Palette.accentSubtle
+        }
+    }
+
+    /// Joint dot color.
+    private func colorForJoint(_ name: JointName) -> Color {
+        switch state {
+        case .shoulderCreep:
+            let bad = (name == .leftShoulder || name == .rightShoulder || name == .nose)
+            return bad ? Self.neonPink : Self.neonGreen
+        case .hipSag, .hipPike:
+            let bad = (name == .leftHip || name == .rightHip || name == .root)
+            return bad ? Self.neonPink : Self.neonGreen
+        case .goodForm:
+            return Self.neonGreen
+        default:
+            return Palette.accentSubtle
         }
     }
 
     var body: some View {
-        // Minimal dot overlay. In production, joint positions would be
-        // projected from VNHumanBodyPoseObservation recognized points.
-        Circle()
-            .fill(overlayColor.opacity(0.4))
-            .frame(width: 12, height: 12)
-            .position(x: 100, y: 200)  // Placeholder positions
-            .animation(.easeInOut(duration: 0.5), value: state)
+        GeometryReader { geo in
+            Canvas { context, size in
+                func screenPoint(_ p: CGPoint) -> CGPoint {
+                    CGPoint(x: p.x * size.width, y: (1 - p.y) * size.height)
+                }
+
+                // Draw bones — thick neon lines with glow
+                for (a, b, zone) in bones {
+                    guard let pa = joints[a], let pb = joints[b] else { continue }
+                    let color = colorForZone(zone)
+                    var path = Path()
+                    path.move(to: screenPoint(pa))
+                    path.addLine(to: screenPoint(pb))
+                    // Wide glow
+                    context.stroke(path, with: .color(color.opacity(0.3)),
+                        style: StrokeStyle(lineWidth: 20, lineCap: .round))
+                    // Main line
+                    context.stroke(path, with: .color(color.opacity(0.9)),
+                        style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                }
+
+                // Draw joint dots
+                let dotSize: CGFloat = 18
+                for (name, point) in joints {
+                    let sp = screenPoint(point)
+                    let color = colorForJoint(name)
+                    // Glow
+                    let glowSize = dotSize * 2.5
+                    let glowRect = CGRect(x: sp.x - glowSize/2, y: sp.y - glowSize/2, width: glowSize, height: glowSize)
+                    context.fill(Ellipse().path(in: glowRect), with: .color(color.opacity(0.2)))
+                    // Dot
+                    let rect = CGRect(x: sp.x - dotSize/2, y: sp.y - dotSize/2, width: dotSize, height: dotSize)
+                    context.fill(Ellipse().path(in: rect), with: .color(color))
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .animation(.easeInOut(duration: 0.15), value: state)
+    }
+}
+
+// MARK: - Screen Corner Radius
+
+extension UIScreen {
+    /// The physical display corner radius. Uses the private `_displayCornerRadius`
+    /// key with a safe fallback for devices where it's unavailable.
+    var displayCornerRadius: CGFloat {
+        let key = "_displayCornerRadius"
+        guard let radius = value(forKey: key) as? CGFloat, radius > 0 else {
+            return 50 // safe default for modern iPhones
+        }
+        return radius
     }
 }

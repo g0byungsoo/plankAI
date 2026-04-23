@@ -17,10 +17,10 @@ public actor AudioQueue {
         public var breathingRoom: TimeInterval
 
         public init(
-            perLineCooldown: TimeInterval = 30.0,
-            perCategoryCooldown: TimeInterval = 5.0,
-            queueDepthCap: Int = 2,
-            breathingRoom: TimeInterval = 1.0
+            perLineCooldown: TimeInterval = 90.0,
+            perCategoryCooldown: TimeInterval = 25.0,
+            queueDepthCap: Int = 1,
+            breathingRoom: TimeInterval = 5.0
         ) {
             self.perLineCooldown = perLineCooldown
             self.perCategoryCooldown = perCategoryCooldown
@@ -31,11 +31,23 @@ public actor AudioQueue {
 
     // MARK: - Priority
 
-    private static func priority(for category: VoiceCategory) -> Int {
-        switch category {
-        case .countdown: 3
-        case .milestone: 2
-        case .form, .sessionStart, .sessionEnd, .cameraBad: 1
+    /// Priority levels:
+    ///  4 = form correction (hips! shoulders! stopped!) — always wins
+    ///  3 = countdown (5, 4, 3...)
+    ///  2 = milestone, camera, session start/end
+    ///  1 = compliments (recovery, good form guide) — lowest, never interrupts
+    private static func priority(for line: VoiceLine) -> Int {
+        switch line.category {
+        case .form:
+            // Recovery/compliments are low priority, corrections are highest
+            if line.triggerState == "recovery" { return 1 }
+            return 4
+        case .countdown: return 3
+        case .milestone, .cameraBad, .sessionStart, .sessionEnd: return 2
+        case .guide:
+            // "goodForm" guide = compliment = low priority
+            if line.triggerState == "goodForm" { return 1 }
+            return 2
         }
     }
 
@@ -48,7 +60,7 @@ public actor AudioQueue {
     private var queue: [(VoiceLine, Int)] = []  // (line, priority)
     private var isPlaying = false
     private var lastPlayedLineId: [String: Date] = [:]         // per-line cooldown
-    private var lastPlayedCategory: [VoiceCategory: Date] = [] // per-category cooldown
+    private var lastPlayedCategory: [VoiceCategory: Date] = [:] // per-category cooldown
     private var playedThisSession: Set<String> = []            // session no-repeat
 
     private var eventContinuation: AsyncStream<VoiceEvent>.Continuation?
@@ -75,6 +87,8 @@ public actor AudioQueue {
     // MARK: - Public API
 
     /// Handle a session event from PlankEngine.
+    private var sessionHasStarted = false
+
     public func handleEvent(_ event: SessionEvent) async {
         let line: VoiceLine?
 
@@ -88,11 +102,22 @@ public actor AudioQueue {
         case .countdown(let seconds):
             line = lineLibrary.randomLine(for: .countdown, triggerState: "\(seconds)", excluding: playedThisSession)
         case .sessionStart:
+            sessionHasStarted = true
             line = lineLibrary.randomLine(for: .sessionStart, triggerState: nil, excluding: playedThisSession)
         case .sessionEnd:
             line = lineLibrary.randomLine(for: .sessionEnd, triggerState: nil, excluding: playedThisSession)
         case .stateChanged(.cameraBad):
             line = lineLibrary.randomLine(for: .cameraBad, triggerState: nil, excluding: playedThisSession)
+        case .stateChanged(.notInPosition):
+            if sessionHasStarted {
+                // Mid-session: they stopped planking — roast them to get back up
+                line = lineLibrary.randomLine(for: .form, triggerState: "stopped", excluding: playedThisSession)
+            } else {
+                // Pre-session: guide them into position
+                line = lineLibrary.randomLine(for: .guide, triggerState: "notInPosition", excluding: playedThisSession)
+            }
+        case .stateChanged(.goodForm):
+            line = lineLibrary.randomLine(for: .guide, triggerState: "goodForm", excluding: playedThisSession)
         default:
             line = nil
         }
@@ -115,37 +140,55 @@ public actor AudioQueue {
         queue.removeAll()
         lastPlayedLineId.removeAll()
         lastPlayedCategory.removeAll()
+        sessionHasStarted = false
     }
 
     // MARK: - Queue Logic
 
     private func enqueue(_ line: VoiceLine) async {
-        let priority = Self.priority(for: line.category)
+        let priority = Self.priority(for: line)
         let now = Date()
+        let isUrgent = priority >= 3  // corrections (4) + countdown (3)
 
-        // Per-line cooldown check
-        if let lastPlayed = lastPlayedLineId[line.id],
+        // Per-line cooldown — urgent events skip this entirely
+        if !isUrgent,
+           let lastPlayed = lastPlayedLineId[line.id],
            now.timeIntervalSince(lastPlayed) < config.perLineCooldown {
             return
         }
 
-        // Per-category cooldown check (form only)
-        if line.category == .form,
-           let lastCat = lastPlayedCategory[.form],
+        // Per-category cooldown — urgent events skip this
+        if !isUrgent,
+           let lastCat = lastPlayedCategory[line.category],
            now.timeIntervalSince(lastCat) < config.perCategoryCooldown {
             return
         }
 
-        // Higher priority interrupts current playback
-        if isPlaying, let currentPriority = queue.first?.1, priority > currentPriority {
-            provider.stop()
-            isPlaying = false
-            queue.removeAll()
+        // If already playing:
+        if isPlaying {
+            if let currentPriority = queue.first?.1 {
+                // Only interrupt if new line has strictly higher priority
+                if priority > currentPriority {
+                    provider.stop()
+                    isPlaying = false
+                    queue.removeAll()
+                } else {
+                    return // drop — don't stack
+                }
+            } else {
+                // Something is playing but queue is empty — only corrections interrupt
+                if isUrgent {
+                    provider.stop()
+                    isPlaying = false
+                } else {
+                    return
+                }
+            }
         }
 
         // Queue depth cap
         if queue.count >= config.queueDepthCap {
-            return  // Drop newer events
+            return
         }
 
         queue.append((line, priority))
@@ -156,7 +199,7 @@ public actor AudioQueue {
     }
 
     private func processQueue() async {
-        while let (line, _) = queue.first {
+        while let (line, priority) = queue.first {
             queue.removeFirst()
             isPlaying = true
 
@@ -167,8 +210,9 @@ public actor AudioQueue {
 
             await provider.play(line)
 
-            // Breathing room between lines
-            try? await Task.sleep(for: .seconds(config.breathingRoom))
+            // Breathing room: none for countdown/corrections, full for everything else
+            let pause: TimeInterval = priority >= 3 ? 0.3 : config.breathingRoom
+            try? await Task.sleep(for: .seconds(pause))
             isPlaying = false
         }
     }

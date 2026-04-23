@@ -11,20 +11,23 @@ public actor PlankSessionEngine {
     // MARK: - Configuration
 
     public struct Config: Sendable {
-        public var debounceInterval: TimeInterval
+        public var debounceToGood: TimeInterval    // slow: confirm good form
+        public var debounceToFault: TimeInterval   // fast: react to bad form immediately
         public var cameraBadThreshold: TimeInterval
         public var milestones: [Int]
         public var countdownStart: Int
         public var thresholds: PoseAnalyzer.Thresholds
 
         public init(
-            debounceInterval: TimeInterval = 2.0,
+            debounceToGood: TimeInterval = 1.0,
+            debounceToFault: TimeInterval = 0.1,
             cameraBadThreshold: TimeInterval = 3.0,
             milestones: [Int] = [10, 30, 60, 90, 120],
             countdownStart: Int = 10,
             thresholds: PoseAnalyzer.Thresholds = .init()
         ) {
-            self.debounceInterval = debounceInterval
+            self.debounceToGood = debounceToGood
+            self.debounceToFault = debounceToFault
             self.cameraBadThreshold = cameraBadThreshold
             self.milestones = milestones
             self.countdownStart = countdownStart
@@ -43,6 +46,8 @@ public actor PlankSessionEngine {
 
     private var sessionActive = false
     private var sessionStartTime: TimeInterval = 0
+    private var activePlankTime: TimeInterval = 0   // accumulated time in plank
+    private var lastActiveCheck: TimeInterval = 0   // last frame where we were planking
     private var goodFormTime: TimeInterval = 0
     private var lastFrameTime: TimeInterval = 0
     private var lastGoodFormCheck: TimeInterval = 0
@@ -104,7 +109,9 @@ public actor PlankSessionEngine {
 
         updateState(rawState, at: frame.timestamp)
 
-        if sessionActive {
+        // Only count time and check milestones/countdown while actively planking.
+        // When user stops (notInPosition/cameraBad), freeze all progress.
+        if sessionActive && currentState != .notInPosition && currentState != .cameraBad {
             updateTimers(at: frame.timestamp)
             checkMilestones(at: frame.timestamp)
             checkCountdown(at: frame.timestamp)
@@ -125,7 +132,7 @@ public actor PlankSessionEngine {
     public func endSession() {
         guard sessionActive else { return }
         sessionActive = false
-        let holdTime = lastFrameTime - sessionStartTime
+        let holdTime = activePlankTime
         let quality = computeQualityScore(holdTime: holdTime)
         emit(.sessionEnd(holdTime: holdTime, qualityScore: quality))
         eventContinuation?.finish()
@@ -149,21 +156,33 @@ public actor PlankSessionEngine {
             return .goodForm
         case .hipSag:
             return .hipSag
+        case .hipPike:
+            return .hipPike
         case .shoulderCreep:
             return .shoulderCreep
         }
     }
 
-    /// Apply debounce: state only changes if the new state holds for >= debounceInterval.
+    /// Asymmetric debounce: fast reaction to faults/stops, slow confirmation for good form.
     private func updateState(_ rawState: FormState, at time: TimeInterval) {
         if rawState == currentState {
             pendingState = nil
             return
         }
 
+        let debounce: TimeInterval
+        switch rawState {
+        case .goodForm:
+            debounce = config.debounceToGood
+        case .hipSag, .hipPike, .shoulderCreep, .notInPosition:
+            debounce = config.debounceToFault
+        case .cameraBad, .shaking:
+            debounce = config.debounceToGood
+        }
+
         if let pending = pendingState, pending == rawState {
             let elapsed = time - pendingStateStart
-            if elapsed >= config.debounceInterval {
+            if elapsed >= debounce {
                 transitionTo(rawState, at: time)
                 pendingState = nil
             }
@@ -178,17 +197,19 @@ public actor PlankSessionEngine {
         currentState = newState
         emit(.stateChanged(newState))
 
+        // Start session on any detected plank pose (good or imperfect).
+        if !sessionActive && (newState == .goodForm || newState == .hipSag || newState == .hipPike || newState == .shoulderCreep) {
+            sessionActive = true
+            sessionStartTime = time
+            lastActiveCheck = time
+            lastGoodFormCheck = time
+            emit(.sessionStart)
+        }
+
         switch (oldState, newState) {
         case (_, .goodForm) where oldState == .hipSag || oldState == .shoulderCreep:
             emit(.recovery)
-        case (.notInPosition, .goodForm):
-            if !sessionActive {
-                sessionActive = true
-                sessionStartTime = time
-                lastGoodFormCheck = time
-                emit(.sessionStart)
-            }
-        case (_, .hipSag), (_, .shoulderCreep):
+        case (_, .hipSag), (_, .hipPike), (_, .shoulderCreep):
             formFaultCount += 1
             emit(.formFault(newState))
         default:
@@ -199,6 +220,13 @@ public actor PlankSessionEngine {
     // MARK: - Timers & Milestones
 
     private func updateTimers(at time: TimeInterval) {
+        // Accumulate active plank time (only while in any plank state)
+        let delta = time - lastActiveCheck
+        if delta > 0 && delta < 1.0 { // sanity check — skip huge gaps
+            activePlankTime += delta
+        }
+        lastActiveCheck = time
+
         if currentState == .goodForm {
             goodFormTime += time - lastGoodFormCheck
         }
@@ -206,7 +234,7 @@ public actor PlankSessionEngine {
     }
 
     private func checkMilestones(at time: TimeInterval) {
-        let elapsed = Int(time - sessionStartTime)
+        let elapsed = Int(activePlankTime)
         for milestone in config.milestones where elapsed >= milestone && !firedMilestones.contains(milestone) {
             firedMilestones.insert(milestone)
             emit(.milestone(seconds: milestone))
@@ -214,13 +242,12 @@ public actor PlankSessionEngine {
     }
 
     private func checkCountdown(at time: TimeInterval) {
-        let elapsed = time - sessionStartTime
-        let remaining = Int(targetTime - elapsed)
+        let remaining = Int(targetTime - activePlankTime)
         if remaining <= config.countdownStart && remaining >= 0 && !firedCountdowns.contains(remaining) {
             firedCountdowns.insert(remaining)
             emit(.countdown(seconds: remaining))
         }
-        if elapsed >= targetTime && sessionActive {
+        if activePlankTime >= targetTime && sessionActive {
             endSession()
         }
     }

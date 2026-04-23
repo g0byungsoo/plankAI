@@ -13,7 +13,8 @@ let package = Package(
     targets: [
         .target(
             name: "PlankVoice",
-            dependencies: ["PlankEngine"]
+            dependencies: ["PlankEngine"],
+            swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(
             name: "PlankVoiceTests",

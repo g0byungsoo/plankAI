@@ -27,6 +27,7 @@ public struct VoiceLine: Sendable, Identifiable, Equatable {
 
 public enum VoiceCategory: String, Sendable, Equatable {
     case form          // roasts + encouragements
+    case guide         // positioning + form coaching cues
     case milestone     // 10s, 30s, 60s markers
     case countdown     // final 10, 5, 3-2-1
     case sessionStart
@@ -73,6 +74,68 @@ public final class SystemTTSProvider: NSObject, VoiceProvider, AVSpeechSynthesiz
     }
 
     public func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        _isPlaying = false
+    }
+}
+
+// MARK: - ElevenLabs Provider
+
+public final class ElevenLabsProvider: VoiceProvider, @unchecked Sendable {
+    private let apiKey: String
+    private let voiceId: String
+    private var player: AVAudioPlayer?
+    private var _isPlaying = false
+
+    public init(apiKey: String, voiceId: String = "03vEurziQfq3V8WZhQvn") {
+        self.apiKey = apiKey
+        self.voiceId = voiceId
+    }
+
+    public var isPlaying: Bool { _isPlaying }
+
+    public func play(_ line: VoiceLine) async {
+        let urlString = "https://api.elevenlabs.io/v1/text-to-speech/\(voiceId)"
+        guard let url = URL(string: urlString) else { return }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
+
+        let body: [String: Any] = [
+            "text": line.text,
+            "model_id": "eleven_turbo_v2_5",
+            "voice_settings": [
+                "stability": 0.4,
+                "similarity_boost": 0.75,
+                "style": 0.6
+            ]
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200,
+              !data.isEmpty
+        else { return }
+
+        do {
+            player = try AVAudioPlayer(data: data)
+            _isPlaying = true
+            player?.play()
+            while player?.isPlaying == true {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            _isPlaying = false
+        } catch {
+            _isPlaying = false
+        }
+    }
+
+    public func stop() {
+        player?.stop()
+        player = nil
         _isPlaying = false
     }
 }

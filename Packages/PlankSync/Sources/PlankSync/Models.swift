@@ -135,7 +135,7 @@ public final class ExerciseRecord {
     }
 
     /// Default exercise library for the 30-day Foundations program.
-    public static let foundations: [ExerciseRecord] = [
+    public nonisolated(unsafe) static let foundations: [ExerciseRecord] = [
         ExerciseRecord(type: "plank", unlockDay: 1, isStatic: true),
         ExerciseRecord(type: "deadBug", unlockDay: 8, isStatic: false),
         ExerciseRecord(type: "sidePlank", unlockDay: 15, isStatic: true),

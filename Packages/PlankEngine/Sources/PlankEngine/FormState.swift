@@ -1,13 +1,14 @@
 import Foundation
 
-/// The 6 form states from the session pipeline spec.
+/// Form states for the session pipeline.
 public enum FormState: String, Sendable, Equatable {
-    case notInPosition
-    case cameraBad
-    case goodForm
-    case hipSag
-    case shoulderCreep
-    case shaking // Phase 2 stretch goal
+    case notInPosition   // not detected or not in plank posture
+    case cameraBad       // low confidence / can't see body
+    case goodForm        // proper plank alignment
+    case hipSag          // hips dropping below shoulder-ankle line
+    case hipPike         // butt too high (inverted V / downward dog)
+    case shoulderCreep   // shoulders hunched up / forward
+    case shaking         // Phase 2 stretch goal
 }
 
 /// Events emitted by the session engine.
@@ -33,12 +34,14 @@ public struct PoseFrame: Sendable {
 }
 
 public enum JointName: String, Sendable, Hashable, CaseIterable {
+    case nose
     case leftShoulder, rightShoulder
     case leftHip, rightHip
     case leftKnee, rightKnee
     case leftAnkle, rightAnkle
     case leftElbow, rightElbow
     case leftWrist, rightWrist
+    case root  // center hip point
 }
 
 public struct JointData: Sendable {

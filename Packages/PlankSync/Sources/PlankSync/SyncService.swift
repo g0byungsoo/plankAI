@@ -11,7 +11,7 @@ public actor SyncService {
     private let modelContainer: ModelContainer
 
     public init(supabaseURL: URL, supabaseKey: String, modelContainer: ModelContainer) {
-        self.supabase = SupabaseClient(supabaseURL: supabaseURL, supabaseAnonKey: supabaseKey)
+        self.supabase = SupabaseClient(supabaseURL: supabaseURL, supabaseKey: supabaseKey)
         self.modelContainer = modelContainer
     }
 
@@ -77,6 +77,9 @@ public actor SyncService {
     // MARK: - Supabase Upserts
 
     private func upsertSessionToSupabase(_ session: SessionLogRecord) async {
+        let sessionId = session.id
+        let holdTime = session.holdTime
+
         do {
             try await supabase.from("session_logs")
                 .upsert([
@@ -94,8 +97,13 @@ public actor SyncService {
 
             // Clear pending flag on success
             await MainActor.run {
-                session.pendingUpsert = false
-                try? modelContainer.mainContext.save()
+                let descriptor = FetchDescriptor<SessionLogRecord>(
+                    predicate: #Predicate { $0.id == sessionId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
             }
         } catch {
             // Upsert failed. pendingUpsert stays true. Retry on next launch.

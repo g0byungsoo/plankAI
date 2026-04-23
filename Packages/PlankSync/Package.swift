@@ -15,6 +15,9 @@ let package = Package(
             name: "PlankSync",
             dependencies: [
                 .product(name: "Supabase", package: "supabase-swift"),
+            ],
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
             ]
         ),
         .testTarget(
