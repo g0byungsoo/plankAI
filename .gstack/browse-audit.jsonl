@@ -1,0 +1,4 @@
+{"ts":"2026-04-22T19:47:18.268Z","cmd":"goto","args":"file:///tmp/gstack-sketch-plankai.html","origin":"file:///tmp/gstack-sketch-plankai.html","durationMs":17,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-04-22T19:47:21.326Z","cmd":"screenshot","args":"/tmp/gstack-sketch-plankai.png","origin":"file:///tmp/gstack-sketch-plankai.html","durationMs":78,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-04-22T19:52:19.794Z","cmd":"goto","args":"file:///tmp/gstack-sketch-plankai-v2.html","origin":"file:///tmp/gstack-sketch-plankai-v2.html","durationMs":127,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-04-22T19:52:20.340Z","cmd":"screenshot","args":"/tmp/gstack-sketch-plankai-v2.png","origin":"file:///tmp/gstack-sketch-plankai-v2.html","durationMs":508,"status":"ok","hasCookies":false,"mode":"launched"}

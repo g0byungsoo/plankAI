@@ -1,0 +1,4 @@
+[2026-04-22T19:47:18.258Z] GET file:///tmp/gstack-sketch-plankai.html → 200 (5ms, 12187B)
+[2026-04-22T19:52:19.694Z] GET file:///tmp/gstack-sketch-plankai-v2.html → 200 (25ms, 13194B)
+[2026-04-22T19:52:19.782Z] GET https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap → 200 (224ms, 3524B)
+[2026-04-22T19:52:20.026Z] GET https://fonts.gstatic.com/s/dmsans/v17/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu0-K6z9mXg.woff2 → 200 (229ms, 36980B)
