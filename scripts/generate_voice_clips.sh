@@ -4,7 +4,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 OUTPUT_DIR="$PROJECT_DIR/PlankApp/Resources/VoiceClips"
 source "$PROJECT_DIR/.env"
-VOICE_ID="03vEurziQfq3V8WZhQvn"
+# Voice IDs per trainer
+KIRA_VOICE="03vEurziQfq3V8WZhQvn"
+SARAH_VOICE="nf4MCGNSdM0hxM95ZBQR"
+MATSON_VOICE="ZRwrL4id6j1HPGFkeCzO"
+# Default voice for existing clips
+VOICE_ID="$KIRA_VOICE"
 API_URL="https://api.elevenlabs.io/v1/text-to-speech/$VOICE_ID"
 mkdir -p "$OUTPUT_DIR"
 

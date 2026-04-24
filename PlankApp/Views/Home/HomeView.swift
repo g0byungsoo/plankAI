@@ -1,14 +1,39 @@
 import SwiftUI
+import SwiftData
+import PlankSync
 
 /// The home screen. Adapts between first-time (launchpad) and returning-user (dashboard).
 struct HomeView: View {
-    @State private var currentDay = 1
-    @State private var streakCount = 0
-    @State private var coreScore = 0.0
-    @State private var userName = ""
-    @State private var hasCompletedFirstSession = false
+    @AppStorage("userName") private var userName = ""
+    @AppStorage("hasCompletedFirstSession") private var hasCompletedFirstSession = false
+
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \SessionLogRecord.completedAt, order: .reverse) private var sessionLogs: [SessionLogRecord]
+    @Query(sort: \DayProgressRecord.programDay, order: .reverse) private var dayProgress: [DayProgressRecord]
+
+    @State private var showPreSession = false
     @State private var showSession = false
-    @State private var programPhase = "foundations"
+    @State private var lastHoldTime: TimeInterval = 0
+    @State private var lastQuality: Double = 0
+    @State private var showPostSession = false
+
+    private var currentDay: Int {
+        (dayProgress.first?.programDay ?? 0) + 1
+    }
+
+    private var streakCount: Int {
+        // Count consecutive days with sessions (simplified)
+        dayProgress.count
+    }
+
+    private var coreScore: Double {
+        sessionLogs.first?.qualityScore ?? 0
+    }
+
+    private var previousScore: Double? {
+        guard sessionLogs.count >= 2 else { return nil }
+        return sessionLogs[1].qualityScore
+    }
 
     var body: some View {
         NavigationStack {
@@ -32,20 +57,89 @@ struct HomeView: View {
                 .padding(.top, Space.xl)
             }
             .background(Palette.bgPrimary)
+            .fullScreenCover(isPresented: $showPreSession) {
+                PreSessionView(
+                    exerciseType: "Standard Plank",
+                    dayNumber: currentDay
+                ) {
+                    showPreSession = false
+                    showSession = true
+                } onDismiss: {
+                    showPreSession = false
+                }
+            }
             .fullScreenCover(isPresented: $showSession) {
                 SessionView(
                     exerciseType: "Standard Plank",
                     dayNumber: currentDay,
                     targetTime: 60
                 ) { holdTime, quality, faults in
+                    lastHoldTime = holdTime
+                    lastQuality = quality
                     showSession = false
                     hasCompletedFirstSession = true
-                    coreScore = quality
-                    streakCount += 1
-                    // Save session via PlankSync
+
+                    // Persist session to SwiftData
+                    saveSession(holdTime: holdTime, quality: quality, faults: faults)
+
+                    showPostSession = true
+                }
+            }
+            .fullScreenCover(isPresented: $showPostSession) {
+                PostSessionView(
+                    holdTime: lastHoldTime,
+                    qualityScore: lastQuality,
+                    dayNumber: currentDay,
+                    streakCount: streakCount,
+                    previousScore: previousScore,
+                    playedLines: []
+                ) {
+                    showPostSession = false
                 }
             }
         }
+    }
+
+    // MARK: - Persistence
+
+    private func saveSession(holdTime: Double, quality: Double, faults: Int) {
+        let userId = "local-user" // placeholder until auth
+
+        // 1. Append SessionLog
+        let session = SessionLogRecord(
+            userId: userId,
+            exerciseType: "plank",
+            holdTime: holdTime,
+            targetTime: 60,
+            qualityScore: quality,
+            formFaultsCount: faults
+        )
+        modelContext.insert(session)
+
+        // 2. Update/insert DayProgress
+        let day = currentDay
+        let compositeKey = "\(userId):\(day)"
+        let descriptor = FetchDescriptor<DayProgressRecord>(
+            predicate: #Predicate { $0.compositeKey == compositeKey }
+        )
+
+        if let existing = try? modelContext.fetch(descriptor).first {
+            existing.primarySessionId = session.id
+            existing.primaryQualityScore = quality
+            existing.primaryHoldTime = holdTime
+            existing.updatedAt = .now
+        } else {
+            let progress = DayProgressRecord(
+                userId: userId,
+                programDay: day,
+                primarySessionId: session.id,
+                primaryQualityScore: quality,
+                primaryHoldTime: holdTime
+            )
+            modelContext.insert(progress)
+        }
+
+        try? modelContext.save()
     }
 
     // MARK: - First-Time Header (Launchpad)
@@ -78,7 +172,7 @@ struct HomeView: View {
                     .font(Typo.body)
                     .foregroundStyle(Palette.textPrimary)
                     .fontWeight(.bold)
-                Text("of \(programPhase == "foundations" ? "30" : "∞"). Don't blow it.")
+                Text("of 30. Don't blow it.")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textSecondary)
             }
@@ -103,7 +197,8 @@ struct HomeView: View {
                 .foregroundStyle(Palette.textSecondary)
 
             Button {
-                showSession = true
+                Haptics.medium()
+                showPreSession = true
             } label: {
                 Text(hasCompletedFirstSession ? "START SESSION" : "START YOUR FIRST PLANK")
                     .font(Typo.body)
@@ -130,7 +225,7 @@ struct HomeView: View {
         .plankShadow()
     }
 
-    // MARK: - Stats (post first session)
+    // MARK: - Stats
 
     private var statsSection: some View {
         HStack(spacing: Space.sm) {

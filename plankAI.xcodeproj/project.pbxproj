@@ -66,6 +66,13 @@
 		783187D62F9ADA810096138F /* hip_sag_4.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187972F9ADA810096138F /* hip_sag_4.m4a */; };
 		783187D72F9ADA810096138F /* shoulder_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187A32F9ADA810096138F /* shoulder_1.m4a */; };
 		783187D82F9ADA810096138F /* guide_setup_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7831878D2F9ADA810096138F /* guide_setup_1.m4a */; };
+		783187DC2F9AED9D0096138F /* PreSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783187DB2F9AED9D0096138F /* PreSessionView.swift */; };
+		783187DE2F9AF2060096138F /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783187DD2F9AF2060096138F /* Haptics.swift */; };
+		783187E02F9B00FD0096138F /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783187DF2F9B00FD0096138F /* OnboardingView.swift */; };
+		783187E22F9B1A980096138F /* OnboardingComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783187E12F9B1A980096138F /* OnboardingComponents.swift */; };
+		783187F32F9B30000096138F /* kira_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187F02F9B30000096138F /* kira_preview.m4a */; };
+		783187F42F9B30000096138F /* sarah_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187F12F9B30000096138F /* sarah_preview.m4a */; };
+		783187F52F9B30000096138F /* matson_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187F22F9B30000096138F /* matson_preview.m4a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -126,6 +133,13 @@
 		783187AA2F9ADA810096138F /* stopped_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = stopped_2.m4a; sourceTree = "<group>"; };
 		783187AB2F9ADA810096138F /* stopped_3.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = stopped_3.m4a; sourceTree = "<group>"; };
 		783187AC2F9ADA810096138F /* stopped_4.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = stopped_4.m4a; sourceTree = "<group>"; };
+		783187F02F9B30000096138F /* kira_preview.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = kira_preview.m4a; sourceTree = "<group>"; };
+		783187F12F9B30000096138F /* sarah_preview.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = sarah_preview.m4a; sourceTree = "<group>"; };
+		783187F22F9B30000096138F /* matson_preview.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = matson_preview.m4a; sourceTree = "<group>"; };
+		783187DB2F9AED9D0096138F /* PreSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreSessionView.swift; sourceTree = "<group>"; };
+		783187DD2F9AF2060096138F /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
+		783187DF2F9B00FD0096138F /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		783187E12F9B1A980096138F /* OnboardingComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingComponents.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -171,6 +185,7 @@
 			isa = PBXGroup;
 			children = (
 				783186512F99E4130096138F /* Tokens.swift */,
+				783187DD2F9AF2060096138F /* Haptics.swift */,
 			);
 			path = DesignSystem;
 			sourceTree = "<group>";
@@ -193,6 +208,8 @@
 		783186562F99E4130096138F /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
+				783187DF2F9B00FD0096138F /* OnboardingView.swift */,
+				783187E12F9B1A980096138F /* OnboardingComponents.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -215,6 +232,7 @@
 		7831865B2F99E4130096138F /* Session */ = {
 			isa = PBXGroup;
 			children = (
+				783187DB2F9AED9D0096138F /* PreSessionView.swift */,
 				7831865A2F99E4130096138F /* SessionView.swift */,
 			);
 			path = Session;
@@ -329,6 +347,9 @@
 				783187AA2F9ADA810096138F /* stopped_2.m4a */,
 				783187AB2F9ADA810096138F /* stopped_3.m4a */,
 				783187AC2F9ADA810096138F /* stopped_4.m4a */,
+				783187F02F9B30000096138F /* kira_preview.m4a */,
+				783187F12F9B30000096138F /* sarah_preview.m4a */,
+				783187F22F9B30000096138F /* matson_preview.m4a */,
 			);
 			path = VoiceClips;
 			sourceTree = "<group>";
@@ -451,6 +472,9 @@
 				7831867C2F9A0B0C0096138F /* DMSans-Light.ttf in Resources */,
 				7831867D2F9A0B0C0096138F /* DMSans-Medium.ttf in Resources */,
 				783186692F99E4130096138F /* Assets.xcassets in Resources */,
+				783187F32F9B30000096138F /* kira_preview.m4a in Resources */,
+				783187F42F9B30000096138F /* sarah_preview.m4a in Resources */,
+				783187F52F9B30000096138F /* matson_preview.m4a in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -463,11 +487,15 @@
 			files = (
 				783186622F99E4130096138F /* HomeView.swift in Sources */,
 				783186632F99E4130096138F /* PlankAIApp.swift in Sources */,
+				783187DE2F9AF2060096138F /* Haptics.swift in Sources */,
 				783186642F99E4130096138F /* CameraManager.swift in Sources */,
 				783186652F99E4130096138F /* PostSessionView.swift in Sources */,
 				783186662F99E4130096138F /* RoastCardView.swift in Sources */,
 				783186672F99E4130096138F /* SessionView.swift in Sources */,
+				783187DC2F9AED9D0096138F /* PreSessionView.swift in Sources */,
 				783186682F99E4130096138F /* Tokens.swift in Sources */,
+				783187E02F9B00FD0096138F /* OnboardingView.swift in Sources */,
+				783187E22F9B1A980096138F /* OnboardingComponents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

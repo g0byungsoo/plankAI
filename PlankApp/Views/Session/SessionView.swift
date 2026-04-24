@@ -295,6 +295,13 @@ struct SessionView: View {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     currentState = state
                 }
+                // Haptic feedback for state changes
+                switch state {
+                case .goodForm: Haptics.success()
+                case .hipSag, .hipPike, .shoulderCreep: Haptics.warning()
+                case .notInPosition where sessionActive: Haptics.error()
+                default: break
+                }
                 // Pause/resume timer based on plank state
                 if sessionActive {
                     if state == .notInPosition || state == .cameraBad {
@@ -309,6 +316,7 @@ struct SessionView: View {
                     startTimer()
                 }
             case .sessionEnd(let time, let score):
+                Haptics.heavy()
                 holdTime = time
                 qualityScore = score
                 sessionEnded = true
@@ -316,8 +324,9 @@ struct SessionView: View {
                 camera.stopSession()
                 onComplete(time, score, 0)
             case .milestone:
-                // Subtle flash
-                break
+                Haptics.medium()
+            case .countdown:
+                Haptics.light()
             default:
                 break
             }
