@@ -294,9 +294,7 @@ struct SessionView: View {
         }
 
         // Listen for events
-        print("[UI] Starting event loop")
         for await event in eventStream {
-            print("[UI] Received event: \(event)")
             // Forward all events to voice feedback.
             if !audioMuted {
                 Task { await audioQueue.handleEvent(event) }

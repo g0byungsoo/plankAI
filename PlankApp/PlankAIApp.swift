@@ -62,6 +62,7 @@ struct PlankAIApp: App {
             DayProgressRecord.self,
             ExerciseRecord.self,
             ExerciseCalibrationRecord.self,
+            SessionRatingRecord.self,
         ])
     }
 }

@@ -64,6 +64,14 @@ public final class SessionLogRecord {
     public var modifiedVersion: Bool
     public var pendingUpsert: Bool
 
+    // v2: routine session support
+    public var sessionType: String          // "plank_benchmark" | "routine"
+    public var presetId: String?            // WorkoutPreset.id if from a preset
+    public var exerciseResults: Data?       // JSON-encoded [ExerciseResultEntry]
+    public var totalDuration: Double?       // seconds, full routine duration
+    public var plankHoldTime: Double?       // benchmark hold time (if closer done)
+    public var plankFormScore: Double?      // benchmark form score (if closer done)
+
     public init(
         id: String = UUID().uuidString,
         userId: String,
@@ -73,7 +81,13 @@ public final class SessionLogRecord {
         targetTime: Double,
         qualityScore: Double,
         formFaultsCount: Int = 0,
-        modifiedVersion: Bool = false
+        modifiedVersion: Bool = false,
+        sessionType: String = "plank_benchmark",
+        presetId: String? = nil,
+        exerciseResults: Data? = nil,
+        totalDuration: Double? = nil,
+        plankHoldTime: Double? = nil,
+        plankFormScore: Double? = nil
     ) {
         self.id = id
         self.userId = userId
@@ -85,6 +99,39 @@ public final class SessionLogRecord {
         self.formFaultsCount = formFaultsCount
         self.modifiedVersion = modifiedVersion
         self.pendingUpsert = true
+        self.sessionType = sessionType
+        self.presetId = presetId
+        self.exerciseResults = exerciseResults
+        self.totalDuration = totalDuration
+        self.plankHoldTime = plankHoldTime
+        self.plankFormScore = plankFormScore
+    }
+}
+
+// MARK: - Exercise Result Entry (encoded as JSON in SessionLogRecord.exerciseResults)
+
+public struct ExerciseResultEntry: Codable {
+    public let exerciseId: String
+    public let duration: Int           // planned duration
+    public let completedDuration: Int  // actual time spent
+    public let skipped: Bool
+
+    public init(exerciseId: String, duration: Int, completedDuration: Int, skipped: Bool) {
+        self.exerciseId = exerciseId
+        self.duration = duration
+        self.completedDuration = completedDuration
+        self.skipped = skipped
+    }
+}
+
+extension SessionLogRecord {
+    public var decodedExerciseResults: [ExerciseResultEntry] {
+        guard let data = exerciseResults else { return [] }
+        return (try? JSONDecoder().decode([ExerciseResultEntry].self, from: data)) ?? []
+    }
+
+    public func encodeExerciseResults(_ results: [ExerciseResultEntry]) -> Data? {
+        try? JSONEncoder().encode(results)
     }
 }
 
@@ -100,6 +147,9 @@ public final class DayProgressRecord {
     public var primaryQualityScore: Double
     public var primaryHoldTime: Double
     public var updatedAt: Date
+
+    // v2: multiple sessions per day (routine + benchmark)
+    public var sessionLogIds: [String]?
 
     public init(
         userId: String,
@@ -117,6 +167,30 @@ public final class DayProgressRecord {
         self.primaryQualityScore = primaryQualityScore
         self.primaryHoldTime = primaryHoldTime
         self.updatedAt = .now
+    }
+}
+
+// MARK: - Session Rating
+
+@Model
+public final class SessionRatingRecord {
+    @Attribute(.unique) public var id: String
+    public var sessionLogId: String
+    public var rating: Int             // 1-5 stars
+    public var tags: [String]          // "too_easy", "too_hard", "loved_it", "boring"
+    public var createdAt: Date
+
+    public init(
+        id: String = UUID().uuidString,
+        sessionLogId: String,
+        rating: Int,
+        tags: [String] = []
+    ) {
+        self.id = id
+        self.sessionLogId = sessionLogId
+        self.rating = rating
+        self.tags = tags
+        self.createdAt = .now
     }
 }
 

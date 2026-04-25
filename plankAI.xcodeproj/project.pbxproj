@@ -73,6 +73,12 @@
 		783187F32F9B30000096138F /* kira_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187F02F9B30000096138F /* kira_preview.m4a */; };
 		783187F42F9B30000096138F /* sarah_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187F12F9B30000096138F /* sarah_preview.m4a */; };
 		783187F52F9B30000096138F /* matson_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187F22F9B30000096138F /* matson_preview.m4a */; };
+		AA0001012FA1000100000001 /* ExerciseBank.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001002FA1000100000001 /* ExerciseBank.swift */; };
+		AA0001032FA1000100000002 /* WorkoutPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001022FA1000100000002 /* WorkoutPreset.swift */; };
+		AA0001052FA1000100000003 /* WorkoutGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001042FA1000100000003 /* WorkoutGenerator.swift */; };
+		AA0001072FA1000100000004 /* RoutineSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001062FA1000100000004 /* RoutineSessionViewModel.swift */; };
+		AA0001092FA1000100000005 /* RoutineSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001082FA1000100000005 /* RoutineSessionView.swift */; };
+		AA00010B2FA1000100000006 /* PostRoutineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00010A2FA1000100000006 /* PostRoutineView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -140,6 +146,12 @@
 		783187DD2F9AF2060096138F /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		783187DF2F9B00FD0096138F /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		783187E12F9B1A980096138F /* OnboardingComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingComponents.swift; sourceTree = "<group>"; };
+		AA0001002FA1000100000001 /* ExerciseBank.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseBank.swift; sourceTree = "<group>"; };
+		AA0001022FA1000100000002 /* WorkoutPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPreset.swift; sourceTree = "<group>"; };
+		AA0001042FA1000100000003 /* WorkoutGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGenerator.swift; sourceTree = "<group>"; };
+		AA0001062FA1000100000004 /* RoutineSessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineSessionViewModel.swift; sourceTree = "<group>"; };
+		AA0001082FA1000100000005 /* RoutineSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineSessionView.swift; sourceTree = "<group>"; };
+		AA00010A2FA1000100000006 /* PostRoutineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostRoutineView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -246,6 +258,26 @@
 			path = Share;
 			sourceTree = "<group>";
 		};
+		AA00010C2FA1000100000007 /* Routine */ = {
+			isa = PBXGroup;
+			children = (
+				AA0001062FA1000100000004 /* RoutineSessionViewModel.swift */,
+				AA0001082FA1000100000005 /* RoutineSessionView.swift */,
+				AA00010A2FA1000100000006 /* PostRoutineView.swift */,
+			);
+			path = Routine;
+			sourceTree = "<group>";
+		};
+		AA00010D2FA1000100000008 /* Workout */ = {
+			isa = PBXGroup;
+			children = (
+				AA0001002FA1000100000001 /* ExerciseBank.swift */,
+				AA0001022FA1000100000002 /* WorkoutPreset.swift */,
+				AA0001042FA1000100000003 /* WorkoutGenerator.swift */,
+			);
+			path = Workout;
+			sourceTree = "<group>";
+		};
 		7831865E2F99E4130096138F /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -254,6 +286,7 @@
 				783186562F99E4130096138F /* Onboarding */,
 				783186572F99E4130096138F /* Paywall */,
 				783186592F99E4130096138F /* PostSession */,
+				AA00010C2FA1000100000007 /* Routine */,
 				7831865B2F99E4130096138F /* Session */,
 				7831865D2F99E4130096138F /* Share */,
 			);
@@ -266,6 +299,7 @@
 				783186502F99E4130096138F /* Camera */,
 				783186522F99E4130096138F /* DesignSystem */,
 				7831865E2F99E4130096138F /* Views */,
+				AA00010D2FA1000100000008 /* Workout */,
 				7831865F2F99E4130096138F /* Assets.xcassets */,
 				783186602F99E4130096138F /* PlankAIApp.swift */,
 				783186792F9A0B0C0096138F /* Resources */,
@@ -496,6 +530,12 @@
 				783186682F99E4130096138F /* Tokens.swift in Sources */,
 				783187E02F9B00FD0096138F /* OnboardingView.swift in Sources */,
 				783187E22F9B1A980096138F /* OnboardingComponents.swift in Sources */,
+				AA0001012FA1000100000001 /* ExerciseBank.swift in Sources */,
+				AA0001032FA1000100000002 /* WorkoutPreset.swift in Sources */,
+				AA0001052FA1000100000003 /* WorkoutGenerator.swift in Sources */,
+				AA0001072FA1000100000004 /* RoutineSessionViewModel.swift in Sources */,
+				AA0001092FA1000100000005 /* RoutineSessionView.swift in Sources */,
+				AA00010B2FA1000100000006 /* PostRoutineView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
