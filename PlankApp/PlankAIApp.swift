@@ -43,7 +43,13 @@ struct PlankAIApp: App {
             } else {
                 OnboardingView { data in
                     userName = data.name
-                    userGoal = data.goal
+                    // Map focusArea to WorkoutGoal for v2 routine selection
+                    switch data.focusArea {
+                    case "abs": userGoal = "definition"
+                    case "obliques": userGoal = "sculpting"
+                    case "lowerBack": userGoal = "strength"
+                    default: userGoal = "fullCore"
+                    }
                     userExperience = data.experience
                     voicePreference = data.voicePreference
                     UserDefaults.standard.set(data.ageRange, forKey: "ageRange")
