@@ -166,8 +166,8 @@ generate "rest_2" "Breathe."
 generate "rest_3" "Shake it out."
 generate "rest_4" "Quick break."
 
-# Countdown — with pauses
-generate "exercise_countdown" "Three... two... one... go."
+# Exercise cues — one or two words max
+generate "exercise_countdown" "Go."
 generate "exercise_almost" "Five seconds."
 generate "exercise_done" "Time."
 

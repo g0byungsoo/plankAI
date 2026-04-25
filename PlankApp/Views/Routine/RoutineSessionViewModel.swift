@@ -98,12 +98,9 @@ final class RoutineSessionViewModel {
     func start() {
         guard case .preview(0) = phase else { return }
         activeStartTime = Date()
-        timeRemaining = 3
+        timeRemaining = 4  // 4s preview: 1s silence + 3s for intro clip
         audio.setup()
-        // Play exercise intro for first exercise (session start is implicit)
-        if let slot = workout.exercises.first {
-            audio.onExercisePreview(exerciseId: slot.exerciseId)
-        }
+        Haptics.heavy()
         startTimer()
     }
 
@@ -120,6 +117,7 @@ final class RoutineSessionViewModel {
     func skip() {
         guard case .active(let index) = phase else { return }
 
+        Haptics.light()
         audio.onSkip()
         let slot = workout.exercises[index]
         exerciseResults.append(ExerciseResultEntry(
@@ -158,8 +156,13 @@ final class RoutineSessionViewModel {
 
         switch phase {
         case .preview(let index):
+            // Play intro clip 2s into preview (after the 1s settle)
+            if timeRemaining == 2 {
+                audio.onExercisePreview(exerciseId: workout.exercises[index].exerciseId)
+            }
             if timeRemaining <= 0 {
-                // "3, 2, 1, go" then start
+                // Go! Heavy haptic marks the start
+                Haptics.heavy()
                 audio.onExerciseStart()
                 let slot = workout.exercises[index]
                 phase = .active(exerciseIndex: index)
@@ -170,39 +173,65 @@ final class RoutineSessionViewModel {
         case .active(let index):
             exerciseElapsed += 1
             let slot = workout.exercises[index]
-            // Voice cues during exercise (cooldown prevents overlaps)
-            if let exercise = slot.exercise {
+            let remaining = timeRemaining
+
+            // Haptic countdown: tick at 3, 2, 1
+            if remaining <= 3 && remaining >= 1 {
+                Haptics.tick()
+            }
+
+            // Voice: "five seconds" at 5s remaining
+            if remaining == 5 {
+                audio.onExerciseAlmost()
+            }
+
+            // Periodic voice cues (cooldown + spacing prevents overlap)
+            if let exercise = slot.exercise, remaining > 8 {
                 audio.onActiveTick(
                     exerciseType: exercise.type,
                     secondsIn: exerciseElapsed,
                     duration: slot.duration
                 )
             }
-            if timeRemaining <= 0 {
-                // Exercise complete — just play "time"
-                audio.onExerciseDone()
+
+            if remaining <= 0 {
+                // Exercise complete
+                let isLastExercise = (index + 1) >= workout.exercises.count
                 exerciseResults.append(ExerciseResultEntry(
                     exerciseId: slot.exerciseId,
                     duration: slot.duration,
                     completedDuration: slot.duration,
                     skipped: false
                 ))
-                advanceToRest(index: index)
+                if isLastExercise {
+                    // Last exercise: go straight to done, one clip only
+                    Haptics.success()
+                    finishSession()
+                } else {
+                    // Not last: short "time" + haptic, then rest
+                    Haptics.medium()
+                    audio.onExerciseDone()
+                    advanceToRest(index: index)
+                }
             }
 
         case .rest(let index):
-            // Play rest cue once at the start of rest
+            // Rest haptic: soft pulse at start
             if timeRemaining == workout.exercises[index].restAfter - 1 {
+                Haptics.soft()
                 audio.onRest()
+            }
+            // Haptic tick 2s before rest ends
+            if timeRemaining == 2 {
+                Haptics.tick()
             }
             if timeRemaining <= 0 {
                 let nextIndex = index + 1
                 if nextIndex < workout.exercises.count {
-                    // Go straight to preview — the intro plays there
                     phase = .preview(exerciseIndex: nextIndex)
-                    timeRemaining = 3
-                    audio.onExercisePreview(exerciseId: workout.exercises[nextIndex].exerciseId)
+                    timeRemaining = 4  // 4s: 1s settle + intro at 2s + go at 0
                 } else {
+                    Haptics.success()
                     finishSession()
                 }
             }
@@ -226,7 +255,11 @@ final class RoutineSessionViewModel {
     private func finishSession() {
         timerTask?.cancel()
         phase = .done
-        audio.onSessionDone()
+        // Delay the done clip so it doesn't stack on the last exercise
+        Task {
+            try? await clock.sleep(for: .seconds(1))
+            audio.onSessionDone()
+        }
         onComplete(exerciseResults, totalElapsed)
     }
 }
