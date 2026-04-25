@@ -99,7 +99,7 @@ final class RoutineSessionViewModel {
         guard case .preview(0) = phase else { return }
         activeStartTime = Date()
         timeRemaining = 4  // 4s preview: 1s silence + 3s for intro clip
-        audio.setup()
+        audio.activate()
         Haptics.vibrate()
         startTimer()
     }
@@ -132,6 +132,7 @@ final class RoutineSessionViewModel {
 
     func end() {
         timerTask?.cancel()
+        audio.deactivate()
         finishSession()
     }
 
@@ -259,6 +260,9 @@ final class RoutineSessionViewModel {
         Task {
             try? await clock.sleep(for: .seconds(1))
             audio.onSessionDone()
+            // Deactivate audio session after done clip finishes
+            try? await clock.sleep(for: .seconds(2))
+            audio.deactivate()
         }
         onComplete(exerciseResults, totalElapsed)
     }

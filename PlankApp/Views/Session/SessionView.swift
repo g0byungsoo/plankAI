@@ -264,6 +264,8 @@ struct SessionView: View {
             camera.stopSession()
             // Lock back to portrait
             OrientationManager.shared.allowedOrientations = .portrait
+            // Release audio session so other apps can resume
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         }
     }
 
@@ -271,7 +273,8 @@ struct SessionView: View {
 
     private func startSession() async {
         // Set up audio session for voice playback over speaker.
-        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+        // .duckOthers lowers music volume during voice clips.
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.duckOthers])
         try? AVAudioSession.sharedInstance().setActive(true)
 
         // IMPORTANT: Access the event stream BEFORE starting the camera.
