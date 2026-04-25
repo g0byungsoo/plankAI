@@ -83,7 +83,6 @@
 		BB3E5A102FA2003459 /* exercise_almost.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBD516C02FA200C6AD /* exercise_almost.m4a */; };
 		BBCBD2982FA200ABBD /* exercise_countdown.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBA46E212FA2002DF5 /* exercise_countdown.m4a */; };
 		BB0F71762FA200B2ED /* exercise_done.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB0E2C2E2FA200D6E9 /* exercise_done.m4a */; };
-		BBB96EA12FA200927B /* exercise_halfway.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB0975052FA2000A0E /* exercise_halfway.m4a */; };
 		BB36FA7A2FA20002AC /* hold_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB6F8E132FA2002598 /* hold_1.m4a */; };
 		BBA9549D2FA200618C /* hold_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBEDE4CA2FA200D5B1 /* hold_2.m4a */; };
 		BBF86C552FA20034A4 /* hold_3.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB72983E2FA2002F17 /* hold_3.m4a */; };
@@ -118,9 +117,6 @@
 		BBFFDBF32FA200A78B /* rest_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBA3130B2FA200431D /* rest_2.m4a */; };
 		BB3B7DCB2FA200ADB3 /* rest_3.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB493DB52FA2009462 /* rest_3.m4a */; };
 		BBA1E2282FA20067B0 /* rest_4.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB86F8932FA200B1EA /* rest_4.m4a */; };
-		BB0F6EA52FA200E26D /* rest_next_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBD2C5262FA20019D4 /* rest_next_1.m4a */; };
-		BBAB76522FA2007E20 /* rest_next_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB5C48642FA2008F9D /* rest_next_2.m4a */; };
-		BB9ABDB82FA2005DFF /* rest_next_3.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB45AE7B2FA2004263 /* rest_next_3.m4a */; };
 		BB4FB9232FA2006E5F /* routine_done_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBF739FA2FA200A202 /* routine_done_1.m4a */; };
 		BB4C5B992FA20053CA /* routine_done_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBDEA8BC2FA200E276 /* routine_done_2.m4a */; };
 		BBF1D8DA2FA2009033 /* routine_done_3.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBACA7ED2FA200B92E /* routine_done_3.m4a */; };
@@ -213,7 +209,6 @@
 		BBD516C02FA200C6AD /* exercise_almost.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = exercise_almost.m4a; sourceTree = "<group>"; };
 		BBA46E212FA2002DF5 /* exercise_countdown.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = exercise_countdown.m4a; sourceTree = "<group>"; };
 		BB0E2C2E2FA200D6E9 /* exercise_done.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = exercise_done.m4a; sourceTree = "<group>"; };
-		BB0975052FA2000A0E /* exercise_halfway.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = exercise_halfway.m4a; sourceTree = "<group>"; };
 		BB6F8E132FA2002598 /* hold_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = hold_1.m4a; sourceTree = "<group>"; };
 		BBEDE4CA2FA200D5B1 /* hold_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = hold_2.m4a; sourceTree = "<group>"; };
 		BB72983E2FA2002F17 /* hold_3.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = hold_3.m4a; sourceTree = "<group>"; };
@@ -248,9 +243,6 @@
 		BBA3130B2FA200431D /* rest_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = rest_2.m4a; sourceTree = "<group>"; };
 		BB493DB52FA2009462 /* rest_3.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = rest_3.m4a; sourceTree = "<group>"; };
 		BB86F8932FA200B1EA /* rest_4.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = rest_4.m4a; sourceTree = "<group>"; };
-		BBD2C5262FA20019D4 /* rest_next_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = rest_next_1.m4a; sourceTree = "<group>"; };
-		BB5C48642FA2008F9D /* rest_next_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = rest_next_2.m4a; sourceTree = "<group>"; };
-		BB45AE7B2FA2004263 /* rest_next_3.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = rest_next_3.m4a; sourceTree = "<group>"; };
 		BBF739FA2FA200A202 /* routine_done_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = routine_done_1.m4a; sourceTree = "<group>"; };
 		BBDEA8BC2FA200E276 /* routine_done_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = routine_done_2.m4a; sourceTree = "<group>"; };
 		BBACA7ED2FA200B92E /* routine_done_3.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = routine_done_3.m4a; sourceTree = "<group>"; };
@@ -504,7 +496,6 @@
 				BBD516C02FA200C6AD /* exercise_almost.m4a */,
 				BBA46E212FA2002DF5 /* exercise_countdown.m4a */,
 				BB0E2C2E2FA200D6E9 /* exercise_done.m4a */,
-				BB0975052FA2000A0E /* exercise_halfway.m4a */,
 				BB6F8E132FA2002598 /* hold_1.m4a */,
 				BBEDE4CA2FA200D5B1 /* hold_2.m4a */,
 				BB72983E2FA2002F17 /* hold_3.m4a */,
@@ -539,9 +530,6 @@
 				BBA3130B2FA200431D /* rest_2.m4a */,
 				BB493DB52FA2009462 /* rest_3.m4a */,
 				BB86F8932FA200B1EA /* rest_4.m4a */,
-				BBD2C5262FA20019D4 /* rest_next_1.m4a */,
-				BB5C48642FA2008F9D /* rest_next_2.m4a */,
-				BB45AE7B2FA2004263 /* rest_next_3.m4a */,
 				BBF739FA2FA200A202 /* routine_done_1.m4a */,
 				BBDEA8BC2FA200E276 /* routine_done_2.m4a */,
 				BBACA7ED2FA200B92E /* routine_done_3.m4a */,
@@ -686,7 +674,6 @@
 				BB3E5A102FA2003459 /* exercise_almost.m4a in Resources */,
 				BBCBD2982FA200ABBD /* exercise_countdown.m4a in Resources */,
 				BB0F71762FA200B2ED /* exercise_done.m4a in Resources */,
-				BBB96EA12FA200927B /* exercise_halfway.m4a in Resources */,
 				BB36FA7A2FA20002AC /* hold_1.m4a in Resources */,
 				BBA9549D2FA200618C /* hold_2.m4a in Resources */,
 				BBF86C552FA20034A4 /* hold_3.m4a in Resources */,
@@ -721,9 +708,6 @@
 				BBFFDBF32FA200A78B /* rest_2.m4a in Resources */,
 				BB3B7DCB2FA200ADB3 /* rest_3.m4a in Resources */,
 				BBA1E2282FA20067B0 /* rest_4.m4a in Resources */,
-				BB0F6EA52FA200E26D /* rest_next_1.m4a in Resources */,
-				BBAB76522FA2007E20 /* rest_next_2.m4a in Resources */,
-				BB9ABDB82FA2005DFF /* rest_next_3.m4a in Resources */,
 				BB4FB9232FA2006E5F /* routine_done_1.m4a in Resources */,
 				BB4C5B992FA20053CA /* routine_done_2.m4a in Resources */,
 				BBF1D8DA2FA2009033 /* routine_done_3.m4a in Resources */,

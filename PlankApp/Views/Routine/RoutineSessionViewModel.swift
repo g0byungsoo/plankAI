@@ -100,13 +100,9 @@ final class RoutineSessionViewModel {
         activeStartTime = Date()
         timeRemaining = 3
         audio.setup()
-        audio.onSessionStart()
-        // Play exercise intro after session start clip
+        // Play exercise intro for first exercise (session start is implicit)
         if let slot = workout.exercises.first {
-            Task {
-                try? await clock.sleep(for: .seconds(2))
-                audio.onExercisePreview(exerciseId: slot.exerciseId)
-            }
+            audio.onExercisePreview(exerciseId: slot.exerciseId)
         }
         startTimer()
     }
@@ -163,7 +159,7 @@ final class RoutineSessionViewModel {
         switch phase {
         case .preview(let index):
             if timeRemaining <= 0 {
-                // Move to active
+                // "3, 2, 1, go" then start
                 audio.onExerciseStart()
                 let slot = workout.exercises[index]
                 phase = .active(exerciseIndex: index)
@@ -174,7 +170,7 @@ final class RoutineSessionViewModel {
         case .active(let index):
             exerciseElapsed += 1
             let slot = workout.exercises[index]
-            // Voice cues during exercise
+            // Voice cues during exercise (cooldown prevents overlaps)
             if let exercise = slot.exercise {
                 audio.onActiveTick(
                     exerciseType: exercise.type,
@@ -183,7 +179,7 @@ final class RoutineSessionViewModel {
                 )
             }
             if timeRemaining <= 0 {
-                // Exercise complete
+                // Exercise complete — just play "time"
                 audio.onExerciseDone()
                 exerciseResults.append(ExerciseResultEntry(
                     exerciseId: slot.exerciseId,
@@ -195,25 +191,17 @@ final class RoutineSessionViewModel {
             }
 
         case .rest(let index):
-            // Play rest transition at start of rest
+            // Play rest cue once at the start of rest
             if timeRemaining == workout.exercises[index].restAfter - 1 {
                 audio.onRest()
-            }
-            // Preview next exercise 3 seconds before rest ends
-            if timeRemaining == 3 {
-                let nextIndex = index + 1
-                if nextIndex < workout.exercises.count {
-                    audio.onRestNext()
-                    let nextSlot = workout.exercises[nextIndex]
-                    audio.onExercisePreview(exerciseId: nextSlot.exerciseId)
-                }
             }
             if timeRemaining <= 0 {
                 let nextIndex = index + 1
                 if nextIndex < workout.exercises.count {
-                    // Preview next exercise
+                    // Go straight to preview — the intro plays there
                     phase = .preview(exerciseIndex: nextIndex)
                     timeRemaining = 3
+                    audio.onExercisePreview(exerciseId: workout.exercises[nextIndex].exerciseId)
                 } else {
                     finishSession()
                 }

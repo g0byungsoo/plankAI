@@ -1,10 +1,18 @@
 import AVFoundation
 
-/// Plays voice clips during routine sessions. Simple, no queue priority — just play one clip at a time.
+/// Plays voice clips during routine sessions. One clip at a time, with cooldown to prevent overlaps.
 @Observable
 @MainActor
 final class RoutineAudioManager {
     private var player: AVAudioPlayer?
+    private var lastPlayTime: Date = .distantPast
+
+    /// Minimum seconds between clips. Prevents overlaps.
+    private let cooldown: TimeInterval = 3.0
+
+    var isPlaying: Bool {
+        player?.isPlaying ?? false
+    }
 
     func setup() {
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
@@ -13,15 +21,22 @@ final class RoutineAudioManager {
 
     // MARK: - Playback
 
-    func play(_ clipName: String) {
+    func play(_ clipName: String, force: Bool = false) {
+        // Skip if something is still playing (unless forced)
+        if !force && isPlaying { return }
+        // Skip if within cooldown
+        if !force && Date().timeIntervalSince(lastPlayTime) < cooldown { return }
+
         guard let url = Bundle.main.url(forResource: clipName, withExtension: "m4a") else { return }
+        player?.stop()
         player = try? AVAudioPlayer(contentsOf: url)
         player?.play()
+        lastPlayTime = Date()
     }
 
-    func playRandom(_ clipNames: [String]) {
+    func playRandom(_ clipNames: [String], force: Bool = false) {
         guard let clip = clipNames.randomElement() else { return }
-        play(clip)
+        play(clip, force: force)
     }
 
     func stop() {
@@ -31,24 +46,16 @@ final class RoutineAudioManager {
 
     // MARK: - Routine Events
 
-    func onSessionStart() {
-        playRandom(["routine_start_1", "routine_start_2", "routine_start_3"])
-    }
-
     func onSessionDone() {
-        playRandom(["routine_done_1", "routine_done_2", "routine_done_3"])
+        playRandom(["routine_done_1", "routine_done_2", "routine_done_3"], force: true)
     }
 
     func onExercisePreview(exerciseId: String) {
-        play("intro_\(exerciseId)")
+        play("intro_\(exerciseId)", force: true)
     }
 
     func onExerciseStart() {
-        play("exercise_countdown")
-    }
-
-    func onExerciseHalfway() {
-        play("exercise_halfway")
+        play("exercise_countdown", force: true)
     }
 
     func onExerciseAlmost() {
@@ -60,26 +67,16 @@ final class RoutineAudioManager {
     }
 
     func onRest() {
-        playRandom(["rest_1", "rest_2", "rest_3", "rest_4"])
-    }
-
-    func onRestNext() {
-        playRandom(["rest_next_1", "rest_next_2", "rest_next_3"])
+        playRandom(["rest_1", "rest_2", "rest_3", "rest_4"], force: true)
     }
 
     func onSkip() {
-        playRandom(["skip_1", "skip_2"])
+        playRandom(["skip_1", "skip_2"], force: true)
     }
 
-    /// Periodic encouragement during active phase.
+    /// Periodic encouragement during active phase. Wider spacing, respects cooldown.
     func onActiveTick(exerciseType: ExerciseType, secondsIn: Int, duration: Int) {
         let remaining = duration - secondsIn
-
-        // Halfway mark
-        if secondsIn == duration / 2 {
-            onExerciseHalfway()
-            return
-        }
 
         // 5 seconds left
         if remaining == 5 {
@@ -87,8 +84,8 @@ final class RoutineAudioManager {
             return
         }
 
-        // Periodic tempo/hold cues every ~8 seconds (not on halfway or almost)
-        guard secondsIn > 0, secondsIn % 8 == 0, remaining > 6 else { return }
+        // Periodic cues every ~12 seconds, starting at 10s in, stop 8s before end
+        guard secondsIn >= 10, secondsIn % 12 == 0, remaining > 8 else { return }
 
         if exerciseType == .static {
             playRandom(["hold_1", "hold_2", "hold_3", "hold_4", "hold_5", "hold_6"])
