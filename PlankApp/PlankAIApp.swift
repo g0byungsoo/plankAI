@@ -2,8 +2,28 @@ import SwiftUI
 import SwiftData
 import PlankSync
 
+// MARK: - Orientation Control
+
+/// Controls which orientations are allowed. Session sets this to .all,
+/// everything else keeps .portrait.
+class OrientationManager {
+    static let shared = OrientationManager()
+    var allowedOrientations: UIInterfaceOrientationMask = .portrait
+}
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        supportedInterfaceOrientationsFor window: UIWindow?
+    ) -> UIInterfaceOrientationMask {
+        OrientationManager.shared.allowedOrientations
+    }
+}
+
 @main
 struct PlankAIApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     init() {
         // Ensure Application Support directory exists before SwiftData tries to create the store
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!

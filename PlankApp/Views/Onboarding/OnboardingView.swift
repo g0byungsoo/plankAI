@@ -63,7 +63,6 @@ struct OnboardingView: View {
                         insertion: .move(edge: dir > 0 ? .trailing : .leading).combined(with: .opacity),
                         removal: .move(edge: dir > 0 ? .leading : .trailing).combined(with: .opacity)
                     ))
-                    .animation(.spring(response: 0.45, dampingFraction: 0.88), value: screen)
             }
 
             if analyzing { analyzingScreen.transition(.opacity).zIndex(10) }
@@ -178,21 +177,27 @@ struct OnboardingView: View {
 
         case 7: questionView("How old are you?", sub: "This personalizes your plan intensity.", opts: [
             ("under18", "⚡  Under 18"), ("18to24", "🔥  18–24"),
-            ("25to34", "💪  25–34"), ("35plus", "✨  35+"),
+            ("25to34", "💪  25–34"), ("35to44", "✨  35–44"),
+            ("45to54", "🧘  45–54"), ("55plus", "👑  55+"),
         ], sel: $ageRange, feedbacks: [
             "under18": "Starting young = starting right",
             "18to24": "Peak building years. Let's go",
             "25to34": "The sweet spot for results",
-            "35plus": "Core strength matters more every year",
+            "35to44": "Core strength matters more every year",
+            "45to54": "This is when planking pays off the most",
+            "55plus": "Strong core = independence for life 👑",
         ], next: 8)
 
         case 8: questionView("How active are\nyou right now?", sub: "This calibrates your starting level.", opts: [
-            ("sedentary", "🛋️  Not very active"), ("occasional", "🚶‍♀️  Work out sometimes"),
-            ("regular", "🏃‍♀️  Work out regularly"),
+            ("sedentary", "🛋️  Not very active"), ("light", "🚶  Light walks / stretching"),
+            ("moderate", "🚴  A few workouts a week"), ("active", "🏋️  4–5x a week"),
+            ("athlete", "🏃‍♀️  Daily training"),
         ], sel: $activityLevel, feedbacks: [
             "sedentary": "We start easy. No judgment at all",
-            "occasional": "Perfect. This fits right in",
-            "regular": "We'll push you 😈",
+            "light": "Great foundation to build on",
+            "moderate": "Perfect. This fits right in",
+            "active": "We'll push you 😈",
+            "athlete": "Let's see how your core stacks up 💪",
         ], next: 9)
 
         case 9: didYouKnowScreen
@@ -347,12 +352,10 @@ struct OnboardingView: View {
 
                 // Phone mockup showing the product
                 ZStack {
-                    // Phone frame — no shadow (shadow + animation = GPU thrash)
                     RoundedRectangle(cornerRadius: 40)
                         .fill(Color.black)
                         .frame(width: 220, height: 380)
                         .overlay(
-                            // Screen content — fake session screenshot
                             RoundedRectangle(cornerRadius: 36)
                                 .fill(
                                     LinearGradient(colors: [Color(hex: "#1a1a2e"), Color(hex: "#16213e")],
@@ -362,12 +365,10 @@ struct OnboardingView: View {
                                 .overlay(
                                     VStack(spacing: 0) {
                                         Spacer().frame(height: 40)
-                                        // Timer
                                         Text("47s")
                                             .font(.system(size: 40, weight: .heavy, design: .rounded))
                                             .foregroundStyle(.white)
                                         Spacer().frame(height: 8)
-                                        // Form state pill
                                         Text("GOOD FORM")
                                             .font(.system(size: 9, weight: .bold))
                                             .tracking(1.5)
@@ -376,7 +377,6 @@ struct OnboardingView: View {
                                             .background(Color(hex: "#30FF00").opacity(0.6))
                                             .clipShape(Capsule())
                                         Spacer()
-                                        // Skeleton lines — fixed coordinates, no GeometryReader
                                         skeletonMini
                                             .frame(height: 120)
                                             .padding(.horizontal, 20)
@@ -388,7 +388,7 @@ struct OnboardingView: View {
                         .opacity(heroVisible ? 1 : 0)
                         .offset(y: heroVisible ? 0 : 30)
 
-                    // Voice bubble — floating next to phone
+                    // Voice bubble
                     if bubbleVisible {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("🔥 Kira")
@@ -410,7 +410,6 @@ struct OnboardingView: View {
 
                 Spacer().frame(height: Space.lg)
 
-                // Brand
                 Text("absmaxxing")
                     .font(.system(size: 38, weight: .black))
                     .foregroundStyle(Palette.textPrimary)
@@ -440,43 +439,39 @@ struct OnboardingView: View {
             }
         }
         .onAppear {
-            // Stage 1: phone mockup fades in (0.15s delay — one frame to settle layout)
+            // Phone mockup fades in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 withAnimation(.easeOut(duration: 0.5)) { heroVisible = true }
             }
 
-            // Stage 2: text + button fade in (after mockup is visible)
+            // Text + button
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 withAnimation(.easeOut(duration: 0.5)) { visible = true }
                 Haptics.heavy()
             }
 
-            // Stage 3: confetti (after everything is laid out)
+            // Confetti
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 showConfetti = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { showConfetti = false }
             }
 
-            // Stage 4: voice bubble
+            // Voice bubble + strong vibration
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
                     bubbleVisible = true
                 }
-                Haptics.light()
+                Haptics.doubleVibrate()
             }
         }
     }
 
-    /// Mini skeleton — fixed size, no GeometryReader (avoids extra layout pass)
+    /// Mini skeleton — fixed size, no GeometryReader
     private var skeletonMini: some View {
         let green = Color(hex: "#30FF00")
-        // Coordinates for a ~180x120 frame (matches .frame(height:120).padding(.horizontal,20))
         let pts: [CGPoint] = [
-            CGPoint(x: 27, y: 48),   // head
-            CGPoint(x: 45, y: 54),   // shoulder
-            CGPoint(x: 90, y: 58),   // hip
-            CGPoint(x: 135, y: 60),  // knee
-            CGPoint(x: 162, y: 62),  // ankle
+            CGPoint(x: 27, y: 48), CGPoint(x: 45, y: 54),
+            CGPoint(x: 90, y: 58), CGPoint(x: 135, y: 60), CGPoint(x: 162, y: 62),
         ]
         return ZStack {
             Path { p in
@@ -662,6 +657,9 @@ struct OnboardingView: View {
     // MARK: - CELEBRATION (screen 6)
     // ═══════════════════════════════════════
 
+    @State private var coachPhotoVisible = false
+    @State private var coachRingPulse = false
+
     private var celebrationScreen: some View {
         let msg = barriers.contains("boring") ? "Boredom is the #1 reason\npeople quit planking."
             : barriers.contains("motivation") ? "Motivation fades.\nAccountability doesn't."
@@ -678,19 +676,67 @@ struct OnboardingView: View {
 
             VStack(spacing: 0) {
                 Spacer()
+
+                // Trainer profile photos — 3 overlapping circles
+                HStack(spacing: -16) {
+                    ForEach(Array(["coach-kira", "coach-sarah", "coach-matson"].enumerated()), id: \.offset) { i, photo in
+                        ZStack {
+                            // Pulse ring
+                            Circle()
+                                .stroke(Palette.accent.opacity(coachRingPulse ? 0.3 : 0), lineWidth: 3)
+                                .frame(width: 76, height: 76)
+                                .scaleEffect(coachRingPulse ? 1.15 : 1.0)
+                                .animation(
+                                    .easeInOut(duration: 1.2).repeatForever(autoreverses: true).delay(Double(i) * 0.3),
+                                    value: coachRingPulse
+                                )
+
+                            // Photo
+                            Group {
+                                if UIImage(named: photo) != nil {
+                                    Image(photo).resizable().aspectRatio(contentMode: .fill)
+                                } else {
+                                    Palette.accentSubtle
+                                }
+                            }
+                            .frame(width: 68, height: 68)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Palette.bgPrimary, lineWidth: 3))
+                        }
+                        .opacity(coachPhotoVisible ? 1 : 0)
+                        .scaleEffect(coachPhotoVisible ? 1 : 0.5)
+                        .animation(
+                            .spring(response: 0.4, dampingFraction: 0.65).delay(Double(i) * 0.12),
+                            value: coachPhotoVisible
+                        )
+                    }
+                }
+
+                Spacer().frame(height: Space.lg)
+
                 Text(msg).font(.system(size: 24, weight: .bold)).foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center).opacity(celebVisible ? 1 : 0).offset(y: celebVisible ? 0 : 20)
+
                 Spacer().frame(height: Space.xl)
+
                 Text(fix).font(.system(size: 20, weight: .medium)).foregroundStyle(Palette.accent)
                     .multilineTextAlignment(.center).opacity(celebVisible ? 1 : 0).offset(y: celebVisible ? 0 : 15)
                     .animation(.easeOut(duration: 0.6).delay(0.5), value: celebVisible)
+
                 Spacer()
                 ctaBtn("Continue") { Haptics.light(); go(7) }.opacity(celebVisible ? 1 : 0)
             }.padding(.horizontal, Space.screenPadding)
         }
         .onAppear {
             Haptics.success()
-            withAnimation(.easeOut(duration: 0.6)) { celebVisible = true }
+            // Photos spring in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { coachPhotoVisible = true }
+            // Text fades in after photos
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                withAnimation(.easeOut(duration: 0.6)) { celebVisible = true }
+            }
+            // Pulse rings start after everything settles
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { coachRingPulse = true }
         }
     }
 
@@ -770,49 +816,79 @@ struct OnboardingView: View {
 
     @State private var cardsVisible = false
 
+    @State private var marqueeOffset1: CGFloat = 0
+    @State private var marqueeOffset2: CGFloat = 0
+
     private var socialProofScreen: some View {
-        ZStack {
-            // Floating TikTok-style 9:16 cards in background
-            floatingCards
-                .opacity(cardsVisible ? 1 : 0)
-                .animation(.easeOut(duration: 0.8), value: cardsVisible)
+        VStack(spacing: 0) {
+            Spacer()
 
-            VStack(spacing: 0) {
-                Spacer()
+            // Top marquee — scrolls left
+            marqueeRow(
+                assets: ["social-1", "social-2", "social-3", "social-4", "social-5"],
+                sizes: [(80, 142), (68, 120), (74, 132), (60, 106), (72, 128)],
+                rotations: [-5, 3, -2, 4, -6],
+                offset: marqueeOffset1
+            )
+            .opacity(cardsVisible ? 1 : 0)
+            .animation(.easeOut(duration: 0.6), value: cardsVisible)
 
-                // Counter
-                Text("\(proofCount)")
-                    .font(.system(size: 72, weight: .black))
-                    .foregroundStyle(Palette.textPrimary)
-                    .contentTransition(.numericText())
+            Spacer().frame(height: Space.lg)
 
-                Spacer().frame(height: Space.xs)
+            // Counter
+            Text("\(proofCount)")
+                .font(.system(size: 72, weight: .black))
+                .foregroundStyle(Palette.textPrimary)
+                .contentTransition(.numericText())
 
-                Text("women started their\nCore Reset this month")
-                    .font(.system(size: 20, weight: .medium))
+            Spacer().frame(height: Space.xs)
+
+            Text("women started their\nCore Reset this month")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+
+            Spacer().frame(height: Space.sm)
+
+            // Live activity indicator
+            HStack(spacing: 6) {
+                Circle().fill(Palette.stateGood).frame(width: 8, height: 8)
+                    .opacity(cardsVisible ? 1 : 0.3)
+                    .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: cardsVisible)
+                Text("12 active right now")
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
+            }
+            .opacity(cardsVisible ? 1 : 0)
+            .animation(.easeOut(duration: 0.5).delay(1.2), value: cardsVisible)
 
-                Spacer().frame(height: Space.lg)
+            Spacer().frame(height: Space.lg)
 
-                // Live activity indicator
-                HStack(spacing: 6) {
-                    Circle().fill(Palette.stateGood).frame(width: 8, height: 8)
-                        .opacity(cardsVisible ? 1 : 0.3)
-                        .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: cardsVisible)
-                    Text("12 active right now")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                .opacity(cardsVisible ? 1 : 0)
-                .animation(.easeOut(duration: 0.5).delay(1.2), value: cardsVisible)
+            // Bottom marquee — scrolls right
+            marqueeRow(
+                assets: ["social-6", "social-7", "social-8", "social-9", "social-10"],
+                sizes: [(72, 128), (64, 114), (80, 142), (56, 100), (68, 120)],
+                rotations: [4, -3, 5, -4, 2],
+                offset: marqueeOffset2
+            )
+            .opacity(cardsVisible ? 1 : 0)
+            .animation(.easeOut(duration: 0.6).delay(0.2), value: cardsVisible)
 
-                Spacer()
-                ctaBtn("Continue") { Haptics.light(); go(15) }
-            }.padding(.horizontal, Space.screenPadding)
+            Spacer()
+            ctaBtn("Continue") { Haptics.light(); go(15) }
         }
+        .clipped()
         .onAppear {
             cardsVisible = true
+            // Start marquee after entrance
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                withAnimation(.linear(duration: 20).repeatForever(autoreverses: false)) {
+                    marqueeOffset1 = -1  // triggers the offset calc inside marqueeRow
+                }
+                withAnimation(.linear(duration: 25).repeatForever(autoreverses: false)) {
+                    marqueeOffset2 = -1
+                }
+            }
             let t = 2847
             for i in 0...30 {
                 DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.04) {
@@ -824,53 +900,55 @@ struct OnboardingView: View {
         }
     }
 
-    /// Floating 9:16 cards — TikTok/reels style, scattered behind the counter
-    private var floatingCards: some View {
-        let cards: [(String, Color, CGFloat, CGFloat, Double)] = [
-            // (emoji, gradient accent, x offset, y offset, rotation)
-            ("💪", Palette.accent,       -120, -220, -12),
-            ("🔥", Palette.stateWarn,     130, -180,  8),
-            ("✨", Palette.stateGood,    -100,  120, -6),
-            ("👑", Palette.accentSubtle,  110,  160,  10),
-            ("😤", Palette.accent,       -30,  -320, -3),
-            ("🫶", Palette.stateGood,      50,  280,  5),
-        ]
+    /// Infinite marquee row of 9:16 cards. Duplicates content for seamless loop.
+    private func marqueeRow(
+        assets: [String],
+        sizes: [(CGFloat, CGFloat)],
+        rotations: [Double],
+        offset: CGFloat
+    ) -> some View {
+        let cardSpacing: CGFloat = 12
+        // Total width of one set of cards
+        let totalWidth = sizes.reduce(CGFloat(0)) { $0 + $1.0 + cardSpacing }
 
-        return ZStack {
-            ForEach(Array(cards.enumerated()), id: \.offset) { i, card in
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [card.1.opacity(0.15), card.1.opacity(0.05)],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(card.1.opacity(0.12), lineWidth: 1)
-                    )
-                    .overlay(
-                        VStack(spacing: 4) {
-                            Text(card.0).font(.system(size: 20))
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(card.1.opacity(0.15))
-                                .frame(width: 36, height: 3)
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(card.1.opacity(0.1))
-                                .frame(width: 28, height: 3)
-                        }
-                    )
-                    .frame(width: 56, height: 100)
-                    .rotationEffect(.degrees(card.4))
-                    .offset(x: card.2, y: card.3)
-                    .opacity(cardsVisible ? 1 : 0)
-                    .offset(y: cardsVisible ? 0 : 20)
-                    .animation(
-                        .easeOut(duration: 0.5).delay(Double(i) * 0.1),
-                        value: cardsVisible
-                    )
+        return GeometryReader { geo in
+            let scrollAmount = offset < 0 ? totalWidth : 0  // 0 = static, totalWidth = one full loop
+
+            HStack(spacing: cardSpacing) {
+                // First set
+                ForEach(0..<assets.count, id: \.self) { i in
+                    socialCard(asset: assets[i], width: sizes[i].0, height: sizes[i].1, rotation: rotations[i])
+                }
+                // Duplicate for seamless loop
+                ForEach(0..<assets.count, id: \.self) { i in
+                    socialCard(asset: assets[i], width: sizes[i].0, height: sizes[i].1, rotation: rotations[i])
+                }
+            }
+            .offset(x: -scrollAmount)
+        }
+        .frame(height: 150)
+    }
+
+    private func socialCard(asset: String, width: CGFloat, height: CGFloat, rotation: Double) -> some View {
+        Group {
+            if UIImage(named: asset) != nil {
+                Image(asset)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                LinearGradient(
+                    colors: [Palette.accent.opacity(0.15), Palette.accentSubtle.opacity(0.08)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Palette.divider.opacity(0.3), lineWidth: 1)
+                )
             }
         }
+        .frame(width: width, height: height)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .rotationEffect(.degrees(rotation))
     }
 
     // MARK: - Coach Education (screen 12) — raw bold style, no photos
@@ -950,20 +1028,6 @@ struct OnboardingView: View {
             Text("What people are saying")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(Palette.textPrimary)
-
-            Spacer().frame(height: Space.md)
-
-            // App Store style rating
-            HStack(spacing: 4) {
-                ForEach(0..<5, id: \.self) { _ in
-                    Image(systemName: "star.fill").font(.system(size: 14)).foregroundStyle(Palette.accent)
-                }
-                Text("4.9").font(.system(size: 14, weight: .bold)).foregroundStyle(Palette.textPrimary)
-                    .padding(.leading, 4)
-                Text("(2.4k)").font(.system(size: 13)).foregroundStyle(Palette.textSecondary)
-            }
-            .opacity(reviewVisible ? 1 : 0)
-            .animation(.easeOut(duration: 0.4), value: reviewVisible)
 
             Spacer().frame(height: Space.lg)
 
@@ -1056,7 +1120,6 @@ struct OnboardingView: View {
                     guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
                     Haptics.medium(); go(19)
                 }
-                .transaction { $0.animation = nil }  // block inherited spring from screen transition
 
             Spacer()
 
@@ -1064,7 +1127,6 @@ struct OnboardingView: View {
                 .opacity(name.trimmingCharacters(in: .whitespaces).isEmpty ? 0.3 : 1.0)
                 .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
         }
-        .animation(nil, value: name)  // keyboard layout changes should never animate
     }
 
     // ═══════════════════════════════════════
@@ -1687,15 +1749,29 @@ struct OnboardingView: View {
 
     private func ctaBtn(_ title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title).font(.system(size: 17, weight: .bold)).foregroundStyle(Palette.textInverse)
+            Text(title)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(Palette.textInverse)
                 .frame(maxWidth: .infinity).frame(height: 56)
-                .background(Palette.bgInverse).clipShape(RoundedRectangle(cornerRadius: 28))
-        }.padding(.horizontal, Space.screenPadding).padding(.bottom, Space.lg)
+                .background(
+                    LinearGradient(
+                        colors: [Palette.bgInverse, Palette.bgInverse.opacity(0.85)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(.white.opacity(0.06), lineWidth: 1)
+                )
+        }
+        .buttonStyle(CTAButtonStyle())
+        .padding(.horizontal, Space.screenPadding).padding(.bottom, Space.lg)
     }
 
     private func go(_ to: Int) {
         dir = to > screen ? 1 : -1
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) { screen = to }
+        withAnimation(.easeOut(duration: 0.3)) { screen = to }
     }
     private func goBack() {
         switch screen {
@@ -1729,4 +1805,15 @@ struct OnboardingData {
     let goal, experience: String; let baselineHoldSeconds: Int; let barriers: [String]
     let ageRange, activityLevel, focusArea, plankTime: String; let commitmentDaysPerWeek: Int
     let notificationsEnabled: Bool; let notificationTime: Date?; let name, voicePreference: String
+}
+
+// MARK: - CTA Button Style
+
+struct CTAButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .opacity(configuration.isPressed ? 0.85 : 1.0)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
 }

@@ -87,9 +87,11 @@ public actor PlankSessionEngine {
 
     // MARK: - Event Stream
 
-    /// The event stream. Subscribe to receive session events.
+    /// The event stream. Creates a fresh stream each time — supports SwiftUI
+    /// view lifecycle where .task may fire multiple times.
     public var events: AsyncStream<SessionEvent> {
-        if let existing = _events { return existing }
+        // Cancel any previous continuation so old consumers stop cleanly
+        eventContinuation?.finish()
         let stream = AsyncStream<SessionEvent> { continuation in
             self.eventContinuation = continuation
         }

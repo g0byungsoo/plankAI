@@ -252,6 +252,8 @@ struct SessionView: View {
             Button("Keep Going", role: .cancel) {}
         }
         .task {
+            // Unlock all orientations for session (user planks in landscape)
+            OrientationManager.shared.allowedOrientations = .all
             withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) {
                 borderRotation = 360
             }
@@ -260,6 +262,8 @@ struct SessionView: View {
         .onDisappear {
             stopTimer()
             camera.stopSession()
+            // Lock back to portrait
+            OrientationManager.shared.allowedOrientations = .portrait
         }
     }
 
@@ -270,7 +274,13 @@ struct SessionView: View {
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
         try? AVAudioSession.sharedInstance().setActive(true)
 
-        camera.onPoseFrame = { frame in
+        // IMPORTANT: Access the event stream BEFORE starting the camera.
+        // This creates the AsyncStream continuation. If the camera starts
+        // first, processFrame() calls emit() with a nil continuation
+        // and all events are silently dropped.
+        let eventStream = await engine.events
+
+        camera.onPoseFrame = { [engine] frame in
             Task { await engine.processFrame(frame) }
         }
         camera.startSession()
@@ -284,7 +294,9 @@ struct SessionView: View {
         }
 
         // Listen for events
-        for await event in await engine.events {
+        print("[UI] Starting event loop")
+        for await event in eventStream {
+            print("[UI] Received event: \(event)")
             // Forward all events to voice feedback.
             if !audioMuted {
                 Task { await audioQueue.handleEvent(event) }

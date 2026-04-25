@@ -30,9 +30,9 @@ public struct PoseAnalyzer: Sendable {
 
         public init(
             minConfidence: Double = 0.15,
-            hipSagThreshold: Double = 0.08,
-            hipPikeThreshold: Double = 0.10,
-            shoulderCreepThreshold: Double = 0.06
+            hipSagThreshold: Double = 0.15,
+            hipPikeThreshold: Double = 0.15,
+            shoulderCreepThreshold: Double = 0.001
         ) {
             self.minConfidence = minConfidence
             self.hipSagThreshold = hipSagThreshold
