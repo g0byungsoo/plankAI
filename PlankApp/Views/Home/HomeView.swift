@@ -62,6 +62,13 @@ struct HomeView: View {
         return days >= 7
     }
 
+    private var todayHasSession: Bool {
+        let today = Calendar.current.startOfDay(for: .now)
+        return sessionLogs.contains { log in
+            log.sessionType == "routine" && Calendar.current.startOfDay(for: log.completedAt) == today
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -92,7 +99,9 @@ struct HomeView: View {
                 PostRoutineView(
                     exerciseResults: routineExerciseResults,
                     totalDuration: routineTotalDuration,
-                    workoutName: currentWorkout?.name ?? "Workout"
+                    workoutName: currentWorkout?.name ?? "Workout",
+                    streakCount: todayHasSession ? streakCount : streakCount + 1,
+                    isFirstWorkoutToday: !todayHasSession
                 ) { rating, tags in
                     lastSessionRating = rating
                     lastSessionTags = tags

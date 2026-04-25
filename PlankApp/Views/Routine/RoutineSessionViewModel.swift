@@ -100,7 +100,7 @@ final class RoutineSessionViewModel {
         activeStartTime = Date()
         timeRemaining = 4  // 4s preview: 1s silence + 3s for intro clip
         audio.setup()
-        Haptics.heavy()
+        Haptics.vibrate()
         startTimer()
     }
 
@@ -161,8 +161,8 @@ final class RoutineSessionViewModel {
                 audio.onExercisePreview(exerciseId: workout.exercises[index].exerciseId)
             }
             if timeRemaining <= 0 {
-                // Go! Heavy haptic marks the start
-                Haptics.heavy()
+                // Go! Strong vibration marks the start
+                Haptics.vibrate()
                 audio.onExerciseStart()
                 let slot = workout.exercises[index]
                 phase = .active(exerciseIndex: index)
@@ -205,11 +205,11 @@ final class RoutineSessionViewModel {
                 ))
                 if isLastExercise {
                     // Last exercise: go straight to done, one clip only
-                    Haptics.success()
+                    Haptics.doubleVibrate()
                     finishSession()
                 } else {
                     // Not last: short "time" + haptic, then rest
-                    Haptics.medium()
+                    Haptics.rigid()
                     audio.onExerciseDone()
                     advanceToRest(index: index)
                 }
