@@ -32,6 +32,7 @@ final class RoutineSessionViewModel {
     // MARK: - Dependencies
 
     private let clock: any Clock<Duration>
+    private let audio = RoutineAudioManager()
     private let onComplete: ([ExerciseResultEntry], TimeInterval) -> Void
 
     // MARK: - Internal
@@ -98,6 +99,15 @@ final class RoutineSessionViewModel {
         guard case .preview(0) = phase else { return }
         activeStartTime = Date()
         timeRemaining = 3
+        audio.setup()
+        audio.onSessionStart()
+        // Play exercise intro after session start clip
+        if let slot = workout.exercises.first {
+            Task {
+                try? await clock.sleep(for: .seconds(2))
+                audio.onExercisePreview(exerciseId: slot.exerciseId)
+            }
+        }
         startTimer()
     }
 
@@ -114,6 +124,7 @@ final class RoutineSessionViewModel {
     func skip() {
         guard case .active(let index) = phase else { return }
 
+        audio.onSkip()
         let slot = workout.exercises[index]
         exerciseResults.append(ExerciseResultEntry(
             exerciseId: slot.exerciseId,
@@ -153,6 +164,7 @@ final class RoutineSessionViewModel {
         case .preview(let index):
             if timeRemaining <= 0 {
                 // Move to active
+                audio.onExerciseStart()
                 let slot = workout.exercises[index]
                 phase = .active(exerciseIndex: index)
                 timeRemaining = slot.duration
@@ -161,9 +173,18 @@ final class RoutineSessionViewModel {
 
         case .active(let index):
             exerciseElapsed += 1
+            let slot = workout.exercises[index]
+            // Voice cues during exercise
+            if let exercise = slot.exercise {
+                audio.onActiveTick(
+                    exerciseType: exercise.type,
+                    secondsIn: exerciseElapsed,
+                    duration: slot.duration
+                )
+            }
             if timeRemaining <= 0 {
                 // Exercise complete
-                let slot = workout.exercises[index]
+                audio.onExerciseDone()
                 exerciseResults.append(ExerciseResultEntry(
                     exerciseId: slot.exerciseId,
                     duration: slot.duration,
@@ -174,6 +195,19 @@ final class RoutineSessionViewModel {
             }
 
         case .rest(let index):
+            // Play rest transition at start of rest
+            if timeRemaining == workout.exercises[index].restAfter - 1 {
+                audio.onRest()
+            }
+            // Preview next exercise 3 seconds before rest ends
+            if timeRemaining == 3 {
+                let nextIndex = index + 1
+                if nextIndex < workout.exercises.count {
+                    audio.onRestNext()
+                    let nextSlot = workout.exercises[nextIndex]
+                    audio.onExercisePreview(exerciseId: nextSlot.exerciseId)
+                }
+            }
             if timeRemaining <= 0 {
                 let nextIndex = index + 1
                 if nextIndex < workout.exercises.count {
@@ -204,6 +238,7 @@ final class RoutineSessionViewModel {
     private func finishSession() {
         timerTask?.cancel()
         phase = .done
+        audio.onSessionDone()
         onComplete(exerciseResults, totalElapsed)
     }
 }
