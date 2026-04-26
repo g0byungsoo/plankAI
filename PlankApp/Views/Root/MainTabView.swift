@@ -2,7 +2,7 @@ import SwiftUI
 
 enum AppTab: String, CaseIterable {
     case workout
-    case analytics
+    case log
 }
 
 struct MainTabView: View {
@@ -14,24 +14,24 @@ struct MainTabView: View {
                 switch selectedTab {
                 case .workout:
                     HomeView()
-                case .analytics:
+                case .log:
                     AnalyticsView()
                 }
             }
 
-            // Bottom tab bar — SetLog style
+            // iOS-style pill tab bar
             HStack(spacing: 0) {
                 tabButton(.workout, label: "workout")
-                tabButton(.analytics, label: "analytics")
+                tabButton(.log, label: "log")
             }
-            .padding(.horizontal, Space.xs + 2)
-            .padding(.vertical, Space.xs)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 6)
             .background(
                 Capsule()
                     .fill(Palette.bgElevated)
-                    .shadow(color: Palette.bgInverse.opacity(0.08), radius: 12, y: 4)
+                    .shadow(color: Palette.bgInverse.opacity(0.06), radius: 16, y: 6)
             )
-            .padding(.bottom, Space.sm)
+            .padding(.bottom, 20)
         }
     }
 
@@ -43,11 +43,10 @@ struct MainTabView: View {
             }
         } label: {
             Text(label)
-                .font(Typo.caption)
-                .fontWeight(selectedTab == tab ? .bold : .medium)
+                .font(.system(size: 14, weight: selectedTab == tab ? .semibold : .medium))
                 .foregroundStyle(selectedTab == tab ? Palette.textInverse : Palette.textSecondary)
-                .padding(.horizontal, Space.lg)
-                .padding(.vertical, Space.sm + 2)
+                .padding(.horizontal, 28)
+                .padding(.vertical, 12)
                 .background(
                     selectedTab == tab
                         ? Capsule().fill(Palette.bgInverse)

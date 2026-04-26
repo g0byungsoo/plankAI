@@ -2,7 +2,6 @@ import SwiftUI
 import SwiftData
 import PlankSync
 
-/// iMessage-style home. Kira texts you your daily workout.
 struct HomeView: View {
     @AppStorage("userName") private var userName = ""
     @AppStorage("hasCompletedFirstSession") private var hasCompletedFirstSession = false
@@ -28,8 +27,11 @@ struct HomeView: View {
 
     // Animation
     @State private var msgOpacity: [Double] = [0, 0, 0, 0]
-    @State private var msgOffset: [CGFloat] = [12, 12, 12, 12]
+    @State private var msgOffset: [CGFloat] = [16, 16, 16, 16]
     @State private var hasAnimated = false
+
+    // Expand exercise list
+    @State private var showAllExercises = false
 
     private var currentDay: Int { (dayProgress.first?.programDay ?? 0) + 1 }
     private var streakCount: Int { dayProgress.count }
@@ -72,30 +74,22 @@ struct HomeView: View {
                 VStack(spacing: 14) {
                     dateStamp.padding(.top, Space.sm)
 
-                    // 1: Greeting
                     kiraBubble(greetingText)
-                        .opacity(msgOpacity[0])
-                        .offset(y: msgOffset[0])
+                        .opacity(msgOpacity[0]).offset(y: msgOffset[0])
 
-                    // 2: Workout module
                     kiraWorkoutModule
-                        .opacity(msgOpacity[1])
-                        .offset(y: msgOffset[1])
+                        .opacity(msgOpacity[1]).offset(y: msgOffset[1])
 
-                    // 3: Benchmark module
                     kiraBenchmarkModule
-                        .opacity(msgOpacity[2])
-                        .offset(y: msgOffset[2])
+                        .opacity(msgOpacity[2]).offset(y: msgOffset[2])
 
-                    // 4: Stats
                     if hasCompletedFirstSession {
                         kiraBubble(statsText)
-                            .opacity(msgOpacity[3])
-                            .offset(y: msgOffset[3])
+                            .opacity(msgOpacity[3]).offset(y: msgOffset[3])
                     }
                 }
                 .padding(.horizontal, 10)
-                .padding(.bottom, 80)
+                .padding(.bottom, 100)
             }
             .background(Palette.bgPrimary)
         }
@@ -142,14 +136,14 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Animation
+    // MARK: - Animation (slower, smoother)
 
     private func animateIn() {
         guard !hasAnimated else { return }
         hasAnimated = true
-        let delays: [Double] = [0.15, 0.35, 0.55, 0.75]
+        let delays: [Double] = [0.3, 0.8, 1.3, 1.8]
         for (i, delay) in delays.enumerated() {
-            withAnimation(.easeOut(duration: 0.5).delay(delay)) {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.85).delay(delay)) {
                 msgOpacity[i] = 1
                 msgOffset[i] = 0
             }
@@ -172,21 +166,16 @@ struct HomeView: View {
                     .foregroundStyle(Palette.textSecondary)
                     .frame(width: 32, height: 32)
             }
-
             Spacer()
-
             VStack(spacing: 2) {
                 Image("coach-kira")
-                    .resizable()
-                    .scaledToFill()
+                    .resizable().scaledToFill()
                     .frame(width: 36, height: 36)
                     .clipShape(Circle())
                 Text("Kira")
-                    .font(Typo.caption)
-                    .fontWeight(.medium)
+                    .font(Typo.caption).fontWeight(.medium)
                     .foregroundStyle(Palette.textPrimary)
             }
-
             Spacer()
             Color.clear.frame(width: 32, height: 32)
         }
@@ -209,7 +198,6 @@ struct HomeView: View {
     private func kiraBubble(_ text: String) -> some View {
         HStack(alignment: .bottom, spacing: 6) {
             kiraAvatar
-
             Text(text)
                 .font(Typo.body)
                 .foregroundStyle(Palette.textPrimary)
@@ -218,50 +206,48 @@ struct HomeView: View {
                 .background(Palette.bgElevated)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .plankShadow()
-
             Spacer(minLength: 48)
         }
     }
 
     private var kiraAvatar: some View {
         Image("coach-kira")
-            .resizable()
-            .scaledToFill()
+            .resizable().scaledToFill()
             .frame(width: 28, height: 28)
             .clipShape(Circle())
     }
 
-    // MARK: - Workout Module
+    // MARK: - Workout Module (expandable)
 
     private var kiraWorkoutModule: some View {
         let workout = todaysWorkout
+        let visibleCount = showAllExercises ? workout.exercises.count : min(4, workout.exercises.count)
+        let hasMore = workout.exercises.count > 4
+
         return HStack(alignment: .bottom, spacing: 6) {
             kiraAvatar
 
             VStack(alignment: .leading, spacing: 0) {
                 // Header
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(workout.name)
-                            .font(Typo.heading)
-                            .foregroundStyle(Palette.textPrimary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(workout.name)
+                        .font(Typo.heading)
+                        .foregroundStyle(Palette.textPrimary)
 
-                        HStack(spacing: 12) {
-                            Label("\(workout.estimatedDuration) min", systemImage: "clock")
-                            Label("\(workout.exercises.count) exercises", systemImage: "flame.fill")
-                        }
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Palette.textSecondary)
+                    HStack(spacing: 12) {
+                        Label("\(workout.estimatedDuration) min", systemImage: "clock")
+                        Label("\(workout.exercises.count) exercises", systemImage: "flame.fill")
                     }
-                    Spacer()
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Palette.textSecondary)
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, 14)
                 .padding(.bottom, 10)
 
-                // Exercise list — clean rows
+                // Exercise list
                 VStack(spacing: 0) {
-                    ForEach(Array(workout.exercises.prefix(4).enumerated()), id: \.offset) { i, slot in
+                    ForEach(Array(workout.exercises.prefix(visibleCount).enumerated()), id: \.offset) { i, slot in
                         if let ex = slot.exercise {
                             HStack(spacing: 10) {
                                 Text("\(i + 1)")
@@ -282,19 +268,30 @@ struct HomeView: View {
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
 
-                            if i < min(workout.exercises.count, 4) - 1 {
-                                Divider()
-                                    .padding(.leading, 42)
+                            if i < visibleCount - 1 {
+                                Divider().padding(.leading, 42)
                             }
                         }
                     }
 
-                    if workout.exercises.count > 4 {
-                        Text("+\(workout.exercises.count - 4) more")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Palette.textSecondary)
-                            .padding(.vertical, 6)
+                    // Expand/collapse
+                    if hasMore {
+                        Button {
+                            Haptics.light()
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                                showAllExercises.toggle()
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(showAllExercises ? "show less" : "+\(workout.exercises.count - 4) more")
+                                    .font(.system(size: 12, weight: .medium))
+                                Image(systemName: showAllExercises ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 10, weight: .medium))
+                            }
+                            .foregroundStyle(Palette.accent)
+                            .padding(.vertical, 8)
                             .frame(maxWidth: .infinity)
+                        }
                     }
                 }
                 .background(Palette.bgPrimary.opacity(0.5))
@@ -323,26 +320,19 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Benchmark Module
+    // MARK: - Benchmark Module (trainer voice)
 
     private var kiraBenchmarkModule: some View {
         HStack(alignment: .bottom, spacing: 6) {
             kiraAvatar
 
             VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text("Plank Benchmark")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Palette.textPrimary)
-                    Spacer()
-                    if benchmarkDue {
-                        Text("due")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(Palette.accent)
-                    }
-                }
-
                 if let last = lastBenchmark, let days = daysSinceLastBenchmark {
+                    // Kira talks about the benchmark
+                    Text(benchmarkMessage(holdTime: last.holdTime, daysAgo: days))
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textPrimary)
+
                     HStack(spacing: 20) {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(String(format: "%.0fs", last.holdTime))
@@ -362,16 +352,17 @@ struct HomeView: View {
                         }
                     }
                 } else {
-                    Text("Camera tracks your form. Let's get a baseline.")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Palette.textSecondary)
+                    // First time, no data
+                    Text("I need to see your plank. Prop your phone up, I'll watch your form and tell you what's off.")
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textPrimary)
                 }
 
                 Button {
                     Haptics.medium()
                     showPreSession = true
                 } label: {
-                    Text(benchmarkDue ? "CHECK IN" : "BENCHMARK")
+                    Text(benchmarkDue ? "LET'S GO" : "BENCHMARK")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(Palette.textPrimary)
                         .frame(maxWidth: .infinity)
@@ -391,7 +382,20 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Stats Text
+    private func benchmarkMessage(holdTime: Double, daysAgo: Int) -> String {
+        if daysAgo >= 14 {
+            return "It's been \(daysAgo) days since your last plank check. We need to fix that."
+        }
+        if daysAgo >= 7 {
+            return "Time for your weekly check-in. Let's see if those workouts are paying off."
+        }
+        if holdTime >= 60 {
+            return "Your last plank was \(Int(holdTime))s. Not bad. Think you can beat it?"
+        }
+        return "You held \(Int(holdTime))s last time. We're getting there."
+    }
+
+    // MARK: - Stats / Greeting
 
     private var statsText: String {
         let count = sessionLogs.filter { $0.sessionType == "routine" }.count
@@ -462,7 +466,7 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Stat Card (Analytics)
+// MARK: - Stat Card (Log tab)
 
 struct StatCard: View {
     let value: String

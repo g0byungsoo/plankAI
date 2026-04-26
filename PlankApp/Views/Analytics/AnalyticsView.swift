@@ -49,7 +49,7 @@ struct AnalyticsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.lg) {
                 // Header
-                Text("Analytics")
+                Text("Log")
                     .font(Typo.title)
                     .foregroundStyle(Palette.textPrimary)
 
