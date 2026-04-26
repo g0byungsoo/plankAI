@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import MediaPlayer
 import PlankEngine
 import PlankVoice
 
@@ -23,6 +24,7 @@ struct SessionView: View {
     @State private var audioMuted = false
     @State private var showGuideFrame = true
     @State private var timer: Timer?
+    @State private var plankNowPlaying = RoutineNowPlayingManager()
 
     let exerciseType: String
     let dayNumber: Int
@@ -262,6 +264,7 @@ struct SessionView: View {
         .onDisappear {
             stopTimer()
             camera.stopSession()
+            plankNowPlaying.clearNowPlaying()
             // Lock back to portrait
             OrientationManager.shared.allowedOrientations = .portrait
             // Release audio session so other apps can resume
@@ -327,6 +330,14 @@ struct SessionView: View {
                 if !sessionActive {
                     sessionActive = true
                     startTimer()
+                    plankNowPlaying.setup(onPause: {}, onPlay: {})
+                    plankNowPlaying.updateNowPlaying(
+                        title: "Plank Hold",
+                        subtitle: "Weekly Benchmark",
+                        elapsed: 0,
+                        duration: targetTime,
+                        isPlaying: true
+                    )
                 }
             case .sessionEnd(let time, let score):
                 Haptics.heavy()
@@ -335,6 +346,7 @@ struct SessionView: View {
                 sessionEnded = true
                 stopTimer()
                 camera.stopSession()
+                plankNowPlaying.clearNowPlaying()
                 onComplete(time, score, 0)
             case .milestone:
                 Haptics.medium()
@@ -349,6 +361,15 @@ struct SessionView: View {
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             elapsedTime += 1
+            if Int(elapsedTime) % 2 == 0 {
+                plankNowPlaying.updateNowPlaying(
+                    title: "Plank Hold",
+                    subtitle: "Weekly Benchmark · \(formatTime(elapsedTime))",
+                    elapsed: elapsedTime,
+                    duration: max(targetTime, elapsedTime + 10),
+                    isPlaying: true
+                )
+            }
         }
     }
 

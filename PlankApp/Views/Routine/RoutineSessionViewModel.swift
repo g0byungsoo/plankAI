@@ -33,6 +33,7 @@ final class RoutineSessionViewModel {
 
     private let clock: any Clock<Duration>
     private let audio = RoutineAudioManager()
+    private let nowPlaying = RoutineNowPlayingManager()
     private let onComplete: ([ExerciseResultEntry], TimeInterval) -> Void
 
     // MARK: - Internal
@@ -100,6 +101,8 @@ final class RoutineSessionViewModel {
         activeStartTime = Date()
         timeRemaining = 4  // 4s preview: 1s silence + 3s for intro clip
         audio.activate()
+        nowPlaying.setup(onPause: { [weak self] in self?.pause() },
+                         onPlay: { [weak self] in self?.resume() })
         Haptics.vibrate()
         startTimer()
     }
@@ -107,11 +110,13 @@ final class RoutineSessionViewModel {
     func pause() {
         isPaused = true
         timerTask?.cancel()
+        updateNowPlayingState(isPlaying: false)
     }
 
     func resume() {
         isPaused = false
         startTimer()
+        updateNowPlayingState(isPlaying: true)
     }
 
     func skip() {
@@ -133,6 +138,7 @@ final class RoutineSessionViewModel {
     func end() {
         timerTask?.cancel()
         audio.deactivate()
+        nowPlaying.clearNowPlaying()
         finishSession()
     }
 
@@ -169,12 +175,19 @@ final class RoutineSessionViewModel {
                 phase = .active(exerciseIndex: index)
                 timeRemaining = slot.duration
                 exerciseElapsed = 0
+                // Update lock screen
+                updateNowPlayingForExercise(index: index, elapsed: 0, isPlaying: true)
             }
 
         case .active(let index):
             exerciseElapsed += 1
             let slot = workout.exercises[index]
             let remaining = timeRemaining
+
+            // Update lock screen every 2 seconds
+            if exerciseElapsed % 2 == 0 {
+                updateNowPlayingForExercise(index: index, elapsed: Double(exerciseElapsed), isPlaying: true)
+            }
 
             // Haptic countdown: tick at 3, 2, 1
             if remaining <= 3 && remaining >= 1 {
@@ -256,6 +269,7 @@ final class RoutineSessionViewModel {
     private func finishSession() {
         timerTask?.cancel()
         phase = .done
+        nowPlaying.clearNowPlaying()
         // Delay the done clip so it doesn't stack on the last exercise
         Task {
             try? await clock.sleep(for: .seconds(1))
@@ -265,5 +279,24 @@ final class RoutineSessionViewModel {
             audio.deactivate()
         }
         onComplete(exerciseResults, totalElapsed)
+    }
+
+    // MARK: - Now Playing Helpers
+
+    private func updateNowPlayingForExercise(index: Int, elapsed: Double, isPlaying: Bool) {
+        let slot = workout.exercises[index]
+        guard let exercise = slot.exercise else { return }
+        nowPlaying.updateNowPlaying(
+            title: exercise.name,
+            subtitle: "\(workout.name) · \(index + 1) of \(workout.exercises.count)",
+            elapsed: elapsed,
+            duration: Double(slot.duration),
+            isPlaying: isPlaying
+        )
+    }
+
+    private func updateNowPlayingState(isPlaying: Bool) {
+        guard case .active(let index) = phase else { return }
+        updateNowPlayingForExercise(index: index, elapsed: Double(exerciseElapsed), isPlaying: isPlaying)
     }
 }
