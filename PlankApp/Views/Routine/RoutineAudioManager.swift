@@ -104,7 +104,7 @@ final class RoutineAudioManager {
 
         silencePlayer = try? AVAudioPlayer(data: wavData)
         silencePlayer?.numberOfLoops = -1 // loop forever
-        silencePlayer?.volume = 0.01      // near-silent
+        silencePlayer?.volume = 0.0       // true silence
         silencePlayer?.play()
     }
 
