@@ -14,6 +14,7 @@ final class RoutineNowPlayingManager {
     func setup(onPause: @escaping () -> Void, onPlay: @escaping () -> Void) {
         self.onPause = onPause
         self.onPlay = onPlay
+        UIApplication.shared.beginReceivingRemoteControlEvents()
         registerCommands()
     }
 
@@ -95,5 +96,6 @@ final class RoutineNowPlayingManager {
         commandsRegistered = false
         onPause = nil
         onPlay = nil
+        UIApplication.shared.endReceivingRemoteControlEvents()
     }
 }
