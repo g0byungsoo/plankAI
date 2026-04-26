@@ -133,6 +133,8 @@
 		BBB21F262FA200D16D /* tempo_drive_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBDC8A032FA20020F5 /* tempo_drive_2.m4a */; };
 		BBD4F07D2FA20011D7 /* tempo_twist_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB8F30172FA200C72B /* tempo_twist_1.m4a */; };
 		BB5B5E472FA2006055 /* tempo_twist_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB3B43AA2FA200E98F /* tempo_twist_2.m4a */; };
+		CC0001012FA3000100000001 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001002FA3000100000001 /* MainTabView.swift */; };
+		CC0001032FA3000100000002 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001022FA3000100000002 /* AnalyticsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -260,6 +262,8 @@
 		BB8F30172FA200C72B /* tempo_twist_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = tempo_twist_1.m4a; sourceTree = "<group>"; };
 		BB3B43AA2FA200E98F /* tempo_twist_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = tempo_twist_2.m4a; sourceTree = "<group>"; };
 		AA00010C2FA1000100000009 /* RoutineAudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineAudioManager.swift; sourceTree = "<group>"; };
+		CC0001002FA3000100000001 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		CC0001022FA3000100000002 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -387,11 +391,29 @@
 			path = Workout;
 			sourceTree = "<group>";
 		};
-		7831865E2F99E4130096138F /* Views */ = {
+		CC0001042FA3000100000003 /* Root */ = {
 			isa = PBXGroup;
 			children = (
+				CC0001002FA3000100000001 /* MainTabView.swift */,
+			);
+			path = Root;
+			sourceTree = "<group>";
+		};
+		CC0001052FA3000100000004 /* Analytics */ = {
+			isa = PBXGroup;
+			children = (
+				CC0001022FA3000100000002 /* AnalyticsView.swift */,
+			);
+			path = Analytics;
+			sourceTree = "<group>";
+		};
+				7831865E2F99E4130096138F /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				CC0001052FA3000100000004 /* Analytics */,
 				783186532F99E4130096138F /* Common */,
 				783186552F99E4130096138F /* Home */,
+				CC0001042FA3000100000003 /* Root */,
 				783186562F99E4130096138F /* Onboarding */,
 				783186572F99E4130096138F /* Paywall */,
 				783186592F99E4130096138F /* PostSession */,
@@ -752,6 +774,8 @@
 				AA0001092FA1000100000005 /* RoutineSessionView.swift in Sources */,
 				AA00010B2FA1000100000006 /* PostRoutineView.swift in Sources */,
 				AA00010D2FA1000100000009 /* RoutineAudioManager.swift in Sources */,
+				CC0001012FA3000100000001 /* MainTabView.swift in Sources */,
+				CC0001032FA3000100000002 /* AnalyticsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

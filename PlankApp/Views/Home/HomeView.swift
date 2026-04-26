@@ -69,163 +69,246 @@ struct HomeView: View {
         }
     }
 
+    @State private var showProfileMenu = false
+
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Space.lg) {
-                    header
-                    routineCard
-                    benchmarkCard
-                    if hasCompletedFirstSession {
-                        statsSection
-                    }
-                }
-                .padding(.horizontal, Space.screenPadding)
-                .padding(.top, Space.xl)
-            }
-            .background(Palette.bgPrimary)
-            // Routine flow
-            .fullScreenCover(isPresented: $showRoutineSession) {
-                if let workout = currentWorkout {
-                    RoutineSessionView(workout: workout) { results, duration in
-                        routineExerciseResults = results
-                        routineTotalDuration = duration
-                        showRoutineSession = false
-                        showPostRoutine = true
-                    }
+        ScrollView {
+            VStack(alignment: .leading, spacing: Space.lg) {
+                homeHeader
+                routineCard
+                benchmarkCard
+                if hasCompletedFirstSession {
+                    statsSection
                 }
             }
-            .fullScreenCover(isPresented: $showPostRoutine) {
-                PostRoutineView(
-                    exerciseResults: routineExerciseResults,
-                    totalDuration: routineTotalDuration,
-                    workoutName: currentWorkout?.name ?? "Workout",
-                    streakCount: todayHasSession ? streakCount : streakCount + 1,
-                    isFirstWorkoutToday: !todayHasSession
-                ) { rating, tags in
-                    lastSessionRating = rating
-                    lastSessionTags = tags
-                } onDone: {
-                    saveRoutineSession()
-                    showPostRoutine = false
-                    hasCompletedFirstSession = true
+            .padding(.horizontal, Space.screenPadding)
+            .padding(.top, Space.md)
+            .padding(.bottom, 80) // space for pill tab bar
+        }
+        .background(Palette.bgPrimary)
+        // Routine flow
+        .fullScreenCover(isPresented: $showRoutineSession) {
+            if let workout = currentWorkout {
+                RoutineSessionView(workout: workout) { results, duration in
+                    routineExerciseResults = results
+                    routineTotalDuration = duration
+                    showRoutineSession = false
+                    showPostRoutine = true
                 }
             }
-            // Plank benchmark flow
-            .fullScreenCover(isPresented: $showPreSession) {
-                PreSessionView(
-                    exerciseType: "Plank Benchmark",
-                    dayNumber: currentDay
-                ) {
-                    showPreSession = false
-                    showSession = true
-                } onDismiss: {
-                    showPreSession = false
-                }
+        }
+        .fullScreenCover(isPresented: $showPostRoutine) {
+            PostRoutineView(
+                exerciseResults: routineExerciseResults,
+                totalDuration: routineTotalDuration,
+                workoutName: currentWorkout?.name ?? "Workout",
+                streakCount: todayHasSession ? streakCount : streakCount + 1,
+                isFirstWorkoutToday: !todayHasSession
+            ) { rating, tags in
+                lastSessionRating = rating
+                lastSessionTags = tags
+            } onDone: {
+                saveRoutineSession()
+                showPostRoutine = false
+                hasCompletedFirstSession = true
             }
-            .fullScreenCover(isPresented: $showSession) {
-                SessionView(
-                    exerciseType: "Plank Benchmark",
-                    dayNumber: currentDay,
-                    targetTime: 60
-                ) { holdTime, quality, faults in
-                    lastHoldTime = holdTime
-                    lastQuality = quality
-                    showSession = false
-                    saveBenchmarkSession(holdTime: holdTime, quality: quality, faults: faults)
-                    showPlankPostSession = true
-                }
+        }
+        // Plank benchmark flow
+        .fullScreenCover(isPresented: $showPreSession) {
+            PreSessionView(
+                exerciseType: "Plank Benchmark",
+                dayNumber: currentDay
+            ) {
+                showPreSession = false
+                showSession = true
+            } onDismiss: {
+                showPreSession = false
             }
-            .fullScreenCover(isPresented: $showPlankPostSession) {
-                PostSessionView(
-                    holdTime: lastHoldTime,
-                    qualityScore: lastQuality,
-                    dayNumber: currentDay,
-                    streakCount: streakCount,
-                    previousScore: nil,
-                    playedLines: []
-                ) {
-                    showPlankPostSession = false
-                }
+        }
+        .fullScreenCover(isPresented: $showSession) {
+            SessionView(
+                exerciseType: "Plank Benchmark",
+                dayNumber: currentDay,
+                targetTime: 60
+            ) { holdTime, quality, faults in
+                lastHoldTime = holdTime
+                lastQuality = quality
+                showSession = false
+                saveBenchmarkSession(holdTime: holdTime, quality: quality, faults: faults)
+                showPlankPostSession = true
+            }
+        }
+        .fullScreenCover(isPresented: $showPlankPostSession) {
+            PostSessionView(
+                holdTime: lastHoldTime,
+                qualityScore: lastQuality,
+                dayNumber: currentDay,
+                streakCount: streakCount,
+                previousScore: nil,
+                playedLines: []
+            ) {
+                showPlankPostSession = false
             }
         }
     }
 
-    // MARK: - Header
+    // MARK: - Header with Profile Menu
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: Space.xs) {
-            if hasCompletedFirstSession {
-                Text("Hey, \(userName.isEmpty ? "there" : userName).")
-                    .font(Typo.title)
-                    .foregroundStyle(Palette.textPrimary)
-
-                HStack(spacing: Space.xs) {
-                    Text("Day")
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textSecondary)
-                    Text("\(currentDay)")
-                        .font(Typo.body)
+    private var homeHeader: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                if hasCompletedFirstSession {
+                    Text("Hey, \(userName.isEmpty ? "there" : userName).")
+                        .font(Typo.title)
                         .foregroundStyle(Palette.textPrimary)
-                        .fontWeight(.bold)
-                    Text("· Let's work.")
+
+                    HStack(spacing: Space.xs) {
+                        Text("Day \(currentDay)")
+                            .font(Typo.body)
+                            .foregroundStyle(Palette.textPrimary)
+                            .fontWeight(.medium)
+                        Text("· Let's work.")
+                            .font(Typo.body)
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                } else {
+                    Text("Welcome, \(userName.isEmpty ? "there" : userName).")
+                        .font(Typo.title)
+                        .foregroundStyle(Palette.textPrimary)
+
+                    Text("Your first workout is ready.")
                         .font(Typo.body)
                         .foregroundStyle(Palette.textSecondary)
                 }
-            } else {
-                Text("Welcome, \(userName.isEmpty ? "there" : userName).")
-                    .font(Typo.title)
-                    .foregroundStyle(Palette.textPrimary)
+            }
 
-                Text("Your first workout is ready.")
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textSecondary)
+            Spacer()
+
+            // Profile menu button
+            Menu {
+                Button {
+                    // TODO: profile editing
+                } label: {
+                    Label("Edit Profile", systemImage: "person")
+                }
+
+                Button {
+                    // TODO: notification settings
+                } label: {
+                    Label("Notifications", systemImage: "bell")
+                }
+
+                Button {
+                    // TODO: account settings
+                } label: {
+                    Label("Account", systemImage: "gearshape")
+                }
+
+                Divider()
+
+                Button {
+                    // TODO: feedback
+                } label: {
+                    Label("Feedback", systemImage: "bubble.left")
+                }
+            } label: {
+                // Profile avatar
+                ZStack {
+                    Circle()
+                        .fill(Palette.bgElevated)
+                        .frame(width: 36, height: 36)
+                        .plankShadow()
+
+                    Text(String(userName.prefix(1)).uppercased())
+                        .font(Typo.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Palette.accent)
+                }
             }
         }
     }
 
-    // MARK: - Daily Routine Card (Primary CTA)
+    // MARK: - Daily Routine Card (Primary CTA) — Trainer-centered
 
     private var routineCard: some View {
         let workout = todaysWorkout
-        return VStack(alignment: .leading, spacing: Space.sm) {
-            Text("TODAY'S ROUTINE")
+        return VStack(spacing: Space.md) {
+            // Trainer bubble
+            HStack(alignment: .top, spacing: Space.sm) {
+                // Trainer avatar
+                ZStack {
+                    Circle()
+                        .fill(Palette.accent)
+                        .frame(width: 40, height: 40)
+                    Text("K")
+                        .font(Typo.body)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+                }
+
+                // Speech bubble
+                VStack(alignment: .leading, spacing: Space.xs) {
+                    Text("Kira")
+                        .font(Typo.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Palette.accent)
+
+                    Text(trainerMessage)
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textPrimary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Workout card
+            VStack(alignment: .leading, spacing: Space.sm) {
+                Text(workout.name)
+                    .font(Typo.heading)
+                    .foregroundStyle(Palette.textPrimary)
+
+                HStack(spacing: Space.md) {
+                    Label("\(workout.estimatedDuration) min", systemImage: "clock")
+                    Label("\(workout.exercises.count) exercises", systemImage: "flame.fill")
+                }
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
-                .tracking(2)
 
-            Text(workout.name)
-                .font(Typo.heading)
-                .foregroundStyle(Palette.textPrimary)
-
-            HStack(spacing: Space.sm) {
-                Label("\(workout.estimatedDuration) min", systemImage: "clock")
-                Label("\(workout.exercises.count) exercises", systemImage: "flame")
-                Label(workout.difficulty.rawValue.capitalized, systemImage: "chart.bar")
+                Button {
+                    Haptics.medium()
+                    currentWorkout = workout
+                    showRoutineSession = true
+                } label: {
+                    Text("START WORKOUT")
+                        .font(Typo.body)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Palette.textInverse)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: Space.minTapTarget + 12)
+                        .background(Palette.bgInverse)
+                        .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
+                }
             }
-            .font(Typo.caption)
-            .foregroundStyle(Palette.textSecondary)
-
-            Button {
-                Haptics.medium()
-                currentWorkout = workout
-                showRoutineSession = true
-            } label: {
-                Text("START WORKOUT")
-                    .font(Typo.body)
-                    .fontWeight(.bold)
-                    .foregroundStyle(Palette.textInverse)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: Space.minTapTarget + 12)
-                    .background(Palette.bgInverse)
-                    .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
-            }
-            .padding(.top, Space.sm)
+            .padding(Space.cardPadding)
+            .background(Palette.bgElevated)
+            .clipShape(RoundedRectangle(cornerRadius: Radius.md))
         }
         .padding(Space.cardPadding)
-        .background(Palette.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.md))
-        .plankShadow()
+        .background(Palette.bgPrimary)
+        .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
+        .overlay(
+            RoundedRectangle(cornerRadius: Radius.lg)
+                .stroke(Palette.divider, lineWidth: 1)
+        )
+    }
+
+    private var trainerMessage: String {
+        let routineCount = sessionLogs.filter { $0.sessionType == "routine" }.count
+        if routineCount == 0 { return "I picked your first workout. Let's see what you got." }
+        if todayHasSession { return "Already did one today? Respect. Here's another." }
+        let hour = Calendar.current.component(.hour, from: .now)
+        if hour < 12 { return "Morning session hits different. Let's go." }
+        if hour < 17 { return "Afternoon energy. I got something for you." }
+        return "End of day grind. No excuses."
     }
 
     // MARK: - Plank Benchmark Card (Secondary)
