@@ -17,27 +17,18 @@ struct AnalyticsView: View {
     }
 
     private var totalMinutes: Int {
-        let totalSeconds = sessionLogs.reduce(0.0) { sum, log in
-            sum + (log.totalDuration ?? log.holdTime)
-        }
+        let totalSeconds = sessionLogs.reduce(0.0) { $0 + ($1.totalDuration ?? $1.holdTime) }
         return Int(totalSeconds) / 60
     }
 
-    private var currentStreak: Int {
-        dayProgress.count
-    }
+    private var currentStreak: Int { dayProgress.count }
 
     private var bestPlankHold: Double {
-        sessionLogs
-            .filter { $0.sessionType == "plank_benchmark" }
-            .map { $0.holdTime }
-            .max() ?? 0
+        sessionLogs.filter { $0.sessionType == "plank_benchmark" }.map(\.holdTime).max() ?? 0
     }
 
     private var latestPlankHold: Double {
-        sessionLogs
-            .first { $0.sessionType == "plank_benchmark" }?
-            .holdTime ?? 0
+        sessionLogs.first { $0.sessionType == "plank_benchmark" }?.holdTime ?? 0
     }
 
     private var averageRating: Double {
@@ -45,187 +36,270 @@ struct AnalyticsView: View {
         return Double(ratings.map(\.rating).reduce(0, +)) / Double(ratings.count)
     }
 
+    // Empty state
+    private var isEmpty: Bool { sessionLogs.isEmpty }
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Space.lg) {
-                // Header
-                Text("Log")
-                    .font(Typo.title)
-                    .foregroundStyle(Palette.textPrimary)
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 20) {
+                header
+                    .padding(.top, Space.md)
 
-                // Overview stats
-                overviewGrid
-
-                // Plank progress
-                if benchmarkCount > 0 {
-                    plankProgressCard
-                }
-
-                // Activity calendar
-                activityCalendar
-
-                // Recent sessions
-                if !sessionLogs.isEmpty {
+                if isEmpty {
+                    emptyState
+                } else {
+                    heroStats
+                    activityCalendar
+                    if benchmarkCount > 0 {
+                        plankCard
+                    }
                     recentSessions
                 }
             }
             .padding(.horizontal, Space.screenPadding)
-            .padding(.top, Space.md)
-            .padding(.bottom, 80)
+            .padding(.bottom, 100)
         }
         .background(Palette.bgPrimary)
     }
 
-    // MARK: - Overview Grid
+    // MARK: - Header
 
-    private var overviewGrid: some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible(), spacing: Space.sm),
-            GridItem(.flexible(), spacing: Space.sm),
-        ], spacing: Space.sm) {
-            miniStat(value: "\(routineCount)", label: "WORKOUTS", icon: "flame")
-            miniStat(value: "\(currentStreak)", label: "STREAK", icon: "bolt")
-            miniStat(value: "\(totalMinutes)", label: "MINUTES", icon: "clock")
-            miniStat(
-                value: averageRating > 0 ? String(format: "%.1f", averageRating) : "--",
-                label: "AVG RATING",
-                icon: "star"
+    private var header: some View {
+        HStack(alignment: .bottom) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Log")
+                    .font(Typo.title)
+                    .foregroundStyle(Palette.textPrimary)
+                Text("\(userName.isEmpty ? "Your" : userName + "'s") progress")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            Spacer()
+        }
+    }
+
+    // MARK: - Empty State
+
+    private var emptyState: some View {
+        VStack(spacing: Space.lg) {
+            Spacer().frame(height: 40)
+            Image(systemName: "figure.core.training")
+                .font(.system(size: 48))
+                .foregroundStyle(Palette.divider)
+            Text("No sessions yet")
+                .font(Typo.heading)
+                .foregroundStyle(Palette.textPrimary)
+            Text("Complete your first workout\nand it'll show up here.")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Space.xl)
+    }
+
+    // MARK: - Hero Stats (top row)
+
+    private var heroStats: some View {
+        HStack(spacing: 10) {
+            heroStat(
+                value: "\(currentStreak)",
+                label: "day streak",
+                icon: "flame.fill",
+                accent: true
+            )
+            heroStat(
+                value: "\(routineCount)",
+                label: "workouts",
+                icon: "checkmark.circle.fill",
+                accent: false
+            )
+            heroStat(
+                value: "\(totalMinutes)",
+                label: "min total",
+                icon: "clock.fill",
+                accent: false
             )
         }
     }
 
-    private func miniStat(value: String, label: String, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
+    private func heroStat(value: String, label: String, icon: String, accent: Bool) -> some View {
+        VStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundStyle(Palette.accent)
+                .font(.system(size: 16))
+                .foregroundStyle(accent ? Palette.accent : Palette.textSecondary)
 
             Text(value)
-                .font(Typo.title)
+                .font(.system(size: 28, weight: .bold, design: .rounded))
                 .foregroundStyle(Palette.textPrimary)
 
             Text(label)
-                .font(Typo.caption)
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Palette.textSecondary)
-                .tracking(1)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Space.cardPadding)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
         .background(Palette.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.md))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .plankShadow()
+    }
+
+    // MARK: - Activity Calendar
+
+    private var activityCalendar: some View {
+        let today = Calendar.current.startOfDay(for: .now)
+        let activeDates = Set(dayProgress.map { Calendar.current.startOfDay(for: $0.date) })
+        let weekday = Calendar.current.component(.weekday, from: today)
+        // Adjust so Monday = 0
+        let todayOffset = (weekday + 5) % 7
+        let totalDays = 28 + todayOffset  // fill complete weeks
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Activity")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary)
+                Spacer()
+                Text("4 weeks")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+
+            // Day labels
+            HStack(spacing: 0) {
+                ForEach(["M", "T", "W", "T", "F", "S", "S"], id: \.self) { day in
+                    Text(day)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Palette.textSecondary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.bottom, 2)
+
+            // Grid
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 7), spacing: 5) {
+                ForEach(0..<totalDays, id: \.self) { i in
+                    let daysAgo = totalDays - 1 - i
+                    let date = Calendar.current.date(byAdding: .day, value: -daysAgo, to: today)!
+                    let isActive = activeDates.contains(date)
+                    let isToday = date == today
+                    let isFuture = date > today
+
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(
+                            isFuture ? Color.clear :
+                            isActive ? Palette.accent :
+                            Palette.divider.opacity(0.4)
+                        )
+                        .aspectRatio(1, contentMode: .fit)
+                        .overlay(
+                            Group {
+                                if isToday {
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .stroke(Palette.accent, lineWidth: 1.5)
+                                }
+                            }
+                        )
+                }
+            }
+        }
+        .padding(16)
+        .background(Palette.bgElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .plankShadow()
     }
 
     // MARK: - Plank Progress
 
-    private var plankProgressCard: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            Text("PLANK PROGRESS")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-                .tracking(2)
-
-            HStack(spacing: Space.lg) {
-                VStack(alignment: .leading, spacing: Space.xs) {
-                    Text(String(format: "%.0fs", latestPlankHold))
-                        .font(Typo.title)
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("Latest")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-
-                VStack(alignment: .leading, spacing: Space.xs) {
-                    Text(String(format: "%.0fs", bestPlankHold))
-                        .font(Typo.title)
-                        .foregroundStyle(Palette.accent)
-                    Text("Best")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-
-                VStack(alignment: .leading, spacing: Space.xs) {
-                    Text("\(benchmarkCount)")
-                        .font(Typo.title)
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("Tests")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Space.cardPadding)
-        .background(Palette.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.md))
-        .plankShadow()
-    }
-
-    // MARK: - Activity Calendar (last 4 weeks)
-
-    private var activityCalendar: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            Text("ACTIVITY")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-                .tracking(2)
-
-            // Last 28 days grid
-            let today = Calendar.current.startOfDay(for: .now)
-            let activeDates = Set(dayProgress.map { Calendar.current.startOfDay(for: $0.date) })
-
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 4) {
-                ForEach(0..<28, id: \.self) { daysAgo in
-                    let date = Calendar.current.date(byAdding: .day, value: -(27 - daysAgo), to: today)!
-                    let isActive = activeDates.contains(date)
-                    let isToday = date == today
-
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(isActive ? Palette.accent : Palette.divider.opacity(0.5))
-                        .frame(height: 28)
-                        .overlay(
-                            isToday
-                                ? RoundedRectangle(cornerRadius: 4)
-                                    .stroke(Palette.textSecondary, lineWidth: 1)
-                                : nil
-                        )
-                }
-            }
-
-            // Day labels
+    private var plankCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
-                ForEach(["M", "T", "W", "T", "F", "S", "S"], id: \.self) { day in
-                    Text(day)
-                        .font(.system(size: 10))
+                Text("Plank Progress")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary)
+                Spacer()
+                Text("\(benchmarkCount) tests")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+
+            HStack(spacing: 0) {
+                // Latest
+                VStack(spacing: 4) {
+                    Text(String(format: "%.0f", latestPlankHold))
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("latest (s)")
+                        .font(.system(size: 11))
                         .foregroundStyle(Palette.textSecondary)
-                        .frame(maxWidth: .infinity)
                 }
+                .frame(maxWidth: .infinity)
+
+                // Divider
+                Rectangle()
+                    .fill(Palette.divider)
+                    .frame(width: 1, height: 40)
+
+                // Best
+                VStack(spacing: 4) {
+                    Text(String(format: "%.0f", bestPlankHold))
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundStyle(Palette.accent)
+                    Text("best (s)")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
+
+                // Divider
+                Rectangle()
+                    .fill(Palette.divider)
+                    .frame(width: 1, height: 40)
+
+                // Rating
+                VStack(spacing: 4) {
+                    Text(averageRating > 0 ? String(format: "%.1f", averageRating) : "--")
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("avg rating")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
             }
         }
-        .padding(Space.cardPadding)
+        .padding(16)
         .background(Palette.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.md))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .plankShadow()
     }
 
     // MARK: - Recent Sessions
 
     private var recentSessions: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            Text("RECENT")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-                .tracking(2)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Recent")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Palette.textPrimary)
 
-            ForEach(sessionLogs.prefix(5), id: \.id) { log in
-                HStack {
+            ForEach(sessionLogs.prefix(8), id: \.id) { log in
+                HStack(spacing: 12) {
+                    // Type icon
+                    ZStack {
+                        Circle()
+                            .fill(log.sessionType == "routine" ? Palette.accent.opacity(0.12) : Palette.accentSubtle.opacity(0.3))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: log.sessionType == "routine" ? "flame.fill" : "figure.core.training")
+                            .font(.system(size: 14))
+                            .foregroundStyle(log.sessionType == "routine" ? Palette.accent : Palette.textSecondary)
+                    }
+
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(log.sessionType == "routine" ? "Routine" : "Plank Benchmark")
-                            .font(Typo.body)
-                            .fontWeight(.medium)
+                        Text(log.sessionType == "routine" ? "Core Routine" : "Plank Benchmark")
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(Palette.textPrimary)
-                        Text(log.completedAt.formatted(.dateTime.month().day().hour().minute()))
-                            .font(Typo.caption)
+                        Text(log.completedAt.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour(.defaultDigits(amPM: .abbreviated)).minute()))
+                            .font(.system(size: 12))
                             .foregroundStyle(Palette.textSecondary)
                     }
 
@@ -233,22 +307,21 @@ struct AnalyticsView: View {
 
                     if log.sessionType == "plank_benchmark" {
                         Text(String(format: "%.0fs", log.holdTime))
-                            .font(Typo.heading)
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
                             .foregroundStyle(Palette.accent)
                     } else if let duration = log.totalDuration {
                         Text(formatDuration(duration))
-                            .font(Typo.heading)
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
                             .foregroundStyle(Palette.textPrimary)
                     }
                 }
-                .padding(Space.sm + 4)
+                .padding(12)
                 .background(Palette.bgElevated)
-                .clipShape(RoundedRectangle(cornerRadius: Radius.sm))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .plankShadow()
             }
         }
     }
-
-    // MARK: - Helpers
 
     private func formatDuration(_ time: TimeInterval) -> String {
         let minutes = Int(time) / 60
