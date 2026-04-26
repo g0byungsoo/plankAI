@@ -1,3 +1,4 @@
+import AVFoundation
 import MediaPlayer
 import UIKit
 
@@ -14,8 +15,12 @@ final class RoutineNowPlayingManager {
     func setup(onPause: @escaping () -> Void, onPlay: @escaping () -> Void) {
         self.onPause = onPause
         self.onPlay = onPlay
+        print("=== Now Playing Setup ===")
         UIApplication.shared.beginReceivingRemoteControlEvents()
+        print("beginReceivingRemoteControlEvents called")
         registerCommands()
+        print("Remote commands registered")
+        print("==========================")
     }
 
     private func registerCommands() {
@@ -82,6 +87,24 @@ final class RoutineNowPlayingManager {
         }
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+
+        print("=== Now Playing Update ===")
+        print("Audio session category: \(AVAudioSession.sharedInstance().category.rawValue)")
+        print("Audio session mode: \(AVAudioSession.sharedInstance().mode.rawValue)")
+        print("Audio session options: \(AVAudioSession.sharedInstance().categoryOptions.rawValue)")
+        print("Output route: \(AVAudioSession.sharedInstance().currentRoute.outputs.map { $0.portName })")
+        print("isOtherAudioPlaying: \(AVAudioSession.sharedInstance().isOtherAudioPlaying)")
+        print("Now Playing info dict:")
+        if let info = MPNowPlayingInfoCenter.default().nowPlayingInfo {
+            for (key, value) in info.sorted(by: { $0.key < $1.key }) {
+                print("  \(key): \(value)")
+            }
+        } else {
+            print("  (nil)")
+        }
+        let cmdCenter = MPRemoteCommandCenter.shared()
+        print("Remote commands - play: \(cmdCenter.playCommand.isEnabled), pause: \(cmdCenter.pauseCommand.isEnabled), toggle: \(cmdCenter.togglePlayPauseCommand.isEnabled)")
+        print("==========================")
     }
 
     // MARK: - Clear

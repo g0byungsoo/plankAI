@@ -22,12 +22,15 @@ final class RoutineAudioManager {
     func activate() {
         let session = AVAudioSession.sharedInstance()
         do {
-            // .playback: audio continues in background
-            // .duckOthers: lower other app audio (music) during clips
             try session.setCategory(.playback, mode: .default, options: [.duckOthers])
             try session.setActive(true)
+            print("=== Audio session activated successfully ===")
+            print("Category: \(session.category.rawValue)")
+            print("Mode: \(session.mode.rawValue)")
+            print("Options: \(session.categoryOptions.rawValue)")
+            print("isOtherAudioPlaying: \(session.isOtherAudioPlaying)")
         } catch {
-            // Fallback: at least try basic playback
+            print("=== AUDIO SESSION ACTIVATION FAILED: \(error) ===")
             try? session.setCategory(.playback)
             try? session.setActive(true)
         }
