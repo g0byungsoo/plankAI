@@ -143,9 +143,12 @@ struct HomeView: View {
         hasAnimated = true
         let delays: [Double] = [0.3, 0.8, 1.3, 1.8]
         for (i, delay) in delays.enumerated() {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.85).delay(delay)) {
-                msgOpacity[i] = 1
-                msgOffset[i] = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                Haptics.soft()
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.85)) {
+                    msgOpacity[i] = 1
+                    msgOffset[i] = 0
+                }
             }
         }
     }
@@ -228,10 +231,10 @@ struct HomeView: View {
             kiraAvatar
 
             VStack(alignment: .leading, spacing: 0) {
-                // Header
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(workout.name)
-                        .font(Typo.heading)
+                // Kira intro + workout info
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(workoutIntroText)
+                        .font(Typo.body)
                         .foregroundStyle(Palette.textPrimary)
 
                     HStack(spacing: 12) {
@@ -327,12 +330,11 @@ struct HomeView: View {
             kiraAvatar
 
             VStack(alignment: .leading, spacing: 10) {
-                if let last = lastBenchmark, let days = daysSinceLastBenchmark {
-                    // Kira talks about the benchmark
-                    Text(benchmarkMessage(holdTime: last.holdTime, daysAgo: days))
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textPrimary)
+                Text(benchmarkText)
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textPrimary)
 
+                if let last = lastBenchmark, let days = daysSinceLastBenchmark {
                     HStack(spacing: 20) {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(String(format: "%.0fs", last.holdTime))
@@ -351,18 +353,13 @@ struct HomeView: View {
                                 .foregroundStyle(Palette.textSecondary)
                         }
                     }
-                } else {
-                    // First time, no data
-                    Text("I need to see your plank. Prop your phone up, I'll watch your form and tell you what's off.")
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textPrimary)
                 }
 
                 Button {
                     Haptics.medium()
                     showPreSession = true
                 } label: {
-                    Text(benchmarkDue ? "LET'S GO" : "BENCHMARK")
+                    Text("LET'S GO")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(Palette.textPrimary)
                         .frame(maxWidth: .infinity)
@@ -382,35 +379,49 @@ struct HomeView: View {
         }
     }
 
-    private func benchmarkMessage(holdTime: Double, daysAgo: Int) -> String {
-        if daysAgo >= 14 {
-            return "It's been \(daysAgo) days since your last plank check. We need to fix that."
-        }
-        if daysAgo >= 7 {
-            return "Time for your weekly check-in. Let's see if those workouts are paying off."
-        }
-        if holdTime >= 60 {
-            return "Your last plank was \(Int(holdTime))s. Not bad. Think you can beat it?"
-        }
-        return "You held \(Int(holdTime))s last time. We're getting there."
-    }
-
-    // MARK: - Stats / Greeting
-
-    private var statsText: String {
-        let count = sessionLogs.filter { $0.sessionType == "routine" }.count
-        if streakCount >= 7 { return "\(streakCount) day streak. \(count) workouts. You're locked in. 🔥" }
-        return "Day \(currentDay). \(count) workouts done. Keep showing up."
-    }
+    // MARK: - Kira's Voice
 
     private var greetingText: String {
         let routineCount = sessionLogs.filter { $0.sessionType == "routine" }.count
-        if routineCount == 0 { return "I picked your first workout. Let's see what you got." }
-        if todayHasSession { return "Back for more? I respect that." }
+        let name = userName.isEmpty ? "" : " \(userName)"
         let hour = Calendar.current.component(.hour, from: .now)
-        if hour < 12 { return "Morning. I got something for you." }
-        if hour < 17 { return "Afternoon session. No excuses." }
-        return "End of day. Let's finish strong."
+
+        if routineCount == 0 {
+            return "Hey\(name). I'm Kira, your coach. I made your first workout. You ready?"
+        }
+        if todayHasSession {
+            return "Back for seconds\(name)? I respect that."
+        }
+
+        let timeGreeting = hour < 12 ? "Morning\(name)." : hour < 17 ? "Hey\(name)." : "Evening\(name)."
+        let affirmations = [
+            "You showed up. That's the whole game.",
+            "Consistency looks good on you.",
+            "Your core is getting stronger whether you feel it or not.",
+            "Day \(currentDay). Still here. That says something.",
+        ]
+        return "\(timeGreeting) \(affirmations[currentDay % affirmations.count])"
+    }
+
+    private var workoutIntroText: String {
+        let workout = todaysWorkout
+        let routineCount = sessionLogs.filter { $0.sessionType == "routine" }.count
+        if routineCount == 0 { return "Here's your first one. \(workout.name)." }
+        return "Today's plan. \(workout.name)."
+    }
+
+    private var benchmarkText: String {
+        if let last = lastBenchmark, let days = daysSinceLastBenchmark {
+            if days >= 7 { return "Plank check-in. I'll coach your form live." }
+            return "Last plank: \(Int(last.holdTime))s. Beat it?"
+        }
+        return "Plank check. I watch your form, you hold. Ready?"
+    }
+
+    private var statsText: String {
+        let count = sessionLogs.filter { $0.sessionType == "routine" }.count
+        if streakCount >= 7 { return "\(streakCount) day streak. \(count) sessions. Locked in. 🔥" }
+        return "\(count) workouts done. Keep showing up."
     }
 
     // MARK: - Persistence
