@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 import PlankSync
 
-/// Chat-style home screen. Kira presents your daily workout as chat bubbles.
+/// iMessage-style home. Kira texts you your daily workout.
 struct HomeView: View {
     @AppStorage("userName") private var userName = ""
     @AppStorage("hasCompletedFirstSession") private var hasCompletedFirstSession = false
@@ -29,18 +29,13 @@ struct HomeView: View {
     @State private var lastSessionRating: Int = 0
     @State private var lastSessionTags: [String] = []
 
-    // Chat animation state
-    @State private var visibleBubbles: Int = 0
+    // Chat animation
+    @State private var visibleMessages: Int = 0
     @State private var showTyping = false
     @State private var hasAnimated = false
 
-    private var currentDay: Int {
-        (dayProgress.first?.programDay ?? 0) + 1
-    }
-
-    private var streakCount: Int {
-        dayProgress.count
-    }
+    private var currentDay: Int { (dayProgress.first?.programDay ?? 0) + 1 }
+    private var streakCount: Int { dayProgress.count }
 
     private var todaysWorkout: WorkoutPreset {
         if let current = currentWorkout { return current }
@@ -73,44 +68,48 @@ struct HomeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Top bar with profile menu
-            chatTopBar
+            // iMessage-style top bar
+            messageTopBar
 
-            // Chat area
+            Divider().foregroundStyle(Palette.divider)
+
+            // Messages area
             ScrollView(showsIndicators: false) {
-                VStack(spacing: Space.md) {
-                    // Kira profile header
-                    kiraHeader
+                LazyVStack(spacing: Space.xs) {
+                    // Date stamp
+                    dateStamp
                         .padding(.top, Space.md)
 
-                    // Chat bubbles — appear sequentially
-                    if visibleBubbles >= 1 {
-                        greetingBubble
-                            .transition(.chatBubble)
+                    // Messages animate in
+                    if visibleMessages >= 1 {
+                        kiraMessage(greetingText)
                     }
 
-                    if visibleBubbles >= 2 {
-                        workoutBubble
-                            .transition(.chatBubble)
+                    if visibleMessages >= 2 {
+                        kiraWorkoutCard
                     }
 
-                    if visibleBubbles >= 3 {
-                        benchmarkBubble
-                            .transition(.chatBubble)
+                    if visibleMessages >= 3 {
+                        kiraBenchmarkCard
                     }
 
-                    if visibleBubbles >= 4 && hasCompletedFirstSession {
-                        statsBubble
-                            .transition(.chatBubble)
+                    if visibleMessages >= 4 && hasCompletedFirstSession {
+                        kiraMessage(statsText)
+                    }
+
+                    // Typing indicator
+                    if showTyping {
+                        typingBubble
+                            .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottomLeading)))
                     }
                 }
-                .padding(.horizontal, Space.screenPadding)
+                .padding(.horizontal, Space.sm)
                 .padding(.bottom, 80)
             }
             .background(Palette.bgPrimary)
         }
-        .onAppear { startChatAnimation() }
-        // Session fullscreen covers
+        .onAppear { runChatSequence() }
+        // Session covers
         .fullScreenCover(isPresented: $showRoutineSession) {
             if let workout = currentWorkout {
                 RoutineSessionView(workout: workout) { results, duration in
@@ -138,22 +137,13 @@ struct HomeView: View {
             }
         }
         .fullScreenCover(isPresented: $showPreSession) {
-            PreSessionView(
-                exerciseType: "Plank Benchmark",
-                dayNumber: currentDay
-            ) {
+            PreSessionView(exerciseType: "Plank Benchmark", dayNumber: currentDay) {
                 showPreSession = false
                 showSession = true
-            } onDismiss: {
-                showPreSession = false
-            }
+            } onDismiss: { showPreSession = false }
         }
         .fullScreenCover(isPresented: $showSession) {
-            SessionView(
-                exerciseType: "Plank Benchmark",
-                dayNumber: currentDay,
-                targetTime: 60
-            ) { holdTime, quality, faults in
+            SessionView(exerciseType: "Plank Benchmark", dayNumber: currentDay, targetTime: 60) { holdTime, quality, faults in
                 lastHoldTime = holdTime
                 lastQuality = quality
                 showSession = false
@@ -162,155 +152,126 @@ struct HomeView: View {
             }
         }
         .fullScreenCover(isPresented: $showPlankPostSession) {
-            PostSessionView(
-                holdTime: lastHoldTime,
-                qualityScore: lastQuality,
-                dayNumber: currentDay,
-                streakCount: streakCount,
-                previousScore: nil,
-                playedLines: []
-            ) {
-                showPlankPostSession = false
-            }
+            PostSessionView(holdTime: lastHoldTime, qualityScore: lastQuality, dayNumber: currentDay, streakCount: streakCount, previousScore: nil, playedLines: []) { showPlankPostSession = false }
         }
     }
 
-    // MARK: - Chat Animation
+    // MARK: - Chat Sequence
 
-    private func startChatAnimation() {
+    private func runChatSequence() {
         guard !hasAnimated else { return }
         hasAnimated = true
 
-        // Typing indicator, then bubbles appear one by one
-        showTyping = true
-        let delays: [Double] = [0.6, 1.4, 2.2, 3.0]
+        let delays: [Double] = [0.4, 1.6, 2.8, 3.8]
         for (i, delay) in delays.enumerated() {
+            // Show typing before each message
+            DispatchQueue.main.asyncAfter(deadline: .now() + (i == 0 ? 0 : delay - 0.8)) {
+                withAnimation(.easeInOut(duration: 0.2)) { showTyping = true }
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                if i > 0 { showTyping = false }
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    visibleBubbles = i + 1
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    showTyping = false
+                    visibleMessages = i + 1
                 }
                 Haptics.soft()
-                // Show typing before next bubble
-                if i < delays.count - 1 {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        showTyping = true
-                    }
-                } else {
-                    showTyping = false
-                }
             }
         }
     }
 
-    // MARK: - Top Bar
+    // MARK: - Top Bar (iMessage style)
 
-    private var chatTopBar: some View {
-        HStack {
-            Spacer()
+    private var messageTopBar: some View {
+        VStack(spacing: Space.xs) {
+            HStack {
+                // Settings menu (left)
+                Menu {
+                    Button { } label: { Label("Edit Profile", systemImage: "person") }
+                    Button { } label: { Label("Notifications", systemImage: "bell") }
+                    Button { } label: { Label("Account", systemImage: "gearshape") }
+                    Divider()
+                    Button { } label: { Label("Feedback", systemImage: "bubble.left") }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(Palette.textSecondary)
+                        .frame(width: 32, height: 32)
+                }
 
-            // Profile menu
-            Menu {
-                Button { } label: { Label("Edit Profile", systemImage: "person") }
-                Button { } label: { Label("Notifications", systemImage: "bell") }
-                Button { } label: { Label("Account", systemImage: "gearshape") }
-                Divider()
-                Button { } label: { Label("Feedback", systemImage: "bubble.left") }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Palette.textSecondary)
-                    .frame(width: 36, height: 36)
-                    .background(Palette.bgElevated)
-                    .clipShape(Circle())
+                Spacer()
+
+                // Center: Kira profile
+                VStack(spacing: 2) {
+                    Image("coach-kira")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 36, height: 36)
+                        .clipShape(Circle())
+
+                    Text("Kira")
+                        .font(Typo.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(Palette.textPrimary)
+                }
+
+                Spacer()
+
+                // Right placeholder for symmetry
+                Color.clear.frame(width: 32, height: 32)
             }
+            .padding(.horizontal, Space.screenPadding)
         }
-        .padding(.horizontal, Space.screenPadding)
-        .padding(.top, Space.xs)
+        .padding(.vertical, Space.xs)
         .background(Palette.bgPrimary)
     }
 
-    // MARK: - Kira Header (profile pic + name)
+    // MARK: - Date Stamp
 
-    private var kiraHeader: some View {
-        VStack(spacing: Space.sm) {
+    private var dateStamp: some View {
+        Text(Date.now.formatted(.dateTime.weekday(.wide).hour(.defaultDigits(amPM: .abbreviated)).minute()))
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(Palette.textSecondary)
+            .padding(.vertical, Space.sm)
+    }
+
+    // MARK: - Kira Text Message (left-aligned, warm bubble)
+
+    private func kiraMessage(_ text: String) -> some View {
+        HStack(alignment: .bottom, spacing: Space.xs) {
+            // Small profile pic on last message of group
             Image("coach-kira")
                 .resizable()
                 .scaledToFill()
-                .frame(width: 72, height: 72)
+                .frame(width: 28, height: 28)
                 .clipShape(Circle())
-                .overlay(
-                    Circle()
-                        .stroke(Palette.accent.opacity(0.3), lineWidth: 2)
-                )
 
-            Text("Kira")
-                .font(Typo.heading)
-                .foregroundStyle(Palette.textPrimary)
-
-            Text("Your Coach")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-
-            // Typing indicator
-            if showTyping {
-                typingIndicator
-                    .transition(.opacity)
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var typingIndicator: some View {
-        HStack(spacing: 4) {
-            ForEach(0..<3, id: \.self) { i in
-                Circle()
-                    .fill(Palette.textSecondary.opacity(0.5))
-                    .frame(width: 6, height: 6)
-                    .offset(y: typingBounce(index: i))
-            }
-        }
-        .padding(.horizontal, Space.md)
-        .padding(.vertical, Space.sm)
-        .background(Palette.bgElevated)
-        .clipShape(Capsule())
-    }
-
-    @State private var typingBouncePhase = false
-
-    private func typingBounce(index: Int) -> CGFloat {
-        // Simple staggered bounce
-        return typingBouncePhase ? -3 : 0
-    }
-
-    // MARK: - Chat Bubbles
-
-    private var greetingBubble: some View {
-        ChatBubble {
-            Text(greetingMessage)
+            Text(text)
                 .font(Typo.body)
                 .foregroundStyle(Palette.textPrimary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Palette.bgElevated)
+                .clipShape(MessageBubbleShape(isFromUser: false))
+                .plankShadow()
+
+            Spacer(minLength: 48)
         }
+        .transition(.opacity.combined(with: .scale(scale: 0.92, anchor: .bottomLeading)).combined(with: .offset(y: 6)))
     }
 
-    private var greetingMessage: String {
-        let routineCount = sessionLogs.filter { $0.sessionType == "routine" }.count
-        if routineCount == 0 { return "I picked your first workout. Let's see what you got." }
-        if todayHasSession { return "Back for more? I respect that. Here's another one." }
-        let hour = Calendar.current.component(.hour, from: .now)
-        if hour < 12 { return "Morning. I got something for you." }
-        if hour < 17 { return "Afternoon session. No excuses today." }
-        return "End of day. Let's finish strong."
-    }
+    // MARK: - Workout Card (rich message bubble)
 
-    // MARK: - Workout Bubble (main CTA)
-
-    private var workoutBubble: some View {
+    private var kiraWorkoutCard: some View {
         let workout = todaysWorkout
-        return ChatBubble {
+        return HStack(alignment: .bottom, spacing: Space.xs) {
+            Image("coach-kira")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 28, height: 28)
+                .clipShape(Circle())
+
             VStack(alignment: .leading, spacing: Space.sm) {
                 Text("TODAY'S CORE")
-                    .font(Typo.caption)
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(Palette.textSecondary)
                     .tracking(2)
 
@@ -319,43 +280,41 @@ struct HomeView: View {
                     .foregroundStyle(Palette.textPrimary)
 
                 HStack(spacing: Space.md) {
-                    HStack(spacing: Space.xs) {
+                    HStack(spacing: 4) {
                         Image(systemName: "clock")
-                            .font(.system(size: 12))
+                            .font(.system(size: 11))
                         Text("\(workout.estimatedDuration) min")
                     }
-                    HStack(spacing: Space.xs) {
+                    HStack(spacing: 4) {
                         Image(systemName: "flame.fill")
-                            .font(.system(size: 12))
+                            .font(.system(size: 11))
                         Text("\(workout.exercises.count) exercises")
                     }
                 }
-                .font(Typo.caption)
+                .font(.system(size: 12))
                 .foregroundStyle(Palette.textSecondary)
 
-                // Exercise preview pills
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: Space.xs) {
-                        ForEach(workout.exercises.prefix(5), id: \.exerciseId) { slot in
-                            if let ex = slot.exercise {
-                                Text(ex.name)
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundStyle(Palette.textSecondary)
-                                    .padding(.horizontal, Space.sm)
-                                    .padding(.vertical, Space.xs)
-                                    .background(Palette.bgPrimary)
-                                    .clipShape(Capsule())
-                            }
-                        }
-                        if workout.exercises.count > 5 {
-                            Text("+\(workout.exercises.count - 5)")
-                                .font(.system(size: 11, weight: .medium))
+                // Exercise pills
+                FlowLayout(spacing: 4) {
+                    ForEach(workout.exercises.prefix(4), id: \.exerciseId) { slot in
+                        if let ex = slot.exercise {
+                            Text(ex.name)
+                                .font(.system(size: 10, weight: .medium))
                                 .foregroundStyle(Palette.textSecondary)
-                                .padding(.horizontal, Space.sm)
-                                .padding(.vertical, Space.xs)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
                                 .background(Palette.bgPrimary)
                                 .clipShape(Capsule())
                         }
+                    }
+                    if workout.exercises.count > 4 {
+                        Text("+\(workout.exercises.count - 4) more")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(Palette.textSecondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Palette.bgPrimary)
+                            .clipShape(Capsule())
                     }
                 }
 
@@ -369,32 +328,44 @@ struct HomeView: View {
                         .fontWeight(.bold)
                         .foregroundStyle(Palette.textInverse)
                         .frame(maxWidth: .infinity)
-                        .frame(height: Space.minTapTarget + 8)
+                        .frame(height: Space.minTapTarget + 4)
                         .background(Palette.bgInverse)
-                        .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
+                        .clipShape(RoundedRectangle(cornerRadius: Radius.md))
                 }
-                .padding(.top, Space.xs)
             }
+            .padding(12)
+            .background(Palette.bgElevated)
+            .clipShape(MessageBubbleShape(isFromUser: false))
+            .plankShadow()
+
+            Spacer(minLength: 24)
         }
+        .transition(.opacity.combined(with: .scale(scale: 0.92, anchor: .bottomLeading)).combined(with: .offset(y: 6)))
     }
 
-    // MARK: - Benchmark Bubble
+    // MARK: - Benchmark Card (rich message bubble)
 
-    private var benchmarkBubble: some View {
-        ChatBubble {
+    private var kiraBenchmarkCard: some View {
+        HStack(alignment: .bottom, spacing: Space.xs) {
+            Image("coach-kira")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 28, height: 28)
+                .clipShape(Circle())
+
             VStack(alignment: .leading, spacing: Space.sm) {
                 HStack {
                     Text("PLANK BENCHMARK")
-                        .font(Typo.caption)
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(Palette.textSecondary)
                         .tracking(2)
                     Spacer()
                     if benchmarkDue {
                         Text("DUE")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.system(size: 9, weight: .bold))
                             .foregroundStyle(Palette.accent)
-                            .padding(.horizontal, Space.sm)
-                            .padding(.vertical, 3)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
                             .background(Palette.accent.opacity(0.1))
                             .clipShape(Capsule())
                     }
@@ -402,20 +373,20 @@ struct HomeView: View {
 
                 if let last = lastBenchmark, let days = daysSinceLastBenchmark {
                     HStack(spacing: Space.lg) {
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: 1) {
                             Text(String(format: "%.0fs", last.holdTime))
                                 .font(Typo.heading)
                                 .foregroundStyle(Palette.textPrimary)
                             Text("last hold")
-                                .font(Typo.caption)
+                                .font(.system(size: 11))
                                 .foregroundStyle(Palette.textSecondary)
                         }
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: 1) {
                             Text("\(days)d ago")
                                 .font(Typo.heading)
                                 .foregroundStyle(Palette.textPrimary)
                             Text("last check-in")
-                                .font(Typo.caption)
+                                .font(.system(size: 11))
                                 .foregroundStyle(Palette.textSecondary)
                         }
                     }
@@ -434,61 +405,68 @@ struct HomeView: View {
                         .fontWeight(.bold)
                         .foregroundStyle(Palette.textPrimary)
                         .frame(maxWidth: .infinity)
-                        .frame(height: Space.minTapTarget)
+                        .frame(height: Space.minTapTarget - 4)
                         .overlay(
-                            RoundedRectangle(cornerRadius: Radius.lg)
+                            RoundedRectangle(cornerRadius: Radius.md)
                                 .stroke(Palette.divider, lineWidth: 1)
                         )
                 }
             }
+            .padding(12)
+            .background(Palette.bgElevated)
+            .clipShape(MessageBubbleShape(isFromUser: false))
+            .plankShadow()
+
+            Spacer(minLength: 24)
+        }
+        .transition(.opacity.combined(with: .scale(scale: 0.92, anchor: .bottomLeading)).combined(with: .offset(y: 6)))
+    }
+
+    // MARK: - Stats Text
+
+    private var statsText: String {
+        let count = sessionLogs.filter { $0.sessionType == "routine" }.count
+        if streakCount >= 7 {
+            return "\(streakCount) day streak. \(count) workouts. You're locked in."
+        }
+        return "Day \(currentDay). \(count) workouts done. Keep showing up."
+    }
+
+    // MARK: - Typing Indicator
+
+    private var typingBubble: some View {
+        HStack(alignment: .bottom, spacing: Space.xs) {
+            Image("coach-kira")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 28, height: 28)
+                .clipShape(Circle())
+
+            HStack(spacing: 4) {
+                TypingDot(delay: 0)
+                TypingDot(delay: 0.15)
+                TypingDot(delay: 0.3)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(Palette.bgElevated)
+            .clipShape(MessageBubbleShape(isFromUser: false))
+            .plankShadow()
+
+            Spacer()
         }
     }
 
-    // MARK: - Stats Bubble
+    // MARK: - Greeting
 
-    private var statsBubble: some View {
-        ChatBubble {
-            HStack(spacing: Space.md) {
-                VStack(spacing: Space.xs) {
-                    Text("\(streakCount)")
-                        .font(Typo.heading)
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("streak")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                .frame(maxWidth: .infinity)
-
-                Rectangle()
-                    .fill(Palette.divider)
-                    .frame(width: 1, height: 32)
-
-                VStack(spacing: Space.xs) {
-                    let count = sessionLogs.filter { $0.sessionType == "routine" }.count
-                    Text("\(count)")
-                        .font(Typo.heading)
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("workouts")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                .frame(maxWidth: .infinity)
-
-                Rectangle()
-                    .fill(Palette.divider)
-                    .frame(width: 1, height: 32)
-
-                VStack(spacing: Space.xs) {
-                    Text("Day \(currentDay)")
-                        .font(Typo.heading)
-                        .foregroundStyle(Palette.accent)
-                    Text("today")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
+    private var greetingText: String {
+        let routineCount = sessionLogs.filter { $0.sessionType == "routine" }.count
+        if routineCount == 0 { return "I picked your first workout. Let's see what you got." }
+        if todayHasSession { return "Back for more? I respect that." }
+        let hour = Calendar.current.component(.hour, from: .now)
+        if hour < 12 { return "Morning. I got something for you." }
+        if hour < 17 { return "Afternoon session. No excuses." }
+        return "End of day. Let's finish strong."
     }
 
     // MARK: - Persistence
@@ -499,25 +477,17 @@ struct HomeView: View {
         let resultsData = try? JSONEncoder().encode(results)
 
         let session = SessionLogRecord(
-            userId: userId,
-            exerciseType: "routine",
-            holdTime: 0,
-            targetTime: 0,
-            qualityScore: Double(lastSessionRating) * 2.0,
-            sessionType: "routine",
-            presetId: currentWorkout?.id,
-            exerciseResults: resultsData,
+            userId: userId, exerciseType: "routine", holdTime: 0, targetTime: 0,
+            qualityScore: Double(lastSessionRating) * 2.0, sessionType: "routine",
+            presetId: currentWorkout?.id, exerciseResults: resultsData,
             totalDuration: routineTotalDuration
         )
         modelContext.insert(session)
 
         if lastSessionRating > 0 {
-            let rating = SessionRatingRecord(
-                sessionLogId: session.id,
-                rating: lastSessionRating,
-                tags: lastSessionTags
-            )
-            modelContext.insert(rating)
+            modelContext.insert(SessionRatingRecord(
+                sessionLogId: session.id, rating: lastSessionRating, tags: lastSessionTags
+            ))
         }
 
         let day = currentDay
@@ -525,7 +495,6 @@ struct HomeView: View {
         let descriptor = FetchDescriptor<DayProgressRecord>(
             predicate: #Predicate { $0.compositeKey == compositeKey }
         )
-
         if let existing = try? modelContext.fetch(descriptor).first {
             existing.primarySessionId = session.id
             existing.primaryQualityScore = Double(lastSessionRating) * 2.0
@@ -536,33 +505,22 @@ struct HomeView: View {
             existing.updatedAt = .now
         } else {
             let progress = DayProgressRecord(
-                userId: userId,
-                programDay: day,
-                primarySessionId: session.id,
-                primaryQualityScore: Double(lastSessionRating) * 2.0,
-                primaryHoldTime: 0
+                userId: userId, programDay: day, primarySessionId: session.id,
+                primaryQualityScore: Double(lastSessionRating) * 2.0, primaryHoldTime: 0
             )
             progress.sessionLogIds = [session.id]
             modelContext.insert(progress)
         }
-
         try? modelContext.save()
         hasCompletedFirstSession = true
     }
 
     private func saveBenchmarkSession(holdTime: Double, quality: Double, faults: Int) {
         let userId = "local-user"
-
         let session = SessionLogRecord(
-            userId: userId,
-            exerciseType: "plank",
-            holdTime: holdTime,
-            targetTime: 60,
-            qualityScore: quality,
-            formFaultsCount: faults,
-            sessionType: "plank_benchmark",
-            plankHoldTime: holdTime,
-            plankFormScore: quality
+            userId: userId, exerciseType: "plank", holdTime: holdTime, targetTime: 60,
+            qualityScore: quality, formFaultsCount: faults, sessionType: "plank_benchmark",
+            plankHoldTime: holdTime, plankFormScore: quality
         )
         modelContext.insert(session)
 
@@ -571,7 +529,6 @@ struct HomeView: View {
         let descriptor = FetchDescriptor<DayProgressRecord>(
             predicate: #Predicate { $0.compositeKey == compositeKey }
         )
-
         if let existing = try? modelContext.fetch(descriptor).first {
             var ids = existing.sessionLogIds ?? []
             ids.append(session.id)
@@ -579,48 +536,78 @@ struct HomeView: View {
             existing.updatedAt = .now
         } else {
             let progress = DayProgressRecord(
-                userId: userId,
-                programDay: day,
-                primarySessionId: session.id,
-                primaryQualityScore: quality,
-                primaryHoldTime: holdTime
+                userId: userId, programDay: day, primarySessionId: session.id,
+                primaryQualityScore: quality, primaryHoldTime: holdTime
             )
             progress.sessionLogIds = [session.id]
             modelContext.insert(progress)
         }
-
         try? modelContext.save()
         hasCompletedFirstSession = true
     }
 }
 
-// MARK: - Chat Bubble Component
+// MARK: - iMessage Bubble Shape
 
-struct ChatBubble<Content: View>: View {
-    @ViewBuilder let content: Content
+struct MessageBubbleShape: Shape {
+    let isFromUser: Bool
 
-    var body: some View {
-        HStack(alignment: .top, spacing: Space.sm) {
-            content
-                .frame(maxWidth: .infinity, alignment: .leading)
+    func path(in rect: CGRect) -> Path {
+        let radius: CGFloat = 18
+        let tailSize: CGFloat = 6
+
+        var path = Path()
+
+        if isFromUser {
+            // Right-aligned bubble with tail on bottom-right
+            path.addRoundedRect(in: CGRect(x: 0, y: 0, width: rect.width - tailSize, height: rect.height), cornerSize: CGSize(width: radius, height: radius))
+            // Tail
+            path.move(to: CGPoint(x: rect.width - tailSize, y: rect.height - 8))
+            path.addQuadCurve(
+                to: CGPoint(x: rect.width, y: rect.height),
+                control: CGPoint(x: rect.width - 2, y: rect.height - 2)
+            )
+            path.addQuadCurve(
+                to: CGPoint(x: rect.width - tailSize - 4, y: rect.height),
+                control: CGPoint(x: rect.width - tailSize, y: rect.height)
+            )
+        } else {
+            // Left-aligned bubble with tail on bottom-left
+            path.addRoundedRect(in: CGRect(x: tailSize, y: 0, width: rect.width - tailSize, height: rect.height), cornerSize: CGSize(width: radius, height: radius))
+            // Tail
+            path.move(to: CGPoint(x: tailSize, y: rect.height - 8))
+            path.addQuadCurve(
+                to: CGPoint(x: 0, y: rect.height),
+                control: CGPoint(x: 2, y: rect.height - 2)
+            )
+            path.addQuadCurve(
+                to: CGPoint(x: tailSize + 4, y: rect.height),
+                control: CGPoint(x: tailSize, y: rect.height)
+            )
         }
-        .padding(Space.cardPadding)
-        .background(Palette.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.md))
-        .plankShadow()
+
+        return path
     }
 }
 
-// MARK: - Chat Bubble Transition
+// MARK: - Typing Dot (animated)
 
-extension AnyTransition {
-    static var chatBubble: AnyTransition {
-        .asymmetric(
-            insertion: .opacity
-                .combined(with: .scale(scale: 0.95, anchor: .top))
-                .combined(with: .offset(y: 8)),
-            removal: .opacity
-        )
+struct TypingDot: View {
+    let delay: Double
+    @State private var animating = false
+
+    var body: some View {
+        Circle()
+            .fill(Palette.textSecondary.opacity(0.4))
+            .frame(width: 8, height: 8)
+            .offset(y: animating ? -4 : 2)
+            .animation(
+                .easeInOut(duration: 0.4)
+                .repeatForever(autoreverses: true)
+                .delay(delay),
+                value: animating
+            )
+            .onAppear { animating = true }
     }
 }
 
