@@ -33,7 +33,6 @@ final class RoutineSessionViewModel {
 
     private let clock: any Clock<Duration>
     private let audio = RoutineAudioManager()
-    private let nowPlaying = RoutineNowPlayingManager()
     private let onComplete: ([ExerciseResultEntry], TimeInterval) -> Void
 
     // MARK: - Internal
@@ -99,24 +98,23 @@ final class RoutineSessionViewModel {
     func start() {
         guard case .preview(0) = phase else { return }
         activeStartTime = Date()
-        timeRemaining = 4  // 4s preview: 1s silence + 3s for intro clip
+        timeRemaining = 4
         audio.activate()
-        nowPlaying.setup(onPause: { [weak self] in self?.pause() },
-                         onPlay: { [weak self] in self?.resume() })
         Haptics.vibrate()
         startTimer()
     }
 
     func pause() {
+        guard !isPaused else { return }
         isPaused = true
         timerTask?.cancel()
-        updateNowPlayingState(isPlaying: false)
+        audio.stop()
     }
 
     func resume() {
+        guard isPaused else { return }
         isPaused = false
         startTimer()
-        updateNowPlayingState(isPlaying: true)
     }
 
     func skip() {
@@ -138,7 +136,6 @@ final class RoutineSessionViewModel {
     func end() {
         timerTask?.cancel()
         audio.deactivate()
-        nowPlaying.clearNowPlaying()
         finishSession()
     }
 
@@ -163,31 +160,22 @@ final class RoutineSessionViewModel {
 
         switch phase {
         case .preview(let index):
-            // Play intro clip 2s into preview (after the 1s settle)
             if timeRemaining == 2 {
                 audio.onExercisePreview(exerciseId: workout.exercises[index].exerciseId)
             }
             if timeRemaining <= 0 {
-                // Go! Strong vibration marks the start
                 Haptics.vibrate()
                 audio.onExerciseStart()
                 let slot = workout.exercises[index]
                 phase = .active(exerciseIndex: index)
                 timeRemaining = slot.duration
                 exerciseElapsed = 0
-                // Update lock screen
-                updateNowPlayingForExercise(index: index, elapsed: 0, isPlaying: true)
             }
 
         case .active(let index):
             exerciseElapsed += 1
             let slot = workout.exercises[index]
             let remaining = timeRemaining
-
-            // Update lock screen every 2 seconds
-            if exerciseElapsed % 2 == 0 {
-                updateNowPlayingForExercise(index: index, elapsed: Double(exerciseElapsed), isPlaying: true)
-            }
 
             // Haptic countdown: tick at 3, 2, 1
             if remaining <= 3 && remaining >= 1 {
@@ -199,7 +187,7 @@ final class RoutineSessionViewModel {
                 audio.onExerciseAlmost()
             }
 
-            // Periodic voice cues (cooldown + spacing prevents overlap)
+            // Periodic voice cues
             if let exercise = slot.exercise, remaining > 8 {
                 audio.onActiveTick(
                     exerciseType: exercise.type,
@@ -209,7 +197,6 @@ final class RoutineSessionViewModel {
             }
 
             if remaining <= 0 {
-                // Exercise complete
                 let isLastExercise = (index + 1) >= workout.exercises.count
                 exerciseResults.append(ExerciseResultEntry(
                     exerciseId: slot.exerciseId,
@@ -218,11 +205,9 @@ final class RoutineSessionViewModel {
                     skipped: false
                 ))
                 if isLastExercise {
-                    // Last exercise: go straight to done, one clip only
                     Haptics.doubleVibrate()
                     finishSession()
                 } else {
-                    // Not last: short "time" + haptic, then rest
                     Haptics.rigid()
                     audio.onExerciseDone()
                     advanceToRest(index: index)
@@ -230,12 +215,10 @@ final class RoutineSessionViewModel {
             }
 
         case .rest(let index):
-            // Rest haptic: soft pulse at start
             if timeRemaining == workout.exercises[index].restAfter - 1 {
                 Haptics.soft()
                 audio.onRest()
             }
-            // Haptic tick 2s before rest ends
             if timeRemaining == 2 {
                 Haptics.tick()
             }
@@ -243,7 +226,7 @@ final class RoutineSessionViewModel {
                 let nextIndex = index + 1
                 if nextIndex < workout.exercises.count {
                     phase = .preview(exerciseIndex: nextIndex)
-                    timeRemaining = 4  // 4s: 1s settle + intro at 2s + go at 0
+                    timeRemaining = 4
                 } else {
                     Haptics.success()
                     finishSession()
@@ -269,34 +252,12 @@ final class RoutineSessionViewModel {
     private func finishSession() {
         timerTask?.cancel()
         phase = .done
-        nowPlaying.clearNowPlaying()
-        // Delay the done clip so it doesn't stack on the last exercise
         Task {
             try? await clock.sleep(for: .seconds(1))
             audio.onSessionDone()
-            // Deactivate audio session after done clip finishes
             try? await clock.sleep(for: .seconds(2))
             audio.deactivate()
         }
         onComplete(exerciseResults, totalElapsed)
-    }
-
-    // MARK: - Now Playing Helpers
-
-    private func updateNowPlayingForExercise(index: Int, elapsed: Double, isPlaying: Bool) {
-        let slot = workout.exercises[index]
-        guard let exercise = slot.exercise else { return }
-        nowPlaying.updateNowPlaying(
-            title: exercise.name,
-            subtitle: "\(workout.name) · \(index + 1) of \(workout.exercises.count)",
-            elapsed: elapsed,
-            duration: Double(slot.duration),
-            isPlaying: isPlaying
-        )
-    }
-
-    private func updateNowPlayingState(isPlaying: Bool) {
-        guard case .active(let index) = phase else { return }
-        updateNowPlayingForExercise(index: index, elapsed: Double(exerciseElapsed), isPlaying: isPlaying)
     }
 }

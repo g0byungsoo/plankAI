@@ -1,6 +1,5 @@
 import SwiftUI
 import AVFoundation
-import MediaPlayer
 import PlankEngine
 import PlankVoice
 
@@ -8,6 +7,7 @@ import PlankVoice
 /// Audio-led with minimal glance-check visuals.
 /// Design principle: user should complete the plank without looking at the phone.
 struct SessionView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var engine: PlankSessionEngine
     @State private var camera = CameraManager()
     @State private var audioQueue = AudioQueue(
@@ -24,7 +24,7 @@ struct SessionView: View {
     @State private var audioMuted = false
     @State private var showGuideFrame = true
     @State private var timer: Timer?
-    @State private var plankNowPlaying = RoutineNowPlayingManager()
+    @State private var pausedByBackground = false
 
     let exerciseType: String
     let dayNumber: Int
@@ -246,6 +246,11 @@ struct SessionView: View {
                 .padding(.horizontal, Space.screenPadding)
                 .padding(.bottom, Space.lg)
             }
+            // Pause overlay when returning from background
+            if pausedByBackground {
+                plankPausedOverlay
+                    .transition(.opacity)
+            }
         }
         .alert("End Session?", isPresented: $showEndConfirm) {
             Button("End", role: .destructive) {
@@ -264,11 +269,79 @@ struct SessionView: View {
         .onDisappear {
             stopTimer()
             camera.stopSession()
-            plankNowPlaying.clearNowPlaying()
             // Lock back to portrait
             OrientationManager.shared.allowedOrientations = .portrait
             // Release audio session so other apps can resume
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background || newPhase == .inactive {
+                if sessionActive && !sessionEnded {
+                    stopTimer()
+                    camera.stopSession()
+                    pausedByBackground = true
+                }
+            }
+        }
+    }
+
+    // MARK: - Plank Pause Overlay
+
+    private var plankPausedOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.7)
+                .ignoresSafeArea()
+
+            VStack(spacing: Space.lg) {
+                Text("SESSION PAUSED")
+                    .font(Typo.caption)
+                    .foregroundStyle(.white.opacity(0.6))
+                    .tracking(3)
+
+                Text("Plank Hold")
+                    .font(Typo.title)
+                    .foregroundStyle(.white)
+
+                Text("\(formatTime(elapsedTime)) elapsed")
+                    .font(Typo.body)
+                    .foregroundStyle(.white.opacity(0.6))
+
+                VStack(spacing: Space.sm) {
+                    Button {
+                        Haptics.medium()
+                        pausedByBackground = false
+                        camera.startSession()
+                        startTimer()
+                    } label: {
+                        Text("RESUME")
+                            .font(Typo.body)
+                            .fontWeight(.bold)
+                            .foregroundStyle(Palette.textInverse)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: Space.minTapTarget + 12)
+                            .background(Palette.accent)
+                            .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
+                    }
+
+                    Button {
+                        pausedByBackground = false
+                        Task { await engine.endSession() }
+                    } label: {
+                        Text("END SESSION")
+                            .font(Typo.body)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.white.opacity(0.6))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: Space.minTapTarget + 4)
+                    }
+                }
+                .padding(.top, Space.md)
+            }
+            .padding(Space.lg)
+            .padding(.horizontal, Space.screenPadding)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
+            .padding(.horizontal, Space.lg)
         }
     }
 
@@ -330,14 +403,6 @@ struct SessionView: View {
                 if !sessionActive {
                     sessionActive = true
                     startTimer()
-                    plankNowPlaying.setup(onPause: {}, onPlay: {})
-                    plankNowPlaying.updateNowPlaying(
-                        title: "Plank Hold",
-                        subtitle: "Weekly Benchmark",
-                        elapsed: 0,
-                        duration: targetTime,
-                        isPlaying: true
-                    )
                 }
             case .sessionEnd(let time, let score):
                 Haptics.heavy()
@@ -346,7 +411,6 @@ struct SessionView: View {
                 sessionEnded = true
                 stopTimer()
                 camera.stopSession()
-                plankNowPlaying.clearNowPlaying()
                 onComplete(time, score, 0)
             case .milestone:
                 Haptics.medium()
@@ -361,15 +425,6 @@ struct SessionView: View {
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             elapsedTime += 1
-            if Int(elapsedTime) % 2 == 0 {
-                plankNowPlaying.updateNowPlaying(
-                    title: "Plank Hold",
-                    subtitle: "Weekly Benchmark · \(formatTime(elapsedTime))",
-                    elapsed: elapsedTime,
-                    duration: max(targetTime, elapsedTime + 10),
-                    isPlaying: true
-                )
-            }
         }
     }
 

@@ -80,7 +80,6 @@
 		AA0001092FA1000100000005 /* RoutineSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001082FA1000100000005 /* RoutineSessionView.swift */; };
 		AA00010B2FA1000100000006 /* PostRoutineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00010A2FA1000100000006 /* PostRoutineView.swift */; };
 		AA00010D2FA1000100000009 /* RoutineAudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00010C2FA1000100000009 /* RoutineAudioManager.swift */; };
-		AA00010F2FA100010000000A /* RoutineNowPlayingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00010E2FA100010000000A /* RoutineNowPlayingManager.swift */; };
 		BB3E5A102FA2003459 /* exercise_almost.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBD516C02FA200C6AD /* exercise_almost.m4a */; };
 		BBCBD2982FA200ABBD /* exercise_countdown.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBA46E212FA2002DF5 /* exercise_countdown.m4a */; };
 		BB0F71762FA200B2ED /* exercise_done.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB0E2C2E2FA200D6E9 /* exercise_done.m4a */; };
@@ -261,7 +260,6 @@
 		BB8F30172FA200C72B /* tempo_twist_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = tempo_twist_1.m4a; sourceTree = "<group>"; };
 		BB3B43AA2FA200E98F /* tempo_twist_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = tempo_twist_2.m4a; sourceTree = "<group>"; };
 		AA00010C2FA1000100000009 /* RoutineAudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineAudioManager.swift; sourceTree = "<group>"; };
-		AA00010E2FA100010000000A /* RoutineNowPlayingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineNowPlayingManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -375,7 +373,6 @@
 				AA0001082FA1000100000005 /* RoutineSessionView.swift */,
 				AA00010A2FA1000100000006 /* PostRoutineView.swift */,
 				AA00010C2FA1000100000009 /* RoutineAudioManager.swift */,
-				AA00010E2FA100010000000A /* RoutineNowPlayingManager.swift */,
 			);
 			path = Routine;
 			sourceTree = "<group>";
@@ -755,7 +752,6 @@
 				AA0001092FA1000100000005 /* RoutineSessionView.swift in Sources */,
 				AA00010B2FA1000100000006 /* PostRoutineView.swift in Sources */,
 				AA00010D2FA1000100000009 /* RoutineAudioManager.swift in Sources */,
-				AA00010F2FA100010000000A /* RoutineNowPlayingManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -893,7 +889,6 @@
 				DEVELOPMENT_TEAM = AK7RQAKLYW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = PlankApp/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "plankAI needs camera access so your AI coach can see your form";
 				INFOPLIST_KEY_UIAppFonts = "DMSans-Light.ttf DMSans-Regular.ttf DMSans-Medium.ttf DMSans-SemiBold.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -933,7 +928,6 @@
 				DEVELOPMENT_TEAM = AK7RQAKLYW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = PlankApp/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "plankAI needs camera access so your AI coach can see your form";
 				INFOPLIST_KEY_UIAppFonts = "DMSans-Light.ttf DMSans-Regular.ttf DMSans-Medium.ttf DMSans-SemiBold.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

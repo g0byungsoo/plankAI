@@ -117,6 +117,19 @@ struct PreSessionView: View {
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
             }
+
+            // Keep screen on tip
+            HStack(spacing: Space.sm) {
+                Image(systemName: "lock.open.display")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Palette.accent)
+                Text("Keep your phone unlocked during sessions. Locking or switching apps will pause your workout.")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .padding(Space.sm + 4)
+            .background(Palette.bgElevated)
+            .clipShape(RoundedRectangle(cornerRadius: Radius.sm))
         }
         .padding(.horizontal, Space.screenPadding)
     }

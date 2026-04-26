@@ -2,9 +2,11 @@ import SwiftUI
 import PlankSync
 
 struct RoutineSessionView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State var vm: RoutineSessionViewModel
     @State private var showEndConfirm = false
     @State private var animateProgress = false
+    @State private var pausedByBackground = false
 
     init(
         workout: WorkoutPreset,
@@ -34,12 +36,88 @@ struct RoutineSessionView: View {
                 timerSection
                 bottomControls
             }
+
+            // Pause overlay when returning from background
+            if pausedByBackground {
+                sessionPausedOverlay
+                    .transition(.opacity)
+            }
         }
         .alert("End Workout?", isPresented: $showEndConfirm) {
             Button("End", role: .destructive) { vm.end() }
             Button("Keep Going", role: .cancel) {}
         }
         .task { vm.start() }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background || newPhase == .inactive {
+                if !vm.isPaused, case .done = vm.phase {} else if !vm.isPaused {
+                    vm.pause()
+                    pausedByBackground = true
+                }
+            }
+        }
+    }
+
+    // MARK: - Pause Overlay
+
+    private var sessionPausedOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.5)
+                .ignoresSafeArea()
+
+            VStack(spacing: Space.lg) {
+                Text("SESSION PAUSED")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .tracking(3)
+
+                if let exercise = vm.currentExercise {
+                    Text(exercise.name)
+                        .font(Typo.title)
+                        .foregroundStyle(Palette.textPrimary)
+                }
+
+                Text("\(vm.timeRemaining)s remaining")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+
+                VStack(spacing: Space.sm) {
+                    Button {
+                        Haptics.medium()
+                        pausedByBackground = false
+                        vm.resume()
+                    } label: {
+                        Text("RESUME")
+                            .font(Typo.body)
+                            .fontWeight(.bold)
+                            .foregroundStyle(Palette.textInverse)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: Space.minTapTarget + 12)
+                            .background(Palette.accent)
+                            .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
+                    }
+
+                    Button {
+                        pausedByBackground = false
+                        vm.end()
+                    } label: {
+                        Text("END SESSION")
+                            .font(Typo.body)
+                            .fontWeight(.medium)
+                            .foregroundStyle(Palette.textSecondary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: Space.minTapTarget + 4)
+                    }
+                }
+                .padding(.top, Space.md)
+            }
+            .padding(Space.lg)
+            .padding(.horizontal, Space.screenPadding)
+            .background(Palette.bgElevated)
+            .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
+            .plankShadow()
+            .padding(.horizontal, Space.lg)
+        }
     }
 
     // MARK: - Background
