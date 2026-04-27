@@ -7,6 +7,7 @@ enum AppTab: String, CaseIterable {
 
 struct MainTabView: View {
     @State private var selectedTab: AppTab = .workout
+    @State private var hasOpenedLog = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -14,9 +15,11 @@ struct MainTabView: View {
                 .opacity(selectedTab == .workout ? 1 : 0)
                 .allowsHitTesting(selectedTab == .workout)
 
-            AnalyticsView()
-                .opacity(selectedTab == .log ? 1 : 0)
-                .allowsHitTesting(selectedTab == .log)
+            if hasOpenedLog {
+                AnalyticsView()
+                    .opacity(selectedTab == .log ? 1 : 0)
+                    .allowsHitTesting(selectedTab == .log)
+            }
 
             // iOS-style pill tab bar
             HStack(spacing: 0) {
@@ -37,6 +40,7 @@ struct MainTabView: View {
     private func tabButton(_ tab: AppTab, label: String) -> some View {
         Button {
             Haptics.light()
+            if tab == .log { hasOpenedLog = true }
             withAnimation(.easeInOut(duration: 0.2)) {
                 selectedTab = tab
             }

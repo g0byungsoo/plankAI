@@ -170,9 +170,11 @@ struct HomeView: View {
     private func animateIn() {
         guard !hasAnimated else { return }
         hasAnimated = true
-        let delays: [Double] = [0.3, 0.8, 1.3, 1.8]
+        // Delay past SwiftUI's initial layout pass to avoid stutter
+        let baseDelay = 0.5
+        let delays: [Double] = [0.0, 0.5, 1.0, 1.5]
         for (i, delay) in delays.enumerated() {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + baseDelay + delay) {
                 Haptics.soft()
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.85)) {
                     msgOpacity[i] = 1
