@@ -135,6 +135,7 @@
 		BB5B5E472FA2006055 /* tempo_twist_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB3B43AA2FA200E98F /* tempo_twist_2.m4a */; };
 		CC0001012FA3000100000001 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001002FA3000100000001 /* MainTabView.swift */; };
 		CC0001032FA3000100000002 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001022FA3000100000002 /* AnalyticsView.swift */; };
+		DD0001012FA4000100000001 /* StreakCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001002FA4000100000001 /* StreakCalculator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -264,6 +265,7 @@
 		AA00010C2FA1000100000009 /* RoutineAudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineAudioManager.swift; sourceTree = "<group>"; };
 		CC0001002FA3000100000001 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		CC0001022FA3000100000002 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
+		DD0001002FA4000100000001 /* StreakCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakCalculator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -387,6 +389,7 @@
 				AA0001002FA1000100000001 /* ExerciseBank.swift */,
 				AA0001022FA1000100000002 /* WorkoutPreset.swift */,
 				AA0001042FA1000100000003 /* WorkoutGenerator.swift */,
+				DD0001002FA4000100000001 /* StreakCalculator.swift */,
 			);
 			path = Workout;
 			sourceTree = "<group>";
@@ -776,6 +779,7 @@
 				AA00010D2FA1000100000009 /* RoutineAudioManager.swift in Sources */,
 				CC0001012FA3000100000001 /* MainTabView.swift in Sources */,
 				CC0001032FA3000100000002 /* AnalyticsView.swift in Sources */,
+				DD0001012FA4000100000001 /* StreakCalculator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

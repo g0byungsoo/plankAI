@@ -34,7 +34,10 @@ struct HomeView: View {
     @State private var showAllExercises = false
 
     private var currentDay: Int { (dayProgress.first?.programDay ?? 0) + 1 }
-    private var streakCount: Int { dayProgress.count }
+    private var streakCount: Int {
+        let dates = Set(dayProgress.map { Calendar.current.startOfDay(for: $0.date) })
+        return StreakCalculator.calculate(activeDates: dates).count
+    }
 
     private var todaysWorkout: WorkoutPreset {
         if let current = currentWorkout { return current }
