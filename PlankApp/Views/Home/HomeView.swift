@@ -18,12 +18,10 @@ struct HomeView: View {
     @State private var lastQuality: Double = 0
     @State private var showPlankPostSession = false
     @State private var showRoutineSession = false
-    @State private var showPostRoutine = false
-    @State private var routineExerciseResults: [ExerciseResultEntry] = []
-    @State private var routineTotalDuration: TimeInterval = 0
     @State private var currentWorkout: WorkoutPreset?
     @State private var lastSessionRating: Int = 0
     @State private var lastSessionTags: [String] = []
+    @State private var routineResult: RoutineResult?
 
     // Animation
     @State private var msgOpacity: [Double] = [0, 0, 0, 0]
@@ -126,26 +124,31 @@ struct HomeView: View {
         .fullScreenCover(isPresented: $showRoutineSession) {
             if let workout = currentWorkout {
                 RoutineSessionView(workout: workout) { results, duration in
-                    routineExerciseResults = results
-                    routineTotalDuration = duration
+                    let result = RoutineResult(
+                        exerciseResults: results,
+                        totalDuration: duration,
+                        workoutName: workout.name
+                    )
                     showRoutineSession = false
-                    // Delay so the dismiss animation finishes before presenting post-routine
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        showPostRoutine = true
+                        routineResult = result
                     }
                 }
             }
         }
-        .fullScreenCover(isPresented: $showPostRoutine) {
+        .fullScreenCover(item: $routineResult) { result in
             PostRoutineView(
-                exerciseResults: routineExerciseResults, totalDuration: routineTotalDuration,
-                workoutName: currentWorkout?.name ?? "Workout",
+                exerciseResults: result.exerciseResults,
+                totalDuration: result.totalDuration,
+                workoutName: result.workoutName,
                 streakCount: todayHasSession ? streakCount : streakCount + 1,
                 isFirstWorkoutToday: !todayHasSession
             ) { rating, tags in
                 lastSessionRating = rating; lastSessionTags = tags
             } onDone: {
-                saveRoutineSession(); showPostRoutine = false; hasCompletedFirstSession = true
+                saveRoutineSession(result: result)
+                routineResult = nil
+                hasCompletedFirstSession = true
             }
         }
         .fullScreenCover(isPresented: $showPreSession) {
@@ -468,14 +471,14 @@ struct HomeView: View {
 
     // MARK: - Persistence
 
-    private func saveRoutineSession() {
+    private func saveRoutineSession(result: RoutineResult) {
         let userId = "local-user"
-        let resultsData = try? JSONEncoder().encode(routineExerciseResults)
+        let resultsData = try? JSONEncoder().encode(result.exerciseResults)
         let session = SessionLogRecord(
             userId: userId, exerciseType: "routine", holdTime: 0, targetTime: 0,
             qualityScore: Double(lastSessionRating) * 2.0, sessionType: "routine",
             presetId: currentWorkout?.id, exerciseResults: resultsData,
-            totalDuration: routineTotalDuration
+            totalDuration: result.totalDuration
         )
         modelContext.insert(session)
         if lastSessionRating > 0 {
@@ -517,6 +520,15 @@ struct HomeView: View {
         }
         try? modelContext.save(); hasCompletedFirstSession = true
     }
+}
+
+// MARK: - Routine Result (carries data between covers)
+
+struct RoutineResult: Identifiable {
+    let id = UUID()
+    let exerciseResults: [ExerciseResultEntry]
+    let totalDuration: TimeInterval
+    let workoutName: String
 }
 
 // MARK: - Stat Card (Log tab)
