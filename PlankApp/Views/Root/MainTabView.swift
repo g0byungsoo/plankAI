@@ -10,14 +10,13 @@ struct MainTabView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Group {
-                switch selectedTab {
-                case .workout:
-                    HomeView()
-                case .log:
-                    AnalyticsView()
-                }
-            }
+            HomeView()
+                .opacity(selectedTab == .workout ? 1 : 0)
+                .allowsHitTesting(selectedTab == .workout)
+
+            AnalyticsView()
+                .opacity(selectedTab == .log ? 1 : 0)
+                .allowsHitTesting(selectedTab == .log)
 
             // iOS-style pill tab bar
             HStack(spacing: 0) {
