@@ -3,8 +3,11 @@ import UserNotifications
 
 struct NotificationSettingsView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
-    @State private var reminderTime = Calendar.current.date(from: DateComponents(hour: 7)) ?? Date()
+    @AppStorage("notificationHour") private var notificationHour = 7
+    @AppStorage("notificationMinute") private var notificationMinute = 0
+    @State private var pickerTime = Date()
     @State private var permissionGranted = false
+    @State private var saved = false
 
     var body: some View {
         ScrollView {
@@ -33,7 +36,12 @@ struct NotificationSettingsView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .plankShadow()
                 .onChange(of: notificationsEnabled) { _, enabled in
-                    if enabled { requestPermission() }
+                    if enabled {
+                        requestPermission()
+                        scheduleNotification()
+                    } else {
+                        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+                    }
                 }
 
                 // Time picker
@@ -44,7 +52,7 @@ struct NotificationSettingsView: View {
                             .foregroundStyle(Palette.textSecondary)
                             .tracking(2)
 
-                        DatePicker("Time", selection: $reminderTime, displayedComponents: .hourAndMinute)
+                        DatePicker("Time", selection: $pickerTime, displayedComponents: .hourAndMinute)
                             .datePickerStyle(.wheel)
                             .labelsHidden()
                             .frame(maxWidth: .infinity)
@@ -52,6 +60,19 @@ struct NotificationSettingsView: View {
                             .background(Palette.bgElevated)
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                             .plankShadow()
+
+                        Button {
+                            Haptics.medium()
+                            saveTime()
+                        } label: {
+                            Text(saved ? "Saved" : "Save Time")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(saved ? Palette.stateGood : Palette.textInverse)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 44)
+                                .background(saved ? Palette.stateGood.opacity(0.12) : Palette.bgInverse)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
                     }
                     .transition(.opacity.combined(with: .offset(y: 8)))
                 }
@@ -73,7 +94,39 @@ struct NotificationSettingsView: View {
             .padding(.top, Space.md)
         }
         .background(Palette.bgPrimary)
+        .onAppear {
+            pickerTime = Calendar.current.date(from: DateComponents(hour: notificationHour, minute: notificationMinute)) ?? Date()
+        }
         .task { await checkPermission() }
+    }
+
+    private func saveTime() {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: pickerTime)
+        notificationHour = components.hour ?? 7
+        notificationMinute = components.minute ?? 0
+        scheduleNotification()
+        withAnimation { saved = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation { saved = false }
+        }
+    }
+
+    private func scheduleNotification() {
+        let center = UNUserNotificationCenter.current()
+        center.removeAllPendingNotificationRequests()
+
+        let content = UNMutableNotificationContent()
+        content.title = "Time to work"
+        content.body = "Your workout is ready. Don't make Kira wait."
+        content.sound = .default
+
+        var dateComponents = DateComponents()
+        dateComponents.hour = notificationHour
+        dateComponents.minute = notificationMinute
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+
+        let request = UNNotificationRequest(identifier: "daily_reminder", content: content, trigger: trigger)
+        center.add(request)
     }
 
     private func requestPermission() {
