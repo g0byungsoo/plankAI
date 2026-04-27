@@ -120,9 +120,8 @@ struct HomeView: View {
         }
         .fullScreenCover(isPresented: $showRoutineSession) {
             if let workout = currentWorkout {
-                RoutineSessionView(workout: workout) {
-                    // Session complete — save and dismiss
-                    saveRoutineSession()
+                RoutineSessionView(workout: workout) { results, duration in
+                    saveRoutineSession(results: results, duration: duration)
                     showRoutineSession = false
                     hasCompletedFirstSession = true
                 }
@@ -448,13 +447,14 @@ struct HomeView: View {
 
     // MARK: - Persistence
 
-    private func saveRoutineSession() {
+    private func saveRoutineSession(results: [ExerciseResultEntry], duration: TimeInterval) {
         let userId = "local-user"
+        let resultsData = try? JSONEncoder().encode(results)
         let session = SessionLogRecord(
             userId: userId, exerciseType: "routine", holdTime: 0, targetTime: 0,
             qualityScore: 0, sessionType: "routine",
-            presetId: currentWorkout?.id, exerciseResults: nil,
-            totalDuration: 0
+            presetId: currentWorkout?.id, exerciseResults: resultsData,
+            totalDuration: duration
         )
         modelContext.insert(session)
         let compositeKey = "\(userId):\(currentDay)"

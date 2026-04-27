@@ -8,13 +8,13 @@ struct RoutineSessionView: View {
     @State private var pausedByBackground = false
     @State private var showPostRoutine = false
 
-    let onDismiss: () -> Void
+    let onDismiss: ([ExerciseResultEntry], TimeInterval) -> Void
 
     init(
         workout: WorkoutPreset,
-        onSessionSaved: @escaping () -> Void
+        onDismiss: @escaping ([ExerciseResultEntry], TimeInterval) -> Void
     ) {
-        self.onDismiss = onSessionSaved
+        self.onDismiss = onDismiss
         self._vm = State(initialValue: RoutineSessionViewModel(
             workout: workout,
             onComplete: { _, _ in }
@@ -40,7 +40,7 @@ struct RoutineSessionView: View {
                 ) { _, _ in
                     // Rating handled by HomeView on save
                 } onDone: {
-                    onDismiss()
+                    onDismiss(vm.exerciseResults, vm.totalElapsed)
                 }
                 .transition(.opacity)
             }
