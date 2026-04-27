@@ -5,22 +5,62 @@ struct RoutineSessionView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State var vm: RoutineSessionViewModel
     @State private var showEndConfirm = false
-    @State private var animateProgress = false
     @State private var pausedByBackground = false
+    @State private var showPostRoutine = false
+
+    let onDismiss: () -> Void
 
     init(
         workout: WorkoutPreset,
-        onComplete: @escaping ([ExerciseResultEntry], TimeInterval) -> Void
+        onSessionSaved: @escaping () -> Void
     ) {
+        self.onDismiss = onSessionSaved
         self._vm = State(initialValue: RoutineSessionViewModel(
             workout: workout,
-            onComplete: onComplete
+            onComplete: { _, _ in }
         ))
     }
 
     var body: some View {
         ZStack {
-            // Background gradient — warm, not dark
+            // Main session UI
+            if !showPostRoutine {
+                sessionContent
+                    .transition(.opacity)
+            }
+
+            // Post-routine celebration (shown inline when done)
+            if showPostRoutine {
+                PostRoutineView(
+                    exerciseResults: vm.exerciseResults,
+                    totalDuration: vm.totalElapsed,
+                    workoutName: vm.workout.name,
+                    streakCount: 0,  // HomeView recalculates on save
+                    isFirstWorkoutToday: true
+                ) { _, _ in
+                    // Rating handled by HomeView on save
+                } onDone: {
+                    onDismiss()
+                }
+                .transition(.opacity)
+            }
+        }
+        .onChange(of: vm.phase) { _, newPhase in
+            if case .done = newPhase {
+                // Small delay for the done voice clip, then show celebration
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showPostRoutine = true
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Session Content
+
+    private var sessionContent: some View {
+        ZStack {
             LinearGradient(
                 colors: [Palette.bgPrimary, backgroundAccent],
                 startPoint: .top,
@@ -37,7 +77,6 @@ struct RoutineSessionView: View {
                 bottomControls
             }
 
-            // Pause overlay when returning from background
             if pausedByBackground {
                 sessionPausedOverlay
                     .transition(.opacity)
@@ -62,8 +101,7 @@ struct RoutineSessionView: View {
 
     private var sessionPausedOverlay: some View {
         ZStack {
-            Color.black.opacity(0.5)
-                .ignoresSafeArea()
+            Color.black.opacity(0.5).ignoresSafeArea()
 
             VStack(spacing: Space.lg) {
                 Text("SESSION PAUSED")
@@ -88,8 +126,7 @@ struct RoutineSessionView: View {
                         vm.resume()
                     } label: {
                         Text("RESUME")
-                            .font(Typo.body)
-                            .fontWeight(.bold)
+                            .font(Typo.body).fontWeight(.bold)
                             .foregroundStyle(Palette.textInverse)
                             .frame(maxWidth: .infinity)
                             .frame(height: Space.minTapTarget + 12)
@@ -102,8 +139,7 @@ struct RoutineSessionView: View {
                         vm.end()
                     } label: {
                         Text("END SESSION")
-                            .font(Typo.body)
-                            .fontWeight(.medium)
+                            .font(Typo.body).fontWeight(.medium)
                             .foregroundStyle(Palette.textSecondary)
                             .frame(maxWidth: .infinity)
                             .frame(height: Space.minTapTarget + 4)
@@ -135,13 +171,11 @@ struct RoutineSessionView: View {
 
     private var topBar: some View {
         HStack {
-            // Progress indicator
             VStack(alignment: .leading, spacing: Space.xs) {
                 Text("\(vm.currentExerciseIndex + 1) of \(vm.exerciseCount)")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
 
-                // Progress bar
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 2)
@@ -158,7 +192,6 @@ struct RoutineSessionView: View {
 
             Spacer()
 
-            // Close button
             Button {
                 showEndConfirm = true
             } label: {
@@ -179,22 +212,18 @@ struct RoutineSessionView: View {
     private var exerciseContent: some View {
         VStack(spacing: Space.md) {
             if let exercise = vm.currentExercise {
-                // Phase label
                 phaseLabel
 
-                // Exercise name
                 Text(exercise.name)
                     .font(Typo.title)
                     .foregroundStyle(Palette.textPrimary)
                     .contentTransition(.numericText())
 
-                // Target area badge
                 Text(exercise.targetArea.rawValue.camelCaseToWords.uppercased())
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .tracking(2)
 
-                // Animation placeholder — will be Lottie
                 exerciseAnimationPlaceholder(exercise: exercise)
             }
         }
@@ -204,27 +233,16 @@ struct RoutineSessionView: View {
     private var phaseLabel: some View {
         Group {
             switch vm.phase {
-            case .preview:
-                Text("NEXT UP")
-                    .foregroundStyle(Palette.accent)
-            case .active:
-                Text("GO")
-                    .foregroundStyle(Palette.stateGood)
-            case .rest:
-                Text("REST")
-                    .foregroundStyle(Palette.textSecondary)
-            case .done:
-                Text("DONE")
-                    .foregroundStyle(Palette.stateGood)
+            case .preview: Text("NEXT UP").foregroundStyle(Palette.accent)
+            case .active: Text("GO").foregroundStyle(Palette.stateGood)
+            case .rest: Text("REST").foregroundStyle(Palette.textSecondary)
+            case .done: Text("DONE").foregroundStyle(Palette.stateGood)
             }
         }
-        .font(Typo.caption)
-        .tracking(3)
-        .fontWeight(.bold)
+        .font(Typo.caption).tracking(3).fontWeight(.bold)
     }
 
     private func exerciseAnimationPlaceholder(exercise: Exercise) -> some View {
-        // Placeholder until Lottie is integrated
         ZStack {
             RoundedRectangle(cornerRadius: Radius.lg)
                 .fill(Palette.bgElevated)
@@ -257,19 +275,16 @@ struct RoutineSessionView: View {
 
     private var timerSection: some View {
         VStack(spacing: Space.sm) {
-            // Big countdown
             Text("\(vm.timeRemaining)")
                 .font(.system(size: 80, weight: .heavy, design: .rounded))
                 .foregroundStyle(timerColor)
                 .contentTransition(.numericText())
                 .animation(.easeInOut(duration: 0.15), value: vm.timeRemaining)
 
-            // Total elapsed
             Text(formatTotalTime(vm.totalElapsed))
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
 
-            // Next exercise preview (during rest)
             if case .rest(let index) = vm.phase {
                 let nextIndex = index + 1
                 if nextIndex < vm.exerciseCount,
@@ -298,7 +313,6 @@ struct RoutineSessionView: View {
 
     private var bottomControls: some View {
         HStack {
-            // Pause/Resume
             Button {
                 Haptics.light()
                 if vm.isPaused { vm.resume() } else { vm.pause() }
@@ -314,18 +328,14 @@ struct RoutineSessionView: View {
 
             Spacer()
 
-            // Skip (only during active)
             if vm.isActive {
                 Button {
                     Haptics.medium()
                     vm.skip()
                 } label: {
                     HStack(spacing: Space.xs) {
-                        Text("Skip")
-                            .font(Typo.body)
-                            .fontWeight(.medium)
-                        Image(systemName: "forward.fill")
-                            .font(.system(size: 13))
+                        Text("Skip").font(Typo.body).fontWeight(.medium)
+                        Image(systemName: "forward.fill").font(.system(size: 13))
                     }
                     .foregroundStyle(Palette.textSecondary)
                     .padding(.horizontal, Space.md)
@@ -341,8 +351,6 @@ struct RoutineSessionView: View {
         .padding(.bottom, Space.xl)
         .animation(.easeInOut(duration: 0.2), value: vm.isActive)
     }
-
-    // MARK: - Helpers
 
     private func formatTotalTime(_ time: TimeInterval) -> String {
         let minutes = Int(time) / 60

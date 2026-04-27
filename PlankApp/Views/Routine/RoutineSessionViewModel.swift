@@ -63,17 +63,15 @@ final class RoutineSessionViewModel {
 
     var progress: Double {
         guard exerciseCount > 0 else { return 0 }
-        let completedExercises = Double(exerciseResults.count)
-        let currentProgress: Double
         switch phase {
-        case .preview: currentProgress = 0
-        case .active(let i):
-            let slot = workout.exercises[i]
-            currentProgress = Double(exerciseElapsed) / Double(slot.duration)
-        case .rest: currentProgress = 1.0
         case .done: return 1.0
+        case .active:
+            let frac = Double(exerciseElapsed) / Double(workout.exercises[currentExerciseIndex].duration)
+            return (Double(exerciseResults.count) + frac) / Double(exerciseCount)
+        default:
+            // Preview and rest: show completed exercises, no fractional drop
+            return Double(exerciseResults.count) / Double(exerciseCount)
         }
-        return (completedExercises + currentProgress * 0.9) / Double(exerciseCount)
     }
 
     var isActive: Bool {

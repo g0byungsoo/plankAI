@@ -19,9 +19,6 @@ struct HomeView: View {
     @State private var showPlankPostSession = false
     @State private var showRoutineSession = false
     @State private var currentWorkout: WorkoutPreset?
-    @State private var lastSessionRating: Int = 0
-    @State private var lastSessionTags: [String] = []
-    @State private var routineResult: RoutineResult?
 
     // Animation
     @State private var msgOpacity: [Double] = [0, 0, 0, 0]
@@ -123,32 +120,12 @@ struct HomeView: View {
         }
         .fullScreenCover(isPresented: $showRoutineSession) {
             if let workout = currentWorkout {
-                RoutineSessionView(workout: workout) { results, duration in
-                    let result = RoutineResult(
-                        exerciseResults: results,
-                        totalDuration: duration,
-                        workoutName: workout.name
-                    )
+                RoutineSessionView(workout: workout) {
+                    // Session complete — save and dismiss
+                    saveRoutineSession()
                     showRoutineSession = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        routineResult = result
-                    }
+                    hasCompletedFirstSession = true
                 }
-            }
-        }
-        .fullScreenCover(item: $routineResult) { result in
-            PostRoutineView(
-                exerciseResults: result.exerciseResults,
-                totalDuration: result.totalDuration,
-                workoutName: result.workoutName,
-                streakCount: todayHasSession ? streakCount : streakCount + 1,
-                isFirstWorkoutToday: !todayHasSession
-            ) { rating, tags in
-                lastSessionRating = rating; lastSessionTags = tags
-            } onDone: {
-                saveRoutineSession(result: result)
-                routineResult = nil
-                hasCompletedFirstSession = true
             }
         }
         .fullScreenCover(isPresented: $showPreSession) {
@@ -471,33 +448,27 @@ struct HomeView: View {
 
     // MARK: - Persistence
 
-    private func saveRoutineSession(result: RoutineResult) {
+    private func saveRoutineSession() {
         let userId = "local-user"
-        let resultsData = try? JSONEncoder().encode(result.exerciseResults)
         let session = SessionLogRecord(
             userId: userId, exerciseType: "routine", holdTime: 0, targetTime: 0,
-            qualityScore: Double(lastSessionRating) * 2.0, sessionType: "routine",
-            presetId: currentWorkout?.id, exerciseResults: resultsData,
-            totalDuration: result.totalDuration
+            qualityScore: 0, sessionType: "routine",
+            presetId: currentWorkout?.id, exerciseResults: nil,
+            totalDuration: 0
         )
         modelContext.insert(session)
-        if lastSessionRating > 0 {
-            modelContext.insert(SessionRatingRecord(sessionLogId: session.id, rating: lastSessionRating, tags: lastSessionTags))
-        }
         let compositeKey = "\(userId):\(currentDay)"
         let descriptor = FetchDescriptor<DayProgressRecord>(predicate: #Predicate { $0.compositeKey == compositeKey })
         if let existing = try? modelContext.fetch(descriptor).first {
             existing.primarySessionId = session.id
-            existing.primaryQualityScore = Double(lastSessionRating) * 2.0
-            existing.primaryHoldTime = 0
             var ids = existing.sessionLogIds ?? []; ids.append(session.id); existing.sessionLogIds = ids
             existing.updatedAt = .now
         } else {
             let progress = DayProgressRecord(userId: userId, programDay: currentDay, primarySessionId: session.id,
-                                            primaryQualityScore: Double(lastSessionRating) * 2.0, primaryHoldTime: 0)
+                                            primaryQualityScore: 0, primaryHoldTime: 0)
             progress.sessionLogIds = [session.id]; modelContext.insert(progress)
         }
-        try? modelContext.save(); hasCompletedFirstSession = true
+        try? modelContext.save()
     }
 
     private func saveBenchmarkSession(holdTime: Double, quality: Double, faults: Int) {
@@ -520,15 +491,6 @@ struct HomeView: View {
         }
         try? modelContext.save(); hasCompletedFirstSession = true
     }
-}
-
-// MARK: - Routine Result (carries data between covers)
-
-struct RoutineResult: Identifiable {
-    let id = UUID()
-    let exerciseResults: [ExerciseResultEntry]
-    let totalDuration: TimeInterval
-    let workoutName: String
 }
 
 // MARK: - Stat Card (Log tab)
