@@ -55,24 +55,81 @@ struct AnalyticsView: View {
         return Array(sessionLogs.filter { $0.completedAt < weekAgo }.prefix(12))
     }
 
+    // Animation state
+    @State private var sectionOpacity: [Double] = [0, 0, 0, 0, 0]
+    @State private var sectionOffset: [CGFloat] = [20, 20, 20, 20, 20]
+    @State private var hasAnimated = false
+    @State private var streakPulse = false
+    @State private var calendarScale: CGFloat = 0.95
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 20) {
-                header.padding(.top, Space.md)
+                header
+                    .padding(.top, Space.md)
+                    .opacity(sectionOpacity[0])
+                    .offset(y: sectionOffset[0])
 
                 if isEmpty {
                     emptyState
                 } else {
                     heroStats
+                        .opacity(sectionOpacity[1])
+                        .offset(y: sectionOffset[1])
+
                     activityCalendar
-                    if benchmarkCount > 0 { plankCard }
+                        .opacity(sectionOpacity[2])
+                        .offset(y: sectionOffset[2])
+                        .scaleEffect(calendarScale, anchor: .top)
+
+                    if benchmarkCount > 0 {
+                        plankCard
+                            .opacity(sectionOpacity[3])
+                            .offset(y: sectionOffset[3])
+                    }
+
                     recentSessions
+                        .opacity(sectionOpacity[4])
+                        .offset(y: sectionOffset[4])
                 }
             }
             .padding(.horizontal, Space.screenPadding)
             .padding(.bottom, 100)
         }
         .background(Palette.bgPrimary)
+        .onAppear { animateIn() }
+    }
+
+    // MARK: - Animation
+
+    private func animateIn() {
+        guard !hasAnimated else { return }
+        hasAnimated = true
+
+        let delays: [Double] = [0.1, 0.25, 0.45, 0.65, 0.8]
+        for (i, delay) in delays.enumerated() {
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.82).delay(delay)) {
+                sectionOpacity[i] = 1
+                sectionOffset[i] = 0
+            }
+        }
+
+        // Calendar scale pop
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.5)) {
+            calendarScale = 1.0
+        }
+
+        // Streak number pulse
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                streakPulse = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    streakPulse = false
+                }
+            }
+        }
     }
 
     // MARK: - Header
@@ -115,29 +172,41 @@ struct AnalyticsView: View {
 
     private var heroStats: some View {
         HStack(spacing: 10) {
-            heroStat(
-                value: "\(streak.count)",
-                label: streak.frozenDates.isEmpty ? "day streak" : "streak (\(streak.frozenDates.count) frozen)",
-                icon: "flame.fill",
-                accent: true
-            )
-            heroStat(value: "\(routineCount)", label: "workouts", icon: "checkmark.circle.fill", accent: false)
-            heroStat(value: "\(totalMinutes)", label: "min total", icon: "clock.fill", accent: false)
+            // Streak card with pulse
+            VStack(spacing: 6) {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Palette.accent)
+                Text("\(streak.count)")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundStyle(Palette.textPrimary)
+                    .scaleEffect(streakPulse ? 1.15 : 1.0)
+                Text(streak.frozenDates.isEmpty ? "day streak" : "streak")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Palette.bgElevated)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .plankShadow()
+
+            heroStat(value: "\(routineCount)", label: "workouts", icon: "checkmark.circle.fill")
+            heroStat(value: "\(totalMinutes)", label: "min total", icon: "clock.fill")
         }
     }
 
-    private func heroStat(value: String, label: String, icon: String, accent: Bool) -> some View {
+    private func heroStat(value: String, label: String, icon: String) -> some View {
         VStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.system(size: 16))
-                .foregroundStyle(accent ? Palette.accent : Palette.textSecondary)
+                .foregroundStyle(Palette.textSecondary)
             Text(value)
                 .font(.system(size: 28, weight: .bold, design: .rounded))
                 .foregroundStyle(Palette.textPrimary)
             Text(label)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
@@ -290,15 +359,19 @@ struct AnalyticsView: View {
         VStack(alignment: .leading, spacing: 12) {
             if !thisWeekSessions.isEmpty {
                 sectionHeader("This Week")
-                ForEach(thisWeekSessions, id: \.id) { log in
+                ForEach(Array(thisWeekSessions.enumerated()), id: \.element.id) { i, log in
                     sessionRow(log)
+                        .transition(.opacity.combined(with: .offset(y: 8)))
+                        .animation(.spring(response: 0.4, dampingFraction: 0.85).delay(Double(i) * 0.08), value: sectionOpacity[4])
                 }
             }
 
             if !earlierSessions.isEmpty {
                 sectionHeader("Earlier")
-                ForEach(earlierSessions, id: \.id) { log in
+                ForEach(Array(earlierSessions.enumerated()), id: \.element.id) { i, log in
                     sessionRow(log)
+                        .transition(.opacity.combined(with: .offset(y: 8)))
+                        .animation(.spring(response: 0.4, dampingFraction: 0.85).delay(Double(i) * 0.06), value: sectionOpacity[4])
                 }
             }
         }
