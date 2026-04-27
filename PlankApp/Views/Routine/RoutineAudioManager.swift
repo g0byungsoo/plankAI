@@ -92,7 +92,14 @@ final class RoutineAudioManager {
 
         guard secondsIn >= 10, secondsIn % 12 == 0, remaining > 8 else { return }
 
-        if exerciseType == .static {
+        // 20% chance encouragement, 10% chance roast, rest is tempo/hold
+        let roll = Int.random(in: 1...10)
+
+        if roll <= 2 {
+            playRandom(["encourage_1", "encourage_2", "encourage_3", "encourage_4", "encourage_5"])
+        } else if roll == 3 {
+            playRandom(["roast_1", "roast_2", "roast_3", "roast_4"])
+        } else if exerciseType == .static {
             playRandom(["hold_1", "hold_2", "hold_3", "hold_4", "hold_5", "hold_6"])
         } else {
             playRandom([

@@ -142,6 +142,15 @@
 		EE0000042FA50002000004 /* NotificationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000042FA50001000004 /* NotificationSettingsView.swift */; };
 		EE0000052FA50002000005 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000052FA50001000005 /* AccountView.swift */; };
 		EE0000062FA50002000006 /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000062FA50001000006 /* FeedbackView.swift */; };
+		FF4C4D832FA600BAE3 /* encourage_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FFE018972FA600BE17 /* encourage_1.m4a */; };
+		FF236A782FA6006214 /* encourage_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF2B76F92FA6006A4B /* encourage_2.m4a */; };
+		FFCB5CE42FA6005EB8 /* encourage_3.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF0C305C2FA6008BF8 /* encourage_3.m4a */; };
+		FFF3B6EC2FA6008EAB /* encourage_4.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF4893B32FA6006A83 /* encourage_4.m4a */; };
+		FF4DAC432FA600BE65 /* encourage_5.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF4146862FA600F510 /* encourage_5.m4a */; };
+		FF08B4902FA6000B3D /* roast_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF95B9F72FA60004FB /* roast_1.m4a */; };
+		FF1EC4C82FA600EDEE /* roast_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF30522C2FA600526A /* roast_2.m4a */; };
+		FF8E09FA2FA600FCED /* roast_3.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FFFA9AE32FA6009050 /* roast_3.m4a */; };
+		FF8DC7992FA60043A4 /* roast_4.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF9D1A892FA6001195 /* roast_4.m4a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -278,6 +287,15 @@
 		EE0000042FA50001000004 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
 		EE0000052FA50001000005 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		EE0000062FA50001000006 /* FeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackView.swift; sourceTree = "<group>"; };
+		FFE018972FA600BE17 /* encourage_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = encourage_1.m4a; sourceTree = "<group>"; };
+		FF2B76F92FA6006A4B /* encourage_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = encourage_2.m4a; sourceTree = "<group>"; };
+		FF0C305C2FA6008BF8 /* encourage_3.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = encourage_3.m4a; sourceTree = "<group>"; };
+		FF4893B32FA6006A83 /* encourage_4.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = encourage_4.m4a; sourceTree = "<group>"; };
+		FF4146862FA600F510 /* encourage_5.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = encourage_5.m4a; sourceTree = "<group>"; };
+		FF95B9F72FA60004FB /* roast_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = roast_1.m4a; sourceTree = "<group>"; };
+		FF30522C2FA600526A /* roast_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = roast_2.m4a; sourceTree = "<group>"; };
+		FFFA9AE32FA6009050 /* roast_3.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = roast_3.m4a; sourceTree = "<group>"; };
+		FF9D1A892FA6001195 /* roast_4.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = roast_4.m4a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -589,6 +607,15 @@
 				BBA8450A2FA2004CE4 /* routine_start_3.m4a */,
 				BB7178C82FA20084D2 /* skip_1.m4a */,
 				BB6BBF7A2FA200AAB0 /* skip_2.m4a */,
+				FF9D1A892FA6001195 /* roast_4.m4a */,
+				FFFA9AE32FA6009050 /* roast_3.m4a */,
+				FF30522C2FA600526A /* roast_2.m4a */,
+				FF95B9F72FA60004FB /* roast_1.m4a */,
+				FF4146862FA600F510 /* encourage_5.m4a */,
+				FF4893B32FA6006A83 /* encourage_4.m4a */,
+				FF0C305C2FA6008BF8 /* encourage_3.m4a */,
+				FF2B76F92FA6006A4B /* encourage_2.m4a */,
+				FFE018972FA600BE17 /* encourage_1.m4a */,
 				BBE1CE832FA200F8D3 /* tempo_1.m4a */,
 				BBE4D8122FA200281E /* tempo_2.m4a */,
 				BB6C6A562FA2002F77 /* tempo_3.m4a */,
@@ -767,6 +794,15 @@
 				BBAC99B22FA200CD4B /* routine_start_3.m4a in Resources */,
 				BB1539B12FA2005A43 /* skip_1.m4a in Resources */,
 				BB0AFC172FA20048E1 /* skip_2.m4a in Resources */,
+				FF8DC7992FA60043A4 /* roast_4.m4a in Resources */,
+				FF8E09FA2FA600FCED /* roast_3.m4a in Resources */,
+				FF1EC4C82FA600EDEE /* roast_2.m4a in Resources */,
+				FF08B4902FA6000B3D /* roast_1.m4a in Resources */,
+				FF4DAC432FA600BE65 /* encourage_5.m4a in Resources */,
+				FFF3B6EC2FA6008EAB /* encourage_4.m4a in Resources */,
+				FFCB5CE42FA6005EB8 /* encourage_3.m4a in Resources */,
+				FF236A782FA6006214 /* encourage_2.m4a in Resources */,
+				FF4C4D832FA600BAE3 /* encourage_1.m4a in Resources */,
 				BB8D0BC22FA20072D1 /* tempo_1.m4a in Resources */,
 				BBDF8AEB2FA2008124 /* tempo_2.m4a in Resources */,
 				BB7C74C82FA20049EF /* tempo_3.m4a in Resources */,

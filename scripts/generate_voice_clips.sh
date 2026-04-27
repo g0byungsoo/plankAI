@@ -142,34 +142,47 @@ generate "intro_bear_crawl_hold" "Bear crawl hold. Knees off the floor."
 generate "intro_inchworms" "Inchworms. Walk out, walk back."
 generate "intro_high_knees" "High knees. Drive 'em up."
 
-# Tempo pacing — 2-3 words max
-generate "tempo_1" "Keep going."
-generate "tempo_2" "Don't stop."
-generate "tempo_3" "Same pace."
-generate "tempo_4" "Faster."
+# Tempo pacing
+generate "tempo_1" "Keep going, keep going."
+generate "tempo_2" "Don't stop on me."
+generate "tempo_3" "Same pace, same pace."
+generate "tempo_4" "Pick it up, pick it up."
 generate "tempo_twist_1" "Twist, twist."
 generate "tempo_twist_2" "Side to side."
 generate "tempo_drive_1" "Drive, drive."
-generate "tempo_drive_2" "Higher."
+generate "tempo_drive_2" "Get those knees higher."
 
-# Static hold — short
-generate "hold_1" "Hold. Breathe."
-generate "hold_2" "Stay."
-generate "hold_3" "Don't move."
-generate "hold_4" "Don't drop."
-generate "hold_5" "Shake is good."
-generate "hold_6" "Almost."
+# Static hold
+generate "hold_1" "Hold it right there."
+generate "hold_2" "Stay with me."
+generate "hold_3" "Don't you move."
+generate "hold_4" "Don't you drop."
+generate "hold_5" "That shake is good."
+generate "hold_6" "Almost there."
 
-# Rest — short
-generate "rest_1" "Rest."
-generate "rest_2" "Breathe."
-generate "rest_3" "Shake it out."
-generate "rest_4" "Quick break."
+# Rest
+generate "rest_1" "Okay, rest."
+generate "rest_2" "Catch your breath."
+generate "rest_3" "Shake it out, shake it out."
+generate "rest_4" "Quick break, stay ready."
 
-# Exercise cues — one or two words max
+# Exercise cues
 generate "exercise_countdown" "Go."
-generate "exercise_almost" "Five seconds."
-generate "exercise_done" "Time."
+generate "exercise_almost" "Five seconds left."
+generate "exercise_done" "And done."
+
+# Encouragement (mid-exercise, play rarely)
+generate "encourage_1" "You got this."
+generate "encourage_2" "There you go."
+generate "encourage_3" "That's it, that's it."
+generate "encourage_4" "I see you working."
+generate "encourage_5" "You're stronger than you think."
+
+# Roast/humor (mid-exercise, play rarely)
+generate "roast_1" "My grandma moves faster than that."
+generate "roast_2" "That's the best you got? Really?"
+generate "roast_3" "I've seen better form on a pool noodle."
+generate "roast_4" "You're lucky I can't reach through the phone."
 
 # Skip
 generate "skip_1" "Next."
