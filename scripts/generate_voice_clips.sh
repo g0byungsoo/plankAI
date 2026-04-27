@@ -105,9 +105,11 @@ generate "camera_bad_2" "Back up your phone. I need the full picture."
 generate "routine_start_1" "Let's work."
 generate "routine_start_2" "We're going."
 generate "routine_start_3" "Time to go."
-generate "routine_done_1" "Done! You ate that."
-generate "routine_done_2" "That's a wrap."
-generate "routine_done_3" "Finished. Go drink water."
+generate "routine_done_1" "Yes! You just put in real work. I'm proud of you."
+generate "routine_done_2" "Done! That was all you. Remember this feeling."
+generate "routine_done_3" "You showed up and you finished. That's everything."
+generate "routine_done_4" "Workout complete! Your body is thanking you right now."
+generate "routine_done_5" "That's a wrap! You're getting stronger every single time."
 
 # Exercise intros — SHORT. Name + one cue. Under 3 seconds.
 # Front core

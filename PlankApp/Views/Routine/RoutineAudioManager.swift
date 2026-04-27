@@ -55,7 +55,7 @@ final class RoutineAudioManager {
     // MARK: - Routine Events
 
     func onSessionDone() {
-        playRandom(["routine_done_1", "routine_done_2", "routine_done_3"], force: true)
+        playRandom(["routine_done_1", "routine_done_2", "routine_done_3", "routine_done_4", "routine_done_5"], force: true)
     }
 
     func onExercisePreview(exerciseId: String) {
