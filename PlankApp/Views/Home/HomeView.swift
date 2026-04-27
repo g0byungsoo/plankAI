@@ -36,7 +36,25 @@ struct HomeView: View {
     // Settings
     @State private var activeSheet: SettingsSheet?
 
+    @AppStorage("voicePreference") private var voicePreference = "keepItReal"
+
     private var currentDay: Int { (dayProgress.first?.programDay ?? 0) + 1 }
+
+    private var currentTrainerPhoto: String {
+        switch voicePreference {
+        case "encouraging": return "coach-sarah"
+        case "balanced": return "coach-matson"
+        default: return "coach-kira"
+        }
+    }
+
+    private var currentTrainerName: String {
+        switch voicePreference {
+        case "encouraging": return "Sarah"
+        case "balanced": return "Matson"
+        default: return "Kira"
+        }
+    }
     private var streakCount: Int {
         let dates = Set(dayProgress.map { Calendar.current.startOfDay(for: $0.date) })
         return StreakCalculator.calculate(activeDates: dates).count
@@ -170,7 +188,6 @@ struct HomeView: View {
         HStack {
             Menu {
                 Button { activeSheet = .editProfile } label: { Label("Edit Profile", systemImage: "person") }
-                Button { activeSheet = .trainer } label: { Label("Change Coach", systemImage: "person.2") }
                 Button { activeSheet = .notifications } label: { Label("Notifications", systemImage: "bell") }
                 Button { activeSheet = .account } label: { Label("Account", systemImage: "gearshape") }
                 Divider()
@@ -182,14 +199,18 @@ struct HomeView: View {
                     .frame(width: 32, height: 32)
             }
             Spacer()
-            VStack(spacing: 2) {
-                Image("coach-kira")
-                    .resizable().scaledToFill()
-                    .frame(width: 36, height: 36)
-                    .clipShape(Circle())
-                Text("Kira")
-                    .font(Typo.caption).fontWeight(.medium)
-                    .foregroundStyle(Palette.textPrimary)
+            Button {
+                activeSheet = .trainer
+            } label: {
+                VStack(spacing: 2) {
+                    Image(currentTrainerPhoto)
+                        .resizable().scaledToFill()
+                        .frame(width: 36, height: 36)
+                        .clipShape(Circle())
+                    Text(currentTrainerName)
+                        .font(Typo.caption).fontWeight(.medium)
+                        .foregroundStyle(Palette.textPrimary)
+                }
             }
             Spacer()
             Color.clear.frame(width: 32, height: 32)
@@ -226,7 +247,7 @@ struct HomeView: View {
     }
 
     private var kiraAvatar: some View {
-        Image("coach-kira")
+        Image(currentTrainerPhoto)
             .resizable().scaledToFill()
             .frame(width: 28, height: 28)
             .clipShape(Circle())
