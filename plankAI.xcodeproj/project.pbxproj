@@ -136,6 +136,12 @@
 		CC0001012FA3000100000001 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001002FA3000100000001 /* MainTabView.swift */; };
 		CC0001032FA3000100000002 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001022FA3000100000002 /* AnalyticsView.swift */; };
 		DD0001012FA4000100000001 /* StreakCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001002FA4000100000001 /* StreakCalculator.swift */; };
+		EE0000012FA50002000001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000012FA50001000001 /* SettingsView.swift */; };
+		EE0000022FA50002000002 /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000022FA50001000002 /* EditProfileView.swift */; };
+		EE0000032FA50002000003 /* ChangeTrainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000032FA50001000003 /* ChangeTrainerView.swift */; };
+		EE0000042FA50002000004 /* NotificationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000042FA50001000004 /* NotificationSettingsView.swift */; };
+		EE0000052FA50002000005 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000052FA50001000005 /* AccountView.swift */; };
+		EE0000062FA50002000006 /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000062FA50001000006 /* FeedbackView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -266,6 +272,12 @@
 		CC0001002FA3000100000001 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		CC0001022FA3000100000002 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
 		DD0001002FA4000100000001 /* StreakCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakCalculator.swift; sourceTree = "<group>"; };
+		EE0000012FA50001000001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		EE0000022FA50001000002 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
+		EE0000032FA50001000003 /* ChangeTrainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeTrainerView.swift; sourceTree = "<group>"; };
+		EE0000042FA50001000004 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
+		EE0000052FA50001000005 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
+		EE0000062FA50001000006 /* FeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -394,6 +406,19 @@
 			path = Workout;
 			sourceTree = "<group>";
 		};
+		EE0000072FA5000100000007 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				EE0000012FA50001000001 /* SettingsView.swift */,
+				EE0000022FA50001000002 /* EditProfileView.swift */,
+				EE0000032FA50001000003 /* ChangeTrainerView.swift */,
+				EE0000042FA50001000004 /* NotificationSettingsView.swift */,
+				EE0000052FA50001000005 /* AccountView.swift */,
+				EE0000062FA50001000006 /* FeedbackView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
 		CC0001042FA3000100000003 /* Root */ = {
 			isa = PBXGroup;
 			children = (
@@ -417,6 +442,7 @@
 				783186532F99E4130096138F /* Common */,
 				783186552F99E4130096138F /* Home */,
 				CC0001042FA3000100000003 /* Root */,
+				EE0000072FA5000100000007 /* Settings */,
 				783186562F99E4130096138F /* Onboarding */,
 				783186572F99E4130096138F /* Paywall */,
 				783186592F99E4130096138F /* PostSession */,
@@ -780,6 +806,12 @@
 				CC0001012FA3000100000001 /* MainTabView.swift in Sources */,
 				CC0001032FA3000100000002 /* AnalyticsView.swift in Sources */,
 				DD0001012FA4000100000001 /* StreakCalculator.swift in Sources */,
+				EE0000012FA50002000001 /* SettingsView.swift in Sources */,
+				EE0000022FA50002000002 /* EditProfileView.swift in Sources */,
+				EE0000032FA50002000003 /* ChangeTrainerView.swift in Sources */,
+				EE0000042FA50002000004 /* NotificationSettingsView.swift in Sources */,
+				EE0000052FA50002000005 /* AccountView.swift in Sources */,
+				EE0000062FA50002000006 /* FeedbackView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

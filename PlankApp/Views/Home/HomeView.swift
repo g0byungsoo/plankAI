@@ -33,6 +33,9 @@ struct HomeView: View {
     // Expand exercise list
     @State private var showAllExercises = false
 
+    // Settings
+    @State private var activeSheet: SettingsSheet?
+
     private var currentDay: Int { (dayProgress.first?.programDay ?? 0) + 1 }
     private var streakCount: Int {
         let dates = Set(dayProgress.map { Calendar.current.startOfDay(for: $0.date) })
@@ -137,6 +140,11 @@ struct HomeView: View {
                 showPlankPostSession = false
             }
         }
+        .sheet(item: $activeSheet) { sheet in
+            SettingsView(sheet: sheet)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
     }
 
     // MARK: - Animation (slower, smoother)
@@ -161,11 +169,12 @@ struct HomeView: View {
     private var messageTopBar: some View {
         HStack {
             Menu {
-                Button { } label: { Label("Edit Profile", systemImage: "person") }
-                Button { } label: { Label("Notifications", systemImage: "bell") }
-                Button { } label: { Label("Account", systemImage: "gearshape") }
+                Button { activeSheet = .editProfile } label: { Label("Edit Profile", systemImage: "person") }
+                Button { activeSheet = .trainer } label: { Label("Change Coach", systemImage: "person.2") }
+                Button { activeSheet = .notifications } label: { Label("Notifications", systemImage: "bell") }
+                Button { activeSheet = .account } label: { Label("Account", systemImage: "gearshape") }
                 Divider()
-                Button { } label: { Label("Feedback", systemImage: "bubble.left") }
+                Button { activeSheet = .feedback } label: { Label("Feedback", systemImage: "bubble.left") }
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 16, weight: .medium))
