@@ -6,6 +6,14 @@ struct ChangeTrainerView: View {
     @State private var previewPlayer: AVAudioPlayer?
     @State private var playingId: String?
 
+    // Animation
+    @State private var headerOpacity: Double = 0
+    @State private var headerOffset: CGFloat = 12
+    @State private var cardOpacity: [Double] = [0, 0, 0]
+    @State private var cardOffset: [CGFloat] = [24, 24, 24]
+    @State private var cardScale: [CGFloat] = [0.92, 0.92, 0.92]
+    @State private var hasAnimated = false
+
     private let trainers: [(id: String, photo: String, name: String, vibe: String, quote: String, preview: String)] = [
         ("keepItReal", "coach-kira", "Kira", "Sassy & Real", "\"My mama planks better than this\"", "kira_preview"),
         ("encouraging", "coach-sarah", "Sarah", "Warm & Supportive", "\"You're doing amazing, keep breathing\"", "sarah_preview"),
@@ -15,17 +23,24 @@ struct ChangeTrainerView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.lg) {
-                Text("Your Coach")
-                    .font(Typo.title)
-                    .foregroundStyle(Palette.textPrimary)
+                VStack(alignment: .leading, spacing: Space.sm) {
+                    Text("Your Coach")
+                        .font(Typo.title)
+                        .foregroundStyle(Palette.textPrimary)
 
-                Text("Tap to preview their voice. Your coach guides you through every workout.")
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textSecondary)
+                    Text("Tap to preview their voice.")
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .opacity(headerOpacity)
+                .offset(y: headerOffset)
 
                 VStack(spacing: 12) {
-                    ForEach(trainers, id: \.id) { trainer in
+                    ForEach(Array(trainers.enumerated()), id: \.element.id) { i, trainer in
                         trainerCard(trainer)
+                            .opacity(cardOpacity[i])
+                            .offset(y: cardOffset[i])
+                            .scaleEffect(cardScale[i], anchor: .center)
                     }
                 }
             }
@@ -33,8 +48,35 @@ struct ChangeTrainerView: View {
             .padding(.top, Space.md)
         }
         .background(Palette.bgPrimary)
+        .onAppear { animateIn() }
         .onDisappear { previewPlayer?.stop() }
     }
+
+    // MARK: - Animation
+
+    private func animateIn() {
+        guard !hasAnimated else { return }
+        hasAnimated = true
+
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.85).delay(0.1)) {
+            headerOpacity = 1
+            headerOffset = 0
+        }
+
+        for i in 0..<3 {
+            let delay = 0.2 + Double(i) * 0.12
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                Haptics.soft()
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.78)) {
+                    cardOpacity[i] = 1
+                    cardOffset[i] = 0
+                    cardScale[i] = 1.0
+                }
+            }
+        }
+    }
+
+    // MARK: - Trainer Card
 
     private func trainerCard(_ trainer: (id: String, photo: String, name: String, vibe: String, quote: String, preview: String)) -> some View {
         let isSelected = voicePreference == trainer.id
@@ -42,13 +84,12 @@ struct ChangeTrainerView: View {
 
         return Button {
             Haptics.medium()
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                 voicePreference = trainer.id
             }
             playPreview(trainer.preview, id: trainer.id)
         } label: {
             HStack(spacing: 14) {
-                // Photo
                 Image(trainer.photo)
                     .resizable()
                     .scaledToFill()
@@ -58,8 +99,9 @@ struct ChangeTrainerView: View {
                         Circle()
                             .stroke(isSelected ? Palette.accent : Color.clear, lineWidth: 2.5)
                     )
+                    .scaleEffect(isSelected ? 1.05 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
 
-                // Info
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Text(trainer.name)
@@ -74,6 +116,7 @@ struct ChangeTrainerView: View {
                                 .padding(.vertical, 2)
                                 .background(Palette.accent.opacity(0.1))
                                 .clipShape(Capsule())
+                                .transition(.scale.combined(with: .opacity))
                         }
                     }
 
@@ -89,12 +132,12 @@ struct ChangeTrainerView: View {
 
                 Spacer()
 
-                // Play indicator
                 if isPlaying {
                     Image(systemName: "waveform")
                         .font(.system(size: 14))
                         .foregroundStyle(Palette.accent)
                         .symbolEffect(.variableColor.iterative)
+                        .transition(.scale.combined(with: .opacity))
                 }
             }
             .padding(14)
@@ -106,6 +149,7 @@ struct ChangeTrainerView: View {
             )
             .plankShadow()
         }
+        .buttonStyle(TrainerButtonStyle())
     }
 
     private func playPreview(_ clip: String, id: String) {
@@ -118,5 +162,15 @@ struct ChangeTrainerView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
             if playingId == id { playingId = nil }
         }
+    }
+}
+
+// MARK: - Press Scale Button Style
+
+private struct TrainerButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }
