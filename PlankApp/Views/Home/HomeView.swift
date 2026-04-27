@@ -129,7 +129,10 @@ struct HomeView: View {
                     routineExerciseResults = results
                     routineTotalDuration = duration
                     showRoutineSession = false
-                    showPostRoutine = true
+                    // Delay so the dismiss animation finishes before presenting post-routine
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showPostRoutine = true
+                    }
                 }
             }
         }
