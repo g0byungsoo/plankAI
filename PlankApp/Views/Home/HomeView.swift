@@ -117,7 +117,12 @@ struct HomeView: View {
             }
             .background(Palette.bgPrimary)
         }
-        .onAppear { animateIn() }
+        .task {
+            // Wait for first frame to render before animating.
+            // Avoids stutter from debugger attach + SwiftData init.
+            try? await Task.sleep(for: .milliseconds(300))
+            animateIn()
+        }
         .fullScreenCover(isPresented: $showRoutineSession) {
             if let workout = currentWorkout {
                 RoutineSessionView(workout: workout) { results, duration in
@@ -170,8 +175,7 @@ struct HomeView: View {
     private func animateIn() {
         guard !hasAnimated else { return }
         hasAnimated = true
-        // Delay past SwiftUI's initial layout pass to avoid stutter
-        let baseDelay = 0.5
+        let baseDelay = 0.0
         let delays: [Double] = [0.0, 0.5, 1.0, 1.5]
         for (i, delay) in delays.enumerated() {
             DispatchQueue.main.asyncAfter(deadline: .now() + baseDelay + delay) {
