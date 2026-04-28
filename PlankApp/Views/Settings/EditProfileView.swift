@@ -96,17 +96,20 @@ struct EditProfileView: View {
                     }
                 }
 
-                // Save confirmation
-                if saved {
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(Palette.stateGood)
-                        Text("Saved")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.stateGood)
-                    }
-                    .transition(.opacity)
+                // Save button
+                Button {
+                    Haptics.medium()
+                    saveName()
+                } label: {
+                    Text(saved ? "Saved" : "Save Changes")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(saved ? Palette.stateGood : Palette.textInverse)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(saved ? Palette.stateGood.opacity(0.12) : Palette.bgInverse)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
+                .padding(.top, Space.sm)
             }
             .padding(.horizontal, Space.screenPadding)
             .padding(.top, Space.md)
