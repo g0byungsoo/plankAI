@@ -543,8 +543,7 @@ struct OnboardingView: View {
                         .multilineTextAlignment(.center)
                         .padding(20)
                         .background(Color(hex: "#C8612C"))
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .rotationEffect(.degrees(-1.5))
+                        .clipShape(WobblyRect())
                         .transition(.opacity.combined(with: .scale(scale: 0.88)))
                 }
             }
@@ -642,8 +641,7 @@ struct OnboardingView: View {
                         .multilineTextAlignment(.center)
                         .padding(20)
                         .background(Color(hex: "#C8612C"))
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .rotationEffect(.degrees(-1.5))
+                        .clipShape(WobblyRect())
                         .transition(.opacity.combined(with: .scale(scale: 0.88)))
                 }
             }
@@ -1952,6 +1950,33 @@ struct OnboardingData {
 }
 
 // MARK: - CTA Button Style
+
+// MARK: - Wobbly Rect (slightly uneven rounded corners)
+
+struct WobblyRect: Shape {
+    func path(in rect: CGRect) -> Path {
+        let w = rect.width, h = rect.height
+        // Each corner gets a slightly different radius
+        let tl: CGFloat = 22, tr: CGFloat = 18
+        let br: CGFloat = 24, bl: CGFloat = 16
+        var p = Path()
+        p.move(to: CGPoint(x: tl, y: 0))
+        p.addLine(to: CGPoint(x: w - tr, y: 0))
+        p.addArc(center: CGPoint(x: w - tr, y: tr), radius: tr,
+                 startAngle: .degrees(-90), endAngle: .degrees(0), clockwise: false)
+        p.addLine(to: CGPoint(x: w, y: h - br))
+        p.addArc(center: CGPoint(x: w - br, y: h - br), radius: br,
+                 startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
+        p.addLine(to: CGPoint(x: bl, y: h))
+        p.addArc(center: CGPoint(x: bl, y: h - bl), radius: bl,
+                 startAngle: .degrees(90), endAngle: .degrees(180), clockwise: false)
+        p.addLine(to: CGPoint(x: 0, y: tl))
+        p.addArc(center: CGPoint(x: tl, y: tl), radius: tl,
+                 startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false)
+        p.closeSubpath()
+        return p
+    }
+}
 
 struct CTAButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
