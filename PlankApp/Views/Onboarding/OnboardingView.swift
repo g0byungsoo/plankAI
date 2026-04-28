@@ -679,118 +679,135 @@ struct OnboardingView: View {
     @State private var chartLine2 = false
     @State private var chartDot = false
 
+    @State private var chartHeadline = false
+
     private var chartScreen: some View {
-        ZStack {
-            GradientBlob(colors: [Palette.accent, Palette.accentSubtle, Palette.stateGood])
-                .offset(y: 100)
+        VStack(spacing: 0) {
+            Spacer()
 
-            VStack(spacing: 0) {
-                Spacer()
+            // Headline
+            VStack(spacing: Space.sm) {
+                Text("87%")
+                    .font(.system(size: 64, weight: .black, design: .rounded))
+                    .foregroundStyle(Palette.accent)
+                    .opacity(chartHeadline ? 1 : 0)
+                    .scaleEffect(chartHeadline ? 1 : 0.7)
 
-                Text("87% of people quit\nhome workouts\nin 2 weeks.")
-                    .font(.system(size: 28, weight: .bold))
+                Text("of people quit\nhome workouts in 2 weeks")
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
+                    .opacity(chartHeadline ? 1 : 0)
+                    .offset(y: chartHeadline ? 0 : 10)
 
-                Spacer().frame(height: Space.sm)
+                Text("not with a coach in your pocket")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Palette.textSecondary)
+                    .opacity(chartHeadline ? 1 : 0)
+            }
 
-                Text("Not with a coach in your pocket.")
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.accent)
-                    .fontWeight(.medium)
+            Spacer().frame(height: Space.lg + 8)
 
-                Spacer().frame(height: Space.lg)
+            // Chart
+            VStack(alignment: .leading, spacing: 12) {
+                GeometryReader { geo in
+                    let w = geo.size.width, h = geo.size.height
 
-                // Chart card
-                VStack(alignment: .leading, spacing: Space.sm) {
-                    Text("CONSISTENCY OVER 30 DAYS")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Palette.textSecondary)
-                        .tracking(1.5)
-
-                    GeometryReader { geo in
-                        let w = geo.size.width, h = geo.size.height
-
-                        // Grid lines
-                        ForEach(0..<4, id: \.self) { i in
-                            let y = h * CGFloat(i) / 3
-                            Path { p in
-                                p.move(to: CGPoint(x: 0, y: y))
-                                p.addLine(to: CGPoint(x: w, y: y))
-                            }
-                            .stroke(Palette.divider.opacity(0.4), style: StrokeStyle(lineWidth: 0.5, dash: [4, 4]))
-                        }
-
-                        // Without coaching — drops off
+                    // Gradient fill under the success line
+                    if chartLine2 {
                         Path { p in
-                            p.move(to: CGPoint(x: 0, y: h * 0.55))
-                            p.addCurve(to: CGPoint(x: w, y: h * 0.88),
-                                       control1: CGPoint(x: w * 0.2, y: h * 0.4),
-                                       control2: CGPoint(x: w * 0.5, y: h * 0.9))
-                        }
-                        .trim(from: 0, to: chartLine1 ? 1 : 0)
-                        .stroke(Palette.divider, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
-
-                        // With absmaxxing — curves up
-                        Path { p in
-                            p.move(to: CGPoint(x: 0, y: h * 0.55))
+                            p.move(to: CGPoint(x: 0, y: h * 0.6))
                             p.addCurve(to: CGPoint(x: w, y: h * 0.08),
-                                       control1: CGPoint(x: w * 0.25, y: h * 0.35),
+                                       control1: CGPoint(x: w * 0.25, y: h * 0.38),
                                        control2: CGPoint(x: w * 0.65, y: h * 0.1))
+                            p.addLine(to: CGPoint(x: w, y: h))
+                            p.addLine(to: CGPoint(x: 0, y: h))
+                            p.closeSubpath()
                         }
-                        .trim(from: 0, to: chartLine2 ? 1 : 0)
-                        .stroke(
-                            LinearGradient(colors: [Palette.accent.opacity(0.6), Palette.accent], startPoint: .leading, endPoint: .trailing),
-                            lineWidth: 3
+                        .fill(
+                            LinearGradient(colors: [Palette.accent.opacity(0.15), Palette.accent.opacity(0.02)],
+                                           startPoint: .top, endPoint: .bottom)
                         )
+                        .transition(.opacity)
+                    }
 
-                        // Glow dot at end of absmaxxing line
-                        if chartDot {
+                    // Dropout line — thick dashed
+                    Path { p in
+                        p.move(to: CGPoint(x: 0, y: h * 0.6))
+                        p.addCurve(to: CGPoint(x: w, y: h * 0.92),
+                                   control1: CGPoint(x: w * 0.2, y: h * 0.45),
+                                   control2: CGPoint(x: w * 0.5, y: h * 0.95))
+                    }
+                    .trim(from: 0, to: chartLine1 ? 1 : 0)
+                    .stroke(Palette.divider, style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [8, 6]))
+
+                    // Success line — thick solid gradient
+                    Path { p in
+                        p.move(to: CGPoint(x: 0, y: h * 0.6))
+                        p.addCurve(to: CGPoint(x: w, y: h * 0.08),
+                                   control1: CGPoint(x: w * 0.25, y: h * 0.38),
+                                   control2: CGPoint(x: w * 0.65, y: h * 0.1))
+                    }
+                    .trim(from: 0, to: chartLine2 ? 1 : 0)
+                    .stroke(
+                        LinearGradient(colors: [Palette.accent.opacity(0.5), Palette.accent],
+                                       startPoint: .leading, endPoint: .trailing),
+                        style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                    )
+
+                    // Glow dot
+                    if chartDot {
+                        ZStack {
+                            Circle()
+                                .fill(Palette.accent.opacity(0.2))
+                                .frame(width: 24, height: 24)
                             Circle()
                                 .fill(Palette.accent)
-                                .frame(width: 8, height: 8)
-                                .position(x: w, y: h * 0.08)
-                                .shadow(color: Palette.accent.opacity(0.5), radius: 6)
-                                .transition(.scale.combined(with: .opacity))
+                                .frame(width: 10, height: 10)
                         }
-
-                        // Labels
-                        if chartLine2 {
-                            Text("gave up")
-                                .font(.system(size: 10))
-                                .foregroundStyle(Palette.textSecondary)
-                                .position(x: w * 0.85, y: h * 0.98)
-                                .transition(.opacity)
-
-                            Text("absmaxxing")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(Palette.accent)
-                                .position(x: w * 0.85, y: h * 0.18)
-                                .transition(.opacity)
-                        }
+                        .position(x: w, y: h * 0.08)
+                        .transition(.scale.combined(with: .opacity))
                     }
-                    .frame(height: 150)
 
-                    HStack {
-                        Text("Week 1").font(.system(size: 11)).foregroundStyle(Palette.textSecondary)
-                        Spacer()
-                        Text("Week 4").font(.system(size: 11)).foregroundStyle(Palette.textSecondary)
+                    // Labels
+                    if chartDot {
+                        Text("gave up")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Palette.textSecondary)
+                            .position(x: w * 0.82, y: h * 0.98)
+
+                        HStack(spacing: 4) {
+                            Circle().fill(Palette.accent).frame(width: 6, height: 6)
+                            Text("absmaxxing")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(Palette.accent)
+                        }
+                        .position(x: w * 0.82, y: h * 0.2)
                     }
                 }
-                .padding(Space.cardPadding)
-                .background(Palette.bgElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .plankShadow()
-                .padding(.horizontal, Space.screenPadding)
+                .frame(height: 180)
 
-                Spacer()
-                ctaBtn("Continue") { Haptics.light(); go(5) }
+                HStack {
+                    Text("Week 1").font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.textSecondary)
+                    Spacer()
+                    Text("Week 4").font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.textSecondary)
+                }
             }
+            .padding(20)
+            .background(Palette.bgElevated)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .plankShadow()
+            .padding(.horizontal, Space.screenPadding)
+
+            Spacer()
+            ctaBtn("Continue") { Haptics.light(); go(5) }
         }
+        .background(Palette.bgPrimary)
         .onAppear {
-            withAnimation(.easeOut(duration: 1.2).delay(0.3)) { chartLine1 = true }
-            withAnimation(.easeOut(duration: 1.4).delay(0.6)) { chartLine2 = true }
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.6).delay(2.0)) { chartDot = true }
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2)) { chartHeadline = true }
+            withAnimation(.easeOut(duration: 1.0).delay(0.8)) { chartLine1 = true }
+            withAnimation(.easeOut(duration: 1.2).delay(1.2)) { chartLine2 = true }
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.5).delay(2.4)) { chartDot = true }
             chartAnimated = true
         }
     }
@@ -1957,19 +1974,35 @@ struct WobblyRect: Shape {
     func path(in rect: CGRect) -> Path {
         let w = rect.width, h = rect.height
         var p = Path()
-        // Top edge — dips slightly in the middle
-        p.move(to: CGPoint(x: 22, y: 3))
-        p.addQuadCurve(to: CGPoint(x: w * 0.5, y: -2), control: CGPoint(x: w * 0.25, y: 5))
-        p.addQuadCurve(to: CGPoint(x: w - 16, y: 2), control: CGPoint(x: w * 0.75, y: -3))
-        // Right edge — bulges slightly
-        p.addQuadCurve(to: CGPoint(x: w + 1, y: h * 0.5), control: CGPoint(x: w - 4, y: h * 0.25))
-        p.addQuadCurve(to: CGPoint(x: w - 18, y: h - 3), control: CGPoint(x: w + 2, y: h * 0.75))
-        // Bottom edge — rises slightly
-        p.addQuadCurve(to: CGPoint(x: w * 0.5, y: h + 2), control: CGPoint(x: w * 0.7, y: h - 4))
-        p.addQuadCurve(to: CGPoint(x: 20, y: h - 2), control: CGPoint(x: w * 0.3, y: h + 3))
-        // Left edge — indents slightly
-        p.addQuadCurve(to: CGPoint(x: -1, y: h * 0.5), control: CGPoint(x: 4, y: h * 0.7))
-        p.addQuadCurve(to: CGPoint(x: 22, y: 3), control: CGPoint(x: -2, y: h * 0.25))
+        p.move(to: CGPoint(x: 28, y: 8))
+        // Top: three segments, wavy
+        p.addCurve(to: CGPoint(x: w * 0.4, y: -6),
+                   control1: CGPoint(x: w * 0.15, y: 14),
+                   control2: CGPoint(x: w * 0.3, y: -8))
+        p.addCurve(to: CGPoint(x: w - 22, y: 6),
+                   control1: CGPoint(x: w * 0.55, y: -4),
+                   control2: CGPoint(x: w * 0.8, y: 12))
+        // Right: bulges out
+        p.addCurve(to: CGPoint(x: w + 4, y: h * 0.55),
+                   control1: CGPoint(x: w - 6, y: h * 0.15),
+                   control2: CGPoint(x: w + 8, y: h * 0.35))
+        p.addCurve(to: CGPoint(x: w - 20, y: h - 6),
+                   control1: CGPoint(x: w + 6, y: h * 0.75),
+                   control2: CGPoint(x: w - 8, y: h - 14))
+        // Bottom: wavy
+        p.addCurve(to: CGPoint(x: w * 0.5, y: h + 6),
+                   control1: CGPoint(x: w * 0.75, y: h - 10),
+                   control2: CGPoint(x: w * 0.6, y: h + 8))
+        p.addCurve(to: CGPoint(x: 24, y: h - 4),
+                   control1: CGPoint(x: w * 0.35, y: h + 4),
+                   control2: CGPoint(x: w * 0.15, y: h - 12))
+        // Left: indents
+        p.addCurve(to: CGPoint(x: -4, y: h * 0.45),
+                   control1: CGPoint(x: 8, y: h * 0.8),
+                   control2: CGPoint(x: -6, y: h * 0.65))
+        p.addCurve(to: CGPoint(x: 28, y: 8),
+                   control1: CGPoint(x: -2, y: h * 0.25),
+                   control2: CGPoint(x: 10, y: 16))
         p.closeSubpath()
         return p
     }
