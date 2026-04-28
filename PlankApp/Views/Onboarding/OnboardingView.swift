@@ -1580,7 +1580,7 @@ struct OnboardingView: View {
         switch voicePreference {
         case "keepItReal": return "Get ready to be roasted 😏"
         case "encouraging": return "Your biggest fan is waiting 🤗"
-        case "balanced": return "Southern charm activated 😏"
+        case "balanced": return "Chill vibes activated 😎"
         default: return "Great choice"
         }
     }
@@ -1881,76 +1881,106 @@ struct OnboardingView: View {
     @State private var statCount = 0
 
     private var beforeAfterScreen: some View {
-        ZStack {
-            GradientBlob(colors: [Palette.stateGood, Palette.accent, Palette.accentSubtle]).offset(y: 50)
-            VStack(spacing: 0) {
-                Spacer()
+        VStack(spacing: 0) {
+            Spacer()
 
-                // Animated stat
-                Text("\(statCount)%")
-                    .font(.system(size: 72, weight: .black))
-                    .foregroundStyle(Palette.accent)
-                    .contentTransition(.numericText())
-
-                Spacer().frame(height: Space.sm)
-
-                Text("of users see visible\ncore definition by day 21")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(Palette.textPrimary)
-                    .multilineTextAlignment(.center)
-
-                Spacer().frame(height: Space.xl)
-
-                // Before/after cards
-                HStack(spacing: Space.md) {
-                    VStack(spacing: Space.sm) {
-                        Text("Day 1")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Palette.textSecondary)
-                        VStack(spacing: 4) {
-                            Text("15s").font(.system(size: 28, weight: .bold)).foregroundStyle(Palette.textPrimary)
-                            Text("avg hold").font(.system(size: 11)).foregroundStyle(Palette.textSecondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Space.md)
-                        .background(Palette.bgElevated)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-
-                    VStack(spacing: Space.sm) {
-                        Text("Day 30")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Palette.accent)
-                        VStack(spacing: 4) {
-                            Text("90s").font(.system(size: 28, weight: .bold)).foregroundStyle(Palette.accent)
-                            Text("avg hold").font(.system(size: 11)).foregroundStyle(Palette.textSecondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Space.md)
-                        .background(Palette.bgElevated)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-                }
-                .padding(.horizontal, Space.screenPadding)
+            Text("What 5 minutes a day\nlooks like")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.center)
                 .opacity(beforeAfterVisible ? 1 : 0)
-                .offset(y: beforeAfterVisible ? 0 : 15)
-                .animation(.easeOut(duration: 0.5).delay(0.8), value: beforeAfterVisible)
+                .offset(y: beforeAfterVisible ? 0 : 10)
+                .animation(.easeOut(duration: 0.4), value: beforeAfterVisible)
 
-                Spacer()
-                ctaBtn("Continue") { Haptics.light(); go(17) }
-            }.padding(.horizontal, Space.screenPadding)
+            Spacer().frame(height: Space.lg + 8)
+
+            // Progress cards
+            VStack(spacing: 12) {
+                progressCard(
+                    week: "Week 1",
+                    detail: "Building the habit",
+                    metric: "Show up daily",
+                    icon: "flame",
+                    color: Palette.textSecondary,
+                    index: 0
+                )
+                progressCard(
+                    week: "Week 2",
+                    detail: "Form starts clicking",
+                    metric: "Plank hold improves",
+                    icon: "chart.line.uptrend.xyaxis",
+                    color: Palette.stateWarn,
+                    index: 1
+                )
+                progressCard(
+                    week: "Week 3",
+                    detail: "Exercises feel easier",
+                    metric: "Harder workouts unlock",
+                    icon: "bolt",
+                    color: Palette.accent,
+                    index: 2
+                )
+                progressCard(
+                    week: "Week 4",
+                    detail: "Core feels different",
+                    metric: "You'll know",
+                    icon: "star.fill",
+                    color: Palette.stateGood,
+                    index: 3
+                )
+            }
+            .padding(.horizontal, Space.screenPadding)
+
+            Spacer().frame(height: Space.lg)
+
+            Text("Consistency beats intensity.\nYou just have to show up.")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .opacity(beforeAfterVisible ? 1 : 0)
+                .animation(.easeOut(duration: 0.3).delay(1.0), value: beforeAfterVisible)
+
+            Spacer()
+            ctaBtn("Continue") { Haptics.light(); go(17) }
         }
+        .background(Palette.bgPrimary)
         .onAppear {
-            beforeAfterVisible = true
-            let target = 73
-            for i in 0...20 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.04) {
-                    withAnimation(.easeOut(duration: 0.1)) { statCount = Int(Double(target) * Double(i) / 20) }
-                    if i % 5 == 0 { Haptics.light() }
-                    if i == 20 { Haptics.heavy() }
+            withAnimation(.easeOut(duration: 0.4)) { beforeAfterVisible = true }
+        }
+    }
+
+    private func progressCard(week: String, detail: String, metric: String, icon: String, color: Color, index: Int) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.12))
+                    .frame(width: 40, height: 40)
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                    .foregroundStyle(color)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Text(week)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Palette.textPrimary)
+                    Spacer()
+                    Text(metric)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(color)
                 }
+                Text(detail)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.textSecondary)
             }
         }
+        .padding(14)
+        .background(Palette.bgElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .plankShadow()
+        .opacity(beforeAfterVisible ? 1 : 0)
+        .offset(y: beforeAfterVisible ? 0 : CGFloat(8 + index * 4))
+        .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.3 + Double(index) * 0.12), value: beforeAfterVisible)
     }
 
     // ═══════════════════════════════════════
