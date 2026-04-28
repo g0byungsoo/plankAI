@@ -496,31 +496,20 @@ struct OnboardingView: View {
 
     private func questionView(_ title: String, sub: String?, opts: [(String, String)],
                               sel: Binding<String>, feedbacks: [String: String], next: Int) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(title).font(.system(size: 28, weight: .bold)).foregroundStyle(Palette.textPrimary)
-                .padding(.horizontal, Space.screenPadding)
-            if let sub {
-                Text(sub).font(Typo.body).foregroundStyle(Palette.textSecondary)
-                    .padding(.top, Space.xs).padding(.horizontal, Space.screenPadding)
-            }
-
-            ZStack {
-                Spacer()
-                if showInlineFeedback {
-                    Text(inlineFeedback)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 14)
-                        .background(Color(hex: "#C8612C"))
-                        .clipShape(Capsule())
-                        .rotationEffect(.degrees(-2))
-                        .transition(.opacity.combined(with: .scale(scale: 0.85)))
+        VStack(spacing: 0) {
+            // Question + subtitle at top
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text(title).font(.system(size: 28, weight: .bold)).foregroundStyle(Palette.textPrimary)
+                if let sub {
+                    Text(sub).font(Typo.body).foregroundStyle(Palette.textSecondary)
                 }
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Space.screenPadding)
 
+            Spacer().frame(height: Space.lg)
+
+            // Options (fixed position, near top)
             VStack(spacing: Space.sm) {
                 ForEach(opts, id: \.0) { key, label in
                     let on = sel.wrappedValue == key
@@ -533,17 +522,37 @@ struct OnboardingView: View {
                             .font(.system(size: 17, weight: .medium))
                             .foregroundStyle(on ? Palette.textInverse : Palette.textPrimary)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 20).frame(height: 60)
+                            .padding(.horizontal, 20).frame(height: 56)
                             .background(on ? Palette.bgInverse : Palette.bgElevated)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
                     .scaleEffect(on ? 1.02 : 1.0)
                     .animation(.spring(response: 0.25), value: on)
                 }
-            }.padding(.horizontal, Space.screenPadding)
+            }
+            .padding(.horizontal, Space.screenPadding)
+
+            // Feedback area (fixed height, between options and button)
+            ZStack {
+                if showInlineFeedback {
+                    Text(inlineFeedback)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(Color(hex: "#C8612C"))
+                        .clipShape(Capsule())
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 60)
+            .padding(.top, Space.md)
 
             Spacer()
 
+            // Continue button
             ctaBtn("Continue") {
                 Haptics.medium()
                 if let fb = feedbacks[sel.wrappedValue] {
@@ -1838,41 +1847,3 @@ struct CTAButtonStyle: ButtonStyle {
     }
 }
 
-// MARK: - Feedback Blob Shape (organic, uneven oval)
-
-struct FeedbackBlobShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        let w = rect.width
-        let h = rect.height
-        var path = Path()
-
-        // Organic blob using curves — slightly asymmetric
-        path.move(to: CGPoint(x: w * 0.12, y: h * 0.35))
-        // Top left → top right (slightly wavy)
-        path.addCurve(
-            to: CGPoint(x: w * 0.88, y: h * 0.08),
-            control1: CGPoint(x: w * 0.25, y: h * -0.05),
-            control2: CGPoint(x: w * 0.65, y: h * -0.02)
-        )
-        // Top right → bottom right
-        path.addCurve(
-            to: CGPoint(x: w * 0.92, y: h * 0.7),
-            control1: CGPoint(x: w * 1.05, y: h * 0.2),
-            control2: CGPoint(x: w * 1.02, y: h * 0.55)
-        )
-        // Bottom right → bottom left
-        path.addCurve(
-            to: CGPoint(x: w * 0.08, y: h * 0.75),
-            control1: CGPoint(x: w * 0.78, y: h * 1.08),
-            control2: CGPoint(x: w * 0.3, y: h * 1.05)
-        )
-        // Bottom left → back to start
-        path.addCurve(
-            to: CGPoint(x: w * 0.12, y: h * 0.35),
-            control1: CGPoint(x: w * -0.06, y: h * 0.55),
-            control2: CGPoint(x: w * -0.02, y: h * 0.4)
-        )
-        path.closeSubpath()
-        return path
-    }
-}
