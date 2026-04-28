@@ -543,6 +543,7 @@ struct OnboardingView: View {
                         .multilineTextAlignment(.center)
                         .padding(20)
                         .background(Color(hex: "#C8612C"))
+                        .padding(.bottom, 10) // room for tail
                         .clipShape(WobblyRect())
                         .transition(.opacity.combined(with: .scale(scale: 0.88)))
                 }
@@ -641,6 +642,7 @@ struct OnboardingView: View {
                         .multilineTextAlignment(.center)
                         .padding(20)
                         .background(Color(hex: "#C8612C"))
+                        .padding(.bottom, 10) // room for tail
                         .clipShape(WobblyRect())
                         .transition(.opacity.combined(with: .scale(scale: 0.88)))
                 }
@@ -1972,37 +1974,53 @@ struct OnboardingData {
 
 struct WobblyRect: Shape {
     func path(in rect: CGRect) -> Path {
+        // Soft organic oval speech bubble with a small tail at bottom-left
         let w = rect.width, h = rect.height
+        let inset: CGFloat = 4 // breathing room for the organic edges
+        let iw = w - inset * 2, ih = h - inset * 2
+        let ox = inset, oy = inset
+
         var p = Path()
-        p.move(to: CGPoint(x: 28, y: 8))
-        // Top: three segments, wavy
-        p.addCurve(to: CGPoint(x: w * 0.4, y: -6),
-                   control1: CGPoint(x: w * 0.15, y: 14),
-                   control2: CGPoint(x: w * 0.3, y: -8))
-        p.addCurve(to: CGPoint(x: w - 22, y: 6),
-                   control1: CGPoint(x: w * 0.55, y: -4),
-                   control2: CGPoint(x: w * 0.8, y: 12))
-        // Right: bulges out
-        p.addCurve(to: CGPoint(x: w + 4, y: h * 0.55),
-                   control1: CGPoint(x: w - 6, y: h * 0.15),
-                   control2: CGPoint(x: w + 8, y: h * 0.35))
-        p.addCurve(to: CGPoint(x: w - 20, y: h - 6),
-                   control1: CGPoint(x: w + 6, y: h * 0.75),
-                   control2: CGPoint(x: w - 8, y: h - 14))
-        // Bottom: wavy
-        p.addCurve(to: CGPoint(x: w * 0.5, y: h + 6),
-                   control1: CGPoint(x: w * 0.75, y: h - 10),
-                   control2: CGPoint(x: w * 0.6, y: h + 8))
-        p.addCurve(to: CGPoint(x: 24, y: h - 4),
-                   control1: CGPoint(x: w * 0.35, y: h + 4),
-                   control2: CGPoint(x: w * 0.15, y: h - 12))
-        // Left: indents
-        p.addCurve(to: CGPoint(x: -4, y: h * 0.45),
-                   control1: CGPoint(x: 8, y: h * 0.8),
-                   control2: CGPoint(x: -6, y: h * 0.65))
-        p.addCurve(to: CGPoint(x: 28, y: 8),
-                   control1: CGPoint(x: -2, y: h * 0.25),
-                   control2: CGPoint(x: 10, y: 16))
+
+        // Start at top-center, draw a soft ellipse with slight irregularity
+        // Top
+        p.move(to: CGPoint(x: ox + iw * 0.5, y: oy))
+        p.addCurve(
+            to: CGPoint(x: ox + iw, y: oy + ih * 0.45),
+            control1: CGPoint(x: ox + iw * 0.78, y: oy - ih * 0.04),
+            control2: CGPoint(x: ox + iw + iw * 0.02, y: oy + ih * 0.18)
+        )
+        // Right → bottom-right
+        p.addCurve(
+            to: CGPoint(x: ox + iw * 0.55, y: oy + ih),
+            control1: CGPoint(x: ox + iw + iw * 0.01, y: oy + ih * 0.75),
+            control2: CGPoint(x: ox + iw * 0.8, y: oy + ih + ih * 0.03)
+        )
+        // Bottom-right → tail area (bottom-left)
+        p.addCurve(
+            to: CGPoint(x: ox + iw * 0.18, y: oy + ih * 0.95),
+            control1: CGPoint(x: ox + iw * 0.38, y: oy + ih + ih * 0.02),
+            control2: CGPoint(x: ox + iw * 0.25, y: oy + ih * 1.01)
+        )
+        // Small tail pointing down-left
+        p.addLine(to: CGPoint(x: ox + iw * 0.08, y: oy + ih + ih * 0.18))
+        p.addCurve(
+            to: CGPoint(x: ox + iw * 0.12, y: oy + ih * 0.82),
+            control1: CGPoint(x: ox + iw * 0.06, y: oy + ih * 0.98),
+            control2: CGPoint(x: ox + iw * 0.08, y: oy + ih * 0.88)
+        )
+        // Left side back up
+        p.addCurve(
+            to: CGPoint(x: ox, y: oy + ih * 0.42),
+            control1: CGPoint(x: ox - iw * 0.02, y: oy + ih * 0.7),
+            control2: CGPoint(x: ox - iw * 0.01, y: oy + ih * 0.55)
+        )
+        // Left → back to top
+        p.addCurve(
+            to: CGPoint(x: ox + iw * 0.5, y: oy),
+            control1: CGPoint(x: ox + iw * 0.01, y: oy + ih * 0.15),
+            control2: CGPoint(x: ox + iw * 0.22, y: oy - ih * 0.03)
+        )
         p.closeSubpath()
         return p
     }
