@@ -505,20 +505,21 @@ struct OnboardingView: View {
             }
 
             Spacer()
-                .overlay(alignment: .top) {
+                .overlay(alignment: .center) {
                     if showInlineFeedback {
                         Text(inlineFeedback)
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(.white)
-                            .padding(.horizontal, 18)
-                            .padding(.vertical, 10)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 28)
+                            .padding(.vertical, 18)
                             .background(
-                                Color(hex: "#C8612C")
-                                    .clipShape(FeedbackBlobShape())
+                                FeedbackBlobShape()
+                                    .fill(Color(hex: "#C8612C"))
+                                    .padding(-12) // blob extends beyond text
                             )
-                            .padding(.horizontal, Space.screenPadding)
-                            .padding(.top, Space.md)
-                            .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .top)))
+                            .padding(.horizontal, Space.lg)
+                            .transition(.opacity.combined(with: .scale(scale: 0.85)))
                     }
                 }
 
