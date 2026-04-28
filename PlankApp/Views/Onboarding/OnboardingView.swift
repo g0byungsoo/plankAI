@@ -24,6 +24,7 @@ struct OnboardingView: View {
     @State private var focusArea = ""
     @State private var plankTime = ""
     @State private var commitmentDays = ""
+    @State private var sessionLength = ""
     @State private var notificationsEnabled = false
     @State private var notificationTime = Calendar.current.date(from: DateComponents(hour: 7)) ?? Date()
     @State private var name = ""
@@ -44,7 +45,7 @@ struct OnboardingView: View {
     @State private var personalStatVisible = false
 
     let onComplete: (OnboardingData) -> Void
-    private let total = 25
+    private let total = 26
 
     var body: some View {
         ZStack {
@@ -234,6 +235,15 @@ struct OnboardingView: View {
             "3": "Consistency beats intensity",
             "5": "The sweet spot for results",
             "7": "Every. Single. Day. Respect 🫡",
+        ], next: 25)
+
+        case 25: questionView("How long per\nsession?", sub: "Your coach will fill the time.", opts: [
+            ("5", "⚡  5 min — quick & focused"), ("7", "🔥  7 min — recommended"),
+            ("10", "💪  10 min — full session"),
+        ], sel: $sessionLength, feedbacks: [
+            "5": "Perfect for busy days",
+            "7": "The sweet spot",
+            "10": "Maximum results",
         ], next: 18)
         case 18: nameInput
         case 19: coachSelector
@@ -1988,68 +1998,112 @@ struct OnboardingView: View {
     // ═══════════════════════════════════════
 
     private var personalStatScreen: some View {
-        let targetHold = experience == "never" || experience == "gaveUp" ? "45s" :
-                         baseline == "under15" || baseline == "15to30" ? "60s" :
-                         baseline == "30to60" ? "90s" : "120s"
-        let focusText = focusArea == "abs" ? "front core definition" :
-                        focusArea == "obliques" ? "waist sculpting" :
-                        focusArea == "lowerBack" ? "lower back strength" : "full core activation"
+        let focusLabel = focusArea == "abs" ? "Abs Definition" :
+                         focusArea == "obliques" ? "Waist Sculpting" :
+                         focusArea == "lowerBack" ? "Core Strength" : "Full Core"
 
-        return ZStack {
-            GradientBlob(colors: [Palette.accent, Palette.stateGood, Palette.accentSubtle]).offset(y: -80)
-            VStack(spacing: 0) {
-                Spacer()
+        let difficultyLabel: String = {
+            if experience == "never" || experience == "gaveUp" { return "Beginner" }
+            if activityLevel == "active" || activityLevel == "athlete" { return "Intermediate" }
+            if baseline == "30to60" || baseline == "over60" { return "Intermediate" }
+            return "Beginner"
+        }()
 
-                Text("Based on your answers")
-                    .font(.system(size: 15, weight: .semibold))
-                    .tracking(0.5)
-                    .foregroundStyle(Palette.accent)
-                    .opacity(personalStatVisible ? 1 : 0)
+        let sessionMin = sessionLength.isEmpty ? "7" : sessionLength
+        let daysPerWeek = commitmentDays.isEmpty ? "5" : commitmentDays
+        let weeklyMinutes = (Int(sessionMin) ?? 7) * (Int(daysPerWeek) ?? 5)
 
-                Spacer().frame(height: Space.md)
+        return VStack(spacing: 0) {
+            Spacer()
 
-                if !name.trimmingCharacters(in: .whitespaces).isEmpty {
-                    Text("\(name), you'll hit")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(Palette.textSecondary)
-                        .opacity(personalStatVisible ? 1 : 0)
-                    Spacer().frame(height: Space.xs)
-                }
+            Text("YOUR PLAN")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Palette.accent)
+                .tracking(2)
+                .opacity(personalStatVisible ? 1 : 0)
 
-                Text(targetHold)
-                    .font(.system(size: 64, weight: .black))
+            Spacer().frame(height: Space.md)
+
+            if !name.trimmingCharacters(in: .whitespaces).isEmpty {
+                Text("Built for \(name)")
+                    .font(.system(size: 28, weight: .bold))
                     .foregroundStyle(Palette.textPrimary)
                     .opacity(personalStatVisible ? 1 : 0)
-                    .offset(y: personalStatVisible ? 0 : 15)
+                    .offset(y: personalStatVisible ? 0 : 10)
+            }
 
-                Text("perfect-form hold\nby day 30")
-                    .font(.system(size: 20, weight: .medium))
+            Spacer().frame(height: Space.lg + 8)
+
+            // Data-driven plan details
+            VStack(spacing: 10) {
+                planDetail(icon: "target", label: "Focus", value: focusLabel, index: 0)
+                planDetail(icon: "chart.bar", label: "Level", value: difficultyLabel, index: 1)
+                planDetail(icon: "clock", label: "Sessions", value: "\(sessionMin) min", index: 2)
+                planDetail(icon: "calendar", label: "Frequency", value: "\(daysPerWeek) days/week", index: 3)
+                planDetail(icon: "flame", label: "Weekly total", value: "\(weeklyMinutes) min", index: 4)
+                planDetail(icon: "waveform", label: "Coach", value: selectedCoachName, index: 5)
+            }
+            .padding(.horizontal, Space.screenPadding)
+
+            Spacer().frame(height: Space.lg)
+
+            // What adapts
+            VStack(spacing: 6) {
+                Text("Your workouts adapt based on:")
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .opacity(personalStatVisible ? 1 : 0)
 
-                Spacer().frame(height: Space.xl)
-
-                // Personalized details
-                VStack(spacing: Space.sm) {
-                    statRow("🎯", "Focus: \(focusText)")
-                    statRow("📅", "Plan: \(commitmentDays.isEmpty ? "5" : commitmentDays) days/week")
-                    statRow("🎙️", "Trainer: \(selectedCoachName)")
+                HStack(spacing: 8) {
+                    adaptTag("session ratings")
+                    adaptTag("plank benchmarks")
+                    adaptTag("consistency")
                 }
-                .padding(.horizontal, Space.screenPadding)
-                .opacity(personalStatVisible ? 1 : 0)
-                .offset(y: personalStatVisible ? 0 : 10)
-                .animation(.easeOut(duration: 0.5).delay(0.5), value: personalStatVisible)
+            }
+            .opacity(personalStatVisible ? 1 : 0)
+            .animation(.easeOut(duration: 0.3).delay(1.0), value: personalStatVisible)
 
-                Spacer()
-                ctaBtn("Set up camera") { Haptics.medium(); go(23) }
-                    .opacity(personalStatVisible ? 1 : 0)
-            }.padding(.horizontal, Space.screenPadding)
+            Spacer()
+            ctaBtn("Set up camera") { Haptics.medium(); go(23) }
+                .opacity(personalStatVisible ? 1 : 0)
         }
+        .background(Palette.bgPrimary)
         .onAppear {
             Haptics.success()
-            withAnimation(.easeOut(duration: 0.6)) { personalStatVisible = true }
+            withAnimation(.easeOut(duration: 0.5)) { personalStatVisible = true }
         }
+    }
+
+    private func planDetail(icon: String, label: String, value: String, index: Int) -> some View {
+        HStack {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundStyle(Palette.accent)
+                .frame(width: 20)
+            Text(label)
+                .font(.system(size: 15))
+                .foregroundStyle(Palette.textSecondary)
+            Spacer()
+            Text(value)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Palette.textPrimary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 13)
+        .background(Palette.bgElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .opacity(personalStatVisible ? 1 : 0)
+        .offset(y: personalStatVisible ? 0 : CGFloat(6 + index * 3))
+        .animation(.spring(response: 0.45, dampingFraction: 0.8).delay(0.2 + Double(index) * 0.08), value: personalStatVisible)
+    }
+
+    private func adaptTag(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(Palette.accent)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Palette.accent.opacity(0.08))
+            .clipShape(Capsule())
     }
 
     private func statRow(_ emoji: String, _ text: String) -> some View {
@@ -2120,7 +2174,9 @@ struct OnboardingView: View {
     private func goBack() {
         switch screen {
         case 4 where experience == "never": go(2)
+        case 18: go(25)  // name ← session length
         case 22: go(21)  // personal stat → plan reveal
+        case 25: go(17)  // session length ← commitment days
         default: go(max(0, screen - 1))
         }
     }
@@ -2136,7 +2192,9 @@ struct OnboardingView: View {
             goal: goal, experience: experience, baselineHoldSeconds: bS(baseline),
             barriers: Array(barriers), ageRange: ageRange, activityLevel: activityLevel,
             focusArea: focusArea, plankTime: plankTime,
-            commitmentDaysPerWeek: Int(commitmentDays) ?? 5, notificationsEnabled: notificationsEnabled,
+            commitmentDaysPerWeek: Int(commitmentDays) ?? 5,
+            sessionLengthMinutes: Int(sessionLength) ?? 7,
+            notificationsEnabled: notificationsEnabled,
             notificationTime: notificationsEnabled ? notificationTime : nil, name: name, voicePreference: voicePreference
         ))
     }
@@ -2148,6 +2206,7 @@ struct OnboardingView: View {
 struct OnboardingData {
     let goal, experience: String; let baselineHoldSeconds: Int; let barriers: [String]
     let ageRange, activityLevel, focusArea, plankTime: String; let commitmentDaysPerWeek: Int
+    let sessionLengthMinutes: Int
     let notificationsEnabled: Bool; let notificationTime: Date?; let name, voicePreference: String
 }
 

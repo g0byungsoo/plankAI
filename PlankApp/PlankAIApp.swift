@@ -57,6 +57,7 @@ struct PlankAIApp: App {
                     UserDefaults.standard.set(data.focusArea, forKey: "focusArea")
                     UserDefaults.standard.set(data.plankTime, forKey: "plankTime")
                     UserDefaults.standard.set(data.commitmentDaysPerWeek, forKey: "commitmentDays")
+                    UserDefaults.standard.set(data.sessionLengthMinutes, forKey: "sessionLengthPref")
                     UserDefaults.standard.set(data.notificationsEnabled, forKey: "notificationsEnabled")
                     hasCompletedOnboarding = true
                 }
