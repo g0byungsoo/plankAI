@@ -541,12 +541,9 @@ struct OnboardingView: View {
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 16)
-                        .background(
-                            Color(hex: "#C8612C")
-                                .clipShape(RoughCapsule())
-                        )
+                        .padding(20)
+                        .background(Color(hex: "#C8612C"))
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                         .transition(.opacity.combined(with: .scale(scale: 0.88)))
                 }
             }
