@@ -245,7 +245,7 @@ struct HomeView: View {
 
     private var kiraWorkoutModule: some View {
         let workout = todaysWorkout
-        let visibleCount = showAllExercises ? workout.exercises.count : min(4, workout.exercises.count)
+        let visibleCount = showAllExercises ? workout.exercises.count : min(2, workout.exercises.count)
         let hasMore = workout.exercises.count > 4
 
         return HStack(alignment: .bottom, spacing: 6) {
@@ -307,7 +307,7 @@ struct HomeView: View {
                             }
                         } label: {
                             HStack(spacing: 4) {
-                                Text(showAllExercises ? "show less" : "+\(workout.exercises.count - 4) more")
+                                Text(showAllExercises ? "show less" : "+\(workout.exercises.count - 2) more")
                                     .font(.system(size: 12, weight: .medium))
                                 Image(systemName: showAllExercises ? "chevron.up" : "chevron.down")
                                     .font(.system(size: 10, weight: .medium))
