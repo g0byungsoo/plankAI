@@ -1061,36 +1061,26 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            // Top marquee — scrolls left
-            marqueeRow(
-                assets: ["social-1", "social-2", "social-3", "social-4", "social-5"],
-                sizes: [(80, 142), (68, 120), (74, 132), (60, 106), (72, 128)],
-                rotations: [-5, 3, -2, 4, -6],
-                offset: marqueeOffset1
-            )
-            .opacity(cardsVisible ? 1 : 0)
-            .animation(.easeOut(duration: 0.6), value: cardsVisible)
-
-            Spacer().frame(height: Space.lg)
-
             // Counter
             Text("\(proofCount)")
-                .font(.system(size: 72, weight: .black))
+                .font(.system(size: 64, weight: .black, design: .rounded))
                 .foregroundStyle(Palette.textPrimary)
                 .contentTransition(.numericText())
+                .opacity(cardsVisible ? 1 : 0)
+                .scaleEffect(cardsVisible ? 1 : 0.8)
+                .animation(.spring(response: 0.5, dampingFraction: 0.7), value: cardsVisible)
 
-            Spacer().frame(height: Space.xs)
-
-            Text("women started their\nCore Reset this month")
-                .font(.system(size: 20, weight: .medium))
+            Text("people started this month")
+                .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
+                .padding(.top, Space.xs)
+                .opacity(cardsVisible ? 1 : 0)
 
             Spacer().frame(height: Space.sm)
 
-            // Live activity indicator
+            // Live pulse
             HStack(spacing: 6) {
-                Circle().fill(Palette.stateGood).frame(width: 8, height: 8)
+                Circle().fill(Palette.stateGood).frame(width: 7, height: 7)
                     .opacity(cardsVisible ? 1 : 0.3)
                     .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: cardsVisible)
                 Text("12 active right now")
@@ -1098,44 +1088,53 @@ struct OnboardingView: View {
                     .foregroundStyle(Palette.textSecondary)
             }
             .opacity(cardsVisible ? 1 : 0)
-            .animation(.easeOut(duration: 0.5).delay(1.2), value: cardsVisible)
+            .animation(.easeOut(duration: 0.4).delay(1.2), value: cardsVisible)
 
-            Spacer().frame(height: Space.lg)
+            Spacer().frame(height: Space.lg + 8)
 
-            // Bottom marquee — scrolls right
-            marqueeRow(
-                assets: ["social-6", "social-7", "social-8", "social-9", "social-10"],
-                sizes: [(72, 128), (64, 114), (80, 142), (56, 100), (68, 120)],
-                rotations: [4, -3, 5, -4, 2],
-                offset: marqueeOffset2
-            )
-            .opacity(cardsVisible ? 1 : 0)
-            .animation(.easeOut(duration: 0.6).delay(0.2), value: cardsVisible)
+            // Single row of scattered photo cards
+            ZStack {
+                // Staggered cards at different sizes and rotations
+                socialPhoto("social-1", w: 64, h: 80, x: -120, y: -30, rot: -8, delay: 0.2)
+                socialPhoto("social-3", w: 56, h: 70, x: -55, y: 25, rot: 5, delay: 0.35)
+                socialPhoto("social-5", w: 72, h: 90, x: 0, y: -15, rot: -3, delay: 0.5)
+                socialPhoto("social-7", w: 60, h: 75, x: 60, y: 20, rot: 6, delay: 0.65)
+                socialPhoto("social-9", w: 68, h: 85, x: 125, y: -25, rot: -5, delay: 0.8)
+            }
+            .frame(height: 130)
+            .frame(maxWidth: .infinity)
 
             Spacer()
             ctaBtn("Continue") { Haptics.light(); go(15) }
         }
-        .clipped()
         .onAppear {
             cardsVisible = true
-            // Start marquee after entrance
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                withAnimation(.linear(duration: 20).repeatForever(autoreverses: false)) {
-                    marqueeOffset1 = -1  // triggers the offset calc inside marqueeRow
-                }
-                withAnimation(.linear(duration: 25).repeatForever(autoreverses: false)) {
-                    marqueeOffset2 = -1
+            let t = 2847
+            for i in 0...25 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.04) {
+                    withAnimation(.easeOut(duration: 0.08)) { proofCount = Int(Double(t) * Double(i) / 25) }
                 }
             }
-            let t = 2847
-            for i in 0...30 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.04) {
-                    withAnimation(.easeOut(duration: 0.1)) { proofCount = Int(Double(t) * Double(i) / 30) }
-                    if i % 5 == 0 { Haptics.light() }
-                    if i == 30 { Haptics.heavy() }
-                }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { Haptics.medium() }
+        }
+    }
+
+    private func socialPhoto(_ asset: String, w: CGFloat, h: CGFloat, x: CGFloat, y: CGFloat, rot: Double, delay: Double) -> some View {
+        Group {
+            if UIImage(named: asset) != nil {
+                Image(asset).resizable().scaledToFill()
+            } else {
+                Palette.accentSubtle.opacity(0.2)
             }
         }
+        .frame(width: w, height: h)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .rotationEffect(.degrees(rot))
+        .offset(x: x, y: y)
+        .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
+        .opacity(cardsVisible ? 1 : 0)
+        .scaleEffect(cardsVisible ? 1 : 0.7)
+        .animation(.spring(response: 0.5, dampingFraction: 0.75).delay(delay), value: cardsVisible)
     }
 
     /// Infinite marquee row of 9:16 cards. Duplicates content for seamless loop.
