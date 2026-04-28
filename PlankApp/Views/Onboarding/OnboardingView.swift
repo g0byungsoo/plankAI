@@ -577,7 +577,7 @@ struct OnboardingView: View {
                 }
             }
             .opacity(sel.wrappedValue.isEmpty ? 0.3 : 1.0)
-            .disabled(sel.wrappedValue.isEmpty)
+            .disabled(sel.wrappedValue.isEmpty || showInlineFeedback)
         }
     }
 
@@ -908,70 +908,123 @@ struct OnboardingView: View {
     @State private var formStep = 0  // 0=hidden, 1=left card, 2=arrow, 3=right card, 4=text
 
     private var formScreen: some View {
-        ZStack {
-            GradientBlob(colors: [Palette.accent, Palette.stateWarn, Palette.accentSubtle]).offset(y: 80)
-            VStack(spacing: 0) {
-                Spacer()
+        VStack(spacing: 0) {
+            Spacer()
 
-                // Animated comparison
-                HStack(spacing: Space.lg) {
-                    // Left — good form
-                    VStack(spacing: Space.sm) {
-                        Text("20s").font(.system(size: 48, weight: .black)).foregroundStyle(Palette.stateGood)
-                        Text("perfect form").font(.system(size: 13, weight: .medium)).foregroundStyle(Palette.textSecondary)
-                        Image(systemName: "checkmark.circle.fill").font(.system(size: 28)).foregroundStyle(Palette.stateGood)
+            // Title
+            Text("Form beats time.\nEvery time.")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.center)
+                .opacity(formStep >= 1 ? 1 : 0)
+                .offset(y: formStep >= 1 ? 0 : 10)
+                .animation(.easeOut(duration: 0.4), value: formStep)
+
+            Spacer().frame(height: Space.lg + 8)
+
+            // Comparison cards
+            HStack(spacing: 14) {
+                // Good form card
+                VStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(Palette.stateGood.opacity(0.12))
+                            .frame(width: 56, height: 56)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(Palette.stateGood)
                     }
-                    .opacity(formStep >= 1 ? 1 : 0)
-                    .offset(x: formStep >= 1 ? 0 : -30)
-                    .animation(.spring(response: 0.4, dampingFraction: 0.75), value: formStep)
 
-                    // Arrow
-                    Text(">")
-                        .font(.system(size: 40, weight: .black))
-                        .foregroundStyle(Palette.accent)
-                        .opacity(formStep >= 2 ? 1 : 0)
-                        .scaleEffect(formStep >= 2 ? 1 : 0.5)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: formStep)
+                    Text("20s")
+                        .font(.system(size: 40, weight: .black, design: .rounded))
+                        .foregroundStyle(Palette.stateGood)
 
-                    // Right — bad form
-                    VStack(spacing: Space.sm) {
-                        Text("60s").font(.system(size: 48, weight: .black)).foregroundStyle(Palette.stateBad)
-                        Text("bad form").font(.system(size: 13, weight: .medium)).foregroundStyle(Palette.textSecondary)
-                        Image(systemName: "xmark.circle.fill").font(.system(size: 28)).foregroundStyle(Palette.stateBad)
-                    }
-                    .opacity(formStep >= 3 ? 1 : 0)
-                    .offset(x: formStep >= 3 ? 0 : 30)
-                    .animation(.spring(response: 0.4, dampingFraction: 0.75), value: formStep)
+                    Text("perfect form")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Palette.textSecondary)
+
+                    Text("WINS")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundStyle(Palette.stateGood)
+                        .tracking(2)
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+                .background(Palette.bgElevated)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(Palette.stateGood.opacity(0.3), lineWidth: 2)
+                )
+                .plankShadow()
+                .opacity(formStep >= 2 ? 1 : 0)
+                .scaleEffect(formStep >= 2 ? 1 : 0.9)
+                .animation(.spring(response: 0.5, dampingFraction: 0.75), value: formStep)
 
-                Spacer().frame(height: Space.xl)
+                // VS
+                Text("vs")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(Palette.textSecondary)
+                    .opacity(formStep >= 3 ? 1 : 0)
+                    .scaleEffect(formStep >= 3 ? 1 : 0.5)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: formStep)
 
-                Text("Form matters more\nthan time.")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(Palette.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .opacity(formStep >= 4 ? 1 : 0)
-                    .offset(y: formStep >= 4 ? 0 : 12)
-                    .animation(.easeOut(duration: 0.4), value: formStep)
+                // Bad form card
+                VStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(Palette.stateBad.opacity(0.12))
+                            .frame(width: 56, height: 56)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(Palette.stateBad)
+                    }
 
-                Spacer().frame(height: Space.sm)
+                    Text("60s")
+                        .font(.system(size: 40, weight: .black, design: .rounded))
+                        .foregroundStyle(Palette.stateBad.opacity(0.5))
 
-                Text("That's what your AI coach is for.\nReal-time corrections, every second.")
-                    .font(Typo.body).foregroundStyle(Palette.textSecondary).multilineTextAlignment(.center)
-                    .opacity(formStep >= 4 ? 1 : 0)
-                    .animation(.easeOut(duration: 0.4).delay(0.1), value: formStep)
+                    Text("sloppy form")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Palette.textSecondary)
 
-                Spacer()
-                ctaBtn("Continue") { Haptics.light(); go(13) }
-                    .opacity(formStep >= 4 ? 1 : 0)
-            }.padding(.horizontal, Space.screenPadding)
+                    Text("WASTED")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundStyle(Palette.stateBad.opacity(0.5))
+                        .tracking(2)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+                .background(Palette.bgElevated)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .plankShadow()
+                .opacity(formStep >= 4 ? 1 : 0)
+                .scaleEffect(formStep >= 4 ? 1 : 0.9)
+                .animation(.spring(response: 0.5, dampingFraction: 0.75), value: formStep)
+            }
+            .padding(.horizontal, Space.screenPadding)
+
+            Spacer().frame(height: Space.lg + 8)
+
+            Text("Your coach watches your form\nso every second counts.")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .opacity(formStep >= 5 ? 1 : 0)
+                .offset(y: formStep >= 5 ? 0 : 8)
+                .animation(.easeOut(duration: 0.4), value: formStep)
+
+            Spacer()
+            ctaBtn("Continue") { Haptics.light(); go(13) }
+                .opacity(formStep >= 5 ? 1 : 0)
         }
+        .background(Palette.bgPrimary)
         .onAppear {
-            // Staggered entrance: left → arrow → right → text
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { formStep = 1; Haptics.light() }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { formStep = 2; Haptics.medium() }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) { formStep = 3; Haptics.light() }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.15) { formStep = 4 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { withAnimation { formStep = 1 } }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { formStep = 2; Haptics.soft() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { formStep = 3 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) { formStep = 4; Haptics.soft() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { formStep = 5 }
         }
     }
 
@@ -1265,30 +1318,55 @@ struct OnboardingView: View {
 
     // MARK: - Name (screen 15)
 
+    @FocusState private var nameFieldFocused: Bool
+
     private var nameInput: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("What should your\ntrainer call you?").font(.system(size: 28, weight: .bold))
-                .foregroundStyle(Palette.textPrimary).padding(.horizontal, Space.screenPadding)
+            Text("What should your\ncoach call you?")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(Palette.textPrimary)
+                .padding(.horizontal, Space.screenPadding)
 
-            Spacer().frame(height: Space.xl)
+            Text("First name is perfect.")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.top, Space.xs)
+                .padding(.horizontal, Space.screenPadding)
+
+            Spacer().frame(height: Space.lg)
 
             TextField("Your name", text: $name)
                 .font(.system(size: 24, weight: .medium))
-                .padding(20).background(Palette.bgElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .foregroundStyle(Palette.textPrimary)
+                .padding(20)
+                .background(Palette.bgElevated)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .plankShadow()
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.words)
+                .focused($nameFieldFocused)
+                .submitLabel(.continue)
                 .padding(.horizontal, Space.screenPadding)
                 .onSubmit {
                     guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                    Haptics.medium(); go(19)
+                    nameFieldFocused = false
+                    Haptics.medium()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { go(19) }
                 }
 
             Spacer()
 
-            ctaBtn("Continue") { Haptics.medium(); go(19) }
-                .opacity(name.trimmingCharacters(in: .whitespaces).isEmpty ? 0.3 : 1.0)
-                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+            ctaBtn("Continue") {
+                nameFieldFocused = false
+                Haptics.medium()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { go(19) }
+            }
+            .opacity(name.trimmingCharacters(in: .whitespaces).isEmpty ? 0.3 : 1.0)
+            .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+        .task {
+            try? await Task.sleep(for: .milliseconds(400))
+            nameFieldFocused = true
         }
     }
 
