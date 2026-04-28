@@ -4,23 +4,23 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 OUTPUT_DIR="$PROJECT_DIR/PlankApp/Resources/VoiceClips"
 source "$PROJECT_DIR/.env"
-# Voice IDs per trainer
+
 KIRA_VOICE="03vEurziQfq3V8WZhQvn"
 SARAH_VOICE="nf4MCGNSdM0hxM95ZBQR"
 MATSON_VOICE="ZRwrL4id6j1HPGFkeCzO"
-# Default voice for existing clips
-VOICE_ID="$KIRA_VOICE"
-API_URL="https://api.elevenlabs.io/v1/text-to-speech/$VOICE_ID"
+
 mkdir -p "$OUTPUT_DIR"
 
 generate() {
-    local id="$1"
-    local text="$2"
+    local voice_id="$1"
+    local id="$2"
+    local text="$3"
     local output="$OUTPUT_DIR/${id}.m4a"
     [ -f "$output" ] && { echo "SKIP $id"; return; }
     echo "GEN  $id"
+    local url="https://api.elevenlabs.io/v1/text-to-speech/$voice_id"
     local tmp=$(mktemp /tmp/voice_XXXXXX.mp3)
-    curl -s -X POST "$API_URL" \
+    curl -s -X POST "$url" \
         -H "xi-api-key: $ELEVENLABS_API_KEY" \
         -H "Content-Type: application/json" \
         -H "Accept: audio/mpeg" \
@@ -30,165 +30,301 @@ generate() {
     rm -f "$tmp"; sleep 0.5
 }
 
-echo "=== Generating voice clips ==="
+K="$KIRA_VOICE"
+S="$SARAH_VOICE"
+M="$MATSON_VOICE"
 
-# Guide setup
-generate "guide_setup_1" "Okay prop your phone up so I can see your whole body, then get into plank. Forearms on the floor, elbows under your shoulders."
-generate "guide_setup_2" "Set your phone down about six feet away, lean it against something, then drop into plank position. I need to see you head to toe."
-generate "guide_setup_3" "Alright, get your phone set up where it can see you, then get down. Forearms flat, toes tucked, body straight like a board."
-generate "guide_good_1" "Good. Hold."
-generate "guide_good_2" "That's it."
-generate "guide_good_3" "Yes. Breathe."
+echo "=== KIRA (existing plank session clips) ==="
 
-# Hip sag
-generate "hip_sag_1" "Hips! Up! You're giving hammock right now."
-generate "hip_sag_2" "Hips up. Squeeze your glutes. My mama planks better than this."
-generate "hip_sag_3" "Hips! Belly button to spine. Don't spill grandma's soup."
-generate "hip_sag_4" "Hips are sagging. Tuck your tailbone. Tighten everything."
-generate "hip_sag_5" "Hips! If they drop any lower they'll need their own zip code."
-generate "hip_sag_6" "Hips up! Engage that core like rent is due tomorrow."
+# Kira plank session clips (no prefix, backwards compatible)
+generate $K "guide_setup_1" "Okay prop your phone up so I can see your whole body, then get into plank. Forearms on the floor, elbows under your shoulders."
+generate $K "guide_setup_2" "Set your phone down about six feet away, lean it against something, then drop into plank position. I need to see you head to toe."
+generate $K "guide_setup_3" "Alright, get your phone set up where it can see you, then get down. Forearms flat, toes tucked, body straight like a board."
+generate $K "guide_good_1" "Good. Hold."
+generate $K "guide_good_2" "That's it."
+generate $K "guide_good_3" "Yes. Breathe."
+generate $K "hip_sag_1" "Hips! Up! You're giving hammock right now."
+generate $K "hip_sag_2" "Hips up. Squeeze your glutes. My mama planks better than this."
+generate $K "hip_sag_3" "Hips! Belly button to spine. Don't spill grandma's soup."
+generate $K "hip_sag_4" "Hips are sagging. Tuck your tailbone. Tighten everything."
+generate $K "hip_sag_5" "Hips! If they drop any lower they'll need their own zip code."
+generate $K "hip_sag_6" "Hips up! Engage that core like rent is due tomorrow."
+generate $K "hip_pike_1" "Hips down! This is a plank not yoga class."
+generate $K "hip_pike_2" "Drop your hips! You look like a tent. Flatten out."
+generate $K "hip_pike_3" "Hips down! Cheating doesn't count in this house."
+generate $K "hip_pike_4" "Flatten! Your butt is way too high. Straight line."
+generate $K "shoulder_1" "Shoulders! Down! You're not a turtle, drop them."
+generate $K "shoulder_2" "Shoulders down. Push the floor away. You're planking not panicking."
+generate $K "shoulder_3" "Shoulders! Relax. Shoulder blades in your back pockets."
+generate $K "shoulder_4" "Drop the shoulders! Your traps didn't sign up for this."
+generate $K "recovery_1" "There it is. Hold that."
+generate $K "recovery_2" "Good fix. Stay."
+generate $K "recovery_3" "See? When you try, you're actually good at this."
+generate $K "recovery_4" "That's the one. Don't move."
+generate $K "stopped_1" "Back down! I didn't say stop."
+generate $K "stopped_2" "Get back in plank! Timer's still going."
+generate $K "stopped_3" "Nope! Back down. We're not done."
+generate $K "stopped_4" "You stopped? In this economy? Back down."
+generate $K "milestone_10" "Ten seconds. Stay tight."
+generate $K "milestone_30" "Thirty! Halfway. Check form. Keep going."
+generate $K "milestone_60" "One minute! Okay I see you!"
+generate $K "milestone_90" "Ninety seconds! Most people quit by now. Not you."
+generate $K "milestone_120" "Two minutes! That's elite. Your core is transforming."
+generate $K "countdown_10" "Ten seconds! Lock in. Finish strong."
+generate $K "countdown_5" "Five!"
+generate $K "countdown_3" "Three!"
+generate $K "countdown_2" "Two!"
+generate $K "countdown_1" "One!"
+generate $K "start_1" "I see you. Go."
+generate $K "start_2" "You showed up. Let's get it."
+generate $K "end_good" "Done! You ate that. See you tomorrow."
+generate $K "end_bad" "It's done. We don't talk about it. Tomorrow."
+generate $K "camera_bad_1" "Can't see you. Move your phone back."
+generate $K "camera_bad_2" "Back up your phone. I need the full picture."
 
-# Hip pike
-generate "hip_pike_1" "Hips down! This is a plank not yoga class."
-generate "hip_pike_2" "Drop your hips! You look like a tent. Flatten out."
-generate "hip_pike_3" "Hips down! Cheating doesn't count in this house."
-generate "hip_pike_4" "Flatten! Your butt is way too high. Straight line."
-
-# Shoulder
-generate "shoulder_1" "Shoulders! Down! You're not a turtle, drop them."
-generate "shoulder_2" "Shoulders down. Push the floor away. You're planking not panicking."
-generate "shoulder_3" "Shoulders! Relax. Shoulder blades in your back pockets."
-generate "shoulder_4" "Drop the shoulders! Your traps didn't sign up for this."
-
-# Recovery
-generate "recovery_1" "There it is. Hold that."
-generate "recovery_2" "Good fix. Stay."
-generate "recovery_3" "See? When you try, you're actually good at this."
-generate "recovery_4" "That's the one. Don't move."
-
-# Stopped
-generate "stopped_1" "Back down! I didn't say stop."
-generate "stopped_2" "Get back in plank! Timer's still going."
-generate "stopped_3" "Nope! Back down. We're not done."
-generate "stopped_4" "You stopped? In this economy? Back down."
-
-# Milestones
-generate "milestone_10" "Ten seconds. Stay tight."
-generate "milestone_30" "Thirty! Halfway. Check form. Keep going."
-generate "milestone_60" "One minute! Okay I see you!"
-generate "milestone_90" "Ninety seconds! Most people quit by now. Not you."
-generate "milestone_120" "Two minutes! That's elite. Your core is transforming."
-
-# Countdown
-generate "countdown_10" "Ten seconds! Lock in. Finish strong."
-generate "countdown_5" "Five!"
-generate "countdown_3" "Three!"
-generate "countdown_2" "Two!"
-generate "countdown_1" "One!"
-
-# Session
-generate "start_1" "I see you. Go."
-generate "start_2" "You showed up. Let's get it."
-generate "end_good" "Done! You ate that. See you tomorrow."
-generate "end_bad" "It's done. We don't talk about it. Tomorrow."
-
-# Camera
-generate "camera_bad_1" "Can't see you. Move your phone back."
-generate "camera_bad_2" "Back up your phone. I need the full picture."
+# Coach previews
+generate $K "kira_preview" "Hey, I'm Kira. I don't do gentle. But I'll get you right."
+generate $S "sarah_preview" "Hi, I'm Sarah. We'll take this one breath at a time."
+generate $M "matson_preview" "What's up, I'm Matson. We're gonna have a good time."
 
 # =============================================
-# ROUTINE MODE — Exercise intros (Kira voice)
-# Keep clips SHORT. 2-5 seconds max. Punchy.
+# ROUTINE MODE — All three trainers
 # =============================================
 
-# Session bookends
-generate "routine_start_1" "Let's work."
-generate "routine_start_2" "We're going."
-generate "routine_start_3" "Time to go."
-generate "routine_done_1" "Yes! You just put in real work. I'm proud of you."
-generate "routine_done_2" "Done! That was all you. Remember this feeling."
-generate "routine_done_3" "You showed up and you finished. That's everything."
-generate "routine_done_4" "Workout complete! Your body is thanking you right now."
-generate "routine_done_5" "That's a wrap! You're getting stronger every single time."
+generate_routine_clips() {
+    local V="$1"
+    local P="$2"  # prefix: "" for Kira, "sarah_" for Sarah, "matson_" for Matson
 
-# Exercise intros — SHORT. Name + one cue. Under 3 seconds.
-# Front core
-generate "intro_bicycle_crunch" "Bicycle crunches. Elbow to knee."
-generate "intro_reverse_crunch" "Reverse crunches. Knees to chest."
-generate "intro_leg_raises" "Leg raises. Slow and controlled."
-generate "intro_flutter_kicks" "Flutter kicks. Keep 'em low."
-generate "intro_toe_touches" "Toe touches. Reach up, crunch up."
-generate "intro_v_ups" "V-ups. Hands and feet meet in the middle."
-generate "intro_dead_bug" "Dead bug. Opposite arm, opposite leg."
-generate "intro_hollow_body_hold" "Hollow body. Press your back down. Hold."
+    # --- Session bookends ---
+    case "$P" in
+        sarah_)
+            generate $V "${P}routine_start_1" "Let's begin."
+            generate $V "${P}routine_start_2" "Take a breath. We're starting."
+            generate $V "${P}routine_start_3" "Ready when you are."
+            generate $V "${P}routine_done_1" "Beautiful work. You should feel proud of yourself."
+            generate $V "${P}routine_done_2" "You did it. Take a moment to appreciate that."
+            generate $V "${P}routine_done_3" "All done. Your body is grateful for that."
+            generate $V "${P}routine_done_4" "Wonderful. You showed up for yourself today."
+            generate $V "${P}routine_done_5" "Session complete. Carry this feeling with you."
+            ;;
+        matson_)
+            generate $V "${P}routine_start_1" "Alright, let's do this thing."
+            generate $V "${P}routine_start_2" "Here we go, easy does it."
+            generate $V "${P}routine_start_3" "Let's get after it."
+            generate $V "${P}routine_done_1" "Dude, you crushed that. Seriously."
+            generate $V "${P}routine_done_2" "That's what I'm talking about. Good stuff."
+            generate $V "${P}routine_done_3" "Nice work, that was solid."
+            generate $V "${P}routine_done_4" "And done! You're a beast, you know that?"
+            generate $V "${P}routine_done_5" "That's a wrap. You killed it today."
+            ;;
+        *)
+            generate $V "routine_start_1" "Let's work."
+            generate $V "routine_start_2" "We're going."
+            generate $V "routine_start_3" "Time to go."
+            generate $V "routine_done_1" "Yes! You just put in real work. I'm proud of you."
+            generate $V "routine_done_2" "Done! That was all you. Remember this feeling."
+            generate $V "routine_done_3" "You showed up and you finished. That's everything."
+            generate $V "routine_done_4" "Workout complete! Your body is thanking you right now."
+            generate $V "routine_done_5" "That's a wrap! You're getting stronger every single time."
+            ;;
+    esac
 
-# Obliques
-generate "intro_russian_twists" "Russian twists. Side to side."
-generate "intro_side_plank_left" "Side plank. Left side. Hips up."
-generate "intro_side_plank_right" "Side plank. Right side. Hips up."
-generate "intro_oblique_crunch_left" "Oblique crunch. Left side."
-generate "intro_oblique_crunch_right" "Oblique crunch. Right side."
-generate "intro_woodchoppers" "Woodchoppers. Twist and drive."
+    # --- Exercise intros ---
+    case "$P" in
+        sarah_)
+            generate $V "${P}intro_bicycle_crunch" "Bicycle crunches. Nice and controlled."
+            generate $V "${P}intro_reverse_crunch" "Reverse crunches. Bring those knees in gently."
+            generate $V "${P}intro_leg_raises" "Leg raises. Slow, mindful movements."
+            generate $V "${P}intro_flutter_kicks" "Flutter kicks. Keep them light."
+            generate $V "${P}intro_toe_touches" "Toe touches. Reach up, connect."
+            generate $V "${P}intro_v_ups" "V-ups. Meet in the middle."
+            generate $V "${P}intro_dead_bug" "Dead bug. Opposite arm, opposite leg."
+            generate $V "${P}intro_hollow_body_hold" "Hollow body. Press down and hold."
+            generate $V "${P}intro_russian_twists" "Russian twists. Easy rotation."
+            generate $V "${P}intro_side_plank_left" "Side plank, left side. Find your balance."
+            generate $V "${P}intro_side_plank_right" "Side plank, right side. Stay centered."
+            generate $V "${P}intro_oblique_crunch_left" "Oblique crunch, left side."
+            generate $V "${P}intro_oblique_crunch_right" "Oblique crunch, right side."
+            generate $V "${P}intro_woodchoppers" "Woodchoppers. Twist through your core."
+            generate $V "${P}intro_superman_hold" "Superman hold. Lift and breathe."
+            generate $V "${P}intro_superman_pulses" "Superman pulses. Gentle up and down."
+            generate $V "${P}intro_bird_dog" "Bird dog. Extend and balance."
+            generate $V "${P}intro_glute_bridge_hold" "Glute bridge. Lift and squeeze."
+            generate $V "${P}intro_glute_bridge_marches" "Glute bridge marches. One at a time."
+            generate $V "${P}intro_mountain_climbers" "Mountain climbers. Find your rhythm."
+            generate $V "${P}intro_plank_shoulder_taps" "Shoulder taps. Stay steady."
+            generate $V "${P}intro_bear_crawl_hold" "Bear crawl hold. Knees just off the ground."
+            generate $V "${P}intro_inchworms" "Inchworms. Walk out and back."
+            generate $V "${P}intro_high_knees" "High knees. Light on your feet."
+            ;;
+        matson_)
+            generate $V "${P}intro_bicycle_crunch" "Bicycle crunches. Elbow to knee, let's go."
+            generate $V "${P}intro_reverse_crunch" "Reverse crunches. Pull those knees up."
+            generate $V "${P}intro_leg_raises" "Leg raises. Keep 'em smooth."
+            generate $V "${P}intro_flutter_kicks" "Flutter kicks. Low and steady."
+            generate $V "${P}intro_toe_touches" "Toe touches. Reach for it."
+            generate $V "${P}intro_v_ups" "V-ups. This one's fun, trust me."
+            generate $V "${P}intro_dead_bug" "Dead bug. Opposite arm, opposite leg."
+            generate $V "${P}intro_hollow_body_hold" "Hollow body hold. Lock it in."
+            generate $V "${P}intro_russian_twists" "Russian twists. Side to side, nice and easy."
+            generate $V "${P}intro_side_plank_left" "Side plank, left side. Stack it up."
+            generate $V "${P}intro_side_plank_right" "Side plank, right side. Same vibe."
+            generate $V "${P}intro_oblique_crunch_left" "Oblique crunch, left side."
+            generate $V "${P}intro_oblique_crunch_right" "Oblique crunch, right side."
+            generate $V "${P}intro_woodchoppers" "Woodchoppers. Twist and rip."
+            generate $V "${P}intro_superman_hold" "Superman. Arms up, legs up, fly."
+            generate $V "${P}intro_superman_pulses" "Superman pulses. Up and down."
+            generate $V "${P}intro_bird_dog" "Bird dog. Balance it out."
+            generate $V "${P}intro_glute_bridge_hold" "Glute bridge. Hips up, hold it."
+            generate $V "${P}intro_glute_bridge_marches" "Bridge marches. Keep those hips level."
+            generate $V "${P}intro_mountain_climbers" "Mountain climbers. Let's pick it up."
+            generate $V "${P}intro_plank_shoulder_taps" "Shoulder taps. Don't wobble on me."
+            generate $V "${P}intro_bear_crawl_hold" "Bear crawl hold. Knees hovering."
+            generate $V "${P}intro_inchworms" "Inchworms. Walk it out."
+            generate $V "${P}intro_high_knees" "High knees. Get 'em up."
+            ;;
+        *)
+            generate $V "intro_bicycle_crunch" "Bicycle crunches. Elbow to knee."
+            generate $V "intro_reverse_crunch" "Reverse crunches. Knees to chest."
+            generate $V "intro_leg_raises" "Leg raises. Slow and controlled."
+            generate $V "intro_flutter_kicks" "Flutter kicks. Keep 'em low."
+            generate $V "intro_toe_touches" "Toe touches. Reach up, crunch up."
+            generate $V "intro_v_ups" "V-ups. Hands and feet meet in the middle."
+            generate $V "intro_dead_bug" "Dead bug. Opposite arm, opposite leg."
+            generate $V "intro_hollow_body_hold" "Hollow body. Press your back down. Hold."
+            generate $V "intro_russian_twists" "Russian twists. Side to side."
+            generate $V "intro_side_plank_left" "Side plank. Left side. Hips up."
+            generate $V "intro_side_plank_right" "Side plank. Right side. Hips up."
+            generate $V "intro_oblique_crunch_left" "Oblique crunch. Left side."
+            generate $V "intro_oblique_crunch_right" "Oblique crunch. Right side."
+            generate $V "intro_woodchoppers" "Woodchoppers. Twist and drive."
+            generate $V "intro_superman_hold" "Superman hold. Arms and legs up. Fly."
+            generate $V "intro_superman_pulses" "Superman pulses. Up and down."
+            generate $V "intro_bird_dog" "Bird dog. Opposite arm, opposite leg."
+            generate $V "intro_glute_bridge_hold" "Glute bridge. Hips up. Squeeze."
+            generate $V "intro_glute_bridge_marches" "Glute bridge marches. Keep hips level."
+            generate $V "intro_mountain_climbers" "Mountain climbers. Drive those knees."
+            generate $V "intro_plank_shoulder_taps" "Shoulder taps. Don't rock. Stable."
+            generate $V "intro_bear_crawl_hold" "Bear crawl hold. Knees off the floor."
+            generate $V "intro_inchworms" "Inchworms. Walk out, walk back."
+            generate $V "intro_high_knees" "High knees. Drive 'em up."
+            ;;
+    esac
 
-# Lower back
-generate "intro_superman_hold" "Superman hold. Arms and legs up. Fly."
-generate "intro_superman_pulses" "Superman pulses. Up and down."
-generate "intro_bird_dog" "Bird dog. Opposite arm, opposite leg."
-generate "intro_glute_bridge_hold" "Glute bridge. Hips up. Squeeze."
-generate "intro_glute_bridge_marches" "Glute bridge marches. Keep hips level."
+    # --- Tempo / Hold / Rest / Cues ---
+    case "$P" in
+        sarah_)
+            generate $V "${P}tempo_1" "Keep flowing, keep flowing."
+            generate $V "${P}tempo_2" "Stay with the movement."
+            generate $V "${P}tempo_3" "Beautiful pace."
+            generate $V "${P}tempo_4" "A little quicker now."
+            generate $V "${P}tempo_twist_1" "Twist gently, twist gently."
+            generate $V "${P}tempo_twist_2" "Side to side, breathe through it."
+            generate $V "${P}tempo_drive_1" "Keep moving, keep moving."
+            generate $V "${P}tempo_drive_2" "Lift a little higher."
+            generate $V "${P}hold_1" "Hold right here. Breathe."
+            generate $V "${P}hold_2" "Stay present."
+            generate $V "${P}hold_3" "You're doing beautifully."
+            generate $V "${P}hold_4" "Just a little longer."
+            generate $V "${P}hold_5" "That trembling is strength building."
+            generate $V "${P}hold_6" "Almost there, stay with me."
+            generate $V "${P}rest_1" "Rest now."
+            generate $V "${P}rest_2" "Take a breath in."
+            generate $V "${P}rest_3" "Let your muscles relax."
+            generate $V "${P}rest_4" "Nice and easy."
+            generate $V "${P}exercise_countdown" "Go."
+            generate $V "${P}exercise_almost" "Five more seconds."
+            generate $V "${P}exercise_done" "And rest."
+            generate $V "${P}encourage_1" "You're doing so well."
+            generate $V "${P}encourage_2" "I believe in you."
+            generate $V "${P}encourage_3" "That's beautiful form."
+            generate $V "${P}encourage_4" "You're stronger than you know."
+            generate $V "${P}encourage_5" "Listen to your body, it's grateful."
+            generate $V "${P}skip_1" "That's okay, next one."
+            generate $V "${P}skip_2" "Moving forward."
+            ;;
+        matson_)
+            generate $V "${P}tempo_1" "Keep it rolling, keep it rolling."
+            generate $V "${P}tempo_2" "Don't slow down on me now."
+            generate $V "${P}tempo_3" "That's the pace right there."
+            generate $V "${P}tempo_4" "Little faster, you got it."
+            generate $V "${P}tempo_twist_1" "Twist it, twist it."
+            generate $V "${P}tempo_twist_2" "Side to side, lookin' good."
+            generate $V "${P}tempo_drive_1" "Drive, drive, drive."
+            generate $V "${P}tempo_drive_2" "Get those knees up higher."
+            generate $V "${P}hold_1" "Hold that right there."
+            generate $V "${P}hold_2" "Stay locked in."
+            generate $V "${P}hold_3" "You're chillin', you got this."
+            generate $V "${P}hold_4" "Don't drop, almost there."
+            generate $V "${P}hold_5" "That shake means it's working."
+            generate $V "${P}hold_6" "So close, hang tight."
+            generate $V "${P}rest_1" "Take a breather."
+            generate $V "${P}rest_2" "Catch your breath."
+            generate $V "${P}rest_3" "Shake it loose."
+            generate $V "${P}rest_4" "Quick break, stay loose."
+            generate $V "${P}exercise_countdown" "Let's go."
+            generate $V "${P}exercise_almost" "Five seconds left."
+            generate $V "${P}exercise_done" "Nice, done."
+            generate $V "${P}encourage_1" "You got this, easy."
+            generate $V "${P}encourage_2" "There it is."
+            generate $V "${P}encourage_3" "Lookin' strong."
+            generate $V "${P}encourage_4" "That's what I like to see."
+            generate $V "${P}encourage_5" "You're built for this."
+            generate $V "${P}roast_1" "Come on, my little sister goes harder."
+            generate $V "${P}roast_2" "That's all you got? I've seen more effort at brunch."
+            generate $V "${P}roast_3" "You're lucky you're cute."
+            generate $V "${P}roast_4" "I'm not mad, just disappointed. Kidding."
+            generate $V "${P}skip_1" "No worries, next."
+            generate $V "${P}skip_2" "Onto the next one."
+            ;;
+        *)
+            generate $V "tempo_1" "Keep going, keep going."
+            generate $V "tempo_2" "Don't stop on me."
+            generate $V "tempo_3" "Same pace, same pace."
+            generate $V "tempo_4" "Pick it up, pick it up."
+            generate $V "tempo_twist_1" "Twist, twist."
+            generate $V "tempo_twist_2" "Side to side."
+            generate $V "tempo_drive_1" "Drive, drive."
+            generate $V "tempo_drive_2" "Get those knees higher."
+            generate $V "hold_1" "Hold it right there."
+            generate $V "hold_2" "Stay with me."
+            generate $V "hold_3" "Don't you move."
+            generate $V "hold_4" "Don't you drop."
+            generate $V "hold_5" "That shake is good."
+            generate $V "hold_6" "Almost there."
+            generate $V "rest_1" "Okay, rest."
+            generate $V "rest_2" "Catch your breath."
+            generate $V "rest_3" "Shake it out, shake it out."
+            generate $V "rest_4" "Quick break, stay ready."
+            generate $V "exercise_countdown" "Go."
+            generate $V "exercise_almost" "Five seconds left."
+            generate $V "exercise_done" "And done."
+            generate $V "encourage_1" "You got this."
+            generate $V "encourage_2" "There you go."
+            generate $V "encourage_3" "That's it, that's it."
+            generate $V "encourage_4" "I see you working."
+            generate $V "encourage_5" "You're stronger than you think."
+            generate $V "roast_1" "My grandma moves faster than that."
+            generate $V "roast_2" "That's the best you got? Really?"
+            generate $V "roast_3" "I've seen better form on a pool noodle."
+            generate $V "roast_4" "You're lucky I can't reach through the phone."
+            generate $V "skip_1" "Next."
+            generate $V "skip_2" "Moving on."
+            ;;
+    esac
+}
 
-# Full core
-generate "intro_mountain_climbers" "Mountain climbers. Drive those knees."
-generate "intro_plank_shoulder_taps" "Shoulder taps. Don't rock. Stable."
-generate "intro_bear_crawl_hold" "Bear crawl hold. Knees off the floor."
-generate "intro_inchworms" "Inchworms. Walk out, walk back."
-generate "intro_high_knees" "High knees. Drive 'em up."
+echo ""
+echo "=== KIRA routine clips ==="
+generate_routine_clips "$KIRA_VOICE" ""
 
-# Tempo pacing
-generate "tempo_1" "Keep going, keep going."
-generate "tempo_2" "Don't stop on me."
-generate "tempo_3" "Same pace, same pace."
-generate "tempo_4" "Pick it up, pick it up."
-generate "tempo_twist_1" "Twist, twist."
-generate "tempo_twist_2" "Side to side."
-generate "tempo_drive_1" "Drive, drive."
-generate "tempo_drive_2" "Get those knees higher."
+echo ""
+echo "=== SARAH routine clips ==="
+generate_routine_clips "$SARAH_VOICE" "sarah_"
 
-# Static hold
-generate "hold_1" "Hold it right there."
-generate "hold_2" "Stay with me."
-generate "hold_3" "Don't you move."
-generate "hold_4" "Don't you drop."
-generate "hold_5" "That shake is good."
-generate "hold_6" "Almost there."
-
-# Rest
-generate "rest_1" "Okay, rest."
-generate "rest_2" "Catch your breath."
-generate "rest_3" "Shake it out, shake it out."
-generate "rest_4" "Quick break, stay ready."
-
-# Exercise cues
-generate "exercise_countdown" "Go."
-generate "exercise_almost" "Five seconds left."
-generate "exercise_done" "And done."
-
-# Encouragement (mid-exercise, play rarely)
-generate "encourage_1" "You got this."
-generate "encourage_2" "There you go."
-generate "encourage_3" "That's it, that's it."
-generate "encourage_4" "I see you working."
-generate "encourage_5" "You're stronger than you think."
-
-# Roast/humor (mid-exercise, play rarely)
-generate "roast_1" "My grandma moves faster than that."
-generate "roast_2" "That's the best you got? Really?"
-generate "roast_3" "I've seen better form on a pool noodle."
-generate "roast_4" "You're lucky I can't reach through the phone."
-
-# Skip
-generate "skip_1" "Next."
-generate "skip_2" "Moving on."
+echo ""
+echo "=== MATSON routine clips ==="
+generate_routine_clips "$MATSON_VOICE" "matson_"
 
 echo ""
 echo "=== Done! $(ls "$OUTPUT_DIR"/*.m4a 2>/dev/null | wc -l | tr -d ' ') clips ==="

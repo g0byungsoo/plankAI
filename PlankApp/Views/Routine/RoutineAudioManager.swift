@@ -1,21 +1,31 @@
 import AVFoundation
+import SwiftUI
 
-/// Plays voice clips during routine sessions.
-/// Configures AVAudioSession for foreground playback with duck-others (lowers Spotify etc.).
+/// Plays voice clips during routine sessions. Trainer-aware: plays the right voice based on voicePreference.
 @Observable
 @MainActor
 final class RoutineAudioManager {
     private var player: AVAudioPlayer?
     private var lastPlayTime: Date = .distantPast
-
-    /// Minimum seconds between clips. Prevents overlaps.
     private let cooldown: TimeInterval = 3.0
+
+    /// Clip prefix for current trainer. Kira = "" (no prefix), Sarah = "sarah_", Matson = "matson_"
+    private var prefix: String {
+        switch UserDefaults.standard.string(forKey: "voicePreference") ?? "keepItReal" {
+        case "encouraging": return "sarah_"
+        case "balanced": return "matson_"
+        default: return ""
+        }
+    }
+
+    /// Whether current trainer has roast clips (Kira + Matson yes, Sarah no)
+    private var hasRoasts: Bool {
+        prefix != "sarah_"
+    }
 
     var isPlaying: Bool {
         player?.isPlaying ?? false
     }
-
-    // MARK: - Audio Session
 
     func activate() {
         let session = AVAudioSession.sharedInstance()
@@ -35,7 +45,12 @@ final class RoutineAudioManager {
         if !force && isPlaying { return }
         if !force && Date().timeIntervalSince(lastPlayTime) < cooldown { return }
 
-        guard let url = Bundle.main.url(forResource: clipName, withExtension: "m4a") else { return }
+        // Try trainer-prefixed clip first, fall back to base (Kira)
+        let trainerClip = prefix.isEmpty ? clipName : "\(prefix)\(clipName)"
+        let url = Bundle.main.url(forResource: trainerClip, withExtension: "m4a")
+            ?? Bundle.main.url(forResource: clipName, withExtension: "m4a")
+
+        guard let url else { return }
         player?.stop()
         player = try? AVAudioPlayer(contentsOf: url)
         player?.play()
@@ -92,12 +107,11 @@ final class RoutineAudioManager {
 
         guard secondsIn >= 10, secondsIn % 12 == 0, remaining > 8 else { return }
 
-        // 20% chance encouragement, 10% chance roast, rest is tempo/hold
         let roll = Int.random(in: 1...10)
 
         if roll <= 2 {
             playRandom(["encourage_1", "encourage_2", "encourage_3", "encourage_4", "encourage_5"])
-        } else if roll == 3 {
+        } else if roll == 3 && hasRoasts {
             playRandom(["roast_1", "roast_2", "roast_3", "roast_4"])
         } else if exerciseType == .static {
             playRandom(["hold_1", "hold_2", "hold_3", "hold_4", "hold_5", "hold_6"])

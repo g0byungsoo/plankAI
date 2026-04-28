@@ -400,49 +400,96 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Kira's Voice
+    // MARK: - Trainer Voice (adapts to selected coach)
 
     private var greetingText: String {
         let routineCount = sessionLogs.filter { $0.sessionType == "routine" }.count
         let name = userName.isEmpty ? "" : " \(userName)"
         let hour = Calendar.current.component(.hour, from: .now)
 
-        if routineCount == 0 {
-            return "Hey\(name). I'm Kira, your coach. I made your first workout. You ready?"
-        }
-        if todayHasSession {
-            return "Back for seconds\(name)? I respect that."
-        }
+        switch voicePreference {
+        case "encouraging": // Sarah — warm, reflective, calm
+            if routineCount == 0 { return "Hi\(name). I'm Sarah. I put together a gentle workout for you. Let's start slow." }
+            if todayHasSession { return "Coming back for more\(name)? I love that energy." }
+            let timeGreeting = hour < 12 ? "Good morning\(name)." : hour < 17 ? "Hi\(name)." : "Good evening\(name)."
+            let affirmations = [
+                "Every session is a gift to your body.",
+                "You're building something beautiful, one day at a time.",
+                "Your consistency speaks louder than any workout.",
+                "Day \(currentDay). You keep showing up. That's powerful.",
+            ]
+            return "\(timeGreeting) \(affirmations[currentDay % affirmations.count])"
 
-        let timeGreeting = hour < 12 ? "Morning\(name)." : hour < 17 ? "Hey\(name)." : "Evening\(name)."
-        let affirmations = [
-            "You showed up. That's the whole game.",
-            "Consistency looks good on you.",
-            "Your core is getting stronger whether you feel it or not.",
-            "Day \(currentDay). Still here. That says something.",
-        ]
-        return "\(timeGreeting) \(affirmations[currentDay % affirmations.count])"
+        case "balanced": // Matson — chill, SoCal, playful
+            if routineCount == 0 { return "Yo\(name). I'm Matson. I got a workout lined up for you. It's gonna be good." }
+            if todayHasSession { return "Back again\(name)? You're an animal." }
+            let timeGreeting = hour < 12 ? "Morning\(name)." : hour < 17 ? "What's good\(name)." : "Evening\(name)."
+            let affirmations = [
+                "You're showing up and that's the hardest part.",
+                "Looking stronger every day, not gonna lie.",
+                "Your core's getting dialed in.",
+                "Day \(currentDay). Still in the game. Respect.",
+            ]
+            return "\(timeGreeting) \(affirmations[currentDay % affirmations.count])"
+
+        default: // Kira — sassy, real, direct
+            if routineCount == 0 { return "Hey\(name). I'm Kira, your coach. I made your first workout. You ready?" }
+            if todayHasSession { return "Back for seconds\(name)? I respect that." }
+            let timeGreeting = hour < 12 ? "Morning\(name)." : hour < 17 ? "Hey\(name)." : "Evening\(name)."
+            let affirmations = [
+                "You showed up. That's the whole game.",
+                "Consistency looks good on you.",
+                "Your core is getting stronger whether you feel it or not.",
+                "Day \(currentDay). Still here. That says something.",
+            ]
+            return "\(timeGreeting) \(affirmations[currentDay % affirmations.count])"
+        }
     }
 
     private var workoutIntroText: String {
         let workout = todaysWorkout
         let routineCount = sessionLogs.filter { $0.sessionType == "routine" }.count
-        if routineCount == 0 { return "Here's your first one. \(workout.name)." }
-        return "Today's plan. \(workout.name)."
+        switch voicePreference {
+        case "encouraging":
+            return routineCount == 0 ? "I chose something gentle for your first time. \(workout.name)." : "I have a lovely plan for today. \(workout.name)."
+        case "balanced":
+            return routineCount == 0 ? "First workout, let's keep it chill. \(workout.name)." : "Got something solid for you. \(workout.name)."
+        default:
+            return routineCount == 0 ? "Here's your first one. \(workout.name)." : "Today's plan. \(workout.name)."
+        }
     }
 
     private var benchmarkText: String {
         if let last = lastBenchmark, let days = daysSinceLastBenchmark {
-            if days >= 7 { return "Plank check-in. I'll coach your form live." }
-            return "Last plank: \(Int(last.holdTime))s. Beat it?"
+            switch voicePreference {
+            case "encouraging":
+                return days >= 7 ? "Time for your plank check-in. I'll guide you through it." : "Last plank was \(Int(last.holdTime))s. Let's see how you've grown."
+            case "balanced":
+                return days >= 7 ? "Plank time. I'll watch your form, you just hold." : "\(Int(last.holdTime))s last time. Think you can top it?"
+            default:
+                return days >= 7 ? "Plank check-in. I'll coach your form live." : "Last plank: \(Int(last.holdTime))s. Beat it?"
+            }
         }
-        return "Plank check. I watch your form, you hold. Ready?"
+        switch voicePreference {
+        case "encouraging": return "Let's do your first plank together. I'll watch your form and guide you."
+        case "balanced": return "Plank check. I'll watch your form, you hold. Easy."
+        default: return "Plank check. I watch your form, you hold. Ready?"
+        }
     }
 
     private var statsText: String {
         let count = sessionLogs.filter { $0.sessionType == "routine" }.count
-        if streakCount >= 7 { return "\(streakCount) day streak. \(count) sessions. Locked in. 🔥" }
-        return "\(count) workouts done. Keep showing up."
+        switch voicePreference {
+        case "encouraging":
+            if streakCount >= 7 { return "\(streakCount) days in a row. \(count) sessions. You inspire me. ✨" }
+            return "\(count) workouts complete. Every one matters."
+        case "balanced":
+            if streakCount >= 7 { return "\(streakCount) day streak. \(count) sessions. You're on fire. 🔥" }
+            return "\(count) workouts in the bag. Keep stacking."
+        default:
+            if streakCount >= 7 { return "\(streakCount) day streak. \(count) sessions. Locked in. 🔥" }
+            return "\(count) workouts done. Keep showing up."
+        }
     }
 
     // MARK: - Persistence
