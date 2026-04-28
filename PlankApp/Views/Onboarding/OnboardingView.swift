@@ -1956,23 +1956,20 @@ struct OnboardingData {
 struct WobblyRect: Shape {
     func path(in rect: CGRect) -> Path {
         let w = rect.width, h = rect.height
-        // Each corner gets a slightly different radius
-        let tl: CGFloat = 22, tr: CGFloat = 18
-        let br: CGFloat = 24, bl: CGFloat = 16
         var p = Path()
-        p.move(to: CGPoint(x: tl, y: 0))
-        p.addLine(to: CGPoint(x: w - tr, y: 0))
-        p.addArc(center: CGPoint(x: w - tr, y: tr), radius: tr,
-                 startAngle: .degrees(-90), endAngle: .degrees(0), clockwise: false)
-        p.addLine(to: CGPoint(x: w, y: h - br))
-        p.addArc(center: CGPoint(x: w - br, y: h - br), radius: br,
-                 startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
-        p.addLine(to: CGPoint(x: bl, y: h))
-        p.addArc(center: CGPoint(x: bl, y: h - bl), radius: bl,
-                 startAngle: .degrees(90), endAngle: .degrees(180), clockwise: false)
-        p.addLine(to: CGPoint(x: 0, y: tl))
-        p.addArc(center: CGPoint(x: tl, y: tl), radius: tl,
-                 startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false)
+        // Top edge — dips slightly in the middle
+        p.move(to: CGPoint(x: 22, y: 3))
+        p.addQuadCurve(to: CGPoint(x: w * 0.5, y: -2), control: CGPoint(x: w * 0.25, y: 5))
+        p.addQuadCurve(to: CGPoint(x: w - 16, y: 2), control: CGPoint(x: w * 0.75, y: -3))
+        // Right edge — bulges slightly
+        p.addQuadCurve(to: CGPoint(x: w + 1, y: h * 0.5), control: CGPoint(x: w - 4, y: h * 0.25))
+        p.addQuadCurve(to: CGPoint(x: w - 18, y: h - 3), control: CGPoint(x: w + 2, y: h * 0.75))
+        // Bottom edge — rises slightly
+        p.addQuadCurve(to: CGPoint(x: w * 0.5, y: h + 2), control: CGPoint(x: w * 0.7, y: h - 4))
+        p.addQuadCurve(to: CGPoint(x: 20, y: h - 2), control: CGPoint(x: w * 0.3, y: h + 3))
+        // Left edge — indents slightly
+        p.addQuadCurve(to: CGPoint(x: -1, y: h * 0.5), control: CGPoint(x: 4, y: h * 0.7))
+        p.addQuadCurve(to: CGPoint(x: 22, y: 3), control: CGPoint(x: -2, y: h * 0.25))
         p.closeSubpath()
         return p
     }
