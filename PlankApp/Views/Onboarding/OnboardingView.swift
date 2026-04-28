@@ -509,14 +509,13 @@ struct OnboardingView: View {
 
             Spacer().frame(height: Space.lg)
 
-            // Options (fixed position, near top)
+            // Options (disabled during feedback)
             VStack(spacing: Space.sm) {
                 ForEach(opts, id: \.0) { key, label in
                     let on = sel.wrappedValue == key
                     Button {
                         Haptics.light()
                         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) { sel.wrappedValue = key }
-                        withAnimation(.easeOut(duration: 0.15)) { showInlineFeedback = false }
                     } label: {
                         Text(label)
                             .font(.system(size: 17, weight: .medium))
@@ -528,26 +527,31 @@ struct OnboardingView: View {
                     }
                     .scaleEffect(on ? 1.02 : 1.0)
                     .animation(.spring(response: 0.25), value: on)
+                    .disabled(showInlineFeedback)
                 }
             }
             .padding(.horizontal, Space.screenPadding)
+            .opacity(showInlineFeedback ? 0.5 : 1.0)
+            .animation(.easeOut(duration: 0.2), value: showInlineFeedback)
 
             // Feedback area (fixed height, between options and button)
             ZStack {
                 if showInlineFeedback {
                     Text(inlineFeedback)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
-                        .background(Color(hex: "#C8612C"))
-                        .clipShape(Capsule())
-                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 16)
+                        .background(
+                            Color(hex: "#C8612C")
+                                .clipShape(RoughCapsule())
+                        )
+                        .transition(.opacity.combined(with: .scale(scale: 0.88)))
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 60)
+            .frame(height: 70)
             .padding(.top, Space.md)
 
             Spacer()
@@ -1844,6 +1848,59 @@ struct CTAButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
             .opacity(configuration.isPressed ? 0.85 : 1.0)
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Rough Capsule (hand-drawn feel)
+
+struct RoughCapsule: Shape {
+    func path(in rect: CGRect) -> Path {
+        // Inset slightly so the rough edges have room
+        let r = rect.insetBy(dx: 2, dy: 2)
+        let w = r.width, h = r.height
+        let ox = r.minX, oy = r.minY
+
+        var path = Path()
+        // Start left center
+        path.move(to: CGPoint(x: ox + h * 0.4, y: oy + h * 0.5))
+        // Left cap (slightly uneven)
+        path.addCurve(
+            to: CGPoint(x: ox + h * 0.5, y: oy + h * 0.03),
+            control1: CGPoint(x: ox - h * 0.02, y: oy + h * 0.15),
+            control2: CGPoint(x: ox + h * 0.1, y: oy - h * 0.04)
+        )
+        // Top edge (slight wave)
+        path.addCurve(
+            to: CGPoint(x: ox + w - h * 0.5, y: oy + h * 0.06),
+            control1: CGPoint(x: ox + w * 0.35, y: oy - h * 0.02),
+            control2: CGPoint(x: ox + w * 0.65, y: oy + h * 0.08)
+        )
+        // Right cap
+        path.addCurve(
+            to: CGPoint(x: ox + w - h * 0.4, y: oy + h * 0.55),
+            control1: CGPoint(x: ox + w - h * 0.08, y: oy - h * 0.02),
+            control2: CGPoint(x: ox + w + h * 0.03, y: oy + h * 0.2)
+        )
+        // Right cap bottom
+        path.addCurve(
+            to: CGPoint(x: ox + w - h * 0.5, y: oy + h * 0.97),
+            control1: CGPoint(x: ox + w + h * 0.02, y: oy + h * 0.85),
+            control2: CGPoint(x: ox + w - h * 0.1, y: oy + h * 1.03)
+        )
+        // Bottom edge (slight wave)
+        path.addCurve(
+            to: CGPoint(x: ox + h * 0.5, y: oy + h * 0.94),
+            control1: CGPoint(x: ox + w * 0.6, y: oy + h * 1.04),
+            control2: CGPoint(x: ox + w * 0.35, y: oy + h * 0.92)
+        )
+        // Left cap close
+        path.addCurve(
+            to: CGPoint(x: ox + h * 0.4, y: oy + h * 0.5),
+            control1: CGPoint(x: ox + h * 0.08, y: oy + h * 1.05),
+            control2: CGPoint(x: ox - h * 0.03, y: oy + h * 0.8)
+        )
+        path.closeSubpath()
+        return path
     }
 }
 
