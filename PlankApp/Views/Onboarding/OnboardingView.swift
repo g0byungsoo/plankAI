@@ -504,24 +504,22 @@ struct OnboardingView: View {
                     .padding(.top, Space.xs).padding(.horizontal, Space.screenPadding)
             }
 
-            Spacer()
-                .overlay(alignment: .center) {
-                    if showInlineFeedback {
-                        Text(inlineFeedback)
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 28)
-                            .padding(.vertical, 18)
-                            .background(
-                                FeedbackBlobShape()
-                                    .fill(Color(hex: "#C8612C"))
-                                    .padding(-12) // blob extends beyond text
-                            )
-                            .padding(.horizontal, Space.lg)
-                            .transition(.opacity.combined(with: .scale(scale: 0.85)))
-                    }
+            ZStack {
+                Spacer()
+                if showInlineFeedback {
+                    Text(inlineFeedback)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 14)
+                        .background(Color(hex: "#C8612C"))
+                        .clipShape(Capsule())
+                        .rotationEffect(.degrees(-2))
+                        .transition(.opacity.combined(with: .scale(scale: 0.85)))
                 }
+            }
+            .frame(maxWidth: .infinity)
 
             VStack(spacing: Space.sm) {
                 ForEach(opts, id: \.0) { key, label in
