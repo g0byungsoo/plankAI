@@ -541,6 +541,7 @@ struct OnboardingView: View {
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 32)
                         .padding(.vertical, 22)
                         .background(Color(hex: "#C8612C"))
@@ -549,7 +550,7 @@ struct OnboardingView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 70)
+            .frame(minHeight: 70)
             .padding(.top, Space.md)
 
             Spacer()
@@ -640,6 +641,7 @@ struct OnboardingView: View {
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 32)
                         .padding(.vertical, 22)
                         .background(Color(hex: "#C8612C"))
@@ -648,7 +650,7 @@ struct OnboardingView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 70)
+            .frame(minHeight: 70)
             .padding(.top, Space.md)
 
             Spacer()
@@ -1976,26 +1978,26 @@ struct WobblyRect: Shape {
     func path(in rect: CGRect) -> Path {
         let w = rect.width, h = rect.height
         var p = Path()
-        p.move(to: CGPoint(x: w * 0.5, y: h * 0.01))
+        p.move(to: CGPoint(x: w * 0.5, y: h * 0.005))
         p.addCurve(
-            to: CGPoint(x: w * 0.99, y: h * 0.48),
-            control1: CGPoint(x: w * 0.77, y: -h * 0.02),
-            control2: CGPoint(x: w * 1.01, y: h * 0.2)
+            to: CGPoint(x: w * 0.995, y: h * 0.49),
+            control1: CGPoint(x: w * 0.77, y: -h * 0.01),
+            control2: CGPoint(x: w * 1.005, y: h * 0.21)
         )
         p.addCurve(
-            to: CGPoint(x: w * 0.51, y: h * 0.99),
+            to: CGPoint(x: w * 0.505, y: h * 0.995),
             control1: CGPoint(x: w * 1.0, y: h * 0.78),
-            control2: CGPoint(x: w * 0.79, y: h * 1.02)
+            control2: CGPoint(x: w * 0.78, y: h * 1.01)
         )
         p.addCurve(
-            to: CGPoint(x: w * 0.01, y: h * 0.52),
-            control1: CGPoint(x: w * 0.23, y: h * 1.01),
-            control2: CGPoint(x: w * 0.0, y: h * 0.8)
+            to: CGPoint(x: w * 0.005, y: h * 0.51),
+            control1: CGPoint(x: w * 0.23, y: h * 1.005),
+            control2: CGPoint(x: w * 0.0, y: h * 0.79)
         )
         p.addCurve(
-            to: CGPoint(x: w * 0.5, y: h * 0.01),
-            control1: CGPoint(x: w * 0.01, y: h * 0.22),
-            control2: CGPoint(x: w * 0.25, y: -h * 0.01)
+            to: CGPoint(x: w * 0.5, y: h * 0.005),
+            control1: CGPoint(x: w * 0.005, y: h * 0.22),
+            control2: CGPoint(x: w * 0.24, y: -h * 0.005)
         )
         p.closeSubpath()
         return p
