@@ -543,7 +543,7 @@ struct OnboardingView: View {
                         .padding(.horizontal, 32)
                         .padding(.vertical, 22)
                         .background(Color(hex: "#C8612C"))
-                        .clipShape(WobblyRect())
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .transition(.opacity.combined(with: .scale(scale: 0.88)))
                 }
             }
@@ -643,7 +643,7 @@ struct OnboardingView: View {
                         .padding(.horizontal, 32)
                         .padding(.vertical, 22)
                         .background(Color(hex: "#C8612C"))
-                        .clipShape(WobblyRect())
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .transition(.opacity.combined(with: .scale(scale: 0.88)))
                 }
             }
