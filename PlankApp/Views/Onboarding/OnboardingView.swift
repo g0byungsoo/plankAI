@@ -544,6 +544,7 @@ struct OnboardingView: View {
                         .padding(20)
                         .background(Color(hex: "#C8612C"))
                         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .rotationEffect(.degrees(-1.5))
                         .transition(.opacity.combined(with: .scale(scale: 0.88)))
                 }
             }
@@ -581,16 +582,31 @@ struct OnboardingView: View {
 
     // MARK: - MULTI SELECT
 
+    @State private var multiFeedback = ""
+    @State private var showMultiFeedback = false
+
     private func multiView(_ title: String, sub: String?, opts: [(String, String)],
                             sel: Binding<Set<String>>, next: Int) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(title).font(.system(size: 28, weight: .bold)).foregroundStyle(Palette.textPrimary)
-                .padding(.horizontal, Space.screenPadding)
-            if let sub {
-                Text(sub).font(Typo.body).foregroundStyle(Palette.textSecondary)
-                    .padding(.top, Space.xs).padding(.horizontal, Space.screenPadding)
+        let feedbacks: [String: String] = [
+            "boring": "We keep it fresh every day",
+            "dontKnow": "That's why we pick the workout for you",
+            "motivation": "Your coach won't let you skip",
+            "time": "5 minutes. That's all it takes",
+            "injury": "Voice coaching keeps your form safe",
+        ]
+
+        return VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text(title).font(.system(size: 28, weight: .bold)).foregroundStyle(Palette.textPrimary)
+                if let sub {
+                    Text(sub).font(Typo.body).foregroundStyle(Palette.textSecondary)
+                }
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Space.screenPadding)
+
+            Spacer().frame(height: Space.lg)
+
             VStack(spacing: Space.sm) {
                 ForEach(opts, id: \.0) { key, label in
                     let on = sel.wrappedValue.contains(key)
@@ -606,15 +622,54 @@ struct OnboardingView: View {
                             Spacer()
                             if on { Image(systemName: "checkmark").font(.system(size: 14, weight: .bold)).foregroundStyle(Palette.textInverse) }
                         }
-                        .padding(.horizontal, 20).frame(height: 60)
+                        .padding(.horizontal, 20).frame(height: 56)
                         .background(on ? Palette.bgInverse : Palette.bgElevated)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
+                    .disabled(showMultiFeedback)
                 }
-            }.padding(.horizontal, Space.screenPadding)
+            }
+            .padding(.horizontal, Space.screenPadding)
+            .opacity(showMultiFeedback ? 0.5 : 1.0)
+            .animation(.easeOut(duration: 0.2), value: showMultiFeedback)
+
+            // Feedback
+            ZStack {
+                if showMultiFeedback {
+                    Text(multiFeedback)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(20)
+                        .background(Color(hex: "#C8612C"))
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .rotationEffect(.degrees(-1.5))
+                        .transition(.opacity.combined(with: .scale(scale: 0.88)))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 70)
+            .padding(.top, Space.md)
+
             Spacer()
-            ctaBtn("Continue") { Haptics.medium(); go(next) }
-                .opacity(sel.wrappedValue.isEmpty ? 0.3 : 1.0).disabled(sel.wrappedValue.isEmpty)
+
+            ctaBtn("Continue") {
+                Haptics.medium()
+                // Build combined feedback from selected barriers
+                let selected = sel.wrappedValue
+                let fb = selected.compactMap { feedbacks[$0] }.first ?? "We've got you covered"
+                multiFeedback = fb
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    showMultiFeedback = true
+                }
+                Haptics.success()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    withAnimation(.easeOut(duration: 0.15)) { showMultiFeedback = false }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { go(next) }
+                }
+            }
+            .opacity(sel.wrappedValue.isEmpty ? 0.3 : 1.0)
+            .disabled(sel.wrappedValue.isEmpty || showMultiFeedback)
         }
     }
 
