@@ -504,21 +504,23 @@ struct OnboardingView: View {
                     .padding(.top, Space.xs).padding(.horizontal, Space.screenPadding)
             }
 
-            // Inline feedback bubble (between question and options)
-            if showInlineFeedback {
-                Text(inlineFeedback)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(Color(hex: "#C8612C"))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .padding(.horizontal, Space.screenPadding)
-                    .padding(.top, Space.md)
-                    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .top)))
-            }
-
             Spacer()
+                .overlay(alignment: .top) {
+                    if showInlineFeedback {
+                        Text(inlineFeedback)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 10)
+                            .background(
+                                Color(hex: "#C8612C")
+                                    .clipShape(FeedbackBlobShape())
+                            )
+                            .padding(.horizontal, Space.screenPadding)
+                            .padding(.top, Space.md)
+                            .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .top)))
+                    }
+                }
 
             VStack(spacing: Space.sm) {
                 ForEach(opts, id: \.0) { key, label in
@@ -1834,5 +1836,44 @@ struct CTAButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
             .opacity(configuration.isPressed ? 0.85 : 1.0)
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Feedback Blob Shape (organic, uneven oval)
+
+struct FeedbackBlobShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let w = rect.width
+        let h = rect.height
+        var path = Path()
+
+        // Organic blob using curves — slightly asymmetric
+        path.move(to: CGPoint(x: w * 0.12, y: h * 0.35))
+        // Top left → top right (slightly wavy)
+        path.addCurve(
+            to: CGPoint(x: w * 0.88, y: h * 0.08),
+            control1: CGPoint(x: w * 0.25, y: h * -0.05),
+            control2: CGPoint(x: w * 0.65, y: h * -0.02)
+        )
+        // Top right → bottom right
+        path.addCurve(
+            to: CGPoint(x: w * 0.92, y: h * 0.7),
+            control1: CGPoint(x: w * 1.05, y: h * 0.2),
+            control2: CGPoint(x: w * 1.02, y: h * 0.55)
+        )
+        // Bottom right → bottom left
+        path.addCurve(
+            to: CGPoint(x: w * 0.08, y: h * 0.75),
+            control1: CGPoint(x: w * 0.78, y: h * 1.08),
+            control2: CGPoint(x: w * 0.3, y: h * 1.05)
+        )
+        // Bottom left → back to start
+        path.addCurve(
+            to: CGPoint(x: w * 0.12, y: h * 0.35),
+            control1: CGPoint(x: w * -0.06, y: h * 0.55),
+            control2: CGPoint(x: w * -0.02, y: h * 0.4)
+        )
+        path.closeSubpath()
+        return path
     }
 }
