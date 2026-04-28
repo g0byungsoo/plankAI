@@ -504,6 +504,20 @@ struct OnboardingView: View {
                     .padding(.top, Space.xs).padding(.horizontal, Space.screenPadding)
             }
 
+            // Inline feedback bubble (between question and options)
+            if showInlineFeedback {
+                Text(inlineFeedback)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color(hex: "#C8612C"))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .padding(.horizontal, Space.screenPadding)
+                    .padding(.top, Space.md)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .top)))
+            }
+
             Spacer()
 
             VStack(spacing: Space.sm) {
@@ -512,7 +526,6 @@ struct OnboardingView: View {
                     Button {
                         Haptics.light()
                         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) { sel.wrappedValue = key }
-                        // Reset inline feedback when answer changes
                         withAnimation(.easeOut(duration: 0.15)) { showInlineFeedback = false }
                     } label: {
                         Text(label)
@@ -525,24 +538,6 @@ struct OnboardingView: View {
                     }
                     .scaleEffect(on ? 1.02 : 1.0)
                     .animation(.spring(response: 0.25), value: on)
-                }
-
-                // Inline feedback (appears after tapping Continue)
-                if showInlineFeedback {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 16))
-                            .foregroundStyle(Palette.stateGood)
-                        Text(inlineFeedback)
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(Palette.textPrimary)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Palette.stateGood.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .transition(.opacity.combined(with: .offset(y: 6)))
                 }
             }.padding(.horizontal, Space.screenPadding)
 
