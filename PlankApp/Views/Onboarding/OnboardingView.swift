@@ -491,6 +491,9 @@ struct OnboardingView: View {
     // MARK: - QUESTION (feedback on Continue)
     // ═══════════════════════════════════════
 
+    @State private var inlineFeedback = ""
+    @State private var showInlineFeedback = false
+
     private func questionView(_ title: String, sub: String?, opts: [(String, String)],
                               sel: Binding<String>, feedbacks: [String: String], next: Int) -> some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -509,6 +512,8 @@ struct OnboardingView: View {
                     Button {
                         Haptics.light()
                         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) { sel.wrappedValue = key }
+                        // Reset inline feedback when answer changes
+                        withAnimation(.easeOut(duration: 0.15)) { showInlineFeedback = false }
                     } label: {
                         Text(label)
                             .font(.system(size: 17, weight: .medium))
@@ -521,6 +526,24 @@ struct OnboardingView: View {
                     .scaleEffect(on ? 1.02 : 1.0)
                     .animation(.spring(response: 0.25), value: on)
                 }
+
+                // Inline feedback (appears after tapping Continue)
+                if showInlineFeedback {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(Palette.stateGood)
+                        Text(inlineFeedback)
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(Palette.textPrimary)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Palette.stateGood.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .transition(.opacity.combined(with: .offset(y: 6)))
+                }
             }.padding(.horizontal, Space.screenPadding)
 
             Spacer()
@@ -528,12 +551,13 @@ struct OnboardingView: View {
             ctaBtn("Continue") {
                 Haptics.medium()
                 if let fb = feedbacks[sel.wrappedValue] {
-                    // Show centered feedback interstitial
-                    feedback = fb
-                    withAnimation(.spring(response: 0.3)) { showFeedback = true }
+                    inlineFeedback = fb
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        showInlineFeedback = true
+                    }
                     Haptics.success()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
-                        withAnimation(.easeOut(duration: 0.2)) { showFeedback = false }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                        withAnimation(.easeOut(duration: 0.15)) { showInlineFeedback = false }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                             if next == -1 { withAnimation { analyzing = true }; startAnalyzing() }
                             else { go(next) }
