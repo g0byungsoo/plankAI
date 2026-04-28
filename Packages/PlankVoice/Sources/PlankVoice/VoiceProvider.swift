@@ -146,6 +146,15 @@ public final class ClipBundleProvider: VoiceProvider, @unchecked Sendable {
     private var player: AVAudioPlayer?
     private let bundle: Bundle
 
+    /// Clip prefix for current trainer. Read from UserDefaults each play.
+    private var trainerPrefix: String {
+        switch UserDefaults.standard.string(forKey: "voicePreference") ?? "keepItReal" {
+        case "encouraging": return "sarah_"
+        case "balanced": return "matson_"
+        default: return ""
+        }
+    }
+
     public init(bundle: Bundle = .main) {
         self.bundle = bundle
     }
@@ -155,8 +164,13 @@ public final class ClipBundleProvider: VoiceProvider, @unchecked Sendable {
     }
 
     public func play(_ line: VoiceLine) async {
-        guard let url = bundle.url(forResource: line.id, withExtension: "m4a") else {
-            // Fallback: skip if clip not found
+        // Try trainer-prefixed clip first, fall back to base (Kira)
+        let prefix = trainerPrefix
+        let prefixedId = prefix.isEmpty ? line.id : "\(prefix)\(line.id)"
+        let url = bundle.url(forResource: prefixedId, withExtension: "m4a")
+            ?? bundle.url(forResource: line.id, withExtension: "m4a")
+
+        guard let url else {
             return
         }
         do {
