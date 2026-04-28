@@ -318,7 +318,8 @@ struct OnboardingView: View {
             }
         }
         .onAppear {
-            // Stage 1: logo scales in
+            // Stage 1: logo scales in + vibration
+            Haptics.medium()
             withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
                 splashLogoVisible = true
             }
@@ -426,7 +427,6 @@ struct OnboardingView: View {
                 Spacer()
 
                 ctaBtn("Get Started") {
-                    Haptics.heavy()
                     go(1)
                 }
                 .opacity(visible ? 1 : 0).offset(y: visible ? 0 : 30)
@@ -447,7 +447,6 @@ struct OnboardingView: View {
             // Text + button
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 withAnimation(.easeOut(duration: 0.5)) { visible = true }
-                Haptics.heavy()
             }
 
             // Confetti
@@ -456,12 +455,11 @@ struct OnboardingView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { showConfetti = false }
             }
 
-            // Voice bubble + strong vibration
+            // Voice bubble
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
                     bubbleVisible = true
                 }
-                Haptics.doubleVibrate()
             }
         }
     }
