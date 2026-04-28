@@ -1625,37 +1625,89 @@ struct OnboardingView: View {
     // ═══════════════════════════════════════
 
     private var planRevealScreen: some View {
-        VStack(spacing: 0) {
+        let coachName = voicePreference == "encouraging" ? "Sarah" : voicePreference == "balanced" ? "Matson" : "Kira"
+        let coachPhoto = voicePreference == "encouraging" ? "coach-sarah" : voicePreference == "balanced" ? "coach-matson" : "coach-kira"
+        let goalLabel = focusArea == "abs" ? "abs definition" : focusArea == "obliques" ? "waist sculpting" : focusArea == "lowerBack" ? "core strength" : "full core"
+
+        return VStack(spacing: 0) {
             Spacer()
-            Text("Your 30-Day Core\nReset is ready.").font(.system(size: 28, weight: .bold))
-                .foregroundStyle(Palette.textPrimary).multilineTextAlignment(.center)
-                .opacity(planRevealed ? 1 : 0).offset(y: planRevealed ? 0 : 20)
-            if !name.trimmingCharacters(in: .whitespaces).isEmpty {
-                Text("Let's go, \(name).").font(Typo.body).foregroundStyle(Palette.accent)
-                    .padding(.top, Space.xs).opacity(planRevealed ? 1 : 0)
+
+            // Coach photo
+            Image(coachPhoto)
+                .resizable().scaledToFill()
+                .frame(width: 72, height: 72)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Palette.accent, lineWidth: 2.5))
+                .opacity(planRevealed ? 1 : 0)
+                .scaleEffect(planRevealed ? 1 : 0.8)
+                .animation(.spring(response: 0.5, dampingFraction: 0.7), value: planRevealed)
+
+            Spacer().frame(height: Space.md)
+
+            Text("You're all set\(name.isEmpty ? "" : ", \(name)").")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.center)
+                .opacity(planRevealed ? 1 : 0)
+                .offset(y: planRevealed ? 0 : 12)
+
+            Spacer().frame(height: Space.sm)
+
+            Text("\(coachName) has your first workout ready.")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .opacity(planRevealed ? 1 : 0)
+
+            Spacer().frame(height: Space.lg + 8)
+
+            // Plan summary cards
+            VStack(spacing: 10) {
+                planCard(icon: "flame.fill", title: "Daily Routines", detail: "5-10 min \(goalLabel) sessions", color: Palette.accent, index: 0)
+                planCard(icon: "waveform", title: "Voice Coaching", detail: "\(coachName) guides every exercise", color: Palette.stateGood, index: 1)
+                planCard(icon: "camera.fill", title: "Weekly Plank Check", detail: "AI tracks your form progress", color: Palette.textSecondary, index: 2)
+                planCard(icon: "brain.head.profile", title: "Adaptive Workouts", detail: "Gets harder as you get stronger", color: Palette.stateWarn, index: 3)
             }
-            Spacer().frame(height: Space.lg)
-            VStack(spacing: Space.sm) {
-                pR("Plank Hold", "Day 1", true, 0); pR("Dead Bug", "Day 8", false, 1)
-                pR("Side Plank", "Day 15", false, 2); pR("Hollow Hold", "Day 22", false, 3)
-                pR("Bird Dog", "Day 22", false, 4)
-            }.padding(.horizontal, Space.screenPadding)
+            .padding(.horizontal, Space.screenPadding)
+
             Spacer()
-            ctaBtn("Next") { Haptics.medium(); go(22) }.opacity(planRevealed ? 1 : 0)
+
+            ctaBtn("Let's go") { Haptics.medium(); go(22) }
+                .opacity(planRevealed ? 1 : 0)
         }
-        .onAppear { Haptics.success(); withAnimation(.easeOut(duration: 0.6).delay(0.2)) { planRevealed = true } }
+        .background(Palette.bgPrimary)
+        .onAppear {
+            Haptics.success()
+            withAnimation(.easeOut(duration: 0.5).delay(0.2)) { planRevealed = true }
+        }
     }
 
-    private func pR(_ n: String, _ d: String, _ a: Bool, _ i: Int) -> some View {
-        HStack {
-            Circle().fill(a ? Palette.bgInverse : Palette.divider).frame(width: 36, height: 36)
-                .overlay(Image(systemName: a ? "figure.core.training" : "lock.fill").font(.system(size: 14)).foregroundStyle(a ? Palette.textInverse : Palette.textSecondary))
-            Text(n).font(.system(size: 16, weight: .medium)).foregroundStyle(Palette.textPrimary)
+    private func planCard(icon: String, title: String, detail: String, color: Color, index: Int) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.12))
+                    .frame(width: 40, height: 40)
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                    .foregroundStyle(color)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary)
+                Text(detail)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.textSecondary)
+            }
             Spacer()
-            Text(d).font(Typo.caption).foregroundStyle(a ? Palette.accent : Palette.textSecondary)
-        }.padding(Space.cardPadding).background(Palette.bgElevated).clipShape(RoundedRectangle(cornerRadius: 14))
-        .opacity(planRevealed ? 1 : 0).offset(y: planRevealed ? 0 : CGFloat(10 + i * 5))
-        .animation(.easeOut(duration: 0.5).delay(0.3 + Double(i) * 0.1), value: planRevealed)
+        }
+        .padding(14)
+        .background(Palette.bgElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .plankShadow()
+        .opacity(planRevealed ? 1 : 0)
+        .offset(y: planRevealed ? 0 : CGFloat(8 + index * 4))
+        .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.3 + Double(index) * 0.1), value: planRevealed)
     }
 
     private var cameraSetupScreen: some View {
