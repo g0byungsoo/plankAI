@@ -909,8 +909,8 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            // Title
-            Text("Form beats time.\nEvery time.")
+            // Hook
+            Text("Other apps\ncount seconds.")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
@@ -918,111 +918,135 @@ struct OnboardingView: View {
                 .offset(y: formStep >= 1 ? 0 : 10)
                 .animation(.easeOut(duration: 0.4), value: formStep)
 
+            Text("We watch your form.")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(Palette.accent)
+                .multilineTextAlignment(.center)
+                .padding(.top, 4)
+                .opacity(formStep >= 2 ? 1 : 0)
+                .offset(y: formStep >= 2 ? 0 : 8)
+                .animation(.easeOut(duration: 0.4), value: formStep)
+
             Spacer().frame(height: Space.lg + 8)
 
-            // Comparison cards
-            HStack(spacing: 14) {
-                // Good form card
-                VStack(spacing: 14) {
+            // Competitor comparison
+            VStack(spacing: 12) {
+                // Other apps
+                HStack(spacing: 14) {
                     ZStack {
-                        Circle()
-                            .fill(Palette.stateGood.opacity(0.12))
-                            .frame(width: 56, height: 56)
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(Palette.stateGood)
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Palette.divider.opacity(0.5))
+                            .frame(width: 44, height: 44)
+                        Image(systemName: "timer")
+                            .font(.system(size: 18))
+                            .foregroundStyle(Palette.textSecondary)
                     }
-
-                    Text("20s")
-                        .font(.system(size: 40, weight: .black, design: .rounded))
-                        .foregroundStyle(Palette.stateGood)
-
-                    Text("perfect form")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Palette.textSecondary)
-
-                    Text("WINS")
-                        .font(.system(size: 11, weight: .black))
-                        .foregroundStyle(Palette.stateGood)
-                        .tracking(2)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Timer apps")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Palette.textSecondary)
+                        Text("60s of bad form still counts as done")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.textSecondary.opacity(0.7))
+                    }
+                    Spacer()
+                    Text("❌")
+                        .font(.system(size: 20))
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 24)
+                .padding(14)
                 .background(Palette.bgElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .opacity(formStep >= 3 ? 1 : 0)
+                .offset(x: formStep >= 3 ? 0 : -20)
+                .animation(.spring(response: 0.5, dampingFraction: 0.8), value: formStep)
+
+                // Video apps
+                HStack(spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Palette.divider.opacity(0.5))
+                            .frame(width: 44, height: 44)
+                        Image(systemName: "play.rectangle")
+                            .font(.system(size: 18))
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Follow-along videos")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Palette.textSecondary)
+                        Text("Can't see if you're doing it wrong")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.textSecondary.opacity(0.7))
+                    }
+                    Spacer()
+                    Text("❌")
+                        .font(.system(size: 20))
+                }
+                .padding(14)
+                .background(Palette.bgElevated)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .opacity(formStep >= 4 ? 1 : 0)
+                .offset(x: formStep >= 4 ? 0 : -20)
+                .animation(.spring(response: 0.5, dampingFraction: 0.8), value: formStep)
+
+                // absmaxxing
+                HStack(spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Palette.accent.opacity(0.12))
+                            .frame(width: 44, height: 44)
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(Palette.accent)
+                    }
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("absmaxxing")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(Palette.textPrimary)
+                        Text("AI corrects your form in real time")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.accent)
+                    }
+                    Spacer()
+                    Text("✅")
+                        .font(.system(size: 20))
+                }
+                .padding(14)
+                .background(Palette.bgElevated)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(Palette.stateGood.opacity(0.3), lineWidth: 2)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Palette.accent.opacity(0.3), lineWidth: 1.5)
                 )
                 .plankShadow()
-                .opacity(formStep >= 2 ? 1 : 0)
-                .scaleEffect(formStep >= 2 ? 1 : 0.9)
-                .animation(.spring(response: 0.5, dampingFraction: 0.75), value: formStep)
-
-                // VS
-                Text("vs")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Palette.textSecondary)
-                    .opacity(formStep >= 3 ? 1 : 0)
-                    .scaleEffect(formStep >= 3 ? 1 : 0.5)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: formStep)
-
-                // Bad form card
-                VStack(spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill(Palette.stateBad.opacity(0.12))
-                            .frame(width: 56, height: 56)
-                        Image(systemName: "xmark")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(Palette.stateBad)
-                    }
-
-                    Text("60s")
-                        .font(.system(size: 40, weight: .black, design: .rounded))
-                        .foregroundStyle(Palette.stateBad.opacity(0.5))
-
-                    Text("sloppy form")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Palette.textSecondary)
-
-                    Text("WASTED")
-                        .font(.system(size: 11, weight: .black))
-                        .foregroundStyle(Palette.stateBad.opacity(0.5))
-                        .tracking(2)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 24)
-                .background(Palette.bgElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .plankShadow()
-                .opacity(formStep >= 4 ? 1 : 0)
-                .scaleEffect(formStep >= 4 ? 1 : 0.9)
+                .opacity(formStep >= 5 ? 1 : 0)
+                .scaleEffect(formStep >= 5 ? 1 : 0.95)
                 .animation(.spring(response: 0.5, dampingFraction: 0.75), value: formStep)
             }
             .padding(.horizontal, Space.screenPadding)
 
-            Spacer().frame(height: Space.lg + 8)
+            Spacer().frame(height: Space.lg)
 
-            Text("Your coach watches your form\nso every second counts.")
-                .font(.system(size: 15, weight: .medium))
+            Text("20 seconds of perfect form\nbeats 60 seconds of bad form. Every time.")
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
-                .opacity(formStep >= 5 ? 1 : 0)
-                .offset(y: formStep >= 5 ? 0 : 8)
-                .animation(.easeOut(duration: 0.4), value: formStep)
+                .opacity(formStep >= 6 ? 1 : 0)
+                .offset(y: formStep >= 6 ? 0 : 6)
+                .animation(.easeOut(duration: 0.3), value: formStep)
 
             Spacer()
             ctaBtn("Continue") { Haptics.light(); go(13) }
-                .opacity(formStep >= 5 ? 1 : 0)
+                .opacity(formStep >= 6 ? 1 : 0)
         }
         .background(Palette.bgPrimary)
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { withAnimation { formStep = 1 } }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { formStep = 2; Haptics.soft() }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { formStep = 3 }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) { formStep = 4; Haptics.soft() }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { formStep = 5 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { withAnimation { formStep = 2 }; Haptics.soft() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { formStep = 3 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { formStep = 4 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { formStep = 5; Haptics.medium() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.3) { formStep = 6 }
         }
     }
 
