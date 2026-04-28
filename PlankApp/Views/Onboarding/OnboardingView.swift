@@ -145,32 +145,32 @@ struct OnboardingView: View {
             "toned": "30 days. You'll feel the difference 🔥",
         ], next: 2)
 
-        case 2: questionView("Ever done a plank?", sub: "Be honest. Zero judgment.", opts: [
-            ("never", "🆕  Nope, first time"), ("gaveUp", "😅  Tried, gave up"),
-            ("sometimes", "🔄  Here and there"), ("regular", "💎  All the time"),
+        case 2: questionView("Do you work out\nyour core?", sub: "Be honest. Zero judgment.", opts: [
+            ("never", "🆕  Never really"), ("gaveUp", "😅  Tried, couldn't stick"),
+            ("sometimes", "🔄  Here and there"), ("regular", "💎  Regularly"),
         ], sel: $experience, feedbacks: [
             "never": "Everyone starts somewhere 🙌",
-            "gaveUp": "This time you have a trainer who won't let you quit",
-            "sometimes": "Let's make it a habit",
-            "regular": "Okay show-off. Let's perfect your form 😏",
+            "gaveUp": "This time you have a coach who won't let you quit",
+            "sometimes": "Let's make it a daily habit",
+            "regular": "Let's take it to the next level 😏",
         ], next: experience == "never" ? 4 : 3)
 
-        case 3: questionView("How long can\nyou hold one?", sub: nil, opts: [
+        case 3: questionView("How long can you\nhold a plank?", sub: "This sets your benchmark starting point.", opts: [
             ("under15", "⚡  Under 15 seconds"), ("15to30", "🔥  15–30 seconds"),
             ("30to60", "💪  30–60 seconds"), ("over60", "👑  60+ seconds"),
         ], sel: $baseline, feedbacks: [
             "under15": "You'll double this in 2 weeks",
-            "15to30": "Solid. Let's build on that",
-            "30to60": "You're ahead of most people already",
-            "over60": "Elite. Time to master form 👑",
+            "15to30": "Solid starting point",
+            "30to60": "Ahead of most people already",
+            "over60": "Elite. Let's perfect that form 👑",
         ], next: 4)
 
         case 4: chartScreen
 
         case 5: multiView("What usually\nstops you?", sub: "Pick all that apply.", opts: [
-            ("boring", "😴  Gets boring fast"), ("dontKnow", "🤷  Not sure if I'm doing it right"),
-            ("motivation", "📉  Hard to stay motivated"), ("time", "⏰  Never have time"),
-            ("injury", "🩹  Worried about injury"),
+            ("boring", "😴  Workouts get boring"), ("dontKnow", "🤷  Don't know what to do"),
+            ("motivation", "📉  Hard to stay consistent"), ("time", "⏰  Never have time"),
+            ("injury", "🩹  Worried about doing it wrong"),
         ], sel: $barriers, next: 6)
 
         case 6: celebrationScreen
@@ -212,13 +212,13 @@ struct OnboardingView: View {
             "fullCore": "The complete package 💎",
         ], next: 11)
 
-        case 11: questionView("When do you\nwant to plank?", sub: "We'll remind you.", opts: [
+        case 11: questionView("When do you\nwant to train?", sub: "We'll send a reminder.", opts: [
             ("morning", "🌅  Morning — start strong"), ("afternoon", "☀️  Afternoon — energy boost"),
             ("evening", "🌙  Evening — wind down"), ("whenever", "🤷  Whenever I feel like it"),
         ], sel: $plankTime, feedbacks: [
-            "morning": "Morning plankers are 2x more consistent",
+            "morning": "Morning sessions build the strongest habits",
             "afternoon": "Great for a midday reset",
-            "evening": "Perfect way to end the day",
+            "evening": "Perfect way to close out the day",
             "whenever": "Flexibility works too",
         ], next: 12)
 
@@ -622,6 +622,10 @@ struct OnboardingView: View {
     // MARK: - CHART (screen 4)
     // ═══════════════════════════════════════
 
+    @State private var chartLine1 = false
+    @State private var chartLine2 = false
+    @State private var chartDot = false
+
     private var chartScreen: some View {
         ZStack {
             GradientBlob(colors: [Palette.accent, Palette.accentSubtle, Palette.stateGood])
@@ -629,58 +633,113 @@ struct OnboardingView: View {
 
             VStack(spacing: 0) {
                 Spacer()
-                AnimatedIcon(name: "chart.line.uptrend.xyaxis", size: 48)
-                Spacer().frame(height: Space.lg)
-                Text("Most people quit\nat 20 seconds.").font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(Palette.textPrimary).multilineTextAlignment(.center)
+
+                Text("87% of people quit\nhome workouts\nin 2 weeks.")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(Palette.textPrimary)
+                    .multilineTextAlignment(.center)
+
+                Spacer().frame(height: Space.sm)
+
+                Text("Not with a coach in your pocket.")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.accent)
+                    .fontWeight(.medium)
+
                 Spacer().frame(height: Space.lg)
 
                 // Chart card
                 VStack(alignment: .leading, spacing: Space.sm) {
-                    Text("Hold time over 30 days").font(.system(size: 13, weight: .medium)).foregroundStyle(Palette.textSecondary)
+                    Text("CONSISTENCY OVER 30 DAYS")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Palette.textSecondary)
+                        .tracking(1.5)
+
                     GeometryReader { geo in
-                        let w = geo.size.width; let h = geo.size.height
-                        // Without coaching
-                        Path { p in
-                            p.move(to: CGPoint(x: 0, y: h * 0.65))
-                            p.addCurve(to: CGPoint(x: w, y: h * 0.8),
-                                       control1: CGPoint(x: w * 0.3, y: h * 0.5),
-                                       control2: CGPoint(x: w * 0.6, y: h * 0.85))
-                        }.trim(from: 0, to: chartAnimated ? 1 : 0)
-                         .stroke(Palette.divider, lineWidth: 2)
-                        // With absmaxxing
-                        Path { p in
-                            p.move(to: CGPoint(x: 0, y: h * 0.65))
-                            p.addCurve(to: CGPoint(x: w, y: h * 0.1),
-                                       control1: CGPoint(x: w * 0.3, y: h * 0.45),
-                                       control2: CGPoint(x: w * 0.7, y: h * 0.15))
-                        }.trim(from: 0, to: chartAnimated ? 1 : 0)
-                         .stroke(Palette.accent, lineWidth: 3)
-                        if chartAnimated {
-                            Text("Without coaching").font(.system(size: 10)).foregroundStyle(Palette.textSecondary)
-                                .position(x: w * 0.78, y: h * 0.92).transition(.opacity)
-                            Text("With absmaxxing").font(.system(size: 10, weight: .semibold)).foregroundStyle(Palette.accent)
-                                .position(x: w * 0.82, y: h * 0.05).transition(.opacity)
+                        let w = geo.size.width, h = geo.size.height
+
+                        // Grid lines
+                        ForEach(0..<4, id: \.self) { i in
+                            let y = h * CGFloat(i) / 3
+                            Path { p in
+                                p.move(to: CGPoint(x: 0, y: y))
+                                p.addLine(to: CGPoint(x: w, y: y))
+                            }
+                            .stroke(Palette.divider.opacity(0.4), style: StrokeStyle(lineWidth: 0.5, dash: [4, 4]))
                         }
-                    }.frame(height: 130)
+
+                        // Without coaching — drops off
+                        Path { p in
+                            p.move(to: CGPoint(x: 0, y: h * 0.55))
+                            p.addCurve(to: CGPoint(x: w, y: h * 0.88),
+                                       control1: CGPoint(x: w * 0.2, y: h * 0.4),
+                                       control2: CGPoint(x: w * 0.5, y: h * 0.9))
+                        }
+                        .trim(from: 0, to: chartLine1 ? 1 : 0)
+                        .stroke(Palette.divider, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+
+                        // With absmaxxing — curves up
+                        Path { p in
+                            p.move(to: CGPoint(x: 0, y: h * 0.55))
+                            p.addCurve(to: CGPoint(x: w, y: h * 0.08),
+                                       control1: CGPoint(x: w * 0.25, y: h * 0.35),
+                                       control2: CGPoint(x: w * 0.65, y: h * 0.1))
+                        }
+                        .trim(from: 0, to: chartLine2 ? 1 : 0)
+                        .stroke(
+                            LinearGradient(colors: [Palette.accent.opacity(0.6), Palette.accent], startPoint: .leading, endPoint: .trailing),
+                            lineWidth: 3
+                        )
+
+                        // Glow dot at end of absmaxxing line
+                        if chartDot {
+                            Circle()
+                                .fill(Palette.accent)
+                                .frame(width: 8, height: 8)
+                                .position(x: w, y: h * 0.08)
+                                .shadow(color: Palette.accent.opacity(0.5), radius: 6)
+                                .transition(.scale.combined(with: .opacity))
+                        }
+
+                        // Labels
+                        if chartLine2 {
+                            Text("gave up")
+                                .font(.system(size: 10))
+                                .foregroundStyle(Palette.textSecondary)
+                                .position(x: w * 0.85, y: h * 0.98)
+                                .transition(.opacity)
+
+                            Text("absmaxxing")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(Palette.accent)
+                                .position(x: w * 0.85, y: h * 0.18)
+                                .transition(.opacity)
+                        }
+                    }
+                    .frame(height: 150)
+
                     HStack {
-                        Text("Day 1").font(.system(size: 11)).foregroundStyle(Palette.textSecondary)
+                        Text("Week 1").font(.system(size: 11)).foregroundStyle(Palette.textSecondary)
                         Spacer()
-                        Text("Day 30").font(.system(size: 11)).foregroundStyle(Palette.textSecondary)
+                        Text("Week 4").font(.system(size: 11)).foregroundStyle(Palette.textSecondary)
                     }
                 }
-                .padding(Space.cardPadding).background(Palette.bgElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .padding(Space.cardPadding)
+                .background(Palette.bgElevated)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .plankShadow()
                 .padding(.horizontal, Space.screenPadding)
 
-                Spacer().frame(height: Space.md)
-                Text("80% of users hold 3x longer by day 30")
-                    .font(Typo.body).foregroundStyle(Palette.textSecondary).multilineTextAlignment(.center)
                 Spacer()
                 ctaBtn("Continue") { Haptics.light(); go(5) }
             }
         }
-        .onAppear { withAnimation(.easeOut(duration: 1.5).delay(0.3)) { chartAnimated = true } }
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.2).delay(0.3)) { chartLine1 = true }
+            withAnimation(.easeOut(duration: 1.4).delay(0.6)) { chartLine2 = true }
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.6).delay(2.0)) { chartDot = true }
+            chartAnimated = true
+        }
     }
 
     // ═══════════════════════════════════════
@@ -1189,11 +1248,11 @@ struct OnboardingView: View {
 
     private var coachSelector: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Pick your trainer")
+            Text("Pick your coach")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(Palette.textPrimary)
                 .padding(.horizontal, Space.screenPadding)
-            Text("Tap to hear their vibe")
+            Text("They'll guide every workout. Tap to preview.")
                 .font(Typo.body).foregroundStyle(Palette.textSecondary)
                 .padding(.top, Space.xs).padding(.horizontal, Space.screenPadding)
 
@@ -1208,14 +1267,14 @@ struct OnboardingView: View {
                 )
                 trainerRow(
                     id: "encouraging", photo: "coach-sarah", name: "Sarah",
-                    vibe: "Warm & Supportive",
-                    quote: "\"You're doing amazing, keep breathing\"",
+                    vibe: "Warm & Mindful",
+                    quote: "\"You're doing beautifully, keep breathing\"",
                     preview: "sarah_preview"
                 )
                 trainerRow(
                     id: "balanced", photo: "coach-matson", name: "Matson",
-                    vibe: "Charming & Motivating",
-                    quote: "\"Come on darlin', you got this\"",
+                    vibe: "Chill & Playful",
+                    quote: "\"We're gonna have a good time\"",
                     preview: "matson_preview"
                 )
             }
@@ -1529,7 +1588,7 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            Text("What makes\nabsmaxxing different")
+            Text("Why absmaxxing\nworks")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
@@ -1538,17 +1597,17 @@ struct OnboardingView: View {
             Spacer().frame(height: Space.xl)
 
             VStack(spacing: 14) {
-                featureRow(icon: "camera.fill", title: "Sees your form",
-                           desc: "AI watches your body in real time. Not a timer app.",
+                featureRow(icon: "flame.fill", title: "Daily routines, done for you",
+                           desc: "5-10 min ab sessions. We pick the workout, you show up.",
                            delay: 0.1)
-                featureRow(icon: "waveform", title: "Talks to you",
-                           desc: "Voice coaching. Corrections, hype, roasts. Not beeps.",
+                featureRow(icon: "waveform", title: "A coach who talks to you",
+                           desc: "Voice coaching with personality. Not beeps.",
                            delay: 0.25)
-                featureRow(icon: "figure.core.training", title: "Detects mistakes",
-                           desc: "Hip sag, shoulder creep, knee drop. Catches what you miss.",
+                featureRow(icon: "camera.fill", title: "AI-tracked plank benchmark",
+                           desc: "Camera watches your form weekly. Tracks real progress.",
                            delay: 0.4)
-                featureRow(icon: "chart.line.uptrend.xyaxis", title: "Tracks real progress",
-                           desc: "Active plank time, not just clock time. Form matters.",
+                featureRow(icon: "brain.head.profile", title: "Gets smarter over time",
+                           desc: "Your workouts adapt to your ratings and performance.",
                            delay: 0.55)
             }
             .padding(.horizontal, Space.screenPadding)
