@@ -38,30 +38,7 @@ struct PlankAIApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if hasCompletedOnboarding {
-                MainTabView()
-            } else {
-                OnboardingView { data in
-                    userName = data.name
-                    // Map focusArea to WorkoutGoal for v2 routine selection
-                    switch data.focusArea {
-                    case "abs": userGoal = "definition"
-                    case "obliques": userGoal = "sculpting"
-                    case "lowerBack": userGoal = "strength"
-                    default: userGoal = "fullCore"
-                    }
-                    userExperience = data.experience
-                    voicePreference = data.voicePreference
-                    UserDefaults.standard.set(data.ageRange, forKey: "ageRange")
-                    UserDefaults.standard.set(data.activityLevel, forKey: "activityLevel")
-                    UserDefaults.standard.set(data.focusArea, forKey: "focusArea")
-                    UserDefaults.standard.set(data.plankTime, forKey: "plankTime")
-                    UserDefaults.standard.set(data.commitmentDaysPerWeek, forKey: "commitmentDays")
-                    UserDefaults.standard.set(data.sessionLengthMinutes, forKey: "sessionLengthPref")
-                    UserDefaults.standard.set(data.notificationsEnabled, forKey: "notificationsEnabled")
-                    hasCompletedOnboarding = true
-                }
-            }
+            RootView()
         }
         .modelContainer(for: [
             UserRecord.self,
@@ -71,5 +48,67 @@ struct PlankAIApp: App {
             ExerciseCalibrationRecord.self,
             SessionRatingRecord.self,
         ])
+    }
+}
+
+// MARK: - Root view
+//
+// Gates the entire app on AuthService.bootstrap() completing. Returning users
+// with a cached anonymous session see the splash for one or two frames; fresh
+// installs see it for the round-trip of supabase.auth.signInAnonymously().
+// No view writes to data before bootstrap is ready, so the user_id is always
+// available when SessionLog/DayProgress writes happen.
+
+private struct RootView: View {
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @AppStorage("userName") private var userName = ""
+    @AppStorage("userGoal") private var userGoal = ""
+    @AppStorage("userExperience") private var userExperience = ""
+    @AppStorage("voicePreference") private var voicePreference = "keepItReal"
+
+    @State private var auth = AuthService.shared
+
+    var body: some View {
+        Group {
+            if auth.isReady {
+                if hasCompletedOnboarding {
+                    MainTabView()
+                } else {
+                    OnboardingView(onComplete: handleOnboardingComplete)
+                }
+            } else {
+                AuthBootstrapSplash(state: auth.bootstrapState) {
+                    Task { await auth.retryBootstrap() }
+                }
+            }
+        }
+        .task {
+            await auth.bootstrap()
+        }
+    }
+
+    private func handleOnboardingComplete(_ data: OnboardingData) {
+        userName = data.name
+        // focusArea (Q10) drives the WorkoutGoal pipeline (anatomy).
+        switch data.focusArea {
+        case "abs": userGoal = "definition"
+        case "obliques": userGoal = "sculpting"
+        case "lowerBack": userGoal = "strength"
+        default: userGoal = "fullCore"
+        }
+        userExperience = data.experience
+        voicePreference = data.voicePreference
+        // Q1 motivation (the "why") — drives plan reveal copy + coach intro.
+        UserDefaults.standard.set(data.goal, forKey: "userMotivation")
+        UserDefaults.standard.set(data.ageRange, forKey: "ageRange")
+        UserDefaults.standard.set(data.activityLevel, forKey: "activityLevel")
+        UserDefaults.standard.set(data.focusArea, forKey: "focusArea")
+        UserDefaults.standard.set(data.plankTime, forKey: "plankTime")
+        UserDefaults.standard.set(data.commitmentDaysPerWeek, forKey: "commitmentDays")
+        UserDefaults.standard.set(data.sessionLengthMinutes, forKey: "sessionLengthPref")
+        UserDefaults.standard.set(data.baselineHoldSeconds, forKey: "userBaselineSeconds")
+        UserDefaults.standard.set(data.barriers.joined(separator: ","), forKey: "userBarriers")
+        UserDefaults.standard.set(data.notificationsEnabled, forKey: "notificationsEnabled")
+        hasCompletedOnboarding = true
     }
 }
