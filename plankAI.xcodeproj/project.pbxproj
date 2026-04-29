@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		133BB5E2136D8E02576DD95D /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E3BFB7C26C4CE6073B4BD5B /* AuthService.swift */; };
 		34416FA981321B4746721203 /* AuthBootstrapSplash.swift in Sources */ = {isa = PBXBuildFile; fileRef = 684A46F030FF961D63028458 /* AuthBootstrapSplash.swift */; };
+		62710D31232DA4D53C102084 /* AppSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3AAF9BC1396F6ED11BDFF8A /* AppSync.swift */; };
 		75661984DCC520F8ED82FED1 /* SignInPromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D838CE3A3E3251D0108A7709 /* SignInPromptView.swift */; };
 		783186622F99E4130096138F /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783186542F99E4130096138F /* HomeView.swift */; };
 		783186632F99E4130096138F /* PlankAIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783186602F99E4130096138F /* PlankAIApp.swift */; };
@@ -667,6 +668,7 @@
 		BBEA1BB02FA200B921 /* intro_side_plank_right.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = intro_side_plank_right.m4a; sourceTree = "<group>"; };
 		BBEDE4CA2FA200D5B1 /* hold_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = hold_2.m4a; sourceTree = "<group>"; };
 		BBF739FA2FA200A202 /* routine_done_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = routine_done_1.m4a; sourceTree = "<group>"; };
+		C3AAF9BC1396F6ED11BDFF8A /* AppSync.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppSync.swift; sourceTree = "<group>"; };
 		CC0001002FA3000100000001 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		CC0001022FA3000100000002 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
 		D838CE3A3E3251D0108A7709 /* SignInPromptView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SignInPromptView.swift; sourceTree = "<group>"; };
@@ -838,6 +840,7 @@
 				783186792F9A0B0C0096138F /* Resources */,
 				63DBA493EEE09CA86580DBAD /* Auth */,
 				875C71B2977FA095CB67A400 /* Config */,
+				DDA5B2849C9D77D34CF6AE10 /* Sync */,
 			);
 			path = PlankApp;
 			sourceTree = "<group>";
@@ -1220,6 +1223,15 @@
 				CC0001022FA3000100000002 /* AnalyticsView.swift */,
 			);
 			path = Analytics;
+			sourceTree = "<group>";
+		};
+		DDA5B2849C9D77D34CF6AE10 /* Sync */ = {
+			isa = PBXGroup;
+			children = (
+				C3AAF9BC1396F6ED11BDFF8A /* AppSync.swift */,
+			);
+			name = Sync;
+			path = Sync;
 			sourceTree = "<group>";
 		};
 		EE0000072FA5000100000007 /* Settings */ = {
@@ -1652,6 +1664,7 @@
 				F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */,
 				B58D26581F4992F4CA9E29DD /* AppleSignInService.swift in Sources */,
 				75661984DCC520F8ED82FED1 /* SignInPromptView.swift in Sources */,
+				62710D31232DA4D53C102084 /* AppSync.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

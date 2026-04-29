@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import PlankSync
+import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
 
 // MARK: - Orientation Control
 
@@ -66,6 +67,7 @@ private struct RootView: View {
     @AppStorage("userExperience") private var userExperience = ""
     @AppStorage("voicePreference") private var voicePreference = "keepItReal"
 
+    @Environment(\.modelContext) private var modelContext
     @State private var auth = AuthService.shared
 
     var body: some View {
@@ -83,7 +85,16 @@ private struct RootView: View {
             }
         }
         .task {
+            // Order matters: auth bootstrap → AppSync configure + onLaunch.
+            // AppSync needs both AuthService.currentUser and the model
+            // container, so we run it after both are ready.
+            AppSync.shared.configure(modelContainer: modelContext.container)
             await auth.bootstrap()
+            await AppSync.shared.onLaunch(modelContext: modelContext)
+        }
+        .onChange(of: auth.currentUser?.id) { _, _ in
+            // Sign-in / sign-up / sign-out — re-sync against the new identity.
+            Task { await AppSync.shared.onUserChanged(modelContext: modelContext) }
         }
     }
 

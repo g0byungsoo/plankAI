@@ -3,82 +3,36 @@ import SwiftData
 import Supabase
 
 /// Local-first, cloud-backed sync service.
-/// Reads always from SwiftData. Writes to SwiftData first, then fire-and-forget to Supabase.
-/// Failed upserts retry on next app launch.
+///
+/// Reads always from SwiftData. Writes go to SwiftData first (instant UI),
+/// then fire-and-forget to Supabase. Failed upserts retry on next app
+/// launch. The append-only SessionLog with client-generated UUIDs makes
+/// retries idempotent — the same `id` upserts cleanly without collisions.
+///
+/// SyncService is auth-agnostic: callers pass the user_id explicitly.
+/// PlankApp's AppSync wrapper reads it from AuthService.shared at write
+/// time. Keeping that boundary lets PlankSync stay free of any Supabase
+/// auth dependencies.
 public actor SyncService {
 
     private let supabase: SupabaseClient
     private let modelContainer: ModelContainer
 
-    public init(supabaseURL: URL, supabaseKey: String, modelContainer: ModelContainer) {
-        self.supabase = SupabaseClient(supabaseURL: supabaseURL, supabaseKey: supabaseKey)
+    /// Pass the same SupabaseClient used by AuthService so writes share
+    /// the auth header (auth.uid() must match user_id under RLS).
+    public init(supabaseClient: SupabaseClient, modelContainer: ModelContainer) {
+        self.supabase = supabaseClient
         self.modelContainer = modelContainer
     }
 
-    // MARK: - Session Write Flow
+    // MARK: - Session log upsert
 
-    /// Complete write flow: SwiftData first, then Supabase upsert.
-    @MainActor
-    public func saveSession(
-        userId: String,
-        exerciseType: String,
-        holdTime: Double,
-        targetTime: Double,
-        qualityScore: Double,
-        formFaultsCount: Int,
-        programDay: Int
-    ) async {
-        let context = modelContainer.mainContext
-        let sessionId = UUID().uuidString
-
-        // 1. Write SessionLog to SwiftData
-        let sessionLog = SessionLogRecord(
-            id: sessionId,
-            userId: userId,
-            exerciseType: exerciseType,
-            holdTime: holdTime,
-            targetTime: targetTime,
-            qualityScore: qualityScore,
-            formFaultsCount: formFaultsCount
-        )
-        context.insert(sessionLog)
-
-        // 2. Update/insert DayProgress
-        let compositeKey = "\(userId):\(programDay)"
-        let descriptor = FetchDescriptor<DayProgressRecord>(
-            predicate: #Predicate { $0.compositeKey == compositeKey }
-        )
-
-        if let existing = try? context.fetch(descriptor).first {
-            existing.primarySessionId = sessionId
-            existing.primaryQualityScore = qualityScore
-            existing.primaryHoldTime = holdTime
-            existing.updatedAt = .now
-        } else {
-            let dayProgress = DayProgressRecord(
-                userId: userId,
-                programDay: programDay,
-                primarySessionId: sessionId,
-                primaryQualityScore: qualityScore,
-                primaryHoldTime: holdTime
-            )
-            context.insert(dayProgress)
-        }
-
-        try? context.save()
-
-        // 3. Fire-and-forget Supabase upsert
-        Task {
-            await upsertSessionToSupabase(sessionLog)
-            await upsertDayProgressToSupabase(userId: userId, programDay: programDay, sessionId: sessionId, qualityScore: qualityScore, holdTime: holdTime)
-        }
-    }
-
-    // MARK: - Supabase Upserts
-
-    private func upsertSessionToSupabase(_ session: SessionLogRecord) async {
+    /// Upsert a SessionLogRecord to Supabase. SwiftData write is the caller's
+    /// responsibility — this method only handles the cloud side. On success,
+    /// clears the local `pendingUpsert` flag.
+    public func upsertSessionLog(_ session: SessionLogRecord) async {
         let sessionId = session.id
-        let holdTime = session.holdTime
+        guard !session.userId.isEmpty else { return }
 
         do {
             try await supabase.from("session_logs")
@@ -86,16 +40,21 @@ public actor SyncService {
                     "id": session.id,
                     "user_id": session.userId,
                     "exercise_type": session.exerciseType,
+                    "session_type": session.sessionType,
                     "completed_at": ISO8601DateFormatter().string(from: session.completedAt),
                     "hold_time": String(session.holdTime),
                     "target_time": String(session.targetTime),
                     "quality_score": String(session.qualityScore),
                     "form_faults_count": String(session.formFaultsCount),
                     "modified_version": String(session.modifiedVersion),
+                    "preset_id": session.presetId ?? "",
+                    "total_duration": session.totalDuration.map { String($0) } ?? "",
+                    "plank_hold_time": session.plankHoldTime.map { String($0) } ?? "",
+                    "plank_form_score": session.plankFormScore.map { String($0) } ?? "",
                 ])
                 .execute()
 
-            // Clear pending flag on success
+            // Clear pending flag on success.
             await MainActor.run {
                 let descriptor = FetchDescriptor<SessionLogRecord>(
                     predicate: #Predicate { $0.id == sessionId }
@@ -110,39 +69,39 @@ public actor SyncService {
         }
     }
 
-    private func upsertDayProgressToSupabase(
-        userId: String,
-        programDay: Int,
-        sessionId: String,
-        qualityScore: Double,
-        holdTime: Double
-    ) async {
+    // MARK: - Day progress upsert
+
+    public func upsertDayProgress(_ progress: DayProgressRecord) async {
+        guard !progress.userId.isEmpty else { return }
+
         do {
             try await supabase.from("day_progress")
                 .upsert([
-                    "user_id": userId,
-                    "program_day": String(programDay),
-                    "date": ISO8601DateFormatter().string(from: .now),
-                    "primary_session_id": sessionId,
-                    "primary_quality_score": String(qualityScore),
-                    "primary_hold_time": String(holdTime),
-                    "updated_at": ISO8601DateFormatter().string(from: .now),
+                    "user_id": progress.userId,
+                    "program_day": String(progress.programDay),
+                    "date": ISO8601DateFormatter().string(from: progress.date),
+                    "primary_session_id": progress.primarySessionId,
+                    "primary_quality_score": String(progress.primaryQualityScore),
+                    "primary_hold_time": String(progress.primaryHoldTime),
+                    "updated_at": ISO8601DateFormatter().string(from: progress.updatedAt),
                 ])
                 .execute()
         } catch {
-            // Non-fatal. DayProgress syncs on next successful attempt.
+            // Non-fatal. DayProgress syncs on next attempt.
         }
     }
 
-    // MARK: - Hydrate on Login
+    // MARK: - Hydrate on login
+    //
+    // Pull the user's row from Supabase and reflect it locally. Best-effort:
+    // if the table doesn't exist or the user has no row yet (fresh anonymous
+    // user), this is a no-op.
 
-    /// Pull user data from Supabase and hydrate SwiftData.
-    /// Called on fresh install after auth.
     @MainActor
     public func hydrateFromCloud(userId: String) async {
+        guard !userId.isEmpty else { return }
         let context = modelContainer.mainContext
 
-        // Hydrate user record
         do {
             let response: [SupabaseUserRow] = try await supabase
                 .from("users")
@@ -151,7 +110,21 @@ public actor SyncService {
                 .execute()
                 .value
 
-            if let row = response.first {
+            guard let row = response.first else { return }
+
+            // Idempotent: update existing or insert new.
+            let descriptor = FetchDescriptor<UserRecord>(
+                predicate: #Predicate { $0.id == userId }
+            )
+            if let existing = try? context.fetch(descriptor).first {
+                existing.name = row.name
+                existing.startDate = row.startDate
+                existing.currentDay = row.currentDay
+                existing.coreScore = row.coreScore
+                existing.streakCurrent = row.streakCurrent
+                existing.streakLongest = row.streakLongest
+                existing.programPhase = row.programPhase
+            } else {
                 let user = UserRecord(
                     id: row.id,
                     name: row.name,
@@ -163,16 +136,18 @@ public actor SyncService {
                 user.streakCurrent = row.streakCurrent
                 user.streakLongest = row.streakLongest
                 context.insert(user)
-                try? context.save()
             }
+            try? context.save()
         } catch {
-            // Hydration failed. User starts fresh locally.
+            // No table, no row, or network — leave local state alone.
         }
     }
 
-    // MARK: - Retry Pending Upserts
+    // MARK: - Retry pending upserts
+    //
+    // Called on app launch and on auth-state changes. Walks SessionLogs with
+    // pendingUpsert == true and retries each.
 
-    /// Called on app launch. Finds SessionLogs with pendingUpsert=true and retries.
     @MainActor
     public func retryPendingUpserts() async {
         let context = modelContainer.mainContext
@@ -183,12 +158,12 @@ public actor SyncService {
         guard let pending = try? context.fetch(descriptor) else { return }
 
         for session in pending {
-            await upsertSessionToSupabase(session)
+            await upsertSessionLog(session)
         }
     }
 }
 
-// MARK: - Supabase Row Types
+// MARK: - Supabase row types
 
 private struct SupabaseUserRow: Decodable {
     let id: String

@@ -514,7 +514,10 @@ struct HomeView: View {
     // MARK: - Persistence
 
     private func saveRoutineSession(results: [ExerciseResultEntry], duration: TimeInterval) {
-        let userId = "local-user"
+        // userId comes from AuthService — anonymous-bootstrap guarantees a
+        // non-nil id. Empty-string fallback keeps the local SwiftData write
+        // working in the unlikely case bootstrap hasn't happened yet.
+        let userId = AppSync.shared.currentUserId ?? ""
         let resultsData = try? JSONEncoder().encode(results)
         let session = SessionLogRecord(
             userId: userId, exerciseType: "routine", holdTime: 0, targetTime: 0,
@@ -525,20 +528,30 @@ struct HomeView: View {
         modelContext.insert(session)
         let compositeKey = "\(userId):\(currentDay)"
         let descriptor = FetchDescriptor<DayProgressRecord>(predicate: #Predicate { $0.compositeKey == compositeKey })
+        let progressRecord: DayProgressRecord
         if let existing = try? modelContext.fetch(descriptor).first {
             existing.primarySessionId = session.id
             var ids = existing.sessionLogIds ?? []; ids.append(session.id); existing.sessionLogIds = ids
             existing.updatedAt = .now
+            progressRecord = existing
         } else {
             let progress = DayProgressRecord(userId: userId, programDay: currentDay, primarySessionId: session.id,
                                             primaryQualityScore: 0, primaryHoldTime: 0)
             progress.sessionLogIds = [session.id]; modelContext.insert(progress)
+            progressRecord = progress
         }
         try? modelContext.save()
+
+        // Fire-and-forget Supabase upserts. SyncService will skip if userId
+        // is empty and clear pendingUpsert on success.
+        Task {
+            await AppSync.shared.upsertSessionLog(session)
+            await AppSync.shared.upsertDayProgress(progressRecord)
+        }
     }
 
     private func saveBenchmarkSession(holdTime: Double, quality: Double, faults: Int) {
-        let userId = "local-user"
+        let userId = AppSync.shared.currentUserId ?? ""
         let session = SessionLogRecord(
             userId: userId, exerciseType: "plank", holdTime: holdTime, targetTime: 60,
             qualityScore: quality, formFaultsCount: faults, sessionType: "plank_benchmark",
@@ -547,15 +560,23 @@ struct HomeView: View {
         modelContext.insert(session)
         let compositeKey = "\(userId):\(currentDay)"
         let descriptor = FetchDescriptor<DayProgressRecord>(predicate: #Predicate { $0.compositeKey == compositeKey })
+        let progressRecord: DayProgressRecord
         if let existing = try? modelContext.fetch(descriptor).first {
             var ids = existing.sessionLogIds ?? []; ids.append(session.id); existing.sessionLogIds = ids
             existing.updatedAt = .now
+            progressRecord = existing
         } else {
             let progress = DayProgressRecord(userId: userId, programDay: currentDay, primarySessionId: session.id,
                                             primaryQualityScore: quality, primaryHoldTime: holdTime)
             progress.sessionLogIds = [session.id]; modelContext.insert(progress)
+            progressRecord = progress
         }
         try? modelContext.save(); hasCompletedFirstSession = true
+
+        Task {
+            await AppSync.shared.upsertSessionLog(session)
+            await AppSync.shared.upsertDayProgress(progressRecord)
+        }
     }
 }
 
