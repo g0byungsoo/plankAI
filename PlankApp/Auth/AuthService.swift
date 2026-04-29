@@ -150,4 +150,41 @@ final class AuthService {
     func sendPasswordReset(email: String) async throws {
         try await supabase.auth.resetPasswordForEmail(email)
     }
+
+    // MARK: Apple Sign-In
+
+    /// Run Sign in with Apple, then exchange the identity token for a
+    /// Supabase session. Like email upgrade, this preserves the user_id
+    /// when called from an anonymous session — the anonymous account links
+    /// to the Apple identity rather than getting replaced.
+    ///
+    /// First-time authorizations: Apple sends `fullName` exactly once. If
+    /// we get it and the local userName is still empty, we capture it.
+    /// Subsequent sign-ins won't include fullName; that's expected.
+    ///
+    /// "Hide my email" is transparent here — Apple gives us a relay
+    /// address (xxx@privaterelay.appleid.com), we hand it to Supabase
+    /// the same way as a real email.
+    func signInWithApple() async throws {
+        let service = AppleSignInService()
+        let result = try await service.signIn()
+
+        let session = try await supabase.auth.signInWithIdToken(
+            credentials: OpenIDConnectCredentials(
+                provider: .apple,
+                idToken: result.identityToken,
+                nonce: result.rawNonce
+            )
+        )
+        currentSession = session
+        currentUser = session.user
+
+        if let nameComponents = result.fullName {
+            let formatted = PersonNameComponentsFormatter().string(from: nameComponents)
+            let existing = UserDefaults.standard.string(forKey: "userName") ?? ""
+            if !formatted.isEmpty && existing.isEmpty {
+                UserDefaults.standard.set(formatted, forKey: "userName")
+            }
+        }
+    }
 }

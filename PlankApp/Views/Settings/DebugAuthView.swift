@@ -115,6 +115,11 @@ struct DebugAuthView: View {
                 return "signed in · user_id \(auth.currentUser?.id.uuidString ?? "?")"
             }
 
+            actionButton("Sign in with Apple", color: Color.black) {
+                try await auth.signInWithApple()
+                return "apple sign-in · user_id \(auth.currentUser?.id.uuidString ?? "?")"
+            }
+
             actionButton("Send password reset", color: Palette.stateGood) {
                 try await auth.sendPasswordReset(email: email)
                 return "reset email sent to \(email)"

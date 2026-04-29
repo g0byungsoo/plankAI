@@ -270,6 +270,7 @@
 		ACF4C9693C142FA94524 /* sarah_stopped_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AC717AB1AA052FA94F07 /* sarah_stopped_1.m4a */; };
 		ACFA35257A822FA9FAD6 /* sarah_countdown_10.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AC7B6B2EBF122FA9AB9F /* sarah_countdown_10.m4a */; };
 		ACFA78AFDD322FA929D4 /* matson_hip_sag_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AC22E0C439662FA9B53D /* matson_hip_sag_2.m4a */; };
+		B58D26581F4992F4CA9E29DD /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4541BBF55D20BF977CCAD632 /* AppleSignInService.swift */; };
 		BB0AD8572FA200B4DF /* intro_toe_touches.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB59A9BC2FA2002154 /* intro_toe_touches.m4a */; };
 		BB0AFC172FA20048E1 /* skip_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB6BBF7A2FA200AAB0 /* skip_2.m4a */; };
 		BB0F71762FA200B2ED /* exercise_done.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB0E2C2E2FA200D6E9 /* exercise_done.m4a */; };
@@ -350,6 +351,7 @@
 /* Begin PBXFileReference section */
 		1E3BFB7C26C4CE6073B4BD5B /* AuthService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		27A5839CBCA9EBEB79038667 /* DebugAuthView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DebugAuthView.swift; sourceTree = "<group>"; };
+		4541BBF55D20BF977CCAD632 /* AppleSignInService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
 		684A46F030FF961D63028458 /* AuthBootstrapSplash.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthBootstrapSplash.swift; sourceTree = "<group>"; };
 		783186412F99E3110096138F /* plankAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = plankAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7831864F2F99E4130096138F /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
@@ -706,6 +708,7 @@
 			children = (
 				1E3BFB7C26C4CE6073B4BD5B /* AuthService.swift */,
 				684A46F030FF961D63028458 /* AuthBootstrapSplash.swift */,
+				4541BBF55D20BF977CCAD632 /* AppleSignInService.swift */,
 			);
 			name = Auth;
 			path = Auth;
@@ -1644,6 +1647,7 @@
 				34416FA981321B4746721203 /* AuthBootstrapSplash.swift in Sources */,
 				D82175BFC774BFB8081957D2 /* SupabaseConfig.swift in Sources */,
 				F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */,
+				B58D26581F4992F4CA9E29DD /* AppleSignInService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
