@@ -195,6 +195,10 @@ struct HomeView: View {
                 Button { activeSheet = .account } label: { Label("Account", systemImage: "gearshape") }
                 Divider()
                 Button { activeSheet = .feedback } label: { Label("Feedback", systemImage: "bubble.left") }
+                #if DEBUG
+                Divider()
+                Button { activeSheet = .debugAuth } label: { Label("Debug Auth", systemImage: "ladybug") }
+                #endif
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 16, weight: .medium))

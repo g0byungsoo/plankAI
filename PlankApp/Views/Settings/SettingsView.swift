@@ -6,6 +6,9 @@ enum SettingsSheet: Identifiable {
     case notifications
     case account
     case feedback
+    #if DEBUG
+    case debugAuth
+    #endif
 
     var id: String { "\(self)" }
 }
@@ -23,6 +26,9 @@ struct SettingsView: View {
                 case .notifications: NotificationSettingsView()
                 case .account: AccountView()
                 case .feedback: FeedbackView()
+                #if DEBUG
+                case .debugAuth: DebugAuthView()
+                #endif
                 }
             }
             .background(Palette.bgPrimary)
