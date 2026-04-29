@@ -165,20 +165,26 @@ struct SignInPromptView: View {
 
 // MARK: - EmailSignUpSheet
 //
-// Sign-up only for Phase D. Returning users on a new device sign in via
-// Settings (Phase E) once they realize they already have an account. If
-// the email is already registered, Supabase returns an error and the user
-// can dismiss + try Apple or Maybe Later.
+// Two modes — sign-up (default, for new accounts) and sign-in (for
+// returning users on a new device). A toggle at the bottom switches
+// between them. In sign-in mode, a "Forgot Password?" link triggers
+// sendPasswordReset.
+
+private enum EmailMode {
+    case signUp, signIn
+}
 
 private struct EmailSignUpSheet: View {
     let onSuccess: () -> Void
 
     @Environment(\.dismiss) private var dismiss
 
+    @State private var mode: EmailMode = .signUp
     @State private var email = ""
     @State private var password = ""
     @State private var working = false
     @State private var errorMessage: String?
+    @State private var infoMessage: String?
 
     private var canSubmit: Bool {
         !email.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -186,15 +192,40 @@ private struct EmailSignUpSheet: View {
             !working
     }
 
+    private var canResetPassword: Bool {
+        !email.trimmingCharacters(in: .whitespaces).isEmpty && !working
+    }
+
+    private var headline: String {
+        mode == .signUp ? "Create your account" : "Welcome back"
+    }
+
+    private var subhead: String {
+        mode == .signUp
+            ? "Save your routine so it follows you to a new phone."
+            : "Sign in with the email you used before."
+    }
+
+    private var actionLabel: String {
+        if working {
+            return mode == .signUp ? "Creating account…" : "Signing in…"
+        }
+        return mode == .signUp ? "Create Account" : "Sign In"
+    }
+
+    private var toggleLabel: String {
+        mode == .signUp ? "Already have an account? Sign in" : "New here? Create an account"
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.lg) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Create your account")
+                        Text(headline)
                             .font(.system(size: 24, weight: .bold))
                             .foregroundStyle(Palette.textPrimary)
-                        Text("Save your routine to a Supabase account so it follows you to a new phone.")
+                        Text(subhead)
                             .font(.system(size: 14))
                             .foregroundStyle(Palette.textSecondary)
                     }
@@ -206,7 +237,7 @@ private struct EmailSignUpSheet: View {
                                 .keyboardType(.emailAddress)
                                 .autocorrectionDisabled()
                         }
-                        field("Password (min 6 characters)") {
+                        field(mode == .signUp ? "Password (min 6 characters)" : "Password") {
                             SecureField("••••••••", text: $password)
                         }
                     }
@@ -217,10 +248,16 @@ private struct EmailSignUpSheet: View {
                             .foregroundStyle(Palette.stateBad)
                     }
 
+                    if let infoMessage {
+                        Text(infoMessage)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.stateGood)
+                    }
+
                     Button {
                         Task { await submit() }
                     } label: {
-                        Text(working ? "Creating account…" : "Create Account")
+                        Text(actionLabel)
                             .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(Palette.textInverse)
                             .frame(maxWidth: .infinity)
@@ -229,6 +266,31 @@ private struct EmailSignUpSheet: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                     .disabled(!canSubmit)
+
+                    if mode == .signIn {
+                        Button {
+                            Task { await sendReset() }
+                        } label: {
+                            Text("Forgot password?")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Palette.accent)
+                        }
+                        .disabled(!canResetPassword)
+                        .opacity(canResetPassword ? 1 : 0.5)
+                    }
+
+                    Button {
+                        Haptics.light()
+                        withAnimation { mode = (mode == .signUp ? .signIn : .signUp) }
+                        errorMessage = nil
+                        infoMessage = nil
+                    } label: {
+                        Text(toggleLabel)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Palette.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, Space.xs)
+                    }
                 }
                 .padding(.horizontal, Space.screenPadding)
                 .padding(.top, Space.md)
@@ -270,12 +332,32 @@ private struct EmailSignUpSheet: View {
         let trimmedEmail = email.trimmingCharacters(in: .whitespaces)
         working = true
         errorMessage = nil
+        infoMessage = nil
         defer { working = false }
         do {
-            try await AuthService.shared.signUpWithEmail(trimmedEmail, password: password)
+            switch mode {
+            case .signUp:
+                try await AuthService.shared.signUpWithEmail(trimmedEmail, password: password)
+            case .signIn:
+                try await AuthService.shared.signInWithEmail(trimmedEmail, password: password)
+            }
             Haptics.success()
             dismiss()
             onSuccess()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func sendReset() async {
+        let trimmedEmail = email.trimmingCharacters(in: .whitespaces)
+        working = true
+        errorMessage = nil
+        infoMessage = nil
+        defer { working = false }
+        do {
+            try await AuthService.shared.sendPasswordReset(email: trimmedEmail)
+            infoMessage = "Reset link sent to \(trimmedEmail). Check your inbox."
         } catch {
             errorMessage = error.localizedDescription
         }

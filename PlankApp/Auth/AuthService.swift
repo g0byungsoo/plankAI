@@ -151,6 +151,22 @@ final class AuthService {
         try await supabase.auth.resetPasswordForEmail(email)
     }
 
+    // MARK: Sign out
+
+    /// Sign out of the Supabase session, then immediately bootstrap a new
+    /// anonymous session so the app always has a valid auth.uid(). Local
+    /// SwiftData is preserved (the old user_id rows stay on disk for
+    /// offline reading) but won't sync to Supabase under the new identity
+    /// until the user signs back in. Phase F handles the re-hydration
+    /// semantics when an identity change happens.
+    func signOut() async throws {
+        try await supabase.auth.signOut()
+        currentUser = nil
+        currentSession = nil
+        didStartBootstrap = false
+        await bootstrap()
+    }
+
     // MARK: Apple Sign-In
 
     /// Run Sign in with Apple, then exchange the identity token for a
