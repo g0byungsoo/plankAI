@@ -108,4 +108,46 @@ final class AuthService {
         didStartBootstrap = false
         await bootstrap()
     }
+
+    // MARK: Email upgrade (anonymous → email)
+
+    /// Upgrade the current anonymous user to an email/password account.
+    /// Supabase preserves the user_id across the upgrade, so every existing
+    /// SessionLog/DayProgress/etc. row stays attached.
+    ///
+    /// If the project has email confirmation enabled, the user receives a
+    /// confirmation email. `is_anonymous` flips to false and `email` is set
+    /// once they confirm. Until confirmation, the email is stored on the user
+    /// record but the anonymous flag may still read true.
+    func signUpWithEmail(_ email: String, password: String) async throws {
+        let user = try await supabase.auth.update(
+            user: UserAttributes(email: email, password: password)
+        )
+        currentUser = user
+        currentSession = try? await supabase.auth.session
+    }
+
+    // MARK: Email sign-in (returning user)
+
+    /// Sign in to an existing email/password account. Used on a fresh install
+    /// to recover a user who previously upgraded on another device.
+    ///
+    /// Note: this discards any anonymous session that was active. The
+    /// anonymous user_id from this device's keychain is replaced by the
+    /// signed-in user's user_id. Local SwiftData rows attached to the old
+    /// anonymous id will not match auth.uid() under RLS — Phase F handles
+    /// hydrating the new identity's data from Supabase.
+    func signInWithEmail(_ email: String, password: String) async throws {
+        let session = try await supabase.auth.signIn(email: email, password: password)
+        currentSession = session
+        currentUser = session.user
+    }
+
+    // MARK: Password reset
+
+    /// Send a password reset email. The user clicks a link from their inbox
+    /// that lets them set a new password. No state change here.
+    func sendPasswordReset(email: String) async throws {
+        try await supabase.auth.resetPasswordForEmail(email)
+    }
 }
