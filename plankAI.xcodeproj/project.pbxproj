@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		133BB5E2136D8E02576DD95D /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E3BFB7C26C4CE6073B4BD5B /* AuthService.swift */; };
 		34416FA981321B4746721203 /* AuthBootstrapSplash.swift in Sources */ = {isa = PBXBuildFile; fileRef = 684A46F030FF961D63028458 /* AuthBootstrapSplash.swift */; };
+		75661984DCC520F8ED82FED1 /* SignInPromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D838CE3A3E3251D0108A7709 /* SignInPromptView.swift */; };
 		783186622F99E4130096138F /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783186542F99E4130096138F /* HomeView.swift */; };
 		783186632F99E4130096138F /* PlankAIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783186602F99E4130096138F /* PlankAIApp.swift */; };
 		783186642F99E4130096138F /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7831864F2F99E4130096138F /* CameraManager.swift */; };
@@ -668,6 +669,7 @@
 		BBF739FA2FA200A202 /* routine_done_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = routine_done_1.m4a; sourceTree = "<group>"; };
 		CC0001002FA3000100000001 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		CC0001022FA3000100000002 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
+		D838CE3A3E3251D0108A7709 /* SignInPromptView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SignInPromptView.swift; sourceTree = "<group>"; };
 		DD0001002FA4000100000001 /* StreakCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakCalculator.swift; sourceTree = "<group>"; };
 		EE0000012FA50001000001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		EE0000022FA50001000002 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
@@ -769,6 +771,7 @@
 			children = (
 				783187DF2F9B00FD0096138F /* OnboardingView.swift */,
 				783187E12F9B1A980096138F /* OnboardingComponents.swift */,
+				D838CE3A3E3251D0108A7709 /* SignInPromptView.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -1648,6 +1651,7 @@
 				D82175BFC774BFB8081957D2 /* SupabaseConfig.swift in Sources */,
 				F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */,
 				B58D26581F4992F4CA9E29DD /* AppleSignInService.swift in Sources */,
+				75661984DCC520F8ED82FED1 /* SignInPromptView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

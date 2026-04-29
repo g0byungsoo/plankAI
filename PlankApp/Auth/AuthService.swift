@@ -168,18 +168,35 @@ final class AuthService {
     func signInWithApple() async throws {
         let service = AppleSignInService()
         let result = try await service.signIn()
+        try await completeAppleSignIn(
+            idToken: result.identityToken,
+            rawNonce: result.rawNonce,
+            fullName: result.fullName
+        )
+    }
 
+    /// Token-exchange portion of Apple Sign-In, separate from the
+    /// authorization phase. SignInPromptView uses Apple's first-class
+    /// `SignInWithAppleButton` (HIG-compliant), which runs its own
+    /// ASAuthorizationController under the hood and hands us the credential
+    /// in `onCompletion` — we hand the resulting identity token + raw nonce
+    /// here for the same Supabase exchange the programmatic path uses.
+    func completeAppleSignIn(
+        idToken: String,
+        rawNonce: String,
+        fullName: PersonNameComponents?
+    ) async throws {
         let session = try await supabase.auth.signInWithIdToken(
             credentials: OpenIDConnectCredentials(
                 provider: .apple,
-                idToken: result.identityToken,
-                nonce: result.rawNonce
+                idToken: idToken,
+                nonce: rawNonce
             )
         )
         currentSession = session
         currentUser = session.user
 
-        if let nameComponents = result.fullName {
+        if let nameComponents = fullName {
             let formatted = PersonNameComponentsFormatter().string(from: nameComponents)
             let existing = UserDefaults.standard.string(forKey: "userName") ?? ""
             if !formatted.isEmpty && existing.isEmpty {

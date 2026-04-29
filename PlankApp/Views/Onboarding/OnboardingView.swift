@@ -45,7 +45,6 @@ struct OnboardingView: View {
     @State private var personalStatVisible = false
 
     let onComplete: (OnboardingData) -> Void
-    private let total = 26
 
     var body: some View {
         ZStack {
@@ -252,6 +251,7 @@ struct OnboardingView: View {
         case 22: personalStatScreen
         case 23: cameraSetupScreen
         case 24: paywallScreen
+        case 26: SignInPromptView { Haptics.medium(); go(22) }
         default: EmptyView()
         }
     }
@@ -259,10 +259,11 @@ struct OnboardingView: View {
     // MARK: - Nav
 
     /// Temporal order of screens. Raw screen indices are not monotonic
-    /// (screen 25 — session length — slots between screens 17 and 18),
-    /// so the progress bar uses position-in-flow, not raw screen number.
+    /// (screen 25 = session length sits between 17 and 18; screen 26 =
+    /// sign-in prompt sits between 21 and 22), so the progress bar uses
+    /// position-in-flow, not raw screen number.
     private static let flowOrder: [Int] = [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 25, 18, 19, 20, 21, 22, 23, 24
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 25, 18, 19, 20, 21, 26, 22, 23, 24
     ]
 
     private var progressFraction: CGFloat {
@@ -1794,7 +1795,7 @@ struct OnboardingView: View {
 
             Spacer()
 
-            ctaBtn("Let's go") { Haptics.medium(); go(22) }
+            ctaBtn("Let's go") { Haptics.medium(); go(26) }
                 .opacity(planRevealed ? 1 : 0)
         }
         .background(Palette.bgPrimary)
@@ -2281,8 +2282,9 @@ struct OnboardingView: View {
         switch screen {
         case 4 where experience == "never": go(2)
         case 18: go(25)  // name ← session length
-        case 22: go(21)  // personal stat → plan reveal
+        case 22: go(26)  // personal stat ← sign-in prompt
         case 25: go(17)  // session length ← commitment days
+        case 26: go(21)  // sign-in prompt ← plan reveal
         default: go(max(0, screen - 1))
         }
     }

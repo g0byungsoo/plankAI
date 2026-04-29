@@ -58,8 +58,12 @@ final class AppleSignInService: NSObject {
     }
 
     // MARK: - Nonce
+    //
+    // Exposed so SignInPromptView's SignInWithAppleButton path can reuse the
+    // same nonce generation as the programmatic ASAuthorizationController path.
+    // Each call returns a fresh value; never reuse a nonce across attempts.
 
-    private static func randomNonce(length: Int = 32) -> String {
+    static func randomNonce(length: Int = 32) -> String {
         precondition(length > 0)
         let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
         var result = ""
@@ -80,7 +84,7 @@ final class AppleSignInService: NSObject {
         return result
     }
 
-    private static func sha256(_ input: String) -> String {
+    static func sha256(_ input: String) -> String {
         let digest = SHA256.hash(data: Data(input.utf8))
         return digest.map { String(format: "%02x", $0) }.joined()
     }
