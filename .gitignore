@@ -25,3 +25,5 @@ Pods/
 # IDE
 .idea/
 *.code-workspace
+AuthKey_*.p8
+*.p8
