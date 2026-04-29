@@ -7,6 +7,10 @@ struct HomeView: View {
     @AppStorage("hasCompletedFirstSession") private var hasCompletedFirstSession = false
     @AppStorage("userGoal") private var userGoal = ""
     @AppStorage("sessionLengthPref") private var sessionLengthPref = 7
+    @AppStorage("userExperience") private var userExperience = ""
+    @AppStorage("userBaselineSeconds") private var userBaselineSeconds = 15
+    @AppStorage("ageRange") private var ageRange = ""
+    @AppStorage("activityLevel") private var activityLevel = ""
 
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \SessionLogRecord.completedAt, order: .reverse) private var sessionLogs: [SessionLogRecord]
@@ -58,9 +62,20 @@ struct HomeView: View {
     private var todaysWorkout: WorkoutPreset {
         if let current = currentWorkout { return current }
         let goal = WorkoutGoal(rawValue: userGoal) ?? .fullCore
-        let presets = WorkoutPreset.presets(for: goal)
+        let allPresets = WorkoutPreset.presets(for: goal)
         let routineCount = sessionLogs.filter { $0.sessionType == "routine" }.count
-        return presets[routineCount % presets.count]
+
+        // Match the user's starting difficulty so day-1 workouts fit their fitness signal.
+        // Falls back to all presets if the difficulty filter empties the pool.
+        let startingDifficulty = WorkoutGenerator.startingDifficulty(
+            experience: userExperience,
+            baselineSeconds: userBaselineSeconds,
+            activityLevel: activityLevel,
+            ageRange: ageRange
+        )
+        let matched = allPresets.filter { $0.difficulty == startingDifficulty }
+        let pool = matched.isEmpty ? allPresets : matched
+        return pool[routineCount % pool.count]
     }
 
     private var lastBenchmark: SessionLogRecord? {

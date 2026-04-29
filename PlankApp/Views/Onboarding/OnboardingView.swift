@@ -258,6 +258,18 @@ struct OnboardingView: View {
 
     // MARK: - Nav
 
+    /// Temporal order of screens. Raw screen indices are not monotonic
+    /// (screen 25 — session length — slots between screens 17 and 18),
+    /// so the progress bar uses position-in-flow, not raw screen number.
+    private static let flowOrder: [Int] = [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 25, 18, 19, 20, 21, 22, 23, 24
+    ]
+
+    private var progressFraction: CGFloat {
+        let pos = Self.flowOrder.firstIndex(of: screen) ?? 0
+        return CGFloat(pos + 1) / CGFloat(Self.flowOrder.count)
+    }
+
     private var navBar: some View {
         HStack(spacing: Space.sm) {
             Button { Haptics.light(); goBack() } label: {
@@ -268,7 +280,7 @@ struct OnboardingView: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(Palette.divider).frame(height: 4)
                     Capsule().fill(Palette.textPrimary)
-                        .frame(width: max(8, geo.size.width * CGFloat(screen) / CGFloat(total - 1)), height: 4)
+                        .frame(width: max(8, geo.size.width * progressFraction), height: 4)
                         .animation(.spring(response: 0.5), value: screen)
                 }
             }.frame(height: 4)
@@ -1065,60 +1077,100 @@ struct OnboardingView: View {
     @State private var cardsVisible = false
 
     @State private var marqueeOffset1: CGFloat = 0
-    @State private var marqueeOffset2: CGFloat = 0
+
+    /// Real-feel name + day captions for the marquee. Mirrors testimonial names
+    /// so the same people show up as faces and as quotes elsewhere in onboarding.
+    private static let marqueeCaptions: [(asset: String, caption: String)] = [
+        ("social-1",  "Maya · D14"),
+        ("social-2",  "Aaliyah · D22"),
+        ("social-3",  "Priya · D8"),
+        ("social-4",  "Zoe · D31"),
+        ("social-5",  "Layla · D6"),
+        ("social-6",  "Jasmine · D19"),
+        ("social-7",  "Destiny · D11"),
+        ("social-8",  "Kayla · D27"),
+        ("social-9",  "Ava · D4"),
+        ("social-10", "Mia · D16"),
+    ]
 
     private var socialProofScreen: some View {
-        VStack(spacing: 0) {
+        // One uniform row, larger cards (130×232 = 9:16). Captions humanize the photos.
+        let cardW: CGFloat = 130
+        let cardH: CGFloat = 232
+        let assets = Self.marqueeCaptions.map { $0.asset }
+        let captions = Self.marqueeCaptions.map { $0.caption }
+        let sizes: [(CGFloat, CGFloat)] = Array(repeating: (cardW, cardH), count: assets.count)
+        let rotations: [Double] = [-3, 2, -2, 3, -3, 2, -2, 3, -2, 2]
+
+        return VStack(spacing: 0) {
             Spacer()
 
-            // Counter
+            // Live activity chip — credibility cue before the big number
+            HStack(spacing: 6) {
+                Circle().fill(Palette.stateGood).frame(width: 7, height: 7)
+                    .scaleEffect(cardsVisible ? 1 : 0.5)
+                    .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: cardsVisible)
+                Text("12 active right now")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.stateGood)
+                    .tracking(0.2)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Palette.stateGood.opacity(0.10))
+            .clipShape(Capsule())
+            .opacity(cardsVisible ? 1 : 0)
+            .animation(.easeOut(duration: 0.4), value: cardsVisible)
+
+            Spacer().frame(height: Space.md)
+
+            // Hero counter
             Text("\(proofCount)")
-                .font(.system(size: 64, weight: .black, design: .rounded))
+                .font(.system(size: 80, weight: .black, design: .rounded))
                 .foregroundStyle(Palette.textPrimary)
                 .contentTransition(.numericText())
                 .opacity(cardsVisible ? 1 : 0)
-                .scaleEffect(cardsVisible ? 1 : 0.8)
+                .scaleEffect(cardsVisible ? 1 : 0.85)
                 .animation(.spring(response: 0.5, dampingFraction: 0.7), value: cardsVisible)
 
             Text("people started this month")
-                .font(.system(size: 18, weight: .medium))
+                .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(Palette.textSecondary)
                 .padding(.top, Space.xs)
                 .opacity(cardsVisible ? 1 : 0)
 
-            Spacer().frame(height: Space.sm)
-
-            // Live pulse
-            HStack(spacing: 6) {
-                Circle().fill(Palette.stateGood).frame(width: 7, height: 7)
-                    .opacity(cardsVisible ? 1 : 0.3)
-                    .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: cardsVisible)
-                Text("12 active right now")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Palette.textSecondary)
-            }
-            .opacity(cardsVisible ? 1 : 0)
-            .animation(.easeOut(duration: 0.4).delay(1.2), value: cardsVisible)
+            // Momentum line
+            Text("+247 this week")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.accent)
+                .padding(.top, 2)
+                .opacity(cardsVisible ? 1 : 0)
+                .animation(.easeOut(duration: 0.4).delay(0.6), value: cardsVisible)
 
             Spacer().frame(height: Space.lg + 8)
 
-            // Single row of scattered photo cards
-            ZStack {
-                // Staggered cards at different sizes and rotations
-                socialPhoto("social-1", w: 64, h: 80, x: -120, y: -30, rot: -8, delay: 0.2)
-                socialPhoto("social-3", w: 56, h: 70, x: -55, y: 25, rot: 5, delay: 0.35)
-                socialPhoto("social-5", w: 72, h: 90, x: 0, y: -15, rot: -3, delay: 0.5)
-                socialPhoto("social-7", w: 60, h: 75, x: 60, y: 20, rot: 6, delay: 0.65)
-                socialPhoto("social-9", w: 68, h: 85, x: 125, y: -25, rot: -5, delay: 0.8)
-            }
-            .frame(height: 130)
-            .frame(maxWidth: .infinity)
+            // Single marquee row with name + day captions on each card
+            marqueeRow(
+                assets: assets,
+                captions: captions,
+                sizes: sizes,
+                rotations: rotations,
+                offset: marqueeOffset1
+            )
+            .opacity(cardsVisible ? 1 : 0)
+            .animation(.easeOut(duration: 0.6).delay(0.3), value: cardsVisible)
 
             Spacer()
             ctaBtn("Continue") { Haptics.light(); go(15) }
         }
+        .clipped()
         .onAppear {
             cardsVisible = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                withAnimation(.linear(duration: 40).repeatForever(autoreverses: false)) {
+                    marqueeOffset1 = -1
+                }
+            }
             let t = 2847
             for i in 0...25 {
                 DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.04) {
@@ -1129,72 +1181,88 @@ struct OnboardingView: View {
         }
     }
 
-    private func socialPhoto(_ asset: String, w: CGFloat, h: CGFloat, x: CGFloat, y: CGFloat, rot: Double, delay: Double) -> some View {
-        Group {
-            if UIImage(named: asset) != nil {
-                Image(asset).resizable().scaledToFill()
-            } else {
-                Palette.accentSubtle.opacity(0.2)
-            }
-        }
-        .frame(width: w, height: h)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .rotationEffect(.degrees(rot))
-        .offset(x: x, y: y)
-        .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
-        .opacity(cardsVisible ? 1 : 0)
-        .scaleEffect(cardsVisible ? 1 : 0.7)
-        .animation(.spring(response: 0.5, dampingFraction: 0.75).delay(delay), value: cardsVisible)
-    }
-
     /// Infinite marquee row of 9:16 cards. Duplicates content for seamless loop.
+    /// Outer height tracks the tallest card so larger sizes don't get clipped.
+    /// Pass `captions` to draw a name + day overlay on each card.
     private func marqueeRow(
         assets: [String],
+        captions: [String]? = nil,
         sizes: [(CGFloat, CGFloat)],
         rotations: [Double],
         offset: CGFloat
     ) -> some View {
-        let cardSpacing: CGFloat = 12
-        // Total width of one set of cards
+        let cardSpacing: CGFloat = 14
         let totalWidth = sizes.reduce(CGFloat(0)) { $0 + $1.0 + cardSpacing }
+        let rowHeight = (sizes.map { $0.1 }.max() ?? 150) + 20  // padding for rotation overflow
 
-        return GeometryReader { geo in
+        return GeometryReader { _ in
             let scrollAmount = offset < 0 ? totalWidth : 0  // 0 = static, totalWidth = one full loop
 
             HStack(spacing: cardSpacing) {
-                // First set
                 ForEach(0..<assets.count, id: \.self) { i in
-                    socialCard(asset: assets[i], width: sizes[i].0, height: sizes[i].1, rotation: rotations[i])
+                    socialCard(
+                        asset: assets[i],
+                        caption: captions?[i],
+                        width: sizes[i].0,
+                        height: sizes[i].1,
+                        rotation: rotations[i]
+                    )
                 }
                 // Duplicate for seamless loop
                 ForEach(0..<assets.count, id: \.self) { i in
-                    socialCard(asset: assets[i], width: sizes[i].0, height: sizes[i].1, rotation: rotations[i])
+                    socialCard(
+                        asset: assets[i],
+                        caption: captions?[i],
+                        width: sizes[i].0,
+                        height: sizes[i].1,
+                        rotation: rotations[i]
+                    )
                 }
             }
             .offset(x: -scrollAmount)
         }
-        .frame(height: 150)
+        .frame(height: rowHeight)
     }
 
-    private func socialCard(asset: String, width: CGFloat, height: CGFloat, rotation: Double) -> some View {
-        Group {
-            if UIImage(named: asset) != nil {
-                Image(asset)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
+    private func socialCard(asset: String, caption: String? = nil, width: CGFloat, height: CGFloat, rotation: Double) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            Group {
+                if UIImage(named: asset) != nil {
+                    Image(asset)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    LinearGradient(
+                        colors: [Palette.accent.opacity(0.15), Palette.accentSubtle.opacity(0.08)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Palette.divider.opacity(0.3), lineWidth: 1)
+                    )
+                }
+            }
+            .frame(width: width, height: height)
+
+            if let caption {
+                // Bottom gradient + caption pinned bottom-left
                 LinearGradient(
-                    colors: [Palette.accent.opacity(0.15), Palette.accentSubtle.opacity(0.08)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing
+                    colors: [Color.black.opacity(0), Color.black.opacity(0.55)],
+                    startPoint: .top, endPoint: .bottom
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Palette.divider.opacity(0.3), lineWidth: 1)
-                )
+                .frame(width: width, height: height * 0.42)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+
+                Text(caption)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.bottom, 10)
             }
         }
         .frame(width: width, height: height)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .shadow(color: .black.opacity(0.12), radius: 10, y: 6)
         .rotationEffect(.degrees(rotation))
     }
 
@@ -1353,7 +1421,7 @@ struct OnboardingView: View {
 
     private var nameInput: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("What should your\ncoach call you?")
+            Text("What should your\ntrainer call you?")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(Palette.textPrimary)
                 .padding(.horizontal, Space.screenPadding)
@@ -1661,6 +1729,16 @@ struct OnboardingView: View {
         let coachName = voicePreference == "encouraging" ? "Sarah" : voicePreference == "balanced" ? "Matson" : "Kira"
         let coachPhoto = voicePreference == "encouraging" ? "coach-sarah" : voicePreference == "balanced" ? "coach-matson" : "coach-kira"
         let goalLabel = focusArea == "abs" ? "abs definition" : focusArea == "obliques" ? "waist sculpting" : focusArea == "lowerBack" ? "core strength" : "full core"
+        let motivationLabel: String = {
+            switch goal {
+            case "strength": return "a stronger core"
+            case "posture": return "better posture"
+            case "confidence": return "feeling more confident"
+            case "toned": return "getting toned"
+            default: return "your goals"
+            }
+        }()
+        let barrierCard = barrierPlanCard()
 
         return VStack(spacing: 0) {
             Spacer()
@@ -1684,7 +1762,14 @@ struct OnboardingView: View {
                 .opacity(planRevealed ? 1 : 0)
                 .offset(y: planRevealed ? 0 : 12)
 
-            Spacer().frame(height: Space.sm)
+            Spacer().frame(height: Space.xs)
+
+            Text("Built for \(motivationLabel).")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Palette.accent)
+                .opacity(planRevealed ? 1 : 0)
+
+            Spacer().frame(height: Space.xs)
 
             Text("\(coachName) has your first workout ready.")
                 .font(Typo.body)
@@ -1693,12 +1778,17 @@ struct OnboardingView: View {
 
             Spacer().frame(height: Space.lg + 8)
 
-            // Plan summary cards
+            // Plan summary cards. Card 4 swaps to a barrier-killer card
+            // if the user named blockers in Q5; otherwise the generic adaptive card.
             VStack(spacing: 10) {
                 planCard(icon: "flame.fill", title: "Daily Routines", detail: "5-10 min \(goalLabel) sessions", color: Palette.accent, index: 0)
                 planCard(icon: "waveform", title: "Voice Coaching", detail: "\(coachName) guides every exercise", color: Palette.stateGood, index: 1)
                 planCard(icon: "camera.fill", title: "Weekly Plank Check", detail: "AI tracks your form progress", color: Palette.textSecondary, index: 2)
-                planCard(icon: "brain.head.profile", title: "Adaptive Workouts", detail: "Gets harder as you get stronger", color: Palette.stateWarn, index: 3)
+                if let bc = barrierCard {
+                    planCard(icon: bc.icon, title: bc.title, detail: bc.detail, color: Palette.stateWarn, index: 3)
+                } else {
+                    planCard(icon: "brain.head.profile", title: "Adaptive Workouts", detail: "Gets harder as you get stronger", color: Palette.stateWarn, index: 3)
+                }
             }
             .padding(.horizontal, Space.screenPadding)
 
@@ -1712,6 +1802,22 @@ struct OnboardingView: View {
             Haptics.success()
             withAnimation(.easeOut(duration: 0.5).delay(0.2)) { planRevealed = true }
         }
+    }
+
+    /// Pick the most-relevant barrier the user named and return a card payload.
+    /// Order matters: the first matching barrier wins (in priority order).
+    private func barrierPlanCard() -> (icon: String, title: String, detail: String)? {
+        let priority: [(String, String, String, String)] = [
+            ("dontKnow",   "viewfinder",          "Form, locked in",       "Coach corrects you in real time"),
+            ("injury",     "shield.lefthalf.filled", "Safe progressions",  "Every move matched to your level"),
+            ("boring",     "shuffle",             "Never the same workout", "Variety baked in, every session"),
+            ("motivation", "calendar",            "Shows up every day",    "Streak + coach keep you accountable"),
+            ("time",       "bolt.fill",           "Fits the busy days",    "5-minute sessions are real workouts"),
+        ]
+        for (key, icon, title, detail) in priority where barriers.contains(key) {
+            return (icon, title, detail)
+        }
+        return nil
     }
 
     private func planCard(icon: String, title: String, detail: String, color: Color, index: Int) -> some View {

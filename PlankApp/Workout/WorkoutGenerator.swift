@@ -10,12 +10,16 @@ struct WorkoutGenerator {
         let recentSessionExerciseIds: [[String]]   // last 7 days, each day's exercise IDs
         let lastPlankHoldTime: Double?             // latest benchmark, seconds
         let recentRatings: [Int]                   // last N session ratings (1-5)
+        let startingTier: Int                      // 1/2/3 from onboarding inputs
     }
 
     /// Generate a workout session. Returns a WorkoutPreset-shaped result.
     static func generate(from input: Input) -> WorkoutPreset {
         let exerciseCount = exerciseCount(for: input.sessionLengthMinutes)
-        let targetTier = targetDifficultyTier(from: input.recentRatings)
+        let ratedTier = targetDifficultyTier(from: input.recentRatings)
+        // Until the user has 3+ ratings, pin to startingTier so day-1 difficulty
+        // matches the fitness signal from age/activity/baseline.
+        let targetTier = input.recentRatings.count >= 3 ? ratedTier : input.startingTier
         let pool = candidatePool(goal: input.goal, tier: targetTier)
         let recentFlat = Set(input.recentSessionExerciseIds.flatMap { $0 })
 
@@ -232,5 +236,54 @@ struct WorkoutGenerator {
         case 2: return .intermediate
         default: return .advanced
         }
+    }
+
+    // MARK: - Starting Tier (from onboarding signals)
+
+    /// Compute a starting difficulty tier (1/2/3) from onboarding inputs.
+    /// Used for day-1 workouts before recent ratings exist.
+    static func startingTier(
+        experience: String,
+        baselineSeconds: Int,
+        activityLevel: String,
+        ageRange: String
+    ) -> Int {
+        // Hard pin to beginner for clear "I'm new" signals
+        if experience == "never" || experience == "gaveUp" { return 1 }
+
+        // Otherwise score from baseline + activity, lightly modified by age
+        var score = 0
+        if baselineSeconds >= 60 { score += 2 }
+        else if baselineSeconds >= 30 { score += 1 }
+
+        switch activityLevel {
+        case "athlete": score += 2
+        case "active": score += 1
+        case "moderate": score += 0
+        case "light", "sedentary": score -= 1
+        default: break
+        }
+
+        // Older / younger users get a gentler start; doesn't override clear signals
+        if ageRange == "55plus" || ageRange == "under18" { score -= 1 }
+
+        if score >= 3 { return 3 }
+        if score >= 1 { return 2 }
+        return 1
+    }
+
+    /// WorkoutDifficulty equivalent of startingTier — for picking presets.
+    static func startingDifficulty(
+        experience: String,
+        baselineSeconds: Int,
+        activityLevel: String,
+        ageRange: String
+    ) -> WorkoutDifficulty {
+        difficulty(from: startingTier(
+            experience: experience,
+            baselineSeconds: baselineSeconds,
+            activityLevel: activityLevel,
+            ageRange: ageRange
+        ))
     }
 }
