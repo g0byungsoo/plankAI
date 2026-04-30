@@ -171,10 +171,6 @@ final class AppSync {
     /// that the rest of the app reads from. Reads from `container.mainContext`
     /// — the same context hydrateUser writes to — so the fetch is guaranteed
     /// to see the row.
-    ///
-    /// Schema gap: focusArea, plankTime, sessionLengthPref, and userGoal
-    /// (the focusArea-derived field) are NOT yet in public.users — they
-    /// won't survive a reinstall + sign-in until the schema extends.
     private func syncUserDefaultsFromUserRecord(context: ModelContext, userId: String) {
         print("[AppSync] syncUserDefaultsFromUserRecord: using context \(ObjectIdentifier(context))")
         let descriptor = FetchDescriptor<UserRecord>(
@@ -200,7 +196,29 @@ final class AppSync {
         }
         defaults.set(record.onboardingNotificationEnabled, forKey: "notificationsEnabled")
 
-        print("[AppSync] syncUserDefaultsFromUserRecord: WROTE userName='\(defaults.string(forKey: "userName") ?? "")' userMotivation='\(defaults.string(forKey: "userMotivation") ?? "")' ageRange='\(defaults.string(forKey: "ageRange") ?? "")' barriers='\(defaults.string(forKey: "userBarriers") ?? "")'")
+        if let focusArea = record.onboardingFocusArea {
+            defaults.set(focusArea, forKey: "focusArea")
+            // userGoal mirrors the derivation in PlankAIApp.handleOnboardingComplete:
+            // focusArea drives the WorkoutGenerator's anatomy pipeline. Re-derived
+            // here so the cloud-only path produces the same userGoal a fresh
+            // onboarding would.
+            let derivedGoal: String
+            switch focusArea {
+            case "abs": derivedGoal = "definition"
+            case "obliques": derivedGoal = "sculpting"
+            case "lowerBack": derivedGoal = "strength"
+            default: derivedGoal = "fullCore"
+            }
+            defaults.set(derivedGoal, forKey: "userGoal")
+        }
+        if let plankTime = record.onboardingPlankTime {
+            defaults.set(plankTime, forKey: "plankTime")
+        }
+        if let sessionLengthPref = record.onboardingSessionLengthPref {
+            defaults.set(sessionLengthPref, forKey: "sessionLengthPref")
+        }
+
+        print("[AppSync] syncUserDefaultsFromUserRecord: WROTE userName='\(defaults.string(forKey: "userName") ?? "")' userMotivation='\(defaults.string(forKey: "userMotivation") ?? "")' focusArea='\(defaults.string(forKey: "focusArea") ?? "")' userGoal='\(defaults.string(forKey: "userGoal") ?? "")' plankTime='\(defaults.string(forKey: "plankTime") ?? "")' sessionLengthPref=\(defaults.integer(forKey: "sessionLengthPref"))")
     }
 
     /// Re-attribute local SessionLog + DayProgress rows from the previous

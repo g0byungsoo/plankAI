@@ -106,7 +106,10 @@ public actor SyncService {
             onboarding_commitment_days_per_week: user.onboardingCommitmentDaysPerWeek,
             onboarding_notification_enabled: user.onboardingNotificationEnabled,
             onboarding_notification_time: user.onboardingNotificationTime.map { iso.string(from: $0) },
-            onboarding_voice_preference: user.onboardingVoicePreference
+            onboarding_voice_preference: user.onboardingVoicePreference,
+            onboarding_focus_area: user.onboardingFocusArea,
+            onboarding_plank_time: user.onboardingPlankTime,
+            onboarding_session_length_pref: user.onboardingSessionLengthPref
         )
 
         print("[SyncService] upsertUser: payload built for user_id=\(user.id)")
@@ -234,6 +237,9 @@ public actor SyncService {
             target.onboardingNotificationEnabled = row.onboardingNotificationEnabled
             target.onboardingNotificationTime = row.onboardingNotificationTime
             target.onboardingVoicePreference = row.onboardingVoicePreference
+            target.onboardingFocusArea = row.onboardingFocusArea
+            target.onboardingPlankTime = row.onboardingPlankTime
+            target.onboardingSessionLengthPref = row.onboardingSessionLengthPref
 
             print("[SyncService] hydrateUser: about to save context")
             do {
@@ -411,6 +417,9 @@ private struct SupabaseUserUpsert: Encodable {
     let onboarding_notification_enabled: Bool
     let onboarding_notification_time: String?
     let onboarding_voice_preference: String?
+    let onboarding_focus_area: String?
+    let onboarding_plank_time: String?
+    let onboarding_session_length_pref: Int?
 }
 
 /// Decodable mirror of SupabaseUserUpsert. Mirrors all 21 columns of
@@ -439,6 +448,9 @@ private struct SupabaseUserRow: Decodable {
     let onboardingNotificationEnabled: Bool
     let onboardingNotificationTime: Date?
     let onboardingVoicePreference: String?
+    let onboardingFocusArea: String?
+    let onboardingPlankTime: String?
+    let onboardingSessionLengthPref: Int?
 
     enum CodingKeys: String, CodingKey {
         case id, name
@@ -461,6 +473,9 @@ private struct SupabaseUserRow: Decodable {
         case onboardingNotificationEnabled = "onboarding_notification_enabled"
         case onboardingNotificationTime = "onboarding_notification_time"
         case onboardingVoicePreference = "onboarding_voice_preference"
+        case onboardingFocusArea = "onboarding_focus_area"
+        case onboardingPlankTime = "onboarding_plank_time"
+        case onboardingSessionLengthPref = "onboarding_session_length_pref"
     }
 }
 

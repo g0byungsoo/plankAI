@@ -28,6 +28,9 @@ public final class UserRecord {
     public var onboardingNotificationEnabled: Bool
     public var onboardingNotificationTime: Date?
     public var onboardingVoicePreference: String?  // "encouraging" | "balanced" | "roast"
+    public var onboardingFocusArea: String?  // "abs" | "obliques" | "lowerBack" | "fullCore"
+    public var onboardingPlankTime: String?  // "morning" | "afternoon" | "evening" | "whenever"
+    public var onboardingSessionLengthPref: Int?  // 5 | 7 | 10 (minutes)
 
     public init(
         id: String,
