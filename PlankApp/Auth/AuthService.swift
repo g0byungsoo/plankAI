@@ -82,12 +82,25 @@ final class AuthService {
         didStartBootstrap = true
         bootstrapState = .running
 
-        // 1. Try to restore an existing session from Keychain.
+        // 1. Try to restore an existing session from Keychain, then verify
+        //    it against the server. If the user was deleted server-side
+        //    (dashboard cleanup, schema reset, project wipe), the cached
+        //    session JWT will reference a sub claim that no longer maps to
+        //    a real user — every later API call would fail with
+        //    "User from sub claim in JWT does not exist". We catch that
+        //    here, sign the stale session out, and fall through to a
+        //    fresh anonymous sign-in.
         if let restored = try? await supabase.auth.session {
-            currentSession = restored
-            currentUser = restored.user
-            bootstrapState = .ready
-            return
+            do {
+                let user = try await supabase.auth.user()
+                currentSession = restored
+                currentUser = user
+                bootstrapState = .ready
+                return
+            } catch {
+                // Stale session. Drop it locally and fall through.
+                try? await supabase.auth.signOut()
+            }
         }
 
         // 2. No session — sign in anonymously.
