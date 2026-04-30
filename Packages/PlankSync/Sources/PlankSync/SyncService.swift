@@ -195,8 +195,14 @@ public actor SyncService {
         }
 
         do {
+            // Explicit composite-PK conflict target. Without it, PostgREST's
+            // default upsert conflict resolution doesn't match the
+            // (user_id, program_day) primary key cleanly — the row is
+            // inserted-or-updated correctly EXCEPT the new column
+            // session_log_ids gets dropped on the UPDATE branch. Naming
+            // the columns explicitly fixes that.
             try await supabase.from("day_progress")
-                .upsert(payload)
+                .upsert(payload, onConflict: "user_id,program_day")
                 .execute()
             print("[SyncService] upsertDayProgress: success for user=\(progress.userId) day=\(progress.programDay)")
         } catch {
