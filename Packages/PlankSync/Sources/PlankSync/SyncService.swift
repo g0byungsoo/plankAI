@@ -167,6 +167,12 @@ public actor SyncService {
     public func upsertDayProgress(_ progress: DayProgressRecord) async {
         guard !progress.userId.isEmpty else { return }
 
+        // Capture the local state at the moment we build the payload. If
+        // count == 0 here, the local DayProgressRecord write isn't sticking
+        // (HomeView mutation issue, not an upsert/encode issue).
+        let localIds = progress.sessionLogIds
+        print("[SyncService] upsertDayProgress: local DayProgressRecord — user=\(progress.userId) day=\(progress.programDay) compositeKey=\(progress.compositeKey) sessionLogIds count=\(localIds?.count ?? 0) ids=\(localIds ?? [])")
+
         let iso = ISO8601DateFormatter()
         let payload = SupabaseDayProgressUpsert(
             user_id: progress.userId,
@@ -179,10 +185,20 @@ public actor SyncService {
             session_log_ids: progress.sessionLogIds
         )
 
+        // Encode the payload independently and print the raw JSON. If
+        // session_log_ids appears here but cloud row stays null, the issue
+        // is server-side (PostgREST conflict resolution, RLS). If it's
+        // missing here, the encoder is dropping it.
+        if let jsonData = try? JSONEncoder().encode(payload),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            print("[SyncService] upsertDayProgress: wire JSON = \(jsonString)")
+        }
+
         do {
             try await supabase.from("day_progress")
                 .upsert(payload)
                 .execute()
+            print("[SyncService] upsertDayProgress: success for user=\(progress.userId) day=\(progress.programDay)")
         } catch {
             print("[SyncService] upsertDayProgress FAILED for user=\(progress.userId) day=\(progress.programDay): \(error)")
             // Non-fatal. DayProgress syncs on next attempt.
