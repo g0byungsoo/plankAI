@@ -2277,7 +2277,15 @@ struct OnboardingView: View {
     }
 
     private func go(_ to: Int) {
-        dir = to > screen ? 1 : -1
+        // Direction comes from position in flowOrder, not raw screen number.
+        // Raw screen numbers are non-monotonic (25 sits between 17 and 18, 26
+        // between 21 and 22), so a "forward" advance can have a smaller raw
+        // number than the screen it came from. The slide transition keys off
+        // `dir`, and we want it to slide forward whenever the user is moving
+        // forward in the flow.
+        let fromIdx = Self.flowOrder.firstIndex(of: screen) ?? 0
+        let toIdx = Self.flowOrder.firstIndex(of: to) ?? 0
+        dir = toIdx >= fromIdx ? 1 : -1
         withAnimation(.easeOut(duration: 0.3)) { screen = to }
     }
     private func goBack() {

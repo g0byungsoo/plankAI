@@ -197,14 +197,26 @@ private struct EmailSignUpSheet: View {
         mode == .signUp && !confirmPassword.isEmpty && !passwordsMatch
     }
 
+    // Supabase rejects weak passwords. These mirror the project's enforced
+    // rules: at least 6 characters AND at least one of each character class.
+    private var hasMinLength: Bool { password.count >= 6 }
+    private var hasLowercase: Bool { password.contains(where: { $0.isLowercase }) }
+    private var hasUppercase: Bool { password.contains(where: { $0.isUppercase }) }
+    private var hasDigit: Bool { password.contains(where: { $0.isNumber }) }
+    private var passwordMeetsRules: Bool {
+        hasMinLength && hasLowercase && hasUppercase && hasDigit
+    }
+
     private var canSubmit: Bool {
         guard !email.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
-        guard password.count >= 6 else { return false }
         guard !working else { return false }
         if mode == .signUp {
+            // Sign-up: enforce all password rules + matching confirm field
+            guard passwordMeetsRules else { return false }
             return passwordsMatch && !confirmPassword.isEmpty
         }
-        return true
+        // Sign-in: existing accounts may predate rule changes, just need non-empty
+        return !password.isEmpty
     }
 
     private var canResetPassword: Bool {
@@ -247,29 +259,35 @@ private struct EmailSignUpSheet: View {
 
                     VStack(alignment: .leading, spacing: Space.sm) {
                         field("Email") {
-                            TextField("you@example.com", text: $email)
-                                .textInputAutocapitalization(.never)
-                                .keyboardType(.emailAddress)
-                                .autocorrectionDisabled()
+                            // Explicit prompt color — without it, SwiftUI uses the
+                            // environment tint (which inherits the app accent and
+                            // can render the placeholder blue).
+                            TextField(
+                                "",
+                                text: $email,
+                                prompt: Text("you@example.com").foregroundStyle(Palette.textSecondary)
+                            )
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.emailAddress)
+                            .autocorrectionDisabled()
                         }
                         field("Password") {
-                            SecureField("••••••••", text: $password)
+                            SecureField(
+                                "",
+                                text: $password,
+                                prompt: Text("••••••••").foregroundStyle(Palette.textSecondary)
+                            )
                         }
 
                         if mode == .signUp {
-                            HStack(spacing: 6) {
-                                Image(systemName: password.count >= 6 ? "checkmark.circle.fill" : "circle")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(password.count >= 6 ? Palette.stateGood : Palette.textSecondary)
-                                Text("At least 6 characters")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(password.count >= 6 ? Palette.stateGood : Palette.textSecondary)
-                            }
-                            .padding(.top, -2)
-                            .padding(.leading, 4)
+                            passwordRulesBlock
 
                             field("Confirm password") {
-                                SecureField("re-enter password", text: $confirmPassword)
+                                SecureField(
+                                    "",
+                                    text: $confirmPassword,
+                                    prompt: Text("re-enter password").foregroundStyle(Palette.textSecondary)
+                                )
                             }
 
                             if showPasswordMismatch {
@@ -370,6 +388,42 @@ private struct EmailSignUpSheet: View {
                 .padding(14)
                 .background(Palette.bgElevated)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+
+    /// Live password requirements with checkmarks. Each rule mirrors what
+    /// Supabase enforces server-side, so the user knows exactly what they
+    /// need before submitting.
+    private var passwordRulesBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Password requirements")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Palette.textSecondary)
+                .tracking(2)
+                .padding(.top, 2)
+
+            ruleRow("At least 6 characters", satisfied: hasMinLength)
+            ruleRow("One lowercase letter", satisfied: hasLowercase)
+            ruleRow("One uppercase letter", satisfied: hasUppercase)
+            ruleRow("One digit", satisfied: hasDigit)
+
+            Text("Passwords missing any of these will be rejected as weak.")
+                .font(.system(size: 12))
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.top, 4)
+                .padding(.leading, 4)
+        }
+        .padding(.leading, 4)
+    }
+
+    private func ruleRow(_ text: String, satisfied: Bool) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: satisfied ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 12))
+                .foregroundStyle(satisfied ? Palette.stateGood : Palette.textSecondary)
+            Text(text)
+                .font(.system(size: 12))
+                .foregroundStyle(satisfied ? Palette.stateGood : Palette.textSecondary)
         }
     }
 
