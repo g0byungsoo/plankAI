@@ -1,5 +1,21 @@
 # TODOS
 
+## Status (2026-04-30)
+
+**Shipped:**
+- ✅ Auth + sync (cross-account isolation, profile hydration, typed upserts)
+- ✅ Auth UX — Phases A–F (delete account, forgot password, polished sign-up,
+  polished sign-in, error copy unification, loading state polish)
+
+**Pending:**
+- ⏳ RevenueCat payment integration — next Claude Code session
+- ⏳ App Store assets (icon, screenshots, copy)
+- ⏳ Privacy policy + Terms hosting on absmaxxing.com (see entry below)
+- ⏳ TestFlight prep — DebugAuthView removal, Phase G smoke test on physical device
+- ⏳ Camera permission flow (see entry below)
+- ⏳ v1.1 anonymous → authenticated upgrade data preservation (see entry below)
+
+
 ## Camera Permission Flow
 **What:** Three-state camera permission request flow (notDetermined → pre-permission screen, denied → Settings redirect, restricted → dead-end screen).  
 **Why:** The app literally doesn't work without camera access. A raw system dialog gets denied more often than a pre-permission screen with context.  

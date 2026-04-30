@@ -124,7 +124,10 @@ struct SignInPromptView: View {
                 let tokenData = credential.identityToken,
                 let token = String(data: tokenData, encoding: .utf8)
             else {
-                errorMessage = "Apple did not return an identity token."
+                // Apple's odd-state failure mode (no identity token returned).
+                // Friendly copy matches SignUpView so the auth flow reads
+                // consistent regardless of which sheet surfaced the error.
+                errorMessage = "Couldn't sign in with Apple. Try email instead?"
                 return
             }
             Task {
@@ -139,7 +142,8 @@ struct SignInPromptView: View {
                     Haptics.success()
                     onContinue()
                 } catch {
-                    errorMessage = error.localizedDescription
+                    print("[SignInPrompt] Apple completion failed: \(error)")
+                    errorMessage = "Couldn't sign in with Apple. Try email instead?"
                 }
             }
 
@@ -149,7 +153,8 @@ struct SignInPromptView: View {
             if let asError = error as? ASAuthorizationError, asError.code == .canceled {
                 return
             }
-            errorMessage = error.localizedDescription
+            print("[SignInPrompt] Apple authorization failed: \(error)")
+            errorMessage = "Couldn't sign in with Apple. Try email instead?"
         }
     }
 

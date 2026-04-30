@@ -5,12 +5,17 @@
   Codable upserts; cross-account isolation enforced via @Query userId filters in
   HomeView/AnalyticsView; UUID case normalized at hydrate boundaries. Verified on
   device with two distinct Apple IDs (test 1/2/3 in commit 2d9c34c).
+- **Auth UX (Phases A-F)**: shipped. Delete Account flow (Apple guideline 5.1.1(v),
+  Supabase RPC + cascade), Forgot Password (anti-enumeration), polished sign-up +
+  sign-in screens (Apple required button, terracotta accent, password requirements
+  checklist, mode toggle, in-app SFSafariViewController for Terms/Privacy), unified
+  friendly error copy, PulsingDots loading, ShakeEffect on submission errors.
 - **Payment (RevenueCat)**: next major work block. Not started. New Claude Code
   session will own this.
 - **Phase G (end-to-end smoke test on physical device)**: pending. Includes
   DebugAuthView removal once production surfaces are stable.
-- **Open items**: Camera permission flow + v1.1 anon→auth data-preservation
-  (see TODOS.md).
+- **Open items**: Camera permission flow + v1.1 anon→auth data-preservation +
+  pre-launch absmaxxing.com/terms + /privacy hosting (see TODOS.md).
 
 ## Skill routing
 

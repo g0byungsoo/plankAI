@@ -110,8 +110,12 @@ final class AuthService {
             currentUser = session.user
             bootstrapState = .ready
         } catch {
-            // Surfaces in the splash so the user can retry.
-            bootstrapState = .failed(error.localizedDescription)
+            // Bootstrap fails almost exclusively due to network — log raw
+            // error for diagnostics, surface a friendly retry prompt to
+            // the user. AuthBootstrapSplash already supplies the
+            // "Couldn't connect" headline; this is the body line.
+            print("[AuthService] bootstrap FAILED: \(error)")
+            bootstrapState = .failed("Make sure you're connected to the internet, then try again.")
             didStartBootstrap = false  // allow retry
         }
     }
