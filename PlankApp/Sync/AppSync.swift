@@ -267,16 +267,34 @@ final class AppSync {
     /// best-effort and don't throw.
     func deleteCurrentAccount() async throws {
         let userIdToWipe = currentUserId
+        print("[AppSync] deleteCurrentAccount: ENTER user_id=\(userIdToWipe ?? "<nil>")")
 
-        try await AuthService.shared.deleteAccount()
+        do {
+            try await AuthService.shared.deleteAccount()
+            print("[AppSync] deleteCurrentAccount: RPC succeeded, proceeding with local cleanup")
+        } catch {
+            print("[AppSync] deleteCurrentAccount: RPC threw, aborting local cleanup. Error: \(error)")
+            throw error
+        }
 
         if let userId = userIdToWipe, !userId.isEmpty,
            let container = modelContainer {
             clearLocalUserData(context: container.mainContext, userId: userId)
+            print("[AppSync] deleteCurrentAccount: local SwiftData cleared for user_id=\(userId)")
+        } else {
+            print("[AppSync] deleteCurrentAccount: skipped SwiftData clear — empty userId or no modelContainer")
         }
-        clearOnboardingUserDefaults()
 
-        try await AuthService.shared.signOut()
+        clearOnboardingUserDefaults()
+        print("[AppSync] deleteCurrentAccount: UserDefaults onboarding keys cleared")
+
+        do {
+            try await AuthService.shared.signOut()
+            print("[AppSync] deleteCurrentAccount: signOut + re-bootstrap complete; EXIT success")
+        } catch {
+            print("[AppSync] deleteCurrentAccount: signOut threw (cloud already deleted). Error: \(error)")
+            throw error
+        }
     }
 
     /// Delete every SwiftData record keyed to the given user_id. Ratings

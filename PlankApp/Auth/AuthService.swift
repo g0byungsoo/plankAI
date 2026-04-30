@@ -174,7 +174,23 @@ final class AuthService {
     /// + UserDefaults cleanup is the caller's responsibility (AppSync
     /// orchestrates).
     func deleteAccount() async throws {
-        try await supabase.rpc("delete_user_account").execute()
+        let uid = currentUser?.id.uuidString ?? "<nil>"
+        print("[AuthService] deleteAccount: calling RPC delete_user_account for user_id=\(uid)")
+        do {
+            let response = try await supabase.rpc("delete_user_account").execute()
+            print("[AuthService] deleteAccount: RPC returned status=\(response.status)")
+        } catch {
+            print("[AuthService] deleteAccount FAILED: \(error)")
+            print("[AuthService] error type: \(type(of: error))")
+            print("[AuthService] error localizedDescription: \(error.localizedDescription)")
+            let mirror = Mirror(reflecting: error)
+            for child in mirror.children {
+                if let label = child.label {
+                    print("[AuthService] error.\(label) = \(child.value)")
+                }
+            }
+            throw error
+        }
     }
 
     // MARK: Sign out
