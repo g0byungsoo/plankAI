@@ -28,6 +28,7 @@ final class AppSync {
 
     private var syncService: SyncService?
     private var lastUserId: String?
+    private var lastAuthMethod: AuthMethod = .unknown
 
     /// Idempotent. Safe to call multiple times.
     func configure(modelContainer: ModelContainer) {
@@ -46,6 +47,7 @@ final class AppSync {
         guard let service = syncService else { return }
         let userId = AuthService.shared.currentUser?.id.uuidString ?? ""
         lastUserId = userId
+        lastAuthMethod = AuthService.shared.authMethod
         guard !userId.isEmpty else { return }
 
         await service.retryPendingUpserts()
@@ -76,9 +78,12 @@ final class AppSync {
         guard let service = syncService else { return }
         let newUserId = AuthService.shared.currentUser?.id.uuidString ?? ""
         let isAnonNow = AuthService.shared.isAnonymous
+        let newMethod = AuthService.shared.authMethod
         let previousUserId = lastUserId
+        let previousMethod = lastAuthMethod
         let userIdChanged = newUserId != previousUserId
         lastUserId = newUserId
+        lastAuthMethod = newMethod
 
         guard !newUserId.isEmpty else { return }
 
@@ -98,6 +103,23 @@ final class AppSync {
         // skips this — preserves local data.
         if !isAnonNow {
             await service.hydrateFromCloud(userId: newUserId)
+        }
+
+        // Sign-up upgrade re-upsert: when an anonymous user becomes named on
+        // the SAME user_id, push the local profile so onboarding answers
+        // collected during the anon period land under the now-named account.
+        // Gated on userIdChanged == false to avoid clobbering an existing
+        // account's profile during a Named-A → Named-B sign-in switch.
+        let upgraded = previousMethod == .anonymous
+            && (newMethod == .apple || newMethod == .email)
+            && !userIdChanged
+        if upgraded {
+            let descriptor = FetchDescriptor<UserRecord>(
+                predicate: #Predicate { $0.id == newUserId }
+            )
+            if let record = try? modelContext.fetch(descriptor).first {
+                await service.upsertUser(record)
+            }
         }
     }
 
@@ -147,6 +169,27 @@ final class AppSync {
         guard let service = syncService else { return }
         guard !progress.userId.isEmpty else { return }
         await service.upsertDayProgress(progress)
+    }
+
+    /// Fire-and-forget Supabase upsert for the user's profile row. Caller is
+    /// responsible for the SwiftData write (handleOnboardingComplete does it
+    /// inline). Defensive: skips silently if the record's id is empty or if
+    /// AuthService has no current user — should never happen post-bootstrap,
+    /// but guards against init-order bugs.
+    func upsertUser(_ user: UserRecord) async {
+        guard let service = syncService else { return }
+        guard !user.id.isEmpty else {
+            print("[AppSync] upsertUser skipped: empty UserRecord.id")
+            return
+        }
+        guard let authedId = currentUserId, !authedId.isEmpty else {
+            print("[AppSync] upsertUser skipped: no current auth user")
+            return
+        }
+        if user.id != authedId {
+            print("[AppSync] upsertUser warning: record id (\(user.id)) != auth uid (\(authedId)); RLS will reject")
+        }
+        await service.upsertUser(user)
     }
 
     // MARK: Helpers

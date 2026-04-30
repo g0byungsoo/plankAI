@@ -69,6 +69,53 @@ public actor SyncService {
         }
     }
 
+    // MARK: - User profile upsert
+    //
+    // Typed payload (not [String: String] like the older upserts) so
+    // PostgREST gets the right column types end-to-end. This is the first
+    // upsert to use this pattern; SessionLog/DayProgress will migrate.
+    //
+    // Dates are emitted as ISO8601 strings to match the existing convention
+    // and avoid encoder-config drift.
+
+    public func upsertUser(_ user: UserRecord) async {
+        guard !user.id.isEmpty else { return }
+
+        let iso = ISO8601DateFormatter()
+        let payload = SupabaseUserUpsert(
+            id: user.id,
+            name: user.name,
+            start_date: iso.string(from: user.startDate),
+            current_day: user.currentDay,
+            core_score: user.coreScore,
+            last_session_date: user.lastSessionDate.map { iso.string(from: $0) },
+            streak_current: user.streakCurrent,
+            streak_longest: user.streakLongest,
+            streak_last_reset_date: user.streakLastResetDate.map { iso.string(from: $0) },
+            program_phase: user.programPhase,
+            foundations_completed_date: user.foundationsCompletedDate.map { iso.string(from: $0) },
+            onboarding_goal: user.onboardingGoal,
+            onboarding_experience: user.onboardingExperience,
+            onboarding_baseline_hold_seconds: user.onboardingBaselineHoldSeconds,
+            onboarding_barriers: user.onboardingBarriers,
+            onboarding_age_range: user.onboardingAgeRange,
+            onboarding_activity_level: user.onboardingActivityLevel,
+            onboarding_commitment_days_per_week: user.onboardingCommitmentDaysPerWeek,
+            onboarding_notification_enabled: user.onboardingNotificationEnabled,
+            onboarding_notification_time: user.onboardingNotificationTime.map { iso.string(from: $0) },
+            onboarding_voice_preference: user.onboardingVoicePreference
+        )
+
+        do {
+            try await supabase.from("users")
+                .upsert(payload)
+                .execute()
+        } catch {
+            // Best-effort. Profile re-upserts on next onboarding edit or on
+            // the next anon → named auth transition (AppSync.onAuthChanged).
+        }
+    }
+
     // MARK: - Day progress upsert
 
     public func upsertDayProgress(_ progress: DayProgressRecord) async {
@@ -277,6 +324,33 @@ public actor SyncService {
 }
 
 // MARK: - Supabase row types
+
+/// Typed upsert payload for public.users. Snake_case keys match the schema
+/// columns; dates are pre-formatted ISO8601 strings so we don't depend on a
+/// specific encoder date strategy.
+private struct SupabaseUserUpsert: Encodable {
+    let id: String
+    let name: String
+    let start_date: String
+    let current_day: Int
+    let core_score: Double
+    let last_session_date: String?
+    let streak_current: Int
+    let streak_longest: Int
+    let streak_last_reset_date: String?
+    let program_phase: String
+    let foundations_completed_date: String?
+    let onboarding_goal: String?
+    let onboarding_experience: String?
+    let onboarding_baseline_hold_seconds: Int?
+    let onboarding_barriers: [String]?
+    let onboarding_age_range: String?
+    let onboarding_activity_level: String?
+    let onboarding_commitment_days_per_week: Int?
+    let onboarding_notification_enabled: Bool
+    let onboarding_notification_time: String?
+    let onboarding_voice_preference: String?
+}
 
 private struct SupabaseUserRow: Decodable {
     let id: String

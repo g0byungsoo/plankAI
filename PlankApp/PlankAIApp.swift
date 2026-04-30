@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import PlankSync
 import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
+import os.log
 
 // MARK: - Orientation Control
 
@@ -125,6 +126,52 @@ private struct RootView: View {
         UserDefaults.standard.set(data.baselineHoldSeconds, forKey: "userBaselineSeconds")
         UserDefaults.standard.set(data.barriers.joined(separator: ","), forKey: "userBarriers")
         UserDefaults.standard.set(data.notificationsEnabled, forKey: "notificationsEnabled")
+
+        // Persist the profile to SwiftData + Supabase. Anonymous-first
+        // bootstrap guarantees currentUserId exists by the time onboarding
+        // completes; the guard is defensive against init-order regressions.
+        if let userId = AppSync.shared.currentUserId, !userId.isEmpty {
+            let record = upsertLocalUserRecord(userId: userId, data: data)
+            // Fire-and-forget — don't block the UI on the network call. RLS
+            // failures or table-missing conditions surface in Supabase logs;
+            // SyncService.upsertUser swallows them and the next anon → named
+            // transition will retry.
+            Task { await AppSync.shared.upsertUser(record) }
+        } else {
+            os_log("onboarding complete but no current auth user; profile not persisted",
+                   log: .default, type: .error)
+        }
+
         hasCompletedOnboarding = true
+    }
+
+    /// Insert-or-update the local UserRecord for the current Supabase user
+    /// with the onboarding answers. Returns the persisted record so the
+    /// caller can hand it to AppSync for cloud upsert. SwiftData write is
+    /// synchronous so MainTabView reads consistent state on the next render.
+    private func upsertLocalUserRecord(userId: String, data: OnboardingData) -> UserRecord {
+        let descriptor = FetchDescriptor<UserRecord>(
+            predicate: #Predicate { $0.id == userId }
+        )
+        let record: UserRecord
+        if let existing = try? modelContext.fetch(descriptor).first {
+            record = existing
+        } else {
+            record = UserRecord(id: userId, name: data.name)
+            modelContext.insert(record)
+        }
+        record.name = data.name
+        record.onboardingGoal = data.goal
+        record.onboardingExperience = data.experience
+        record.onboardingBaselineHoldSeconds = data.baselineHoldSeconds
+        record.onboardingBarriers = data.barriers
+        record.onboardingAgeRange = data.ageRange
+        record.onboardingActivityLevel = data.activityLevel
+        record.onboardingCommitmentDaysPerWeek = data.commitmentDaysPerWeek
+        record.onboardingNotificationEnabled = data.notificationsEnabled
+        record.onboardingNotificationTime = data.notificationTime
+        record.onboardingVoicePreference = data.voicePreference
+        try? modelContext.save()
+        return record
     }
 }
