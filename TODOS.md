@@ -18,3 +18,8 @@
 **What:** Untested code path. If users report data loss after signing in following an anonymous-only period, fix by adding migration UPDATE statements in AuthService upgrade methods.
 **Why:** Supabase docs claim automatic preservation, so this should never need to run. Defer until real reports surface.
 **Status:** Not blocking. v1.1 follow-up.
+
+## Pre-launch — Publish Terms + Privacy pages
+**What:** Make `https://absmaxxing.com/terms` and `https://absmaxxing.com/privacy` resolve to real pages before App Store submission.
+**Why:** SignUpView's legal text links to those URLs and opens them in SFSafariViewController. Right now they're placeholders — App Review will reject if the links 404 or 500.
+**Status:** Blocking App Store submission. Not blocking dev.
