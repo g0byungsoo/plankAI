@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import PlankSync
+import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
 
 struct HomeView: View {
     @AppStorage("userName") private var userName = ""
@@ -13,8 +14,26 @@ struct HomeView: View {
     @AppStorage("activityLevel") private var activityLevel = ""
 
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \SessionLogRecord.completedAt, order: .reverse) private var sessionLogs: [SessionLogRecord]
-    @Query(sort: \DayProgressRecord.programDay, order: .reverse) private var dayProgress: [DayProgressRecord]
+    @Query(sort: \SessionLogRecord.completedAt, order: .reverse) private var allSessionLogs: [SessionLogRecord]
+    @Query(sort: \DayProgressRecord.programDay, order: .reverse) private var allDayProgress: [DayProgressRecord]
+    @State private var auth = AuthService.shared
+
+    /// User-scoped session logs. After sign-in/sign-out cycles, SwiftData
+    /// holds rows for every user_id this device has authenticated as. The
+    /// filter prevents the previous account's sessions from leaking into
+    /// the current view. Returns [] when auth isn't ready — safer than
+    /// showing all rows.
+    private var sessionLogs: [SessionLogRecord] {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return [] }
+        return allSessionLogs.filter { $0.userId == userId }
+    }
+
+    /// Same scope guarantee for day progress. Drives `currentDay` and the
+    /// active-dates set, so a leak here would reset the wrong streak.
+    private var dayProgress: [DayProgressRecord] {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return [] }
+        return allDayProgress.filter { $0.userId == userId }
+    }
 
     @State private var showPreSession = false
     @State private var showSession = false

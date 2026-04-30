@@ -1,12 +1,32 @@
 import SwiftUI
 import SwiftData
 import PlankSync
+import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
 
 struct AnalyticsView: View {
     @AppStorage("userName") private var userName = ""
-    @Query(sort: \SessionLogRecord.completedAt, order: .reverse) private var sessionLogs: [SessionLogRecord]
-    @Query(sort: \DayProgressRecord.programDay, order: .reverse) private var dayProgress: [DayProgressRecord]
-    @Query(sort: \SessionRatingRecord.createdAt, order: .reverse) private var ratings: [SessionRatingRecord]
+    @Query(sort: \SessionLogRecord.completedAt, order: .reverse) private var allSessionLogs: [SessionLogRecord]
+    @Query(sort: \DayProgressRecord.programDay, order: .reverse) private var allDayProgress: [DayProgressRecord]
+    @Query(sort: \SessionRatingRecord.createdAt, order: .reverse) private var allRatings: [SessionRatingRecord]
+    @State private var auth = AuthService.shared
+
+    /// User-scoped views over the raw @Query results. SessionRatingRecord
+    /// has no userId column locally (cloud schema added it later), so we
+    /// scope ratings transitively through the user's session_log ids.
+    private var sessionLogs: [SessionLogRecord] {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return [] }
+        return allSessionLogs.filter { $0.userId == userId }
+    }
+
+    private var dayProgress: [DayProgressRecord] {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return [] }
+        return allDayProgress.filter { $0.userId == userId }
+    }
+
+    private var ratings: [SessionRatingRecord] {
+        let sessionIds = Set(sessionLogs.map(\.id))
+        return allRatings.filter { sessionIds.contains($0.sessionLogId) }
+    }
 
     private var routineCount: Int {
         sessionLogs.filter { $0.sessionType == "routine" }.count

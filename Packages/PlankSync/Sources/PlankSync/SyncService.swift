@@ -341,7 +341,12 @@ public actor SyncService {
                     // Local row exists. Don't clobber a pending-upsert local
                     // record with server state — the local row may be newer.
                     if !existing.pendingUpsert {
-                        existing.userId = row.userId
+                        // Use the userId param (uppercase Swift UUID), NOT
+                        // row.userId (lowercase from PostgREST). Local writes
+                        // store uppercase; HomeView's user-scoped filter
+                        // compares against uppercase. Storing lowercase here
+                        // would make hydrated rows invisible to the filter.
+                        existing.userId = userId
                         existing.exerciseType = row.exerciseType
                         existing.sessionType = row.sessionType
                         existing.completedAt = row.completedAt
@@ -358,7 +363,7 @@ public actor SyncService {
                 } else {
                     let record = SessionLogRecord(
                         id: row.id,
-                        userId: row.userId,
+                        userId: userId,
                         exerciseType: row.exerciseType,
                         completedAt: row.completedAt,
                         holdTime: row.holdTime,
@@ -395,22 +400,29 @@ public actor SyncService {
                 .value
 
             for row in rows {
-                let key = "\(row.userId):\(row.programDay)"
+                // Build composite key with the uppercase userId param so it
+                // matches the key HomeView's saveRoutineSession produces
+                // ("\(currentUserId):\(currentDay)"). Using row.userId
+                // (lowercase) would create a parallel set of keys that
+                // never collide with the local writes — duplicate rows.
+                let key = "\(userId):\(row.programDay)"
                 let descriptor = FetchDescriptor<DayProgressRecord>(
                     predicate: #Predicate { $0.compositeKey == key }
                 )
                 if let existing = try? context.fetch(descriptor).first {
                     // Last-write-wins on updatedAt.
                     if row.updatedAt > existing.updatedAt {
+                        existing.userId = userId
                         existing.date = row.date
                         existing.primarySessionId = row.primarySessionId
                         existing.primaryQualityScore = row.primaryQualityScore
                         existing.primaryHoldTime = row.primaryHoldTime
+                        existing.sessionLogIds = row.sessionLogIds
                         existing.updatedAt = row.updatedAt
                     }
                 } else {
                     let record = DayProgressRecord(
-                        userId: row.userId,
+                        userId: userId,
                         programDay: row.programDay,
                         date: row.date,
                         primarySessionId: row.primarySessionId,
@@ -418,6 +430,7 @@ public actor SyncService {
                         primaryHoldTime: row.primaryHoldTime
                     )
                     record.updatedAt = row.updatedAt
+                    record.sessionLogIds = row.sessionLogIds
                     context.insert(record)
                 }
             }
@@ -615,6 +628,7 @@ private struct SupabaseDayProgressRow: Decodable {
     let primaryQualityScore: Double
     let primaryHoldTime: Double
     let updatedAt: Date
+    let sessionLogIds: [String]?
 
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
@@ -624,5 +638,6 @@ private struct SupabaseDayProgressRow: Decodable {
         case primaryQualityScore = "primary_quality_score"
         case primaryHoldTime = "primary_hold_time"
         case updatedAt = "updated_at"
+        case sessionLogIds = "session_log_ids"
     }
 }
