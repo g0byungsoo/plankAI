@@ -168,6 +168,7 @@ public actor SyncService {
     @MainActor
     private func hydrateUser(userId: String) async {
         let context = modelContainer.mainContext
+        print("[SyncService] hydrateUser: using context \(ObjectIdentifier(context))")
 
         do {
             let response: [SupabaseUserRow] = try await supabase
@@ -223,8 +224,24 @@ public actor SyncService {
             target.onboardingNotificationEnabled = row.onboardingNotificationEnabled
             target.onboardingNotificationTime = row.onboardingNotificationTime
             target.onboardingVoicePreference = row.onboardingVoicePreference
-            try? context.save()
-            print("[SyncService] hydrateUser: UserRecord populated with onboarding fields")
+
+            print("[SyncService] hydrateUser: about to save context")
+            do {
+                try context.save()
+                print("[SyncService] hydrateUser: context saved successfully")
+            } catch {
+                print("[SyncService] hydrateUser: SAVE FAILED: \(error)")
+                return
+            }
+
+            // Verify the write is durable on the same context. A count of 1
+            // means the row is queryable; a count of 0 means the save didn't
+            // persist or the context's fetch doesn't see uncommitted state.
+            let verifyDescriptor = FetchDescriptor<UserRecord>(
+                predicate: #Predicate { $0.id == userId }
+            )
+            let verifyCount = (try? context.fetch(verifyDescriptor))?.count ?? -1
+            print("[SyncService] hydrateUser: post-save fetch count = \(verifyCount) on context \(ObjectIdentifier(context))")
         } catch {
             print("[SyncService] hydrateUser FAILED for \(userId): \(error)")
         }

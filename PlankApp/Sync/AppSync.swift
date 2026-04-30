@@ -27,11 +27,18 @@ final class AppSync {
     private init() {}
 
     private var syncService: SyncService?
+    private var modelContainer: ModelContainer?
     private var lastUserId: String?
     private var lastAuthMethod: AuthMethod = .unknown
+    /// Guards against the same user_id triggering hydrate+sync twice
+    /// concurrently. Sign-in fires both `onChange(of: currentUser?.id)` and
+    /// `onChange(of: authMethod)` in the same render cycle — without this
+    /// set, the hydrate path runs 2-3x in close succession.
+    private var hydrationsInFlight: Set<String> = []
 
     /// Idempotent. Safe to call multiple times.
     func configure(modelContainer: ModelContainer) {
+        self.modelContainer = modelContainer
         guard syncService == nil else { return }
         syncService = SyncService(supabaseClient: supabase, modelContainer: modelContainer)
     }
@@ -53,8 +60,7 @@ final class AppSync {
         await service.retryPendingUpserts()
 
         if isLocalCacheEmpty(modelContext: modelContext) {
-            await service.hydrateFromCloud(userId: userId)
-            syncUserDefaultsFromUserRecord(modelContext: modelContext, userId: userId)
+            await hydrateAndSync(userId: userId)
         }
     }
 
@@ -103,8 +109,7 @@ final class AppSync {
         // Pull server state for non-anon identities. Sign-out (new is anon)
         // skips this — preserves local data.
         if !isAnonNow {
-            await service.hydrateFromCloud(userId: newUserId)
-            syncUserDefaultsFromUserRecord(modelContext: modelContext, userId: newUserId)
+            await hydrateAndSync(userId: newUserId)
         }
 
         // Sign-up upgrade re-upsert: when an anonymous user becomes named on
@@ -130,26 +135,56 @@ final class AppSync {
         await onAuthChanged(modelContext: modelContext)
     }
 
+    /// Hydrate from cloud and immediately mirror the UserRecord into
+    /// @AppStorage. Both phases run on the SAME context — the container's
+    /// mainContext — so the post-hydrate read is guaranteed to see the
+    /// SwiftData write hydrateUser just made. Earlier, the read used the
+    /// `@Environment(\.modelContext)` from RootView, which was a different
+    /// `ModelContext` instance and consistently returned 0 results.
+    ///
+    /// The `hydrationsInFlight` guard collapses the 2-3x sign-in firings
+    /// (currentUser?.id onChange + authMethod onChange + onLaunch) into a
+    /// single hydrate per user_id.
+    private func hydrateAndSync(userId: String) async {
+        guard !userId.isEmpty else { return }
+        if hydrationsInFlight.contains(userId) {
+            print("[AppSync] hydrateAndSync: SKIP — already in flight for \(userId)")
+            return
+        }
+        hydrationsInFlight.insert(userId)
+        defer { hydrationsInFlight.remove(userId) }
+
+        guard let service = syncService else {
+            print("[AppSync] hydrateAndSync: no syncService configured")
+            return
+        }
+        guard let container = modelContainer else {
+            print("[AppSync] hydrateAndSync: no modelContainer configured")
+            return
+        }
+
+        await service.hydrateFromCloud(userId: userId)
+        syncUserDefaultsFromUserRecord(context: container.mainContext, userId: userId)
+    }
+
     /// Mirror the freshly-hydrated UserRecord back into the @AppStorage keys
-    /// that the rest of the app reads from. Without this step, a returning
-    /// user signing in on a fresh install would land in MainTabView with
-    /// empty userName/voicePreference/etc. — the UserRecord rows are present
-    /// but the @AppStorage layer is unaware of them.
+    /// that the rest of the app reads from. Reads from `container.mainContext`
+    /// — the same context hydrateUser writes to — so the fetch is guaranteed
+    /// to see the row.
     ///
     /// Schema gap: focusArea, plankTime, sessionLengthPref, and userGoal
     /// (the focusArea-derived field) are NOT yet in public.users — they
-    /// won't survive a reinstall + sign-in until the schema extends. Other
-    /// @AppStorage keys (userName, userMotivation, ageRange, activityLevel,
-    /// barriers, baselineSeconds, commitmentDays, notificationsEnabled,
-    /// voicePreference, userExperience) populate from this method.
-    private func syncUserDefaultsFromUserRecord(modelContext: ModelContext, userId: String) {
+    /// won't survive a reinstall + sign-in until the schema extends.
+    private func syncUserDefaultsFromUserRecord(context: ModelContext, userId: String) {
+        print("[AppSync] syncUserDefaultsFromUserRecord: using context \(ObjectIdentifier(context))")
         let descriptor = FetchDescriptor<UserRecord>(
             predicate: #Predicate { $0.id == userId }
         )
-        guard let record = try? modelContext.fetch(descriptor).first else {
-            print("[AppSync] syncUserDefaultsFromUserRecord: no UserRecord for \(userId) — hydration didn't find a public.users row")
+        guard let record = try? context.fetch(descriptor).first else {
+            print("[AppSync] syncUserDefaultsFromUserRecord: NO UserRecord found for \(userId)")
             return
         }
+        print("[AppSync] syncUserDefaultsFromUserRecord: UserRecord found — name='\(record.name)'")
 
         let defaults = UserDefaults.standard
         if !record.name.isEmpty { defaults.set(record.name, forKey: "userName") }
@@ -165,7 +200,7 @@ final class AppSync {
         }
         defaults.set(record.onboardingNotificationEnabled, forKey: "notificationsEnabled")
 
-        print("[AppSync] syncUserDefaultsFromUserRecord: name='\(record.name)' age=\(record.onboardingAgeRange ?? "nil") barriers=\(record.onboardingBarriers ?? [])")
+        print("[AppSync] syncUserDefaultsFromUserRecord: WROTE userName='\(defaults.string(forKey: "userName") ?? "")' userMotivation='\(defaults.string(forKey: "userMotivation") ?? "")' ageRange='\(defaults.string(forKey: "ageRange") ?? "")' barriers='\(defaults.string(forKey: "userBarriers") ?? "")'")
     }
 
     /// Re-attribute local SessionLog + DayProgress rows from the previous
