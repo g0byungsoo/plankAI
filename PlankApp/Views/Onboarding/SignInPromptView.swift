@@ -199,7 +199,7 @@ private struct EmailSignUpSheet: View {
     @State private var confirmPassword = ""
     @State private var working = false
     @State private var errorMessage: String?
-    @State private var infoMessage: String?
+    @State private var showForgotPasswordSheet = false
 
     init(initialMode: EmailMode = .signUp, onSuccess: @escaping () -> Void) {
         self.onSuccess = onSuccess
@@ -236,10 +236,6 @@ private struct EmailSignUpSheet: View {
         }
         // Sign-in: existing accounts may predate rule changes, just need non-empty
         return !password.isEmpty
-    }
-
-    private var canResetPassword: Bool {
-        !email.trimmingCharacters(in: .whitespaces).isEmpty && !working
     }
 
     private var headline: String {
@@ -335,12 +331,6 @@ private struct EmailSignUpSheet: View {
                             .foregroundStyle(Palette.stateBad)
                     }
 
-                    if let infoMessage {
-                        Text(infoMessage)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Palette.stateGood)
-                    }
-
                     Button {
                         Task { await submit() }
                     } label: {
@@ -356,21 +346,19 @@ private struct EmailSignUpSheet: View {
 
                     if mode == .signIn {
                         Button {
-                            Task { await sendReset() }
+                            Haptics.light()
+                            showForgotPasswordSheet = true
                         } label: {
                             Text("Forgot password?")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(Palette.accent)
                         }
-                        .disabled(!canResetPassword)
-                        .opacity(canResetPassword ? 1 : 0.5)
                     }
 
                     Button {
                         Haptics.light()
                         withAnimation { mode = (mode == .signUp ? .signIn : .signUp) }
                         errorMessage = nil
-                        infoMessage = nil
                         confirmPassword = ""
                     } label: {
                         Text(toggleLabel)
@@ -397,6 +385,13 @@ private struct EmailSignUpSheet: View {
                             .clipShape(Circle())
                     }
                 }
+            }
+            .sheet(isPresented: $showForgotPasswordSheet) {
+                ForgotPasswordView(initialEmail: email) {
+                    showForgotPasswordSheet = false
+                }
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
             }
         }
     }
@@ -456,7 +451,6 @@ private struct EmailSignUpSheet: View {
         let trimmedEmail = email.trimmingCharacters(in: .whitespaces)
         working = true
         errorMessage = nil
-        infoMessage = nil
         defer { working = false }
         do {
             switch mode {
@@ -468,20 +462,6 @@ private struct EmailSignUpSheet: View {
             Haptics.success()
             dismiss()
             onSuccess()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    private func sendReset() async {
-        let trimmedEmail = email.trimmingCharacters(in: .whitespaces)
-        working = true
-        errorMessage = nil
-        infoMessage = nil
-        defer { working = false }
-        do {
-            try await AuthService.shared.sendPasswordReset(email: trimmedEmail)
-            infoMessage = "Reset link sent to \(trimmedEmail). Check your inbox."
         } catch {
             errorMessage = error.localizedDescription
         }
