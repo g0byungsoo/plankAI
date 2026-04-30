@@ -32,6 +32,16 @@ struct ForgotPasswordView: View {
     @State private var validationError: String?
     @FocusState private var emailFocused: Bool
 
+    /// Real-time gate on the primary button. Trims whitespace + checks
+    /// regex. Inline format error still only surfaces on submit (don't
+    /// yell while the user is typing) but the button gets disabled the
+    /// moment the input doesn't pass.
+    private var canSubmit: Bool {
+        let trimmed = email.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return false }
+        return isValidEmail(trimmed)
+    }
+
     init(initialEmail: String = "", onDismiss: @escaping () -> Void) {
         self.initialEmail = initialEmail
         self.onDismiss = onDismiss
@@ -67,7 +77,7 @@ struct ForgotPasswordView: View {
     private var inputContent: some View {
         VStack(alignment: .leading, spacing: Space.lg) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Forgot password?")
+                Text("Reset your password.")
                     .font(Typo.title)
                     .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -141,7 +151,15 @@ struct ForgotPasswordView: View {
     }
 
     private var sendButton: some View {
-        Button {
+        // The button is disabled in two cases:
+        //   1. The email field is empty or fails the format regex —
+        //      pre-flight gate so users don't tap-then-error.
+        //   2. A submission is in flight — prevent double-taps.
+        // Disabled bg is accent at 0.4 opacity (terracotta faded). Phase
+        // C/D's primary buttons will reuse this same disabled treatment
+        // so the auth flow stays consistent.
+        let isDisabled = !canSubmit || phase == .sending
+        return Button {
             Haptics.light()
             submit()
         } label: {
@@ -156,11 +174,12 @@ struct ForgotPasswordView: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 50)
-            .background(Palette.accent)
+            .background(isDisabled ? Palette.accent.opacity(0.4) : Palette.accent)
             .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+            .animation(.easeOut(duration: 0.15), value: isDisabled)
         }
         .buttonStyle(CTAButtonStyle())
-        .disabled(phase == .sending)
+        .disabled(isDisabled)
     }
 
     private var cancelButton: some View {
@@ -199,7 +218,7 @@ struct ForgotPasswordView: View {
                     .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("If an account exists with that email, you'll get a reset link in a few minutes.")
+                Text("If an account exists with that email, you'll get a reset link in a few minutes. It expires in 1 hour.")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
