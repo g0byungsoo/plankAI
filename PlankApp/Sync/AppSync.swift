@@ -250,6 +250,96 @@ final class AppSync {
         await service.upsertDayProgress(progress)
     }
 
+    // MARK: Delete account
+
+    /// End-to-end delete-account orchestration:
+    ///   1. Call AuthService.deleteAccount() RPC. Cloud cascade removes every
+    ///      user-data row keyed to auth.uid().
+    ///   2. Wipe local SwiftData rows for the deleted user. Other accounts
+    ///      previously signed in on this device stay intact.
+    ///   3. Clear @AppStorage onboarding state so RootView routes back to
+    ///      the welcome screen — fresh device-equivalent.
+    ///   4. Sign out (re-bootstraps an anonymous session, restores a valid
+    ///      auth.uid() for first-launch behavior).
+    ///
+    /// Throws on RPC failure. Caller (DeleteAccountSheet) catches and shows
+    /// an inline error; partial-success cleanup steps after the RPC are
+    /// best-effort and don't throw.
+    func deleteCurrentAccount() async throws {
+        let userIdToWipe = currentUserId
+
+        try await AuthService.shared.deleteAccount()
+
+        if let userId = userIdToWipe, !userId.isEmpty,
+           let container = modelContainer {
+            clearLocalUserData(context: container.mainContext, userId: userId)
+        }
+        clearOnboardingUserDefaults()
+
+        try await AuthService.shared.signOut()
+    }
+
+    /// Delete every SwiftData record keyed to the given user_id. Ratings
+    /// reference sessionLogId, not userId, so we collect the user's session
+    /// IDs first, delete matching ratings, then delete the sessions.
+    @MainActor
+    private func clearLocalUserData(context: ModelContext, userId: String) {
+        let sessionsDescriptor = FetchDescriptor<SessionLogRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        let sessions = (try? context.fetch(sessionsDescriptor)) ?? []
+        let sessionIds = Set(sessions.map(\.id))
+
+        let allRatings = (try? context.fetch(FetchDescriptor<SessionRatingRecord>())) ?? []
+        for rating in allRatings where sessionIds.contains(rating.sessionLogId) {
+            context.delete(rating)
+        }
+        for session in sessions {
+            context.delete(session)
+        }
+
+        let dayProgressDescriptor = FetchDescriptor<DayProgressRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        if let progresses = try? context.fetch(dayProgressDescriptor) {
+            for progress in progresses { context.delete(progress) }
+        }
+
+        let userRecordDescriptor = FetchDescriptor<UserRecord>(
+            predicate: #Predicate { $0.id == userId }
+        )
+        if let users = try? context.fetch(userRecordDescriptor) {
+            for user in users { context.delete(user) }
+        }
+
+        let calibrationsDescriptor = FetchDescriptor<ExerciseCalibrationRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        if let calibrations = try? context.fetch(calibrationsDescriptor) {
+            for cal in calibrations { context.delete(cal) }
+        }
+
+        try? context.save()
+    }
+
+    /// Reset every onboarding-derived @AppStorage key + the gate flags so
+    /// RootView lands the user back on the welcome screen with a fresh
+    /// anonymous session. Bundle-Identifier-scoped — doesn't touch other
+    /// apps' defaults.
+    private func clearOnboardingUserDefaults() {
+        let defaults = UserDefaults.standard
+        let keys = [
+            "userName", "userGoal", "userExperience", "userMotivation",
+            "voicePreference", "ageRange", "activityLevel", "focusArea",
+            "plankTime", "sessionLengthPref", "userBaselineSeconds",
+            "commitmentDays", "userBarriers", "notificationsEnabled",
+            "hasCompletedFirstSession", "hasCompletedOnboarding",
+        ]
+        for key in keys {
+            defaults.removeObject(forKey: key)
+        }
+    }
+
     /// Fire-and-forget Supabase upsert for the user's profile row. Caller is
     /// responsible for the SwiftData write (handleOnboardingComplete does it
     /// inline). Defensive: skips silently if the record's id is empty or if

@@ -337,6 +337,7 @@
 		EE0000052FA50002000005 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000052FA50001000005 /* AccountView.swift */; };
 		EE0000062FA50002000006 /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000062FA50001000006 /* FeedbackView.swift */; };
 		F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A5839CBCA9EBEB79038667 /* DebugAuthView.swift */; };
+		AAAA00010000000000000001 /* DeleteAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00020000000000000001 /* DeleteAccountSheet.swift */; };
 		FF08B4902FA6000B3D /* roast_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF95B9F72FA60004FB /* roast_1.m4a */; };
 		FF1934C52FA7005F95 /* routine_done_4.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF26AEC12FA7000719 /* routine_done_4.m4a */; };
 		FF1EC4C82FA600EDEE /* roast_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF30522C2FA600526A /* roast_2.m4a */; };
@@ -353,6 +354,7 @@
 /* Begin PBXFileReference section */
 		1E3BFB7C26C4CE6073B4BD5B /* AuthService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		27A5839CBCA9EBEB79038667 /* DebugAuthView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DebugAuthView.swift; sourceTree = "<group>"; };
+		AAAA00020000000000000001 /* DeleteAccountSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeleteAccountSheet.swift; sourceTree = "<group>"; };
 		4541BBF55D20BF977CCAD632 /* AppleSignInService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
 		684A46F030FF961D63028458 /* AuthBootstrapSplash.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthBootstrapSplash.swift; sourceTree = "<group>"; };
 		783186412F99E3110096138F /* plankAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = plankAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -1244,6 +1246,7 @@
 				EE0000052FA50001000005 /* AccountView.swift */,
 				EE0000062FA50001000006 /* FeedbackView.swift */,
 				27A5839CBCA9EBEB79038667 /* DebugAuthView.swift */,
+				AAAA00020000000000000001 /* DeleteAccountSheet.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -1662,6 +1665,7 @@
 				34416FA981321B4746721203 /* AuthBootstrapSplash.swift in Sources */,
 				D82175BFC774BFB8081957D2 /* SupabaseConfig.swift in Sources */,
 				F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */,
+				AAAA00010000000000000001 /* DeleteAccountSheet.swift in Sources */,
 				B58D26581F4992F4CA9E29DD /* AppleSignInService.swift in Sources */,
 				75661984DCC520F8ED82FED1 /* SignInPromptView.swift in Sources */,
 				62710D31232DA4D53C102084 /* AppSync.swift in Sources */,

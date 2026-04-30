@@ -10,6 +10,7 @@ struct AccountView: View {
     @State private var showSignInSheet = false
     @State private var showSignOutConfirm = false
     @State private var signingOut = false
+    @State private var showDeleteAccountSheet = false
 
     var body: some View {
         ScrollView {
@@ -197,12 +198,55 @@ struct AccountView: View {
             .background(Palette.bgElevated)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .plankShadow()
+
+            // Delete Account — Apple App Store Review Guideline 5.1.1(v)
+            // requires every account-creating app to expose this in-app.
+            // Only shown when signed in; anonymous users have no cloud row
+            // to delete.
+            Button {
+                Haptics.light()
+                showDeleteAccountSheet = true
+            } label: {
+                Text("Delete Account")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Palette.stateBad)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Palette.stateBad.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .padding(.top, Space.sm)
         }
         .alert("Sign out?", isPresented: $showSignOutConfirm) {
             Button("Sign Out", role: .destructive) { Task { await performSignOut() } }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Your local data stays on this device. Sign in again to sync to the cloud.")
+        }
+        .sheet(isPresented: $showDeleteAccountSheet) {
+            DeleteAccountSheet(
+                onConfirm: {
+                    do {
+                        try await AppSync.shared.deleteCurrentAccount()
+                        return nil
+                    } catch {
+                        return "Couldn't delete account. Try again or contact support@absmaxxing.com."
+                    }
+                },
+                onSucceededDismiss: {
+                    showDeleteAccountSheet = false
+                    // hasCompletedOnboarding was reset by deleteCurrentAccount —
+                    // RootView will swap to OnboardingView once this view
+                    // dismisses. Pop Settings explicitly so the user isn't
+                    // looking at a stale Account screen first.
+                    dismiss()
+                },
+                onCancel: {
+                    showDeleteAccountSheet = false
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
     }
 

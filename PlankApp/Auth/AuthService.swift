@@ -164,6 +164,19 @@ final class AuthService {
         try await supabase.auth.resetPasswordForEmail(email)
     }
 
+    // MARK: Delete account
+
+    /// Permanently delete the current user from Supabase. Calls the
+    /// SECURITY DEFINER RPC `public.delete_user_account()` which removes
+    /// the auth.users row; ON DELETE CASCADE on the user-data tables
+    /// removes everything else (public.users, session_logs, day_progress,
+    /// session_ratings, exercise_calibrations). RPC-only — local SwiftData
+    /// + UserDefaults cleanup is the caller's responsibility (AppSync
+    /// orchestrates).
+    func deleteAccount() async throws {
+        try await supabase.rpc("delete_user_account").execute()
+    }
+
     // MARK: Sign out
 
     /// Sign out of the Supabase session, then immediately bootstrap a new
