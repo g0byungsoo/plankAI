@@ -125,6 +125,20 @@ public struct ExerciseResultEntry: Codable {
         self.completedDuration = completedDuration
         self.skipped = skipped
     }
+
+    // Explicit camelCase keys lock the wire format. The Supabase SDK may
+    // apply a key-encoding strategy (e.g., snake_case) at the encoder
+    // level when serializing the outer upsert payload — without these
+    // explicit keys, that strategy would rename `exerciseId` → `exercise_id`
+    // on write, but the local SessionLogRecord round-trip uses a plain
+    // JSONDecoder that expects camelCase. Locking the keys keeps both
+    // sides consistent.
+    enum CodingKeys: String, CodingKey {
+        case exerciseId
+        case duration
+        case completedDuration
+        case skipped
+    }
 }
 
 extension SessionLogRecord {

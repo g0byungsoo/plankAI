@@ -30,28 +30,57 @@ public actor SyncService {
     /// Upsert a SessionLogRecord to Supabase. SwiftData write is the caller's
     /// responsibility — this method only handles the cloud side. On success,
     /// clears the local `pendingUpsert` flag.
+    ///
+    /// Typed Codable payload: numeric fields encode as JSON numbers (not
+    /// stringified), optional fields encode as JSON null when Swift nil
+    /// (not ""), and exercise_results decodes to [ExerciseResultEntry]
+    /// before encoding so the jsonb column receives a real JSON array
+    /// instead of a base64 blob.
     public func upsertSessionLog(_ session: SessionLogRecord) async {
         let sessionId = session.id
         guard !session.userId.isEmpty else { return }
 
+        // Decode local Data? → [ExerciseResultEntry]? for the jsonb column.
+        // nil Data → nil array → JSON null on the wire (correct for "no
+        // exercises captured"). Set Data → decoded entries → real JSON array.
+        // Decode failure → nil + log (degraded: row still upserts without
+        // the per-exercise breakdown rather than failing the whole upsert).
+        let exerciseResultsArray: [ExerciseResultEntry]?
+        if let data = session.exerciseResults {
+            do {
+                exerciseResultsArray = try JSONDecoder().decode(
+                    [ExerciseResultEntry].self,
+                    from: data
+                )
+            } catch {
+                print("[SyncService] upsertSessionLog: exercise_results decode failed for \(sessionId), sending null: \(error)")
+                exerciseResultsArray = nil
+            }
+        } else {
+            exerciseResultsArray = nil
+        }
+
+        let payload = SupabaseSessionLogUpsert(
+            id: session.id,
+            user_id: session.userId,
+            exercise_type: session.exerciseType,
+            session_type: session.sessionType,
+            completed_at: ISO8601DateFormatter().string(from: session.completedAt),
+            hold_time: session.holdTime,
+            target_time: session.targetTime,
+            quality_score: session.qualityScore,
+            form_faults_count: session.formFaultsCount,
+            modified_version: session.modifiedVersion,
+            preset_id: session.presetId,
+            total_duration: session.totalDuration,
+            plank_hold_time: session.plankHoldTime,
+            plank_form_score: session.plankFormScore,
+            exercise_results: exerciseResultsArray
+        )
+
         do {
             try await supabase.from("session_logs")
-                .upsert([
-                    "id": session.id,
-                    "user_id": session.userId,
-                    "exercise_type": session.exerciseType,
-                    "session_type": session.sessionType,
-                    "completed_at": ISO8601DateFormatter().string(from: session.completedAt),
-                    "hold_time": String(session.holdTime),
-                    "target_time": String(session.targetTime),
-                    "quality_score": String(session.qualityScore),
-                    "form_faults_count": String(session.formFaultsCount),
-                    "modified_version": String(session.modifiedVersion),
-                    "preset_id": session.presetId ?? "",
-                    "total_duration": session.totalDuration.map { String($0) } ?? "",
-                    "plank_hold_time": session.plankHoldTime.map { String($0) } ?? "",
-                    "plank_form_score": session.plankFormScore.map { String($0) } ?? "",
-                ])
+                .upsert(payload)
                 .execute()
 
             // Clear pending flag on success.
@@ -65,7 +94,8 @@ public actor SyncService {
                 }
             }
         } catch {
-            // Upsert failed. pendingUpsert stays true. Retry on next launch.
+            print("[SyncService] upsertSessionLog FAILED for \(sessionId): \(error)")
+            // pendingUpsert stays true. Retry on next launch.
         }
     }
 
@@ -137,19 +167,24 @@ public actor SyncService {
     public func upsertDayProgress(_ progress: DayProgressRecord) async {
         guard !progress.userId.isEmpty else { return }
 
+        let iso = ISO8601DateFormatter()
+        let payload = SupabaseDayProgressUpsert(
+            user_id: progress.userId,
+            program_day: progress.programDay,
+            date: iso.string(from: progress.date),
+            primary_session_id: progress.primarySessionId,
+            primary_quality_score: progress.primaryQualityScore,
+            primary_hold_time: progress.primaryHoldTime,
+            updated_at: iso.string(from: progress.updatedAt),
+            session_log_ids: progress.sessionLogIds
+        )
+
         do {
             try await supabase.from("day_progress")
-                .upsert([
-                    "user_id": progress.userId,
-                    "program_day": String(progress.programDay),
-                    "date": ISO8601DateFormatter().string(from: progress.date),
-                    "primary_session_id": progress.primarySessionId,
-                    "primary_quality_score": String(progress.primaryQualityScore),
-                    "primary_hold_time": String(progress.primaryHoldTime),
-                    "updated_at": ISO8601DateFormatter().string(from: progress.updatedAt),
-                ])
+                .upsert(payload)
                 .execute()
         } catch {
+            print("[SyncService] upsertDayProgress FAILED for user=\(progress.userId) day=\(progress.programDay): \(error)")
             // Non-fatal. DayProgress syncs on next attempt.
         }
     }
@@ -391,6 +426,43 @@ public actor SyncService {
 }
 
 // MARK: - Supabase row types
+
+/// Typed upsert payload for public.session_logs. Numeric fields are real
+/// JSON numbers, optionals are JSON null when nil, exercise_results is a
+/// proper JSON array (jsonb column). Property names use snake_case to map
+/// directly to the columns without relying on encoder strategy.
+private struct SupabaseSessionLogUpsert: Encodable {
+    let id: String
+    let user_id: String
+    let exercise_type: String
+    let session_type: String
+    let completed_at: String
+    let hold_time: Double
+    let target_time: Double
+    let quality_score: Double
+    let form_faults_count: Int
+    let modified_version: Bool
+    let preset_id: String?
+    let total_duration: Double?
+    let plank_hold_time: Double?
+    let plank_form_score: Double?
+    let exercise_results: [ExerciseResultEntry]?
+}
+
+/// Typed upsert payload for public.day_progress. Composite primary key
+/// (user_id, program_day) — PostgREST handles the upsert conflict resolution.
+/// session_log_ids is the new text[] column; was missing from the dict-based
+/// upsert, so all prior runs left it null on the server.
+private struct SupabaseDayProgressUpsert: Encodable {
+    let user_id: String
+    let program_day: Int
+    let date: String
+    let primary_session_id: String
+    let primary_quality_score: Double
+    let primary_hold_time: Double
+    let updated_at: String
+    let session_log_ids: [String]?
+}
 
 /// Typed upsert payload for public.users. Snake_case keys match the schema
 /// columns; dates are pre-formatted ISO8601 strings so we don't depend on a
