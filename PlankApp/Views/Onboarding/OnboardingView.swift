@@ -282,7 +282,9 @@ struct OnboardingView: View {
                     Capsule().fill(Palette.divider).frame(height: 4)
                     Capsule().fill(Palette.textPrimary)
                         .frame(width: max(8, geo.size.width * progressFraction), height: 4)
-                        .animation(.spring(response: 0.5), value: screen)
+                        // easeOut, not spring — spring can overshoot on a small
+                        // forward delta (e.g., 69% → 73%) and look like a regression.
+                        .animation(.easeOut(duration: 0.35), value: screen)
                 }
             }.frame(height: 4)
             Color.clear.frame(width: 40, height: 40)

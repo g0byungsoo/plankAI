@@ -182,14 +182,29 @@ private struct EmailSignUpSheet: View {
     @State private var mode: EmailMode = .signUp
     @State private var email = ""
     @State private var password = ""
+    @State private var confirmPassword = ""
     @State private var working = false
     @State private var errorMessage: String?
     @State private var infoMessage: String?
 
+    private var passwordsMatch: Bool {
+        password == confirmPassword
+    }
+
+    /// Show the mismatch warning only after the user has typed something
+    /// in both fields — no scary red text while they're still typing.
+    private var showPasswordMismatch: Bool {
+        mode == .signUp && !confirmPassword.isEmpty && !passwordsMatch
+    }
+
     private var canSubmit: Bool {
-        !email.trimmingCharacters(in: .whitespaces).isEmpty &&
-            password.count >= 6 &&
-            !working
+        guard !email.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
+        guard password.count >= 6 else { return false }
+        guard !working else { return false }
+        if mode == .signUp {
+            return passwordsMatch && !confirmPassword.isEmpty
+        }
+        return true
     }
 
     private var canResetPassword: Bool {
@@ -237,8 +252,37 @@ private struct EmailSignUpSheet: View {
                                 .keyboardType(.emailAddress)
                                 .autocorrectionDisabled()
                         }
-                        field(mode == .signUp ? "Password (min 6 characters)" : "Password") {
+                        field("Password") {
                             SecureField("••••••••", text: $password)
+                        }
+
+                        if mode == .signUp {
+                            HStack(spacing: 6) {
+                                Image(systemName: password.count >= 6 ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(password.count >= 6 ? Palette.stateGood : Palette.textSecondary)
+                                Text("At least 6 characters")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(password.count >= 6 ? Palette.stateGood : Palette.textSecondary)
+                            }
+                            .padding(.top, -2)
+                            .padding(.leading, 4)
+
+                            field("Confirm password") {
+                                SecureField("re-enter password", text: $confirmPassword)
+                            }
+
+                            if showPasswordMismatch {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Palette.stateBad)
+                                    Text("Passwords don't match")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Palette.stateBad)
+                                }
+                                .padding(.leading, 4)
+                            }
                         }
                     }
 
@@ -284,6 +328,7 @@ private struct EmailSignUpSheet: View {
                         withAnimation { mode = (mode == .signUp ? .signIn : .signUp) }
                         errorMessage = nil
                         infoMessage = nil
+                        confirmPassword = ""
                     } label: {
                         Text(toggleLabel)
                             .font(.system(size: 14, weight: .medium))
