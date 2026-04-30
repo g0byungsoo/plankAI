@@ -55,19 +55,80 @@ final class AppSync {
         }
     }
 
-    /// Called whenever AuthService.currentUser?.id changes (sign-in, sign-up,
-    /// sign-out). Always re-hydrates so local state matches Supabase under
-    /// the new identity. Same-user-id changes (Apple/email upgrade preserves
-    /// the user_id) skip the work via the `lastUserId` guard.
-    func onUserChanged(modelContext: ModelContext) async {
+    /// Called on every observable auth-state change — sign-up (anon → email/
+    /// apple, same user_id), sign-in (different user_id, non-anon), sign-out
+    /// (different user_id, new is anon). The behavior branches by case:
+    ///
+    ///   * Sign-up upgrade (user_id same, was anon, now non-anon):
+    ///     local rows already have the right user_id. Just retry pending
+    ///     and hydrate to pull anything else in the account.
+    ///
+    ///   * Sign-in to existing account (user_id changes, new is non-anon):
+    ///     re-attribute local rows that were attached to the previous
+    ///     user_id (anon experimentation) so they belong to the new account,
+    ///     mark them pendingUpsert so retry pushes them, then hydrate the
+    ///     account's existing data from the server.
+    ///
+    ///   * Sign-out (user_id changes, new is anon): per spec, preserve
+    ///     local data. The new anon has no server data anyway. Just retry
+    ///     pending in case earlier writes never landed.
+    func onAuthChanged(modelContext: ModelContext) async {
         guard let service = syncService else { return }
         let newUserId = AuthService.shared.currentUser?.id.uuidString ?? ""
-        guard newUserId != lastUserId else { return }
+        let isAnonNow = AuthService.shared.isAnonymous
+        let previousUserId = lastUserId
+        let userIdChanged = newUserId != previousUserId
         lastUserId = newUserId
+
         guard !newUserId.isEmpty else { return }
 
+        // Sign-in to a non-anon account from a different identity:
+        // bring local rows along so the user's anonymous-period work merges
+        // into the account they just signed in to.
+        if userIdChanged && !isAnonNow,
+           let oldId = previousUserId, !oldId.isEmpty, oldId != newUserId {
+            reattributeLocalRows(from: oldId, to: newUserId, modelContext: modelContext)
+        }
+
+        // Always push pending writes — covers signup-upgrade (where user_id
+        // didn't change) and any sign-in-with-merge case above.
         await service.retryPendingUpserts()
-        await service.hydrateFromCloud(userId: newUserId)
+
+        // Pull server state for non-anon identities. Sign-out (new is anon)
+        // skips this — preserves local data.
+        if !isAnonNow {
+            await service.hydrateFromCloud(userId: newUserId)
+        }
+    }
+
+    // Compatibility name for code that hasn't been renamed yet.
+    func onUserChanged(modelContext: ModelContext) async {
+        await onAuthChanged(modelContext: modelContext)
+    }
+
+    /// Re-attribute local SessionLog + DayProgress rows from the previous
+    /// user_id to the new one so they land in the signed-in account on
+    /// the next push. Marks SessionLog rows pendingUpsert so retry sends
+    /// them; DayProgress is upserted again next session.
+    private func reattributeLocalRows(from oldId: String, to newId: String, modelContext: ModelContext) {
+        let sessions = (try? modelContext.fetch(FetchDescriptor<SessionLogRecord>(
+            predicate: #Predicate { $0.userId == oldId }
+        ))) ?? []
+        for s in sessions {
+            s.userId = newId
+            s.pendingUpsert = true
+        }
+
+        let progress = (try? modelContext.fetch(FetchDescriptor<DayProgressRecord>(
+            predicate: #Predicate { $0.userId == oldId }
+        ))) ?? []
+        for p in progress {
+            p.userId = newId
+            p.compositeKey = "\(newId):\(p.programDay)"
+            p.updatedAt = .now
+        }
+
+        try? modelContext.save()
     }
 
     // MARK: Upsert pass-throughs

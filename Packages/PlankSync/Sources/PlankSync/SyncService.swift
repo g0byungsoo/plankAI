@@ -100,6 +100,13 @@ public actor SyncService {
     @MainActor
     public func hydrateFromCloud(userId: String) async {
         guard !userId.isEmpty else { return }
+        await hydrateUser(userId: userId)
+        await hydrateSessionLogs(userId: userId)
+        await hydrateDayProgress(userId: userId)
+    }
+
+    @MainActor
+    private func hydrateUser(userId: String) async {
         let context = modelContainer.mainContext
 
         do {
@@ -112,7 +119,6 @@ public actor SyncService {
 
             guard let row = response.first else { return }
 
-            // Idempotent: update existing or insert new.
             let descriptor = FetchDescriptor<UserRecord>(
                 predicate: #Predicate { $0.id == userId }
             )
@@ -140,6 +146,113 @@ public actor SyncService {
             try? context.save()
         } catch {
             // No table, no row, or network — leave local state alone.
+        }
+    }
+
+    @MainActor
+    private func hydrateSessionLogs(userId: String) async {
+        let context = modelContainer.mainContext
+
+        do {
+            let rows: [SupabaseSessionLogRow] = try await supabase
+                .from("session_logs")
+                .select()
+                .eq("user_id", value: userId)
+                .execute()
+                .value
+
+            for row in rows {
+                let rowId = row.id
+                let descriptor = FetchDescriptor<SessionLogRecord>(
+                    predicate: #Predicate { $0.id == rowId }
+                )
+                if let existing = try? context.fetch(descriptor).first {
+                    // Local row exists. Don't clobber a pending-upsert local
+                    // record with server state — the local row may be newer.
+                    if !existing.pendingUpsert {
+                        existing.userId = row.userId
+                        existing.exerciseType = row.exerciseType
+                        existing.sessionType = row.sessionType
+                        existing.completedAt = row.completedAt
+                        existing.holdTime = row.holdTime
+                        existing.targetTime = row.targetTime
+                        existing.qualityScore = row.qualityScore
+                        existing.formFaultsCount = row.formFaultsCount
+                        existing.modifiedVersion = row.modifiedVersion
+                        existing.presetId = row.presetId
+                        existing.totalDuration = row.totalDuration
+                        existing.plankHoldTime = row.plankHoldTime
+                        existing.plankFormScore = row.plankFormScore
+                    }
+                } else {
+                    let record = SessionLogRecord(
+                        id: row.id,
+                        userId: row.userId,
+                        exerciseType: row.exerciseType,
+                        completedAt: row.completedAt,
+                        holdTime: row.holdTime,
+                        targetTime: row.targetTime,
+                        qualityScore: row.qualityScore,
+                        formFaultsCount: row.formFaultsCount,
+                        modifiedVersion: row.modifiedVersion,
+                        sessionType: row.sessionType,
+                        presetId: row.presetId,
+                        totalDuration: row.totalDuration,
+                        plankHoldTime: row.plankHoldTime,
+                        plankFormScore: row.plankFormScore
+                    )
+                    record.pendingUpsert = false  // came from server
+                    context.insert(record)
+                }
+            }
+            try? context.save()
+        } catch {
+            // Best-effort. Tables may not exist or network failed.
+        }
+    }
+
+    @MainActor
+    private func hydrateDayProgress(userId: String) async {
+        let context = modelContainer.mainContext
+
+        do {
+            let rows: [SupabaseDayProgressRow] = try await supabase
+                .from("day_progress")
+                .select()
+                .eq("user_id", value: userId)
+                .execute()
+                .value
+
+            for row in rows {
+                let key = "\(row.userId):\(row.programDay)"
+                let descriptor = FetchDescriptor<DayProgressRecord>(
+                    predicate: #Predicate { $0.compositeKey == key }
+                )
+                if let existing = try? context.fetch(descriptor).first {
+                    // Last-write-wins on updatedAt.
+                    if row.updatedAt > existing.updatedAt {
+                        existing.date = row.date
+                        existing.primarySessionId = row.primarySessionId
+                        existing.primaryQualityScore = row.primaryQualityScore
+                        existing.primaryHoldTime = row.primaryHoldTime
+                        existing.updatedAt = row.updatedAt
+                    }
+                } else {
+                    let record = DayProgressRecord(
+                        userId: row.userId,
+                        programDay: row.programDay,
+                        date: row.date,
+                        primarySessionId: row.primarySessionId,
+                        primaryQualityScore: row.primaryQualityScore,
+                        primaryHoldTime: row.primaryHoldTime
+                    )
+                    record.updatedAt = row.updatedAt
+                    context.insert(record)
+                }
+            }
+            try? context.save()
+        } catch {
+            // Best-effort.
         }
     }
 
@@ -183,5 +296,59 @@ private struct SupabaseUserRow: Decodable {
         case streakCurrent = "streak_current"
         case streakLongest = "streak_longest"
         case programPhase = "program_phase"
+    }
+}
+
+private struct SupabaseSessionLogRow: Decodable {
+    let id: String
+    let userId: String
+    let exerciseType: String
+    let sessionType: String
+    let completedAt: Date
+    let holdTime: Double
+    let targetTime: Double
+    let qualityScore: Double
+    let formFaultsCount: Int
+    let modifiedVersion: Bool
+    let presetId: String?
+    let totalDuration: Double?
+    let plankHoldTime: Double?
+    let plankFormScore: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case exerciseType = "exercise_type"
+        case sessionType = "session_type"
+        case completedAt = "completed_at"
+        case holdTime = "hold_time"
+        case targetTime = "target_time"
+        case qualityScore = "quality_score"
+        case formFaultsCount = "form_faults_count"
+        case modifiedVersion = "modified_version"
+        case presetId = "preset_id"
+        case totalDuration = "total_duration"
+        case plankHoldTime = "plank_hold_time"
+        case plankFormScore = "plank_form_score"
+    }
+}
+
+private struct SupabaseDayProgressRow: Decodable {
+    let userId: String
+    let programDay: Int
+    let date: Date
+    let primarySessionId: String
+    let primaryQualityScore: Double
+    let primaryHoldTime: Double
+    let updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case programDay = "program_day"
+        case date
+        case primarySessionId = "primary_session_id"
+        case primaryQualityScore = "primary_quality_score"
+        case primaryHoldTime = "primary_hold_time"
+        case updatedAt = "updated_at"
     }
 }

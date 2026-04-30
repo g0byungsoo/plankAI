@@ -259,35 +259,41 @@ private struct EmailSignUpSheet: View {
 
                     VStack(alignment: .leading, spacing: Space.sm) {
                         field("Email") {
-                            // Explicit prompt color — without it, SwiftUI uses the
-                            // environment tint (which inherits the app accent and
-                            // can render the placeholder blue).
-                            TextField(
-                                "",
-                                text: $email,
-                                prompt: Text("you@example.com").foregroundStyle(Palette.textSecondary)
-                            )
-                            .textInputAutocapitalization(.never)
-                            .keyboardType(.emailAddress)
-                            .autocorrectionDisabled()
+                            // Manual ZStack placeholder. The `prompt:` parameter
+                            // approach picked up the environment tint in iOS
+                            // and rendered blue despite explicit foregroundStyle.
+                            ZStack(alignment: .leading) {
+                                if email.isEmpty {
+                                    Text("you@example.com")
+                                        .foregroundStyle(Palette.textSecondary)
+                                }
+                                TextField("", text: $email)
+                                    .textInputAutocapitalization(.never)
+                                    .keyboardType(.emailAddress)
+                                    .autocorrectionDisabled()
+                            }
                         }
                         field("Password") {
-                            SecureField(
-                                "",
-                                text: $password,
-                                prompt: Text("••••••••").foregroundStyle(Palette.textSecondary)
-                            )
+                            ZStack(alignment: .leading) {
+                                if password.isEmpty {
+                                    Text("••••••••")
+                                        .foregroundStyle(Palette.textSecondary)
+                                }
+                                SecureField("", text: $password)
+                            }
                         }
 
                         if mode == .signUp {
                             passwordRulesBlock
 
                             field("Confirm password") {
-                                SecureField(
-                                    "",
-                                    text: $confirmPassword,
-                                    prompt: Text("re-enter password").foregroundStyle(Palette.textSecondary)
-                                )
+                                ZStack(alignment: .leading) {
+                                    if confirmPassword.isEmpty {
+                                        Text("re-enter password")
+                                            .foregroundStyle(Palette.textSecondary)
+                                    }
+                                    SecureField("", text: $confirmPassword)
+                                }
                             }
 
                             if showPasswordMismatch {

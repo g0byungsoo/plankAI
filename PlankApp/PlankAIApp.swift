@@ -93,8 +93,13 @@ private struct RootView: View {
             await AppSync.shared.onLaunch(modelContext: modelContext)
         }
         .onChange(of: auth.currentUser?.id) { _, _ in
-            // Sign-in / sign-up / sign-out — re-sync against the new identity.
-            Task { await AppSync.shared.onUserChanged(modelContext: modelContext) }
+            // Fires on sign-in (different user_id) and sign-out (named -> anon).
+            Task { await AppSync.shared.onAuthChanged(modelContext: modelContext) }
+        }
+        .onChange(of: auth.authMethod) { _, _ in
+            // Fires on signup-upgrade (anon -> email/apple, same user_id).
+            // Without this, retry/hydrate never run after upgrade.
+            Task { await AppSync.shared.onAuthChanged(modelContext: modelContext) }
         }
     }
 
