@@ -13,6 +13,8 @@ struct OnboardingView: View {
     @State private var feedback = ""
     @State private var showFeedback = false
     @State private var showConfetti = false
+    @State private var showWelcomeSignInSheet = false
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     // Data
     @State private var goal = ""
@@ -90,6 +92,33 @@ struct OnboardingView: View {
             }
 
             if showConfetti { ConfettiView().ignoresSafeArea().allowsHitTesting(false).zIndex(20) }
+        }
+        .sheet(isPresented: $showWelcomeSignInSheet) {
+            NavigationStack {
+                SignInPromptView(mode: .signIn) {
+                    // After Apple/email/cancel closes the prompt: if the user
+                    // is now signed in (non-anonymous), they're recovering an
+                    // existing account — skip the rest of onboarding and
+                    // hand off to MainTabView. AppSync.onAuthChanged will
+                    // hydrate UserRecord/SessionLog/DayProgress from the cloud.
+                    showWelcomeSignInSheet = false
+                    if !AuthService.shared.isAnonymous {
+                        hasCompletedOnboarding = true
+                    }
+                }
+                .background(Palette.bgPrimary)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            showWelcomeSignInSheet = false
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Palette.textSecondary)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -456,11 +485,17 @@ struct OnboardingView: View {
                 }
                 .opacity(visible ? 1 : 0).offset(y: visible ? 0 : 30)
 
-                Text("Already have an account? **Sign In**")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Palette.textSecondary)
-                    .opacity(visible ? 1 : 0)
-                    .padding(.bottom, Space.lg)
+                Button {
+                    Haptics.light()
+                    showWelcomeSignInSheet = true
+                } label: {
+                    Text("Already have an account? **Sign In**")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .opacity(visible ? 1 : 0)
+                .padding(.bottom, Space.lg)
             }
         }
         .onAppear {

@@ -79,7 +79,10 @@ public actor SyncService {
     // and avoid encoder-config drift.
 
     public func upsertUser(_ user: UserRecord) async {
-        guard !user.id.isEmpty else { return }
+        guard !user.id.isEmpty else {
+            print("[SyncService] upsertUser ABORT: UserRecord.id empty")
+            return
+        }
 
         let iso = ISO8601DateFormatter()
         let payload = SupabaseUserUpsert(
@@ -106,13 +109,23 @@ public actor SyncService {
             onboarding_voice_preference: user.onboardingVoicePreference
         )
 
+        print("[SyncService] upsertUser: payload built for user_id=\(user.id)")
         do {
-            try await supabase.from("users")
+            let response = try await supabase.from("users")
                 .upsert(payload)
                 .execute()
+            print("[SyncService] upsertUser SUCCESS: status=\(response.status)")
         } catch {
-            // Best-effort. Profile re-upserts on next onboarding edit or on
-            // the next anon → named auth transition (AppSync.onAuthChanged).
+            print("[SyncService] upsertUser FAILED: \(error)")
+            print("[SyncService] error type: \(type(of: error))")
+            print("[SyncService] error localizedDescription: \(error.localizedDescription)")
+            // Surface PostgREST error fields if the SDK exposes them.
+            let mirror = Mirror(reflecting: error)
+            for child in mirror.children {
+                if let label = child.label {
+                    print("[SyncService] error.\(label) = \(child.value)")
+                }
+            }
         }
     }
 
@@ -164,21 +177,20 @@ public actor SyncService {
                 .execute()
                 .value
 
-            guard let row = response.first else { return }
+            guard let row = response.first else {
+                print("[SyncService] hydrateUser: no public.users row for \(userId) — user signed up but never finished onboarding, or schema row never written")
+                return
+            }
+            print("[SyncService] hydrateUser: row found for \(userId), name=\(row.name)")
 
             let descriptor = FetchDescriptor<UserRecord>(
                 predicate: #Predicate { $0.id == userId }
             )
+            let target: UserRecord
             if let existing = try? context.fetch(descriptor).first {
-                existing.name = row.name
-                existing.startDate = row.startDate
-                existing.currentDay = row.currentDay
-                existing.coreScore = row.coreScore
-                existing.streakCurrent = row.streakCurrent
-                existing.streakLongest = row.streakLongest
-                existing.programPhase = row.programPhase
+                target = existing
             } else {
-                let user = UserRecord(
+                target = UserRecord(
                     id: row.id,
                     name: row.name,
                     startDate: row.startDate,
@@ -186,13 +198,35 @@ public actor SyncService {
                     coreScore: row.coreScore,
                     programPhase: row.programPhase
                 )
-                user.streakCurrent = row.streakCurrent
-                user.streakLongest = row.streakLongest
-                context.insert(user)
+                context.insert(target)
             }
+            // Copy every column. Re-running hydrate is idempotent — if the
+            // local UserRecord was just created, this is the first write; if
+            // it already existed, this brings it in line with the cloud.
+            target.name = row.name
+            target.startDate = row.startDate
+            target.currentDay = row.currentDay
+            target.coreScore = row.coreScore
+            target.lastSessionDate = row.lastSessionDate
+            target.streakCurrent = row.streakCurrent
+            target.streakLongest = row.streakLongest
+            target.streakLastResetDate = row.streakLastResetDate
+            target.programPhase = row.programPhase
+            target.foundationsCompletedDate = row.foundationsCompletedDate
+            target.onboardingGoal = row.onboardingGoal
+            target.onboardingExperience = row.onboardingExperience
+            target.onboardingBaselineHoldSeconds = row.onboardingBaselineHoldSeconds
+            target.onboardingBarriers = row.onboardingBarriers
+            target.onboardingAgeRange = row.onboardingAgeRange
+            target.onboardingActivityLevel = row.onboardingActivityLevel
+            target.onboardingCommitmentDaysPerWeek = row.onboardingCommitmentDaysPerWeek
+            target.onboardingNotificationEnabled = row.onboardingNotificationEnabled
+            target.onboardingNotificationTime = row.onboardingNotificationTime
+            target.onboardingVoicePreference = row.onboardingVoicePreference
             try? context.save()
+            print("[SyncService] hydrateUser: UserRecord populated with onboarding fields")
         } catch {
-            // No table, no row, or network — leave local state alone.
+            print("[SyncService] hydrateUser FAILED for \(userId): \(error)")
         }
     }
 
@@ -352,24 +386,54 @@ private struct SupabaseUserUpsert: Encodable {
     let onboarding_voice_preference: String?
 }
 
+/// Decodable mirror of SupabaseUserUpsert. Mirrors all 21 columns of
+/// public.users so hydration restores everything the upsert wrote — name,
+/// streaks, program state, AND the 10 onboarding fields. Optional dates
+/// arrive as ISO8601 strings; we re-parse with the same formatter.
 private struct SupabaseUserRow: Decodable {
     let id: String
     let name: String
     let startDate: Date
     let currentDay: Int
     let coreScore: Double
+    let lastSessionDate: Date?
     let streakCurrent: Int
     let streakLongest: Int
+    let streakLastResetDate: Date?
     let programPhase: String
+    let foundationsCompletedDate: Date?
+    let onboardingGoal: String?
+    let onboardingExperience: String?
+    let onboardingBaselineHoldSeconds: Int?
+    let onboardingBarriers: [String]?
+    let onboardingAgeRange: String?
+    let onboardingActivityLevel: String?
+    let onboardingCommitmentDaysPerWeek: Int?
+    let onboardingNotificationEnabled: Bool
+    let onboardingNotificationTime: Date?
+    let onboardingVoicePreference: String?
 
     enum CodingKeys: String, CodingKey {
         case id, name
         case startDate = "start_date"
         case currentDay = "current_day"
         case coreScore = "core_score"
+        case lastSessionDate = "last_session_date"
         case streakCurrent = "streak_current"
         case streakLongest = "streak_longest"
+        case streakLastResetDate = "streak_last_reset_date"
         case programPhase = "program_phase"
+        case foundationsCompletedDate = "foundations_completed_date"
+        case onboardingGoal = "onboarding_goal"
+        case onboardingExperience = "onboarding_experience"
+        case onboardingBaselineHoldSeconds = "onboarding_baseline_hold_seconds"
+        case onboardingBarriers = "onboarding_barriers"
+        case onboardingAgeRange = "onboarding_age_range"
+        case onboardingActivityLevel = "onboarding_activity_level"
+        case onboardingCommitmentDaysPerWeek = "onboarding_commitment_days_per_week"
+        case onboardingNotificationEnabled = "onboarding_notification_enabled"
+        case onboardingNotificationTime = "onboarding_notification_time"
+        case onboardingVoicePreference = "onboarding_voice_preference"
     }
 }
 

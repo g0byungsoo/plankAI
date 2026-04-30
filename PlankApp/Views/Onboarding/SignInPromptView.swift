@@ -3,18 +3,28 @@ import AuthenticationServices
 
 // MARK: - SignInPromptView
 //
-// Soft sign-in prompt shown between plan reveal and the rest of onboarding.
-// Three paths, all advance the flow via `onContinue()`:
-//   1. Sign in with Apple (Apple's HIG-required button component)
-//   2. Continue with Email (presents an email sign-up sheet)
-//   3. Maybe later (skip — user stays anonymous)
+// Soft sign-in prompt with two modes:
+//   .signUp — default. Mid-onboarding nudge: "Save your progress."
+//             Apple button reads "Sign up with Apple"; email sheet defaults
+//             to the create-account form.
+//   .signIn — opened from the welcome screen "Already have an account?"
+//             link. Apple button reads "Continue with Apple"; email sheet
+//             defaults to the sign-in form.
 //
-// The user can sign in later from Settings (Phase E). Anonymous sessions
-// are first-class — local progress and SessionLog writes work the same way
-// whether or not the user has linked an Apple/email identity.
+// All three paths (Apple, Email, Maybe later) advance the flow via
+// `onContinue()`. The user can also sign in later from Settings (Phase E).
+// Anonymous sessions are first-class — local progress and SessionLog writes
+// work the same way whether or not the user has linked an Apple/email
+// identity.
+
+enum SignInPromptMode {
+    case signUp
+    case signIn
+}
 
 struct SignInPromptView: View {
     let onContinue: () -> Void
+    var mode: SignInPromptMode = .signUp
 
     @State private var rawNonce: String = ""
     @State private var showEmailSheet = false
@@ -37,14 +47,16 @@ struct SignInPromptView: View {
 
             Spacer().frame(height: Space.lg)
 
-            Text("Save your progress.")
+            Text(mode == .signIn ? "Welcome back." : "Save your progress.")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
 
             Spacer().frame(height: Space.sm)
 
-            Text("Sign in to keep your routine\nwhen you switch phones.")
+            Text(mode == .signIn
+                 ? "Sign in to recover your routine\non this device."
+                 : "Sign in to keep your routine\nwhen you switch phones.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
@@ -66,7 +78,7 @@ struct SignInPromptView: View {
                 }
 
                 Button(action: { Haptics.light(); onContinue() }) {
-                    Text("Maybe later")
+                    Text(mode == .signIn ? "Cancel" : "Maybe later")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Palette.textSecondary)
                         .padding(.vertical, 8)
@@ -77,7 +89,9 @@ struct SignInPromptView: View {
             .padding(.bottom, Space.lg)
         }
         .sheet(isPresented: $showEmailSheet) {
-            EmailSignUpSheet { onContinue() }
+            EmailSignUpSheet(initialMode: mode == .signIn ? .signIn : .signUp) {
+                onContinue()
+            }
         }
     }
 
@@ -85,7 +99,7 @@ struct SignInPromptView: View {
 
     private var appleButton: some View {
         SignInWithAppleButton(
-            .signUp,
+            mode == .signIn ? .continue : .signUp,
             onRequest: { request in
                 let nonce = AppleSignInService.randomNonce()
                 rawNonce = nonce
@@ -179,13 +193,18 @@ private struct EmailSignUpSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var mode: EmailMode = .signUp
+    @State private var mode: EmailMode
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
     @State private var working = false
     @State private var errorMessage: String?
     @State private var infoMessage: String?
+
+    init(initialMode: EmailMode = .signUp, onSuccess: @escaping () -> Void) {
+        self.onSuccess = onSuccess
+        self._mode = State(initialValue: initialMode)
+    }
 
     private var passwordsMatch: Bool {
         password == confirmPassword

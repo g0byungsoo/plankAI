@@ -54,6 +54,7 @@ final class AppSync {
 
         if isLocalCacheEmpty(modelContext: modelContext) {
             await service.hydrateFromCloud(userId: userId)
+            syncUserDefaultsFromUserRecord(modelContext: modelContext, userId: userId)
         }
     }
 
@@ -103,6 +104,7 @@ final class AppSync {
         // skips this — preserves local data.
         if !isAnonNow {
             await service.hydrateFromCloud(userId: newUserId)
+            syncUserDefaultsFromUserRecord(modelContext: modelContext, userId: newUserId)
         }
 
         // Sign-up upgrade re-upsert: when an anonymous user becomes named on
@@ -126,6 +128,44 @@ final class AppSync {
     // Compatibility name for code that hasn't been renamed yet.
     func onUserChanged(modelContext: ModelContext) async {
         await onAuthChanged(modelContext: modelContext)
+    }
+
+    /// Mirror the freshly-hydrated UserRecord back into the @AppStorage keys
+    /// that the rest of the app reads from. Without this step, a returning
+    /// user signing in on a fresh install would land in MainTabView with
+    /// empty userName/voicePreference/etc. — the UserRecord rows are present
+    /// but the @AppStorage layer is unaware of them.
+    ///
+    /// Schema gap: focusArea, plankTime, sessionLengthPref, and userGoal
+    /// (the focusArea-derived field) are NOT yet in public.users — they
+    /// won't survive a reinstall + sign-in until the schema extends. Other
+    /// @AppStorage keys (userName, userMotivation, ageRange, activityLevel,
+    /// barriers, baselineSeconds, commitmentDays, notificationsEnabled,
+    /// voicePreference, userExperience) populate from this method.
+    private func syncUserDefaultsFromUserRecord(modelContext: ModelContext, userId: String) {
+        let descriptor = FetchDescriptor<UserRecord>(
+            predicate: #Predicate { $0.id == userId }
+        )
+        guard let record = try? modelContext.fetch(descriptor).first else {
+            print("[AppSync] syncUserDefaultsFromUserRecord: no UserRecord for \(userId) — hydration didn't find a public.users row")
+            return
+        }
+
+        let defaults = UserDefaults.standard
+        if !record.name.isEmpty { defaults.set(record.name, forKey: "userName") }
+        if let value = record.onboardingGoal { defaults.set(value, forKey: "userMotivation") }
+        if let value = record.onboardingExperience { defaults.set(value, forKey: "userExperience") }
+        if let value = record.onboardingVoicePreference { defaults.set(value, forKey: "voicePreference") }
+        if let value = record.onboardingAgeRange { defaults.set(value, forKey: "ageRange") }
+        if let value = record.onboardingActivityLevel { defaults.set(value, forKey: "activityLevel") }
+        if let value = record.onboardingBaselineHoldSeconds { defaults.set(value, forKey: "userBaselineSeconds") }
+        if let value = record.onboardingCommitmentDaysPerWeek { defaults.set(value, forKey: "commitmentDays") }
+        if let value = record.onboardingBarriers {
+            defaults.set(value.joined(separator: ","), forKey: "userBarriers")
+        }
+        defaults.set(record.onboardingNotificationEnabled, forKey: "notificationsEnabled")
+
+        print("[AppSync] syncUserDefaultsFromUserRecord: name='\(record.name)' age=\(record.onboardingAgeRange ?? "nil") barriers=\(record.onboardingBarriers ?? [])")
     }
 
     /// Re-attribute local SessionLog + DayProgress rows from the previous
@@ -177,19 +217,31 @@ final class AppSync {
     /// AuthService has no current user — should never happen post-bootstrap,
     /// but guards against init-order bugs.
     func upsertUser(_ user: UserRecord) async {
-        guard let service = syncService else { return }
+        let authUser = AuthService.shared.currentUser
+        let authUid = authUser?.id.uuidString
+        print("[AppSync] upsertUser called with record id: \(user.id)")
+        print("[AppSync] currentUser: \(String(describing: authUser))")
+        print("[AppSync] currentUserId from auth: \(String(describing: authUid))")
+        print("[AppSync] record.id matches auth.uid()? \(user.id == authUid)")
+
+        guard let service = syncService else {
+            print("[AppSync] upsertUser ABORT: syncService is nil — configure(modelContainer:) hasn't run yet")
+            return
+        }
         guard !user.id.isEmpty else {
-            print("[AppSync] upsertUser skipped: empty UserRecord.id")
+            print("[AppSync] upsertUser ABORT: UserRecord.id is empty")
             return
         }
         guard let authedId = currentUserId, !authedId.isEmpty else {
-            print("[AppSync] upsertUser skipped: no current auth user")
+            print("[AppSync] upsertUser ABORT: no current auth user (currentUserId nil/empty)")
             return
         }
         if user.id != authedId {
-            print("[AppSync] upsertUser warning: record id (\(user.id)) != auth uid (\(authedId)); RLS will reject")
+            print("[AppSync] upsertUser WARN: record id (\(user.id)) != auth uid (\(authedId)); RLS will reject")
         }
+        print("[AppSync] Calling SyncService.upsertUser...")
         await service.upsertUser(user)
+        print("[AppSync] SyncService.upsertUser returned")
     }
 
     // MARK: Helpers
