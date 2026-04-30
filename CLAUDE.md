@@ -1,3 +1,17 @@
+## Project status (2026-04-30)
+
+- **Auth + sync**: functional end-to-end. Anonymous-first Supabase auth, Apple + email
+  upgrade, sign-in recovery. Profile + session_logs + day_progress sync via typed
+  Codable upserts; cross-account isolation enforced via @Query userId filters in
+  HomeView/AnalyticsView; UUID case normalized at hydrate boundaries. Verified on
+  device with two distinct Apple IDs (test 1/2/3 in commit 2d9c34c).
+- **Payment (RevenueCat)**: next major work block. Not started. New Claude Code
+  session will own this.
+- **Phase G (end-to-end smoke test on physical device)**: pending. Includes
+  DebugAuthView removal once production surfaces are stable.
+- **Open items**: Camera permission flow + v1.1 anon→auth data-preservation
+  (see TODOS.md).
+
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill

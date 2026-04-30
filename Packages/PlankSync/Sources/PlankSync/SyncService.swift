@@ -53,7 +53,6 @@ public actor SyncService {
                     from: data
                 )
             } catch {
-                print("[SyncService] upsertSessionLog: exercise_results decode failed for \(sessionId), sending null: \(error)")
                 exerciseResultsArray = nil
             }
         } else {
@@ -109,10 +108,7 @@ public actor SyncService {
     // and avoid encoder-config drift.
 
     public func upsertUser(_ user: UserRecord) async {
-        guard !user.id.isEmpty else {
-            print("[SyncService] upsertUser ABORT: UserRecord.id empty")
-            return
-        }
+        guard !user.id.isEmpty else { return }
 
         let iso = ISO8601DateFormatter()
         let payload = SupabaseUserUpsert(
@@ -142,12 +138,10 @@ public actor SyncService {
             onboarding_session_length_pref: user.onboardingSessionLengthPref
         )
 
-        print("[SyncService] upsertUser: payload built for user_id=\(user.id)")
         do {
-            let response = try await supabase.from("users")
+            try await supabase.from("users")
                 .upsert(payload)
                 .execute()
-            print("[SyncService] upsertUser SUCCESS: status=\(response.status)")
         } catch {
             print("[SyncService] upsertUser FAILED: \(error)")
             print("[SyncService] error type: \(type(of: error))")
@@ -167,12 +161,6 @@ public actor SyncService {
     public func upsertDayProgress(_ progress: DayProgressRecord) async {
         guard !progress.userId.isEmpty else { return }
 
-        // Capture the local state at the moment we build the payload. If
-        // count == 0 here, the local DayProgressRecord write isn't sticking
-        // (HomeView mutation issue, not an upsert/encode issue).
-        let localIds = progress.sessionLogIds
-        print("[SyncService] upsertDayProgress: local DayProgressRecord — user=\(progress.userId) day=\(progress.programDay) compositeKey=\(progress.compositeKey) sessionLogIds count=\(localIds?.count ?? 0) ids=\(localIds ?? [])")
-
         let iso = ISO8601DateFormatter()
         let payload = SupabaseDayProgressUpsert(
             user_id: progress.userId,
@@ -185,15 +173,6 @@ public actor SyncService {
             session_log_ids: progress.sessionLogIds
         )
 
-        // Encode the payload independently and print the raw JSON. If
-        // session_log_ids appears here but cloud row stays null, the issue
-        // is server-side (PostgREST conflict resolution, RLS). If it's
-        // missing here, the encoder is dropping it.
-        if let jsonData = try? JSONEncoder().encode(payload),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
-            print("[SyncService] upsertDayProgress: wire JSON = \(jsonString)")
-        }
-
         do {
             // Explicit composite-PK conflict target. Without it, PostgREST's
             // default upsert conflict resolution doesn't match the
@@ -204,7 +183,6 @@ public actor SyncService {
             try await supabase.from("day_progress")
                 .upsert(payload, onConflict: "user_id,program_day")
                 .execute()
-            print("[SyncService] upsertDayProgress: success for user=\(progress.userId) day=\(progress.programDay)")
         } catch {
             print("[SyncService] upsertDayProgress FAILED for user=\(progress.userId) day=\(progress.programDay): \(error)")
             // Non-fatal. DayProgress syncs on next attempt.
@@ -228,7 +206,6 @@ public actor SyncService {
     @MainActor
     private func hydrateUser(userId: String) async {
         let context = modelContainer.mainContext
-        print("[SyncService] hydrateUser: using context \(ObjectIdentifier(context))")
 
         do {
             let response: [SupabaseUserRow] = try await supabase
@@ -238,11 +215,7 @@ public actor SyncService {
                 .execute()
                 .value
 
-            guard let row = response.first else {
-                print("[SyncService] hydrateUser: no public.users row for \(userId) — user signed up but never finished onboarding, or schema row never written")
-                return
-            }
-            print("[SyncService] hydrateUser: row found for \(userId), name=\(row.name)")
+            guard let row = response.first else { return }
 
             let descriptor = FetchDescriptor<UserRecord>(
                 predicate: #Predicate { $0.id == userId }
@@ -250,7 +223,6 @@ public actor SyncService {
             let target: UserRecord
             if let existing = try? context.fetch(descriptor).first {
                 target = existing
-                print("[SyncService] hydrateUser: updated existing UserRecord (id=\(userId))")
             } else {
                 // Use `userId` (uppercase from Swift UUID.uuidString), NOT
                 // `row.id` (lowercase from PostgREST). Swift String comparison
@@ -269,7 +241,6 @@ public actor SyncService {
                     programPhase: row.programPhase
                 )
                 context.insert(target)
-                print("[SyncService] hydrateUser: inserted new UserRecord (id=\(userId))")
             }
             // Copy every column. Re-running hydrate is idempotent — if the
             // local UserRecord was just created, this is the first write; if
@@ -298,23 +269,12 @@ public actor SyncService {
             target.onboardingPlankTime = row.onboardingPlankTime
             target.onboardingSessionLengthPref = row.onboardingSessionLengthPref
 
-            print("[SyncService] hydrateUser: about to save context")
             do {
                 try context.save()
-                print("[SyncService] hydrateUser: context saved successfully")
             } catch {
                 print("[SyncService] hydrateUser: SAVE FAILED: \(error)")
                 return
             }
-
-            // Verify the write is durable on the same context. A count of 1
-            // means the row is queryable; a count of 0 means the save didn't
-            // persist or the context's fetch doesn't see uncommitted state.
-            let verifyDescriptor = FetchDescriptor<UserRecord>(
-                predicate: #Predicate { $0.id == userId }
-            )
-            let verifyCount = (try? context.fetch(verifyDescriptor))?.count ?? -1
-            print("[SyncService] hydrateUser: post-save fetch count = \(verifyCount) on context \(ObjectIdentifier(context))")
         } catch {
             print("[SyncService] hydrateUser FAILED for \(userId): \(error)")
         }

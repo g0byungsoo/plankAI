@@ -154,14 +154,8 @@ final class AppSync {
         hydrationsInFlight.insert(userId)
         defer { hydrationsInFlight.remove(userId) }
 
-        guard let service = syncService else {
-            print("[AppSync] hydrateAndSync: no syncService configured")
-            return
-        }
-        guard let container = modelContainer else {
-            print("[AppSync] hydrateAndSync: no modelContainer configured")
-            return
-        }
+        guard let service = syncService else { return }
+        guard let container = modelContainer else { return }
 
         await service.hydrateFromCloud(userId: userId)
         syncUserDefaultsFromUserRecord(context: container.mainContext, userId: userId)
@@ -172,15 +166,10 @@ final class AppSync {
     /// — the same context hydrateUser writes to — so the fetch is guaranteed
     /// to see the row.
     private func syncUserDefaultsFromUserRecord(context: ModelContext, userId: String) {
-        print("[AppSync] syncUserDefaultsFromUserRecord: using context \(ObjectIdentifier(context))")
         let descriptor = FetchDescriptor<UserRecord>(
             predicate: #Predicate { $0.id == userId }
         )
-        guard let record = try? context.fetch(descriptor).first else {
-            print("[AppSync] syncUserDefaultsFromUserRecord: NO UserRecord found for \(userId)")
-            return
-        }
-        print("[AppSync] syncUserDefaultsFromUserRecord: UserRecord found — name='\(record.name)'")
+        guard let record = try? context.fetch(descriptor).first else { return }
 
         let defaults = UserDefaults.standard
         if !record.name.isEmpty { defaults.set(record.name, forKey: "userName") }
@@ -195,7 +184,6 @@ final class AppSync {
             defaults.set(value.joined(separator: ","), forKey: "userBarriers")
         }
         defaults.set(record.onboardingNotificationEnabled, forKey: "notificationsEnabled")
-
         if let focusArea = record.onboardingFocusArea {
             defaults.set(focusArea, forKey: "focusArea")
             // userGoal mirrors the derivation in PlankAIApp.handleOnboardingComplete:
@@ -217,8 +205,6 @@ final class AppSync {
         if let sessionLengthPref = record.onboardingSessionLengthPref {
             defaults.set(sessionLengthPref, forKey: "sessionLengthPref")
         }
-
-        print("[AppSync] syncUserDefaultsFromUserRecord: WROTE userName='\(defaults.string(forKey: "userName") ?? "")' userMotivation='\(defaults.string(forKey: "userMotivation") ?? "")' focusArea='\(defaults.string(forKey: "focusArea") ?? "")' userGoal='\(defaults.string(forKey: "userGoal") ?? "")' plankTime='\(defaults.string(forKey: "plankTime") ?? "")' sessionLengthPref=\(defaults.integer(forKey: "sessionLengthPref"))")
     }
 
     /// Re-attribute local SessionLog + DayProgress rows from the previous
@@ -270,31 +256,10 @@ final class AppSync {
     /// AuthService has no current user — should never happen post-bootstrap,
     /// but guards against init-order bugs.
     func upsertUser(_ user: UserRecord) async {
-        let authUser = AuthService.shared.currentUser
-        let authUid = authUser?.id.uuidString
-        print("[AppSync] upsertUser called with record id: \(user.id)")
-        print("[AppSync] currentUser: \(String(describing: authUser))")
-        print("[AppSync] currentUserId from auth: \(String(describing: authUid))")
-        print("[AppSync] record.id matches auth.uid()? \(user.id == authUid)")
-
-        guard let service = syncService else {
-            print("[AppSync] upsertUser ABORT: syncService is nil — configure(modelContainer:) hasn't run yet")
-            return
-        }
-        guard !user.id.isEmpty else {
-            print("[AppSync] upsertUser ABORT: UserRecord.id is empty")
-            return
-        }
-        guard let authedId = currentUserId, !authedId.isEmpty else {
-            print("[AppSync] upsertUser ABORT: no current auth user (currentUserId nil/empty)")
-            return
-        }
-        if user.id != authedId {
-            print("[AppSync] upsertUser WARN: record id (\(user.id)) != auth uid (\(authedId)); RLS will reject")
-        }
-        print("[AppSync] Calling SyncService.upsertUser...")
+        guard let service = syncService else { return }
+        guard !user.id.isEmpty else { return }
+        guard let authedId = currentUserId, !authedId.isEmpty else { return }
         await service.upsertUser(user)
-        print("[AppSync] SyncService.upsertUser returned")
     }
 
     // MARK: Helpers

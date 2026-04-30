@@ -130,19 +130,14 @@ private struct RootView: View {
         // Persist the profile to SwiftData + Supabase. Anonymous-first
         // bootstrap guarantees currentUserId exists by the time onboarding
         // completes; the guard is defensive against init-order regressions.
-        print("=== handleOnboardingComplete fired ===")
-        print("[Onboarding] AppSync.shared.currentUserId = \(String(describing: AppSync.shared.currentUserId))")
         if let userId = AppSync.shared.currentUserId, !userId.isEmpty {
             let record = upsertLocalUserRecord(userId: userId, data: data)
-            print("[Onboarding] Local UserRecord built: id=\(record.id) name=\(record.name)")
-            print("[Onboarding] Calling AppSync.upsertUser...")
             // Fire-and-forget — don't block the UI on the network call. RLS
             // failures or table-missing conditions surface in Supabase logs;
             // SyncService.upsertUser swallows them and the next anon → named
             // transition will retry.
             Task { await AppSync.shared.upsertUser(record) }
         } else {
-            print("[Onboarding] ABORT: AppSync.shared.currentUserId is nil/empty — profile NOT persisted")
             os_log("onboarding complete but no current auth user; profile not persisted",
                    log: .default, type: .error)
         }
