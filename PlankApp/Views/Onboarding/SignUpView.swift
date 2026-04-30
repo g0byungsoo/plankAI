@@ -104,8 +104,14 @@ struct SignUpView: View {
                     orDivider
                     emailField
                     passwordField
-                    if mode == .signUp { passwordRequirements }
-                    if mode == .signIn { forgotPasswordLink }
+                    if mode == .signUp {
+                        passwordRequirements
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                    if mode == .signIn {
+                        forgotPasswordLink
+                            .transition(.opacity)
+                    }
                     primaryButton
                     if let errorMessage {
                         Text(errorMessage)
@@ -114,7 +120,10 @@ struct SignUpView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     modeToggle
-                    if mode == .signUp { legalText }
+                    if mode == .signUp {
+                        legalText
+                            .transition(.opacity)
+                    }
                 }
                 .padding(.horizontal, Space.lg)
                 .padding(.top, Space.md)
@@ -172,7 +181,7 @@ struct SignUpView: View {
 
     private var appleButton: some View {
         SignInWithAppleButton(
-            mode == .signUp ? .signUp : .continue,
+            mode == .signUp ? .signUp : .signIn,
             onRequest: { request in
                 let nonce = AppleSignInService.randomNonce()
                 rawNonce = nonce
