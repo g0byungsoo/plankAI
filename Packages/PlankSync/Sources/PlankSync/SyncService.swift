@@ -190,9 +190,18 @@ public actor SyncService {
             let target: UserRecord
             if let existing = try? context.fetch(descriptor).first {
                 target = existing
+                print("[SyncService] hydrateUser: updated existing UserRecord (id=\(userId))")
             } else {
+                // Use `userId` (uppercase from Swift UUID.uuidString), NOT
+                // `row.id` (lowercase from PostgREST). Swift String comparison
+                // is case-sensitive; if we insert with row.id, the predicate
+                // `$0.id == userId` later won't find this row even though it
+                // exists. PostgreSQL UUID equality is case-insensitive on the
+                // SQL side, which is why the .eq("id", value: userId) round
+                // trip works regardless of case — but the local SwiftData
+                // store is just strings.
                 target = UserRecord(
-                    id: row.id,
+                    id: userId,
                     name: row.name,
                     startDate: row.startDate,
                     currentDay: row.currentDay,
@@ -200,6 +209,7 @@ public actor SyncService {
                     programPhase: row.programPhase
                 )
                 context.insert(target)
+                print("[SyncService] hydrateUser: inserted new UserRecord (id=\(userId))")
             }
             // Copy every column. Re-running hydrate is idempotent — if the
             // local UserRecord was just created, this is the first write; if
