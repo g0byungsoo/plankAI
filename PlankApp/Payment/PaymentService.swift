@@ -27,6 +27,14 @@ final class PaymentService {
     /// purchase, restore, expiration, or RevenueCat dashboard tweak.
     private(set) var hasProAccess: Bool = false
 
+    /// True from the moment handleAuthChange flips RevenueCat's appUserID
+    /// until the next customerInfoStream emit lands (or a 1s safety
+    /// timeout fires). The paywall fullScreenCover is suppressed during
+    /// this window — without the gate, the stream's transient
+    /// hasProAccess=false emit between logIn and the new user's
+    /// entitlement fetch causes a paywall flicker on sign-in.
+    private(set) var isInAuthTransition: Bool = false
+
     /// Last appUserID we've sent to RevenueCat via logIn/logOut. Skips
     /// redundant calls when AppSync.onAuthChanged fires multiple times
     /// for the same identity transition (currentUser?.id onChange +
@@ -37,6 +45,12 @@ final class PaymentService {
     /// the app lifetime since PaymentService is a singleton. Stored so
     /// configure() can no-op if it's already running.
     private var streamTask: Task<Void, Never>?
+
+    /// Safety timeout that clears isInAuthTransition if no
+    /// customerInfoStream emit lands within 1s of an auth change. Stored
+    /// so handleAuthChange can cancel the prior timeout when a new auth
+    /// transition starts before the previous one's window closes.
+    private var authTransitionSafetyTask: Task<Void, Never>?
 
     /// Configure RevenueCat once, after AuthService.bootstrap completes.
     /// Pass the current Supabase user_id as appUserID so RevenueCat scopes
@@ -80,8 +94,23 @@ final class PaymentService {
                 self.hasProAccess = isActive
                 let activeKeys = customerInfo.entitlements.active.keys.sorted()
                 print("[PaymentService] customerInfo updated: hasProAccess=\(isActive) entitlements=\(activeKeys)")
+                // First emit since an auth change closes the suppression
+                // window early — paywall presentation is allowed again as
+                // soon as we know the new user's actual entitlement state.
+                self.clearAuthTransition(reason: "customerInfoStream emit")
             }
         }
+    }
+
+    /// Lift the auth-transition suppression. Idempotent — early-returns
+    /// when the gate is already cleared so the customerInfoStream emit
+    /// path doesn't fight with the safety timeout.
+    private func clearAuthTransition(reason: String) {
+        guard isInAuthTransition else { return }
+        isInAuthTransition = false
+        authTransitionSafetyTask?.cancel()
+        authTransitionSafetyTask = nil
+        print("[PaymentService] auth transition END (\(reason)) — paywall presentation re-enabled")
     }
 
     /// Sync RevenueCat's appUserID with AuthService. Called from
@@ -103,6 +132,22 @@ final class PaymentService {
         if normalized == lastSyncedUserID { return }
         lastSyncedUserID = normalized
 
+        // Suppress paywall presentation during the window between
+        // calling logIn and the customerInfoStream emitting the new
+        // user's entitlement state. Stream transitions from old user's
+        // hasProAccess to new user's hasProAccess can briefly emit
+        // false, causing a flash of paywall before the cover dismisses
+        // again. RootView's fullScreenCover binding ANDs against this
+        // flag.
+        isInAuthTransition = true
+        print("[PaymentService] auth transition START — paywall presentation suppressed")
+        authTransitionSafetyTask?.cancel()
+        authTransitionSafetyTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            guard !Task.isCancelled else { return }
+            self?.clearAuthTransition(reason: "safety timeout")
+        }
+
         do {
             if let normalized {
                 let result = try await Purchases.shared.logIn(normalized)
@@ -113,6 +158,10 @@ final class PaymentService {
             }
         } catch {
             print("[PaymentService] auth sync FAILED: \(error)")
+            // Failed network call won't trigger a stream emit; clear the
+            // gate explicitly so the user isn't stuck in suppression
+            // forever (until the safety timeout would fire anyway).
+            clearAuthTransition(reason: "logIn/logOut failed")
         }
     }
 }

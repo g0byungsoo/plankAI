@@ -36,6 +36,16 @@
 - **Placement:** End of onboarding, after quiz + personalized plan, before paywall. Recheck on every session launch.
 - **Analytics events:** `camera_permission_requested`, `camera_permission_granted`, `camera_permission_denied`, `camera_permission_settings_opened`
 
+## v1.1 — RevenueCat anonymous → authenticated identity merging
+**What:** Investigate using RevenueCat's identity linking so anonymous-period entitlement state merges with the authenticated user on sign-in. Today, an anon user who somehow purchases (rare — paywall is post-onboarding which itself follows sign-in path most of the time) leaves an orphan RC customer record that doesn't carry forward when they later sign in.
+**Why:** Defense-in-depth for an edge case that's structurally unlikely in our flow but possible if onboarding paths change. Phase B's logIn already aliases anon → named for the same Supabase uid (sign-up upgrade case); this v1.1 item is the broader case.
+**Status:** Not blocking. v1.1 follow-up.
+
+## v1.1 — RevenueCat dashboard sandbox attribution gap
+**What:** Sandbox/.storekit purchases don't appear in the RevenueCat dashboard's Customers tab. RC tracks customers via real receipt validation, which the local StoreKit Configuration File doesn't supply.
+**Why:** Informational only. Resolves naturally once we test on a real device with a sandbox tester account or once production receipts start flowing post-launch. No code change needed.
+**Status:** Not actionable until TestFlight sandbox testing or production launch.
+
 ## v1.1 — Anonymous → authenticated upgrade data preservation
 **What:** Untested code path. If users report data loss after signing in following an anonymous-only period, fix by adding migration UPDATE statements in AuthService upgrade methods.
 **Why:** Supabase docs claim automatic preservation, so this should never need to run. Defer until real reports surface.

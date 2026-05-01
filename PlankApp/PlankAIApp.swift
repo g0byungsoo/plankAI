@@ -78,7 +78,7 @@ private struct RootView: View {
             if auth.isReady {
                 if hasCompletedOnboarding {
                     MainTabView()
-                        .fullScreenCover(isPresented: .constant(!payment.hasProAccess)) {
+                        .fullScreenCover(isPresented: .constant(!payment.hasProAccess && !payment.isInAuthTransition)) {
                             // Hard paywall — sits between onboarding completion
                             // and MainTabView. dismissable: false hides the X
                             // close button. Cover dismisses automatically when
