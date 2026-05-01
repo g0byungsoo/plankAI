@@ -128,6 +128,15 @@ final class AppSync {
                 await service.upsertUser(record)
             }
         }
+
+        // Keep RevenueCat's appUserID aligned with the Supabase identity so
+        // entitlements scope to the same user across both backends. Cleans
+        // up the orphan anonymous RevenueCat record created when configure()
+        // ran with the bootstrap-anon uid that the user later upgraded away
+        // from. handleAuthChange is a no-op when newUserId matches what's
+        // already synced, so the two onChange handlers in RootView don't
+        // double-call this path.
+        await PaymentService.shared.handleAuthChange(newUserID: newUserId)
     }
 
     // Compatibility name for code that hasn't been renamed yet.
