@@ -88,9 +88,12 @@ private struct RootView: View {
         .task {
             // Order matters: auth bootstrap → AppSync configure + onLaunch.
             // AppSync needs both AuthService.currentUser and the model
-            // container, so we run it after both are ready.
+            // container, so we run it after both are ready. PaymentService
+            // also depends on the authenticated user_id (RevenueCat scopes
+            // purchases by appUserID), so it's configured here too.
             AppSync.shared.configure(modelContainer: modelContext.container)
             await auth.bootstrap()
+            PaymentService.shared.configure(appUserID: auth.currentUser?.id.uuidString)
             await AppSync.shared.onLaunch(modelContext: modelContext)
         }
         .onChange(of: auth.currentUser?.id) { _, _ in

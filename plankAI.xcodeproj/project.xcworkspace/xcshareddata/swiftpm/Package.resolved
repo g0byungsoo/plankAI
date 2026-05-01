@@ -1,6 +1,15 @@
 {
-  "originHash" : "f33f56630cfce525b289b9a688cb70bacfca5501d70d397d2bc0016330f6b0a6",
+  "originHash" : "f95c7b4ff50b16b35ed0e7ac097b57ed5dc4b36c10460288c0e2a5a85aabe27a",
   "pins" : [
+    {
+      "identity" : "purchases-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/RevenueCat/purchases-ios",
+      "state" : {
+        "revision" : "8f5f5e1b95506f89524cdbb70bcaf096a6f6fcc2",
+        "version" : "5.70.0"
+      }
+    },
     {
       "identity" : "supabase-swift",
       "kind" : "remoteSourceControl",

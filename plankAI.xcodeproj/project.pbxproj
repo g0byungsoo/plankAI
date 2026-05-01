@@ -22,6 +22,7 @@
 		783186682F99E4130096138F /* Tokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783186512F99E4130096138F /* Tokens.swift */; };
 		783186692F99E4130096138F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7831865F2F99E4130096138F /* Assets.xcassets */; };
 		7831866C2F99E5C60096138F /* PlankEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 7831866B2F99E5C60096138F /* PlankEngine */; };
+		BAD000000000000000000003 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = BAD000000000000000000002 /* RevenueCat */; };
 		783186702F99E73A0096138F /* PlankVoice in Frameworks */ = {isa = PBXBuildFile; productRef = 7831866F2F99E73A0096138F /* PlankVoice */; };
 		783186732F99E7590096138F /* PlankSync in Frameworks */ = {isa = PBXBuildFile; productRef = 783186722F99E7590096138F /* PlankSync */; };
 		7831867A2F9A0B0C0096138F /* DMSans-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 783186772F9A0B0C0096138F /* DMSans-SemiBold.ttf */; };
@@ -331,6 +332,8 @@
 		CC0001012FA3000100000001 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001002FA3000100000001 /* MainTabView.swift */; };
 		CC0001032FA3000100000002 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001022FA3000100000002 /* AnalyticsView.swift */; };
 		D82175BFC774BFB8081957D2 /* SupabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAF028D604DCD031A53E9F35 /* SupabaseConfig.swift */; };
+		BAD000000000000000000010 /* RevenueCatConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000011 /* RevenueCatConfig.swift */; };
+		BAD000000000000000000020 /* PaymentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000021 /* PaymentService.swift */; };
 		DD0001012FA4000100000001 /* StreakCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001002FA4000100000001 /* StreakCalculator.swift */; };
 		EE0000012FA50002000001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000012FA50001000001 /* SettingsView.swift */; };
 		EE0000022FA50002000002 /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000022FA50001000002 /* EditProfileView.swift */; };
@@ -686,6 +689,8 @@
 		EE0000052FA50001000005 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		EE0000062FA50001000006 /* FeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackView.swift; sourceTree = "<group>"; };
 		FAF028D604DCD031A53E9F35 /* SupabaseConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
+		BAD000000000000000000011 /* RevenueCatConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatConfig.swift; sourceTree = "<group>"; };
+		BAD000000000000000000021 /* PaymentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentService.swift; sourceTree = "<group>"; };
 		FF0C305C2FA6008BF8 /* encourage_3.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = encourage_3.m4a; sourceTree = "<group>"; };
 		FF26AEC12FA7000719 /* routine_done_4.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = routine_done_4.m4a; sourceTree = "<group>"; };
 		FF2B76F92FA6006A4B /* encourage_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = encourage_2.m4a; sourceTree = "<group>"; };
@@ -707,6 +712,7 @@
 				783186732F99E7590096138F /* PlankSync in Frameworks */,
 				783186702F99E73A0096138F /* PlankVoice in Frameworks */,
 				7831866C2F99E5C60096138F /* PlankEngine in Frameworks */,
+				BAD000000000000000000003 /* RevenueCat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -849,6 +855,7 @@
 				63DBA493EEE09CA86580DBAD /* Auth */,
 				875C71B2977FA095CB67A400 /* Config */,
 				DDA5B2849C9D77D34CF6AE10 /* Sync */,
+				BAD000000000000000000030 /* Payment */,
 			);
 			path = PlankApp;
 			sourceTree = "<group>";
@@ -1190,9 +1197,19 @@
 			isa = PBXGroup;
 			children = (
 				FAF028D604DCD031A53E9F35 /* SupabaseConfig.swift */,
+				BAD000000000000000000011 /* RevenueCatConfig.swift */,
 			);
 			name = Config;
 			path = Config;
+			sourceTree = "<group>";
+		};
+		BAD000000000000000000030 /* Payment */ = {
+			isa = PBXGroup;
+			children = (
+				BAD000000000000000000021 /* PaymentService.swift */,
+			);
+			name = Payment;
+			path = Payment;
 			sourceTree = "<group>";
 		};
 		AA00010C2FA1000100000007 /* Routine */ = {
@@ -1277,6 +1294,7 @@
 				7831866B2F99E5C60096138F /* PlankEngine */,
 				7831866F2F99E73A0096138F /* PlankVoice */,
 				783186722F99E7590096138F /* PlankSync */,
+				BAD000000000000000000002 /* RevenueCat */,
 			);
 			productName = plankAI;
 			productReference = 783186412F99E3110096138F /* plankAI.app */;
@@ -1310,6 +1328,7 @@
 				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */,
 				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */,
 				783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */,
+				BAD000000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 783186422F99E3110096138F /* Products */;
@@ -1670,6 +1689,8 @@
 				133BB5E2136D8E02576DD95D /* AuthService.swift in Sources */,
 				34416FA981321B4746721203 /* AuthBootstrapSplash.swift in Sources */,
 				D82175BFC774BFB8081957D2 /* SupabaseConfig.swift in Sources */,
+				BAD000000000000000000010 /* RevenueCatConfig.swift in Sources */,
+				BAD000000000000000000020 /* PaymentService.swift in Sources */,
 				F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */,
 				AAAA00010000000000000001 /* DeleteAccountSheet.swift in Sources */,
 				B58D26581F4992F4CA9E29DD /* AppleSignInService.swift in Sources */,
@@ -1922,6 +1943,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		BAD000000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		7831866B2F99E5C60096138F /* PlankEngine */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -1934,6 +1966,11 @@
 		783186722F99E7590096138F /* PlankSync */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = PlankSync;
+		};
+		BAD000000000000000000002 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BAD000000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
