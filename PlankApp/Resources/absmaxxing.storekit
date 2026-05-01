@@ -1,0 +1,73 @@
+{
+  "identifier" : "BAD0AAAA-0000-0000-0000-000000000001",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {
+    "_applicationInternalID" : "",
+    "_developerTeamID" : "",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : []
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "BAD0AAAA-0000-0000-0000-000000000002",
+      "localizations" : [],
+      "name" : "absmaxxing Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "BAD0AAAA-0000-0000-0000-000000000003",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "AI-powered daily 5-10 minute routines and coaching",
+              "displayName" : "absmaxxing Pro Weekly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "absmaxxing_weekly",
+          "recurringSubscriptionPeriod" : "P1W",
+          "referenceName" : "absmaxxing weekly",
+          "subscriptionGroupID" : "BAD0AAAA-0000-0000-0000-000000000002",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "29.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "BAD0AAAA-0000-0000-0000-000000000004",
+          "introductoryOffer" : {
+            "internalID" : "BAD0AAAA-0000-0000-0000-000000000005",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
+            {
+              "description" : "Unlock your full ab program with the best value plan",
+              "displayName" : "absmaxxing Pro Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "absmaxxing_yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "absmaxxing yearly",
+          "subscriptionGroupID" : "BAD0AAAA-0000-0000-0000-000000000002",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

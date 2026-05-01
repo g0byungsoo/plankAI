@@ -10,8 +10,15 @@
   sign-in screens (Apple required button, terracotta accent, password requirements
   checklist, mode toggle, in-app SFSafariViewController for Terms/Privacy), unified
   friendly error copy, PulsingDots loading, ShakeEffect on submission errors.
-- **Payment (RevenueCat)**: next major work block. Not started. New Claude Code
-  session will own this.
+- **Payment (RevenueCat)**: SDK initialized (Phase A), customerInfoStream
+  observation + auth-state sync (Phase B), polished paywall with personalized
+  headline + dynamic pricing from offerings (Phases C+D), session entitlement
+  gates wired in HomeView (Phase E). StoreKit Configuration File at
+  `PlankApp/Resources/absmaxxing.storekit` handles sandbox testing — set the
+  scheme's StoreKit Configuration option to it (Product → Scheme → Edit Scheme
+  → Run → Options → StoreKit Configuration). For TestFlight/production, leave
+  scheme set to None — purchases use the real App Store. Phase F (trial-end
+  notification) and Phase G (Restore in Settings) still pending.
 - **Phase G (end-to-end smoke test on physical device)**: pending. Includes
   DebugAuthView removal once production surfaces are stable.
 - **Open items**: Camera permission flow + v1.1 anon→auth data-preservation +

@@ -8,12 +8,18 @@
   polished sign-in, error copy unification, loading state polish)
 
 **Pending:**
-- ⏳ RevenueCat payment integration — next Claude Code session
+- ⏳ Payment Phase F — schedule local trial-end notification 24h before yearly renews
+- ⏳ Payment Phase G — Restore Purchases in Settings + DebugAuthView removal
 - ⏳ App Store assets (icon, screenshots, copy)
 - ⏳ Privacy policy + Terms hosting on absmaxxing.com (see entry below)
-- ⏳ TestFlight prep — DebugAuthView removal, Phase G smoke test on physical device
+- ⏳ TestFlight prep — Phase G smoke test on physical device with real Apple Sandbox account
 - ⏳ Camera permission flow (see entry below)
 - ⏳ v1.1 anonymous → authenticated upgrade data preservation (see entry below)
+
+## Payment Phase E — scheme StoreKit Configuration setup
+**What:** In Xcode: Product → Scheme → Edit Scheme → Run → Options tab → StoreKit Configuration → select `absmaxxing.storekit`. Manual step because scheme is per-developer (xcuserdata) and shouldn't be force-overwritten by automation.
+**Why:** Without this, running from Xcode hits the live App Store sandbox (requires real sandbox tester accounts). With it, purchases simulate locally via the .storekit file — Debug → StoreKit → Manage Transactions for trial expiry / refund / cancel testing.
+**Status:** One-time per dev. Each dev does this on their own machine.
 
 
 ## Camera Permission Flow

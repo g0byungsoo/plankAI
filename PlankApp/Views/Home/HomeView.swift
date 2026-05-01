@@ -17,6 +17,7 @@ struct HomeView: View {
     @Query(sort: \SessionLogRecord.completedAt, order: .reverse) private var allSessionLogs: [SessionLogRecord]
     @Query(sort: \DayProgressRecord.programDay, order: .reverse) private var allDayProgress: [DayProgressRecord]
     @State private var auth = AuthService.shared
+    @State private var payment = PaymentService.shared
 
     /// User-scoped session logs. After sign-in/sign-out cycles, SwiftData
     /// holds rows for every user_id this device has authenticated as. The
@@ -360,6 +361,15 @@ struct HomeView: View {
 
                 // Start button
                 Button {
+                    guard payment.hasProAccess else {
+                        // RootView's fullScreenCover should already be showing
+                        // the paywall — defense-in-depth here in case of a
+                        // race between hasProAccess flipping false and the
+                        // cover mounting.
+                        print("[HomeView] session entry blocked: hasProAccess=false (routine)")
+                        return
+                    }
+                    print("[HomeView] session entry allowed (routine)")
                     Haptics.vibrate()
                     currentWorkout = workout
                     showRoutineSession = true
@@ -415,6 +425,11 @@ struct HomeView: View {
                 }
 
                 Button {
+                    guard payment.hasProAccess else {
+                        print("[HomeView] session entry blocked: hasProAccess=false (plank benchmark)")
+                        return
+                    }
+                    print("[HomeView] session entry allowed (plank benchmark)")
                     Haptics.medium()
                     showPreSession = true
                 } label: {
