@@ -36,6 +36,11 @@
 - **Placement:** End of onboarding, after quiz + personalized plan, before paywall. Recheck on every session launch.
 - **Analytics events:** `camera_permission_requested`, `camera_permission_granted`, `camera_permission_denied`, `camera_permission_settings_opened`
 
+## v1.1 — Cross-device trial-end notification scheduling
+**What:** Trial-end reminder is currently scheduled per-device via UNUserNotificationCenter. Users who start a trial on iPhone and only check iPad won't see the 24h reminder on iPad.
+**Why:** Local notifications don't sync across the user's device set. v1.1 fix: schedule via Supabase Edge Function + APNs push, keyed on the user's auth.uid() and the trial expiration date from RC's webhook. Server-side schedule means every device the user signs into receives the reminder.
+**Status:** v1.1 follow-up. Per-device coverage is sufficient for v1 — most users start the trial on the device they primarily use.
+
 ## v1.1 — RevenueCat anonymous → authenticated identity merging
 **What:** Investigate using RevenueCat's identity linking so anonymous-period entitlement state merges with the authenticated user on sign-in. Today, an anon user who somehow purchases (rare — paywall is post-onboarding which itself follows sign-in path most of the time) leaves an orphan RC customer record that doesn't carry forward when they later sign in.
 **Why:** Defense-in-depth for an edge case that's structurally unlikely in our flow but possible if onboarding paths change. Phase B's logIn already aliases anon → named for the same Supabase uid (sign-up upgrade case); this v1.1 item is the broader case.

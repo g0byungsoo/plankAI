@@ -52,6 +52,13 @@ final class PaymentService {
     /// transition starts before the previous one's window closes.
     private var authTransitionSafetyTask: Task<Void, Never>?
 
+    /// Last trial-end date we passed to TrialEndNotificationService.
+    /// nil means no trial-active state was last observed. Used by
+    /// reconcileTrialReminder to no-op on repeat customerInfoStream
+    /// emits with the same trial state — schedule/cancel only fires on
+    /// transitions, not every emit.
+    private var lastScheduledTrialEnd: Date?
+
     /// Configure RevenueCat once, after AuthService.bootstrap completes.
     /// Pass the current Supabase user_id as appUserID so RevenueCat scopes
     /// purchases to the same identity used for cloud data. Starts the
@@ -98,7 +105,33 @@ final class PaymentService {
                 // window early — paywall presentation is allowed again as
                 // soon as we know the new user's actual entitlement state.
                 self.clearAuthTransition(reason: "customerInfoStream emit")
+                await self.reconcileTrialReminder(from: customerInfo)
             }
+        }
+    }
+
+    /// Single source of truth for trial-end notification scheduling.
+    /// Called on every customerInfoStream emit so the four edge cases
+    /// (initial purchase, restore-during-trial, cancel-during-trial,
+    /// trial-converted-to-normal) all flow through one path:
+    ///   - active + trial period + willRenew: schedule reminder
+    ///   - any other state (including trial cancelled): cancel reminder
+    /// lastScheduledTrialEnd guard prevents repeated schedule/cancel on
+    /// no-op emits where the trial state hasn't actually changed.
+    private func reconcileTrialReminder(from customerInfo: CustomerInfo) async {
+        let entitlement = customerInfo.entitlements[RevenueCatConfig.entitlementID]
+        let trialActive = entitlement?.isActive == true
+            && entitlement?.periodType == .trial
+            && entitlement?.willRenew == true
+        let trialEndDate = trialActive ? entitlement?.expirationDate : nil
+
+        if trialEndDate == lastScheduledTrialEnd { return }
+        lastScheduledTrialEnd = trialEndDate
+
+        if let trialEndDate {
+            await TrialEndNotificationService.shared.scheduleIfNeeded(trialEndDate: trialEndDate)
+        } else {
+            await TrialEndNotificationService.shared.cancelTrialEndReminder()
         }
     }
 

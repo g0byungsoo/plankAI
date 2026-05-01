@@ -335,6 +335,7 @@
 		BAD000000000000000000010 /* RevenueCatConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000011 /* RevenueCatConfig.swift */; };
 		BAD000000000000000000020 /* PaymentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000021 /* PaymentService.swift */; };
 		BAD000000000000000000040 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000041 /* PaywallView.swift */; };
+		BAD000000000000000000060 /* TrialEndNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000061 /* TrialEndNotificationService.swift */; };
 		DD0001012FA4000100000001 /* StreakCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001002FA4000100000001 /* StreakCalculator.swift */; };
 		EE0000012FA50002000001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000012FA50001000001 /* SettingsView.swift */; };
 		EE0000022FA50002000002 /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000022FA50001000002 /* EditProfileView.swift */; };
@@ -694,6 +695,7 @@
 		BAD000000000000000000021 /* PaymentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentService.swift; sourceTree = "<group>"; };
 		BAD000000000000000000041 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		BAD000000000000000000050 /* absmaxxing.storekit */ = {isa = PBXFileReference; lastKnownFileType = file.storekit; path = absmaxxing.storekit; sourceTree = "<group>"; };
+		BAD000000000000000000061 /* TrialEndNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialEndNotificationService.swift; sourceTree = "<group>"; };
 		FF0C305C2FA6008BF8 /* encourage_3.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = encourage_3.m4a; sourceTree = "<group>"; };
 		FF26AEC12FA7000719 /* routine_done_4.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = routine_done_4.m4a; sourceTree = "<group>"; };
 		FF2B76F92FA6006A4B /* encourage_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = encourage_2.m4a; sourceTree = "<group>"; };
@@ -860,6 +862,7 @@
 				875C71B2977FA095CB67A400 /* Config */,
 				DDA5B2849C9D77D34CF6AE10 /* Sync */,
 				BAD000000000000000000030 /* Payment */,
+				BAD000000000000000000070 /* Notifications */,
 			);
 			path = PlankApp;
 			sourceTree = "<group>";
@@ -1215,6 +1218,15 @@
 			);
 			name = Payment;
 			path = Payment;
+			sourceTree = "<group>";
+		};
+		BAD000000000000000000070 /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				BAD000000000000000000061 /* TrialEndNotificationService.swift */,
+			);
+			name = Notifications;
+			path = Notifications;
 			sourceTree = "<group>";
 		};
 		AA00010C2FA1000100000007 /* Routine */ = {
@@ -1697,6 +1709,7 @@
 				BAD000000000000000000010 /* RevenueCatConfig.swift in Sources */,
 				BAD000000000000000000020 /* PaymentService.swift in Sources */,
 				BAD000000000000000000040 /* PaywallView.swift in Sources */,
+				BAD000000000000000000060 /* TrialEndNotificationService.swift in Sources */,
 				F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */,
 				AAAA00010000000000000001 /* DeleteAccountSheet.swift in Sources */,
 				B58D26581F4992F4CA9E29DD /* AppleSignInService.swift in Sources */,
