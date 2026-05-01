@@ -11,6 +11,29 @@ struct AccountView: View {
     @State private var showSignOutConfirm = false
     @State private var signingOut = false
     @State private var showDeleteAccountSheet = false
+    @State private var restoring = false
+    @State private var restoreFeedback: RestoreFeedback?
+
+    private enum RestoreFeedback: Equatable {
+        case success
+        case nothingToRestore
+        case error(String)
+
+        var message: String {
+            switch self {
+            case .success: return "Subscriptions restored"
+            case .nothingToRestore: return "No active subscription found. If you think this is wrong, contact support."
+            case .error(let msg): return msg
+            }
+        }
+
+        var color: Color {
+            switch self {
+            case .success: return Palette.stateGood
+            case .nothingToRestore, .error: return Palette.textSecondary
+            }
+        }
+    }
 
     var body: some View {
         ScrollView {
@@ -120,6 +143,8 @@ struct AccountView: View {
                         .background(Palette.bgInverse)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
+
+                restorePurchasesButton
             }
             .padding(14)
             .background(Palette.bgElevated)
@@ -193,6 +218,8 @@ struct AccountView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .disabled(signingOut)
+
+                restorePurchasesButton
             }
             .padding(14)
             .background(Palette.bgElevated)
@@ -271,6 +298,79 @@ struct AccountView: View {
         case .apple: return "apple.logo"
         case .email: return "envelope.fill"
         default: return "person.fill"
+        }
+    }
+
+    // MARK: - Restore Purchases
+
+    /// Visible in both anonymous and authenticated states — restoring
+    /// works on either, since RevenueCat scopes purchases to the
+    /// configured appUserID and aliases anonymous → authenticated when
+    /// the user signs in. Auto-clears feedback after 2s.
+    private var restorePurchasesButton: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button {
+                Task { await performRestore() }
+            } label: {
+                ZStack {
+                    Text("Restore Purchases")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Palette.accent)
+                        .opacity(restoring ? 0 : 1)
+                    if restoring {
+                        PulsingDots(color: Palette.accent)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+            }
+            .disabled(restoring)
+
+            if let restoreFeedback {
+                Text(restoreFeedback.message)
+                    .font(Typo.caption)
+                    .foregroundStyle(restoreFeedback.color)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .multilineTextAlignment(.center)
+                    .transition(.opacity)
+            }
+        }
+        .onChange(of: restoreFeedback) { _, newValue in
+            // Auto-clear after 2s. Compare against the captured value
+            // before clearing so a fresh tap during the delay window
+            // doesn't get its message wiped early.
+            guard let captured = newValue else { return }
+            Task {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                await MainActor.run {
+                    if restoreFeedback == captured {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            restoreFeedback = nil
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func performRestore() async {
+        print("[Settings] Restore Purchases tapped")
+        restoring = true
+        restoreFeedback = nil
+        defer { restoring = false }
+
+        do {
+            let restored = try await PaymentService.shared.restorePurchases()
+            print("[Settings] Restore success: hasProAccess=\(restored)")
+            withAnimation(.easeOut(duration: 0.2)) {
+                restoreFeedback = restored ? .success : .nothingToRestore
+            }
+        } catch {
+            print("[Settings] Restore failed: \(error)")
+            withAnimation(.easeOut(duration: 0.2)) {
+                restoreFeedback = .error("Couldn't restore. Check your internet and try again.")
+            }
         }
     }
 

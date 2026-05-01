@@ -71,7 +71,9 @@ final class PaymentService {
     func configure(appUserID: String?) {
         guard !isConfigured else { return }
         guard let appUserID, !appUserID.isEmpty else {
+            #if DEBUG
             print("[PaymentService] configure skipped: no appUserID (auth not ready)")
+            #endif
             return
         }
 
@@ -99,8 +101,10 @@ final class PaymentService {
                 guard let self else { return }
                 let isActive = customerInfo.entitlements[RevenueCatConfig.entitlementID]?.isActive ?? false
                 self.hasProAccess = isActive
+                #if DEBUG
                 let activeKeys = customerInfo.entitlements.active.keys.sorted()
                 print("[PaymentService] customerInfo updated: hasProAccess=\(isActive) entitlements=\(activeKeys)")
+                #endif
                 // First emit since an auth change closes the suppression
                 // window early — paywall presentation is allowed again as
                 // soon as we know the new user's actual entitlement state.
@@ -143,7 +147,9 @@ final class PaymentService {
         isInAuthTransition = false
         authTransitionSafetyTask?.cancel()
         authTransitionSafetyTask = nil
+        #if DEBUG
         print("[PaymentService] auth transition END (\(reason)) — paywall presentation re-enabled")
+        #endif
     }
 
     /// Sync RevenueCat's appUserID with AuthService. Called from
@@ -159,6 +165,18 @@ final class PaymentService {
     ///     no longer surface on this device.
     /// No-op when newUserID matches lastSyncedUserID — guards against
     /// the duplicate onChange Tasks spawned by RootView's two observers.
+    /// Trigger a RevenueCat restore. Pulls the user's purchase history
+    /// from Apple's receipt + RevenueCat's records and reapplies any
+    /// active entitlements. customerInfoStream emits the result, so
+    /// hasProAccess updates reactively — the returned Bool is a
+    /// convenience for the caller's immediate UI feedback ("Restored"
+    /// vs "Nothing to restore").
+    @discardableResult
+    func restorePurchases() async throws -> Bool {
+        let info = try await Purchases.shared.restorePurchases()
+        return info.entitlements[RevenueCatConfig.entitlementID]?.isActive ?? false
+    }
+
     func handleAuthChange(newUserID: String?) async {
         guard isConfigured else { return }
         let normalized = (newUserID?.isEmpty == false) ? newUserID : nil
@@ -173,7 +191,9 @@ final class PaymentService {
         // again. RootView's fullScreenCover binding ANDs against this
         // flag.
         isInAuthTransition = true
+        #if DEBUG
         print("[PaymentService] auth transition START — paywall presentation suppressed")
+        #endif
         authTransitionSafetyTask?.cancel()
         authTransitionSafetyTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 1_000_000_000)
@@ -184,10 +204,14 @@ final class PaymentService {
         do {
             if let normalized {
                 let result = try await Purchases.shared.logIn(normalized)
+                #if DEBUG
                 print("[PaymentService] logIn: created=\(result.created) userID=\(normalized)")
+                #endif
             } else {
                 _ = try await Purchases.shared.logOut()
+                #if DEBUG
                 print("[PaymentService] logOut succeeded")
+                #endif
             }
         } catch {
             print("[PaymentService] auth sync FAILED: \(error)")
