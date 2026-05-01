@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import PlankSync
 import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
+import RevenueCat
 import os.log
 
 // MARK: - Orientation Control
@@ -70,12 +71,41 @@ private struct RootView: View {
 
     @Environment(\.modelContext) private var modelContext
     @State private var auth = AuthService.shared
+    @State private var payment = PaymentService.shared
 
     var body: some View {
         Group {
             if auth.isReady {
                 if hasCompletedOnboarding {
                     MainTabView()
+                        .fullScreenCover(isPresented: .constant(!payment.hasProAccess)) {
+                            // Hard paywall — sits between onboarding completion
+                            // and MainTabView. dismissable: false hides the X
+                            // close button. Cover dismisses automatically when
+                            // PaymentService.hasProAccess flips via the
+                            // customerInfoStream after a successful purchase
+                            // or restore.
+                            PaywallView(
+                                dismissable: false,
+                                onSubscribed: {
+                                    // No-op; the cover dismisses on its own
+                                    // when hasProAccess flips. Keeping this
+                                    // empty so the parent has a hook for
+                                    // post-purchase routing later (e.g.,
+                                    // analytics event, first-session push).
+                                },
+                                onRestore: {
+                                    Task {
+                                        do {
+                                            _ = try await Purchases.shared.restorePurchases()
+                                        } catch {
+                                            print("[Paywall] restore FAILED: \(error)")
+                                        }
+                                    }
+                                },
+                                onDismiss: {}
+                            )
+                        }
                 } else {
                     OnboardingView(onComplete: handleOnboardingComplete)
                 }

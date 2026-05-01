@@ -1,4 +1,5 @@
 import SwiftUI
+import RevenueCat
 
 // MARK: - PaywallView
 //
@@ -8,16 +9,28 @@ import SwiftUI
 // translated into absmaxxing's voice (calm, confident, terracotta accent
 // on warm cream, no preachy or all-caps emphasis).
 //
-// Phase C scope: standalone view with placeholder pricing strings. Phase D
-// wires RevenueCat: replaces the placeholder strings with
-// package.storeProduct.localizedPriceString and hooks the CTA to
-// Purchases.shared.purchase(package:). The closure plumbing is in place
-// so Phase D is mostly substitution, not refactoring.
+// Phase D wires RevenueCat: offerings.current populates the cards by
+// productIdentifier; storeProduct.priceFormatter formats prices in the
+// user's locale; CTA calls Purchases.shared.purchase(package:); savings
+// math is computed dynamically from the actual yearly + weekly prices.
 
 struct PaywallView: View {
+    let dismissable: Bool
     let onSubscribed: () -> Void
     let onRestore: () -> Void
     let onDismiss: () -> Void
+
+    init(
+        dismissable: Bool = true,
+        onSubscribed: @escaping () -> Void,
+        onRestore: @escaping () -> Void = {},
+        onDismiss: @escaping () -> Void = {}
+    ) {
+        self.dismissable = dismissable
+        self.onSubscribed = onSubscribed
+        self.onRestore = onRestore
+        self.onDismiss = onDismiss
+    }
 
     @AppStorage("focusArea") private var focusArea: String = ""
 
@@ -25,6 +38,9 @@ struct PaywallView: View {
     @State private var working = false
     @State private var errorMessage: String?
     @State private var legalDoc: LegalDoc?
+    @State private var offering: Offering?
+    @State private var loadingOfferings = true
+    @State private var offeringsLoadFailed = false
 
     private enum Plan: Equatable { case yearly, weekly }
 
@@ -54,12 +70,75 @@ struct PaywallView: View {
         }
     }
 
-    /// Phase C placeholder pricing. Phase D replaces with
-    /// package.storeProduct.localizedPriceString from RevenueCat so
-    /// international pricing works automatically.
-    private let yearlyPriceText = "$29.99/year"
-    private let yearlyPerWeekText = "Just $0.58/week · save 88%"
-    private let weeklyPriceText = "$4.99/week"
+    // MARK: RevenueCat package lookup
+
+    private var yearlyPackage: Package? {
+        offering?.availablePackages.first {
+            $0.storeProduct.productIdentifier == RevenueCatConfig.ProductID.yearly
+        }
+    }
+
+    private var weeklyPackage: Package? {
+        offering?.availablePackages.first {
+            $0.storeProduct.productIdentifier == RevenueCatConfig.ProductID.weekly
+        }
+    }
+
+    private var selectedPackage: Package? {
+        selectedPlan == .yearly ? yearlyPackage : weeklyPackage
+    }
+
+    // MARK: Pricing display
+
+    /// Localized price for the yearly card ("$29.99/year" in en-US,
+    /// equivalent in other locales). Falls back to a placeholder while
+    /// offerings are loading or if the lookup misses.
+    private var yearlyPriceText: String {
+        if let pkg = yearlyPackage {
+            return "\(pkg.storeProduct.localizedPriceString)/year"
+        }
+        return "$29.99/year"
+    }
+
+    /// Per-week math + savings %, both computed from the actual yearly
+    /// and weekly storeProduct prices. Uses the yearly product's price
+    /// formatter so the per-week amount shows in the same locale/currency.
+    private var yearlyPerWeekText: String {
+        guard let yearly = yearlyPackage else {
+            return "Just $0.58/week · save 88%"
+        }
+        let yearlyPrice = yearly.storeProduct.price as NSDecimalNumber
+        let perWeek = yearlyPrice.dividing(by: NSDecimalNumber(value: 52))
+        let formatter = yearly.storeProduct.priceFormatter ?? defaultCurrencyFormatter
+        let perWeekStr = formatter.string(from: perWeek) ?? "\(perWeek)"
+
+        guard let weekly = weeklyPackage else {
+            return "Just \(perWeekStr)/week"
+        }
+        let weeklyPrice = weekly.storeProduct.price as NSDecimalNumber
+        guard weeklyPrice.doubleValue > 0 else {
+            return "Just \(perWeekStr)/week"
+        }
+        let ratio = perWeek.dividing(by: weeklyPrice).doubleValue
+        let savingsPercent = Int(((1.0 - ratio) * 100).rounded())
+        guard savingsPercent > 0 else {
+            return "Just \(perWeekStr)/week"
+        }
+        return "Just \(perWeekStr)/week · save \(savingsPercent)%"
+    }
+
+    private var weeklyPriceText: String {
+        if let pkg = weeklyPackage {
+            return "\(pkg.storeProduct.localizedPriceString)/week"
+        }
+        return "$4.99/week"
+    }
+
+    private var defaultCurrencyFormatter: NumberFormatter {
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        return f
+    }
 
     private var ctaLabel: String {
         switch selectedPlan {
@@ -85,7 +164,7 @@ struct PaywallView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.lg) {
-                    Spacer().frame(height: 40)  // breathing room below close button
+                    Spacer().frame(height: dismissable ? 40 : 24)
 
                     Text(headline)
                         .font(Typo.title)
@@ -94,6 +173,9 @@ struct PaywallView: View {
 
                     benefitsSection
                     pricingSection
+                    if offeringsLoadFailed {
+                        offeringsLoadFailedRow
+                    }
                     trustMicroCopy
                     ctaButton
                     if let errorMessage {
@@ -110,12 +192,35 @@ struct PaywallView: View {
                 .padding(.bottom, Space.xl)
             }
 
-            closeButton
-                .padding(.leading, Space.lg)
-                .padding(.top, Space.sm)
+            if dismissable {
+                closeButton
+                    .padding(.leading, Space.lg)
+                    .padding(.top, Space.sm)
+            }
         }
         .sheet(item: $legalDoc) { doc in
             SafariView(url: doc.url).ignoresSafeArea()
+        }
+        .task {
+            await loadOfferings()
+        }
+    }
+
+    private var offeringsLoadFailedRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 12))
+                .foregroundStyle(Palette.stateWarn)
+            Text("Pricing didn't load. Tap to retry.")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(Palette.stateWarn.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
+        .onTapGesture {
+            Task { await loadOfferings() }
         }
     }
 
@@ -344,18 +449,55 @@ struct PaywallView: View {
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
-    // MARK: Purchase
+    // MARK: Offerings + Purchase
 
-    /// Phase C stub. Phase D replaces with the RevenueCat purchase flow:
-    ///   try await Purchases.shared.purchase(package: selectedPackage)
-    /// On success → onSubscribed(); on userCancelled → silent dismiss;
-    /// on failure → friendly errorMessage.
+    private func loadOfferings() async {
+        loadingOfferings = true
+        offeringsLoadFailed = false
+        do {
+            let offerings = try await Purchases.shared.offerings()
+            offering = offerings.current
+            if offering == nil {
+                print("[Paywall] offerings returned nil current — check RC dashboard offering '\(RevenueCatConfig.offeringID)' is marked current")
+                offeringsLoadFailed = true
+            }
+        } catch {
+            print("[Paywall] offerings load FAILED: \(error)")
+            offeringsLoadFailed = true
+        }
+        loadingOfferings = false
+    }
+
+    /// Real RevenueCat purchase. userCancelled → silent return, no UI.
+    /// Successful purchase → onSubscribed() callback (the cover dismisses
+    /// when PaymentService.hasProAccess flips via customerInfoStream
+    /// regardless, but the callback gives the parent a chance to do
+    /// post-purchase routing). Errors → friendly inline message + log.
     private func purchase() async {
+        guard let package = selectedPackage else {
+            errorMessage = "Couldn't load pricing. Check your connection and try again."
+            return
+        }
         working = true
+        errorMessage = nil
         defer { working = false }
-        // Phase D wires this. For now, a brief pulse simulates the call so
-        // the loading state can be previewed end-to-end.
-        try? await Task.sleep(nanoseconds: 600_000_000)
-        onSubscribed()
+
+        do {
+            let result = try await Purchases.shared.purchase(package: package)
+            if result.userCancelled {
+                return
+            }
+            let isActive = result.customerInfo
+                .entitlements[RevenueCatConfig.entitlementID]?.isActive == true
+            if isActive {
+                Haptics.success()
+                onSubscribed()
+            } else {
+                errorMessage = "Purchase didn't activate Pro. Try again or contact support@absmaxxing.com."
+            }
+        } catch {
+            print("[Paywall] purchase FAILED: \(error)")
+            errorMessage = "Couldn't complete purchase. Try again in a moment."
+        }
     }
 }
