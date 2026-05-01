@@ -58,7 +58,7 @@ struct PaywallView: View {
     /// package.storeProduct.localizedPriceString from RevenueCat so
     /// international pricing works automatically.
     private let yearlyPriceText = "$29.99/year"
-    private let yearlyPerWeekText = "Just $0.58/week"
+    private let yearlyPerWeekText = "Just $0.58/week · save 88%"
     private let weeklyPriceText = "$4.99/week"
 
     private var ctaLabel: String {
