@@ -75,6 +75,12 @@ struct OnboardingView: View {
     @State private var beforeAfterVisible = false
     @State private var personalStatVisible = false
 
+    // Phase 5 — prediction / loading / plan reveal animations
+    @State private var predictionVisible = false
+    @State private var carouselProgress: CGFloat = 0
+    @State private var carouselFrame: Int = 0
+    @State private var carouselDone = false
+
     let onComplete: (OnboardingData) -> Void
 
     var body: some View {
@@ -501,8 +507,15 @@ struct OnboardingView: View {
         case 18: nameInput
         case 19: coachSelector
 
-        // ─── Post-question pipeline (Phase 5 will rebuild) ─────
-        case 20: EmptyView() // analyzing overlay
+        // ─── Phase 5 — prediction / loading / plan reveal ─────
+        case 160: reshapeTransitionScreen
+        case 161: firstPredictionScreen
+        case 170: rePredictionScreen
+        case 180: loadingCarouselScreen
+        case 181: finalPredictionScreen
+
+        // ─── Post-question pipeline ─────
+        case 20: EmptyView() // legacy analyzing overlay marker — superseded by 180
         case 21: planRevealScreen
         case 22: personalStatScreen
         case 23: cameraSetupScreen
@@ -554,14 +567,18 @@ struct OnboardingView: View {
         201, 2, 8, 120, 121, 25, 17,
         // Part 3
         202, 130, 7, 131, 132, 133, 134, 135,
+        // Phase 5 — reshape transition + first prediction (commit-escalation)
+        160, 161,
         // Part 4
         203, 140, 141,
+        // Phase 5 — re-prediction recap
+        170,
         // Part 5
         204, 150, 151, 152,
         // Part 6
         205, 3, 11, 18, 19,
-        // Post-question pipeline
-        20, 21, 26, 22, 23, 24,
+        // Phase 5 — loading carousel + final prediction → plan reveal
+        180, 181, 21, 26, 22, 23, 24,
     ]
 
     private var progressFraction: CGFloat {
@@ -2053,7 +2070,7 @@ struct OnboardingView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
                     withAnimation(.easeOut(duration: 0.2)) { showFeedback = false }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        withAnimation { analyzing = true }; startAnalyzing()
+                        go(180)
                     }
                 }
             }
@@ -2175,7 +2192,480 @@ struct OnboardingView: View {
     }
 
     // ═══════════════════════════════════════
-    // MARK: - ANALYZING
+    // MARK: - PHASE 5 — RESHAPE / PREDICTION / LOADING
+    // ═══════════════════════════════════════
+
+    // Reshape transition (160). JustFit's "stubborn fat will shed" moment
+    // reframed: no spot-reduction claims, no body-shame language. The
+    // promise is plan-led transformation, not fat targeting.
+    private var reshapeTransitionScreen: some View {
+        VStack(spacing: 0) {
+            Spacer()
+
+            // Three figure silhouettes at decreasing scale — placeholder
+            // for real photography post-launch. Neutral, not body-shaped
+            // fat-loss illustrations.
+            HStack(alignment: .bottom, spacing: Space.lg) {
+                ForEach([1.0, 0.92, 0.84], id: \.self) { scale in
+                    Image(systemName: "figure.stand")
+                        .font(.system(size: 96 * scale, weight: .ultraLight))
+                        .foregroundStyle(Palette.accent.opacity(0.45 + (1 - scale) * 1.2))
+                }
+            }
+            .padding(.vertical, Space.lg)
+
+            Spacer().frame(height: Space.lg)
+
+            ItalicAccentText("Your plan will reshape your body.",
+                             italic: ["reshape"],
+                             alignment: .center)
+                .padding(.horizontal, Space.screenPadding)
+
+            Spacer().frame(height: Space.md)
+
+            Text("Healthy weight loss is steady — not extreme.\nWe'll get you there safely.")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Space.screenPadding)
+
+            Spacer()
+
+            ctaBtn("Continue") { Haptics.medium(); go(161) }
+        }
+    }
+
+    // First weight prediction (161). "We predict you'll be [goal] by [date]"
+    private var firstPredictionScreen: some View {
+        predictionScreen(
+            headlinePrefix: "We predict you'll be ",
+            headlineSuffix: ".",
+            subhead: "We're starting to get a clear picture of you.",
+            badge: nil,
+            target: predictionDate(),
+            next: 203
+        )
+    }
+
+    // Re-prediction (170) — same shape, earlier date, "Still on track!" badge.
+    private var rePredictionScreen: some View {
+        predictionScreen(
+            headlinePrefix: "We predict you'll be ",
+            headlineSuffix: ".",
+            subhead: "We'll incorporate your goal into your personalized plan.",
+            badge: "Still on track!",
+            target: rePredictionDate(),
+            next: 204
+        )
+    }
+
+    // Final prediction (181) — runs after the loading carousel, hands off
+    // to the redesigned plan reveal.
+    private var finalPredictionScreen: some View {
+        VStack(spacing: 0) {
+            Spacer().frame(height: Space.lg)
+
+            Text("Based on your answers, your plan is ready.")
+                .font(Typo.title)
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Space.screenPadding)
+
+            Spacer().frame(height: Space.sm)
+
+            predictionHeadline()
+                .padding(.horizontal, Space.screenPadding)
+
+            Spacer().frame(height: Space.md)
+
+            weightCurve()
+                .frame(height: 180)
+                .padding(.horizontal, Space.screenPadding)
+
+            Spacer().frame(height: Space.lg)
+
+            // First-week calendar dots — represents the first 9 days of
+            // workouts. Accent dots for committed days, divider for rest.
+            firstWeekCalendar()
+                .padding(.horizontal, Space.screenPadding)
+
+            Spacer().frame(height: Space.md)
+
+            // Placeholder social-proof footer. Real number set post-launch
+            // (see TODOS.md — "Phase 5 placeholder numbers").
+            Text("82% of users in your situation lost weight after using JeniFit.")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Space.screenPadding)
+
+            Spacer()
+
+            ctaBtn("Get my plan") { Haptics.heavy(); go(21) }
+        }
+    }
+
+    // Shared layout for the first prediction + re-prediction. Both render
+    // a curve graph with current → goal weight, surfaced with the
+    // italic-accent date headline.
+    private func predictionScreen(
+        headlinePrefix: String, headlineSuffix: String,
+        subhead: String, badge: String?,
+        target: Date, next: Int
+    ) -> some View {
+        VStack(spacing: 0) {
+            Spacer().frame(height: Space.lg)
+
+            Group {
+                if let badge {
+                    Text(badge)
+                        .font(.system(size: 13, weight: .bold))
+                        .tracking(1)
+                        .foregroundStyle(Palette.textInverse)
+                        .padding(.horizontal, 14).padding(.vertical, 6)
+                        .background(Palette.accent, in: Capsule())
+                        .padding(.bottom, Space.md)
+                }
+            }
+
+            predictionHeadline(prefix: headlinePrefix, suffix: headlineSuffix, target: target)
+                .padding(.horizontal, Space.screenPadding)
+
+            Spacer().frame(height: Space.sm)
+
+            Text(subhead)
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Space.screenPadding)
+
+            Spacer().frame(height: Space.lg)
+
+            weightCurve(targetDate: target)
+                .frame(height: 200)
+                .padding(.horizontal, Space.screenPadding)
+
+            Spacer()
+
+            ctaBtn("Continue") { Haptics.medium(); go(next) }
+        }
+    }
+
+    // Italic-accent prediction headline. "We predict you'll be 130 lbs by Mar 5."
+    private func predictionHeadline(
+        prefix: String = "You'll be ",
+        suffix: String = ".",
+        target: Date? = nil
+    ) -> some View {
+        let date = target ?? predictionDate()
+        let weightFragment = weightLabel(kg: goalWeightKg)
+        let dateFragment = formatGoalDate(date)
+        return (
+            Text(prefix).font(Typo.title) +
+            Text(weightFragment).font(Typo.titleItalic) +
+            Text(" by ").font(Typo.title) +
+            Text(dateFragment).font(Typo.titleItalic) +
+            Text(suffix).font(Typo.title)
+        )
+        .foregroundStyle(Palette.textPrimary)
+        .multilineTextAlignment(.center)
+    }
+
+    // Smooth weight-loss curve from current → goal weight, with accent fill
+    // below. "Today" anchored at left, target date at right.
+    private func weightCurve(targetDate: Date? = nil) -> some View {
+        let date = targetDate ?? predictionDate()
+        return GeometryReader { geo in
+            let w = geo.size.width
+            let h = geo.size.height - 32  // leave room for axis labels
+            let curve = Path { p in
+                p.move(to: CGPoint(x: 0, y: 8))
+                p.addQuadCurve(
+                    to: CGPoint(x: w, y: h - 8),
+                    control: CGPoint(x: w * 0.55, y: h * 0.4)
+                )
+            }
+            let fill = Path { p in
+                p.move(to: CGPoint(x: 0, y: 8))
+                p.addQuadCurve(
+                    to: CGPoint(x: w, y: h - 8),
+                    control: CGPoint(x: w * 0.55, y: h * 0.4)
+                )
+                p.addLine(to: CGPoint(x: w, y: h))
+                p.addLine(to: CGPoint(x: 0, y: h))
+                p.closeSubpath()
+            }
+            ZStack(alignment: .topLeading) {
+                fill
+                    .fill(LinearGradient(
+                        colors: [Palette.accent.opacity(0.28), Palette.accent.opacity(0.02)],
+                        startPoint: .top, endPoint: .bottom
+                    ))
+                curve
+                    .stroke(Palette.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+
+                // Endpoint markers
+                Circle().fill(Palette.accent).frame(width: 10, height: 10)
+                    .offset(x: -5, y: 3)
+                Circle().fill(Palette.accent).frame(width: 10, height: 10)
+                    .offset(x: w - 5, y: h - 13)
+
+                // Axis labels
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Today").font(Typo.eyebrow).foregroundStyle(Palette.textSecondary)
+                        Text(weightLabel(kg: currentWeightKg))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.textPrimary)
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(formatGoalDate(date)).font(Typo.eyebrow).foregroundStyle(Palette.textSecondary)
+                        Text(weightLabel(kg: goalWeightKg))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.accent)
+                    }
+                }
+                .offset(y: h)
+            }
+        }
+    }
+
+    // Loading carousel (180). Three rotating frames over 3.5s, then auto-advances.
+    private var loadingCarouselScreen: some View {
+        VStack(spacing: 0) {
+            Spacer()
+
+            Text("Building your plan…")
+                .font(Typo.title)
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.center)
+
+            Spacer().frame(height: Space.lg)
+
+            // Rotating frame content
+            Group {
+                switch carouselFrame {
+                case 0: carouselFrameUserCount
+                case 1: carouselFrameTrainingHours
+                default: carouselFrameRating
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Space.screenPadding)
+            .id(carouselFrame)
+            .transition(.opacity.combined(with: .scale(scale: 0.97)))
+
+            Spacer().frame(height: Space.lg)
+
+            // Progress bar
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Palette.divider).frame(height: 6)
+                    Capsule()
+                        .fill(LinearGradient(colors: [Palette.accent, Palette.accentSubtle],
+                                             startPoint: .leading, endPoint: .trailing))
+                        .frame(width: geo.size.width * carouselProgress, height: 6)
+                }
+            }
+            .frame(height: 6)
+            .padding(.horizontal, Space.xl)
+
+            Spacer().frame(height: Space.sm)
+
+            Text("\(Int(carouselProgress * 100))%")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Palette.textSecondary)
+
+            Spacer()
+        }
+        .background(Palette.bgPrimary)
+        .onAppear { startCarousel() }
+    }
+
+    // Frame 1 — early-access user count. Number is a placeholder.
+    // TODO(post-launch): replace with real count from analytics.
+    private var carouselFrameUserCount: some View {
+        VStack(spacing: Space.sm) {
+            Text("1,000+ early-access members")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.center)
+            // Avatar grid placeholder — 4×3 of accent circles
+            VStack(spacing: 8) {
+                ForEach(0..<3, id: \.self) { row in
+                    HStack(spacing: 8) {
+                        ForEach(0..<4, id: \.self) { col in
+                            Circle()
+                                .fill(Palette.accent.opacity(0.18 + Double((row + col) % 3) * 0.12))
+                                .frame(width: 36, height: 36)
+                        }
+                    }
+                }
+            }
+            .padding(.top, Space.sm)
+        }
+    }
+
+    // Frame 2 — placeholder training hours.
+    // TODO(post-launch): replace with real session count.
+    private var carouselFrameTrainingHours: some View {
+        VStack(spacing: Space.sm) {
+            Text("100+ hours of plank coaching")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.center)
+            HStack(spacing: 10) {
+                ForEach(["figure.core.training", "figure.flexibility", "figure.mind.and.body",
+                         "stopwatch.fill", "flame.fill"], id: \.self) { sym in
+                    Image(systemName: sym)
+                        .font(.system(size: 22, weight: .regular))
+                        .foregroundStyle(Palette.accent)
+                        .frame(width: 44, height: 44)
+                        .background(Palette.accentSubtle, in: Circle())
+                }
+            }
+            .padding(.top, Space.sm)
+        }
+    }
+
+    // Frame 3 — early reviews.
+    // TODO(post-launch): replace with real App Store rating + review count.
+    private var carouselFrameRating: some View {
+        VStack(spacing: Space.sm) {
+            Text("5.0 ★ early reviews")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Palette.textPrimary)
+            HStack(spacing: 6) {
+                ForEach(0..<5, id: \.self) { _ in
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Palette.accent)
+                }
+            }
+            .padding(.top, Space.sm)
+        }
+    }
+
+    private func startCarousel() {
+        carouselProgress = 0
+        carouselFrame = 0
+        carouselDone = false
+        let total = 3.5
+        let steps = 70
+        for i in 0...steps {
+            DispatchQueue.main.asyncAfter(deadline: .now() + total * Double(i) / Double(steps)) {
+                let p = CGFloat(i) / CGFloat(steps)
+                withAnimation(.easeOut(duration: 0.1)) { carouselProgress = p }
+                let f = min(2, Int(p * 3))
+                if f != carouselFrame {
+                    withAnimation(.easeInOut(duration: 0.35)) { carouselFrame = f }
+                }
+                if i == steps && !carouselDone {
+                    carouselDone = true
+                    Haptics.success()
+                    showConfetti = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        showConfetti = false
+                        go(181)
+                    }
+                }
+            }
+        }
+    }
+
+    private func firstWeekCalendar() -> some View {
+        // 9 dots representing the first 9 days. Accent for committed days
+        // (derived from commitmentDays count), divider for rest.
+        let active = commitmentDaysCount(commitmentDays)
+        let activeDays: Set<Int> = {
+            // Spread `active` workouts across 9 days starting from day 1.
+            // Default 5/week → days 1, 2, 3, 4, 5 (skip 6/7, then 8/9).
+            // Simple heuristic: pack from the front, skip the rest.
+            var s = Set<Int>()
+            for d in 0..<9 where d < active || (d >= 7 && d - 7 < max(0, active - 5)) {
+                s.insert(d)
+            }
+            return s
+        }()
+        return VStack(spacing: Space.sm) {
+            HStack {
+                Text("YOUR FIRST 9 DAYS")
+                    .font(Typo.eyebrow).tracking(1)
+                    .foregroundStyle(Palette.textSecondary)
+                Spacer()
+            }
+            HStack(spacing: 8) {
+                ForEach(0..<9, id: \.self) { d in
+                    Circle()
+                        .fill(activeDays.contains(d) ? Palette.accent : Palette.divider)
+                        .frame(width: 16, height: 16)
+                }
+            }
+        }
+    }
+
+    // MARK: - Phase 5 helpers
+
+    /// First-prediction date. Default: today + 12 weeks. Adjusted ±2 weeks
+    /// by activity level (athlete sooner, sedentary later).
+    private func predictionDate() -> Date {
+        let cal = Calendar.current
+        var days = 84  // 12 weeks
+        switch activityLevel {
+        case "athlete":  days -= 14
+        case "sedentary": days += 14
+        default: break
+        }
+        return cal.date(byAdding: .day, value: days, to: Date()) ?? Date()
+    }
+
+    /// Re-prediction is 2 weeks earlier than the first — represents the
+    /// "answers improved the projection" feedback. Compresses with more
+    /// commitment days too, capped so it doesn't go absurd.
+    private func rePredictionDate() -> Date {
+        let cal = Calendar.current
+        var days = 84 - 14  // 10 weeks baseline
+        switch activityLevel {
+        case "athlete":  days -= 14
+        case "sedentary": days += 7
+        default: break
+        }
+        if commitmentDays == "seven" { days -= 7 }
+        return cal.date(byAdding: .day, value: max(28, days), to: Date()) ?? Date()
+    }
+
+    /// "Mar 5" style. Short month + day, no year.
+    private func formatGoalDate(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f.string(from: date)
+    }
+
+    /// JeniFit goal phrasing derived from bodyFocus (Phase 4 multi-select).
+    /// Falls back to identityFeeling, then a generic "your goals."
+    private func jenifitGoalLabel() -> String {
+        let first = bodyFocus.first
+        switch first {
+        case "flatBelly": return "your flat belly"
+        case "tonedArms": return "toned arms"
+        case "roundButt": return "round butt"
+        case "slimLegs":  return "slim legs"
+        case "fullBody":  return "full-body transformation"
+        default: break
+        }
+        switch identityFeeling {
+        case "powerful": return "feeling powerful"
+        case "calm":     return "feeling at home in your body"
+        case "light":    return "feeling light and free"
+        case "strong":   return "strength and capability"
+        case "radiant":  return "radiant energy"
+        default: return "your goals"
+        }
+    }
+
+    // ═══════════════════════════════════════
+    // MARK: - ANALYZING (legacy, kept for non-flow legacy callers)
     // ═══════════════════════════════════════
 
     private var analyzingScreen: some View {
@@ -2239,17 +2729,7 @@ struct OnboardingView: View {
     private var planRevealScreen: some View {
         let coachName = voicePreference == "encouraging" ? "Sarah" : voicePreference == "balanced" ? "Matson" : "Kira"
         let coachPhoto = voicePreference == "encouraging" ? "coach-sarah" : voicePreference == "balanced" ? "coach-matson" : "coach-kira"
-        let goalLabel = focusArea == "abs" ? "abs definition" : focusArea == "obliques" ? "waist sculpting" : focusArea == "lowerBack" ? "core strength" : "full core"
-        let motivationLabel: String = {
-            switch goal {
-            case "strength": return "a stronger core"
-            case "posture": return "better posture"
-            case "confidence": return "feeling more confident"
-            case "toned": return "getting toned"
-            default: return "your goals"
-            }
-        }()
-        let barrierCard = barrierPlanCard()
+        let goalLabel = jenifitGoalLabel()
 
         return VStack(spacing: 0) {
             Spacer()
@@ -2275,7 +2755,7 @@ struct OnboardingView: View {
 
             Spacer().frame(height: Space.xs)
 
-            Text("Built for \(motivationLabel).")
+            Text("Built for \(goalLabel).")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Palette.accent)
                 .opacity(planRevealed ? 1 : 0)
@@ -2289,23 +2769,19 @@ struct OnboardingView: View {
 
             Spacer().frame(height: Space.lg + 8)
 
-            // Plan summary cards. Card 4 swaps to a barrier-killer card
-            // if the user named blockers in Q5; otherwise the generic adaptive card.
+            // Plan summary cards. JeniFit copy — no AI language; "live form
+            // check" not "AI form coaching" (per justfit-audit Section 6.K).
             VStack(spacing: 10) {
-                planCard(icon: "flame.fill", title: "Daily Routines", detail: "5-10 min \(goalLabel) sessions", color: Palette.accent, index: 0)
-                planCard(icon: "waveform", title: "Voice Coaching", detail: "\(coachName) guides every exercise", color: Palette.stateGood, index: 1)
-                planCard(icon: "camera.fill", title: "Weekly Plank Check", detail: "AI tracks your form progress", color: Palette.textSecondary, index: 2)
-                if let bc = barrierCard {
-                    planCard(icon: bc.icon, title: bc.title, detail: bc.detail, color: Palette.stateWarn, index: 3)
-                } else {
-                    planCard(icon: "brain.head.profile", title: "Adaptive Workouts", detail: "Gets harder as you get stronger", color: Palette.stateWarn, index: 3)
-                }
+                planCard(icon: "calendar", title: "Daily routines", detail: "5–10 min sessions designed for you", color: Palette.accent, index: 0)
+                planCard(icon: "waveform", title: "Voice coaching", detail: "\(coachName) guides every move", color: Palette.stateGood, index: 1)
+                planCard(icon: "viewfinder", title: "Live form check", detail: "We watch your form weekly", color: Palette.textSecondary, index: 2)
+                planCard(icon: "sparkles", title: "Adaptive plan", detail: "Gets smarter as you go", color: Palette.stateWarn, index: 3)
             }
             .padding(.horizontal, Space.screenPadding)
 
             Spacer()
 
-            ctaBtn("Let's go") { Haptics.medium(); go(26) }
+            ctaBtn("Set up camera") { Haptics.medium(); go(26) }
                 .opacity(planRevealed ? 1 : 0)
         }
         .background(Palette.bgPrimary)
