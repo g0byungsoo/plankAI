@@ -2196,25 +2196,13 @@ struct OnboardingView: View {
     // ═══════════════════════════════════════
 
     // Reshape transition (160). JustFit's "stubborn fat will shed" moment
-    // reframed: no spot-reduction claims, no body-shame language. The
-    // promise is plan-led transformation, not fat targeting.
+    // reframed: no spot-reduction claims, no body-shame language, no
+    // placeholder silhouettes. Real photography for v1.1 — clean ship
+    // without imagery for v1.0. Single thin accent rule under the
+    // headline as the visual anchor.
     private var reshapeTransitionScreen: some View {
         VStack(spacing: 0) {
             Spacer()
-
-            // Three figure silhouettes at decreasing scale — placeholder
-            // for real photography post-launch. Neutral, not body-shaped
-            // fat-loss illustrations.
-            HStack(alignment: .bottom, spacing: Space.lg) {
-                ForEach([1.0, 0.92, 0.84], id: \.self) { scale in
-                    Image(systemName: "figure.stand")
-                        .font(.system(size: 96 * scale, weight: .ultraLight))
-                        .foregroundStyle(Palette.accent.opacity(0.45 + (1 - scale) * 1.2))
-                }
-            }
-            .padding(.vertical, Space.lg)
-
-            Spacer().frame(height: Space.lg)
 
             ItalicAccentText("Your plan will reshape your body.",
                              italic: ["reshape"],
@@ -2222,6 +2210,12 @@ struct OnboardingView: View {
                 .padding(.horizontal, Space.screenPadding)
 
             Spacer().frame(height: Space.md)
+
+            RoundedRectangle(cornerRadius: 1)
+                .fill(Palette.accent)
+                .frame(width: 60, height: 1)
+
+            Spacer().frame(height: 56)
 
             Text("Healthy weight loss is steady — not extreme.\nWe'll get you there safely.")
                 .font(Typo.body)
@@ -2291,9 +2285,7 @@ struct OnboardingView: View {
 
             Spacer().frame(height: Space.md)
 
-            // Placeholder social-proof footer. Real number set post-launch
-            // (see TODOS.md — "Phase 5 placeholder numbers").
-            Text("82% of users in your situation lost weight after using JeniFit.")
+            Text("Designed by trainers, built around your answers.")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
@@ -2643,14 +2635,16 @@ struct OnboardingView: View {
     }
 
     /// JeniFit goal phrasing derived from bodyFocus (Phase 4 multi-select).
+    /// Body-part keys lead with "your" so "Built for [label]." reads
+    /// natural and personal. Compound-noun keys (fullBody) skip "your".
     /// Falls back to identityFeeling, then a generic "your goals."
     private func jenifitGoalLabel() -> String {
         let first = bodyFocus.first
         switch first {
         case "flatBelly": return "your flat belly"
-        case "tonedArms": return "toned arms"
-        case "roundButt": return "round butt"
-        case "slimLegs":  return "slim legs"
+        case "tonedArms": return "your toned arms"
+        case "roundButt": return "your round butt"
+        case "slimLegs":  return "your slim legs"
         case "fullBody":  return "full-body transformation"
         default: break
         }
