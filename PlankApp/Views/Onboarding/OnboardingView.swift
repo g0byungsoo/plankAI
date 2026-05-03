@@ -7,16 +7,21 @@ import AVFoundation
 // Gradient blobs + animated SF Symbols + photo slots for stock images.
 
 struct OnboardingView: View {
-    @State private var screen = -1  // -1 = splash
+    @State private var screen: Int
     @State private var dir = 1
     @State private var visible = false
+
+    init(onComplete: @escaping (OnboardingData) -> Void) {
+        self.onComplete = onComplete
+        self._screen = State(wrappedValue: -1)
+    }
     @State private var feedback = ""
     @State private var showFeedback = false
     @State private var showConfetti = false
     @State private var showWelcomeSignInSheet = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
-    // Data
+    // Data — legacy
     @State private var goal = ""
     @State private var experience = ""
     @State private var baseline = ""
@@ -31,6 +36,30 @@ struct OnboardingView: View {
     @State private var notificationTime = Calendar.current.date(from: DateComponents(hour: 7)) ?? Date()
     @State private var name = ""
     @State private var voicePreference = "keepItReal"
+
+    // Data — JeniFit phase 4 additions. Defaults match OnboardingData
+    // defaults so values are safe to read before the user touches them.
+    @State private var bodyFocus: Set<String> = []
+    @State private var motivation = ""
+    @State private var workoutLocation = ""
+    @State private var workoutStyle: Set<String> = ["hiit"]
+    @State private var gender = ""
+    @State private var heightCm: Double = 170
+    @State private var currentWeightKg: Double = 65
+    @State private var goalWeightKg: Double = 60
+    @State private var bodyTypeCurrent: Int = 2
+    @State private var bodyTypeDesired: Int = 1
+    @State private var identityFeeling = ""
+    @State private var rewardChoice = ""
+    @State private var relatability1: Bool? = nil
+    @State private var relatability2: Bool? = nil
+    @State private var relatability3: Bool? = nil
+
+    // Confirmation badge state — fired only at strategic commits
+    // (5–7 across the full flow), not after every question. Goal is
+    // moments of acknowledgement, not constant noise.
+    @State private var pendingConfirmation: String? = nil
+    @State private var showConfirmation = false
 
     // Analyze
     @State private var analyzing = false
@@ -92,6 +121,21 @@ struct OnboardingView: View {
             }
 
             if showConfetti { ConfettiView().ignoresSafeArea().allowsHitTesting(false).zIndex(20) }
+
+            // ConfirmationBadge — strategic post-commit acknowledgement
+            // moments. Appears for ~1.4s before the next-screen advance,
+            // anchored to the bottom so it feels like a natural toast
+            // from the Continue button rather than a modal interruption.
+            if showConfirmation, let msg = pendingConfirmation {
+                VStack {
+                    Spacer()
+                    ConfirmationBadge(message: msg)
+                        .padding(.bottom, Space.xl)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .zIndex(18)
+            }
+
         }
         .sheet(isPresented: $showWelcomeSignInSheet) {
             NavigationStack {
@@ -164,135 +208,354 @@ struct OnboardingView: View {
         case -1: splashScreen
         case 0: welcome
 
-        case 1: questionView("What do you want\nto achieve?", sub: "We'll build your plan around this.", opts: [
-            ("strength", "💪  Stronger core"), ("posture", "🧍‍♀️  Better posture"),
-            ("confidence", "✨  Feel more confident"), ("toned", "🔥  Get toned"),
-        ], sel: $goal, feedbacks: [
-            "strength": "Strong core = strong everything 💪",
-            "posture": "Good posture changes how people see you",
-            "confidence": "It starts from the inside out ✨",
-            "toned": "30 days. You'll feel the difference 🔥",
-        ], next: 2)
+        // ─── Section dividers ───────────────────────────────────
+        case 200: SectionDividerScreen(
+            partNumber: 1, title: "Your story",
+            supporting: "Three quick reads on what brought you here.",
+            dwellSeconds: 1.6,
+            onAdvance: { go(1) }
+        )
+        case 201: SectionDividerScreen(
+            partNumber: 2, title: "How you move now",
+            supporting: "We'll match your plan to where you are today.",
+            dwellSeconds: 1.6,
+            onAdvance: { go(2) }
+        )
+        case 202: SectionDividerScreen(
+            partNumber: 3, title: "About you",
+            supporting: "A few numbers so the math behind your plan is honest.",
+            dwellSeconds: 1.6,
+            onAdvance: { go(130) }
+        )
+        case 203: SectionDividerScreen(
+            partNumber: 4, title: "How you want to feel",
+            supporting: "The version of you that's waiting on the other side.",
+            dwellSeconds: 1.6,
+            onAdvance: { go(140) }
+        )
+        case 204: SectionDividerScreen(
+            partNumber: 5, title: "What stops you",
+            supporting: "Three honest questions. Tap whichever lands.",
+            dwellSeconds: 1.6,
+            onAdvance: { go(150) }
+        )
+        case 205: SectionDividerScreen(
+            partNumber: 6, title: "Ready to start",
+            supporting: "Last few. Then your plan goes live.",
+            dwellSeconds: 1.6,
+            onAdvance: { go(3) }
+        )
 
-        case 2: questionView("Do you work out\nyour core?", sub: "Be honest. Zero judgment.", opts: [
-            ("never", "🆕  Never really"), ("gaveUp", "😅  Tried, couldn't stick"),
-            ("sometimes", "🔄  Here and there"), ("regular", "💎  Regularly"),
-        ], sel: $experience, feedbacks: [
-            "never": "Everyone starts somewhere 🙌",
-            "gaveUp": "This time you have a coach who won't let you quit",
-            "sometimes": "Let's make it a daily habit",
-            "regular": "Let's take it to the next level 😏",
-        ], next: experience == "never" ? 4 : 3)
+        // ─── Part 1 — Your story ────────────────────────────────
+        case 1: jfQuestion(
+            "What's the goal?",
+            sub: "We'll build the entire plan around this answer.",
+            opts: [
+                ("loseWeight", "Lose weight"),
+                ("toneUp", "Tone up"),
+                ("lookDefined", "Look defined"),
+                ("buildStrength", "Build strength"),
+            ],
+            sel: $goal, next: 110
+        )
 
-        case 3: questionView("How long can you\nhold a plank?", sub: "This sets your benchmark starting point.", opts: [
-            ("under15", "⚡  Under 15 seconds"), ("15to30", "🔥  15–30 seconds"),
-            ("30to60", "💪  30–60 seconds"), ("over60", "👑  60+ seconds"),
-        ], sel: $baseline, feedbacks: [
-            "under15": "You'll double this in 2 weeks",
-            "15to30": "Solid starting point",
-            "30to60": "Ahead of most people already",
-            "over60": "Elite. Let's perfect that form 👑",
-        ], next: 4)
+        case 110: jfMulti(
+            "Where should we focus?",
+            sub: "Pick the zones you want to see change.",
+            opts: [
+                ("flatBelly", "Flat Belly"),
+                ("tonedArms", "Toned Arms"),
+                ("roundButt", "Round Butt"),
+                ("slimLegs", "Slim Legs"),
+            ],
+            sel: $bodyFocus, next: 111,
+            confirmation: "Locked in. Your routines target these zones."
+        )
 
-        case 4: chartScreen
+        case 111: jfQuestion(
+            "Why now?",
+            sub: "What's pushing you to start today?",
+            opts: [
+                ("confidence", "I want to feel confident in my body"),
+                ("event", "I have a date / event coming up"),
+                ("clothes", "I want to look good in my clothes"),
+                ("health", "I want to be healthy long-term"),
+                ("revenge", "I want my comeback to be undeniable"),
+            ],
+            sel: $motivation, next: 201
+        )
 
-        case 5: multiView("What usually\nstops you?", sub: "Pick all that apply.", opts: [
-            ("boring", "😴  Workouts get boring"), ("dontKnow", "🤷  Don't know what to do"),
-            ("motivation", "📉  Hard to stay consistent"), ("time", "⏰  Never have time"),
-            ("injury", "🩹  Worried about doing it wrong"),
-        ], sel: $barriers, next: 6)
+        // ─── Part 2 — How you move now ──────────────────────────
+        case 2: jfQuestion(
+            "How much do you train right now?",
+            sub: "Be honest. The plan calibrates from this.",
+            opts: [
+                ("never", "I don't really train"),
+                ("gaveUp", "I've tried, couldn't stick with it"),
+                ("sometimes", "Here and there"),
+                ("regular", "Regularly — multiple times a week"),
+            ],
+            sel: $experience, next: 8
+        )
 
-        case 6: celebrationScreen
+        case 8: jfQuestion(
+            "How active are you day-to-day?",
+            sub: "Outside of workouts. Walking, standing, errands.",
+            opts: [
+                ("sedentary", "Mostly sitting"),
+                ("light", "Light — short walks, occasional movement"),
+                ("moderate", "Moderate — on my feet most of the day"),
+                ("active", "Very active — physical job or daily walks"),
+                ("athlete", "Athlete-level"),
+            ],
+            sel: $activityLevel, next: 120
+        )
 
-        case 7: questionView("How old are you?", sub: "This personalizes your plan intensity.", opts: [
-            ("under18", "⚡  Under 18"), ("18to24", "🔥  18–24"),
-            ("25to34", "💪  25–34"), ("35to44", "✨  35–44"),
-            ("45to54", "🧘  45–54"), ("55plus", "👑  55+"),
-        ], sel: $ageRange, feedbacks: [
-            "under18": "Starting young = starting right",
-            "18to24": "Peak building years. Let's go",
-            "25to34": "The sweet spot for results",
-            "35to44": "Core strength matters more every year",
-            "45to54": "This is when planking pays off the most",
-            "55plus": "Strong core = independence for life 👑",
-        ], next: 8)
+        case 120: jfQuestion(
+            "Where will you train?",
+            sub: "We tune the moves so they fit your space.",
+            opts: [
+                ("home", "At home — bedroom or living room"),
+                ("gym", "At the gym"),
+                ("outdoor", "Outdoors — park or backyard"),
+                ("anywhere", "Anywhere — I move around"),
+            ],
+            sel: $workoutLocation, next: 121
+        )
 
-        case 8: questionView("How active are\nyou right now?", sub: "This calibrates your starting level.", opts: [
-            ("sedentary", "🛋️  Not very active"), ("light", "🚶  Light walks / stretching"),
-            ("moderate", "🚴  A few workouts a week"), ("active", "🏋️  4–5x a week"),
-            ("athlete", "🏃‍♀️  Daily training"),
-        ], sel: $activityLevel, feedbacks: [
-            "sedentary": "We start easy. No judgment at all",
-            "light": "Great foundation to build on",
-            "moderate": "Perfect. This fits right in",
-            "active": "We'll push you 😈",
-            "athlete": "Let's see how your core stacks up 💪",
-        ], next: 9)
+        case 121: jfMulti(
+            "What kind of workouts feel good?",
+            sub: "Pick whatever you actually enjoy. Multi-pick fine.",
+            opts: [
+                ("hiit", "HIIT — short and brutal"),
+                ("strength", "Strength — slow and heavy"),
+                ("yoga", "Yoga / Pilates — long and controlled"),
+                ("dance", "Dance / cardio — fun and sweaty"),
+                ("walking", "Walking — easy and steady"),
+            ],
+            sel: $workoutStyle, next: 25
+        )
 
-        case 9: didYouKnowScreen
+        case 25: jfQuestion(
+            "How long per session?",
+            sub: "Pick the size you'll actually keep open.",
+            opts: [
+                ("5", "5 min — when life is mid"),
+                ("7", "7 min — recommended"),
+                ("10", "10 min — full session"),
+                ("15", "15 min — go-mode"),
+            ],
+            sel: $sessionLength, next: 17
+        )
 
-        case 10: questionView("What do you want\nto target?", sub: "We'll focus your coaching here.", opts: [
-            ("abs", "🎯  Abs / front core"), ("obliques", "🔄  Obliques / waist"),
-            ("lowerBack", "🔙  Lower back"), ("fullCore", "💎  Full core — everything"),
-        ], sel: $focusArea, feedbacks: [
-            "abs": "Front and center. We'll get there",
-            "obliques": "Waist definition takes real form",
-            "lowerBack": "Underrated. This changes posture",
-            "fullCore": "The complete package 💎",
-        ], next: 11)
+        case 17: jfQuestion(
+            "How many days a week?",
+            sub: "The five-day plan is what we'd pick for you.",
+            opts: [
+                ("3", "3 days — easing in"),
+                ("5", "5 days — recommended"),
+                ("6", "6 days — high intensity"),
+                ("7", "Every day — all in"),
+            ],
+            sel: $commitmentDays, next: 202,
+            confirmation: "Got it. Your plan starts here."
+        )
 
-        case 11: questionView("When do you\nwant to train?", sub: "We'll send a reminder.", opts: [
-            ("morning", "🌅  Morning — start strong"), ("afternoon", "☀️  Afternoon — energy boost"),
-            ("evening", "🌙  Evening — wind down"), ("whenever", "🤷  Whenever I feel like it"),
-        ], sel: $plankTime, feedbacks: [
-            "morning": "Morning sessions build the strongest habits",
-            "afternoon": "Great for a midday reset",
-            "evening": "Perfect way to close out the day",
-            "whenever": "Flexibility works too",
-        ], next: 12)
+        // ─── Part 3 — About you (biometrics) ────────────────────
+        case 130: jfQuestion(
+            "What's your gender?",
+            sub: "We adjust your plan based on this.",
+            opts: [
+                ("female", "Female"),
+                ("male", "Male"),
+                ("nonbinary", "Non-binary"),
+                ("private", "Prefer not to say"),
+            ],
+            sel: $gender, next: 7
+        )
 
-        case 12: formScreen
-        case 13: featureShowcaseScreen
-        case 14: socialProofScreen
-        case 15: testimonialScreen
-        case 16: beforeAfterScreen
-        case 17: questionView("How many days\na week?", sub: "More days = faster results. We recommend 5.", opts: [
-            ("3", "3️⃣  3 days — easing in"), ("5", "5️⃣  5 days — recommended"),
-            ("7", "7️⃣  Every day — all in"),
-        ], sel: $commitmentDays, feedbacks: [
-            "3": "Consistency beats intensity",
-            "5": "The sweet spot for results",
-            "7": "Every. Single. Day. Respect 🫡",
-        ], next: 25)
+        case 7: jfQuestion(
+            "What's your age?",
+            sub: "We adjust your plan based on this.",
+            opts: [
+                ("under18", "Under 18"),
+                ("18to24", "18–24"),
+                ("25to34", "25–34"),
+                ("35to44", "35–44"),
+                ("45to54", "45–54"),
+                ("55plus", "55+"),
+            ],
+            sel: $ageRange, next: 131
+        )
 
-        case 25: questionView("How long per\nsession?", sub: "Your coach will fill the time.", opts: [
-            ("5", "⚡  5 min — quick & focused"), ("7", "🔥  7 min — recommended"),
-            ("10", "💪  10 min — full session"),
-        ], sel: $sessionLength, feedbacks: [
-            "5": "Perfect for busy days",
-            "7": "The sweet spot",
-            "10": "Maximum results",
-        ], next: 18)
+        case 131: jfSliderScreen(
+            "How tall are you?",
+            sub: "We use this to calibrate intensity.",
+            value: $heightCm, range: 140...210, step: 1,
+            format: { v in heightLabel(cm: v) }, next: 132
+        )
+
+        case 132: jfSliderScreen(
+            "What's your current weight?",
+            sub: "Helps us measure your progress accurately.",
+            value: $currentWeightKg, range: 35...180, step: 0.5,
+            format: { v in weightLabel(kg: v) }, next: 133
+        )
+
+        case 133: jfSliderScreen(
+            "And your goal weight?",
+            sub: "Sets your target. You can change this later.",
+            value: $goalWeightKg, range: 35...180, step: 0.5,
+            format: { v in weightLabel(kg: v) }, next: 134,
+            confirmation: "We'll calibrate progress to this."
+        )
+
+        case 134: jfBodyTypeScreen(
+            "Where are you now?",
+            sub: "Visual reference, not a number on a scale.",
+            position: $bodyTypeCurrent,
+            labels: ["Soft", "Curvy", "Average", "Athletic", "Lean", "Cut"],
+            next: 135
+        )
+
+        case 135: jfBodyTypeScreen(
+            "Where do you want to be?",
+            sub: "What we're moving you toward.",
+            position: $bodyTypeDesired,
+            labels: ["Soft", "Curvy", "Average", "Athletic", "Lean", "Cut"],
+            next: 203
+        )
+
+        // ─── Part 4 — How you want to feel ──────────────────────
+        case 140: jfQuestion(
+            "Which one feels most like the new you?",
+            sub: "Pick the version that's pulling you forward.",
+            opts: [
+                ("strong", "Strong — capable, takes up space"),
+                ("lean", "Lean — light, defined, fluid"),
+                ("powerful", "Powerful — confident, undeniable"),
+                ("calm", "Calm — at home in my body"),
+            ],
+            sel: $identityFeeling, next: 141
+        )
+
+        case 141: jfQuestion(
+            "What's the reward when you hit the goal?",
+            sub: "The thing you'll do for yourself when this lands.",
+            opts: [
+                ("photoshoot", "A photoshoot"),
+                ("outfit", "An outfit I've been waiting to wear"),
+                ("trip", "A trip"),
+                ("nothing", "No reward — the result is the reward"),
+            ],
+            sel: $rewardChoice, next: 204,
+            confirmation: "We see you. Your reasons are real."
+        )
+
+        // ─── Part 5 — What stops you ────────────────────────────
+        case 150: jfYesNo(
+            "I struggle to stay consistent.",
+            bind: $relatability1, next: 151
+        )
+        case 151: jfYesNo(
+            "I get bored doing the same thing every day.",
+            bind: $relatability2, next: 152
+        )
+        case 152: jfYesNo(
+            "Results don't come fast enough for me.",
+            bind: $relatability3, next: 205,
+            confirmation: "We've all been there. We'll make it easy."
+        )
+
+        // ─── Part 6 — Ready to start ────────────────────────────
+        case 3: jfQuestion(
+            "How long can you hold a plank?",
+            sub: "Your starting benchmark. We move it up from here.",
+            opts: [
+                ("under15", "Under 15 seconds"),
+                ("15to30", "15–30 seconds"),
+                ("30to60", "30–60 seconds"),
+                ("over60", "60+ seconds"),
+            ],
+            sel: $baseline, next: 11
+        )
+
+        case 11: jfQuestion(
+            "When do you want your reminder?",
+            sub: "We'll nudge you at the same time every day.",
+            opts: [
+                ("morning", "Morning — start strong"),
+                ("afternoon", "Afternoon — energy boost"),
+                ("evening", "Evening — wind down"),
+                ("whenever", "Whenever — no fixed time"),
+            ],
+            sel: $plankTime, next: 18
+        )
+
         case 18: nameInput
         case 19: coachSelector
+
+        // ─── Post-question pipeline (Phase 5 will rebuild) ─────
         case 20: EmptyView() // analyzing overlay
         case 21: planRevealScreen
         case 22: personalStatScreen
         case 23: cameraSetupScreen
         case 24: paywallScreen
         case 26: SignInPromptView { Haptics.medium(); go(22) }
+
+        // Legacy showcase screens (kept for Phase 5 reuse, not in flow)
+        case 4: chartScreen
+        case 5: multiView("What usually\nstops you?", sub: "Pick all that apply.", opts: [
+            ("boring", "Workouts get boring"), ("dontKnow", "Don't know what to do"),
+            ("motivation", "Hard to stay consistent"), ("time", "Never have time"),
+            ("injury", "Worried about doing it wrong"),
+        ], sel: $barriers, next: 7)
+        case 6: celebrationScreen
+        case 9: didYouKnowScreen
+        case 10: jfQuestion("Legacy single-focus", sub: nil, opts: [("fullCore","Full core")], sel: $focusArea, next: 11)
+        case 12: formScreen
+        case 13: featureShowcaseScreen
+        case 14: socialProofScreen
+        case 15: testimonialScreen
+        case 16: beforeAfterScreen
+
         default: EmptyView()
         }
     }
 
     // MARK: - Nav
 
-    /// Temporal order of screens. Raw screen indices are not monotonic
-    /// (screen 25 = session length sits between 17 and 18; screen 26 =
-    /// sign-in prompt sits between 21 and 22), so the progress bar uses
-    /// position-in-flow, not raw screen number.
+    /// Temporal order of screens. Raw indices aren't monotonic — section
+    /// dividers (200–205) interleave with question screens. The progress
+    /// bar uses position-in-flow, not raw screen number, so the bar
+    /// always advances forward when the user advances forward, regardless
+    /// of the underlying number jumping around.
+    ///
+    /// Phase 4 reorganized the question content into six parts:
+    ///   Part 1 — Your story            (200) → goal, bodyFocus, motivation
+    ///   Part 2 — How you move now      (201) → experience, activity, location, style, length, days
+    ///   Part 3 — About you             (202) → gender, age, height, weights, body types
+    ///   Part 4 — How you want to feel  (203) → identity, reward
+    ///   Part 5 — What stops you        (204) → 3 yes/no relatability prompts
+    ///   Part 6 — Ready to start        (205) → plank baseline, time, name, coach
+    /// followed by the existing analysis / plan reveal / paywall pipeline
+    /// (20–24) which Phase 5 will rebuild. Sign-in prompt (26) sits
+    /// between plan reveal and personal stat as before.
     private static let flowOrder: [Int] = [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 25, 18, 19, 20, 21, 26, 22, 23, 24
+        // Part 1
+        200, 1, 110, 111,
+        // Part 2
+        201, 2, 8, 120, 121, 25, 17,
+        // Part 3
+        202, 130, 7, 131, 132, 133, 134, 135,
+        // Part 4
+        203, 140, 141,
+        // Part 5
+        204, 150, 151, 152,
+        // Part 6
+        205, 3, 11, 18, 19,
+        // Post-question pipeline
+        20, 21, 26, 22, 23, 24,
     ]
 
     private var progressFraction: CGFloat {
@@ -459,7 +722,7 @@ struct OnboardingView: View {
 
                 Button("Get started") {
                     Haptics.light()
-                    go(1)
+                    go(200) // Part 1 divider
                 }
                 .buttonStyle(.ctaPrimary)
                 .padding(.horizontal, Space.screenPadding)
@@ -510,7 +773,281 @@ struct OnboardingView: View {
     }
 
     // ═══════════════════════════════════════
-    // MARK: - QUESTION (feedback on Continue)
+    // MARK: - JeniFit question helpers (Phase 4)
+    // ═══════════════════════════════════════
+    //
+    // jfQuestion / jfMulti / jfSliderScreen / jfBodyTypeScreen / jfYesNo
+    // are the new canonical question builders. They share a single header
+    // (eyebrow-less title + sub) and route through advanceWithConfirmation
+    // so the optional ConfirmationBadge moment fires uniformly.
+    //
+    // The legacy questionView / multiView below them stays in place for
+    // the old showcase screens (chartScreen, celebrationScreen, etc.)
+    // that Phase 5 will eventually rebuild.
+
+    private func jfHeader(_ title: String, sub: String?) -> some View {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Text(title)
+                .font(Typo.title)
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let sub {
+                Text(sub)
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Space.screenPadding)
+    }
+
+    private func advance(to next: Int, confirmation: String?) {
+        Haptics.medium()
+        if let msg = confirmation {
+            pendingConfirmation = msg
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                showConfirmation = true
+            }
+            Haptics.success()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                withAnimation(.easeOut(duration: 0.18)) { showConfirmation = false }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                    pendingConfirmation = nil
+                    go(next)
+                }
+            }
+        } else {
+            go(next)
+        }
+    }
+
+    private func jfQuestion(
+        _ title: String, sub: String? = nil,
+        opts: [(String, String)],
+        sel: Binding<String>,
+        next: Int,
+        confirmation: String? = nil
+    ) -> some View {
+        VStack(spacing: 0) {
+            jfHeader(title, sub: sub)
+
+            Spacer().frame(height: Space.lg)
+
+            VStack(spacing: Space.sm) {
+                ForEach(opts, id: \.0) { key, label in
+                    let on = sel.wrappedValue == key
+                    Button {
+                        Haptics.light()
+                        sel.wrappedValue = key
+                    } label: {
+                        HStack {
+                            Text(label)
+                                .font(Typo.body)
+                                .fontWeight(.medium)
+                                .foregroundStyle(on ? Palette.textInverse : Palette.textPrimary)
+                                .multilineTextAlignment(.leading)
+                            Spacer()
+                            if on {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(Palette.textInverse)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .frame(minHeight: 56)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(on ? Palette.bgInverse : Palette.bgElevated,
+                                    in: RoundedRectangle(cornerRadius: Radius.md))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Radius.md)
+                                .stroke(on ? Color.clear : Palette.divider, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(PressFeedbackStyle())
+                }
+            }
+            .padding(.horizontal, Space.screenPadding)
+
+            Spacer()
+
+            Button("Continue") {
+                advance(to: next, confirmation: confirmation)
+            }
+            .buttonStyle(.ctaPrimary)
+            .padding(.horizontal, Space.screenPadding)
+            .padding(.bottom, Space.lg)
+            .opacity(sel.wrappedValue.isEmpty ? 0.35 : 1.0)
+            .disabled(sel.wrappedValue.isEmpty)
+        }
+    }
+
+    private func jfMulti(
+        _ title: String, sub: String? = nil,
+        opts: [(String, String)],
+        sel: Binding<Set<String>>,
+        next: Int,
+        confirmation: String? = nil,
+        minSelection: Int = 1
+    ) -> some View {
+        VStack(spacing: 0) {
+            jfHeader(title, sub: sub)
+
+            Spacer().frame(height: Space.lg)
+
+            VStack(spacing: Space.sm) {
+                ForEach(opts, id: \.0) { key, label in
+                    let on = sel.wrappedValue.contains(key)
+                    Button {
+                        Haptics.light()
+                        withAnimation(.spring(response: 0.25)) {
+                            if on { sel.wrappedValue.remove(key) }
+                            else { sel.wrappedValue.insert(key) }
+                        }
+                    } label: {
+                        HStack {
+                            Text(label)
+                                .font(Typo.body)
+                                .fontWeight(.medium)
+                                .foregroundStyle(on ? Palette.textInverse : Palette.textPrimary)
+                            Spacer()
+                            if on {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(Palette.textInverse)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .frame(minHeight: 56)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(on ? Palette.bgInverse : Palette.bgElevated,
+                                    in: RoundedRectangle(cornerRadius: Radius.md))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Radius.md)
+                                .stroke(on ? Color.clear : Palette.divider, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(PressFeedbackStyle())
+                }
+            }
+            .padding(.horizontal, Space.screenPadding)
+
+            Spacer()
+
+            Button("Continue") {
+                advance(to: next, confirmation: confirmation)
+            }
+            .buttonStyle(.ctaPrimary)
+            .padding(.horizontal, Space.screenPadding)
+            .padding(.bottom, Space.lg)
+            .opacity(sel.wrappedValue.count < minSelection ? 0.35 : 1.0)
+            .disabled(sel.wrappedValue.count < minSelection)
+        }
+    }
+
+    private func jfSliderScreen(
+        _ title: String, sub: String? = nil,
+        value: Binding<Double>,
+        range: ClosedRange<Double>, step: Double,
+        format: @escaping (Double) -> String,
+        next: Int,
+        confirmation: String? = nil
+    ) -> some View {
+        VStack(spacing: 0) {
+            jfHeader(title, sub: sub)
+            Spacer()
+            BiometricSlider(value: value, range: range, step: step, format: format)
+                .padding(.horizontal, Space.screenPadding)
+            Spacer()
+            Button("Continue") {
+                advance(to: next, confirmation: confirmation)
+            }
+            .buttonStyle(.ctaPrimary)
+            .padding(.horizontal, Space.screenPadding)
+            .padding(.bottom, Space.lg)
+        }
+    }
+
+    private func jfBodyTypeScreen(
+        _ title: String, sub: String? = nil,
+        position: Binding<Int>,
+        labels: [String],
+        next: Int,
+        confirmation: String? = nil
+    ) -> some View {
+        VStack(spacing: 0) {
+            jfHeader(title, sub: sub)
+            Spacer()
+            BodyTypeSlider(position: position, labels: labels)
+                .padding(.horizontal, Space.screenPadding)
+            Spacer()
+            Button("Continue") {
+                advance(to: next, confirmation: confirmation)
+            }
+            .buttonStyle(.ctaPrimary)
+            .padding(.horizontal, Space.screenPadding)
+            .padding(.bottom, Space.lg)
+        }
+    }
+
+    private func jfYesNo(
+        _ statement: String,
+        bind: Binding<Bool?>,
+        next: Int,
+        confirmation: String? = nil
+    ) -> some View {
+        VStack(spacing: 0) {
+            Spacer()
+
+            Text(statement)
+                .font(Typo.title)
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, Space.lg)
+
+            Spacer()
+
+            HStack(spacing: Space.md) {
+                Button {
+                    Haptics.medium()
+                    bind.wrappedValue = false
+                    advance(to: next, confirmation: confirmation)
+                } label: {
+                    Text("No")
+                        .font(Typo.heading)
+                        .foregroundStyle(Palette.textPrimary)
+                        .frame(maxWidth: .infinity, minHeight: 64)
+                        .background(Palette.bgElevated,
+                                    in: RoundedRectangle(cornerRadius: Radius.md))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Radius.md)
+                                .stroke(Palette.divider, lineWidth: 1)
+                        )
+                }
+                .buttonStyle(PressFeedbackStyle())
+
+                Button {
+                    Haptics.medium()
+                    bind.wrappedValue = true
+                    advance(to: next, confirmation: confirmation)
+                } label: {
+                    Text("Yes, that's me")
+                        .font(Typo.heading)
+                        .foregroundStyle(Palette.textInverse)
+                        .frame(maxWidth: .infinity, minHeight: 64)
+                        .background(Palette.bgInverse,
+                                    in: RoundedRectangle(cornerRadius: Radius.md))
+                }
+                .buttonStyle(PressFeedbackStyle())
+            }
+            .padding(.horizontal, Space.screenPadding)
+            .padding(.bottom, Space.xl)
+        }
+    }
+
+    // ═══════════════════════════════════════
+    // MARK: - QUESTION (legacy — feedback on Continue)
     // ═══════════════════════════════════════
 
     @State private var inlineFeedback = ""
@@ -2288,13 +2825,14 @@ struct OnboardingView: View {
         withAnimation(.easeOut(duration: 0.3)) { screen = to }
     }
     private func goBack() {
-        switch screen {
-        case 4 where experience == "never": go(2)
-        case 18: go(25)  // name ← session length
-        case 22: go(26)  // personal stat ← sign-in prompt
-        case 25: go(17)  // session length ← commitment days
-        case 26: go(21)  // sign-in prompt ← plan reveal
-        default: go(max(0, screen - 1))
+        // Walk one step backward in flowOrder. Raw screen index math
+        // ("screen - 1") doesn't work because indices jump around (200,
+        // 1, 110, ...). If we're already at the first flow screen, fall
+        // back to the welcome (0).
+        if let pos = Self.flowOrder.firstIndex(of: screen), pos > 0 {
+            go(Self.flowOrder[pos - 1])
+        } else {
+            go(0)
         }
     }
     private func finish() {
@@ -2305,18 +2843,82 @@ struct OnboardingView: View {
                 if granted { NotificationPermission.scheduleDailyReminder(at: notificationTime) }
             }
         }
-        onComplete(OnboardingData(
-            goal: goal, experience: experience, baselineHoldSeconds: bS(baseline),
-            barriers: Array(barriers), ageRange: ageRange, activityLevel: activityLevel,
-            focusArea: focusArea, plankTime: plankTime,
+
+        // Derive the legacy focusArea (single String) from the Phase 4
+        // bodyFocus multi-select. Downstream code (PlankAIApp →
+        // userGoal pipeline) keys WorkoutGoal off focusArea, so we map
+        // the first selected zone to the closest legacy bucket.
+        let derivedFocusArea = focusAreaFromBodyFocus()
+
+        // Derive legacy barriers from the Phase 5 yes/no answers so
+        // downstream consumers (UserDefaults "userBarriers", UserRecord
+        // .onboardingBarriers) keep populating without dropping the
+        // signal. relatability1 → consistency, 2 → boredom, 3 → results.
+        var derivedBarriers = Array(barriers)
+        if relatability1 == true { derivedBarriers.append("motivation") }
+        if relatability2 == true { derivedBarriers.append("boring") }
+        if relatability3 == true { derivedBarriers.append("dontKnow") }
+
+        var data = OnboardingData(
+            goal: goal, experience: experience,
+            baselineHoldSeconds: bS(baseline),
+            barriers: derivedBarriers,
+            ageRange: ageRange, activityLevel: activityLevel,
+            focusArea: derivedFocusArea, plankTime: plankTime,
             commitmentDaysPerWeek: Int(commitmentDays) ?? 5,
             sessionLengthMinutes: Int(sessionLength) ?? 7,
             notificationsEnabled: notificationsEnabled,
-            notificationTime: notificationsEnabled ? notificationTime : nil, name: name, voicePreference: voicePreference
-        ))
+            notificationTime: notificationsEnabled ? notificationTime : nil,
+            name: name, voicePreference: voicePreference
+        )
+        // Phase 4 additions — set after init since they have defaults.
+        data.bodyFocus = Array(bodyFocus)
+        data.motivation = motivation
+        data.workoutLocation = workoutLocation
+        data.workoutStyle = Array(workoutStyle)
+        data.gender = gender
+        data.heightCm = heightCm
+        data.currentWeightKg = currentWeightKg
+        data.goalWeightKg = goalWeightKg
+        data.bodyTypeCurrent = bodyTypeCurrent
+        data.bodyTypeDesired = bodyTypeDesired
+        data.identityFeeling = identityFeeling
+        data.rewardChoice = rewardChoice
+        data.relatability1 = relatability1 ?? false
+        data.relatability2 = relatability2 ?? false
+        data.relatability3 = relatability3 ?? false
+
+        onComplete(data)
     }
+
     private func bS(_ b: String) -> Int {
         switch b { case "under15": 10; case "15to30": 20; case "30to60": 45; case "over60": 60; default: 15 }
+    }
+
+    private func focusAreaFromBodyFocus() -> String {
+        // Map the first selected aesthetic zone to the legacy training
+        // bucket WorkoutGoal expects. flatBelly maps to abs (the existing
+        // pipeline already knows how to handle abs as a focus). Toned
+        // arms / round butt / slim legs all fall back to fullCore since
+        // the workout pool isn't yet structured around those zones.
+        guard let first = bodyFocus.first else { return "fullCore" }
+        switch first {
+        case "flatBelly": return "abs"
+        case "tonedArms", "roundButt", "slimLegs": return "fullCore"
+        default: return "fullCore"
+        }
+    }
+
+    private func heightLabel(cm: Double) -> String {
+        let inches = cm / 2.54
+        let ft = Int(inches / 12)
+        let inch = Int(inches.rounded()) - ft * 12
+        return "\(ft)′ \(inch)″"
+    }
+
+    private func weightLabel(kg: Double) -> String {
+        let lb = Int((kg * 2.20462).rounded())
+        return "\(lb) lb"
     }
 }
 
