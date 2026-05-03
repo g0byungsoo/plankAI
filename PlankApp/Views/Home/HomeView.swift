@@ -147,8 +147,6 @@ struct HomeView: View {
                         kiraBenchmarkModule
                             .opacity(msgOpacity[3]).offset(y: msgOffset[3])
 
-                        kiraBubble(greetingText)
-
                         if hasCompletedFirstSession {
                             kiraBubble(statsText)
                         }
@@ -306,10 +304,22 @@ struct HomeView: View {
 
             Spacer().frame(height: Space.xs)
 
-            Text("Your plan's ready when you are — feeling \(todaysWorkout.estimatedDuration) minutes today, or all 28?")
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            Group {
+                if todaysWorkout.estimatedDuration > 0 {
+                    let phrase = "\(todaysWorkout.estimatedDuration) minutes"
+                    ItalicAccentText("Today's \(phrase). Let's go.",
+                                     italic: [phrase],
+                                     baseFont: Typo.body,
+                                     italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+                                     color: Palette.textSecondary,
+                                     alignment: .leading)
+                } else {
+                    Text("Your plan's ready when you are.")
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Space.screenPadding)
