@@ -239,30 +239,20 @@ struct HomeView: View {
 
             Spacer()
 
-            // Center — coach photo + name + online indicator. Tapping opens
-            // the trainer settings sheet (parity with the prior layout).
+            // Center — coach photo + name. Tapping opens the trainer
+            // settings sheet (parity with the prior layout).
             Button {
                 activeSheet = .trainer
             } label: {
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     Image(currentTrainerPhoto)
                         .resizable().scaledToFill()
-                        .frame(width: 40, height: 40)
+                        .frame(width: 32, height: 32)
                         .clipShape(Circle())
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(currentTrainerName)
-                            .font(Typo.body)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Palette.textPrimary)
-                        HStack(spacing: 5) {
-                            Circle()
-                                .fill(Palette.stateGood)
-                                .frame(width: 8, height: 8)
-                            Text("Online")
-                                .font(Typo.caption)
-                                .foregroundStyle(Palette.stateGood)
-                        }
-                    }
+                    Text(currentTrainerName)
+                        .font(Typo.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.textPrimary)
                 }
             }
             .buttonStyle(.plain)
