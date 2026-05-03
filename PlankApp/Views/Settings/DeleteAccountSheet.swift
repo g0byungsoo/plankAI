@@ -103,7 +103,7 @@ struct DeleteAccountSheet: View {
             .background(Palette.stateBad)
             .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
         }
-        .buttonStyle(CTAButtonStyle())
+        .buttonStyle(PressFeedbackStyle())
         .disabled(phase == .deleting)
     }
 
@@ -124,7 +124,7 @@ struct DeleteAccountSheet: View {
                         .stroke(Palette.divider, lineWidth: 1)
                 )
         }
-        .buttonStyle(CTAButtonStyle())
+        .buttonStyle(PressFeedbackStyle())
         .disabled(phase == .deleting)
     }
 

@@ -178,7 +178,7 @@ struct ForgotPasswordView: View {
             .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
             .animation(.easeOut(duration: 0.15), value: isDisabled)
         }
-        .buttonStyle(CTAButtonStyle())
+        .buttonStyle(PressFeedbackStyle())
         .disabled(isDisabled)
     }
 
@@ -199,7 +199,7 @@ struct ForgotPasswordView: View {
                         .stroke(Palette.divider, lineWidth: 1)
                 )
         }
-        .buttonStyle(CTAButtonStyle())
+        .buttonStyle(PressFeedbackStyle())
         .disabled(phase == .sending)
     }
 
@@ -238,7 +238,7 @@ struct ForgotPasswordView: View {
                     .background(Palette.bgInverse)
                     .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
             }
-            .buttonStyle(CTAButtonStyle())
+            .buttonStyle(PressFeedbackStyle())
         }
     }
 

@@ -401,7 +401,7 @@ struct PaywallView: View {
             .background(Palette.accent)
             .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
         }
-        .buttonStyle(CTAButtonStyle())
+        .buttonStyle(PressFeedbackStyle())
         .disabled(working)
     }
 

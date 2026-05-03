@@ -2307,7 +2307,7 @@ struct OnboardingView: View {
                         .stroke(.white.opacity(0.06), lineWidth: 1)
                 )
         }
-        .buttonStyle(CTAButtonStyle())
+        .buttonStyle(PressFeedbackStyle())
         .padding(.horizontal, Space.screenPadding).padding(.bottom, Space.lg)
     }
 
@@ -2397,7 +2397,13 @@ struct WobblyRect: Shape {
     }
 }
 
-struct CTAButtonStyle: ButtonStyle {
+/// Press-feedback wrapper applied on top of buttons that already paint their
+/// own background. Renamed from CTAButtonStyle in JeniFit phase 2; the
+/// canonical brand button style now lives in DesignSystem/Components.swift
+/// as `CTAButtonStyle(variant:)`. Call sites that wrap pre-styled buttons
+/// keep using PressFeedbackStyle until their containing screens are
+/// retokenized in phases 4–5.
+struct PressFeedbackStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)

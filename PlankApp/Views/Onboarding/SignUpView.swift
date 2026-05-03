@@ -379,7 +379,7 @@ struct SignUpView: View {
             .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
             .animation(.easeOut(duration: 0.15), value: disabled)
         }
-        .buttonStyle(CTAButtonStyle())
+        .buttonStyle(PressFeedbackStyle())
         .disabled(disabled)
     }
 

@@ -178,7 +178,7 @@ struct SignInPromptView: View {
                         .stroke(Palette.divider, lineWidth: 1)
                 )
         }
-        .buttonStyle(CTAButtonStyle())
+        .buttonStyle(PressFeedbackStyle())
         .disabled(working)
     }
 }
