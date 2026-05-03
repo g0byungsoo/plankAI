@@ -666,3 +666,27 @@ struct BodyTypeSlider: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Palette.bgPrimary)
 }
+
+// dwellSeconds set to 9999 so the preview doesn't auto-advance —
+// this is a render-only static preview, not a working onboarding step.
+#Preview("SectionDividerScreen") {
+    SectionDividerScreen(
+        partNumber: 1,
+        title: "Your story",
+        supporting: "Three quick reads on what brought you here.",
+        dwellSeconds: 9999,
+        onAdvance: {}
+    )
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Palette.bgPrimary)
+}
+
+#Preview("ConfirmationBadge") {
+    VStack {
+        Spacer()
+        ConfirmationBadge(message: "Got it. Your plan starts here.")
+            .padding(.bottom, Space.xl)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Palette.bgPrimary)
+}
