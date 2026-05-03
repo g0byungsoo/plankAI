@@ -257,7 +257,7 @@ struct AccountView: View {
                         try await AppSync.shared.deleteCurrentAccount()
                         return nil
                     } catch {
-                        return "Couldn't delete account. Try again or contact support@absmaxxing.com."
+                        return "Couldn't delete account. Try again or contact support@jenifit.app."
                     }
                 },
                 onSucceededDismiss: {

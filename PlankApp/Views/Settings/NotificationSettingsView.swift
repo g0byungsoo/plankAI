@@ -5,6 +5,7 @@ struct NotificationSettingsView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
     @AppStorage("notificationHour") private var notificationHour = 7
     @AppStorage("notificationMinute") private var notificationMinute = 0
+    @AppStorage("voicePreference") private var voicePreference = "keepItReal"
     @State private var pickerTime = Date()
     @State private var permissionGranted = false
     @State private var saved = false
@@ -81,7 +82,7 @@ struct NotificationSettingsView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(Palette.stateWarn)
-                        Text("Notifications are off in Settings. Go to Settings > absmaxxing > Notifications to enable.")
+                        Text("Notifications are off in Settings. Go to Settings > JeniFit > Notifications to enable.")
                             .font(.system(size: 13))
                             .foregroundStyle(Palette.textSecondary)
                     }
@@ -111,13 +112,23 @@ struct NotificationSettingsView: View {
         }
     }
 
+    /// Notification body adapts to the selected coach so the reminder
+    /// reads in the same voice as the rest of the app.
+    private var notificationBody: String {
+        switch voicePreference {
+        case "encouraging": return "Your workout is ready. Your coach is waiting."
+        case "balanced":    return "Your workout is ready. Matson's got something for you."
+        default:            return "Your workout is ready. Don't make Kira wait."
+        }
+    }
+
     private func scheduleNotification() {
         let center = UNUserNotificationCenter.current()
         center.removeAllPendingNotificationRequests()
 
         let content = UNMutableNotificationContent()
         content.title = "Time to work"
-        content.body = "Your workout is ready. Don't make Kira wait."
+        content.body = notificationBody
         content.sound = .default
 
         var dateComponents = DateComponents()

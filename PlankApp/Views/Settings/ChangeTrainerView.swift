@@ -23,9 +23,9 @@ struct ChangeTrainerView: View {
     @State private var loadingDots = ""
 
     private let trainers: [(id: String, photo: String, name: String, vibe: String, quote: String, preview: String)] = [
-        ("keepItReal", "coach-kira", "Kira", "Sassy & Real", "\"My mama planks better than this\"", "kira_preview"),
-        ("encouraging", "coach-sarah", "Sarah", "Warm & Supportive", "\"You're doing amazing, keep breathing\"", "sarah_preview"),
-        ("balanced", "coach-matson", "Matson", "Chill & Playful", "\"Come on, we're gonna have a good time\"", "matson_preview"),
+        ("encouraging", "coach-sarah", "Jeni", "Warm & Supportive", "\"You're doing amazing — keep breathing.\"", "sarah_preview"),
+        ("keepItReal", "coach-kira", "Kira", "Sassy & Real", "\"My mama planks better than this.\"", "kira_preview"),
+        ("balanced", "coach-matson", "Matson", "Chill & Playful", "\"Come on, we're gonna have a good time.\"", "matson_preview"),
     ]
 
     private let loadingWords = [
@@ -33,12 +33,9 @@ struct ChangeTrainerView: View {
         "Stretching personality",
         "Loading attitude",
         "Calibrating sass levels",
-        "Flexing voice muscles",
-        "Syncing vibes",
         "Tuning motivation frequency",
         "Brewing coaching energy",
-        "Downloading tough love",
-        "Activating gym mode",
+        "Activating coach mode",
     ]
 
     private var hasChanged: Bool {

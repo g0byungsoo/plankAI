@@ -54,8 +54,8 @@ struct SignUpView: View {
         var id: String { rawValue }
         var url: URL {
             switch self {
-            case .terms: return URL(string: "https://absmaxxing.com/terms")!
-            case .privacy: return URL(string: "https://absmaxxing.com/privacy")!
+            case .terms: return URL(string: "https://jenifit.app/terms")!
+            case .privacy: return URL(string: "https://jenifit.app/privacy")!
             }
         }
     }
@@ -404,7 +404,7 @@ struct SignUpView: View {
         // Markdown links produce a tappable URL inside Text; the openURL
         // handler intercepts and routes to SFSafariViewController so the
         // user stays in-app rather than losing context to Safari.
-        let markdown = "By creating an account you agree to our [Terms](https://absmaxxing.com/terms) and [Privacy Policy](https://absmaxxing.com/privacy)."
+        let markdown = "By creating an account you agree to our [Terms](https://jenifit.app/terms) and [Privacy Policy](https://jenifit.app/privacy)."
         let attributed = (try? AttributedString(markdown: markdown)) ?? AttributedString(markdown)
         return Text(attributed)
             .font(Typo.caption)

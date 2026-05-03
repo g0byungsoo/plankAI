@@ -2,20 +2,16 @@ import SwiftUI
 
 struct EditProfileView: View {
     @AppStorage("userName") private var userName = ""
+    // Phase 8: edits persist to bodyFocus (the new Phase 4 truth). The
+    // legacy userGoal mirror keeps HomeView's WorkoutGoal(rawValue:)
+    // resolution working until that surface migrates off the legacy
+    // enum (separate phase). Both writes happen on selection.
+    @AppStorage("bodyFocus") private var bodyFocus = ""
     @AppStorage("userGoal") private var userGoal = ""
     @AppStorage("sessionLengthPref") private var sessionLengthPref = 7
 
     @State private var editName = ""
     @State private var saved = false
-
-    private var goalLabel: String {
-        switch userGoal {
-        case "definition": return "Abs Definition"
-        case "sculpting": return "Waist Sculpting"
-        case "strength": return "Core Strength"
-        default: return "Full Core"
-        }
-    }
 
     var body: some View {
         ScrollView {
@@ -51,21 +47,22 @@ struct EditProfileView: View {
                     ForEach(goalOptions, id: \.value) { option in
                         Button {
                             Haptics.light()
-                            userGoal = option.value
+                            bodyFocus = option.value
+                            userGoal = legacyUserGoal(for: option.value)
                         } label: {
                             HStack {
                                 Text(option.label)
                                     .font(Typo.body)
                                     .foregroundStyle(Palette.textPrimary)
                                 Spacer()
-                                if userGoal == option.value {
+                                if bodyFocus == option.value {
                                     Image(systemName: "checkmark")
                                         .font(.system(size: 14, weight: .bold))
                                         .foregroundStyle(Palette.accent)
                                 }
                             }
                             .padding(14)
-                            .background(userGoal == option.value ? Palette.accent.opacity(0.08) : Palette.bgElevated)
+                            .background(bodyFocus == option.value ? Palette.accent.opacity(0.08) : Palette.bgElevated)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
                     }
@@ -129,10 +126,22 @@ struct EditProfileView: View {
 
     private var goalOptions: [(label: String, value: String)] {
         [
-            ("Abs Definition", "definition"),
-            ("Waist Sculpting", "sculpting"),
-            ("Core Strength", "strength"),
-            ("Full Core", "fullCore"),
+            ("Flat belly",                "flatBelly"),
+            ("Toned arms",                "tonedArms"),
+            ("Round butt",                "roundButt"),
+            ("Slim legs",                 "slimLegs"),
+            ("Full body transformation",  "fullBody"),
         ]
+    }
+
+    /// Mirror bodyFocus → legacy userGoal so HomeView's WorkoutGoal
+    /// resolution stays correct. Same mapping pipeline as
+    /// PlankAIApp.handleOnboardingComplete (focusAreaFromBodyFocus →
+    /// userGoal switch).
+    private func legacyUserGoal(for bodyFocusValue: String) -> String {
+        switch bodyFocusValue {
+        case "flatBelly": return "definition"
+        default:          return "fullCore"
+        }
     }
 }
