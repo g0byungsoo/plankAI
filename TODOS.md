@@ -60,3 +60,28 @@
 **What:** Make `https://absmaxxing.com/terms` and `https://absmaxxing.com/privacy` resolve to real pages before App Store submission.
 **Why:** SignUpView's legal text links to those URLs and opens them in SFSafariViewController. Right now they're placeholders — App Review will reject if the links 404 or 500.
 **Status:** Blocking App Store submission. Not blocking dev.
+
+## Phase 5 — Loading carousel placeholder numbers
+**What:** Three rotating frames in `loadingCarouselScreen` (case 180) ship with placeholder strings that need real-data swaps once we have them.
+**Why:** Numbers must be defensible if surfaced as proof. Anything fabricated reads as marketing puffery and risks App Review (Guideline 3.1.1 / 5.2.5) and FTC scrutiny on weight-loss claims.
+**Status:** Update post-launch as real data lands. All three are tagged with `// TODO(post-launch)` inline comments in OnboardingView.swift.
+
+- **Frame 1:** `"1,000+ early-access members"` → swap with real auth user count once the analytics pipeline reports stable numbers (~30 days post-launch).
+- **Frame 2:** `"100+ hours of plank coaching"` → swap with real cumulative session-hour total from `session_logs` aggregate. Pull from a Supabase materialized view refreshed daily.
+- **Frame 3:** `"5.0 ★ early reviews"` → swap to real App Store rating + review count via App Store Connect API. Don't surface until ≥30 reviews exist; under that threshold the rating distribution is too noisy and a single 1-star drop reads as a regression.
+
+## Phase 5 — Editorial photography for reshape + welcome
+**What:** Replace the headline-only reshape transition (case 160) and the editorial placeholder on the Welcome screen with real photography. Goal: 3 photos for the reshape moment OR 1 hero photo (TBD), plus 1 hero photo for Welcome.
+**Why:** v1.0 ships clean without imagery to avoid the "stock photo" or "fake silhouettes" smell. Real, brand-aligned photography is the right v1.1 lift — it's the visual anchor the dusty-rose / Fraunces / cocoa palette is currently asking for.
+**Spec:**
+- Aspect: 4:5 portrait
+- Background: cream / beige / soft neutral (matches `Palette.bgPrimary`)
+- Lighting: soft natural, no high-contrast shadows
+- Subject: aspirational-feminine, not body-shame-coded, not aesthetic-influencer-coded
+- Format: PNG export, 2x + 3x asset variants for `@2x` / `@3x` slots
+**Status:** Ben commissioning. v1.1 swap target — no placeholder logic in code, just clean ship without the imagery for v1.0.
+
+## Phase 4 carryover — Sarah → Jeni voice clip rename
+**What:** Coach selector still references "Sarah" by display name and uses `coach-sarah` / `sarah_preview` / `sarah_` audio asset prefixes. JeniFit rebrand spec calls for the default coach to be Jeni (renamed from Sarah).
+**Why:** User-visible "Sarah" → "Jeni" rename is straightforward (5–6 display strings across Onboarding/Home/Settings). Audio clip rename (`sarah_*.mp3` → `jeni_*.mp3`) requires touching `RoutineAudioManager.swift` clip-prefix logic and re-bundling all the .mp3 assets — bigger lift, not blocking.
+**Status:** Phase 9 scheduled work per Phase 4 spec. Ship Phase 5 / 6 / 7 / 8 first.
