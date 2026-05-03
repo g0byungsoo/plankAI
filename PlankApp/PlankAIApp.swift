@@ -175,6 +175,10 @@ private struct RootView: View {
         UserDefaults.standard.set(data.ageRange, forKey: "ageRange")
         UserDefaults.standard.set(data.activityLevel, forKey: "activityLevel")
         UserDefaults.standard.set(data.focusArea, forKey: "focusArea")
+        // Phase 7: bodyFocus.first surfaces the new aesthetic-zone field
+        // to AppStorage readers (PaywallView headline). focusArea above is
+        // the legacy lossy mapping; bodyFocus is the truthful answer.
+        UserDefaults.standard.set(data.bodyFocus.first ?? "", forKey: "bodyFocus")
         UserDefaults.standard.set(data.plankTime, forKey: "plankTime")
         UserDefaults.standard.set(data.commitmentDaysPerWeek, forKey: "commitmentDays")
         UserDefaults.standard.set(data.sessionLengthMinutes, forKey: "sessionLengthPref")

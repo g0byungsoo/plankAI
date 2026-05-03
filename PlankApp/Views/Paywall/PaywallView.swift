@@ -32,7 +32,7 @@ struct PaywallView: View {
         self.onDismiss = onDismiss
     }
 
-    @AppStorage("focusArea") private var focusArea: String = ""
+    @AppStorage("bodyFocus") private var bodyFocus: String = ""
 
     @State private var selectedPlan: Plan = .yearly
     @State private var working = false
@@ -41,6 +41,7 @@ struct PaywallView: View {
     @State private var offering: Offering?
     @State private var loadingOfferings = true
     @State private var offeringsLoadFailed = false
+    @State private var restoreAlert: RestoreAlert?
 
     private enum Plan: Equatable { case yearly, weekly }
 
@@ -49,24 +50,32 @@ struct PaywallView: View {
         var id: String { rawValue }
         var url: URL {
             switch self {
-            case .terms: return URL(string: "https://absmaxxing.com/terms")!
-            case .privacy: return URL(string: "https://absmaxxing.com/privacy")!
+            case .terms: return URL(string: "https://jenifit.app/terms")!
+            case .privacy: return URL(string: "https://jenifit.app/privacy")!
             }
         }
     }
 
+    private struct RestoreAlert: Identifiable {
+        let id = UUID()
+        let title: String
+        let message: String
+    }
+
     // MARK: Copy
 
-    /// Headline switches on the focusArea answer from onboarding. The
-    /// user's commitment from the quiz earns a personalized headline —
-    /// "their plan", not a generic offer. Falls back to the default
-    /// "Core Reset" line for fullCore or unset.
-    private var headline: String {
-        switch focusArea {
-        case "abs":       return "Define your abs in 30 days."
-        case "obliques":  return "Sculpt your waistline in 30 days."
-        case "lowerBack": return "Build your core foundation in 30 days."
-        default:          return "Start your 30-day Core Reset."
+    /// Personalized headline keyed off the bodyFocus.first answer from
+    /// onboarding (Phase 4 multi-select, surfaced to AppStorage in
+    /// PlankAIApp.handleOnboardingComplete). Returns the base + the italic
+    /// fragments separately so the view can render with ItalicAccentText
+    /// — italic Fraunces on the body-zone phrase or "30 days."
+    private var headlineParts: (base: String, italic: [String]) {
+        switch bodyFocus {
+        case "flatBelly": return ("Define your flat belly in 30 days.",  ["flat belly"])
+        case "tonedArms": return ("Sculpt your toned arms in 30 days.",  ["toned arms"])
+        case "roundButt": return ("Build your round butt in 30 days.",   ["round butt"])
+        case "slimLegs":  return ("Define your slim legs in 30 days.",   ["slim legs"])
+        default:          return ("Become her in 30 days.",              ["30 days."])
         }
     }
 
@@ -142,7 +151,7 @@ struct PaywallView: View {
 
     private var ctaLabel: String {
         switch selectedPlan {
-        case .yearly: return "Start your 3-day free trial"
+        case .yearly: return "Start free trial"
         case .weekly: return "Subscribe — \(weeklyPriceText)"
         }
     }
@@ -150,33 +159,32 @@ struct PaywallView: View {
     private var renewalDisclosure: String {
         switch selectedPlan {
         case .yearly:
-            return "3 days free, then \(yearlyPriceText). Plan auto-renews unless you cancel at least 24 hours before the period ends. Manage in iOS Settings."
+            return "3 days free, then \(yearlyPriceText). Auto-renews. Cancel anytime in Settings."
         case .weekly:
-            return "Subscribed at \(weeklyPriceText). Plan auto-renews unless you cancel at least 24 hours before the period ends. Manage in iOS Settings."
+            return "\(weeklyPriceText). Auto-renews. Cancel anytime in Settings."
         }
     }
 
     // MARK: Body
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
+        ZStack(alignment: .top) {
             Palette.bgPrimary.ignoresSafeArea()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: Space.lg) {
-                    Spacer().frame(height: dismissable ? 40 : 24)
+                VStack(spacing: Space.lg) {
+                    // Reserve space for the floating top bar.
+                    Spacer().frame(height: 48)
 
-                    Text(headline)
-                        .font(Typo.title)
-                        .foregroundStyle(Palette.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    headerBlock
 
                     benefitsSection
+
                     pricingSection
                     if offeringsLoadFailed {
                         offeringsLoadFailedRow
                     }
-                    trustMicroCopy
+
                     ctaButton
                     if let errorMessage {
                         Text(errorMessage)
@@ -184,7 +192,6 @@ struct PaywallView: View {
                             .foregroundStyle(Palette.stateBad)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    restoreLink
                     renewalText
                     legalFooter
                 }
@@ -192,17 +199,77 @@ struct PaywallView: View {
                 .padding(.bottom, Space.xl)
             }
 
-            if dismissable {
-                closeButton
-                    .padding(.leading, Space.lg)
-                    .padding(.top, Space.sm)
-            }
+            topBar
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.sm)
         }
         .sheet(item: $legalDoc) { doc in
             SafariView(url: doc.url).ignoresSafeArea()
         }
+        .alert(item: $restoreAlert) { alert in
+            Alert(title: Text(alert.title), message: Text(alert.message),
+                  dismissButton: .default(Text("OK")))
+        }
         .task {
             await loadOfferings()
+        }
+    }
+
+    // MARK: - Header block (eyebrow + headline + subhead)
+
+    private var headerBlock: some View {
+        let parts = headlineParts
+        return VStack(spacing: Space.sm) {
+            Text("JENIFIT PREMIUM")
+                .font(Typo.eyebrow)
+                .tracking(1.5)
+                .foregroundStyle(Palette.accent)
+
+            ItalicAccentText(parts.base,
+                             italic: parts.italic,
+                             alignment: .center)
+                .padding(.horizontal, Space.sm)
+
+            Text("Unlock your full plan, your coach & the path to your strongest self.")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Space.md)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Top bar (close + restore)
+
+    private var topBar: some View {
+        HStack {
+            if dismissable {
+                Button {
+                    Haptics.light()
+                    onDismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Palette.textSecondary)
+                        .frame(width: 32, height: 32)
+                        .background(Palette.bgElevated, in: Circle())
+                }
+                .buttonStyle(.plain)
+            } else {
+                Color.clear.frame(width: 32, height: 32)
+            }
+            Spacer()
+            Button {
+                Haptics.light()
+                Task { await restore() }
+            } label: {
+                Text("Restore")
+                    .font(Typo.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -226,34 +293,19 @@ struct PaywallView: View {
 
     // MARK: Sections
 
-    private var closeButton: some View {
-        Button {
-            Haptics.light()
-            onDismiss()
-        } label: {
-            Image(systemName: "xmark")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Palette.textSecondary)
-                .frame(width: 32, height: 32)
-                .background(Palette.bgElevated)
-                .clipShape(Circle())
-        }
-        .buttonStyle(.plain)
-    }
-
     private var benefitsSection: some View {
         VStack(alignment: .leading, spacing: Space.md) {
             benefitRow(
-                heading: "AI form coaching",
-                detail: "Real-time feedback on every plank, every second."
+                heading: "Unlimited custom workouts",
+                detail: "Built around your goals & level"
             )
             benefitRow(
-                heading: "5-minute daily routines",
-                detail: "No gym, no equipment, no excuses."
+                heading: "Jeni, your personal coach",
+                detail: "Form tips, swaps, and pep talks"
             )
             benefitRow(
-                heading: "Reminder before billing",
-                detail: "We'll let you know 24 hours ahead. Cancel with one tap."
+                heading: "Progress tracking & check-ins",
+                detail: "See your glow-up week by week"
             )
         }
     }
@@ -282,104 +334,71 @@ struct PaywallView: View {
     }
 
     private var pricingSection: some View {
-        VStack(spacing: 12) {
-            yearlyCard
-            weeklyCard
-        }
-    }
-
-    private var yearlyCard: some View {
-        let isSelected = selectedPlan == .yearly
-        return Button {
-            Haptics.light()
-            withAnimation(.easeOut(duration: 0.2)) { selectedPlan = .yearly }
-        } label: {
-            VStack(alignment: .leading, spacing: Space.sm) {
-                HStack(alignment: .center) {
-                    Text("3-DAY FREE TRIAL")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Palette.textInverse)
-                        .tracking(1.5)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Palette.accent)
-                        .clipShape(Capsule())
-                    Spacer()
-                    selectionIndicator(isSelected: isSelected)
-                }
-                Text(yearlyPriceText)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(Palette.textPrimary)
-                Text(yearlyPerWeekText)
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
+        VStack(spacing: 14) {
+            PricingCard(
+                title: "Yearly",
+                price: yearlyPrice,
+                perWeekEquivalent: yearlySubtitle,
+                badge: "3-DAY FREE TRIAL",
+                isSelected: selectedPlan == .yearly
+            ) {
+                Haptics.light()
+                withAnimation(.easeOut(duration: 0.2)) { selectedPlan = .yearly }
             }
-            .padding(Space.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Palette.bgElevated)
-            .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
-                    .stroke(isSelected ? Palette.accent : Palette.divider, lineWidth: isSelected ? 2 : 1)
-            )
-            .scaleEffect(isSelected ? 1.02 : 1.0)
-            .animation(.easeOut(duration: 0.2), value: isSelected)
-        }
-        .buttonStyle(.plain)
-    }
+            .padding(.top, 10)  // room for the floating badge
 
-    private var weeklyCard: some View {
-        let isSelected = selectedPlan == .weekly
-        return Button {
-            Haptics.light()
-            withAnimation(.easeOut(duration: 0.2)) { selectedPlan = .weekly }
-        } label: {
-            HStack {
-                Text(weeklyPriceText)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Palette.textPrimary)
-                Spacer()
-                selectionIndicator(isSelected: isSelected)
-            }
-            .padding(Space.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Palette.bgElevated)
-            .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
-                    .stroke(isSelected ? Palette.accent : Palette.divider, lineWidth: isSelected ? 2 : 1)
-            )
-            .scaleEffect(isSelected ? 1.02 : 1.0)
-            .animation(.easeOut(duration: 0.2), value: isSelected)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func selectionIndicator(isSelected: Bool) -> some View {
-        ZStack {
-            Circle()
-                .stroke(isSelected ? Palette.accent : Palette.textSecondary.opacity(0.4), lineWidth: 1.5)
-                .frame(width: 22, height: 22)
-            if isSelected {
-                Circle()
-                    .fill(Palette.accent)
-                    .frame(width: 14, height: 14)
-                    .transition(.scale.combined(with: .opacity))
+            PricingCard(
+                title: "Weekly",
+                price: weeklyPrice,
+                perWeekEquivalent: "Pay as you go",
+                isSelected: selectedPlan == .weekly
+            ) {
+                Haptics.light()
+                withAnimation(.easeOut(duration: 0.2)) { selectedPlan = .weekly }
             }
         }
-        .animation(.easeOut(duration: 0.2), value: isSelected)
     }
 
-    private var trustMicroCopy: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "checkmark")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(Palette.textPrimary)
-            Text("Cancel anytime in iOS Settings")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textPrimary)
+    /// Yearly card price ("$59.99"). Strips the "/year" suffix used by the
+    /// legacy headline text — the card subtitle already carries the
+    /// billing cadence so the price reads cleanly.
+    private var yearlyPrice: String {
+        if let pkg = yearlyPackage {
+            return pkg.storeProduct.localizedPriceString
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        return "$59.99"
+    }
+
+    /// "$1.15/wk · billed $59.99/yr · save 77%" — derived from RC if
+    /// available, falls back to spec defaults so the card reads sensibly
+    /// before offerings load.
+    private var yearlySubtitle: String {
+        guard let yearly = yearlyPackage else {
+            return "$1.15/wk · billed $59.99/yr"
+        }
+        let yearlyPriceDecimal = yearly.storeProduct.price as NSDecimalNumber
+        let perWeek = yearlyPriceDecimal.dividing(by: NSDecimalNumber(value: 52))
+        let formatter = yearly.storeProduct.priceFormatter ?? defaultCurrencyFormatter
+        let perWeekStr = formatter.string(from: perWeek) ?? "\(perWeek)"
+        let yearlyStr = yearly.storeProduct.localizedPriceString
+
+        var line = "\(perWeekStr)/wk · billed \(yearlyStr)/yr"
+        if let weekly = weeklyPackage {
+            let weeklyPriceDecimal = weekly.storeProduct.price as NSDecimalNumber
+            if weeklyPriceDecimal.doubleValue > 0 {
+                let ratio = perWeek.dividing(by: weeklyPriceDecimal).doubleValue
+                let savings = Int(((1.0 - ratio) * 100).rounded())
+                if savings > 0 { line += " · save \(savings)%" }
+            }
+        }
+        return line
+    }
+
+    private var weeklyPrice: String {
+        if let pkg = weeklyPackage {
+            return pkg.storeProduct.localizedPriceString
+        }
+        return "$4.99"
     }
 
     private var ctaButton: some View {
@@ -405,27 +424,9 @@ struct PaywallView: View {
         .disabled(working)
     }
 
-    private var restoreLink: some View {
-        HStack(spacing: 4) {
-            Text("Already subscribed?")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-            Button {
-                Haptics.light()
-                onRestore()
-            } label: {
-                Text("Restore")
-                    .font(Typo.caption.weight(.semibold))
-                    .foregroundStyle(Palette.accent)
-            }
-            .buttonStyle(.plain)
-        }
-        .frame(maxWidth: .infinity, alignment: .center)
-    }
-
     private var renewalText: some View {
         Text(renewalDisclosure)
-            .font(.system(size: 11))
+            .font(Typo.caption)
             .foregroundStyle(Palette.textSecondary)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
@@ -433,16 +434,16 @@ struct PaywallView: View {
     }
 
     private var legalFooter: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Button("Terms") { legalDoc = .terms }
-                .font(.system(size: 11))
+                .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .buttonStyle(.plain)
             Text("·")
-                .font(.system(size: 11))
+                .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
             Button("Privacy") { legalDoc = .privacy }
-                .font(.system(size: 11))
+                .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .buttonStyle(.plain)
         }
@@ -493,11 +494,43 @@ struct PaywallView: View {
                 Haptics.success()
                 onSubscribed()
             } else {
-                errorMessage = "Purchase didn't activate Pro. Try again or contact support@absmaxxing.com."
+                errorMessage = "Purchase didn't activate Pro. Try again or contact support@jenifit.app."
             }
         } catch {
             print("[Paywall] purchase FAILED: \(error)")
             errorMessage = "Couldn't complete purchase. Try again in a moment."
+        }
+    }
+
+    /// Restore an existing subscription. On success with an active
+    /// entitlement → fires the parent's onSubscribed callback (the cover
+    /// dismisses on hasProAccess flip). On success with no active sub →
+    /// surfaces a friendly alert pointing the user to sign in to the
+    /// right Apple ID.
+    private func restore() async {
+        do {
+            let info = try await Purchases.shared.restorePurchases()
+            let isActive = info.entitlements[RevenueCatConfig.entitlementID]?.isActive == true
+            if isActive {
+                Haptics.success()
+                // PaywallView owns the restore call now (was: parent's
+                // onRestore callback). On a successful restore that
+                // activates Pro, fire onSubscribed so the parent
+                // dismisses + handles post-purchase routing the same
+                // way it does after a purchase.
+                onSubscribed()
+            } else {
+                restoreAlert = RestoreAlert(
+                    title: "No active subscription found",
+                    message: "Sign in to the Apple ID with your purchase, or start a free trial to continue."
+                )
+            }
+        } catch {
+            print("[Paywall] restore FAILED: \(error)")
+            restoreAlert = RestoreAlert(
+                title: "Couldn't restore",
+                message: "Something went wrong checking your subscription. Try again in a moment."
+            )
         }
     }
 }
