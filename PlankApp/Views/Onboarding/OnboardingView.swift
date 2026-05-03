@@ -251,11 +251,11 @@ struct OnboardingView: View {
             "What's the goal?",
             sub: "We'll build the entire plan around this answer.",
             opts: [
-                ("loseWeight",  "Lose weight",                "Lean down, feel lighter"),
-                ("fullBody",    "Full body transformation",   "Tone all over, head to toe"),
-                ("toneCore",    "Tone my core",               "Define abs and obliques"),
-                ("growGlutes",  "Grow glutes",                "Sculpt and lift"),
-                ("slimLegs",    "Slim and define legs",       "Lean, long lines"),
+                ("loseWeight",  "Lose weight",              "Lean down, feel lighter",      "arrow.down.circle"),
+                ("fullBody",    "Full body transformation", "Tone all over, head to toe",   "sparkle"),
+                ("toneCore",    "Tone my core",             "Define abs and obliques",      "figure.core.training"),
+                ("growGlutes",  "Grow glutes",              "Sculpt and lift",              "figure.strengthtraining.functional"),
+                ("slimLegs",    "Slim and define legs",     "Lean, long lines",             "figure.walk"),
             ],
             sel: $goal, next: 110
         )
@@ -264,10 +264,11 @@ struct OnboardingView: View {
             "Where should we focus?",
             sub: "Pick the zones you want to see change.",
             opts: [
-                ("flatBelly", "Flat Belly", nil),
-                ("tonedArms", "Toned Arms", nil),
-                ("roundButt", "Round Butt", nil),
-                ("slimLegs",  "Slim Legs",  nil),
+                ("flatBelly", "Flat belly",          nil, "figure.core.training"),
+                ("tonedArms", "Toned arms",          nil, "dumbbell.fill"),
+                ("roundButt", "Round butt",          nil, "figure.strengthtraining.functional"),
+                ("slimLegs",  "Slim legs",           nil, "figure.walk"),
+                ("fullBody",  "Full body slimming",  nil, "figure.mixed.cardio"),
             ],
             sel: $bodyFocus, next: 111,
             confirmation: "Locked in. Your routines target these zones."
@@ -277,11 +278,11 @@ struct OnboardingView: View {
             "Why now?",
             sub: "What's pushing you to start today?",
             opts: [
-                ("confidence", "I want to feel confident in my body", nil),
-                ("event",      "I have a date or event coming up",    nil),
-                ("clothes",    "I want to look good in my clothes",   nil),
-                ("health",     "I want to be healthy long-term",      nil),
-                ("revenge",    "I want my comeback to be undeniable", nil),
+                ("getShaped",  "Get shaped",          "Build the body I want",     "figure.strengthtraining.traditional"),
+                ("lookBetter", "Look better",         "Confidence in any outfit",  "sparkle"),
+                ("summer",     "Prepare for summer",  "Beach-ready, glow-ready",   "sun.max"),
+                ("confidence", "Feel more confident", "Stronger inside and out",   "heart.circle"),
+                ("selfLove",   "Find self-love",      "Make peace with my body",   "heart.fill"),
             ],
             sel: $motivation, next: 201
         )
@@ -291,10 +292,10 @@ struct OnboardingView: View {
             "How much do you train right now?",
             sub: "Be honest. The plan calibrates from this.",
             opts: [
-                ("never",     "I don't really train",              nil),
-                ("gaveUp",    "I've tried, couldn't stick with it", nil),
-                ("sometimes", "Here and there",                    nil),
-                ("regular",   "Regularly",                         "Multiple times a week"),
+                ("never",     "I don't really train",               nil,                         nil),
+                ("gaveUp",    "I've tried, couldn't stick with it", nil,                         nil),
+                ("sometimes", "Here and there",                     nil,                         nil),
+                ("regular",   "Regularly",                          "Multiple times a week",     nil),
             ],
             sel: $experience, next: 8
         )
@@ -303,11 +304,11 @@ struct OnboardingView: View {
             "How active are you day-to-day?",
             sub: "Outside of workouts. Walking, standing, errands.",
             opts: [
-                ("sedentary", "Mostly sitting", nil),
-                ("light",     "Light",          "Short walks, occasional movement"),
-                ("moderate",  "Moderate",       "On my feet most of the day"),
-                ("active",    "Very active",    "Physical job or daily walks"),
-                ("athlete",   "Athlete-level",  nil),
+                ("sedentary", "Mostly sitting", nil,                                  nil),
+                ("light",     "Light",          "Short walks, occasional movement",   nil),
+                ("moderate",  "Moderate",       "On my feet most of the day",         nil),
+                ("active",    "Very active",    "Physical job or daily walks",        nil),
+                ("athlete",   "Athlete-level",  nil,                                  nil),
             ],
             sel: $activityLevel, next: 120
         )
@@ -316,10 +317,10 @@ struct OnboardingView: View {
             "Where will you train?",
             sub: "We tune the moves so they fit your space.",
             opts: [
-                ("home",     "At home",      "Bedroom or living room"),
-                ("gym",      "At the gym",   nil),
-                ("outdoor",  "Outdoors",     "Park or backyard"),
-                ("anywhere", "Anywhere",     "I move around"),
+                ("home",    "At home",     "Living room, bedroom, anywhere", "house"),
+                ("gym",     "At the gym",  "Equipment access, classes",      "dumbbell.fill"),
+                ("outdoor", "Outdoor",     "Park, trails, fresh air",        "tree.fill"),
+                ("either",  "Mix of both", "Wherever I feel like",           "shuffle"),
             ],
             sel: $workoutLocation, next: 121
         )
@@ -328,11 +329,12 @@ struct OnboardingView: View {
             "What kind of workouts feel good?",
             sub: "Pick whatever you actually enjoy. Multi-pick fine.",
             opts: [
-                ("hiit",     "HIIT",              "Short and brutal"),
-                ("strength", "Strength",          "Slow and heavy"),
-                ("yoga",     "Yoga or Pilates",   "Long and controlled"),
-                ("dance",    "Dance or cardio",   "Fun and sweaty"),
-                ("walking",  "Walking",           "Easy and steady"),
+                ("hiit",     "HIIT",              nil, "flame.fill"),
+                ("pilates",  "Pilates-inspired",  nil, "figure.flexibility"),
+                ("strength", "Strength training", nil, "dumbbell.fill"),
+                ("yoga",     "Yoga / mobility",   nil, "figure.mind.and.body"),
+                ("dance",    "Dance / cardio",    nil, "music.note"),
+                ("walking",  "Walking / steady",  nil, "figure.walk"),
             ],
             sel: $workoutStyle, next: 25
         )
@@ -341,10 +343,10 @@ struct OnboardingView: View {
             "How long per session?",
             sub: "Pick the size you'll actually keep open.",
             opts: [
-                ("5",  "5 min",  "When life is mid"),
-                ("7",  "7 min",  "Recommended"),
-                ("10", "10 min", "Full session"),
-                ("15", "15 min", "Go-mode"),
+                ("five",    "5 minutes",  "Quick reset",           "5.circle"),
+                ("ten",     "10 minutes", "Solid daily routine",   "10.circle"),
+                ("fifteen", "15 minutes", "Full session",          "15.circle"),
+                ("twenty",  "20 minutes", "Deep work",             "20.circle"),
             ],
             sel: $sessionLength, next: 17
         )
@@ -353,10 +355,9 @@ struct OnboardingView: View {
             "How many days a week?",
             sub: "The five-day plan is what we'd pick for you.",
             opts: [
-                ("3", "3 days",    "Easing in"),
-                ("5", "5 days",    "Recommended"),
-                ("6", "6 days",    "High intensity"),
-                ("7", "Every day", "All in"),
+                ("three", "3 days", "Easing in",    "3.circle"),
+                ("five",  "5 days", "Recommended",  "5.circle"),
+                ("seven", "7 days", "All in",       "7.circle"),
             ],
             sel: $commitmentDays, next: 202,
             confirmation: "Got it. Your plan starts here."
@@ -367,10 +368,10 @@ struct OnboardingView: View {
             "What's your gender?",
             sub: "We adjust your plan based on this.",
             opts: [
-                ("female",    "Female",            nil),
-                ("male",      "Male",              nil),
-                ("nonbinary", "Non-binary",        nil),
-                ("private",   "Prefer not to say", nil),
+                ("female",    "Female",            nil, nil),
+                ("male",      "Male",              nil, nil),
+                ("nonbinary", "Non-binary",        nil, nil),
+                ("private",   "Prefer not to say", nil, nil),
             ],
             sel: $gender, next: 7
         )
@@ -379,12 +380,12 @@ struct OnboardingView: View {
             "What's your age?",
             sub: "We adjust your plan based on this.",
             opts: [
-                ("under18", "Under 18", nil),
-                ("18to24",  "18–24",    nil),
-                ("25to34",  "25–34",    nil),
-                ("35to44",  "35–44",    nil),
-                ("45to54",  "45–54",    nil),
-                ("55plus",  "55+",      nil),
+                ("under18", "Under 18", nil, nil),
+                ("18to24",  "18–24",    nil, nil),
+                ("25to34",  "25–34",    nil, nil),
+                ("35to44",  "35–44",    nil, nil),
+                ("45to54",  "45–54",    nil, nil),
+                ("55plus",  "55+",      nil, nil),
             ],
             sel: $ageRange, next: 131
         )
@@ -432,10 +433,11 @@ struct OnboardingView: View {
             "Which one feels most like the new you?",
             sub: "Pick the version that's pulling you forward.",
             opts: [
-                ("strong",   "Strong",   "Capable, takes up space"),
-                ("lean",     "Lean",     "Light, defined, fluid"),
-                ("powerful", "Powerful", "Confident, undeniable"),
-                ("calm",     "Calm",     "At home in my body"),
+                ("powerful", "Powerful", "Confident, undeniable",   "bolt.fill"),
+                ("calm",     "Calm",     "At home in my body",      "leaf.fill"),
+                ("light",    "Light",    "Free, unburdened",        "wind"),
+                ("strong",   "Strong",   "Capable, grounded",       "shield.fill"),
+                ("radiant",  "Radiant",  "Glowing from inside out", "sparkles"),
             ],
             sel: $identityFeeling, next: 141,
             confirmation: "That's the goal. Your plan is built around getting you there."
@@ -445,10 +447,11 @@ struct OnboardingView: View {
             "What's the reward when you hit the goal?",
             sub: "The thing you'll do for yourself when this lands.",
             opts: [
-                ("photoshoot", "A photoshoot",                         nil),
-                ("outfit",     "An outfit I've been waiting to wear",  nil),
-                ("trip",       "A trip",                               nil),
-                ("nothing",    "No reward",                            "The result is the reward"),
+                ("clothes",  "New clothes",        "Treat my new look",      "tshirt.fill"),
+                ("trip",     "Take a trip",        "Celebrate somewhere",    "airplane"),
+                ("photos",   "Photos of myself",   "Document the change",    "camera.fill"),
+                ("personal", "Personal day",       "Just for me",            "sun.max.fill"),
+                ("treat",    "Treat myself",       "Something I've wanted",  "gift.fill"),
             ],
             sel: $rewardChoice, next: 204,
             confirmation: "We see you. Your reasons are real."
@@ -474,10 +477,11 @@ struct OnboardingView: View {
             "How long can you hold a plank?",
             sub: "Your starting benchmark. We move it up from here.",
             opts: [
-                ("under15", "Under 15 seconds", nil),
-                ("15to30",  "15–30 seconds",    nil),
-                ("30to60",  "30–60 seconds",    nil),
-                ("over60",  "60+ seconds",      nil),
+                ("under15",   "Under 15s",  "Just starting",       "stopwatch"),
+                ("fifteen30", "15-30s",     "Building a base",     "stopwatch.fill"),
+                ("thirty60",  "30-60s",     "Solid foundation",    "timer"),
+                ("sixtyPlus", "60+ seconds","Strong already",      "flame.fill"),
+                ("notSure",   "Not sure",   "We'll figure it out", "questionmark.circle"),
             ],
             sel: $baseline, next: 11
         )
@@ -486,10 +490,10 @@ struct OnboardingView: View {
             "When do you want your reminder?",
             sub: "We'll nudge you at the same time every day.",
             opts: [
-                ("morning",   "Morning",   "Start strong"),
-                ("afternoon", "Afternoon", "Energy boost"),
-                ("evening",   "Evening",   "Wind down"),
-                ("whenever",  "Whenever",  "No fixed time"),
+                ("morning",   "Morning",   "Set the tone",          "sunrise.fill"),
+                ("afternoon", "Afternoon", "Midday boost",          "sun.max.fill"),
+                ("evening",   "Evening",   "Wind down with motion", "moon.stars.fill"),
+                ("whenever",  "Whenever",  "Flexible by day",       "shuffle"),
             ],
             sel: $plankTime, next: 18
         )
@@ -514,7 +518,7 @@ struct OnboardingView: View {
         ], sel: $barriers, next: 7)
         case 6: celebrationScreen
         case 9: didYouKnowScreen
-        case 10: jfQuestion("Legacy single-focus", sub: nil, opts: [("fullCore", "Full core", nil)], sel: $focusArea, next: 11)
+        case 10: jfQuestion("Legacy single-focus", sub: nil, opts: [("fullCore", "Full core", nil, nil)], sel: $focusArea, next: 11)
         case 12: formScreen
         case 13: featureShowcaseScreen
         case 14: socialProofScreen
@@ -826,7 +830,7 @@ struct OnboardingView: View {
 
     private func jfQuestion(
         _ title: String, sub: String? = nil,
-        opts: [(String, String, String?)],
+        opts: [(String, String, String?, String?)],
         sel: Binding<String>,
         next: Int,
         confirmation: String? = nil
@@ -837,8 +841,9 @@ struct OnboardingView: View {
             Spacer().frame(height: Space.lg)
 
             VStack(spacing: Space.sm) {
-                ForEach(opts, id: \.0) { key, optTitle, optSub in
+                ForEach(opts, id: \.0) { key, optTitle, optSub, optIcon in
                     OnboardingOptionCard(
+                        icon: optIcon,
                         title: optTitle,
                         subtitle: optSub,
                         isSelected: sel.wrappedValue == key,
@@ -866,7 +871,7 @@ struct OnboardingView: View {
 
     private func jfMulti(
         _ title: String, sub: String? = nil,
-        opts: [(String, String, String?)],
+        opts: [(String, String, String?, String?)],
         sel: Binding<Set<String>>,
         next: Int,
         confirmation: String? = nil,
@@ -878,8 +883,9 @@ struct OnboardingView: View {
             Spacer().frame(height: Space.lg)
 
             VStack(spacing: Space.sm) {
-                ForEach(opts, id: \.0) { key, optTitle, optSub in
+                ForEach(opts, id: \.0) { key, optTitle, optSub, optIcon in
                     OnboardingOptionCard(
+                        icon: optIcon,
                         title: optTitle,
                         subtitle: optSub,
                         isSelected: sel.wrappedValue.contains(key),
@@ -2831,8 +2837,8 @@ struct OnboardingView: View {
             barriers: derivedBarriers,
             ageRange: ageRange, activityLevel: activityLevel,
             focusArea: derivedFocusArea, plankTime: plankTime,
-            commitmentDaysPerWeek: Int(commitmentDays) ?? 5,
-            sessionLengthMinutes: Int(sessionLength) ?? 7,
+            commitmentDaysPerWeek: commitmentDaysCount(commitmentDays),
+            sessionLengthMinutes: sessionLengthMinutes(sessionLength),
             notificationsEnabled: notificationsEnabled,
             notificationTime: notificationsEnabled ? notificationTime : nil,
             name: name, voicePreference: voicePreference
@@ -2858,19 +2864,45 @@ struct OnboardingView: View {
     }
 
     private func bS(_ b: String) -> Int {
-        switch b { case "under15": 10; case "15to30": 20; case "30to60": 45; case "over60": 60; default: 15 }
+        switch b {
+        case "under15":   return 10
+        case "fifteen30": return 20
+        case "thirty60":  return 45
+        case "sixtyPlus": return 60
+        case "notSure":   return 15
+        default:          return 15
+        }
+    }
+
+    private func sessionLengthMinutes(_ key: String) -> Int {
+        switch key {
+        case "five":    return 5
+        case "ten":     return 10
+        case "fifteen": return 15
+        case "twenty":  return 20
+        default:        return 7
+        }
+    }
+
+    private func commitmentDaysCount(_ key: String) -> Int {
+        switch key {
+        case "three": return 3
+        case "five":  return 5
+        case "seven": return 7
+        default:      return 5
+        }
     }
 
     private func focusAreaFromBodyFocus() -> String {
         // Map the first selected aesthetic zone to the legacy training
         // bucket WorkoutGoal expects. flatBelly maps to abs (the existing
-        // pipeline already knows how to handle abs as a focus). Toned
-        // arms / round butt / slim legs all fall back to fullCore since
-        // the workout pool isn't yet structured around those zones.
+        // pipeline already knows how to handle abs as a focus). Other
+        // zones fall back to fullCore since the workout pool isn't yet
+        // structured around those targeted areas.
         guard let first = bodyFocus.first else { return "fullCore" }
         switch first {
         case "flatBelly": return "abs"
-        case "tonedArms", "roundButt", "slimLegs": return "fullCore"
+        case "tonedArms", "roundButt", "slimLegs", "fullBody": return "fullCore"
         default: return "fullCore"
         }
     }

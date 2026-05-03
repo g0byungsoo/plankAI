@@ -176,7 +176,7 @@ struct OnboardingOptionCard: View {
                         .frame(width: 44, height: 44)
                     if let icon {
                         Image(systemName: icon)
-                            .font(.system(size: 18, weight: .medium))
+                            .font(.system(size: 22, weight: .regular))
                             .foregroundStyle(Palette.accent)
                     }
                 }
