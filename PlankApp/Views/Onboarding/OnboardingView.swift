@@ -251,10 +251,11 @@ struct OnboardingView: View {
             "What's the goal?",
             sub: "We'll build the entire plan around this answer.",
             opts: [
-                ("loseWeight", "Lose weight"),
-                ("toneUp", "Tone up"),
-                ("lookDefined", "Look defined"),
-                ("buildStrength", "Build strength"),
+                ("loseWeight",  "🍃 Lose weight — Lean down, feel lighter"),
+                ("fullBody",    "✨ Full body transformation — Tone all over, head to toe"),
+                ("toneCore",    "🎀 Tone my core — Define abs & obliques"),
+                ("growGlutes",  "🍑 Grow glutes — Sculpt & lift"),
+                ("slimLegs",    "🦵 Slim & define legs — Lean, long lines"),
             ],
             sel: $goal, next: 110
         )
@@ -436,7 +437,8 @@ struct OnboardingView: View {
                 ("powerful", "Powerful — confident, undeniable"),
                 ("calm", "Calm — at home in my body"),
             ],
-            sel: $identityFeeling, next: 141
+            sel: $identityFeeling, next: 141,
+            confirmation: "That's the goal. Your plan is built around getting you there."
         )
 
         case 141: jfQuestion(
@@ -454,15 +456,15 @@ struct OnboardingView: View {
 
         // ─── Part 5 — What stops you ────────────────────────────
         case 150: jfYesNo(
-            "I struggle to stay consistent.",
+            "Workout apps make me feel further from my body, not closer.",
             bind: $relatability1, next: 151
         )
         case 151: jfYesNo(
-            "I get bored doing the same thing every day.",
+            "I have no idea which workouts are right for me.",
             bind: $relatability2, next: 152
         )
         case 152: jfYesNo(
-            "Results don't come fast enough for me.",
+            "I quit when something feels too hard or boring.",
             bind: $relatability3, next: 205,
             confirmation: "We've all been there. We'll make it easy."
         )
