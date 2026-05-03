@@ -2,17 +2,31 @@ import SwiftUI
 import UIKit
 
 // MARK: - Typography
+//
+// Two families:
+//   - Fraunces (serif, editorial) for hero/title/italic-accent slots
+//   - DM Sans (utility sans) for heading/body/caption/eyebrow
+//
+// Fraunces ships per-optical-size in the upstream repo. We bundle the 72pt
+// optical (designed for ≥24pt usage) since title (32pt) and display (56pt)
+// both sit comfortably in that range. PostScript names: Fraunces72pt-Light,
+// Fraunces72pt-Regular, Fraunces72pt-SemiBold, Fraunces72pt-SemiBoldItalic.
+//
+// "Medium" doesn't ship at 72pt opsz — SemiBold is the closest weight and
+// reads as more emphatic anyway, which matches the editorial intent.
 
 enum Typo {
     private static func font(_ name: String, size: CGFloat) -> Font {
         Font(UIFont(name: name, size: size) ?? .systemFont(ofSize: size))
     }
 
-    static let display = font("DMSans-Light", size: 56).leading(.tight)
-    static let title = font("DMSans-SemiBold", size: 32)
+    static let display = font("Fraunces72pt-Light", size: 56).leading(.tight)
+    static let title = font("Fraunces72pt-SemiBold", size: 32)
+    static let titleItalic = font("Fraunces72pt-SemiBoldItalic", size: 32)
     static let heading = font("DMSans-SemiBold", size: 20)
     static let body = font("DMSans-Regular", size: 16)
     static let caption = font("DMSans-Medium", size: 13)
+    static let eyebrow = font("DMSans-SemiBold", size: 12)
 }
 
 // MARK: - Spacing (4pt base)
@@ -30,24 +44,34 @@ enum Space {
 }
 
 // MARK: - Colors
+//
+// JeniFit palette — dusty rose accent on a soft pink-cream base.
+// Cocoa (bgInverse / textPrimary share the same hex) anchors the dark
+// surfaces. Pink (accent / accentSubtle) is reserved for selected states,
+// celebrations, and badges — primary CTAs use cocoa, not pink.
 
 enum Palette {
-    static let bgPrimary = Color(hex: "#F7F3EE")
-    static let bgElevated = Color(hex: "#FFFEFB")
-    static let bgInverse = Color(hex: "#2C2218")
+    static let bgPrimary = Color(hex: "#FDF6F4")
+    static let bgElevated = Color(hex: "#FFFAF8")
+    static let bgInverse = Color(hex: "#3D2A2A")
 
-    static let textPrimary = Color(hex: "#2C2218")
-    static let textSecondary = Color(hex: "#6B5D4F")
-    static let textInverse = Color(hex: "#F7F3EE")
+    static let textPrimary = Color(hex: "#3D2A2A")
+    static let textSecondary = Color(hex: "#8E6D6D")
+    static let textInverse = Color(hex: "#FDF6F4")
 
-    static let accent = Color(hex: "#C8612C")
-    static let accentSubtle = Color(hex: "#E8C9A8")
+    static let accent = Color(hex: "#C4677A")
+    static let accentSubtle = Color(hex: "#F5D5D8")
 
-    static let stateGood = Color(hex: "#7A9E5C")
-    static let stateWarn = Color(hex: "#C8823C")
-    static let stateBad = Color(hex: "#9E5C5C")
+    static let stateGood = Color(hex: "#9CAA7E")
+    static let stateWarn = Color(hex: "#D4A464")
+    static let stateBad = Color(hex: "#B47272")
 
-    static let divider = Color(hex: "#E8DFD3")
+    static let divider = Color(hex: "#EFE0DC")
+
+    /// Activity-calendar "frozen day" cell. Aliased to accentSubtle so the
+    /// calendar reads cohesive with the rest of the palette. Promoted from
+    /// the inline `Color(hex: "#D6EBF5")` literal noted in the screen audit.
+    static let frozenDay = accentSubtle
 }
 
 // MARK: - Corner Radius
@@ -59,11 +83,15 @@ enum Radius {
 }
 
 // MARK: - Shadow
+//
+// Warm rose tint replaces the brown of the absmaxxing era. Pink shadows
+// fade more visually than brown, so we bump alpha 0.08 → 0.10 to keep
+// elevation legible on the cream bg.
 
 struct PlankShadow: ViewModifier {
     func body(content: Content) -> some View {
         content.shadow(
-            color: Color(red: 44/255, green: 34/255, blue: 24/255).opacity(0.08),
+            color: Color(red: 196/255, green: 103/255, blue: 122/255).opacity(0.10),
             radius: 12,
             x: 0,
             y: 2

@@ -31,6 +31,28 @@ struct PlankAIApp: App {
         // Ensure Application Support directory exists before SwiftData tries to create the store
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         try? FileManager.default.createDirectory(at: appSupport, withIntermediateDirectories: true)
+
+        // Register every .ttf file bundled with the app. INFOPLIST_KEY_UIAppFonts
+        // as a space-separated string doesn't actually populate UIAppFonts in
+        // the generated Info.plist (Xcode interprets the whole value as one
+        // filename), so iOS never auto-loads the fonts. Programmatic
+        // registration bypasses the Info.plist parsing entirely and survives
+        // future font additions without re-touching project settings.
+        Self.registerBundledFonts()
+    }
+
+    private static func registerBundledFonts() {
+        guard let urls = Bundle.main.urls(forResourcesWithExtension: "ttf", subdirectory: nil) else {
+            return
+        }
+        for url in urls {
+            var error: Unmanaged<CFError>?
+            if !CTFontManagerRegisterFontsForURL(url as CFURL, .process, &error) {
+                #if DEBUG
+                print("[Fonts] Failed to register \(url.lastPathComponent): \(error.debugDescription)")
+                #endif
+            }
+        }
     }
 
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false

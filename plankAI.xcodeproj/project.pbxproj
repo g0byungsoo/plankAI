@@ -29,6 +29,10 @@
 		7831867B2F9A0B0C0096138F /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 783186762F9A0B0C0096138F /* DMSans-Regular.ttf */; };
 		7831867C2F9A0B0C0096138F /* DMSans-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 783186742F9A0B0C0096138F /* DMSans-Light.ttf */; };
 		7831867D2F9A0B0C0096138F /* DMSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 783186752F9A0B0C0096138F /* DMSans-Medium.ttf */; };
+		FAFA000000000000000F0001 /* Fraunces72pt-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */; };
+		FAFA000000000000000F0002 /* Fraunces72pt-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0012 /* Fraunces72pt-Regular.ttf */; };
+		FAFA000000000000000F0003 /* Fraunces72pt-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0013 /* Fraunces72pt-SemiBold.ttf */; };
+		FAFA000000000000000F0004 /* Fraunces72pt-SemiBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0014 /* Fraunces72pt-SemiBoldItalic.ttf */; };
 		783187AD2F9ADA810096138F /* stopped_3.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187AB2F9ADA810096138F /* stopped_3.m4a */; };
 		783187AE2F9ADA810096138F /* milestone_90.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7831879D2F9ADA810096138F /* milestone_90.m4a */; };
 		783187AF2F9ADA810096138F /* camera_bad_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187812F9ADA810096138F /* camera_bad_1.m4a */; };
@@ -377,6 +381,10 @@
 		783186752F9A0B0C0096138F /* DMSans-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Medium.ttf"; sourceTree = "<group>"; };
 		783186762F9A0B0C0096138F /* DMSans-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Regular.ttf"; sourceTree = "<group>"; };
 		783186772F9A0B0C0096138F /* DMSans-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-SemiBold.ttf"; sourceTree = "<group>"; };
+		FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-Light.ttf"; sourceTree = "<group>"; };
+		FAFA000000000000000F0012 /* Fraunces72pt-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-Regular.ttf"; sourceTree = "<group>"; };
+		FAFA000000000000000F0013 /* Fraunces72pt-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-SemiBold.ttf"; sourceTree = "<group>"; };
+		FAFA000000000000000F0014 /* Fraunces72pt-SemiBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		783187812F9ADA810096138F /* camera_bad_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = camera_bad_1.m4a; sourceTree = "<group>"; };
 		783187822F9ADA810096138F /* camera_bad_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = camera_bad_2.m4a; sourceTree = "<group>"; };
 		783187832F9ADA810096138F /* countdown_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = countdown_1.m4a; sourceTree = "<group>"; };
@@ -881,6 +889,10 @@
 				783186752F9A0B0C0096138F /* DMSans-Medium.ttf */,
 				783186762F9A0B0C0096138F /* DMSans-Regular.ttf */,
 				783186772F9A0B0C0096138F /* DMSans-SemiBold.ttf */,
+				FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */,
+				FAFA000000000000000F0012 /* Fraunces72pt-Regular.ttf */,
+				FAFA000000000000000F0013 /* Fraunces72pt-SemiBold.ttf */,
+				FAFA000000000000000F0014 /* Fraunces72pt-SemiBoldItalic.ttf */,
 			);
 			path = Fonts;
 			sourceTree = "<group>";
@@ -1410,6 +1422,10 @@
 				7831867B2F9A0B0C0096138F /* DMSans-Regular.ttf in Resources */,
 				7831867C2F9A0B0C0096138F /* DMSans-Light.ttf in Resources */,
 				7831867D2F9A0B0C0096138F /* DMSans-Medium.ttf in Resources */,
+				FAFA000000000000000F0001 /* Fraunces72pt-Light.ttf in Resources */,
+				FAFA000000000000000F0002 /* Fraunces72pt-Regular.ttf in Resources */,
+				FAFA000000000000000F0003 /* Fraunces72pt-SemiBold.ttf in Resources */,
+				FAFA000000000000000F0004 /* Fraunces72pt-SemiBoldItalic.ttf in Resources */,
 				783186692F99E4130096138F /* Assets.xcassets in Resources */,
 				783187F32F9B30000096138F /* kira_preview.m4a in Resources */,
 				783187F42F9B30000096138F /* sarah_preview.m4a in Resources */,
@@ -1856,7 +1872,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "plankAI needs camera access so your AI coach can see your form";
-				INFOPLIST_KEY_UIAppFonts = "DMSans-Light.ttf DMSans-Regular.ttf DMSans-Medium.ttf DMSans-SemiBold.ttf";
+				INFOPLIST_KEY_UIAppFonts = "DMSans-Light.ttf DMSans-Regular.ttf DMSans-Medium.ttf DMSans-SemiBold.ttf Fraunces72pt-Light.ttf Fraunces72pt-Regular.ttf Fraunces72pt-SemiBold.ttf Fraunces72pt-SemiBoldItalic.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1896,7 +1912,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "plankAI needs camera access so your AI coach can see your form";
-				INFOPLIST_KEY_UIAppFonts = "DMSans-Light.ttf DMSans-Regular.ttf DMSans-Medium.ttf DMSans-SemiBold.ttf";
+				INFOPLIST_KEY_UIAppFonts = "DMSans-Light.ttf DMSans-Regular.ttf DMSans-Medium.ttf DMSans-SemiBold.ttf Fraunces72pt-Light.ttf Fraunces72pt-Regular.ttf Fraunces72pt-SemiBold.ttf Fraunces72pt-SemiBoldItalic.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
