@@ -810,7 +810,7 @@ struct OnboardingView: View {
                 showConfirmation = true
             }
             Haptics.success()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                 withAnimation(.easeOut(duration: 0.18)) { showConfirmation = false }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
                     pendingConfirmation = nil
