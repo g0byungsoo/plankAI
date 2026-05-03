@@ -17,9 +17,7 @@ struct AuthBootstrapSplash: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                Text("absmaxxing")
-                    .font(.system(size: 42, weight: .black))
-                    .foregroundStyle(Palette.textPrimary)
+                JeniFitWordmark()
 
                 Spacer().frame(height: 12)
 
@@ -85,4 +83,15 @@ struct AuthBootstrapSplash: View {
             }
         }
     }
+}
+
+#Preview("Idle / running") {
+    AuthBootstrapSplash(state: .running, onRetry: {})
+}
+
+#Preview("Failed") {
+    AuthBootstrapSplash(
+        state: .failed("The internet connection appears to be offline."),
+        onRetry: {}
+    )
 }

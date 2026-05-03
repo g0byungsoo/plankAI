@@ -294,3 +294,185 @@ struct DayBadge: View {
             .background(Palette.accentSubtle, in: Capsule())
     }
 }
+
+// MARK: - JeniFitWordmark
+//
+// The brand mark: lowercase Fraunces SemiBold flanking a thin Light-weight
+// bullet ("jeni • fit"). Used on AuthBootstrapSplash and the onboarding
+// splash screen. Single canonical size so the brand reads identically
+// everywhere; if a future surface needs scale variants, parametrize then.
+//
+// The bullet uses Fraunces72pt-Light at a smaller size with thin spaces
+// (U+2009) padding either side — SemiBold's bullet glyph reads chunky next
+// to the lowercase letterforms, so we step it down for breathing room.
+
+struct JeniFitWordmark: View {
+    var color: Color = Palette.textPrimary
+
+    var body: some View {
+        let base = Typo.title
+        let separator = Font(UIFont(name: "Fraunces72pt-Light", size: 26)
+                             ?? .systemFont(ofSize: 26))
+
+        return (Text("jeni").font(base)
+                + Text("\u{2009}•\u{2009}").font(separator)
+                + Text("fit").font(base))
+            .foregroundStyle(color)
+    }
+}
+
+// MARK: - EditorialPlaceholder
+//
+// Holds the slot where coach photography will eventually live. Until the
+// shoot happens, we render a diagonal-stripe block with a small label tag
+// in the corner so the placeholder reads "intentionally unfinished" rather
+// than "broken layout". Stripes use accent over accentSubtle for a quiet
+// pink-on-pink hash; the label uses the eyebrow token in inverse on a 60%
+// black scrim so it stays legible regardless of stripe contrast.
+
+struct EditorialPlaceholder: View {
+    let label: String
+    var cornerRadius: CGFloat = Radius.lg
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Palette.accentSubtle
+
+            Canvas { context, size in
+                let spacing: CGFloat = 18
+                let diag = sqrt(size.width * size.width + size.height * size.height)
+                var x: CGFloat = -diag
+                while x < size.width + diag {
+                    var path = Path()
+                    path.move(to: CGPoint(x: x, y: -diag))
+                    path.addLine(to: CGPoint(x: x + diag, y: diag))
+                    context.stroke(path,
+                                   with: .color(Palette.accent.opacity(0.18)),
+                                   lineWidth: 6)
+                    x += spacing
+                }
+            }
+
+            Text(label)
+                .font(Typo.eyebrow)
+                .foregroundStyle(Color.white)
+                .padding(.horizontal, Space.sm)
+                .padding(.vertical, 4)
+                .background(Color.black.opacity(0.6), in: Capsule())
+                .padding(Space.md)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+    }
+}
+
+// MARK: - Previews
+//
+// Visual scratchpad for the design system primitives. Run in the Xcode
+// canvas (Editor → Canvas) to inspect each component in isolation against
+// the JeniFit palette. These previews are #if DEBUG-gated implicitly by
+// the #Preview macro — they don't ship in release builds.
+
+#Preview("CTA buttons") {
+    VStack(spacing: Space.md) {
+        Button("Get started") {}.buttonStyle(.ctaPrimary)
+        Button("Subscribe") {}.buttonStyle(.ctaSecondary)
+        Button("Skip for now") {}.buttonStyle(.ctaTertiary)
+    }
+    .padding(Space.lg)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Palette.bgPrimary)
+}
+
+#Preview("OnboardingOptionCard") {
+    VStack(spacing: Space.md) {
+        OnboardingOptionCard(
+            icon: "figure.core.training",
+            title: "Definition",
+            subtitle: "Visible abs, sculpted lines",
+            isSelected: true,
+            action: {}
+        )
+        OnboardingOptionCard(
+            icon: "flame.fill",
+            title: "Strength",
+            subtitle: "Build a stronger core",
+            isSelected: false,
+            action: {}
+        )
+        OnboardingOptionCard(
+            icon: "heart.fill",
+            title: "Just feel better",
+            isSelected: false,
+            action: {}
+        )
+    }
+    .padding(Space.lg)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Palette.bgPrimary)
+}
+
+#Preview("PricingCard") {
+    VStack(spacing: Space.md) {
+        PricingCard(
+            title: "Yearly",
+            price: "$59.99",
+            perWeekEquivalent: "$1.15 / week",
+            badge: "SAVE 76%",
+            isSelected: true,
+            action: {}
+        )
+        PricingCard(
+            title: "Weekly",
+            price: "$4.99",
+            perWeekEquivalent: nil,
+            badge: nil,
+            isSelected: false,
+            action: {}
+        )
+    }
+    .padding(Space.lg)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Palette.bgPrimary)
+}
+
+#Preview("DayBadge") {
+    HStack(spacing: Space.sm) {
+        DayBadge(label: "DAY 1")
+        DayBadge(label: "DAY 7")
+        DayBadge(label: "DAY 30")
+    }
+    .padding(Space.lg)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Palette.bgPrimary)
+}
+
+#Preview("ItalicAccentText") {
+    VStack(spacing: Space.lg) {
+        ItalicAccentText("Become her in 30 days.", italic: ["her"])
+        ItalicAccentText(
+            "Sculpt your strongest body, at home.",
+            italic: ["strongest"]
+        )
+    }
+    .padding(Space.lg)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Palette.bgPrimary)
+}
+
+#Preview("JeniFitWordmark") {
+    VStack(spacing: Space.lg) {
+        JeniFitWordmark()
+        JeniFitWordmark(color: Palette.accent)
+    }
+    .padding(Space.lg)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Palette.bgPrimary)
+}
+
+#Preview("EditorialPlaceholder") {
+    EditorialPlaceholder(label: "EDITORIAL · COACH PHOTO")
+        .frame(width: 280, height: 380)
+        .padding(Space.lg)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Palette.bgPrimary)
+}

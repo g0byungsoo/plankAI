@@ -336,9 +336,7 @@ struct OnboardingView: View {
                 Spacer()
 
                 // Logo / brand mark
-                Text("absmaxxing")
-                    .font(.system(size: 42, weight: .black))
-                    .foregroundStyle(Palette.textPrimary)
+                JeniFitWordmark()
                     .opacity(splashLogoVisible ? 1 : 0)
                     .scaleEffect(splashLogoVisible ? 1 : 0.8)
 
@@ -396,153 +394,119 @@ struct OnboardingView: View {
     // ═══════════════════════════════════════
 
     @State private var heroVisible = false
-    @State private var bubbleVisible = false
 
     private var welcome: some View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
 
             VStack(spacing: 0) {
+                Spacer().frame(height: Space.lg)
+
+                // Eyebrow — sets the editorial tone before the headline lands.
+                Text("MADE FOR YOUR LEVEL")
+                    .font(Typo.eyebrow)
+                    .tracking(2)
+                    .foregroundStyle(Palette.accent)
+                    .opacity(visible ? 1 : 0)
+                    .offset(y: visible ? 0 : 12)
+
                 Spacer().frame(height: Space.md)
 
-                // Phone mockup showing the product
-                ZStack {
-                    RoundedRectangle(cornerRadius: 40)
-                        .fill(Color.black)
-                        .frame(width: 220, height: 380)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 36)
-                                .fill(
-                                    LinearGradient(colors: [Color(hex: "#1a1a2e"), Color(hex: "#16213e")],
-                                                   startPoint: .top, endPoint: .bottom)
-                                )
-                                .padding(4)
-                                .overlay(
-                                    VStack(spacing: 0) {
-                                        Spacer().frame(height: 40)
-                                        Text("47s")
-                                            .font(.system(size: 40, weight: .heavy, design: .rounded))
-                                            .foregroundStyle(.white)
-                                        Spacer().frame(height: 8)
-                                        Text("GOOD FORM")
-                                            .font(.system(size: 9, weight: .bold))
-                                            .tracking(1.5)
-                                            .foregroundStyle(.white)
-                                            .padding(.horizontal, 10).padding(.vertical, 4)
-                                            .background(Color(hex: "#30FF00").opacity(0.6))
-                                            .clipShape(Capsule())
-                                        Spacer()
-                                        skeletonMini
-                                            .frame(height: 120)
-                                            .padding(.horizontal, 20)
-                                        Spacer()
-                                    }
-                                    .clipShape(RoundedRectangle(cornerRadius: 36))
-                                )
-                        )
-                        .opacity(heroVisible ? 1 : 0)
-                        .offset(y: heroVisible ? 0 : 30)
+                // Headline with Fraunces italic accent on "strongest".
+                ItalicAccentText(
+                    "Sculpt your strongest body, at home.",
+                    italic: ["strongest"],
+                    alignment: .center
+                )
+                .padding(.horizontal, Space.lg)
+                .opacity(visible ? 1 : 0)
+                .offset(y: visible ? 0 : 16)
 
-                    // Voice bubble
-                    if bubbleVisible {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("🔥 Kira")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(Palette.accent)
-                            Text("\"Hips! Up!\nYou're giving\nhammock rn\"")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(Palette.textPrimary)
-                                .italic()
-                        }
-                        .padding(10)
-                        .background(Palette.bgElevated)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .offset(x: 100, y: 40)
-                        .transition(.scale(scale: 0.5, anchor: .leading).combined(with: .opacity))
-                    }
-                }
-                .frame(height: 400)
+                Spacer().frame(height: Space.md)
+
+                // Subhead — names Jeni once. No AI language.
+                Text("Personalized routines built around your goals — guided by Jeni, your coach.")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.lg)
+                    .opacity(visible ? 1 : 0)
+                    .offset(y: visible ? 0 : 16)
 
                 Spacer().frame(height: Space.lg)
 
-                Text("absmaxxing")
-                    .font(.system(size: 38, weight: .black))
-                    .foregroundStyle(Palette.textPrimary)
-                    .opacity(visible ? 1 : 0).offset(y: visible ? 0 : 20)
+                // Hero block. Diagonal-stripe placeholder sits where the
+                // coach photo will eventually live; three small ✦ glyphs
+                // float around the edges as the only sparkles in the
+                // entire app — restraint is part of the brand.
+                ZStack {
+                    EditorialPlaceholder(label: "EDITORIAL · COACH PHOTO")
+                        .frame(maxWidth: 320)
+                        .frame(height: 320)
+                        .opacity(heroVisible ? 1 : 0)
+                        .offset(y: heroVisible ? 0 : 30)
 
-                Spacer().frame(height: 6)
-
-                Text("AI plank trainer that\nactually makes you show up")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .opacity(visible ? 1 : 0).offset(y: visible ? 0 : 15)
+                    sparkle(size: 14, opacity: 0.9)
+                        .offset(x: 140, y: -150)
+                    sparkle(size: 10, opacity: 0.7)
+                        .offset(x: -150, y: 20)
+                    sparkle(size: 12, opacity: 0.85)
+                        .offset(x: 130, y: 140)
+                }
+                .frame(maxWidth: .infinity)
 
                 Spacer()
 
-                ctaBtn("Get Started") {
+                Button("Get started") {
+                    Haptics.light()
                     go(1)
                 }
-                .opacity(visible ? 1 : 0).offset(y: visible ? 0 : 30)
+                .buttonStyle(.ctaPrimary)
+                .padding(.horizontal, Space.screenPadding)
+                .opacity(visible ? 1 : 0)
+                .offset(y: visible ? 0 : 24)
 
                 Button {
                     Haptics.light()
                     showWelcomeSignInSheet = true
                 } label: {
-                    Text("Already have an account? **Sign In**")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.textSecondary)
+                    HStack(spacing: 4) {
+                        Text("Already have an account?")
+                        Text("Sign in").underline()
+                    }
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
                 }
                 .buttonStyle(.plain)
-                .opacity(visible ? 1 : 0)
+                .padding(.top, Space.md)
                 .padding(.bottom, Space.lg)
+                .opacity(visible ? 1 : 0)
             }
         }
         .onAppear {
-            // Phone mockup fades in
+            // Hero placeholder eases up first so the editorial block lands
+            // before the surrounding copy resolves.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 withAnimation(.easeOut(duration: 0.5)) { heroVisible = true }
             }
-
-            // Text + button
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                withAnimation(.easeOut(duration: 0.5)) { visible = true }
+            // Eyebrow + headline + subhead + CTA share one fade so the page
+            // feels intentional, not staged.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                withAnimation(.easeOut(duration: 0.55)) { visible = true }
             }
-
-            // Confetti
+            // Confetti retained as the celebratory landing touch — kept
+            // brief so it reads as accent, not party.
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 showConfetti = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { showConfetti = false }
             }
-
-            // Voice bubble
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
-                    bubbleVisible = true
-                }
-            }
         }
     }
 
-    /// Mini skeleton — fixed size, no GeometryReader
-    private var skeletonMini: some View {
-        let green = Color(hex: "#30FF00")
-        let pts: [CGPoint] = [
-            CGPoint(x: 27, y: 48), CGPoint(x: 45, y: 54),
-            CGPoint(x: 90, y: 58), CGPoint(x: 135, y: 60), CGPoint(x: 162, y: 62),
-        ]
-        return ZStack {
-            Path { p in
-                p.move(to: pts[0])
-                for pt in pts.dropFirst() { p.addLine(to: pt) }
-            }
-            .stroke(green.opacity(0.7), style: StrokeStyle(lineWidth: 3, lineCap: .round))
-
-            ForEach(0..<pts.count, id: \.self) { i in
-                Circle().fill(green).frame(width: 10, height: 10)
-                    .position(pts[i])
-            }
-        }
+    private func sparkle(size: CGFloat, opacity: Double) -> some View {
+        Text("✦")
+            .font(.system(size: size, weight: .regular))
+            .foregroundStyle(Palette.accent.opacity(opacity))
     }
 
     // ═══════════════════════════════════════
