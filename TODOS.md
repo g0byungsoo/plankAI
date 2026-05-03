@@ -57,9 +57,9 @@
 **Status:** Not blocking. v1.1 follow-up.
 
 ## Pre-launch — Publish Terms + Privacy pages
-**What:** Make `https://absmaxxing.com/terms` and `https://absmaxxing.com/privacy` resolve to real pages before App Store submission.
-**Why:** SignUpView's legal text links to those URLs and opens them in SFSafariViewController. Right now they're placeholders — App Review will reject if the links 404 or 500.
-**Status:** Blocking App Store submission. Not blocking dev.
+**What:** Make `https://jenifit.app/terms` and `https://jenifit.app/privacy` resolve to real pages before App Store submission. (Phase 7 paywall + SignUpView legal text both link to these URLs and open them in SFSafariViewController.)
+**Why:** Right now they're placeholders — App Review will reject if the links 404 or 500. The `.app` TLD is on the [HSTS preload list](https://hstspreload.org/?domain=app), so browsers refuse plain HTTP — hosting must serve TLS by default (Cloudflare / Vercel / Netlify all give this for free; bare-metal hosting must wire up Let's Encrypt + auto-redirect 80 → 443).
+**Status:** Blocking App Store submission. Not blocking dev. Domain swap from `absmaxxing.com` → `jenifit.app` happened with the rebrand; the pages still need to be authored + published.
 
 ## Phase 5 — Loading carousel placeholder numbers
 **What:** Three rotating frames in `loadingCarouselScreen` (case 180) ship with placeholder strings that need real-data swaps once we have them.

@@ -239,6 +239,7 @@ struct PricingCard: View {
     let title: String
     let price: String
     var perWeekEquivalent: String? = nil
+    var savings: String? = nil
     var badge: String? = nil
     let isSelected: Bool
     let action: () -> Void
@@ -257,10 +258,18 @@ struct PricingCard: View {
                     }
                 }
                 Spacer(minLength: Space.sm)
-                Text(price)
-                    .font(Typo.body)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Palette.textPrimary)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(price)
+                        .font(Typo.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.textPrimary)
+                    if let savings {
+                        Text(savings)
+                            .font(Typo.eyebrow)
+                            .tracking(1.5)
+                            .foregroundStyle(Palette.accent)
+                    }
+                }
             }
             .padding(Space.md)
             .background(Palette.bgElevated, in: RoundedRectangle(cornerRadius: Radius.md))

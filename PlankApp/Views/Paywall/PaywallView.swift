@@ -339,6 +339,7 @@ struct PaywallView: View {
                 title: "Yearly",
                 price: yearlyPrice,
                 perWeekEquivalent: yearlySubtitle,
+                savings: yearlySavings,
                 badge: "3-DAY FREE TRIAL",
                 isSelected: selectedPlan == .yearly
             ) {
@@ -369,9 +370,8 @@ struct PaywallView: View {
         return "$59.99"
     }
 
-    /// "$1.15/wk · billed $59.99/yr · save 77%" — derived from RC if
-    /// available, falls back to spec defaults so the card reads sensibly
-    /// before offerings load.
+    /// "$1.15/wk · billed $59.99/yr" — factual rate breakdown only.
+    /// Savings % renders as its own element below the price (yearlySavings).
     private var yearlySubtitle: String {
         guard let yearly = yearlyPackage else {
             return "$1.15/wk · billed $59.99/yr"
@@ -381,17 +381,26 @@ struct PaywallView: View {
         let formatter = yearly.storeProduct.priceFormatter ?? defaultCurrencyFormatter
         let perWeekStr = formatter.string(from: perWeek) ?? "\(perWeek)"
         let yearlyStr = yearly.storeProduct.localizedPriceString
+        return "\(perWeekStr)/wk · billed \(yearlyStr)/yr"
+    }
 
-        var line = "\(perWeekStr)/wk · billed \(yearlyStr)/yr"
-        if let weekly = weeklyPackage {
-            let weeklyPriceDecimal = weekly.storeProduct.price as NSDecimalNumber
-            if weeklyPriceDecimal.doubleValue > 0 {
-                let ratio = perWeek.dividing(by: weeklyPriceDecimal).doubleValue
-                let savings = Int(((1.0 - ratio) * 100).rounded())
-                if savings > 0 { line += " · save \(savings)%" }
-            }
+    /// Savings % vs. the weekly plan, derived from the live RC prices when
+    /// available. Returns nil when offerings haven't loaded the weekly
+    /// package or when the math would round to ≤0% (don't surface a
+    /// non-savings claim). Falls back to the spec default when both
+    /// packages haven't synced.
+    private var yearlySavings: String? {
+        guard let yearly = yearlyPackage, let weekly = weeklyPackage else {
+            return yearlyPackage == nil && weeklyPackage == nil ? "save 77%" : nil
         }
-        return line
+        let yearlyPriceDecimal = yearly.storeProduct.price as NSDecimalNumber
+        let weeklyPriceDecimal = weekly.storeProduct.price as NSDecimalNumber
+        guard weeklyPriceDecimal.doubleValue > 0 else { return nil }
+        let perWeek = yearlyPriceDecimal.dividing(by: NSDecimalNumber(value: 52))
+        let ratio = perWeek.dividing(by: weeklyPriceDecimal).doubleValue
+        let savings = Int(((1.0 - ratio) * 100).rounded())
+        guard savings > 0 else { return nil }
+        return "save \(savings)%"
     }
 
     private var weeklyPrice: String {
