@@ -365,6 +365,196 @@ struct EditorialPlaceholder: View {
     }
 }
 
+// MARK: - OnboardingProgressBar
+//
+// 4pt-tall capsule progress indicator that lives at the top of every
+// onboarding screen. Fill is dusty rose on a soft divider track. Animates
+// the width between screens with easeOut so forward motion always reads
+// as forward (a spring would overshoot on small fraction deltas like
+// 69% → 73% and look like a regression).
+
+struct OnboardingProgressBar: View {
+    let fraction: CGFloat
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Palette.divider)
+                    .frame(height: 4)
+                Capsule().fill(Palette.accent)
+                    .frame(width: max(8, geo.size.width * fraction), height: 4)
+                    .animation(.easeOut(duration: 0.35), value: fraction)
+            }
+        }
+        .frame(height: 4)
+    }
+}
+
+// MARK: - SectionDividerScreen
+//
+// Brief interstitial between the six onboarding parts. Auto-advances after
+// `dwellSeconds` so the user gets a moment to register the section name
+// without having to tap. Layout is intentionally sparse: small "Part N"
+// eyebrow, then the section name in Fraunces title, then a short
+// supporting line.
+//
+// Used as a screen body inside OnboardingView; the parent owns the
+// dispatch to the next screen.
+
+struct SectionDividerScreen: View {
+    let partNumber: Int
+    let title: String
+    let supporting: String
+    let dwellSeconds: Double
+    let onAdvance: () -> Void
+
+    @State private var visible = false
+
+    var body: some View {
+        VStack(spacing: Space.md) {
+            Spacer()
+
+            Text("PART \(partNumber)")
+                .font(Typo.eyebrow)
+                .tracking(2)
+                .foregroundStyle(Palette.accent)
+                .opacity(visible ? 1 : 0)
+                .offset(y: visible ? 0 : 12)
+
+            Text(title)
+                .font(Typo.title)
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Space.lg)
+                .opacity(visible ? 1 : 0)
+                .offset(y: visible ? 0 : 16)
+
+            Text(supporting)
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Space.xl)
+                .opacity(visible ? 1 : 0)
+                .offset(y: visible ? 0 : 16)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.5)) { visible = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + dwellSeconds) {
+                onAdvance()
+            }
+        }
+    }
+}
+
+// MARK: - ConfirmationBadge
+//
+// Centered toast shown for ~1.2s after major onboarding commits. Used
+// sparingly (5–7 times across the full flow, not after every question)
+// so each appearance reads as a moment of acknowledgement rather than
+// noise. Cocoa pill, cream label, dusty rose checkmark dot.
+
+struct ConfirmationBadge: View {
+    let message: String
+
+    var body: some View {
+        HStack(spacing: Space.sm) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Palette.textInverse)
+                .frame(width: 22, height: 22)
+                .background(Palette.accent, in: Circle())
+
+            Text(message)
+                .font(Typo.body)
+                .fontWeight(.semibold)
+                .foregroundStyle(Palette.textInverse)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, Space.md)
+        .padding(.vertical, Space.md)
+        .background(Palette.bgInverse, in: RoundedRectangle(cornerRadius: Radius.md))
+        .padding(.horizontal, Space.lg)
+    }
+}
+
+// MARK: - BiometricSlider
+//
+// Continuous slider for height / weight / target weight. Shows a large
+// Fraunces value with unit, then a horizontal track. Track fill is rose
+// from start to thumb; thumb is a cocoa circle. Imperial / metric is
+// inferred from the formatter the caller passes in — slider stores raw
+// double in the model unit (cm / kg) and the formatter handles display.
+
+struct BiometricSlider: View {
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    let step: Double
+    let format: (Double) -> String
+
+    var body: some View {
+        VStack(spacing: Space.lg) {
+            Text(format(value))
+                .font(Typo.display)
+                .foregroundStyle(Palette.textPrimary)
+                .contentTransition(.numericText())
+                .animation(.easeOut(duration: 0.15), value: value)
+
+            Slider(value: $value, in: range, step: step)
+                .tint(Palette.accent)
+                .padding(.horizontal, Space.md)
+        }
+        .padding(.vertical, Space.lg)
+    }
+}
+
+// MARK: - BodyTypeSlider
+//
+// 6-position discrete slider (0–5) for "where are you now" /
+// "where do you want to be" body-shape questions. Renders the
+// current and target as illustrative labels above the slider.
+
+struct BodyTypeSlider: View {
+    @Binding var position: Int
+    let labels: [String]   // length must be 6
+
+    var body: some View {
+        VStack(spacing: Space.lg) {
+            Text(labels[max(0, min(labels.count - 1, position))])
+                .font(Typo.heading)
+                .foregroundStyle(Palette.textPrimary)
+                .contentTransition(.opacity)
+                .animation(.easeOut(duration: 0.15), value: position)
+
+            Slider(
+                value: Binding(
+                    get: { Double(position) },
+                    set: { position = Int($0.rounded()) }
+                ),
+                in: 0...Double(labels.count - 1),
+                step: 1
+            )
+            .tint(Palette.accent)
+            .padding(.horizontal, Space.md)
+
+            HStack {
+                Text(labels.first ?? "")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                Spacer()
+                Text(labels.last ?? "")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .padding(.horizontal, Space.md)
+        }
+        .padding(.vertical, Space.lg)
+    }
+}
+
 // MARK: - Previews
 //
 // Visual scratchpad for the design system primitives. Run in the Xcode

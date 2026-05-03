@@ -2321,10 +2321,31 @@ struct OnboardingView: View {
 }
 
 struct OnboardingData {
+    // Existing fields — downstream consumers (PlankAIApp.handleOnboardingComplete,
+    // UserRecord schema, WorkoutGenerator) read these by name. Don't rename.
     let goal, experience: String; let baselineHoldSeconds: Int; let barriers: [String]
     let ageRange, activityLevel, focusArea, plankTime: String; let commitmentDaysPerWeek: Int
     let sessionLengthMinutes: Int
     let notificationsEnabled: Bool; let notificationTime: Date?; let name, voicePreference: String
+
+    // JeniFit phase 4 additions. New onboarding question content writes
+    // these in addition to the legacy fields above. Defaults make them
+    // safe to read from older code paths that don't know about them yet.
+    var bodyFocus: [String] = []           // Part 1 multi-select: flatBelly/tonedArms/roundButt/slimLegs
+    var motivation: String = ""            // Part 1: the "why"
+    var workoutLocation: String = ""       // Part 2: home/gym/either/outdoor
+    var workoutStyle: [String] = []        // Part 2 multi: hiit/strength/yoga/dance/walking
+    var gender: String = ""                // Part 3
+    var heightCm: Double = 170             // Part 3 slider
+    var currentWeightKg: Double = 65       // Part 3 slider
+    var goalWeightKg: Double = 60          // Part 3 slider
+    var bodyTypeCurrent: Int = 2           // Part 3 slider 0-5
+    var bodyTypeDesired: Int = 2           // Part 3 slider 0-5
+    var identityFeeling: String = ""       // Part 4
+    var rewardChoice: String = ""          // Part 4
+    var relatability1: Bool = false        // Part 5: "I struggle to stay consistent"
+    var relatability2: Bool = false        // Part 5: "I get bored doing the same thing"
+    var relatability3: Bool = false        // Part 5: "Results don't come fast enough"
 }
 
 // MARK: - CTA Button Style
