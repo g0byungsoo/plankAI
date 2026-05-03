@@ -251,11 +251,11 @@ struct OnboardingView: View {
             "What's the goal?",
             sub: "We'll build the entire plan around this answer.",
             opts: [
-                ("loseWeight",  "🍃 Lose weight — Lean down, feel lighter"),
-                ("fullBody",    "✨ Full body transformation — Tone all over, head to toe"),
-                ("toneCore",    "🎀 Tone my core — Define abs & obliques"),
-                ("growGlutes",  "🍑 Grow glutes — Sculpt & lift"),
-                ("slimLegs",    "🦵 Slim & define legs — Lean, long lines"),
+                ("loseWeight",  "Lose weight",                "Lean down, feel lighter"),
+                ("fullBody",    "Full body transformation",   "Tone all over, head to toe"),
+                ("toneCore",    "Tone my core",               "Define abs and obliques"),
+                ("growGlutes",  "Grow glutes",                "Sculpt and lift"),
+                ("slimLegs",    "Slim and define legs",       "Lean, long lines"),
             ],
             sel: $goal, next: 110
         )
@@ -264,10 +264,10 @@ struct OnboardingView: View {
             "Where should we focus?",
             sub: "Pick the zones you want to see change.",
             opts: [
-                ("flatBelly", "Flat Belly"),
-                ("tonedArms", "Toned Arms"),
-                ("roundButt", "Round Butt"),
-                ("slimLegs", "Slim Legs"),
+                ("flatBelly", "Flat Belly", nil),
+                ("tonedArms", "Toned Arms", nil),
+                ("roundButt", "Round Butt", nil),
+                ("slimLegs",  "Slim Legs",  nil),
             ],
             sel: $bodyFocus, next: 111,
             confirmation: "Locked in. Your routines target these zones."
@@ -277,11 +277,11 @@ struct OnboardingView: View {
             "Why now?",
             sub: "What's pushing you to start today?",
             opts: [
-                ("confidence", "I want to feel confident in my body"),
-                ("event", "I have a date / event coming up"),
-                ("clothes", "I want to look good in my clothes"),
-                ("health", "I want to be healthy long-term"),
-                ("revenge", "I want my comeback to be undeniable"),
+                ("confidence", "I want to feel confident in my body", nil),
+                ("event",      "I have a date or event coming up",    nil),
+                ("clothes",    "I want to look good in my clothes",   nil),
+                ("health",     "I want to be healthy long-term",      nil),
+                ("revenge",    "I want my comeback to be undeniable", nil),
             ],
             sel: $motivation, next: 201
         )
@@ -291,10 +291,10 @@ struct OnboardingView: View {
             "How much do you train right now?",
             sub: "Be honest. The plan calibrates from this.",
             opts: [
-                ("never", "I don't really train"),
-                ("gaveUp", "I've tried, couldn't stick with it"),
-                ("sometimes", "Here and there"),
-                ("regular", "Regularly — multiple times a week"),
+                ("never",     "I don't really train",              nil),
+                ("gaveUp",    "I've tried, couldn't stick with it", nil),
+                ("sometimes", "Here and there",                    nil),
+                ("regular",   "Regularly",                         "Multiple times a week"),
             ],
             sel: $experience, next: 8
         )
@@ -303,11 +303,11 @@ struct OnboardingView: View {
             "How active are you day-to-day?",
             sub: "Outside of workouts. Walking, standing, errands.",
             opts: [
-                ("sedentary", "Mostly sitting"),
-                ("light", "Light — short walks, occasional movement"),
-                ("moderate", "Moderate — on my feet most of the day"),
-                ("active", "Very active — physical job or daily walks"),
-                ("athlete", "Athlete-level"),
+                ("sedentary", "Mostly sitting", nil),
+                ("light",     "Light",          "Short walks, occasional movement"),
+                ("moderate",  "Moderate",       "On my feet most of the day"),
+                ("active",    "Very active",    "Physical job or daily walks"),
+                ("athlete",   "Athlete-level",  nil),
             ],
             sel: $activityLevel, next: 120
         )
@@ -316,10 +316,10 @@ struct OnboardingView: View {
             "Where will you train?",
             sub: "We tune the moves so they fit your space.",
             opts: [
-                ("home", "At home — bedroom or living room"),
-                ("gym", "At the gym"),
-                ("outdoor", "Outdoors — park or backyard"),
-                ("anywhere", "Anywhere — I move around"),
+                ("home",     "At home",      "Bedroom or living room"),
+                ("gym",      "At the gym",   nil),
+                ("outdoor",  "Outdoors",     "Park or backyard"),
+                ("anywhere", "Anywhere",     "I move around"),
             ],
             sel: $workoutLocation, next: 121
         )
@@ -328,11 +328,11 @@ struct OnboardingView: View {
             "What kind of workouts feel good?",
             sub: "Pick whatever you actually enjoy. Multi-pick fine.",
             opts: [
-                ("hiit", "HIIT — short and brutal"),
-                ("strength", "Strength — slow and heavy"),
-                ("yoga", "Yoga / Pilates — long and controlled"),
-                ("dance", "Dance / cardio — fun and sweaty"),
-                ("walking", "Walking — easy and steady"),
+                ("hiit",     "HIIT",              "Short and brutal"),
+                ("strength", "Strength",          "Slow and heavy"),
+                ("yoga",     "Yoga or Pilates",   "Long and controlled"),
+                ("dance",    "Dance or cardio",   "Fun and sweaty"),
+                ("walking",  "Walking",           "Easy and steady"),
             ],
             sel: $workoutStyle, next: 25
         )
@@ -341,10 +341,10 @@ struct OnboardingView: View {
             "How long per session?",
             sub: "Pick the size you'll actually keep open.",
             opts: [
-                ("5", "5 min — when life is mid"),
-                ("7", "7 min — recommended"),
-                ("10", "10 min — full session"),
-                ("15", "15 min — go-mode"),
+                ("5",  "5 min",  "When life is mid"),
+                ("7",  "7 min",  "Recommended"),
+                ("10", "10 min", "Full session"),
+                ("15", "15 min", "Go-mode"),
             ],
             sel: $sessionLength, next: 17
         )
@@ -353,10 +353,10 @@ struct OnboardingView: View {
             "How many days a week?",
             sub: "The five-day plan is what we'd pick for you.",
             opts: [
-                ("3", "3 days — easing in"),
-                ("5", "5 days — recommended"),
-                ("6", "6 days — high intensity"),
-                ("7", "Every day — all in"),
+                ("3", "3 days",    "Easing in"),
+                ("5", "5 days",    "Recommended"),
+                ("6", "6 days",    "High intensity"),
+                ("7", "Every day", "All in"),
             ],
             sel: $commitmentDays, next: 202,
             confirmation: "Got it. Your plan starts here."
@@ -367,10 +367,10 @@ struct OnboardingView: View {
             "What's your gender?",
             sub: "We adjust your plan based on this.",
             opts: [
-                ("female", "Female"),
-                ("male", "Male"),
-                ("nonbinary", "Non-binary"),
-                ("private", "Prefer not to say"),
+                ("female",    "Female",            nil),
+                ("male",      "Male",              nil),
+                ("nonbinary", "Non-binary",        nil),
+                ("private",   "Prefer not to say", nil),
             ],
             sel: $gender, next: 7
         )
@@ -379,12 +379,12 @@ struct OnboardingView: View {
             "What's your age?",
             sub: "We adjust your plan based on this.",
             opts: [
-                ("under18", "Under 18"),
-                ("18to24", "18–24"),
-                ("25to34", "25–34"),
-                ("35to44", "35–44"),
-                ("45to54", "45–54"),
-                ("55plus", "55+"),
+                ("under18", "Under 18", nil),
+                ("18to24",  "18–24",    nil),
+                ("25to34",  "25–34",    nil),
+                ("35to44",  "35–44",    nil),
+                ("45to54",  "45–54",    nil),
+                ("55plus",  "55+",      nil),
             ],
             sel: $ageRange, next: 131
         )
@@ -432,10 +432,10 @@ struct OnboardingView: View {
             "Which one feels most like the new you?",
             sub: "Pick the version that's pulling you forward.",
             opts: [
-                ("strong", "Strong — capable, takes up space"),
-                ("lean", "Lean — light, defined, fluid"),
-                ("powerful", "Powerful — confident, undeniable"),
-                ("calm", "Calm — at home in my body"),
+                ("strong",   "Strong",   "Capable, takes up space"),
+                ("lean",     "Lean",     "Light, defined, fluid"),
+                ("powerful", "Powerful", "Confident, undeniable"),
+                ("calm",     "Calm",     "At home in my body"),
             ],
             sel: $identityFeeling, next: 141,
             confirmation: "That's the goal. Your plan is built around getting you there."
@@ -445,10 +445,10 @@ struct OnboardingView: View {
             "What's the reward when you hit the goal?",
             sub: "The thing you'll do for yourself when this lands.",
             opts: [
-                ("photoshoot", "A photoshoot"),
-                ("outfit", "An outfit I've been waiting to wear"),
-                ("trip", "A trip"),
-                ("nothing", "No reward — the result is the reward"),
+                ("photoshoot", "A photoshoot",                         nil),
+                ("outfit",     "An outfit I've been waiting to wear",  nil),
+                ("trip",       "A trip",                               nil),
+                ("nothing",    "No reward",                            "The result is the reward"),
             ],
             sel: $rewardChoice, next: 204,
             confirmation: "We see you. Your reasons are real."
@@ -474,10 +474,10 @@ struct OnboardingView: View {
             "How long can you hold a plank?",
             sub: "Your starting benchmark. We move it up from here.",
             opts: [
-                ("under15", "Under 15 seconds"),
-                ("15to30", "15–30 seconds"),
-                ("30to60", "30–60 seconds"),
-                ("over60", "60+ seconds"),
+                ("under15", "Under 15 seconds", nil),
+                ("15to30",  "15–30 seconds",    nil),
+                ("30to60",  "30–60 seconds",    nil),
+                ("over60",  "60+ seconds",      nil),
             ],
             sel: $baseline, next: 11
         )
@@ -486,10 +486,10 @@ struct OnboardingView: View {
             "When do you want your reminder?",
             sub: "We'll nudge you at the same time every day.",
             opts: [
-                ("morning", "Morning — start strong"),
-                ("afternoon", "Afternoon — energy boost"),
-                ("evening", "Evening — wind down"),
-                ("whenever", "Whenever — no fixed time"),
+                ("morning",   "Morning",   "Start strong"),
+                ("afternoon", "Afternoon", "Energy boost"),
+                ("evening",   "Evening",   "Wind down"),
+                ("whenever",  "Whenever",  "No fixed time"),
             ],
             sel: $plankTime, next: 18
         )
@@ -514,7 +514,7 @@ struct OnboardingView: View {
         ], sel: $barriers, next: 7)
         case 6: celebrationScreen
         case 9: didYouKnowScreen
-        case 10: jfQuestion("Legacy single-focus", sub: nil, opts: [("fullCore","Full core")], sel: $focusArea, next: 11)
+        case 10: jfQuestion("Legacy single-focus", sub: nil, opts: [("fullCore", "Full core", nil)], sel: $focusArea, next: 11)
         case 12: formScreen
         case 13: featureShowcaseScreen
         case 14: socialProofScreen
@@ -826,7 +826,7 @@ struct OnboardingView: View {
 
     private func jfQuestion(
         _ title: String, sub: String? = nil,
-        opts: [(String, String)],
+        opts: [(String, String, String?)],
         sel: Binding<String>,
         next: Int,
         confirmation: String? = nil
@@ -837,36 +837,16 @@ struct OnboardingView: View {
             Spacer().frame(height: Space.lg)
 
             VStack(spacing: Space.sm) {
-                ForEach(opts, id: \.0) { key, label in
-                    let on = sel.wrappedValue == key
-                    Button {
-                        Haptics.light()
-                        sel.wrappedValue = key
-                    } label: {
-                        HStack {
-                            Text(label)
-                                .font(Typo.body)
-                                .fontWeight(.medium)
-                                .foregroundStyle(on ? Palette.textInverse : Palette.textPrimary)
-                                .multilineTextAlignment(.leading)
-                            Spacer()
-                            if on {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundStyle(Palette.textInverse)
-                            }
+                ForEach(opts, id: \.0) { key, optTitle, optSub in
+                    OnboardingOptionCard(
+                        title: optTitle,
+                        subtitle: optSub,
+                        isSelected: sel.wrappedValue == key,
+                        action: {
+                            Haptics.light()
+                            sel.wrappedValue = key
                         }
-                        .padding(.horizontal, 20)
-                        .frame(minHeight: 56)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(on ? Palette.bgInverse : Palette.bgElevated,
-                                    in: RoundedRectangle(cornerRadius: Radius.md))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Radius.md)
-                                .stroke(on ? Color.clear : Palette.divider, lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(PressFeedbackStyle())
+                    )
                 }
             }
             .padding(.horizontal, Space.screenPadding)
@@ -886,7 +866,7 @@ struct OnboardingView: View {
 
     private func jfMulti(
         _ title: String, sub: String? = nil,
-        opts: [(String, String)],
+        opts: [(String, String, String?)],
         sel: Binding<Set<String>>,
         next: Int,
         confirmation: String? = nil,
@@ -898,38 +878,22 @@ struct OnboardingView: View {
             Spacer().frame(height: Space.lg)
 
             VStack(spacing: Space.sm) {
-                ForEach(opts, id: \.0) { key, label in
-                    let on = sel.wrappedValue.contains(key)
-                    Button {
-                        Haptics.light()
-                        withAnimation(.spring(response: 0.25)) {
-                            if on { sel.wrappedValue.remove(key) }
-                            else { sel.wrappedValue.insert(key) }
-                        }
-                    } label: {
-                        HStack {
-                            Text(label)
-                                .font(Typo.body)
-                                .fontWeight(.medium)
-                                .foregroundStyle(on ? Palette.textInverse : Palette.textPrimary)
-                            Spacer()
-                            if on {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundStyle(Palette.textInverse)
+                ForEach(opts, id: \.0) { key, optTitle, optSub in
+                    OnboardingOptionCard(
+                        title: optTitle,
+                        subtitle: optSub,
+                        isSelected: sel.wrappedValue.contains(key),
+                        action: {
+                            Haptics.light()
+                            withAnimation(.spring(response: 0.25)) {
+                                if sel.wrappedValue.contains(key) {
+                                    sel.wrappedValue.remove(key)
+                                } else {
+                                    sel.wrappedValue.insert(key)
+                                }
                             }
                         }
-                        .padding(.horizontal, 20)
-                        .frame(minHeight: 56)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(on ? Palette.bgInverse : Palette.bgElevated,
-                                    in: RoundedRectangle(cornerRadius: Radius.md))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Radius.md)
-                                .stroke(on ? Color.clear : Palette.divider, lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(PressFeedbackStyle())
+                    )
                 }
             }
             .padding(.horizontal, Space.screenPadding)

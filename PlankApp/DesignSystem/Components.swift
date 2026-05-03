@@ -161,7 +161,7 @@ struct ItalicAccentText: View {
 // settings cell.
 
 struct OnboardingOptionCard: View {
-    let icon: String
+    var icon: String? = nil
     let title: String
     var subtitle: String? = nil
     let isSelected: Bool
@@ -174,19 +174,25 @@ struct OnboardingOptionCard: View {
                     Circle()
                         .fill(Palette.accentSubtle)
                         .frame(width: 44, height: 44)
-                    Image(systemName: icon)
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(Palette.accent)
+                    if let icon {
+                        Image(systemName: icon)
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(Palette.accent)
+                    }
                 }
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Space.xs) {
                     Text(title)
-                        .font(Typo.heading)
+                        .font(.custom("DMSans-SemiBold", size: 16))
                         .foregroundStyle(Palette.textPrimary)
+                        .multilineTextAlignment(.leading)
                     if let subtitle {
                         Text(subtitle)
-                            .font(Typo.caption)
+                            .font(.custom("DMSans-Regular", size: 13))
                             .foregroundStyle(Palette.textSecondary)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(2)
+                            .truncationMode(.tail)
                     }
                 }
 
@@ -203,7 +209,10 @@ struct OnboardingOptionCard: View {
                     }
                 }
             }
-            .padding(Space.md)
+            .padding(.horizontal, Space.md)
+            .padding(.vertical, Space.md)
+            .frame(minHeight: 72)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(Palette.bgElevated, in: RoundedRectangle(cornerRadius: Radius.md))
             .overlay(
                 RoundedRectangle(cornerRadius: Radius.md)
