@@ -70,6 +70,12 @@
 - **Frame 2:** `"100+ hours of plank coaching"` → swap with real cumulative session-hour total from `session_logs` aggregate. Pull from a Supabase materialized view refreshed daily.
 - **Frame 3:** `"5.0 ★ early reviews"` → swap to real App Store rating + review count via App Store Connect API. Don't surface until ≥30 reviews exist; under that threshold the rating distribution is too noisy and a single 1-star drop reads as a regression.
 
+## Phase 6 — Editorial photography for home workout card hero
+**What:** Replace the EditorialPlaceholder hero (180pt, "EDITORIAL · WORKOUT COVER" label) at the top of `jenifitWorkoutCard` (HomeView.swift) with real workout photography that rotates per workout preset. Each `WorkoutPreset` should map to a hero image — same goal/preset shows the same image, so the home feels personal across days.
+**Why:** v1.0 ships with the diagonal-stripe placeholder so the home screen scans intentional. Real photography is the single biggest jump from "designed nicely" to "premium feels real."
+**Spec:** Same shoot guidance as the Phase 5 entry below (4:5, cream/beige bg, soft natural lighting, aspirational-feminine, no body-shame coding). 4–6 hero shots covering the four `WorkoutGoal` cases (`strength` / `definition` / `sculpting` / `fullCore`) with at least one variant per goal.
+**Status:** Ben commissioning. v1.1 swap target. Photo selection by `workout.goal` (or `workout.id` for finer control) — wire up the asset map at swap time.
+
 ## Phase 5 — Editorial photography for reshape + welcome
 **What:** Replace the headline-only reshape transition (case 160) and the editorial placeholder on the Welcome screen with real photography. Goal: 3 photos for the reshape moment OR 1 hero photo (TBD), plus 1 hero photo for Welcome.
 **Why:** v1.0 ships clean without imagery to avoid the "stock photo" or "fake silhouettes" smell. Real, brand-aligned photography is the right v1.1 lift — it's the visual anchor the dusty-rose / Fraunces / cocoa palette is currently asking for.
