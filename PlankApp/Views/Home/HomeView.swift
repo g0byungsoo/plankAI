@@ -67,9 +67,13 @@ struct HomeView: View {
         }
     }
 
+    // Display name for the home top bar + greeting. Voice clip prefix
+    // (sarah_*) and asset name (coach-sarah) still ship under the legacy
+    // names; Phase 9 handles the asset rename. The display-only swap
+    // here unblocks Phase 6 brand consistency without touching audio.
     private var currentTrainerName: String {
         switch voicePreference {
-        case "encouraging": return "Sarah"
+        case "encouraging": return "Jeni"
         case "balanced": return "Matson"
         default: return "Kira"
         }
@@ -126,23 +130,31 @@ struct HomeView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 14) {
-                    dateStamp.padding(.top, Space.sm)
-
-                    kiraBubble(greetingText)
+                    jenifitGreeting
                         .opacity(msgOpacity[0]).offset(y: msgOffset[0])
 
-                    kiraWorkoutModule
+                    jenifitWorkoutCard
                         .opacity(msgOpacity[1]).offset(y: msgOffset[1])
 
-                    kiraBenchmarkModule
+                    jenifitStreakCard
                         .opacity(msgOpacity[2]).offset(y: msgOffset[2])
 
-                    if hasCompletedFirstSession {
-                        kiraBubble(statsText)
+                    // Benchmark module + voice affirmation kept below the
+                    // primary cards. Phase 6 redesigns the top of the home;
+                    // these surfaces stay on the existing chat-bubble pattern
+                    // and can be re-skinned in a later phase.
+                    Group {
+                        kiraBenchmarkModule
                             .opacity(msgOpacity[3]).offset(y: msgOffset[3])
+
+                        kiraBubble(greetingText)
+
+                        if hasCompletedFirstSession {
+                            kiraBubble(statsText)
+                        }
                     }
+                    .padding(.horizontal, 10)
                 }
-                .padding(.horizontal, 10)
                 .padding(.bottom, 100)
             }
             .background(Palette.bgPrimary)
@@ -209,6 +221,7 @@ struct HomeView: View {
 
     private var messageTopBar: some View {
         HStack {
+            // Left — overflow menu (existing settings entry points).
             Menu {
                 Button { activeSheet = .editProfile } label: { Label("Edit Profile", systemImage: "person") }
                 Button { activeSheet = .notifications } label: { Label("Notifications", systemImage: "bell") }
@@ -221,39 +234,277 @@ struct HomeView: View {
                 #endif
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(Palette.textSecondary)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 40, height: 40)
             }
+
             Spacer()
+
+            // Center — coach photo + name + online indicator. Tapping opens
+            // the trainer settings sheet (parity with the prior layout).
             Button {
                 activeSheet = .trainer
             } label: {
-                VStack(spacing: 2) {
+                HStack(spacing: 10) {
                     Image(currentTrainerPhoto)
                         .resizable().scaledToFill()
-                        .frame(width: 36, height: 36)
+                        .frame(width: 40, height: 40)
                         .clipShape(Circle())
-                    Text(currentTrainerName)
-                        .font(Typo.caption).fontWeight(.medium)
-                        .foregroundStyle(Palette.textPrimary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(currentTrainerName)
+                            .font(Typo.body)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Palette.textPrimary)
+                        HStack(spacing: 5) {
+                            Circle()
+                                .fill(Palette.stateGood)
+                                .frame(width: 8, height: 8)
+                            Text("Online")
+                                .font(Typo.caption)
+                                .foregroundStyle(Palette.stateGood)
+                        }
+                    }
                 }
             }
+            .buttonStyle(.plain)
+
             Spacer()
-            Color.clear.frame(width: 32, height: 32)
+
+            // Right — bell icon. Visual only for v1.0 (no notification
+            // logic); red dot is gated on hasUnread once that exists.
+            Image(systemName: "bell")
+                .font(.system(size: 22, weight: .regular))
+                .foregroundStyle(Palette.textSecondary)
+                .frame(width: 40, height: 40)
         }
         .padding(.horizontal, Space.screenPadding)
         .padding(.vertical, Space.xs)
         .background(Palette.bgPrimary)
     }
 
-    // MARK: - Date Stamp
+    // MARK: - JeniFit Greeting (Phase 6 typography header)
 
-    private var dateStamp: some View {
-        Text(Date.now.formatted(.dateTime.weekday(.wide).hour(.defaultDigits(amPM: .abbreviated)).minute()))
-            .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(Palette.textSecondary)
-            .padding(.vertical, Space.xs)
+    private var jenifitGreeting: some View {
+        let displayName = userName.isEmpty ? "you" : userName
+        return VStack(alignment: .leading, spacing: Space.xs) {
+            // Headline — italic accent on the user's name.
+            (
+                Text("Hey ").font(Typo.title) +
+                Text(displayName).font(Typo.titleItalic) +
+                Text(".").font(Typo.title)
+            )
+            .foregroundStyle(Palette.textPrimary)
+
+            // Subhead — italic accent on "your day".
+            (
+                Text("Today's ").font(Typo.title) +
+                Text("your day").font(Typo.titleItalic) +
+                Text(".").font(Typo.title)
+            )
+            .foregroundStyle(Palette.textPrimary)
+
+            Spacer().frame(height: Space.xs)
+
+            Text("Your plan's ready when you are — feeling \(todaysWorkout.estimatedDuration) minutes today, or all 28?")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Space.screenPadding)
+        .padding(.top, Space.md)
+        .padding(.bottom, Space.sm)
+    }
+
+    // MARK: - JeniFit Workout Card (Phase 6 editorial)
+
+    private var jenifitWorkoutCard: some View {
+        let workout = todaysWorkout
+        let visibleCount = showAllExercises ? workout.exercises.count : min(3, workout.exercises.count)
+        let hasMore = workout.exercises.count > 3
+
+        return VStack(alignment: .leading, spacing: 0) {
+            // Hero — editorial placeholder with day badge overlay. Real
+            // photography for v1.1; see TODOS.md for the asset spec.
+            ZStack(alignment: .topLeading) {
+                EditorialPlaceholder(
+                    label: "EDITORIAL · WORKOUT COVER",
+                    cornerRadius: 0
+                )
+                DayBadge(label: "Day \(currentDay)")
+                    .padding(Space.md)
+            }
+            .frame(height: 180)
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 16,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: 16,
+                    style: .continuous
+                )
+            )
+
+            VStack(alignment: .leading, spacing: Space.sm) {
+                // Meta tag row — goal + difficulty in eyebrow accent.
+                Text("\(workoutGoalLabel(workout.goal))\u{2009}·\u{2009}\(workoutDifficultyLabel(workout.difficulty))")
+                    .font(Typo.eyebrow).tracking(1)
+                    .foregroundStyle(Palette.accent)
+
+                // Title — Fraunces.
+                Text(workout.name)
+                    .font(Typo.title)
+                    .foregroundStyle(Palette.textPrimary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                // Stats row — duration · count · equipment.
+                Text("\(workout.estimatedDuration) MIN\u{2009}·\u{2009}\(workout.exercises.count) EXERCISES\u{2009}·\u{2009}NO EQUIPMENT")
+                    .font(Typo.eyebrow).tracking(1)
+                    .foregroundStyle(Palette.textSecondary)
+
+                Spacer().frame(height: Space.xs)
+
+                // Exercise list preview — first 3, with expand-to-all.
+                VStack(spacing: Space.xs) {
+                    ForEach(Array(workout.exercises.prefix(visibleCount).enumerated()), id: \.offset) { i, slot in
+                        if let ex = slot.exercise {
+                            HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+                                Text("\(i + 1).")
+                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(Palette.textSecondary)
+                                    .frame(width: 22, alignment: .leading)
+                                Text(ex.name)
+                                    .font(Typo.body)
+                                    .foregroundStyle(Palette.textPrimary)
+                                Spacer()
+                            }
+                        }
+                    }
+
+                    if hasMore {
+                        Button {
+                            Haptics.light()
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                                showAllExercises.toggle()
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(showAllExercises ? "show less" : "+\(workout.exercises.count - 3) more")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Image(systemName: showAllExercises ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundStyle(Palette.accent)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, Space.xs)
+                        }
+                    }
+                }
+
+                Spacer().frame(height: Space.sm)
+
+                // Start CTA — full-card-width cocoa primary.
+                Button {
+                    guard payment.hasProAccess else {
+                        print("[HomeView] session entry blocked: hasProAccess=false (routine)")
+                        return
+                    }
+                    Haptics.vibrate()
+                    currentWorkout = workout
+                    showRoutineSession = true
+                } label: {
+                    HStack {
+                        Text("START")
+                            .font(.system(size: 15, weight: .bold))
+                            .tracking(2)
+                        Spacer()
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Palette.accent)
+                    }
+                    .foregroundStyle(Palette.textInverse)
+                    .padding(.horizontal, 18)
+                    .frame(height: 52)
+                    .background(Palette.bgInverse, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+            }
+            .padding(Space.md)
+        }
+        .background(Palette.bgElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .plankShadow()
+        .padding(.horizontal, Space.screenPadding)
+    }
+
+    // MARK: - JeniFit Streak Card (Phase 6)
+
+    private var jenifitStreakCard: some View {
+        let count = streakCount
+        let weeklyCount = sessionLogs.filter { log in
+            log.sessionType == "routine" &&
+            Calendar.current.isDate(log.completedAt, equalTo: .now, toGranularity: .weekOfYear)
+        }.count
+
+        return HStack(spacing: Space.md) {
+            ZStack {
+                Circle()
+                    .fill(Palette.accentSubtle)
+                    .frame(width: 44, height: 44)
+                Text("\(count)")
+                    .font(.custom("Fraunces72pt-SemiBold", size: 20))
+                    .foregroundStyle(Palette.accent)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                (
+                    Text("Day ").font(Typo.body) +
+                    Text("\(count)").font(.custom("Fraunces72pt-SemiBoldItalic", size: 16)) +
+                    Text(" · streak going").font(Typo.body)
+                )
+                .foregroundStyle(Palette.textPrimary)
+
+                Text("\(weeklyCount) session\(weeklyCount == 1 ? "" : "s") this week — keep it up")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+
+                // 7-day mini-row — accent for sessions logged this week,
+                // divider for upcoming days.
+                HStack(spacing: 6) {
+                    ForEach(0..<7, id: \.self) { d in
+                        Circle()
+                            .fill(d < weeklyCount ? Palette.accent : Palette.divider)
+                            .frame(width: 6, height: 6)
+                    }
+                }
+                .padding(.top, 2)
+            }
+
+            Spacer()
+        }
+        .padding(Space.md)
+        .background(Palette.bgElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .plankShadow()
+        .padding(.horizontal, Space.screenPadding)
+    }
+
+    private func workoutGoalLabel(_ goal: WorkoutGoal) -> String {
+        switch goal {
+        case .strength:    return "STRENGTH"
+        case .definition:  return "DEFINITION"
+        case .sculpting:   return "SCULPTING"
+        case .fullCore:    return "FULL CORE"
+        }
+    }
+
+    private func workoutDifficultyLabel(_ d: WorkoutDifficulty) -> String {
+        switch d {
+        case .beginner:    return "LEVEL 1"
+        case .intermediate: return "LEVEL 2"
+        case .advanced:    return "LEVEL 3"
+        }
     }
 
     // MARK: - Text Bubble
@@ -278,118 +529,6 @@ struct HomeView: View {
             .resizable().scaledToFill()
             .frame(width: 28, height: 28)
             .clipShape(Circle())
-    }
-
-    // MARK: - Workout Module (expandable)
-
-    private var kiraWorkoutModule: some View {
-        let workout = todaysWorkout
-        let visibleCount = showAllExercises ? workout.exercises.count : min(2, workout.exercises.count)
-        let hasMore = workout.exercises.count > 4
-
-        return HStack(alignment: .bottom, spacing: 6) {
-            kiraAvatar
-
-            VStack(alignment: .leading, spacing: 0) {
-                // Kira intro + workout info
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(workoutIntroText)
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textPrimary)
-
-                    HStack(spacing: 12) {
-                        Label("\(workout.estimatedDuration) min", systemImage: "clock")
-                        Label("\(workout.exercises.count) exercises", systemImage: "flame.fill")
-                    }
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Palette.textSecondary)
-                }
-                .padding(.horizontal, 14)
-                .padding(.top, 14)
-                .padding(.bottom, 10)
-
-                // Exercise list
-                VStack(spacing: 0) {
-                    ForEach(Array(workout.exercises.prefix(visibleCount).enumerated()), id: \.offset) { i, slot in
-                        if let ex = slot.exercise {
-                            HStack(spacing: 10) {
-                                Text("\(i + 1)")
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                                    .foregroundStyle(Palette.textSecondary)
-                                    .frame(width: 18)
-
-                                Text(ex.name)
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundStyle(Palette.textPrimary)
-
-                                Spacer()
-
-                                Text("\(slot.duration)s")
-                                    .font(.system(size: 12, design: .rounded))
-                                    .foregroundStyle(Palette.textSecondary)
-                            }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-
-                            if i < visibleCount - 1 {
-                                Divider().padding(.leading, 42)
-                            }
-                        }
-                    }
-
-                    // Expand/collapse
-                    if hasMore {
-                        Button {
-                            Haptics.light()
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
-                                showAllExercises.toggle()
-                            }
-                        } label: {
-                            HStack(spacing: 4) {
-                                Text(showAllExercises ? "show less" : "+\(workout.exercises.count - 2) more")
-                                    .font(.system(size: 12, weight: .medium))
-                                Image(systemName: showAllExercises ? "chevron.up" : "chevron.down")
-                                    .font(.system(size: 10, weight: .medium))
-                            }
-                            .foregroundStyle(Palette.accent)
-                            .padding(.vertical, 8)
-                            .frame(maxWidth: .infinity)
-                        }
-                    }
-                }
-                .background(Palette.bgPrimary.opacity(0.5))
-
-                // Start button
-                Button {
-                    guard payment.hasProAccess else {
-                        // RootView's fullScreenCover should already be showing
-                        // the paywall — defense-in-depth here in case of a
-                        // race between hasProAccess flipping false and the
-                        // cover mounting.
-                        print("[HomeView] session entry blocked: hasProAccess=false (routine)")
-                        return
-                    }
-                    print("[HomeView] session entry allowed (routine)")
-                    Haptics.vibrate()
-                    currentWorkout = workout
-                    showRoutineSession = true
-                } label: {
-                    Text("START")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(Palette.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(Palette.bgInverse)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
-                .padding(10)
-            }
-            .background(Palette.bgElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .plankShadow()
-
-            Spacer(minLength: 16)
-        }
     }
 
     // MARK: - Benchmark Module (trainer voice)
@@ -461,17 +600,16 @@ struct HomeView: View {
         let hour = Calendar.current.component(.hour, from: .now)
 
         switch voicePreference {
-        case "encouraging": // Sarah — warm, reflective, calm
-            if routineCount == 0 { return "Hi\(name). I'm Sarah. I put together a gentle workout for you. Let's start slow." }
-            if todayHasSession { return "Coming back for more\(name)? I love that energy." }
-            let timeGreeting = hour < 12 ? "Good morning\(name)." : hour < 17 ? "Hi\(name)." : "Good evening\(name)."
+        case "encouraging": // Jeni — warm, reflective, calm
+            if routineCount == 0 { return "Hi\(name). I'm Jeni. I made you a gentle start. Let's do this." }
+            if todayHasSession { return "Coming back\(name)? I love it." }
             let affirmations = [
-                "Every session is a gift to your body.",
-                "You're building something beautiful, one day at a time.",
-                "Your consistency speaks louder than any workout.",
-                "Day \(currentDay). You keep showing up. That's powerful.",
+                "Today's your day — I can feel it.",
+                "You showed up. That's the whole game.",
+                "Day \(currentDay). I see you putting in the work.",
+                "Steady wins. You're doing this.",
             ]
-            return "\(timeGreeting) \(affirmations[currentDay % affirmations.count])"
+            return affirmations[currentDay % affirmations.count]
 
         case "balanced": // Matson — chill, SoCal, playful
             if routineCount == 0 { return "Yo\(name). I'm Matson. I got a workout lined up for you. It's gonna be good." }
@@ -496,19 +634,6 @@ struct HomeView: View {
                 "Day \(currentDay). Still here. That says something.",
             ]
             return "\(timeGreeting) \(affirmations[currentDay % affirmations.count])"
-        }
-    }
-
-    private var workoutIntroText: String {
-        let workout = todaysWorkout
-        let routineCount = sessionLogs.filter { $0.sessionType == "routine" }.count
-        switch voicePreference {
-        case "encouraging":
-            return routineCount == 0 ? "I chose something gentle for your first time. \(workout.name)." : "I have a lovely plan for today. \(workout.name)."
-        case "balanced":
-            return routineCount == 0 ? "First workout, let's keep it chill. \(workout.name)." : "Got something solid for you. \(workout.name)."
-        default:
-            return routineCount == 0 ? "Here's your first one. \(workout.name)." : "Today's plan. \(workout.name)."
         }
     }
 
