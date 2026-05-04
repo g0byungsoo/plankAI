@@ -632,67 +632,130 @@ struct BiometricSlider: View {
 struct BodyTypeSlider: View {
     @Binding var position: Int
     let labels: [String]   // length must be 6
-    /// Optional upper bound on the slider (inclusive). Used by the goal
-    /// body type screen to clamp `desired ≤ current` — the slider track
-    /// visually shortens to the max so the user feels the constraint
-    /// rather than seeing a separate "you can't go higher" message.
+    /// Optional upper bound on the slider (inclusive). Renders dots
+    /// above this index in a disabled state so the user sees the full
+    /// range with a clear "out of reach" affordance, rather than a
+    /// shortened track that reads as a render bug.
     var maxPosition: Int? = nil
     /// Optional read-only marker showing a reference position on the
-    /// track (e.g., "this is where you said you currently are" on the
-    /// goal body type screen). Renders as a small accent dot under the
-    /// track at the proportional x.
+    /// track (e.g., "where you said you currently are" on the goal
+    /// body type screen). Renders as a small accent dot below the row
+    /// with a "you" caption.
     var markerPosition: Int? = nil
+
+    private let dotSize: CGFloat = 14
+    private let selectedDotSize: CGFloat = 22
+    private let trackHeight: CGFloat = 2
+    private let rowHeight: CGFloat = 60   // dot row + space for "you" marker
 
     private var effectiveMax: Int {
         let cap = maxPosition ?? (labels.count - 1)
         return max(0, min(labels.count - 1, cap))
     }
 
+    private var clampedPosition: Int {
+        max(0, min(effectiveMax, position))
+    }
+
     var body: some View {
         VStack(spacing: Space.lg) {
-            Text(labels[max(0, min(effectiveMax, position))])
+            Text(labels[clampedPosition])
                 .font(Typo.heading)
                 .foregroundStyle(Palette.textPrimary)
                 .contentTransition(.opacity)
                 .animation(.easeOut(duration: 0.15), value: position)
 
-            VStack(spacing: 4) {
-                Slider(
-                    value: Binding(
-                        get: { Double(min(position, effectiveMax)) },
-                        set: { position = min(effectiveMax, Int($0.rounded())) }
-                    ),
-                    in: 0...Double(effectiveMax),
-                    step: 1
-                )
-                .tint(Palette.accent)
+            GeometryReader { geo in
+                let count = labels.count
+                let denom = max(1, count - 1)
+                let dotX: (Int) -> CGFloat = { i in
+                    geo.size.width * CGFloat(i) / CGFloat(denom)
+                }
 
-                if let marker = markerPosition {
-                    GeometryReader { geo in
-                        // UISlider's track has roughly the thumb radius
-                        // worth of inset on each side. 14pt is a close
-                        // approximation that holds across iOS device
-                        // sizes; the marker doesn't need pixel-perfect
-                        // alignment with the thumb to read clearly.
-                        let inset: CGFloat = 14
-                        let trackWidth = max(0, geo.size.width - 2 * inset)
-                        let denom = max(1, effectiveMax)
-                        let proportion = CGFloat(min(marker, effectiveMax)) / CGFloat(denom)
-                        let x = inset + proportion * trackWidth
+                ZStack {
+                    // Background track — full width, divider gray.
+                    Rectangle()
+                        .fill(Palette.divider)
+                        .frame(height: trackHeight)
+                        .position(x: geo.size.width / 2, y: rowHeight / 2)
+
+                    // Filled portion of the track up to effectiveMax —
+                    // visualizes the reachable range in soft accent.
+                    Rectangle()
+                        .fill(Palette.accent.opacity(0.45))
+                        .frame(width: dotX(effectiveMax), height: trackHeight)
+                        .position(x: dotX(effectiveMax) / 2, y: rowHeight / 2)
+
+                    // Position dots. Filled accent for valid, hollow
+                    // divider for disabled, outlined cocoa for selected.
+                    ForEach(0..<count, id: \.self) { i in
+                        let valid = i <= effectiveMax
+                        let selected = i == clampedPosition && valid
+                        ZStack {
+                            if selected {
+                                Circle()
+                                    .fill(Palette.bgInverse)
+                                    .frame(width: selectedDotSize, height: selectedDotSize)
+                                Circle()
+                                    .stroke(Palette.accent, lineWidth: 2)
+                                    .frame(width: selectedDotSize, height: selectedDotSize)
+                            } else if valid {
+                                Circle()
+                                    .fill(Palette.accent)
+                                    .frame(width: dotSize, height: dotSize)
+                            } else {
+                                Circle()
+                                    .stroke(Palette.divider, lineWidth: 1.5)
+                                    .frame(width: dotSize, height: dotSize)
+                            }
+                        }
+                        .position(x: dotX(i), y: rowHeight / 2)
+                        .onTapGesture {
+                            if valid {
+                                Haptics.light()
+                                position = i
+                            } else {
+                                Haptics.warning()
+                            }
+                        }
+                    }
+
+                    // "you" marker at markerPosition. Reads as the
+                    // user's current body type when this slider is
+                    // editing the goal — context for the gradient
+                    // they're moving along.
+                    if let marker = markerPosition {
+                        let markerIdx = max(0, min(count - 1, marker))
                         VStack(spacing: 2) {
                             Circle()
                                 .fill(Palette.accent)
-                                .frame(width: 8, height: 8)
+                                .frame(width: 6, height: 6)
                             Text("you")
                                 .font(.system(size: 10, weight: .bold))
                                 .tracking(0.5)
                                 .foregroundStyle(Palette.accent)
                         }
-                        .position(x: x, y: 14)
+                        .position(x: dotX(markerIdx), y: rowHeight / 2 + 22)
                     }
-                    .frame(height: 28)
                 }
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture()
+                        .onChanged { gesture in
+                            // Snap to nearest valid dot (cap at
+                            // effectiveMax so the thumb can't drag
+                            // past the disabled positions).
+                            let x = max(0, min(geo.size.width, gesture.location.x))
+                            let raw = (x / geo.size.width) * CGFloat(denom)
+                            let nearest = min(effectiveMax, max(0, Int(raw.rounded())))
+                            if nearest != position {
+                                Haptics.soft()
+                                position = nearest
+                            }
+                        }
+                )
             }
+            .frame(height: rowHeight)
             .padding(.horizontal, Space.md)
 
             HStack {
@@ -700,7 +763,10 @@ struct BodyTypeSlider: View {
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                 Spacer()
-                Text(labels[effectiveMax])
+                // Right-edge label always shows the actual upper bound
+                // ("Cut") even when disabled — makes the gradient direction
+                // unambiguous (lean ←→ heavier).
+                Text(labels.last ?? "")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
             }

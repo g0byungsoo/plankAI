@@ -415,7 +415,10 @@ struct OnboardingView: View {
             "What's your current weight?",
             sub: "Helps us measure your progress accurately.",
             value: $currentWeightKg, range: 30...200, step: 0.5,
-            format: { v in weightLabel(kg: v) }, next: 133
+            format: { v in weightLabel(kg: v) }, next: 133,
+            annotation: {
+                bmiAnnotation(weightKg: currentWeightKg, heightCm: heightCm)
+            }
         )
 
         case 133: jfSliderScreen(
@@ -423,7 +426,10 @@ struct OnboardingView: View {
             sub: "Sets your target. You can change this later.",
             value: $goalWeightKg, range: 30...200, step: 0.5,
             format: { v in weightLabel(kg: v) }, next: 134,
-            confirmation: "We'll calibrate progress to this."
+            confirmation: "We'll calibrate progress to this.",
+            annotation: {
+                goalWeightAnnotation(currentKg: currentWeightKg, goalKg: goalWeightKg)
+            }
         )
         .onAppear {
             // Seed the goal weight from the user's current weight on
@@ -969,20 +975,24 @@ struct OnboardingView: View {
         }
     }
 
-    private func jfSliderScreen(
+    private func jfSliderScreen<Annotation: View>(
         _ title: String, sub: String? = nil,
         value: Binding<Double>,
         range: ClosedRange<Double>, step: Double,
         format: @escaping (Double) -> String,
         unitLabel: String? = nil,
         next: Int,
-        confirmation: String? = nil
+        confirmation: String? = nil,
+        @ViewBuilder annotation: () -> Annotation = { EmptyView() }
     ) -> some View {
         VStack(spacing: 0) {
             jfHeader(title, sub: sub)
             Spacer()
-            BiometricSlider(value: value, range: range, step: step, format: format, unitLabel: unitLabel)
-                .padding(.horizontal, Space.screenPadding)
+            VStack(spacing: Space.md) {
+                BiometricSlider(value: value, range: range, step: step, format: format, unitLabel: unitLabel)
+                annotation()
+            }
+            .padding(.horizontal, Space.screenPadding)
             Spacer()
             Button("Continue") {
                 advance(to: next, confirmation: confirmation)
@@ -1029,6 +1039,79 @@ struct OnboardingView: View {
             .padding(.horizontal, Space.screenPadding)
             .padding(.bottom, Space.lg)
         }
+    }
+
+    /// Real-time BMI display under the current-weight ruler. Updates
+    /// continuously as the user drags. Color-coded category text:
+    /// sage green for Normal, warm orange for everything else. Reads
+    /// as a credibility signal (we know how this works) rather than a
+    /// judgment — the labels stay clinical, no editorializing.
+    private func bmiAnnotation(weightKg: Double, heightCm: Double) -> some View {
+        let heightM = heightCm / 100
+        let bmi = (heightM > 0) ? weightKg / (heightM * heightM) : 0
+        let bmiText = String(format: "%.1f", bmi)
+        let label: String
+        let color: Color
+        switch bmi {
+        case ..<18.5:
+            label = "Underweight"
+            color = Palette.stateWarn
+        case 18.5..<25:
+            label = "Normal weight"
+            color = Palette.stateGood
+        case 25..<30:
+            label = "Overweight"
+            color = Palette.stateWarn
+        default:
+            label = "Obese"
+            color = Palette.stateWarn
+        }
+        return VStack(spacing: 4) {
+            Text("BMI: \(bmiText)")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Palette.textPrimary)
+            Text(label)
+                .font(Typo.caption)
+                .foregroundStyle(color)
+        }
+        .contentTransition(.numericText())
+        .animation(.easeOut(duration: 0.12), value: bmi)
+    }
+
+    /// Real-time goal-weight validation under the goal ruler. Maintains
+    /// the same percent-loss tier framing JustFit uses (steady /
+    /// reasonable / ambitious / aggressive) but JeniFit-flavored copy.
+    /// 0.75 kg/week is the clinical median for sustainable loss; weeks
+    /// estimate is the rounded division of total loss by that rate.
+    private func goalWeightAnnotation(currentKg: Double, goalKg: Double) -> some View {
+        let lossKg = currentKg - goalKg
+        let percentLoss = currentKg > 0 ? (lossKg / currentKg) * 100 : 0
+        let weeks = max(1, Int((lossKg / 0.75).rounded()))
+
+        let text: String
+        let color: Color
+        if goalKg >= currentKg {
+            text = "Maintain mode — your plan adapts."
+            color = Palette.textSecondary
+        } else if percentLoss <= 5 {
+            text = "Reasonable goal: steady progress."
+            color = Palette.stateGood
+        } else if percentLoss <= 15 {
+            text = "Solid goal: ~\(weeks) weeks at a healthy pace."
+            color = Palette.stateGood
+        } else if percentLoss <= 25 {
+            text = "Ambitious goal: ~\(weeks) weeks of consistent work."
+            color = Palette.stateWarn
+        } else {
+            text = "Significant goal: focus on sustainable progress."
+            color = Palette.stateWarn
+        }
+
+        return Text(text)
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(color)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private func jfYesNo(
