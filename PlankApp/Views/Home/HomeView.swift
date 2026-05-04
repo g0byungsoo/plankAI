@@ -55,22 +55,18 @@ struct HomeView: View {
     // Settings
     @State private var activeSheet: SettingsSheet?
 
-    @AppStorage("voicePreference") private var voicePreference = "keepItReal"
+    @AppStorage("voicePreference") private var voicePreference = "encouraging"
 
     private var currentDay: Int { (dayProgress.first?.programDay ?? 0) + 1 }
 
     private var currentTrainerPhoto: String {
         switch voicePreference {
-        case "encouraging": return "coach-sarah"
+        case "encouraging": return "coach-jeni"
         case "balanced": return "coach-matson"
         default: return "coach-kira"
         }
     }
 
-    // Display name for the home top bar + greeting. Voice clip prefix
-    // (sarah_*) and asset name (coach-sarah) still ship under the legacy
-    // names; Phase 9 handles the asset rename. The display-only swap
-    // here unblocks Phase 6 brand consistency without touching audio.
     private var currentTrainerName: String {
         switch voicePreference {
         case "encouraging": return "Jeni"

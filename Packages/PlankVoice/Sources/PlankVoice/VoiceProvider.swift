@@ -148,8 +148,8 @@ public final class ClipBundleProvider: VoiceProvider, @unchecked Sendable {
 
     /// Clip prefix for current trainer. Read from UserDefaults each play.
     private var trainerPrefix: String {
-        switch UserDefaults.standard.string(forKey: "voicePreference") ?? "keepItReal" {
-        case "encouraging": return "sarah_"
+        switch UserDefaults.standard.string(forKey: "voicePreference") ?? "encouraging" {
+        case "encouraging": return "jeni_"
         case "balanced": return "matson_"
         default: return ""
         }

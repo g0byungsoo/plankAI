@@ -2,7 +2,7 @@ import SwiftUI
 import AVFoundation
 
 struct ChangeTrainerView: View {
-    @AppStorage("voicePreference") private var voicePreference = "keepItReal"
+    @AppStorage("voicePreference") private var voicePreference = "encouraging"
     @Environment(\.dismiss) private var dismiss
     @State private var previewPlayer: AVAudioPlayer?
     @State private var playingId: String?
@@ -23,7 +23,7 @@ struct ChangeTrainerView: View {
     @State private var loadingDots = ""
 
     private let trainers: [(id: String, photo: String, name: String, vibe: String, quote: String, preview: String)] = [
-        ("encouraging", "coach-sarah", "Jeni", "Warm & Supportive", "\"You're doing amazing — keep breathing.\"", "sarah_preview"),
+        ("encouraging", "coach-jeni", "Jeni", "Warm & Supportive", "\"You're doing amazing — keep breathing.\"", "jeni_preview"),
         ("keepItReal", "coach-kira", "Kira", "Sassy & Real", "\"My mama planks better than this.\"", "kira_preview"),
         ("balanced", "coach-matson", "Matson", "Chill & Playful", "\"Come on, we're gonna have a good time.\"", "matson_preview"),
     ]

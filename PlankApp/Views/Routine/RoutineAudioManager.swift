@@ -9,18 +9,18 @@ final class RoutineAudioManager {
     private var lastPlayTime: Date = .distantPast
     private let cooldown: TimeInterval = 3.0
 
-    /// Clip prefix for current trainer. Kira = "" (no prefix), Sarah = "sarah_", Matson = "matson_"
+    /// Clip prefix for current trainer. Kira = "" (no prefix), Jeni = "jeni_", Matson = "matson_"
     private var prefix: String {
-        switch UserDefaults.standard.string(forKey: "voicePreference") ?? "keepItReal" {
-        case "encouraging": return "sarah_"
+        switch UserDefaults.standard.string(forKey: "voicePreference") ?? "encouraging" {
+        case "encouraging": return "jeni_"
         case "balanced": return "matson_"
         default: return ""
         }
     }
 
-    /// Whether current trainer has roast clips (Kira + Matson yes, Sarah no)
+    /// Whether current trainer has roast clips (Kira + Matson yes, Jeni no)
     private var hasRoasts: Bool {
-        prefix != "sarah_"
+        prefix != "jeni_"
     }
 
     var isPlaying: Bool {

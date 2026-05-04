@@ -59,7 +59,7 @@ struct PlankAIApp: App {
     @AppStorage("userName") private var userName = ""
     @AppStorage("userGoal") private var userGoal = ""
     @AppStorage("userExperience") private var userExperience = ""
-    @AppStorage("voicePreference") private var voicePreference = "keepItReal"
+    @AppStorage("voicePreference") private var voicePreference = "encouraging"
 
     var body: some Scene {
         WindowGroup {
@@ -89,7 +89,7 @@ private struct RootView: View {
     @AppStorage("userName") private var userName = ""
     @AppStorage("userGoal") private var userGoal = ""
     @AppStorage("userExperience") private var userExperience = ""
-    @AppStorage("voicePreference") private var voicePreference = "keepItReal"
+    @AppStorage("voicePreference") private var voicePreference = "encouraging"
 
     @Environment(\.modelContext) private var modelContext
     @State private var auth = AuthService.shared

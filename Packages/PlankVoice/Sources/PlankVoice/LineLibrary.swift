@@ -22,7 +22,7 @@ public struct LineLibrary: Sendable {
 
     // MARK: - Default Library
     //
-    // IDs must exist for ALL trainers (Kira, Sarah, Matson).
+    // IDs must exist for ALL trainers (Kira, Jeni, Matson).
     // Only use IDs 1-2 (or 1-3 max) per category to ensure
     // every trainer has a matching clip.
 

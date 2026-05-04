@@ -35,7 +35,7 @@ struct OnboardingView: View {
     @State private var notificationsEnabled = false
     @State private var notificationTime = Calendar.current.date(from: DateComponents(hour: 7)) ?? Date()
     @State private var name = ""
-    @State private var voicePreference = "keepItReal"
+    @State private var voicePreference = "encouraging"
 
     // Data — JeniFit phase 4 additions. Defaults match OnboardingData
     // defaults so values are safe to read before the user touches them.
@@ -1390,7 +1390,7 @@ struct OnboardingView: View {
 
                 // Trainer profile photos — 3 overlapping circles
                 HStack(spacing: -16) {
-                    ForEach(Array(["coach-kira", "coach-sarah", "coach-matson"].enumerated()), id: \.offset) { i, photo in
+                    ForEach(Array(["coach-kira", "coach-jeni", "coach-matson"].enumerated()), id: \.offset) { i, photo in
                         ZStack {
                             // Pulse ring
                             Circle()
@@ -2045,10 +2045,10 @@ struct OnboardingView: View {
                     preview: "kira_preview"
                 )
                 trainerRow(
-                    id: "encouraging", photo: "coach-sarah", name: "Sarah",
-                    vibe: "Warm & Mindful",
-                    quote: "\"You're doing beautifully, keep breathing\"",
-                    preview: "sarah_preview"
+                    id: "encouraging", photo: "coach-jeni", name: "Jeni",
+                    vibe: "Warm & Supportive",
+                    quote: "\"You're doing amazing — keep breathing.\"",
+                    preview: "jeni_preview"
                 )
                 trainerRow(
                     id: "balanced", photo: "coach-matson", name: "Matson",
@@ -2176,7 +2176,7 @@ struct OnboardingView: View {
     private var selectedCoachName: String {
         switch voicePreference {
         case "keepItReal": return "Kira"
-        case "encouraging": return "Sarah"
+        case "encouraging": return "Jeni"
         case "balanced": return "Matson"
         default: return "coach"
         }
@@ -2721,8 +2721,8 @@ struct OnboardingView: View {
     // ═══════════════════════════════════════
 
     private var planRevealScreen: some View {
-        let coachName = voicePreference == "encouraging" ? "Sarah" : voicePreference == "balanced" ? "Matson" : "Kira"
-        let coachPhoto = voicePreference == "encouraging" ? "coach-sarah" : voicePreference == "balanced" ? "coach-matson" : "coach-kira"
+        let coachName = voicePreference == "encouraging" ? "Jeni" : voicePreference == "balanced" ? "Matson" : "Kira"
+        let coachPhoto = voicePreference == "encouraging" ? "coach-jeni" : voicePreference == "balanced" ? "coach-matson" : "coach-kira"
         let goalLabel = jenifitGoalLabel()
 
         return VStack(spacing: 0) {

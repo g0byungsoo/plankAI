@@ -5,7 +5,7 @@ struct NotificationSettingsView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
     @AppStorage("notificationHour") private var notificationHour = 7
     @AppStorage("notificationMinute") private var notificationMinute = 0
-    @AppStorage("voicePreference") private var voicePreference = "keepItReal"
+    @AppStorage("voicePreference") private var voicePreference = "encouraging"
     @State private var pickerTime = Date()
     @State private var permissionGranted = false
     @State private var saved = false
