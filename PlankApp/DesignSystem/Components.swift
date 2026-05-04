@@ -501,31 +501,130 @@ struct ConfirmationBadge: View {
 
 // MARK: - BiometricSlider
 //
-// Continuous slider for height / weight / target weight. Shows a large
-// Fraunces value with unit, then a horizontal track. Track fill is rose
-// from start to thumb; thumb is a cocoa circle. Imperial / metric is
-// inferred from the formatter the caller passes in — slider stores raw
-// double in the model unit (cm / kg) and the formatter handles display.
+// Vertical ruler scroll picker for height / weight / target weight.
+// Replaced the horizontal Slider in 2026-05-04 — horizontal sliders had a
+// passive-default problem (users hit Continue without engaging, leaving
+// the value at its initial position). The ruler reads as a tape measure /
+// scale, encourages active scrolling, and fires a soft haptic on each
+// tick passed so the input feels mechanical and intentional.
+//
+// Drag-to-scroll, no momentum (kept simple for v1.0 — flick fling can
+// land later). Big Fraunces value above the ruler, unit caption below
+// the value, centered horizontal indicator across the ruler showing the
+// selected tick.
 
 struct BiometricSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
     let step: Double
     let format: (Double) -> String
+    var unitLabel: String? = nil
+
+    @State private var dragStartValue: Double?
+    @State private var lastTickValue: Double?
+
+    private let tickHeight: CGFloat = 10
+    private let rulerHeight: CGFloat = 240
+    private let majorTickWidth: CGFloat = 36
+    private let minorTickWidth: CGFloat = 18
+    private let majorTickEvery: Int = 5
+
+    private var totalSteps: Int {
+        Int(((range.upperBound - range.lowerBound) / step).rounded()) + 1
+    }
+
+    private var stepIndex: Double {
+        (value - range.lowerBound) / step
+    }
+
+    /// Negative offset shifts the tick column up so a later step lands at
+    /// the center indicator. Computed continuously from `value` so the
+    /// ruler tracks any external change to the binding (e.g., the smart
+    /// goal-weight default applied via .onAppear).
+    private var contentOffset: CGFloat {
+        -CGFloat(stepIndex) * tickHeight
+    }
 
     var body: some View {
-        VStack(spacing: Space.lg) {
+        VStack(spacing: Space.sm) {
             Text(format(value))
                 .font(Typo.display)
                 .foregroundStyle(Palette.textPrimary)
                 .contentTransition(.numericText())
-                .animation(.easeOut(duration: 0.15), value: value)
+                .animation(.easeOut(duration: 0.12), value: value)
 
-            Slider(value: $value, in: range, step: step)
-                .tint(Palette.accent)
-                .padding(.horizontal, Space.md)
+            if let unitLabel {
+                Text(unitLabel)
+                    .font(Typo.caption)
+                    .tracking(1.5)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+
+            Spacer().frame(height: Space.md)
+
+            ZStack {
+                // Tick column. Each tick is a horizontal accent bar; every
+                // 5th tick reads bolder so the eye picks up scale at a
+                // glance. Column is offset so the current step lands at
+                // the center selection indicator.
+                VStack(spacing: 0) {
+                    ForEach(0..<totalSteps, id: \.self) { i in
+                        let major = (i % majorTickEvery == 0)
+                        HStack {
+                            Spacer()
+                            Rectangle()
+                                .fill(Palette.accent.opacity(major ? 0.7 : 0.28))
+                                .frame(width: major ? majorTickWidth : minorTickWidth,
+                                       height: major ? 2 : 1.5)
+                            Spacer().frame(width: Space.lg)
+                        }
+                        .frame(height: tickHeight)
+                    }
+                }
+                .offset(y: contentOffset)
+
+                // Center selection indicator — a thicker cocoa bar across
+                // the right portion of the ruler, anchored to the current
+                // tick row.
+                HStack {
+                    Spacer()
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Palette.bgInverse)
+                        .frame(width: majorTickWidth + 12, height: 3)
+                    Spacer().frame(width: Space.lg)
+                }
+            }
+            .frame(height: rulerHeight)
+            .clipped()
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture()
+                    .onChanged { gesture in
+                        if dragStartValue == nil {
+                            dragStartValue = value
+                            lastTickValue = value
+                        }
+                        guard let start = dragStartValue else { return }
+                        let stepsDelta = -gesture.translation.height / tickHeight
+                        let startIndex = (start - range.lowerBound) / step
+                        let newIndex = (startIndex + stepsDelta).rounded()
+                        let clampedIndex = max(0, min(Double(totalSteps - 1), newIndex))
+                        let newValue = range.lowerBound + clampedIndex * step
+                        if newValue != value {
+                            value = newValue
+                            if let last = lastTickValue, last != newValue {
+                                Haptics.soft()
+                            }
+                            lastTickValue = newValue
+                        }
+                    }
+                    .onEnded { _ in
+                        dragStartValue = nil
+                        lastTickValue = nil
+                    }
+            )
         }
-        .padding(.vertical, Space.lg)
+        .padding(.vertical, Space.md)
     }
 }
 
@@ -538,10 +637,20 @@ struct BiometricSlider: View {
 struct BodyTypeSlider: View {
     @Binding var position: Int
     let labels: [String]   // length must be 6
+    /// Optional upper bound on the slider (inclusive). Used by the goal
+    /// body type screen to clamp `desired ≤ current` — the slider track
+    /// visually shortens to the max so the user feels the constraint
+    /// rather than seeing a separate "you can't go higher" message.
+    var maxPosition: Int? = nil
+
+    private var effectiveMax: Int {
+        let cap = maxPosition ?? (labels.count - 1)
+        return max(0, min(labels.count - 1, cap))
+    }
 
     var body: some View {
         VStack(spacing: Space.lg) {
-            Text(labels[max(0, min(labels.count - 1, position))])
+            Text(labels[max(0, min(effectiveMax, position))])
                 .font(Typo.heading)
                 .foregroundStyle(Palette.textPrimary)
                 .contentTransition(.opacity)
@@ -549,10 +658,10 @@ struct BodyTypeSlider: View {
 
             Slider(
                 value: Binding(
-                    get: { Double(position) },
-                    set: { position = Int($0.rounded()) }
+                    get: { Double(min(position, effectiveMax)) },
+                    set: { position = min(effectiveMax, Int($0.rounded())) }
                 ),
-                in: 0...Double(labels.count - 1),
+                in: 0...Double(effectiveMax),
                 step: 1
             )
             .tint(Palette.accent)
@@ -563,7 +672,7 @@ struct BodyTypeSlider: View {
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                 Spacer()
-                Text(labels.last ?? "")
+                Text(labels[effectiveMax])
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
             }

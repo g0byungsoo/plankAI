@@ -81,6 +81,14 @@ struct OnboardingView: View {
     @State private var carouselFrame: Int = 0
     @State private var carouselDone = false
 
+    // Smart-default flags for the Part 3 sliders. Flip on first mount of
+    // the matching screen so we seed from the user's prior answer
+    // (currentWeightKg / bodyTypeCurrent) instead of a hardcoded default.
+    // Going back through the flow keeps the user's later edits intact —
+    // the flag stays true once flipped.
+    @State private var goalWeightInitialized = false
+    @State private var bodyTypeDesiredInitialized = false
+
     let onComplete: (OnboardingData) -> Void
 
     var body: some View {
@@ -417,6 +425,16 @@ struct OnboardingView: View {
             format: { v in weightLabel(kg: v) }, next: 134,
             confirmation: "We'll calibrate progress to this."
         )
+        .onAppear {
+            // Seed the goal weight from the user's current weight on
+            // first mount so the slider opens at "no change yet" rather
+            // than the previous hardcoded 60 kg default. User actively
+            // drags down/up from there.
+            if !goalWeightInitialized {
+                goalWeightKg = currentWeightKg
+                goalWeightInitialized = true
+            }
+        }
 
         case 134: jfBodyTypeScreen(
             "Where are you now?",
@@ -431,8 +449,19 @@ struct OnboardingView: View {
             sub: "What we're moving you toward.",
             position: $bodyTypeDesired,
             labels: ["Soft", "Curvy", "Average", "Athletic", "Lean", "Cut"],
+            maxPosition: bodyTypeCurrent,
             next: 203
         )
+        .onAppear {
+            // Seed desired body type from current on first mount. The
+            // maxPosition clamp above prevents the user from picking a
+            // body type "less lean" than where they are today, so the
+            // slider track visually shortens to the current position.
+            if !bodyTypeDesiredInitialized {
+                bodyTypeDesired = bodyTypeCurrent
+                bodyTypeDesiredInitialized = true
+            }
+        }
 
         // ─── Part 4 — How you want to feel ──────────────────────
         case 140: jfQuestion(
@@ -940,13 +969,14 @@ struct OnboardingView: View {
         value: Binding<Double>,
         range: ClosedRange<Double>, step: Double,
         format: @escaping (Double) -> String,
+        unitLabel: String? = nil,
         next: Int,
         confirmation: String? = nil
     ) -> some View {
         VStack(spacing: 0) {
             jfHeader(title, sub: sub)
             Spacer()
-            BiometricSlider(value: value, range: range, step: step, format: format)
+            BiometricSlider(value: value, range: range, step: step, format: format, unitLabel: unitLabel)
                 .padding(.horizontal, Space.screenPadding)
             Spacer()
             Button("Continue") {
@@ -962,13 +992,14 @@ struct OnboardingView: View {
         _ title: String, sub: String? = nil,
         position: Binding<Int>,
         labels: [String],
+        maxPosition: Int? = nil,
         next: Int,
         confirmation: String? = nil
     ) -> some View {
         VStack(spacing: 0) {
             jfHeader(title, sub: sub)
             Spacer()
-            BodyTypeSlider(position: position, labels: labels)
+            BodyTypeSlider(position: position, labels: labels, maxPosition: maxPosition)
                 .padding(.horizontal, Space.screenPadding)
             Spacer()
             Button("Continue") {
