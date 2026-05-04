@@ -292,7 +292,7 @@ struct AnalyticsView: View {
                             .fill(
                                 isFuture ? Color.clear :
                                 isActive ? Palette.accent :
-                                isFrozen ? Color(hex: "#D6EBF5") :
+                                isFrozen ? Palette.frozenDay :
                                 Palette.divider.opacity(0.4)
                             )
                             .aspectRatio(1, contentMode: .fit)

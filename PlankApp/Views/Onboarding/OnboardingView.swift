@@ -519,7 +519,6 @@ struct OnboardingView: View {
         case 21: planRevealScreen
         case 22: personalStatScreen
         case 23: cameraSetupScreen
-        case 24: paywallScreen
         case 26: SignInPromptView { Haptics.medium(); go(22) }
 
         // Legacy showcase screens (kept for Phase 5 reuse, not in flow)
@@ -577,8 +576,10 @@ struct OnboardingView: View {
         204, 150, 151, 152,
         // Part 6
         205, 3, 11, 18, 19,
-        // Phase 5 — loading carousel + final prediction → plan reveal
-        180, 181, 21, 26, 22, 23, 24,
+        // Phase 5 — loading carousel + final prediction → plan reveal.
+        // Onboarding ends at camera setup (23); the post-onboarding
+        // paywall lives outside the flow as RootView's fullScreenCover.
+        180, 181, 21, 26, 22, 23,
     ]
 
     private var progressFraction: CGFloat {
@@ -2868,7 +2869,12 @@ struct OnboardingView: View {
             }.padding(20).background(Palette.bgElevated).clipShape(RoundedRectangle(cornerRadius: 16))
             .padding(.horizontal, Space.screenPadding)
             Spacer()
-            ctaBtn("Got it") { Haptics.medium(); go(24) }
+            // Onboarding ends here — the post-onboarding paywall is
+            // handled outside the flow by RootView's fullScreenCover
+            // gating on PaymentService.hasProAccess. Going to finish()
+            // directly so the user lands on MainTabView (or the paywall
+            // cover, depending on entitlement state).
+            ctaBtn("Got it") { Haptics.medium(); finish() }
         }.padding(.horizontal, Space.screenPadding)
     }
 
@@ -3226,28 +3232,6 @@ struct OnboardingView: View {
         .padding(14)
         .background(Palette.bgElevated)
         .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    // ═══════════════════════════════════════
-    // MARK: - PAYWALL
-    // ═══════════════════════════════════════
-
-    private var paywallScreen: some View {
-        VStack(spacing: 0) {
-            Spacer()
-            Text("Start your 30-Day\nCore Reset free.").font(.system(size: 28, weight: .bold))
-                .foregroundStyle(Palette.textPrimary).multilineTextAlignment(.center)
-            Spacer().frame(height: Space.sm)
-            Text("3 days free, then $29.99/year").font(Typo.body).foregroundStyle(Palette.textSecondary)
-            Spacer().frame(height: Space.sm)
-            HStack(spacing: Space.xs) {
-                Image(systemName: "checkmark").font(.system(size: 14, weight: .bold)).foregroundStyle(Palette.stateGood)
-                Text("No payment due now").font(.system(size: 15, weight: .medium)).foregroundStyle(Palette.textPrimary)
-            }
-            Spacer()
-            ctaBtn("Continue for FREE") { Haptics.heavy(); finish() }
-            Text("Restore · Terms · Privacy").font(.system(size: 12)).foregroundStyle(Palette.textSecondary).padding(.bottom, Space.md)
-        }.padding(.horizontal, Space.screenPadding)
     }
 
     // ═══════════════════════════════════════

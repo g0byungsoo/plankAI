@@ -15,7 +15,7 @@
     {
       "id" : "BAD0AAAA-0000-0000-0000-000000000002",
       "localizations" : [],
-      "name" : "absmaxxing Pro",
+      "name" : "JeniFit Pro",
       "subscriptions" : [
         {
           "adHocOffers" : [],
@@ -27,8 +27,8 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "AI-powered daily 5-10 minute routines and coaching",
-              "displayName" : "absmaxxing Pro Weekly",
+              "description" : "Daily 5–10 minute routines and live form coaching",
+              "displayName" : "JeniFit Pro Weekly",
               "locale" : "en_US"
             }
           ],
@@ -41,7 +41,7 @@
         {
           "adHocOffers" : [],
           "codeOffers" : [],
-          "displayPrice" : "29.99",
+          "displayPrice" : "59.99",
           "familyShareable" : false,
           "groupNumber" : 2,
           "internalID" : "BAD0AAAA-0000-0000-0000-000000000004",
@@ -52,8 +52,8 @@
           },
           "localizations" : [
             {
-              "description" : "Unlock your full ab program with the best value plan",
-              "displayName" : "absmaxxing Pro Yearly",
+              "description" : "Unlock your full plan with the best value option",
+              "displayName" : "JeniFit Pro Yearly",
               "locale" : "en_US"
             }
           ],
