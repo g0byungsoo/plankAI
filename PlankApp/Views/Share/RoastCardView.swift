@@ -63,7 +63,7 @@ struct RoastCardView: View {
                 }
 
                 // Watermark
-                Text("plankAI")
+                Text("JeniFit")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary.opacity(0.5))
                     .padding(.bottom, Space.xl)

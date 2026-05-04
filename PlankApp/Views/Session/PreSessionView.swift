@@ -142,7 +142,7 @@ struct PreSessionView: View {
                 .font(.system(size: 48))
                 .foregroundStyle(Palette.accent)
 
-            Text("Your AI Coach\nNeeds to See You")
+            Text("Your coach\nneeds to see you")
                 .font(Typo.title)
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
@@ -185,7 +185,7 @@ struct PreSessionView: View {
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Text("plankAI needs camera access to track your form.\nOpen Settings to enable it.")
+            Text("JeniFit needs camera access to track your form.\nOpen Settings to enable it.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)

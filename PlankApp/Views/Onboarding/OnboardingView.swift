@@ -1330,7 +1330,7 @@ struct OnboardingView: View {
 
                         HStack(spacing: 4) {
                             Circle().fill(Palette.accent).frame(width: 6, height: 6)
-                            Text("absmaxxing")
+                            Text("JeniFit")
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundStyle(Palette.accent)
                         }
@@ -1377,10 +1377,10 @@ struct OnboardingView: View {
             : barriers.contains("dontKnow") ? "Not knowing correct form\nis more common than you think."
             : "We hear you."
 
-        let fix = barriers.contains("boring") ? "Your AI coach makes\nevery second count."
+        let fix = barriers.contains("boring") ? "Your coach makes\nevery second count."
             : barriers.contains("motivation") ? "Your coach shows up\nevery single day."
-            : barriers.contains("dontKnow") ? "Your AI coach corrects\nyour form in real time."
-            : "absmaxxing was built for this."
+            : barriers.contains("dontKnow") ? "Your coach corrects\nyour form in real time."
+            : "JeniFit was built for this."
 
         return ZStack {
             GradientBlob(colors: [Palette.stateGood, Palette.accentSubtle, Palette.accent])
@@ -1550,10 +1550,10 @@ struct OnboardingView: View {
                             .foregroundStyle(Palette.accent)
                     }
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("absmaxxing")
+                        Text("JeniFit")
                             .font(.system(size: 15, weight: .bold))
                             .foregroundStyle(Palette.textPrimary)
-                        Text("AI corrects your form in real time")
+                        Text("We watch your form and correct it in real time")
                             .font(.system(size: 13))
                             .foregroundStyle(Palette.accent)
                     }
@@ -2682,7 +2682,7 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: Space.md) {
                 chk("Analyzing your goals", analyzePercent >= 20)
                 chk("Setting target hold times", analyzePercent >= 40)
-                chk("Calibrating AI coach", analyzePercent >= 60)
+                chk("Calibrating your coach", analyzePercent >= 60)
                 chk("Building 30-day program", analyzePercent >= 80)
                 chk("Finalizing your plan", analyzePercent >= 98)
             }.padding(.horizontal, Space.screenPadding)
@@ -2910,7 +2910,7 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            Text("Why absmaxxing\nworks")
+            Text("Why JeniFit\nworks")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
@@ -2925,8 +2925,8 @@ struct OnboardingView: View {
                 featureRow(icon: "waveform", title: "A coach who talks to you",
                            desc: "Voice coaching with personality. Not beeps.",
                            delay: 0.25)
-                featureRow(icon: "camera.fill", title: "AI-tracked plank benchmark",
-                           desc: "Camera watches your form weekly. Tracks real progress.",
+                featureRow(icon: "camera.fill", title: "Weekly plank check-in",
+                           desc: "We track your form and chart your progress.",
                            delay: 0.4)
                 featureRow(icon: "brain.head.profile", title: "Gets smarter over time",
                            desc: "Your workouts adapt to your ratings and performance.",
