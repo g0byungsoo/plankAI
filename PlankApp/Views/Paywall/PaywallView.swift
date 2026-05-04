@@ -1,5 +1,8 @@
 import SwiftUI
+import SwiftData
 import RevenueCat
+import PlankSync
+import Auth
 
 // MARK: - PaywallView
 //
@@ -33,7 +36,39 @@ struct PaywallView: View {
         self.onDismiss = onDismiss
     }
 
-    @AppStorage("bodyFocus") private var bodyFocus: String = ""
+    // On-device fast-path mirror, written by handleOnboardingComplete +
+    // EditProfileView.selectBodyFocus. Cross-device sync goes through
+    // UserRecord (synced via SyncService.hydrateUser on sign-in); the
+    // mirror lags by one EditProfile save. effectiveBodyFocus below
+    // prefers UserRecord when present so a fresh device-B sign-in
+    // shows the right personalized headline immediately.
+    @AppStorage("bodyFocus") private var bodyFocusMirror: String = ""
+
+    @Query private var userRecords: [UserRecord]
+    @State private var auth = AuthService.shared
+
+    /// Cross-device-synced UserRecord row for the current auth user, or
+    /// nil if hydration hasn't run yet (e.g., during the bootstrap
+    /// window before SyncService.hydrateUser fires) or if the user
+    /// onboarded on a device + version that predates the body_focus
+    /// column.
+    private var currentUserRecord: UserRecord? {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return nil }
+        return userRecords.first { $0.id == userId }
+    }
+
+    /// Source of truth for the personalized headline. UserRecord wins
+    /// when populated (cross-device truth, just hydrated from Supabase);
+    /// falls back to the AppStorage mirror so single-device flow stays
+    /// unchanged. Empty array on UserRecord falls through to the mirror
+    /// so legacy users (onboarded pre-2026-05-04 schema migration) still
+    /// get personalization from the mirror without re-onboarding.
+    private var bodyFocus: String {
+        if let record = currentUserRecord, let first = record.onboardingBodyFocus.first {
+            return first
+        }
+        return bodyFocusMirror
+    }
 
     @State private var selectedPlan: Plan = .yearly
     @State private var working = false
