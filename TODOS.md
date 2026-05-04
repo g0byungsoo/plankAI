@@ -87,7 +87,13 @@
 - Format: PNG export, 2x + 3x asset variants for `@2x` / `@3x` slots
 **Status:** Ben commissioning. v1.1 swap target — no placeholder logic in code, just clean ship without the imagery for v1.0.
 
-## Phase 4 carryover — Sarah → Jeni voice clip rename
-**What:** Coach selector still references "Sarah" by display name and uses `coach-sarah` / `sarah_preview` / `sarah_` audio asset prefixes. JeniFit rebrand spec calls for the default coach to be Jeni (renamed from Sarah).
-**Why:** User-visible "Sarah" → "Jeni" rename is straightforward (5–6 display strings across Onboarding/Home/Settings). Audio clip rename (`sarah_*.mp3` → `jeni_*.mp3`) requires touching `RoutineAudioManager.swift` clip-prefix logic and re-bundling all the .mp3 assets — bigger lift, not blocking.
-**Status:** Phase 9 scheduled work per Phase 4 spec. Ship Phase 5 / 6 / 7 / 8 first.
+## v1.1 — Multi-day program system (real [N Days] semantics)
+**What:** Today every `WorkoutPreset` is a single ~5–10 min session — `pool[routineCount % pool.count]` cycles through them daily. Phase 11 originally tried to use "[N Days] · X" naming as JustFit-style program prefixes, but the framing didn't fit the data (the prefix implied a 21- or 30-day journey that the schema doesn't model). Phase 11 polish stripped the prefix; this entry tracks the v1.1 real-program lift.
+**Spec:**
+- New `Program` schema: `id`, `name`, `lengthDays`, `goal`, `defaultDifficulty`, `description`, `dayPlan: [ProgramDay]`. Each `ProgramDay` references a `WorkoutPreset` (or generates a session inline) plus a day-specific note / progression marker.
+- New `ProgramEnrollment` (per-user) tracking: `programId`, `startedAt`, `currentDay`, `completedDays`, `skippedDays`, `progressionUnlocked`.
+- Home rotates by `programDay` instead of `routineCount` modulo. Plan reveal carries program copy ("28 days, 12 sessions, your slow build"). Paywall keeps the app-level "30 days" arc.
+- Library expands beyond the existing 20 sessions — at minimum 4–6 program-length curricula (Become Her, Glow Up, Pilates Princess, Body Reset, Lazy Girl, Trip Prep) each with 14–30 unique sessions, progressive difficulty, and named rest days.
+**Why:** Sets the foundation for streaks-by-program, plan personalization that updates weekly, and the marketing surface ("by day 14 you'll …") that the audit's commitment-escalation pattern leans on. Single-session presets can't carry that arc.
+**Status:** v1.1 work. Not blocking v1.0; the current session-cycle pool ships as-is. Estimated 2–3 weeks once the library content is authored — schema + scheduler + UI is the smaller piece.
+

@@ -343,17 +343,25 @@ struct HomeView: View {
             )
 
             VStack(alignment: .leading, spacing: Space.sm) {
-                // Meta tag row — goal + difficulty in eyebrow accent.
-                Text("\(workoutGoalLabel(workout.goal))\u{2009}·\u{2009}\(workoutDifficultyLabel(workout.difficulty))")
-                    .font(Typo.eyebrow).tracking(1)
-                    .foregroundStyle(Palette.accent)
-
                 // Title — Fraunces.
                 Text(workout.name)
                     .font(Typo.title)
                     .foregroundStyle(Palette.textPrimary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
+
+                // Subtitle — preset description tagline if authored,
+                // otherwise the goal · level eyebrow as the fallback.
+                if let desc = workout.description {
+                    Text(desc)
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("\(workoutGoalLabel(workout.goal))\u{2009}·\u{2009}\(workoutDifficultyLabel(workout.difficulty))")
+                        .font(Typo.eyebrow).tracking(1)
+                        .foregroundStyle(Palette.accent)
+                }
 
                 // Stats row — duration · count · equipment.
                 Text("\(workout.estimatedDuration) MIN\u{2009}·\u{2009}\(workout.exercises.count) EXERCISES\u{2009}·\u{2009}NO EQUIPMENT")

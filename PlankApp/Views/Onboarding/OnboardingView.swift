@@ -2761,6 +2761,28 @@ struct OnboardingView: View {
                 .foregroundStyle(Palette.textSecondary)
                 .opacity(planRevealed ? 1 : 0)
 
+            // First-preset preview — surfaces the actual workout name +
+            // tagline so the abstract "ready" promise lands as something
+            // concrete the user can picture starting.
+            if let firstPreset = WorkoutPreset.presets(
+                for: WorkoutGoal(rawValue: focusArea) ?? .fullCore
+            ).first, let desc = firstPreset.description {
+                Spacer().frame(height: Space.sm)
+                VStack(spacing: 2) {
+                    Text(firstPreset.name)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(desc)
+                        .font(Typo.caption)
+                        .italic()
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Space.lg)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .opacity(planRevealed ? 1 : 0)
+            }
+
             Spacer().frame(height: Space.lg + 8)
 
             // Plan summary cards. JeniFit copy — no AI language; "live form
