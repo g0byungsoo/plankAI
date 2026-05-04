@@ -3,16 +3,17 @@ import RevenueCat
 
 // MARK: - PaywallView
 //
-// Post-onboarding paywall. Cal AI structural moves (direct verb headline,
-// benefit checklist before pricing, trust microcopy above CTA, dynamic
-// CTA copy, plain-English auto-renewal disclosure, footer link triplet),
-// translated into absmaxxing's voice (calm, confident, terracotta accent
-// on warm cream, no preachy or all-caps emphasis).
+// Post-onboarding paywall. Phase 7 redesign: JENIFIT PREMIUM eyebrow +
+// italic-accent personalized headline (keyed off bodyFocus.first) +
+// benefit checklist + PricingCard yearly/weekly + accent CTA + auto-
+// renewal disclosure + Terms/Privacy footer. Voice is aspirational-
+// feminine ("Become her in 30 days."), no AI language, no scarcity.
 //
-// Phase D wires RevenueCat: offerings.current populates the cards by
-// productIdentifier; storeProduct.priceFormatter formats prices in the
-// user's locale; CTA calls Purchases.shared.purchase(package:); savings
-// math is computed dynamically from the actual yearly + weekly prices.
+// RevenueCat: offerings.current populates the cards by productIdentifier;
+// storeProduct.priceFormatter formats prices in the user's locale; CTA
+// calls Purchases.shared.purchase(package:); savings % is computed
+// dynamically from the live yearly + weekly prices and rendered as a
+// separate Typo.eyebrow element below the price (Phase 7 polish).
 
 struct PaywallView: View {
     let dismissable: Bool

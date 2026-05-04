@@ -84,9 +84,9 @@ enum Radius {
 
 // MARK: - Shadow
 //
-// Warm rose tint replaces the brown of the absmaxxing era. Pink shadows
-// fade more visually than brown, so we bump alpha 0.08 → 0.10 to keep
-// elevation legible on the cream bg.
+// Warm rose tint on the JeniFit shadow stack. Pink shadows fade more
+// visually than brown, so alpha sits at 0.10 to keep elevation legible
+// on the cream bg.
 
 struct PlankShadow: ViewModifier {
     func body(content: Content) -> some View {

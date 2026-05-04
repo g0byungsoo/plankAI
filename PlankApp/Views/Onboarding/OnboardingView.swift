@@ -1539,7 +1539,7 @@ struct OnboardingView: View {
                 .offset(x: formStep >= 4 ? 0 : -20)
                 .animation(.spring(response: 0.5, dampingFraction: 0.8), value: formStep)
 
-                // absmaxxing
+                // JeniFit
                 HStack(spacing: 14) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
