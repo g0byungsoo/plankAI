@@ -153,6 +153,12 @@
 **Why deferred:** v1.0 ships without these. Real user data from the live app will tell us which of the 11 actually drive product behavior worth syncing — adding all 11 speculatively trades schema bloat for unverified utility.
 **Spec when ready:** Add columns to `public.users` (idempotent ALTER TABLE), mirror to `UserRecord`, extend `SupabaseUserUpsert` + `SupabaseUserRow`, and wire `handleOnboardingComplete` + `EditProfileView` editing surfaces. Same pattern as the 2026-05-04 migration. SwiftData lightweight automatic migration covers the additions if all stay optional / array-with-default.
 
+## v1.1 — OnboardingData weight fields: optionality
+**What:** `OnboardingData.currentWeightKg` and `goalWeightKg` are non-optional `Double` with defaults `65` / `60`. `upsertLocalUserRecord` writes those defaults to `UserRecord` and Supabase verbatim, so every user who didn't touch the weight sliders during Part 3 ships with a 65kg current / 60kg goal record indistinguishable from a user who actually weighs 65kg.
+**Fix:** Change to `Double?` (nil = untouched). Update the slider screens to use a "tap to set" affordance (initially blank, populates on first interaction) rather than a pre-positioned thumb. Persist nil to Supabase columns (`onboarding_current_weight_kg` / `onboarding_goal_weight_kg` are already nullable).
+**Why:** Analytical surfaces that derive insights from weight (e.g., a future "users near their goal weight" cohort, or aggregate prediction-curve calibration) currently can't filter out untouched-default rows. Self-reported defaults are an honest data hazard at any scale.
+**Status:** v1.1. Not blocking v1.0 — prediction screens read the value either way and "65kg / 60kg" is a defensible average. Surface the optional-default refactor when analytics work starts requiring clean cohorts.
+
 ## v1.1 — EditProfileView legacy-user fallback
 **What:** Phase 8 switched `EditProfileView` to read/write `bodyFocus` (the new Phase 4 truth). Legacy users whose `bodyFocus` AppStorage is empty (onboarded before Phase 7's `bodyFocus` mirror landed) see no preselected option — picking any option re-establishes both fields, but the empty-state read is a small UX paper-cut.
 **Fix:** Add a one-shot inference: if `bodyFocus.isEmpty` and `userGoal` is set, derive a best-guess `bodyFocus` value and write it back. Mapping: `definition → flatBelly`, `fullCore → fullBody`, `strength → fullBody`, `sculpting → roundButt` (closest aesthetic match).
