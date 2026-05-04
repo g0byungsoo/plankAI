@@ -306,10 +306,10 @@ struct OnboardingView: View {
             "How much do you train right now?",
             sub: "Be honest. The plan calibrates from this.",
             opts: [
-                ("never",     "I don't really train",               nil,                         nil),
-                ("gaveUp",    "I've tried, couldn't stick with it", nil,                         nil),
-                ("sometimes", "Here and there",                     nil,                         nil),
-                ("regular",   "Regularly",                          "Multiple times a week",     nil),
+                ("never",     "I don't really train",               nil,                         "moon.zzz"),
+                ("gaveUp",    "I've tried, couldn't stick with it", nil,                         "arrow.uturn.backward"),
+                ("sometimes", "Here and there",                     nil,                         "calendar"),
+                ("regular",   "Regularly",                          "Multiple times a week",     "checkmark.circle.fill"),
             ],
             sel: $experience, next: 8
         )
@@ -318,11 +318,11 @@ struct OnboardingView: View {
             "How active are you day-to-day?",
             sub: "Outside of workouts. Walking, standing, errands.",
             opts: [
-                ("sedentary", "Mostly sitting", nil,                                  nil),
-                ("light",     "Light",          "Short walks, occasional movement",   nil),
-                ("moderate",  "Moderate",       "On my feet most of the day",         nil),
-                ("active",    "Very active",    "Physical job or daily walks",        nil),
-                ("athlete",   "Athlete-level",  nil,                                  nil),
+                ("sedentary", "Mostly sitting", nil,                                  "house"),
+                ("light",     "Light",          "Short walks, occasional movement",   "figure.walk"),
+                ("moderate",  "Moderate",       "On my feet most of the day",         "figure.run"),
+                ("active",    "Very active",    "Physical job or daily walks",        "bolt.fill"),
+                ("athlete",   "Athlete-level",  nil,                                  "trophy.fill"),
             ],
             sel: $activityLevel, next: 120
         )
@@ -382,10 +382,10 @@ struct OnboardingView: View {
             "What's your gender?",
             sub: "We adjust your plan based on this.",
             opts: [
-                ("female",    "Female",            nil, nil),
-                ("male",      "Male",              nil, nil),
-                ("nonbinary", "Non-binary",        nil, nil),
-                ("private",   "Prefer not to say", nil, nil),
+                ("female",    "Female",            nil, "person.fill"),
+                ("male",      "Male",              nil, "person.fill"),
+                ("nonbinary", "Non-binary",        nil, "person.crop.circle"),
+                ("private",   "Prefer not to say", nil, "person.crop.circle.badge.questionmark"),
             ],
             sel: $gender, next: 7
         )
@@ -394,12 +394,12 @@ struct OnboardingView: View {
             "What's your age?",
             sub: "We adjust your plan based on this.",
             opts: [
-                ("under18", "Under 18", nil, nil),
-                ("18to24",  "18–24",    nil, nil),
-                ("25to34",  "25–34",    nil, nil),
-                ("35to44",  "35–44",    nil, nil),
-                ("45to54",  "45–54",    nil, nil),
-                ("55plus",  "55+",      nil, nil),
+                ("under18", "Under 18", "Just getting started",        "graduationcap"),
+                ("18to24",  "18–24",    "Young adult",                 "sun.max"),
+                ("25to34",  "25–34",    "Building habits",             "leaf"),
+                ("35to44",  "35–44",    "Strong + steady",             "shield.fill"),
+                ("45to54",  "45–54",    "Refined + experienced",       "sparkles"),
+                ("55plus",  "55+",      "Forever fit",                 "flame"),
             ],
             sel: $ageRange, next: 131
         )
@@ -407,21 +407,21 @@ struct OnboardingView: View {
         case 131: jfSliderScreen(
             "How tall are you?",
             sub: "We use this to calibrate intensity.",
-            value: $heightCm, range: 140...210, step: 1,
+            value: $heightCm, range: 137...213, step: 1,
             format: { v in heightLabel(cm: v) }, next: 132
         )
 
         case 132: jfSliderScreen(
             "What's your current weight?",
             sub: "Helps us measure your progress accurately.",
-            value: $currentWeightKg, range: 35...180, step: 0.5,
+            value: $currentWeightKg, range: 30...200, step: 0.5,
             format: { v in weightLabel(kg: v) }, next: 133
         )
 
         case 133: jfSliderScreen(
             "And your goal weight?",
             sub: "Sets your target. You can change this later.",
-            value: $goalWeightKg, range: 35...180, step: 0.5,
+            value: $goalWeightKg, range: 30...200, step: 0.5,
             format: { v in weightLabel(kg: v) }, next: 134,
             confirmation: "We'll calibrate progress to this."
         )
@@ -450,13 +450,18 @@ struct OnboardingView: View {
             position: $bodyTypeDesired,
             labels: ["Soft", "Curvy", "Average", "Athletic", "Lean", "Cut"],
             maxPosition: bodyTypeCurrent,
+            markerPosition: bodyTypeCurrent,
+            contextLine: "You said you're at: \(["Soft", "Curvy", "Average", "Athletic", "Lean", "Cut"][bodyTypeCurrent])",
             next: 203
         )
         .onAppear {
             // Seed desired body type from current on first mount. The
-            // maxPosition clamp above prevents the user from picking a
-            // body type "less lean" than where they are today, so the
-            // slider track visually shortens to the current position.
+            // maxPosition clamp prevents the user from picking a body
+            // type "less lean" than where they are today (track visually
+            // shortens to the current position). The markerPosition +
+            // contextLine show the current position as read-only
+            // reference so the goal screen feels like a continuation
+            // rather than an isolated picker.
             if !bodyTypeDesiredInitialized {
                 bodyTypeDesired = bodyTypeCurrent
                 bodyTypeDesiredInitialized = true
@@ -993,14 +998,29 @@ struct OnboardingView: View {
         position: Binding<Int>,
         labels: [String],
         maxPosition: Int? = nil,
+        markerPosition: Int? = nil,
+        contextLine: String? = nil,
         next: Int,
         confirmation: String? = nil
     ) -> some View {
         VStack(spacing: 0) {
             jfHeader(title, sub: sub)
             Spacer()
-            BodyTypeSlider(position: position, labels: labels, maxPosition: maxPosition)
-                .padding(.horizontal, Space.screenPadding)
+            if let contextLine {
+                Text(contextLine)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.lg)
+                    .padding(.bottom, Space.sm)
+            }
+            BodyTypeSlider(
+                position: position,
+                labels: labels,
+                maxPosition: maxPosition,
+                markerPosition: markerPosition
+            )
+            .padding(.horizontal, Space.screenPadding)
             Spacer()
             Button("Continue") {
                 advance(to: next, confirmation: confirmation)

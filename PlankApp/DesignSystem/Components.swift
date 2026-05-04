@@ -563,37 +563,32 @@ struct BiometricSlider: View {
             Spacer().frame(height: Space.md)
 
             ZStack {
-                // Tick column. Each tick is a horizontal accent bar; every
-                // 5th tick reads bolder so the eye picks up scale at a
-                // glance. Column is offset so the current step lands at
-                // the center selection indicator.
+                // Tick column. Each tick is a horizontal accent bar
+                // centered horizontally in the ruler; every 5th tick
+                // reads bolder so the eye picks up scale at a glance.
+                // Column is offset so the current step lands at the
+                // center selection indicator.
                 VStack(spacing: 0) {
                     ForEach(0..<totalSteps, id: \.self) { i in
                         let major = (i % majorTickEvery == 0)
-                        HStack {
-                            Spacer()
-                            Rectangle()
-                                .fill(Palette.accent.opacity(major ? 0.7 : 0.28))
-                                .frame(width: major ? majorTickWidth : minorTickWidth,
-                                       height: major ? 2 : 1.5)
-                            Spacer().frame(width: Space.lg)
-                        }
-                        .frame(height: tickHeight)
+                        Rectangle()
+                            .fill(Palette.accent.opacity(major ? 0.7 : 0.28))
+                            .frame(width: major ? majorTickWidth : minorTickWidth,
+                                   height: major ? 2 : 1.5)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: tickHeight)
                     }
                 }
                 .offset(y: contentOffset)
 
-                // Center selection indicator — a thicker cocoa bar across
-                // the right portion of the ruler, anchored to the current
-                // tick row.
-                HStack {
-                    Spacer()
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Palette.bgInverse)
-                        .frame(width: majorTickWidth + 12, height: 3)
-                    Spacer().frame(width: Space.lg)
-                }
+                // Center selection indicator — a thicker cocoa bar
+                // anchored at the ruler's vertical + horizontal center,
+                // marking which tick is currently selected.
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Palette.bgInverse)
+                    .frame(width: majorTickWidth + 16, height: 3)
             }
+            .frame(maxWidth: .infinity)
             .frame(height: rulerHeight)
             .clipped()
             .contentShape(Rectangle())
@@ -642,6 +637,11 @@ struct BodyTypeSlider: View {
     /// visually shortens to the max so the user feels the constraint
     /// rather than seeing a separate "you can't go higher" message.
     var maxPosition: Int? = nil
+    /// Optional read-only marker showing a reference position on the
+    /// track (e.g., "this is where you said you currently are" on the
+    /// goal body type screen). Renders as a small accent dot under the
+    /// track at the proportional x.
+    var markerPosition: Int? = nil
 
     private var effectiveMax: Int {
         let cap = maxPosition ?? (labels.count - 1)
@@ -656,15 +656,43 @@ struct BodyTypeSlider: View {
                 .contentTransition(.opacity)
                 .animation(.easeOut(duration: 0.15), value: position)
 
-            Slider(
-                value: Binding(
-                    get: { Double(min(position, effectiveMax)) },
-                    set: { position = min(effectiveMax, Int($0.rounded())) }
-                ),
-                in: 0...Double(effectiveMax),
-                step: 1
-            )
-            .tint(Palette.accent)
+            VStack(spacing: 4) {
+                Slider(
+                    value: Binding(
+                        get: { Double(min(position, effectiveMax)) },
+                        set: { position = min(effectiveMax, Int($0.rounded())) }
+                    ),
+                    in: 0...Double(effectiveMax),
+                    step: 1
+                )
+                .tint(Palette.accent)
+
+                if let marker = markerPosition {
+                    GeometryReader { geo in
+                        // UISlider's track has roughly the thumb radius
+                        // worth of inset on each side. 14pt is a close
+                        // approximation that holds across iOS device
+                        // sizes; the marker doesn't need pixel-perfect
+                        // alignment with the thumb to read clearly.
+                        let inset: CGFloat = 14
+                        let trackWidth = max(0, geo.size.width - 2 * inset)
+                        let denom = max(1, effectiveMax)
+                        let proportion = CGFloat(min(marker, effectiveMax)) / CGFloat(denom)
+                        let x = inset + proportion * trackWidth
+                        VStack(spacing: 2) {
+                            Circle()
+                                .fill(Palette.accent)
+                                .frame(width: 8, height: 8)
+                            Text("you")
+                                .font(.system(size: 10, weight: .bold))
+                                .tracking(0.5)
+                                .foregroundStyle(Palette.accent)
+                        }
+                        .position(x: x, y: 14)
+                    }
+                    .frame(height: 28)
+                }
+            }
             .padding(.horizontal, Space.md)
 
             HStack {
