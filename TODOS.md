@@ -137,6 +137,22 @@
 **Why:** Local notification IDs are stable per-device; renaming without migration is the worst of both worlds. The migration is a single line in `scheduleIfNeeded` plus a one-time `UserDefaults` flag so it doesn't run on every schedule call.
 **Status:** v1.1. Pair with SKU + Bundle rename so the namespace cutover happens once.
 
+## v1.1 — Schema expansion: 11 deferred Phase 4 onboarding fields
+**What:** The 2026-05-04 DB migration added 3 of the 14 Phase 4 onboarding fields to `public.users` + `UserRecord` + the sync payload (`onboarding_body_focus`, `onboarding_current_weight_kg`, `onboarding_goal_weight_kg`). The other 11 fields are still captured in the OnboardingView flow, used in-memory by prediction / plan-reveal surfaces, and dropped on view tear-down — they don't survive past onboarding.
+**Deferred fields:**
+  - `motivation` (String) — Part 1 "why" (getShaped / lookBetter / summer / confidence / selfLove)
+  - `workoutLocation` (String) — Part 2 (home / gym / outdoor / either)
+  - `workoutStyle` ([String]) — Part 2 multi (hiit / pilates / strength / yoga / dance / walking)
+  - `gender` (String) — Part 3 (female / male / nonbinary / private)
+  - `heightCm` (Double) — Part 3 slider
+  - `bodyTypeCurrent` (Int 0–5) — Part 3 visual reference
+  - `bodyTypeDesired` (Int 0–5) — Part 3 visual reference
+  - `identityFeeling` (String) — Part 4 (powerful / calm / light / strong / radiant)
+  - `rewardChoice` (String) — Part 4 (clothes / trip / photos / personal / treat)
+  - `relatability1`, `relatability2`, `relatability3` (Bool) — Part 5 yes/no triplet (currently collapsed to legacy `userBarriers` strings, original answers lost)
+**Why deferred:** v1.0 ships without these. Real user data from the live app will tell us which of the 11 actually drive product behavior worth syncing — adding all 11 speculatively trades schema bloat for unverified utility.
+**Spec when ready:** Add columns to `public.users` (idempotent ALTER TABLE), mirror to `UserRecord`, extend `SupabaseUserUpsert` + `SupabaseUserRow`, and wire `handleOnboardingComplete` + `EditProfileView` editing surfaces. Same pattern as the 2026-05-04 migration. SwiftData lightweight automatic migration covers the additions if all stay optional / array-with-default.
+
 ## v1.1 — EditProfileView legacy-user fallback
 **What:** Phase 8 switched `EditProfileView` to read/write `bodyFocus` (the new Phase 4 truth). Legacy users whose `bodyFocus` AppStorage is empty (onboarded before Phase 7's `bodyFocus` mirror landed) see no preselected option — picking any option re-establishes both fields, but the empty-state read is a small UX paper-cut.
 **Fix:** Add a one-shot inference: if `bodyFocus.isEmpty` and `userGoal` is set, derive a best-guess `bodyFocus` value and write it back. Mapping: `definition → flatBelly`, `fullCore → fullBody`, `strength → fullBody`, `sculpting → roundButt` (closest aesthetic match).

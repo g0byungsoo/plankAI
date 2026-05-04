@@ -32,6 +32,15 @@ public final class UserRecord {
     public var onboardingPlankTime: String?  // "morning" | "afternoon" | "evening" | "whenever"
     public var onboardingSessionLengthPref: Int?  // 5 | 7 | 10 (minutes)
 
+    // Phase 4 additions. SwiftData lightweight automatic migration covers
+    // these for existing rows: bodyFocus defaults to [], the weights
+    // default to nil. Cross-device sync via Supabase column
+    // onboarding_body_focus (text[]) and onboarding_current_weight_kg /
+    // onboarding_goal_weight_kg (double precision).
+    public var onboardingBodyFocus: [String]  // ["flatBelly","tonedArms","roundButt","slimLegs","fullBody"]
+    public var onboardingCurrentWeightKg: Double?
+    public var onboardingGoalWeightKg: Double?
+
     public init(
         id: String,
         name: String,
@@ -49,6 +58,7 @@ public final class UserRecord {
         self.streakLongest = 0
         self.programPhase = programPhase
         self.onboardingNotificationEnabled = false
+        self.onboardingBodyFocus = []
     }
 }
 

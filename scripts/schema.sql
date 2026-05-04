@@ -1,6 +1,15 @@
--- absmaxxing — Supabase schema
--- Run this in Supabase SQL editor BEFORE testing Phase F cloud sync.
--- Idempotent: re-running is safe (CREATE TABLE IF NOT EXISTS, CREATE INDEX IF NOT EXISTS).
+-- JeniFit — Supabase schema
+-- Run this in Supabase SQL editor BEFORE testing cloud sync.
+-- Idempotent: re-running is safe (CREATE TABLE IF NOT EXISTS, CREATE INDEX
+-- IF NOT EXISTS, ALTER TABLE ... ADD COLUMN IF NOT EXISTS).
+--
+-- 2026-05-04 update — schema brought in sync with production. Adds the
+-- three legacy columns that SyncService.upsertUser was already sending
+-- (focus_area, plank_time, session_length_pref) which existed in the
+-- production DB but were missing from this script. Plus three Phase 4
+-- additions (body_focus, current_weight_kg, goal_weight_kg). The
+-- IF NOT EXISTS guards make all six idempotent for already-applied
+-- production tables.
 --
 -- After this runs, also (re-)run scripts/rls_policies.sql to apply RLS.
 -- The two are intentionally split so you can iterate on either independently.
@@ -46,6 +55,25 @@ CREATE TABLE IF NOT EXISTS public.users (
     onboarding_notification_time timestamptz,
     onboarding_voice_preference text
 );
+
+-- Bring scripts/schema.sql in sync with production columns + add Phase 4
+-- additions. All idempotent — already-present columns are no-ops.
+
+-- Legacy columns missing from the original CREATE TABLE but in production
+-- (SyncService.upsertUser has been sending these since the focusArea era).
+ALTER TABLE public.users
+    ADD COLUMN IF NOT EXISTS onboarding_focus_area text,
+    ADD COLUMN IF NOT EXISTS onboarding_plank_time text,
+    ADD COLUMN IF NOT EXISTS onboarding_session_length_pref int;
+
+-- Phase 4 additions: bodyFocus drives paywall personalization + plan
+-- reveal subhead; weights drive the prediction screens and need to
+-- survive reinstall / cross-device sign-in. The other 11 Phase 4
+-- onboarding fields are deferred to v1.1 (see TODOS.md).
+ALTER TABLE public.users
+    ADD COLUMN IF NOT EXISTS onboarding_body_focus text[],
+    ADD COLUMN IF NOT EXISTS onboarding_current_weight_kg double precision,
+    ADD COLUMN IF NOT EXISTS onboarding_goal_weight_kg double precision;
 
 -- =====================================================================
 -- public.session_logs — append-only session record

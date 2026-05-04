@@ -135,7 +135,10 @@ public actor SyncService {
             onboarding_voice_preference: user.onboardingVoicePreference,
             onboarding_focus_area: user.onboardingFocusArea,
             onboarding_plank_time: user.onboardingPlankTime,
-            onboarding_session_length_pref: user.onboardingSessionLengthPref
+            onboarding_session_length_pref: user.onboardingSessionLengthPref,
+            onboarding_body_focus: user.onboardingBodyFocus.isEmpty ? nil : user.onboardingBodyFocus,
+            onboarding_current_weight_kg: user.onboardingCurrentWeightKg,
+            onboarding_goal_weight_kg: user.onboardingGoalWeightKg
         )
 
         do {
@@ -268,6 +271,13 @@ public actor SyncService {
             target.onboardingFocusArea = row.onboardingFocusArea
             target.onboardingPlankTime = row.onboardingPlankTime
             target.onboardingSessionLengthPref = row.onboardingSessionLengthPref
+            // Phase 4 hydration — empty array on the wire decodes cleanly
+            // to []; nil weights stay nil. Cross-device sign-in restores
+            // bodyFocus + weights so PaywallView's personalized headline
+            // works on the new device without re-onboarding.
+            target.onboardingBodyFocus = row.onboardingBodyFocus ?? []
+            target.onboardingCurrentWeightKg = row.onboardingCurrentWeightKg
+            target.onboardingGoalWeightKg = row.onboardingGoalWeightKg
 
             do {
                 try context.save()
@@ -487,6 +497,11 @@ private struct SupabaseUserUpsert: Encodable {
     let onboarding_focus_area: String?
     let onboarding_plank_time: String?
     let onboarding_session_length_pref: Int?
+    // Phase 4 additions — keep nil for legacy rows so the upsert is
+    // null-safe across DB columns added 2026-05-04.
+    let onboarding_body_focus: [String]?
+    let onboarding_current_weight_kg: Double?
+    let onboarding_goal_weight_kg: Double?
 }
 
 /// Decodable mirror of SupabaseUserUpsert. Mirrors all 21 columns of
@@ -518,6 +533,11 @@ private struct SupabaseUserRow: Decodable {
     let onboardingFocusArea: String?
     let onboardingPlankTime: String?
     let onboardingSessionLengthPref: Int?
+    // Phase 4 additions — optional / array-with-empty-default so legacy
+    // rows that lack these columns decode cleanly.
+    let onboardingBodyFocus: [String]?
+    let onboardingCurrentWeightKg: Double?
+    let onboardingGoalWeightKg: Double?
 
     enum CodingKeys: String, CodingKey {
         case id, name
@@ -543,6 +563,9 @@ private struct SupabaseUserRow: Decodable {
         case onboardingFocusArea = "onboarding_focus_area"
         case onboardingPlankTime = "onboarding_plank_time"
         case onboardingSessionLengthPref = "onboarding_session_length_pref"
+        case onboardingBodyFocus = "onboarding_body_focus"
+        case onboardingCurrentWeightKg = "onboarding_current_weight_kg"
+        case onboardingGoalWeightKg = "onboarding_goal_weight_kg"
     }
 }
 

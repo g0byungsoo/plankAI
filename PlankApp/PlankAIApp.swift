@@ -233,6 +233,14 @@ private struct RootView: View {
         record.onboardingFocusArea = data.focusArea
         record.onboardingPlankTime = data.plankTime
         record.onboardingSessionLengthPref = data.sessionLengthMinutes
+        // Phase 4 fields persisted to UserRecord (and synced to Supabase
+        // via SyncService.upsertUser). The bodyFocus AppStorage mirror
+        // above stays for backward-compat with PaywallView's existing
+        // @AppStorage("bodyFocus") read; v1.1 EditProfile work can move
+        // PaywallView to UserRecord-only and drop the mirror.
+        record.onboardingBodyFocus = data.bodyFocus
+        record.onboardingCurrentWeightKg = data.currentWeightKg
+        record.onboardingGoalWeightKg = data.goalWeightKg
         try? modelContext.save()
         return record
     }
