@@ -41,6 +41,26 @@ public final class UserRecord {
     public var onboardingCurrentWeightKg: Double?
     public var onboardingGoalWeightKg: Double?
 
+    // Phase 4 remaining onboarding fields (2026-05-04 second migration).
+    // String/array fields default to "" / [] so reads-before-write are
+    // safe; numeric + boolean fields are optional so a NULL DB column
+    // (legacy or untouched) decodes cleanly. Once OnboardingData adopts
+    // optional Swift types in v1.1, the optional fields here can carry
+    // a real "not answered" signal — today's writes still persist
+    // OnboardingData's defaulted values verbatim, same as the weights.
+    public var onboardingMotivation: String        // Part 1 "why"
+    public var onboardingWorkoutLocation: String   // Part 2: home/gym/outdoor/either
+    public var onboardingWorkoutStyle: [String]    // Part 2 multi: hiit/pilates/strength/yoga/dance/walking
+    public var onboardingGender: String            // Part 3
+    public var onboardingHeightCm: Double?
+    public var onboardingBodyTypeCurrent: Int?     // Part 3 visual reference 0-5
+    public var onboardingBodyTypeDesired: Int?
+    public var onboardingIdentityFeeling: String   // Part 4: powerful/calm/light/strong/radiant
+    public var onboardingRewardChoice: String      // Part 4: clothes/trip/photos/personal/treat
+    public var onboardingRelatability1: Bool?      // Part 5 yes/no triplet
+    public var onboardingRelatability2: Bool?
+    public var onboardingRelatability3: Bool?
+
     public init(
         id: String,
         name: String,
@@ -59,6 +79,12 @@ public final class UserRecord {
         self.programPhase = programPhase
         self.onboardingNotificationEnabled = false
         self.onboardingBodyFocus = []
+        self.onboardingMotivation = ""
+        self.onboardingWorkoutLocation = ""
+        self.onboardingWorkoutStyle = []
+        self.onboardingGender = ""
+        self.onboardingIdentityFeeling = ""
+        self.onboardingRewardChoice = ""
     }
 }
 

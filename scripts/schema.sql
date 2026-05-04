@@ -68,12 +68,33 @@ ALTER TABLE public.users
 
 -- Phase 4 additions: bodyFocus drives paywall personalization + plan
 -- reveal subhead; weights drive the prediction screens and need to
--- survive reinstall / cross-device sign-in. The other 11 Phase 4
--- onboarding fields are deferred to v1.1 (see TODOS.md).
+-- survive reinstall / cross-device sign-in.
 ALTER TABLE public.users
     ADD COLUMN IF NOT EXISTS onboarding_body_focus text[],
     ADD COLUMN IF NOT EXISTS onboarding_current_weight_kg double precision,
     ADD COLUMN IF NOT EXISTS onboarding_goal_weight_kg double precision;
+
+-- 2026-05-04 — Phase 4 remaining 11 onboarding fields
+--
+-- Adds the 11 fields the original 3-field migration deferred. All
+-- columns nullable so a legacy row carrying NULL is the "not answered"
+-- signal — once OnboardingData adopts optional Swift types in v1.1,
+-- the column shape is already forward-compatible. relatability_1/2/3
+-- are three separate boolean columns rather than a single text[]
+-- because a yes/no per-statement is more useful in cohort analysis.
+ALTER TABLE public.users
+    ADD COLUMN IF NOT EXISTS onboarding_motivation text,
+    ADD COLUMN IF NOT EXISTS onboarding_workout_location text,
+    ADD COLUMN IF NOT EXISTS onboarding_workout_style text[],
+    ADD COLUMN IF NOT EXISTS onboarding_gender text,
+    ADD COLUMN IF NOT EXISTS onboarding_height_cm double precision,
+    ADD COLUMN IF NOT EXISTS onboarding_body_type_current int,
+    ADD COLUMN IF NOT EXISTS onboarding_body_type_desired int,
+    ADD COLUMN IF NOT EXISTS onboarding_identity_feeling text,
+    ADD COLUMN IF NOT EXISTS onboarding_reward_choice text,
+    ADD COLUMN IF NOT EXISTS onboarding_relatability_1 boolean,
+    ADD COLUMN IF NOT EXISTS onboarding_relatability_2 boolean,
+    ADD COLUMN IF NOT EXISTS onboarding_relatability_3 boolean;
 
 -- =====================================================================
 -- public.session_logs — append-only session record

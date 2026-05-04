@@ -138,7 +138,22 @@ public actor SyncService {
             onboarding_session_length_pref: user.onboardingSessionLengthPref,
             onboarding_body_focus: user.onboardingBodyFocus.isEmpty ? nil : user.onboardingBodyFocus,
             onboarding_current_weight_kg: user.onboardingCurrentWeightKg,
-            onboarding_goal_weight_kg: user.onboardingGoalWeightKg
+            onboarding_goal_weight_kg: user.onboardingGoalWeightKg,
+            // Phase 4 remaining 11 fields. Empty strings/arrays send as
+            // nil so the row stays clean across legacy + Phase-4 users
+            // (matches the bodyFocus pattern above).
+            onboarding_motivation: user.onboardingMotivation.isEmpty ? nil : user.onboardingMotivation,
+            onboarding_workout_location: user.onboardingWorkoutLocation.isEmpty ? nil : user.onboardingWorkoutLocation,
+            onboarding_workout_style: user.onboardingWorkoutStyle.isEmpty ? nil : user.onboardingWorkoutStyle,
+            onboarding_gender: user.onboardingGender.isEmpty ? nil : user.onboardingGender,
+            onboarding_height_cm: user.onboardingHeightCm,
+            onboarding_body_type_current: user.onboardingBodyTypeCurrent,
+            onboarding_body_type_desired: user.onboardingBodyTypeDesired,
+            onboarding_identity_feeling: user.onboardingIdentityFeeling.isEmpty ? nil : user.onboardingIdentityFeeling,
+            onboarding_reward_choice: user.onboardingRewardChoice.isEmpty ? nil : user.onboardingRewardChoice,
+            onboarding_relatability_1: user.onboardingRelatability1,
+            onboarding_relatability_2: user.onboardingRelatability2,
+            onboarding_relatability_3: user.onboardingRelatability3
         )
 
         do {
@@ -278,6 +293,24 @@ public actor SyncService {
             target.onboardingBodyFocus = row.onboardingBodyFocus ?? []
             target.onboardingCurrentWeightKg = row.onboardingCurrentWeightKg
             target.onboardingGoalWeightKg = row.onboardingGoalWeightKg
+            // Phase 4 remaining 11 fields. Strings/arrays default to ""/[]
+            // when the wire payload is nil so SwiftData String/array fields
+            // stay non-optional; numerics + booleans pass through as
+            // Optional. Cross-device sign-in restores the full Phase 4
+            // answer set so analytics + future personalization hooks have
+            // the synced values immediately.
+            target.onboardingMotivation = row.onboardingMotivation ?? ""
+            target.onboardingWorkoutLocation = row.onboardingWorkoutLocation ?? ""
+            target.onboardingWorkoutStyle = row.onboardingWorkoutStyle ?? []
+            target.onboardingGender = row.onboardingGender ?? ""
+            target.onboardingHeightCm = row.onboardingHeightCm
+            target.onboardingBodyTypeCurrent = row.onboardingBodyTypeCurrent
+            target.onboardingBodyTypeDesired = row.onboardingBodyTypeDesired
+            target.onboardingIdentityFeeling = row.onboardingIdentityFeeling ?? ""
+            target.onboardingRewardChoice = row.onboardingRewardChoice ?? ""
+            target.onboardingRelatability1 = row.onboardingRelatability1
+            target.onboardingRelatability2 = row.onboardingRelatability2
+            target.onboardingRelatability3 = row.onboardingRelatability3
 
             do {
                 try context.save()
@@ -502,6 +535,19 @@ private struct SupabaseUserUpsert: Encodable {
     let onboarding_body_focus: [String]?
     let onboarding_current_weight_kg: Double?
     let onboarding_goal_weight_kg: Double?
+    // Phase 4 remaining 11 fields (2026-05-04 second migration).
+    let onboarding_motivation: String?
+    let onboarding_workout_location: String?
+    let onboarding_workout_style: [String]?
+    let onboarding_gender: String?
+    let onboarding_height_cm: Double?
+    let onboarding_body_type_current: Int?
+    let onboarding_body_type_desired: Int?
+    let onboarding_identity_feeling: String?
+    let onboarding_reward_choice: String?
+    let onboarding_relatability_1: Bool?
+    let onboarding_relatability_2: Bool?
+    let onboarding_relatability_3: Bool?
 }
 
 /// Decodable mirror of SupabaseUserUpsert. Mirrors all 21 columns of
@@ -538,6 +584,19 @@ private struct SupabaseUserRow: Decodable {
     let onboardingBodyFocus: [String]?
     let onboardingCurrentWeightKg: Double?
     let onboardingGoalWeightKg: Double?
+    // Phase 4 remaining 11 fields (2026-05-04 second migration).
+    let onboardingMotivation: String?
+    let onboardingWorkoutLocation: String?
+    let onboardingWorkoutStyle: [String]?
+    let onboardingGender: String?
+    let onboardingHeightCm: Double?
+    let onboardingBodyTypeCurrent: Int?
+    let onboardingBodyTypeDesired: Int?
+    let onboardingIdentityFeeling: String?
+    let onboardingRewardChoice: String?
+    let onboardingRelatability1: Bool?
+    let onboardingRelatability2: Bool?
+    let onboardingRelatability3: Bool?
 
     enum CodingKeys: String, CodingKey {
         case id, name
@@ -566,6 +625,18 @@ private struct SupabaseUserRow: Decodable {
         case onboardingBodyFocus = "onboarding_body_focus"
         case onboardingCurrentWeightKg = "onboarding_current_weight_kg"
         case onboardingGoalWeightKg = "onboarding_goal_weight_kg"
+        case onboardingMotivation = "onboarding_motivation"
+        case onboardingWorkoutLocation = "onboarding_workout_location"
+        case onboardingWorkoutStyle = "onboarding_workout_style"
+        case onboardingGender = "onboarding_gender"
+        case onboardingHeightCm = "onboarding_height_cm"
+        case onboardingBodyTypeCurrent = "onboarding_body_type_current"
+        case onboardingBodyTypeDesired = "onboarding_body_type_desired"
+        case onboardingIdentityFeeling = "onboarding_identity_feeling"
+        case onboardingRewardChoice = "onboarding_reward_choice"
+        case onboardingRelatability1 = "onboarding_relatability_1"
+        case onboardingRelatability2 = "onboarding_relatability_2"
+        case onboardingRelatability3 = "onboarding_relatability_3"
     }
 }
 

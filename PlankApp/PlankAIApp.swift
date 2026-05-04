@@ -241,6 +241,25 @@ private struct RootView: View {
         record.onboardingBodyFocus = data.bodyFocus
         record.onboardingCurrentWeightKg = data.currentWeightKg
         record.onboardingGoalWeightKg = data.goalWeightKg
+        // Phase 4 remaining 11 fields. OnboardingData carries non-
+        // optional Swift defaults today (heightCm = 170, bodyType* =
+        // 1/2, relatability* = false), so the values written here
+        // include those defaults verbatim — same caveat tracked in the
+        // v1.1 weight-optionality TODO. Persisting them anyway because
+        // the schema columns are nullable and forward-compatible with
+        // the optional refactor.
+        record.onboardingMotivation = data.motivation
+        record.onboardingWorkoutLocation = data.workoutLocation
+        record.onboardingWorkoutStyle = data.workoutStyle
+        record.onboardingGender = data.gender
+        record.onboardingHeightCm = data.heightCm
+        record.onboardingBodyTypeCurrent = data.bodyTypeCurrent
+        record.onboardingBodyTypeDesired = data.bodyTypeDesired
+        record.onboardingIdentityFeeling = data.identityFeeling
+        record.onboardingRewardChoice = data.rewardChoice
+        record.onboardingRelatability1 = data.relatability1
+        record.onboardingRelatability2 = data.relatability2
+        record.onboardingRelatability3 = data.relatability3
         try? modelContext.save()
         return record
     }
