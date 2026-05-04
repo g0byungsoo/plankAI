@@ -34,6 +34,10 @@ struct ExerciseSlot: Equatable {
 struct WorkoutPreset: Identifiable, Equatable {
     let id: String
     let name: String
+    /// One-line tagline used on the workout card + plan reveal. Kept
+    /// optional so legacy generated presets that don't author copy
+    /// don't have to set it. JeniFit voice: aspirational, direct, no AI.
+    var description: String? = nil
     let goal: WorkoutGoal
     let difficulty: WorkoutDifficulty
     let exercises: [ExerciseSlot]
@@ -53,7 +57,8 @@ extension WorkoutPreset {
 
     static let strength1 = WorkoutPreset(
         id: "strength_1",
-        name: "Iron Core",
+        name: "21 Days · Iron Core",
+        description: "Anti-rotation core work that locks in posture and power. Built for strength that holds up everywhere else.",
         goal: .strength,
         difficulty: .intermediate,
         exercises: [
@@ -72,7 +77,8 @@ extension WorkoutPreset {
 
     static let strength2 = WorkoutPreset(
         id: "strength_2",
-        name: "Core Lockdown",
+        name: "30 Days · Locked In",
+        description: "Advanced isometric holds and rotational stability. Your most committed core work yet.",
         goal: .strength,
         difficulty: .advanced,
         exercises: [
@@ -91,7 +97,8 @@ extension WorkoutPreset {
 
     static let strength3 = WorkoutPreset(
         id: "strength_3",
-        name: "Foundation Builder",
+        name: "14 Days · Core Foundations",
+        description: "Two weeks to dial in the basics. Build the base everything else stacks on.",
         goal: .strength,
         difficulty: .beginner,
         exercises: [
@@ -108,7 +115,8 @@ extension WorkoutPreset {
 
     static let strength4 = WorkoutPreset(
         id: "strength_4",
-        name: "Hold the Line",
+        name: "21 Days · Hold the Line",
+        description: "Endurance-led plank progressions. Train the slow burn that pays off in every other workout.",
         goal: .strength,
         difficulty: .intermediate,
         exercises: [
@@ -126,7 +134,8 @@ extension WorkoutPreset {
 
     static let strength5 = WorkoutPreset(
         id: "strength_5",
-        name: "Max Tension",
+        name: "30 Days · Pure Power",
+        description: "Advanced full-tension training. The library's heaviest work — go when you're ready.",
         goal: .strength,
         difficulty: .advanced,
         exercises: [
@@ -148,7 +157,8 @@ extension WorkoutPreset {
 
     static let definition1 = WorkoutPreset(
         id: "definition_1",
-        name: "Ab Burner",
+        name: "21 Days · Flat Belly Burn",
+        description: "Sweaty cardio + core work that hits the abs from every angle. Direct route to definition.",
         goal: .definition,
         difficulty: .intermediate,
         exercises: [
@@ -167,7 +177,8 @@ extension WorkoutPreset {
 
     static let definition2 = WorkoutPreset(
         id: "definition_2",
-        name: "Sculpt & Burn",
+        name: "14 Days · Flat Belly Reset",
+        description: "A two-week core reset for re-entry days. Gentle re-engagement, no shame.",
         goal: .definition,
         difficulty: .beginner,
         exercises: [
@@ -184,7 +195,8 @@ extension WorkoutPreset {
 
     static let definition3 = WorkoutPreset(
         id: "definition_3",
-        name: "Six Pack Express",
+        name: "30 Days · Become Her",
+        description: "The signature transformation routine. Sculpt every zone with progressive daily work.",
         goal: .definition,
         difficulty: .advanced,
         exercises: [
@@ -204,7 +216,8 @@ extension WorkoutPreset {
 
     static let definition4 = WorkoutPreset(
         id: "definition_4",
-        name: "Crunch Time",
+        name: "21 Days · Tight & Toned",
+        description: "Three weeks to a tighter, leaner, more confident you. Fast-paced and full of payoff.",
         goal: .definition,
         difficulty: .intermediate,
         exercises: [
@@ -223,7 +236,8 @@ extension WorkoutPreset {
 
     static let definition5 = WorkoutPreset(
         id: "definition_5",
-        name: "Lower Ab Focus",
+        name: "14 Days · Lower Belly Reset",
+        description: "Targeted lower-ab work. The zone everyone asks about — handled.",
         goal: .definition,
         difficulty: .intermediate,
         exercises: [
@@ -243,7 +257,8 @@ extension WorkoutPreset {
 
     static let sculpting1 = WorkoutPreset(
         id: "sculpting_1",
-        name: "Oblique Overload",
+        name: "21 Days · Sweat & Sculpt",
+        description: "HIIT-style core that doubles as cardio. Heat in, definition out.",
         goal: .sculpting,
         difficulty: .intermediate,
         exercises: [
@@ -262,7 +277,8 @@ extension WorkoutPreset {
 
     static let sculpting2 = WorkoutPreset(
         id: "sculpting_2",
-        name: "Waist Whittler",
+        name: "14 Days · Waist Reset",
+        description: "Two weeks of oblique-led toning. Smooth lines, narrower waist.",
         goal: .sculpting,
         difficulty: .beginner,
         exercises: [
@@ -279,7 +295,8 @@ extension WorkoutPreset {
 
     static let sculpting3 = WorkoutPreset(
         id: "sculpting_3",
-        name: "Twist & Shout",
+        name: "30 Days · Sculpt the Curve",
+        description: "Advanced rotation + isolation work. Build the silhouette you want.",
         goal: .sculpting,
         difficulty: .advanced,
         exercises: [
@@ -299,7 +316,8 @@ extension WorkoutPreset {
 
     static let sculpting4 = WorkoutPreset(
         id: "sculpting_4",
-        name: "Core Rotation",
+        name: "21 Days · Twist & Tone",
+        description: "Rotational flow that defines the obliques. Move through every angle.",
         goal: .sculpting,
         difficulty: .intermediate,
         exercises: [
@@ -317,7 +335,8 @@ extension WorkoutPreset {
 
     static let sculpting5 = WorkoutPreset(
         id: "sculpting_5",
-        name: "Oblique Finisher",
+        name: "30 Days · Glow Up",
+        description: "Advanced sculpt sessions with a finisher kick. The full-body before/after.",
         goal: .sculpting,
         difficulty: .advanced,
         exercises: [
@@ -340,7 +359,8 @@ extension WorkoutPreset {
 
     static let fullCore1 = WorkoutPreset(
         id: "full_core_1",
-        name: "Total Core",
+        name: "21 Days · Body Reset",
+        description: "Three weeks to re-anchor your routine. Balanced, sustainable, undefeated.",
         goal: .fullCore,
         difficulty: .intermediate,
         exercises: [
@@ -359,7 +379,8 @@ extension WorkoutPreset {
 
     static let fullCore2 = WorkoutPreset(
         id: "full_core_2",
-        name: "Core Essentials",
+        name: "14 Days · Pilates Princess",
+        description: "Pilates-inspired flow with no equipment needed. Long lines, controlled work.",
         goal: .fullCore,
         difficulty: .beginner,
         exercises: [
@@ -376,7 +397,8 @@ extension WorkoutPreset {
 
     static let fullCore3 = WorkoutPreset(
         id: "full_core_3",
-        name: "360 Core",
+        name: "30 Days · Total Sculpt",
+        description: "Advanced full-body sculpt. Hits every zone, leaves nothing behind.",
         goal: .fullCore,
         difficulty: .advanced,
         exercises: [
@@ -397,7 +419,8 @@ extension WorkoutPreset {
 
     static let fullCore4 = WorkoutPreset(
         id: "full_core_4",
-        name: "Core Balance",
+        name: "21 Days · Lazy Girl Routine",
+        description: "Low-key but consistent. The bare minimum that still moves the needle.",
         goal: .fullCore,
         difficulty: .intermediate,
         exercises: [
@@ -415,7 +438,8 @@ extension WorkoutPreset {
 
     static let fullCore5 = WorkoutPreset(
         id: "full_core_5",
-        name: "Core Gauntlet",
+        name: "30 Days · The Gauntlet",
+        description: "Ten exercises, advanced throughout. The library's most demanding session.",
         goal: .fullCore,
         difficulty: .advanced,
         exercises: [
