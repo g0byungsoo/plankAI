@@ -644,6 +644,105 @@ struct BiometricSlider: View {
     }
 }
 
+// MARK: - NumericWheelPicker
+//
+// Native Picker.wheel-based replacement for the custom vertical ruler.
+// Three rounds of geometry fixes on BiometricSlider couldn't fully
+// resolve scrollable-range clipping at the boundaries — every patch
+// shifted the bug instead of removing it. iOS's UIPickerView (under
+// .pickerStyle(.wheel)) handles arbitrary ranges, snap-to-tick,
+// haptics, accessibility, and overflow without any custom math.
+//
+// Storage stays in metric (cm / kg). The unit toggle flips display
+// only — pickers iterate over metric values via stride(); the format
+// closure converts at render time. Toggling preserves the underlying
+// value so a 65 kg selection stays 65 kg whether shown as "65.0 kg"
+// or "143 lb."
+
+struct NumericWheelPicker<Annotation: View>: View {
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    let step: Double
+    /// (value, isImperial) → display string. Caller owns the
+    /// conversion math so the same closure handles both unit modes.
+    let format: (Double, Bool) -> String
+    let metricUnit: String
+    let imperialUnit: String
+    /// Optional content rendered below the picker (BMI on case 132,
+    /// goal-loss tier text on case 133). EmptyView default for screens
+    /// that don't need it.
+    @ViewBuilder var annotation: () -> Annotation
+
+    @State private var imperial: Bool = true   // default to lb / ft for US-first
+
+    private var pickerValues: [Double] {
+        Array(stride(from: range.lowerBound, through: range.upperBound, by: step))
+    }
+
+    var body: some View {
+        VStack(spacing: Space.sm) {
+            // Unit toggle pill — two-segment capsule, accent fill on
+            // the active side, divider stroke around the whole thing.
+            HStack(spacing: 0) {
+                unitButton(label: imperialUnit, isImperial: true)
+                unitButton(label: metricUnit, isImperial: false)
+            }
+            .padding(2)
+            .background(Palette.bgElevated, in: Capsule())
+            .overlay(Capsule().stroke(Palette.divider, lineWidth: 1))
+
+            // Big Fraunces value display above the picker. Reads as
+            // the headline number; the wheel below is the input.
+            Text(format(value, imperial))
+                .font(Typo.display)
+                .foregroundStyle(Palette.textPrimary)
+                .contentTransition(.numericText())
+                .animation(.easeOut(duration: 0.12), value: value)
+
+            // Native wheel picker. .pickerStyle(.wheel) gives us
+            // momentum scroll, snap-to-tick, haptic feedback, and
+            // accessibility for free.
+            Picker("", selection: $value) {
+                ForEach(pickerValues, id: \.self) { v in
+                    Text(format(v, imperial))
+                        .font(.system(size: 20, weight: .medium))
+                        .tag(v)
+                }
+            }
+            .pickerStyle(.wheel)
+            .frame(height: 200)
+            .clipped()
+            // Re-rendering the picker when the unit toggle flips
+            // forces UIPickerView to rebuild its row labels with the
+            // new format. Without the .id, iOS caches the old label
+            // strings and the wheel reads stale until next scroll.
+            .id(imperial ? "imperial" : "metric")
+
+            annotation()
+        }
+        .padding(.vertical, Space.md)
+    }
+
+    private func unitButton(label: String, isImperial: Bool) -> some View {
+        Button {
+            Haptics.light()
+            withAnimation(.easeOut(duration: 0.18)) { imperial = isImperial }
+        } label: {
+            Text(label)
+                .font(Typo.eyebrow)
+                .tracking(1.5)
+                .foregroundStyle(imperial == isImperial ? Palette.textInverse : Palette.textSecondary)
+                .padding(.horizontal, Space.md)
+                .padding(.vertical, 6)
+                .background(
+                    imperial == isImperial ? Palette.bgInverse : Color.clear,
+                    in: Capsule()
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - BodyTypeSlider
 //
 // 6-position discrete slider (0–5) for "where are you now" /

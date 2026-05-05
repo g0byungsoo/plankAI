@@ -409,14 +409,18 @@ struct OnboardingView: View {
             "How tall are you?",
             sub: "We use this to calibrate intensity.",
             value: $heightCm, range: 137...213, step: 1,
-            format: { v in heightLabel(cm: v) }, next: 132
+            format: { v, imperial in heightLabel(cm: v, imperial: imperial) },
+            metricUnit: "cm", imperialUnit: "ft",
+            next: 132
         )
 
         case 132: jfSliderScreen(
             "What's your current weight?",
             sub: "Helps us measure your progress accurately.",
             value: $currentWeightKg, range: 30...200, step: 0.5,
-            format: { v in weightLabel(kg: v) }, next: 133,
+            format: { v, imperial in weightLabel(kg: v, imperial: imperial) },
+            metricUnit: "kg", imperialUnit: "lb",
+            next: 133,
             annotation: {
                 bmiAnnotation(weightKg: currentWeightKg, heightCm: heightCm)
             }
@@ -426,7 +430,9 @@ struct OnboardingView: View {
             "And your goal weight?",
             sub: "Sets your target. You can change this later.",
             value: $goalWeightKg, range: 30...200, step: 0.5,
-            format: { v in weightLabel(kg: v) }, next: 134,
+            format: { v, imperial in weightLabel(kg: v, imperial: imperial) },
+            metricUnit: "kg", imperialUnit: "lb",
+            next: 134,
             confirmation: "We'll calibrate progress to this.",
             annotation: {
                 goalWeightAnnotation(currentKg: currentWeightKg, goalKg: goalWeightKg)
@@ -980,19 +986,24 @@ struct OnboardingView: View {
         _ title: String, sub: String? = nil,
         value: Binding<Double>,
         range: ClosedRange<Double>, step: Double,
-        format: @escaping (Double) -> String,
-        unitLabel: String? = nil,
+        format: @escaping (Double, Bool) -> String,
+        metricUnit: String, imperialUnit: String,
         next: Int,
         confirmation: String? = nil,
-        @ViewBuilder annotation: () -> Annotation = { EmptyView() }
+        @ViewBuilder annotation: @escaping () -> Annotation = { EmptyView() }
     ) -> some View {
         VStack(spacing: 0) {
             jfHeader(title, sub: sub)
             Spacer()
-            VStack(spacing: Space.md) {
-                BiometricSlider(value: value, range: range, step: step, format: format, unitLabel: unitLabel)
-                annotation()
-            }
+            NumericWheelPicker(
+                value: value,
+                range: range,
+                step: step,
+                format: format,
+                metricUnit: metricUnit,
+                imperialUnit: imperialUnit,
+                annotation: annotation
+            )
             .padding(.horizontal, Space.screenPadding)
             Spacer()
             Button("Continue") {
@@ -3525,9 +3536,28 @@ struct OnboardingView: View {
         return "\(ft)′ \(inch)″"
     }
 
+    /// Unit-aware overload used by NumericWheelPicker (case 131).
+    /// Imperial: ft′ inches″. Metric: integer cm.
+    private func heightLabel(cm: Double, imperial: Bool) -> String {
+        if imperial {
+            return heightLabel(cm: cm)
+        }
+        return "\(Int(cm.rounded())) cm"
+    }
+
     private func weightLabel(kg: Double) -> String {
         let lb = Int((kg * 2.20462).rounded())
         return "\(lb) lb"
+    }
+
+    /// Unit-aware overload used by NumericWheelPicker (cases 132, 133).
+    /// Imperial: rounded lb. Metric: kg with one decimal (matches the
+    /// 0.5 kg step grid).
+    private func weightLabel(kg: Double, imperial: Bool) -> String {
+        if imperial {
+            return weightLabel(kg: kg)
+        }
+        return String(format: "%.1f kg", kg)
     }
 }
 
