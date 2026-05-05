@@ -408,18 +408,18 @@ struct OnboardingView: View {
         case 131: jfSliderScreen(
             "How tall are you?",
             sub: "We use this to calibrate intensity.",
-            value: $heightCm, range: 137...213, step: 1,
-            format: { v, imperial in heightLabel(cm: v, imperial: imperial) },
-            metricUnit: "cm", imperialUnit: "ft",
+            value: $heightCm,
+            metricConfig: Self.heightMetricConfig,
+            imperialConfig: Self.heightImperialConfig,
             next: 132
         )
 
         case 132: jfSliderScreen(
             "What's your current weight?",
             sub: "Helps us measure your progress accurately.",
-            value: $currentWeightKg, range: 30...200, step: 0.5,
-            format: { v, imperial in weightLabel(kg: v, imperial: imperial) },
-            metricUnit: "kg", imperialUnit: "lb",
+            value: $currentWeightKg,
+            metricConfig: Self.weightMetricConfig,
+            imperialConfig: Self.weightImperialConfig,
             next: 133,
             annotation: {
                 bmiAnnotation(weightKg: currentWeightKg, heightCm: heightCm)
@@ -429,9 +429,9 @@ struct OnboardingView: View {
         case 133: jfSliderScreen(
             "And your goal weight?",
             sub: "Sets your target. You can change this later.",
-            value: $goalWeightKg, range: 30...200, step: 0.5,
-            format: { v, imperial in weightLabel(kg: v, imperial: imperial) },
-            metricUnit: "kg", imperialUnit: "lb",
+            value: $goalWeightKg,
+            metricConfig: Self.weightMetricConfig,
+            imperialConfig: Self.weightImperialConfig,
             next: 134,
             confirmation: "We'll calibrate progress to this.",
             annotation: {
@@ -985,9 +985,8 @@ struct OnboardingView: View {
     private func jfSliderScreen<Annotation: View>(
         _ title: String, sub: String? = nil,
         value: Binding<Double>,
-        range: ClosedRange<Double>, step: Double,
-        format: @escaping (Double, Bool) -> String,
-        metricUnit: String, imperialUnit: String,
+        metricConfig: RulerUnitConfig,
+        imperialConfig: RulerUnitConfig,
         next: Int,
         confirmation: String? = nil,
         @ViewBuilder annotation: @escaping () -> Annotation = { EmptyView() }
@@ -997,11 +996,8 @@ struct OnboardingView: View {
             Spacer()
             TickRulerPicker(
                 value: value,
-                range: range,
-                step: step,
-                format: format,
-                metricUnit: metricUnit,
-                imperialUnit: imperialUnit,
+                metricConfig: metricConfig,
+                imperialConfig: imperialConfig,
                 annotation: annotation
             )
             .padding(.horizontal, Space.screenPadding)
@@ -3544,6 +3540,73 @@ struct OnboardingView: View {
         }
         return "\(Int(cm.rounded())) cm"
     }
+
+    // MARK: - Ruler unit configs (Phase 4 Part 3 biometric pickers)
+
+    /// Height ruler — metric. Range 137–213 cm (4'6"–7'0"), 1 cm step,
+    /// major tick every 10 cm.
+    static let heightMetricConfig = RulerUnitConfig(
+        unitName: "cm",
+        range: 137...213,
+        step: 1,
+        majorEvery: 10,
+        toMetric: { $0 },
+        fromMetric: { $0.rounded() },
+        tickLabel: { v in "\(Int(v.rounded()))" },
+        displayLabel: { v in "\(Int(v.rounded())) cm" }
+    )
+
+    /// Height ruler — imperial. Range 54–84 inches in 1-inch steps,
+    /// major tick every 6 inches (half-foot mark). Stores as cm via
+    /// 2.54 conversion; tick labels render as "5'6\"" or "6'" at
+    /// the half-foot points.
+    static let heightImperialConfig = RulerUnitConfig(
+        unitName: "ft",
+        range: 54...84,
+        step: 1,
+        majorEvery: 6,
+        toMetric: { inches in inches * 2.54 },
+        fromMetric: { cm in (cm / 2.54).rounded() },
+        tickLabel: { inches in
+            let i = Int(inches.rounded())
+            let ft = i / 12
+            let inch = i % 12
+            return inch == 0 ? "\(ft)'" : "\(ft)'\(inch)\""
+        },
+        displayLabel: { inches in
+            let i = Int(inches.rounded())
+            let ft = i / 12
+            let inch = i % 12
+            return "\(ft)' \(inch)\""
+        }
+    )
+
+    /// Weight ruler — metric. Range 30–200 kg, 1 kg step, major
+    /// tick every 10 kg.
+    static let weightMetricConfig = RulerUnitConfig(
+        unitName: "kg",
+        range: 30...200,
+        step: 1,
+        majorEvery: 10,
+        toMetric: { $0 },
+        fromMetric: { $0.rounded() },
+        tickLabel: { v in "\(Int(v.rounded()))" },
+        displayLabel: { v in "\(Int(v.rounded())) kg" }
+    )
+
+    /// Weight ruler — imperial. Range 66–440 lb, 1 lb step, major
+    /// tick every 25 lb. 75 / 100 / 125 / ... read as natural cohort
+    /// boundaries on the lb scale.
+    static let weightImperialConfig = RulerUnitConfig(
+        unitName: "lb",
+        range: 66...440,
+        step: 1,
+        majorEvery: 25,
+        toMetric: { lb in lb / 2.20462 },
+        fromMetric: { kg in (kg * 2.20462).rounded() },
+        tickLabel: { v in "\(Int(v.rounded()))" },
+        displayLabel: { v in "\(Int(v.rounded())) lb" }
+    )
 
     private func weightLabel(kg: Double) -> String {
         let lb = Int((kg * 2.20462).rounded())

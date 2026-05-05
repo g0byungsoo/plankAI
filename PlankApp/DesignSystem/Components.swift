@@ -644,35 +644,56 @@ struct BiometricSlider: View {
     }
 }
 
+// MARK: - RulerUnitConfig
+//
+// Per-unit configuration for the flat tick ruler. The picker takes
+// two of these (metric + imperial) and switches between them when
+// the user toggles units. Storage in the parent stays in metric
+// (cm / kg); toMetric / fromMetric handle the conversion at the
+// boundary so the active config can iterate native ticks (inches
+// for height-imperial, lb for weight-imperial) without aliasing
+// quirks from rendering metric values under an imperial scale.
+
+struct RulerUnitConfig {
+    /// Toggle button label, e.g., "cm", "ft", "kg", "lb".
+    let unitName: String
+    /// Range expressed in this config's unit.
+    let range: ClosedRange<Double>
+    /// Tick spacing in this unit (typically 1 — every cm, every inch,
+    /// every kg, every lb).
+    let step: Double
+    /// Major tick every N steps. e.g., 10 for cm/kg, 6 for inches
+    /// (half-foot), 25 for lb (quarter-hundred-lb groupings).
+    let majorEvery: Int
+    /// Convert a value in this unit to metric (cm or kg).
+    let toMetric: (Double) -> Double
+    /// Convert a metric value (cm or kg) to this unit.
+    let fromMetric: (Double) -> Double
+    /// Short label rendered next to a major tick, e.g., "150" or "5'".
+    let tickLabel: (Double) -> String
+    /// Long label rendered as the big Fraunces display value above
+    /// the ruler, e.g., "150 cm" or "5' 6\"".
+    let displayLabel: (Double) -> String
+}
+
 // MARK: - TickRulerPicker
 //
-// UIKit-backed numeric picker styled as a vertical tick-mark ruler.
+// SwiftUI shell for the flat ruler. UIKit UIScrollView under the
+// hood (FlatRulerScroll) gives bulletproof scroll handling without
+// the wheel-on-cylinder edge curvature of UIPickerView. Custom
+// per-row UIView subviews render the tick-mark visual. Per-unit
+// configs let the toggle switch tick labels (cm ↔ ft+in, kg ↔ lb)
+// in addition to the big Fraunces display value above.
 //
-// Earlier custom SwiftUI ruler attempts had layout/clipping bugs at
-// boundary values; the SwiftUI .wheel Picker fixed correctness but
-// looked like a generic iOS drum, not the tape-measure aesthetic.
-// This version uses UIPickerView (rock-solid scrolling, native
-// haptics, accessible by default) but provides a custom row view so
-// each row renders as a horizontal tick — major ticks (every 10
-// units) carry their numeric label, minor ticks (every 1 unit) are
-// shorter and unlabeled. A SwiftUI overlay paints the center
-// selection bar on top.
-//
-// Storage stays in metric (cm / kg). The unit toggle flips display
-// only — picker iterates metric values via stride; the format
-// closure converts at render time. Toggling preserves the underlying
-// value so a 65 kg selection stays 65 kg whether shown as "65.0 kg"
-// or "143 lb."
+// Storage stays in metric (cm / kg). The active config's
+// fromMetric / toMetric translate the binding into the visible
+// unit; force-rebuild on toggle via `.id()` so the underlying
+// UIScrollView is recreated with the new range + tick layout.
 
 struct TickRulerPicker<Annotation: View>: View {
     @Binding var value: Double
-    let range: ClosedRange<Double>
-    let step: Double
-    /// (value, isImperial) → display string. Caller owns the
-    /// conversion math so the same closure handles both unit modes.
-    let format: (Double, Bool) -> String
-    let metricUnit: String
-    let imperialUnit: String
+    let metricConfig: RulerUnitConfig
+    let imperialConfig: RulerUnitConfig
     /// Optional content rendered below the picker (BMI on case 132,
     /// goal-loss tier text on case 133). EmptyView default for screens
     /// that don't need it.
@@ -680,8 +701,18 @@ struct TickRulerPicker<Annotation: View>: View {
 
     @State private var imperial: Bool = true   // default to lb / ft for US-first
 
-    private var pickerValues: [Double] {
-        Array(stride(from: range.lowerBound, through: range.upperBound, by: step))
+    private var activeConfig: RulerUnitConfig {
+        imperial ? imperialConfig : metricConfig
+    }
+
+    /// Bridge between the parent's metric-unit binding and the
+    /// picker's active-unit value. Reads convert metric → active;
+    /// writes convert active → metric.
+    private var activeValue: Binding<Double> {
+        Binding(
+            get: { activeConfig.fromMetric(value) },
+            set: { value = activeConfig.toMetric($0) }
+        )
     }
 
     var body: some View {
@@ -689,42 +720,31 @@ struct TickRulerPicker<Annotation: View>: View {
             // Unit toggle pill — two-segment capsule, accent fill on
             // the active side, divider stroke around the whole thing.
             HStack(spacing: 0) {
-                unitButton(label: imperialUnit, isImperial: true)
-                unitButton(label: metricUnit, isImperial: false)
+                unitButton(label: imperialConfig.unitName, isImperial: true)
+                unitButton(label: metricConfig.unitName, isImperial: false)
             }
             .padding(2)
             .background(Palette.bgElevated, in: Capsule())
             .overlay(Capsule().stroke(Palette.divider, lineWidth: 1))
 
-            // Big Fraunces value display above the picker. Reads as
-            // the headline number; the wheel below is the input.
-            Text(format(value, imperial))
+            // Big Fraunces value display above the picker.
+            Text(activeConfig.displayLabel(activeConfig.fromMetric(value)))
                 .font(Typo.display)
                 .foregroundStyle(Palette.textPrimary)
                 .contentTransition(.numericText())
                 .animation(.easeOut(duration: 0.12), value: value)
 
-            // UIKit ruler picker — UIPickerView under the hood, custom
-            // row views render tick marks. Overlaid SwiftUI indicator
-            // paints the cocoa selection bar at the picker's vertical
-            // center. Force-rebuild on unit flip via .id() so row
-            // labels re-render in the new system.
+            // Flat UIScrollView ruler. .id() flip rebuilds the
+            // underlying UIView so the new unit's range + tick
+            // layout takes effect cleanly.
             ZStack {
-                TickRulerPickerRepresentable(
-                    value: $value,
-                    range: range,
-                    step: step,
-                    imperial: imperial
-                )
-                .frame(height: 200)
+                FlatRulerScroll(value: activeValue, config: activeConfig)
+                    .frame(height: 200)
 
                 // Subtle selection indicator — two small accent dots
-                // flanking the picker at the row centerline. Sits
-                // outside the tick column so it doesn't visually
-                // compete with the major ticks (which already carry
-                // their own accent treatment); reads as "this row"
-                // via edge emphasis instead of a bar across the
-                // ruler.
+                // at the picker's left + right edges, vertical center.
+                // Reads "this row" via edge emphasis without a bar
+                // across the ruler.
                 HStack {
                     Circle()
                         .fill(Palette.accent)
@@ -765,175 +785,190 @@ struct TickRulerPicker<Annotation: View>: View {
     }
 }
 
-// MARK: - TickRulerPickerRepresentable
+// MARK: - FlatRulerScroll
 //
-// UIKit UIPickerView wrapper. Each row renders as a tick mark via
-// `viewForRow:` — major ticks (every 10 units of the row's value)
-// carry the numeric label, minor ticks (every 1 unit) are shorter
-// and unlabeled. Step values that don't land on integer boundaries
-// (e.g., the 0.5 kg increments in the weight ruler) render as
-// empty rows — present in the data grid for snap-to-tick precision
-// but visually skipped so the tick density stays readable.
+// UIScrollView-backed flat ruler. Replaces the UIPickerView wrapper
+// that had inherent wheel-on-cylinder edge curvature — ticks far
+// from center rendered at perspective and read blurry. UIScrollView
+// gives us flat tick rendering at every position with full snap-to-
+// tick + native haptic + accessibility behavior.
+//
+// Layout: a single tall content view inside the scroll view, sized
+// (totalRows * rowHeight) tall. Tick subviews positioned absolutely
+// at row * rowHeight. ContentInset top + bottom both equal
+// (scrollViewHeight - rowHeight) / 2 so the user can scroll any row
+// to the scroll view's vertical center; the inset at row 0 lets
+// the user reach the lower bound centered, and the bottom inset
+// handles the upper bound.
+//
+// Snap-to-tick happens in scrollViewWillEndDragging by rewriting
+// targetContentOffset to the nearest row's centered offset. Per-tick
+// haptic fires in scrollViewDidScroll when the centered row index
+// changes.
 
-struct TickRulerPickerRepresentable: UIViewRepresentable {
-    @Binding var value: Double
-    let range: ClosedRange<Double>
-    let step: Double
-    let imperial: Bool
+struct FlatRulerScroll: UIViewRepresentable {
+    @Binding var value: Double   // value in `config`'s unit
+    let config: RulerUnitConfig
 
-    private var totalRows: Int {
-        Int(((range.upperBound - range.lowerBound) / step).rounded()) + 1
+    fileprivate let rowHeight: CGFloat = 22
+    fileprivate var totalRows: Int {
+        Int(((config.range.upperBound - config.range.lowerBound) / config.step).rounded()) + 1
+    }
+    fileprivate func rowIndex(for v: Double) -> Int {
+        max(0, min(totalRows - 1, Int(((v - config.range.lowerBound) / config.step).rounded())))
+    }
+    fileprivate func contentOffsetY(for v: Double, inset: CGFloat) -> CGFloat {
+        // Place row N's center at the scroll view's vertical center.
+        // ContentOffset.y = N * rowHeight - inset (so row N sits at
+        // visible y = inset, which equals scroll view center after
+        // accounting for the top inset).
+        CGFloat(rowIndex(for: v)) * rowHeight - inset
     }
 
-    private func rowIndex(for value: Double) -> Int {
-        max(0, min(totalRows - 1, Int(((value - range.lowerBound) / step).rounded())))
+    func makeUIView(context: Context) -> UIScrollView {
+        let scrollView = UIScrollView()
+        scrollView.delegate = context.coordinator
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.decelerationRate = .fast
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.backgroundColor = .clear
+
+        let content = UIView()
+        content.backgroundColor = .clear
+        content.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(content)
+        context.coordinator.contentView = content
+
+        let totalHeight = CGFloat(totalRows) * rowHeight
+        NSLayoutConstraint.activate([
+            content.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            content.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+            content.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
+            content.heightAnchor.constraint(equalToConstant: totalHeight)
+        ])
+
+        buildTicks(in: content)
+        return scrollView
     }
 
-    func makeUIView(context: Context) -> UIPickerView {
-        let picker = UIPickerView()
-        picker.delegate = context.coordinator
-        picker.dataSource = context.coordinator
-        picker.backgroundColor = .clear
-        picker.setContentHuggingPriority(.defaultLow, for: .vertical)
-        // Land on the bound value at first display.
-        picker.selectRow(rowIndex(for: value), inComponent: 0, animated: false)
-        return picker
-    }
-
-    func updateUIView(_ picker: UIPickerView, context: Context) {
-        // Keep the coordinator's snapshot of `range`/`step`/`imperial`
-        // current so row labels re-render correctly when the unit
-        // toggle flips.
+    func updateUIView(_ scrollView: UIScrollView, context: Context) {
         context.coordinator.parent = self
 
-        // Sync external binding changes (e.g., the smart goal-weight
-        // default writing currentWeightKg into goalWeightKg on case
-        // 133 mount) into the picker's selection. Compare row index
-        // to avoid spurious animation when the picker is already on
-        // the right row from a user scroll.
-        let target = rowIndex(for: value)
-        if picker.selectedRow(inComponent: 0) != target {
-            picker.selectRow(target, inComponent: 0, animated: false)
+        // Set the half-height contentInset once layout settles so any
+        // row can scroll to the visible center. The first updateUIView
+        // call lands before scrollView has its final frame; we apply
+        // on next runloop tick.
+        DispatchQueue.main.async {
+            let halfHeight = scrollView.frame.height / 2
+            let inset = max(0, halfHeight - rowHeight / 2)
+            if abs(scrollView.contentInset.top - inset) > 0.5 {
+                scrollView.contentInset = UIEdgeInsets(
+                    top: inset, left: 0, bottom: inset, right: 0
+                )
+                // Re-anchor to current value now that the inset is set.
+                let target = contentOffsetY(for: value, inset: inset)
+                scrollView.setContentOffset(.init(x: 0, y: target), animated: false)
+                context.coordinator.lastRowIndex = rowIndex(for: value)
+            }
         }
 
-        picker.reloadAllComponents()
+        // External binding write (e.g., smart goal-weight default
+        // seeding currentWeightKg into goalWeightKg on case 133
+        // mount) — sync without animation.
+        let inset = scrollView.contentInset.top
+        let target = contentOffsetY(for: value, inset: inset)
+        if abs(scrollView.contentOffset.y - target) > 0.5 && !scrollView.isTracking && !scrollView.isDecelerating {
+            scrollView.setContentOffset(.init(x: 0, y: target), animated: false)
+        }
     }
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
+    func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
 
-    final class Coordinator: NSObject, UIPickerViewDelegate, UIPickerViewDataSource {
-        var parent: TickRulerPickerRepresentable
+    private func buildTicks(in content: UIView) {
+        for row in 0..<totalRows {
+            let rowValue = config.range.lowerBound + Double(row) * config.step
+            let isMajor = (row % config.majorEvery == 0)
 
-        init(parent: TickRulerPickerRepresentable) {
-            self.parent = parent
-        }
+            let rowContainer = UIView()
+            rowContainer.translatesAutoresizingMaskIntoConstraints = false
+            rowContainer.backgroundColor = .clear
+            content.addSubview(rowContainer)
 
-        func numberOfComponents(in pickerView: UIPickerView) -> Int { 1 }
+            NSLayoutConstraint.activate([
+                rowContainer.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+                rowContainer.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+                rowContainer.topAnchor.constraint(equalTo: content.topAnchor, constant: CGFloat(row) * rowHeight),
+                rowContainer.heightAnchor.constraint(equalToConstant: rowHeight)
+            ])
 
-        func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
-            parent.totalRows
-        }
+            let tickWidth: CGFloat = isMajor ? 32 : 16
+            let tickHeightVal: CGFloat = isMajor ? 2 : 1
+            let tickColor = isMajor ? UIColor(Palette.accent) : UIColor(Palette.divider)
 
-        func pickerView(_ pickerView: UIPickerView, rowHeightForComponent component: Int) -> CGFloat {
-            22
-        }
-
-        func pickerView(_ pickerView: UIPickerView, viewForRow row: Int, forComponent component: Int, reusing view: UIView?) -> UIView {
-            let rawValue = parent.range.lowerBound + Double(row) * parent.step
-            let kind = tickKind(for: rawValue, step: parent.step)
-            let container = UIView()
-            container.backgroundColor = .clear
-
-            // Ticks are positioned just left of the row's centerX so
-            // numbers can sit immediately to the right at a consistent
-            // horizontal anchor.
-            let tickOffset: CGFloat = 6
             let tick = UIView()
+            tick.backgroundColor = tickColor
             tick.translatesAutoresizingMaskIntoConstraints = false
-            container.addSubview(tick)
+            rowContainer.addSubview(tick)
+            NSLayoutConstraint.activate([
+                tick.widthAnchor.constraint(equalToConstant: tickWidth),
+                tick.heightAnchor.constraint(equalToConstant: tickHeightVal),
+                tick.centerYAnchor.constraint(equalTo: rowContainer.centerYAnchor),
+                tick.trailingAnchor.constraint(equalTo: rowContainer.centerXAnchor, constant: -6)
+            ])
 
-            switch kind {
-            case .major:
-                tick.backgroundColor = UIColor(Palette.accent)
-                NSLayoutConstraint.activate([
-                    tick.widthAnchor.constraint(equalToConstant: 32),
-                    tick.heightAnchor.constraint(equalToConstant: 2),
-                    tick.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-                    tick.trailingAnchor.constraint(equalTo: container.centerXAnchor, constant: -tickOffset)
-                ])
-
+            if isMajor {
                 let label = UILabel()
                 label.font = UIFont(name: "DMSans-Bold", size: 14)
                     ?? .systemFont(ofSize: 14, weight: .bold)
                 label.textColor = UIColor(Palette.textPrimary)
-                label.text = labelText(for: rawValue)
+                label.text = config.tickLabel(rowValue)
                 label.translatesAutoresizingMaskIntoConstraints = false
-                container.addSubview(label)
+                rowContainer.addSubview(label)
                 NSLayoutConstraint.activate([
-                    label.leadingAnchor.constraint(equalTo: container.centerXAnchor, constant: tickOffset),
-                    label.centerYAnchor.constraint(equalTo: container.centerYAnchor)
-                ])
-
-            case .minor:
-                tick.backgroundColor = UIColor(Palette.divider)
-                NSLayoutConstraint.activate([
-                    tick.widthAnchor.constraint(equalToConstant: 16),
-                    tick.heightAnchor.constraint(equalToConstant: 1),
-                    tick.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-                    tick.trailingAnchor.constraint(equalTo: container.centerXAnchor, constant: -tickOffset)
-                ])
-
-            case .none:
-                // Sub-integer step (e.g., 0.5 kg fractional rows) —
-                // present in the data grid for snap precision but
-                // visually empty so the ruler reads at "1-unit minor,
-                // 10-unit major" cadence regardless of step size.
-                tick.backgroundColor = .clear
-                NSLayoutConstraint.activate([
-                    tick.widthAnchor.constraint(equalToConstant: 0),
-                    tick.heightAnchor.constraint(equalToConstant: 0),
-                    tick.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-                    tick.centerXAnchor.constraint(equalTo: container.centerXAnchor)
+                    label.leadingAnchor.constraint(equalTo: rowContainer.centerXAnchor, constant: 6),
+                    label.centerYAnchor.constraint(equalTo: rowContainer.centerYAnchor)
                 ])
             }
+        }
+    }
 
-            return container
+    final class Coordinator: NSObject, UIScrollViewDelegate {
+        var parent: FlatRulerScroll
+        var contentView: UIView?
+        var lastRowIndex: Int = -1
+        let haptic = UIImpactFeedbackGenerator(style: .light)
+
+        init(parent: FlatRulerScroll) {
+            self.parent = parent
+            super.init()
+            haptic.prepare()
         }
 
-        func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-            let newValue = parent.range.lowerBound + Double(row) * parent.step
-            if parent.value != newValue {
-                parent.value = newValue
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            guard scrollView.contentInset.top > 0 else { return }
+            // Centered row = (contentOffset.y + inset.top) / rowHeight.
+            let centerY = scrollView.contentOffset.y + scrollView.contentInset.top
+            let row = Int((centerY / parent.rowHeight).rounded())
+            let clamped = max(0, min(parent.totalRows - 1, row))
+
+            if clamped != lastRowIndex {
+                lastRowIndex = clamped
+                haptic.impactOccurred(intensity: 0.5)
+                let newValue = parent.config.range.lowerBound + Double(clamped) * parent.config.step
+                if abs(parent.value - newValue) > parent.config.step / 4 {
+                    parent.value = newValue
+                }
             }
         }
 
-        // MARK: helpers
-
-        private enum TickKind { case major, minor, none }
-
-        private func tickKind(for value: Double, step: Double) -> TickKind {
-            // Treat anything within step/2 of an integer as "on the
-            // integer" — robust to floating-point drift across the
-            // arithmetic chain.
-            let nearestInt = value.rounded()
-            let isInteger = abs(value - nearestInt) < step / 2
-            if !isInteger { return .none }
-
-            let mod10 = nearestInt.truncatingRemainder(dividingBy: 10)
-            if abs(mod10) < 0.5 { return .major }
-            return .minor
-        }
-
-        private func labelText(for value: Double) -> String {
-            // Major-tick labels render in metric units regardless of
-            // the imperial toggle — the big Fraunces display above
-            // already shows the unit-converted value. Showing the
-            // metric tick number keeps the scale stable through unit
-            // toggles (otherwise users reading an imperial scale see
-            // labels jump as they scroll, which feels glitchy).
-            "\(Int(value.rounded()))"
+        func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
+            // Snap target to the nearest tick row.
+            let inset = scrollView.contentInset.top
+            let targetCenterY = targetContentOffset.pointee.y + inset
+            let row = (targetCenterY / parent.rowHeight).rounded()
+            let clamped = max(0, min(CGFloat(parent.totalRows - 1), row))
+            targetContentOffset.pointee.y = clamped * parent.rowHeight - inset
         }
     }
 }
