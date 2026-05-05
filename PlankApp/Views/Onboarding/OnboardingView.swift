@@ -1,15 +1,74 @@
 import SwiftUI
 import AVFoundation
+import AVKit
 
 // MARK: - Onboarding Flow
 // Interleaved: 2-3 questions → education/celebration → repeat
 // Every question requires Continue. Instant feedback on answers.
 // Gradient blobs + animated SF Symbols + photo slots for stock images.
 
+// MARK: - VideoHero
+//
+// Bundle video player wrapped for the Welcome hero block. AVPlayerViewController
+// gives us proper retain semantics on the underlying AVPlayerLayer; the
+// equivalent UIView wrapping AVPlayerLayer directly tends to leak the player
+// when the host view recycles. Loops via AVPlayerItemDidPlayToEndTime —
+// actionAtItemEnd = .none keeps the player from pausing at the natural end
+// so the seek-to-zero + play handler fires cleanly.
+
+private struct VideoHero: UIViewControllerRepresentable {
+    let videoName: String
+    let videoExtension: String
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeUIViewController(context: Context) -> AVPlayerViewController {
+        let controller = AVPlayerViewController()
+        controller.showsPlaybackControls = false
+        controller.videoGravity = .resizeAspectFill
+        controller.view.backgroundColor = .clear
+
+        guard let url = Bundle.main.url(forResource: videoName, withExtension: videoExtension) else {
+            return controller
+        }
+        let player = AVPlayer(url: url)
+        player.isMuted = true
+        player.actionAtItemEnd = .none
+        controller.player = player
+
+        context.coordinator.observer = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: player.currentItem,
+            queue: .main
+        ) { _ in
+            player.seek(to: .zero)
+            player.play()
+        }
+        player.play()
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {}
+
+    static func dismantleUIViewController(
+        _ uiViewController: AVPlayerViewController,
+        coordinator: Coordinator
+    ) {
+        if let observer = coordinator.observer {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        uiViewController.player?.pause()
+        uiViewController.player = nil
+    }
+
+    final class Coordinator {
+        var observer: NSObjectProtocol?
+    }
+}
+
 struct OnboardingView: View {
     @State private var screen: Int
     @State private var dir = 1
-    @State private var visible = false
 
     init(onComplete: @escaping (OnboardingData) -> Void) {
         self.onComplete = onComplete
@@ -660,123 +719,224 @@ struct OnboardingView: View {
     }
 
     // ═══════════════════════════════════════
-    // MARK: - WELCOME
+    // MARK: - WELCOME (Phase 15b)
     // ═══════════════════════════════════════
+    //
+    // Marketing-site layout: top-bar wordmark, leading-aligned editorial
+    // headline + subhead, hero.mp4 inside a pink-mat rounded frame,
+    // cocoa pill CTA, and a sticker scatter behind the content. The
+    // entrance choreographs eyebrow → headline → subhead → video → CTA
+    // as five sequential beats; stickers cascade in from t=0 via
+    // Phase 14b's per-Sticker entrance animation.
 
-    @State private var heroVisible = false
+    @State private var welcomeAppeared = false
+    @State private var welcomeEyebrowVisible = false
+    @State private var welcomeHeadlineVisible = false
+    @State private var welcomeSubheadVisible = false
+    @State private var welcomeVideoVisible = false
+    @State private var welcomeCtaVisible = false
+
+    // 8 stickers placed in margins only — never on the leading-aligned
+    // text column (x≤0.6) or the centered video block (y=0.30–0.70 of
+    // the hero band, x=0.06–0.94 of screen with 24pt h-padding).
+    // Mix is 2 line-art / 6 painterly per the sticker style spec.
+    // phaseDelay values are unique 0.0…1.0 so each sticker has a
+    // distinct idle drift period.
+    private static let welcomePlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .starLineart,
+                         position: CGPoint(x: 0.92, y: 0.06),
+                         size: 30, rotation: 12, phaseDelay: 0.00),
+        StickerPlacement(sticker: .sparkleGlossy,
+                         position: CGPoint(x: 0.85, y: 0.11),
+                         size: 30, rotation: -10, phaseDelay: 0.13),
+        StickerPlacement(sticker: .flower3D,
+                         position: CGPoint(x: 0.94, y: 0.26),
+                         size: 36, rotation: 14, phaseDelay: 0.27),
+        StickerPlacement(sticker: .heartsLineart,
+                         position: CGPoint(x: 0.06, y: 0.74),
+                         size: 28, rotation: -8, phaseDelay: 0.40),
+        StickerPlacement(sticker: .gummyBear,
+                         position: CGPoint(x: 0.93, y: 0.74),
+                         size: 36, rotation: 11, phaseDelay: 0.53),
+        StickerPlacement(sticker: .cherries,
+                         position: CGPoint(x: 0.08, y: 0.93),
+                         size: 32, rotation: 9, phaseDelay: 0.66),
+        StickerPlacement(sticker: .teddyPink,
+                         position: CGPoint(x: 0.92, y: 0.94),
+                         size: 38, rotation: -11, phaseDelay: 0.80),
+        StickerPlacement(sticker: .strawberry,
+                         position: CGPoint(x: 0.78, y: 0.95),
+                         size: 28, rotation: 13, phaseDelay: 0.93),
+    ]
 
     private var welcome: some View {
-        ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                Palette.bgPrimary.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                Spacer().frame(height: Space.lg)
+                StickerScatter(placements: Self.welcomePlacements)
 
-                // Eyebrow — sets the editorial tone before the headline lands.
-                Text("MADE FOR YOUR LEVEL")
-                    .font(Typo.eyebrow)
-                    .tracking(2)
-                    .foregroundStyle(Palette.accent)
-                    .opacity(visible ? 1 : 0)
-                    .offset(y: visible ? 0 : 12)
+                VStack(spacing: 0) {
+                    welcomeTopBar
+                        .padding(.horizontal, 16)
+                        .padding(.top, 4)
 
-                Spacer().frame(height: Space.md)
+                    Spacer().frame(height: 32)
 
-                // Headline with Fraunces italic accent on "strongest".
-                ItalicAccentText(
-                    "Sculpt your strongest body, at home.",
-                    italic: ["strongest"],
-                    alignment: .center
-                )
-                .padding(.horizontal, Space.lg)
-                .opacity(visible ? 1 : 0)
-                .offset(y: visible ? 0 : 16)
+                    welcomeEyebrow
+                        .padding(.horizontal, 24)
+                        .opacity(welcomeEyebrowVisible ? 1 : 0)
+                        .offset(y: welcomeEyebrowVisible ? 0 : 8)
 
-                Spacer().frame(height: Space.md)
+                    Spacer().frame(height: 12)
 
-                // Subhead — names Jeni once. No AI language.
-                Text("Personalized routines built around your goals — guided by Jeni, your coach.")
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Space.lg)
-                    .opacity(visible ? 1 : 0)
-                    .offset(y: visible ? 0 : 16)
+                    welcomeHeadline
+                        .padding(.horizontal, 24)
+                        .opacity(welcomeHeadlineVisible ? 1 : 0)
+                        .offset(y: welcomeHeadlineVisible ? 0 : 12)
 
-                Spacer().frame(height: Space.lg)
+                    Spacer().frame(height: 16)
 
-                // Hero block. Diagonal-stripe placeholder sits where the
-                // coach photo will eventually live; three small ✦ glyphs
-                // float around the edges as the only sparkles in the
-                // entire app — restraint is part of the brand.
-                ZStack {
-                    EditorialPlaceholder(label: "EDITORIAL · COACH PHOTO")
-                        .frame(maxWidth: 320)
-                        .frame(height: 320)
-                        .opacity(heroVisible ? 1 : 0)
-                        .offset(y: heroVisible ? 0 : 30)
+                    welcomeSubhead
+                        .padding(.horizontal, 24)
+                        .opacity(welcomeSubheadVisible ? 1 : 0)
+                        .offset(y: welcomeSubheadVisible ? 0 : 12)
 
-                    sparkle(size: 14, opacity: 0.9)
-                        .offset(x: 140, y: -150)
-                    sparkle(size: 10, opacity: 0.7)
-                        .offset(x: -150, y: 20)
-                    sparkle(size: 12, opacity: 0.85)
-                        .offset(x: 130, y: 140)
-                }
-                .frame(maxWidth: .infinity)
+                    Spacer().frame(height: 24)
 
-                Spacer()
+                    welcomeVideoBlock(height: max(240, min(380, geo.size.height * 0.42)))
+                        .padding(.horizontal, 24)
+                        .opacity(welcomeVideoVisible ? 1 : 0)
+                        .scaleEffect(welcomeVideoVisible ? 1.0 : 0.96)
 
-                Button("Get started") {
-                    Haptics.light()
-                    go(200) // Part 1 divider
-                }
-                .buttonStyle(.ctaPrimary)
-                .padding(.horizontal, Space.screenPadding)
-                .opacity(visible ? 1 : 0)
-                .offset(y: visible ? 0 : 24)
+                    Spacer(minLength: 16)
 
-                Button {
-                    Haptics.light()
-                    showWelcomeSignInSheet = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Text("Already have an account?")
-                        Text("Sign in").underline()
+                    welcomeCTA
+                        .padding(.horizontal, 24)
+                        .opacity(welcomeCtaVisible ? 1 : 0)
+                        .scaleEffect(welcomeCtaVisible ? 1.0 : 0.96)
+
+                    Text("It's free to begin.")
+                        .font(.custom("DMSans-Regular", size: 13))
+                        .foregroundStyle(Palette.textSecondary)
+                        .padding(.top, 8)
+                        .opacity(welcomeCtaVisible ? 1 : 0)
+
+                    Button {
+                        Haptics.light()
+                        showWelcomeSignInSheet = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("Already have an account?")
+                            Text("Sign in").underline()
+                        }
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
                     }
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
+                    .buttonStyle(.plain)
+                    .padding(.top, 12)
+                    .padding(.bottom, 16)
+                    .opacity(welcomeCtaVisible ? 1 : 0)
                 }
-                .buttonStyle(.plain)
-                .padding(.top, Space.md)
-                .padding(.bottom, Space.lg)
-                .opacity(visible ? 1 : 0)
             }
-        }
-        .onAppear {
-            // Hero placeholder eases up first so the editorial block lands
-            // before the surrounding copy resolves.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                withAnimation(.easeOut(duration: 0.5)) { heroVisible = true }
-            }
-            // Eyebrow + headline + subhead + CTA share one fade so the page
-            // feels intentional, not staged.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                withAnimation(.easeOut(duration: 0.55)) { visible = true }
-            }
-            // Confetti retained as the celebratory landing touch — kept
-            // brief so it reads as accent, not party.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                showConfetti = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { showConfetti = false }
-            }
+            .task { await runWelcomeChoreography() }
         }
     }
 
-    private func sparkle(size: CGFloat, opacity: Double) -> some View {
-        Text("✦")
-            .font(.system(size: size, weight: .regular))
-            .foregroundStyle(Palette.accent.opacity(opacity))
+    // Inline sub-views factored out so the body stays readable and the
+    // layout edits don't have to navigate one giant view tree.
+
+    private var welcomeTopBar: some View {
+        // Smaller variant of JeniFitWordmark for the top bar — the
+        // canonical component is hard-coded to Typo.title (32pt) and
+        // we want 22pt here. Phase 17 swaps this for the logo PNG.
+        let base = Font.custom("Fraunces72pt-SemiBold", size: 22)
+        let separator = Font(UIFont(name: "Fraunces72pt-Light", size: 18)
+                             ?? .systemFont(ofSize: 18))
+        return HStack {
+            (Text("jeni").font(base)
+             + Text("\u{2009}•\u{2009}").font(separator)
+             + Text("fit").font(base))
+                .foregroundStyle(Palette.textPrimary)
+            Spacer()
+        }
+    }
+
+    private var welcomeEyebrow: some View {
+        HStack {
+            Text("MADE FOR YOUR LEVEL")
+                .font(Typo.eyebrow)
+                .tracking(2)
+                .foregroundStyle(Palette.accent)
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var welcomeHeadline: some View {
+        ItalicAccentText(
+            "Sculpt your strongest body, at home.",
+            italic: ["strongest"],
+            baseFont: .custom("Fraunces72pt-SemiBold", size: 38),
+            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 38),
+            alignment: .leading
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var welcomeSubhead: some View {
+        Text("Personalized routines built around your goals — guided by Jeni, your coach.")
+            .font(Typo.body)
+            .foregroundStyle(Palette.textSecondary)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Pink mat (Palette.accentSubtle) framing a clipped video player.
+    /// Outer rounded rect at 20pt, inner video clipped to 12pt with a
+    /// 12pt inset — the inset is the visible mat band that frames the
+    /// video like a photo border.
+    private func welcomeVideoBlock(height: CGFloat) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Palette.accentSubtle)
+
+            VideoHero(videoName: "hero", videoExtension: "mp4")
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(12)
+        }
+        .frame(height: height)
+    }
+
+    private var welcomeCTA: some View {
+        Button {
+            Haptics.light()
+            go(200) // Part 1 divider
+        } label: {
+            Text("Get started")
+                .font(.custom("DMSans-SemiBold", size: 16))
+                .foregroundStyle(Palette.bgPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 56)
+                .background(Palette.textPrimary)
+                .clipShape(Capsule())
+        }
+    }
+
+    @MainActor
+    private func runWelcomeChoreography() async {
+        guard !welcomeAppeared else { return }
+        welcomeAppeared = true
+
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        withAnimation(.easeOut(duration: 0.4)) { welcomeEyebrowVisible = true }
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        withAnimation(.easeOut(duration: 0.4)) { welcomeHeadlineVisible = true }
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        withAnimation(.easeOut(duration: 0.4)) { welcomeSubheadVisible = true }
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        withAnimation(.easeOut(duration: 0.5)) { welcomeVideoVisible = true }
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { welcomeCtaVisible = true }
     }
 
     // ═══════════════════════════════════════
