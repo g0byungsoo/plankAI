@@ -3,15 +3,15 @@ import SwiftUI
 // MARK: - Copy
 //
 // Constants kept at file scope so v1.0.1 A/B tests can swap variants
-// without touching the choreography. Two equal beats, both rendered
-// at Fraunces SemiBold 28pt — the second line matches the first in
-// weight and size so they read as paired statements, not
-// headline + finisher. Line 1 carries an explicit \n at the period
-// so the visual break lands the same on every phone size; auto-wrap
-// would reflow on smaller screens.
+// without touching the choreography. Three equal beats — same
+// Fraunces SemiBold 28pt on every line so each fade-up reveals as
+// a peer statement, not headline + finisher. Each line is its own
+// Text view with its own visibility state so the choreography can
+// land them as three distinct beats.
 
-private let kAffirmationLine1 = "You made it here.\nThat already means something."
-private let kAffirmationLine2 = "Let's go."
+private let kAffirmationLine1 = "You made it here."
+private let kAffirmationLine2 = "That already means something."
+private let kAffirmationLine3 = "Let's go."
 
 // MARK: - AffirmationScreen
 //
@@ -22,9 +22,10 @@ private let kAffirmationLine2 = "Let's go."
 //   t=0.0  background fade in (0.4s)
 //   t=0.3  sticker cascade begins, 0.1s between each
 //   t=0.8  line 1 fade + scale 0.95→1.0 (0.6s ease-out)
-//   t=2.5  line 2 fade + scale 0.95→1.0 (0.6s ease-out)
-//   t=4.0  hold; idle drift continues
-//   t=4.5  auto-advance via onComplete()
+//   t=2.0  line 2 fade + scale 0.95→1.0 (0.6s ease-out)
+//   t=3.5  line 3 fade + scale 0.95→1.0 (0.6s ease-out)
+//   t=5.0  hold; idle drift continues
+//   t=5.5  auto-advance via onComplete()
 //
 // Tap anywhere on the cream surface skips to advance immediately.
 // reduceMotion snaps everything to final state, holds 3s, advances.
@@ -44,6 +45,7 @@ struct AffirmationScreen: View {
     @State private var stickerRevealCount = 0
     @State private var line1Visible = false
     @State private var line2Visible = false
+    @State private var line3Visible = false
     @State private var didAdvance = false
 
     // 10-sticker cluster — 3 top, 3 mid (left + right edges only,
@@ -124,6 +126,13 @@ struct AffirmationScreen: View {
                     .multilineTextAlignment(.center)
                     .opacity(line2Visible ? 1 : 0)
                     .scaleEffect(line2Visible ? 1.0 : 0.95)
+
+                Text(kAffirmationLine3)
+                    .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                    .foregroundStyle(Palette.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .opacity(line3Visible ? 1 : 0)
+                    .scaleEffect(line3Visible ? 1.0 : 0.95)
             }
             .padding(.horizontal, Space.lg)
         }
@@ -141,6 +150,7 @@ struct AffirmationScreen: View {
             stickerRevealCount = Self.placements.count
             line1Visible = true
             line2Visible = true
+            line3Visible = true
             hasSeenAffirmation = true
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             advanceNow()
@@ -158,8 +168,8 @@ struct AffirmationScreen: View {
         async let _: Void = cascadeStickers()
         async let _: Void = revealText()
 
-        // Hold from t=2.5 (line 2 reveal start) → t=4.5 auto-advance
-        try? await Task.sleep(nanoseconds: 4_500_000_000)
+        // Hold from t=3.5 (line 3 reveal start) → t=5.5 auto-advance
+        try? await Task.sleep(nanoseconds: 5_500_000_000)
         advanceNow()
     }
 
@@ -183,9 +193,13 @@ struct AffirmationScreen: View {
         await MainActor.run {
             withAnimation(.easeOut(duration: 0.6)) { line1Visible = true }
         }
-        try? await Task.sleep(nanoseconds: 1_700_000_000) // → t=2.5
+        try? await Task.sleep(nanoseconds: 1_200_000_000) // → t=2.0
         await MainActor.run {
             withAnimation(.easeOut(duration: 0.6)) { line2Visible = true }
+        }
+        try? await Task.sleep(nanoseconds: 1_500_000_000) // → t=3.5
+        await MainActor.run {
+            withAnimation(.easeOut(duration: 0.6)) { line3Visible = true }
         }
     }
 

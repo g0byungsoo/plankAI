@@ -13,7 +13,7 @@ struct OnboardingView: View {
 
     init(onComplete: @escaping (OnboardingData) -> Void) {
         self.onComplete = onComplete
-        self._screen = State(wrappedValue: -1)
+        self._screen = State(wrappedValue: 0)
     }
     @State private var feedback = ""
     @State private var showFeedback = false
@@ -220,7 +220,6 @@ struct OnboardingView: View {
 
     @ViewBuilder private var currentScreen: some View {
         switch screen {
-        case -1: splashScreen
         case 0: welcome
 
         // ─── Section dividers ───────────────────────────────────
@@ -658,75 +657,6 @@ struct OnboardingView: View {
             }.frame(height: 4)
             Color.clear.frame(width: 40, height: 40)
         }.padding(.horizontal, Space.screenPadding)
-    }
-
-    // ═══════════════════════════════════════
-    // MARK: - SPLASH (screen -1)
-    // ═══════════════════════════════════════
-
-    @State private var splashLogoVisible = false
-    @State private var splashLineVisible = false
-    @State private var splashPulse = false
-
-    private var splashScreen: some View {
-        ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                Spacer()
-
-                // Logo / brand mark
-                JeniFitWordmark()
-                    .opacity(splashLogoVisible ? 1 : 0)
-                    .scaleEffect(splashLogoVisible ? 1 : 0.8)
-
-                Spacer().frame(height: 12)
-
-                // Animated underline
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Palette.accent)
-                    .frame(width: splashLineVisible ? 120 : 0, height: 4)
-                    .animation(.easeOut(duration: 0.6).delay(0.4), value: splashLineVisible)
-
-                Spacer().frame(height: Space.lg)
-
-                // Subtle loading dots
-                HStack(spacing: 6) {
-                    ForEach(0..<3, id: \.self) { i in
-                        Circle()
-                            .fill(Palette.accent.opacity(splashPulse ? 0.8 : 0.2))
-                            .frame(width: 6, height: 6)
-                            .animation(
-                                .easeInOut(duration: 0.5)
-                                .repeatForever(autoreverses: true)
-                                .delay(Double(i) * 0.15),
-                                value: splashPulse
-                            )
-                    }
-                }
-                .opacity(splashLineVisible ? 1 : 0)
-
-                Spacer()
-            }
-        }
-        .onAppear {
-            // Stage 1: logo scales in + vibration
-            Haptics.medium()
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
-                splashLogoVisible = true
-            }
-
-            // Stage 2: underline draws + dots pulse
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                splashLineVisible = true
-                splashPulse = true
-            }
-
-            // Stage 3: auto-transition to welcome
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-                go(0)
-            }
-        }
     }
 
     // ═══════════════════════════════════════
