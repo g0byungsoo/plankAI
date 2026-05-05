@@ -109,8 +109,15 @@ private struct RootView: View {
 
     var body: some View {
         Group {
-            if auth.isReady {
-                if hasCompletedOnboarding {
+            // Branch on onboarding state first so the AffirmationScreen
+            // can win over AuthBootstrapSplash for brand-new users —
+            // the pink affirmation IS the loading state on first launch,
+            // and auth resolves in the background while it plays.
+            // Existing users still get the cocoa splash because
+            // "loading your stuff" is the right framing once they have
+            // stuff to load.
+            if hasCompletedOnboarding {
+                if auth.isReady {
                     MainTabView()
                         .fullScreenCover(isPresented: .constant(!payment.hasProAccess && !payment.isInAuthTransition)) {
                             // Hard paywall — sits between onboarding completion
@@ -140,16 +147,26 @@ private struct RootView: View {
                                 onDismiss: {}
                             )
                         }
-                } else if !affirmationDone {
+                } else {
+                    AuthBootstrapSplash(state: auth.bootstrapState) {
+                        Task { await auth.retryBootstrap() }
+                    }
+                }
+            } else {
+                if !affirmationDone {
                     AffirmationScreen {
                         affirmationDone = true
                     }
+                } else if !auth.isReady {
+                    // Rare edge case: affirmation finished but auth is
+                    // still resolving (very slow network on first launch).
+                    // Fall through to the cocoa splash briefly until
+                    // bootstrap returns.
+                    AuthBootstrapSplash(state: auth.bootstrapState) {
+                        Task { await auth.retryBootstrap() }
+                    }
                 } else {
                     OnboardingView(onComplete: handleOnboardingComplete)
-                }
-            } else {
-                AuthBootstrapSplash(state: auth.bootstrapState) {
-                    Task { await auth.retryBootstrap() }
                 }
             }
         }
