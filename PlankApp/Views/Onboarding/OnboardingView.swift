@@ -995,7 +995,7 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             jfHeader(title, sub: sub)
             Spacer()
-            NumericWheelPicker(
+            TickRulerPicker(
                 value: value,
                 range: range,
                 step: step,
