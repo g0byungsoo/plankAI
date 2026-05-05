@@ -528,6 +528,10 @@ struct BiometricSlider: View {
     let range: ClosedRange<Double>
     let step: Double
     let format: (Double) -> String
+    /// How many `step` units per major (labeled) tick. Default 10 fits
+    /// metric cm/kg cleanly; imperial configs override (6 for half-foot
+    /// height ticks, 25 for lb).
+    var majorTickEvery: Int = 10
     var unitLabel: String? = nil
 
     @State private var dragStartValue: Double?
@@ -537,7 +541,6 @@ struct BiometricSlider: View {
     private let rulerHeight: CGFloat = 240
     private let majorTickWidth: CGFloat = 36
     private let minorTickWidth: CGFloat = 18
-    private let majorTickEvery: Int = 5
 
     private var totalSteps: Int {
         Int(((range.upperBound - range.lowerBound) / step).rounded()) + 1
@@ -609,14 +612,14 @@ struct BiometricSlider: View {
                 }
                 .offset(y: contentOffset)
 
-                // Center selection indicator — a thicker cocoa bar
-                // marking the currently selected tick. Wrapping in
-                // frame(maxHeight: .infinity) makes it fill the ZStack
-                // vertically; default frame alignment (.center) then
-                // places the indicator at the ruler's vertical center.
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Palette.bgInverse)
-                    .frame(width: majorTickWidth + 16, height: 3)
+                // Center selection indicator — a thin accent line
+                // marking the currently selected tick. Subtle: 1pt
+                // accent stroke, slightly wider than the major tick
+                // group beneath it. Reads as "this row" without
+                // dominating the visual hierarchy of the ruler.
+                Rectangle()
+                    .fill(Palette.accent)
+                    .frame(width: majorTickWidth + 32, height: 1)
                     .frame(maxHeight: .infinity)
             }
             .frame(maxWidth: .infinity)
@@ -661,6 +664,97 @@ struct BiometricSlider: View {
     }
 }
 
+
+// MARK: - BiometricRulerConfig + BiometricRulerScreen
+//
+// Wraps BiometricSlider with a unit toggle (cm/ft, kg/lb). Storage
+// in the parent stays metric — the wrapper presents a per-unit
+// binding to BiometricSlider via toMetric / fromMetric round-trip,
+// so internal data never drifts off the metric grid. .id(unit) on
+// the inner BiometricSlider forces a clean rebuild on toggle so
+// the new range / step / format / majorTickEvery configuration
+// takes effect.
+
+struct BiometricRulerConfig {
+    let range: ClosedRange<Double>
+    let step: Double
+    let majorEvery: Int
+    let format: (Double) -> String
+    /// Toggle button label, e.g., "cm" / "ft" / "kg" / "lb".
+    let unitName: String
+}
+
+struct BiometricRulerScreen<Annotation: View>: View {
+    @Binding var valueMetric: Double
+    let metric: BiometricRulerConfig
+    let imperial: BiometricRulerConfig
+    let toMetric: (Double) -> Double
+    let fromMetric: (Double) -> Double
+    @ViewBuilder var annotation: () -> Annotation
+
+    @State private var useImperial = true   // US-first default
+
+    private var activeConfig: BiometricRulerConfig {
+        useImperial ? imperial : metric
+    }
+
+    /// Bridge between the parent's metric binding and BiometricSlider's
+    /// active-unit value. Reads convert metric → active; writes convert
+    /// active → metric. Toggling changes display only; underlying
+    /// metric storage stays exact.
+    private var activeBinding: Binding<Double> {
+        Binding(
+            get: { useImperial ? fromMetric(valueMetric) : valueMetric },
+            set: { valueMetric = useImperial ? toMetric($0) : $0 }
+        )
+    }
+
+    var body: some View {
+        VStack(spacing: Space.sm) {
+            // Two-segment toggle pill — accent fill on the active side,
+            // divider stroke around the pair.
+            HStack(spacing: 0) {
+                unitButton(label: imperial.unitName, isImperial: true)
+                unitButton(label: metric.unitName, isImperial: false)
+            }
+            .padding(2)
+            .background(Palette.bgElevated, in: Capsule())
+            .overlay(Capsule().stroke(Palette.divider, lineWidth: 1))
+
+            BiometricSlider(
+                value: activeBinding,
+                range: activeConfig.range,
+                step: activeConfig.step,
+                format: activeConfig.format,
+                majorTickEvery: activeConfig.majorEvery
+            )
+            // .id rebuilds the inner ruler on toggle so the new range
+            // grid + tick layout takes effect cleanly.
+            .id(useImperial ? "imp" : "met")
+
+            annotation()
+        }
+    }
+
+    private func unitButton(label: String, isImperial: Bool) -> some View {
+        Button {
+            Haptics.light()
+            withAnimation(.easeOut(duration: 0.18)) { useImperial = isImperial }
+        } label: {
+            Text(label)
+                .font(Typo.eyebrow)
+                .tracking(1.5)
+                .foregroundStyle(useImperial == isImperial ? Palette.textInverse : Palette.textSecondary)
+                .padding(.horizontal, Space.md)
+                .padding(.vertical, 6)
+                .background(
+                    useImperial == isImperial ? Palette.bgInverse : Color.clear,
+                    in: Capsule()
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
 
 // MARK: - BodyTypeSlider
 //
