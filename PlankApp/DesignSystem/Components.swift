@@ -564,10 +564,18 @@ struct BiometricSlider: View {
 
     var body: some View {
         VStack(spacing: Space.sm) {
+            // Big Fraunces display value. .contentTransition(.numericText)
+            // was applied here previously but locks per-glyph widths
+            // for digit alignment — that breaks imperial labels like
+            // "5'8\"" where the apostrophe and quote glyphs don't fit
+            // the locked digit cells, rendering too narrow. Plain
+            // animation on `value` keeps the smooth update without
+            // the glyph-width side effect.
             Text(format(value))
                 .font(Typo.display)
                 .foregroundStyle(Palette.textPrimary)
-                .contentTransition(.numericText())
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .animation(.easeOut(duration: 0.12), value: value)
 
             if let unitLabel {
@@ -714,7 +722,12 @@ struct BiometricRulerScreen<Annotation: View>: View {
             // Two-segment toggle pill — accent fill on the active side,
             // divider stroke around the pair. Wrapped in Spacer-pill-
             // Spacer to explicitly center horizontally regardless of
-            // the parent VStack's alignment defaults.
+            // the parent VStack's alignment defaults. fixedSize on the
+            // vertical axis locks the pill's intrinsic height so the
+            // wrapper VStack can't compress it when the inner ruler +
+            // annotation push total content close to available height
+            // (the case-132 / case-133 "pill missing" walkthrough
+            // report).
             HStack {
                 Spacer()
                 HStack(spacing: 0) {
@@ -726,7 +739,18 @@ struct BiometricRulerScreen<Annotation: View>: View {
                 .overlay(Capsule().stroke(Palette.divider, lineWidth: 1))
                 Spacer()
             }
+            .fixedSize(horizontal: false, vertical: true)
 
+            // .id rebuilds the inner ruler on toggle so the new range
+            // grid + tick layout takes effect cleanly.
+            // .fixedSize on the vertical axis locks the slider's
+            // intrinsic 344pt height so the wrapper VStack can't
+            // compress it — without this, the outer Spacer-driven
+            // layout in jfSliderScreen squeezed the ruler frame on
+            // tall content (case 132 BMI annotation, case 133 goal
+            // validation) and the inner ZStack(alignment: .top)
+            // alignment fix lost its effect, regressing the upper-
+            // bound height clip.
             BiometricSlider(
                 value: activeBinding,
                 range: activeConfig.range,
@@ -734,8 +758,7 @@ struct BiometricRulerScreen<Annotation: View>: View {
                 format: activeConfig.format,
                 majorTickEvery: activeConfig.majorEvery
             )
-            // .id rebuilds the inner ruler on toggle so the new range
-            // grid + tick layout takes effect cleanly.
+            .fixedSize(horizontal: false, vertical: true)
             .id(useImperial ? "imp" : "met")
 
             annotation()
