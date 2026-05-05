@@ -348,6 +348,7 @@
 		F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A5839CBCA9EBEB79038667 /* DebugAuthView.swift */; };
 		FAFA000000000000000C0001 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0011 /* Components.swift */; };
 		FAFA000000000000000C0002 /* Stickers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0012 /* Stickers.swift */; };
+		FAFA000000000000000B0001 /* AffirmationScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000B0011 /* AffirmationScreen.swift */; };
 		FAFA000000000000000F0001 /* Fraunces72pt-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */; };
 		FAFA000000000000000F0002 /* Fraunces72pt-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0012 /* Fraunces72pt-Regular.ttf */; };
 		FAFA000000000000000F0003 /* Fraunces72pt-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0013 /* Fraunces72pt-SemiBold.ttf */; };
@@ -706,6 +707,7 @@
 		FAF028D604DCD031A53E9F35 /* SupabaseConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
 		FAFA000000000000000C0011 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		FAFA000000000000000C0012 /* Stickers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stickers.swift; sourceTree = "<group>"; };
+		FAFA000000000000000B0011 /* AffirmationScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AffirmationScreen.swift; sourceTree = "<group>"; };
 		FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-Light.ttf"; sourceTree = "<group>"; };
 		FAFA000000000000000F0012 /* Fraunces72pt-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-Regular.ttf"; sourceTree = "<group>"; };
 		FAFA000000000000000F0013 /* Fraunces72pt-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-SemiBold.ttf"; sourceTree = "<group>"; };
@@ -792,6 +794,14 @@
 			path = Common;
 			sourceTree = "<group>";
 		};
+		FAFA000000000000000B0021 /* Welcome */ = {
+			isa = PBXGroup;
+			children = (
+				FAFA000000000000000B0011 /* AffirmationScreen.swift */,
+			);
+			path = Welcome;
+			sourceTree = "<group>";
+		};
 		783186552F99E4130096138F /* Home */ = {
 			isa = PBXGroup;
 			children = (
@@ -859,6 +869,7 @@
 				AA00010C2FA1000100000007 /* Routine */,
 				7831865B2F99E4130096138F /* Session */,
 				7831865D2F99E4130096138F /* Share */,
+				FAFA000000000000000B0021 /* Welcome */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -1702,6 +1713,7 @@
 				783187DE2F9AF2060096138F /* Haptics.swift in Sources */,
 				FAFA000000000000000C0001 /* Components.swift in Sources */,
 				FAFA000000000000000C0002 /* Stickers.swift in Sources */,
+				FAFA000000000000000B0001 /* AffirmationScreen.swift in Sources */,
 				783186642F99E4130096138F /* CameraManager.swift in Sources */,
 				783186652F99E4130096138F /* PostSessionView.swift in Sources */,
 				783186662F99E4130096138F /* RoastCardView.swift in Sources */,

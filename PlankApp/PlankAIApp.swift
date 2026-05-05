@@ -95,6 +95,18 @@ private struct RootView: View {
     @State private var auth = AuthService.shared
     @State private var payment = PaymentService.shared
 
+    // First-launch affirmation gate. Captured as @State (not
+    // @AppStorage) so the screen's mid-flight write of
+    // hasSeenAffirmation at t=1s does not unmount the screen
+    // before its full 5.5s choreography completes.
+    @State private var affirmationDone: Bool
+
+    init() {
+        _affirmationDone = State(
+            initialValue: UserDefaults.standard.bool(forKey: "hasSeenAffirmation")
+        )
+    }
+
     var body: some View {
         Group {
             if auth.isReady {
@@ -128,6 +140,10 @@ private struct RootView: View {
                                 onDismiss: {}
                             )
                         }
+                } else if !affirmationDone {
+                    AffirmationScreen {
+                        affirmationDone = true
+                    }
                 } else {
                     OnboardingView(onComplete: handleOnboardingComplete)
                 }
