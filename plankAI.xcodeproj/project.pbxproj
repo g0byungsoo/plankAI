@@ -11,8 +11,6 @@
 		34416FA981321B4746721203 /* AuthBootstrapSplash.swift in Sources */ = {isa = PBXBuildFile; fileRef = 684A46F030FF961D63028458 /* AuthBootstrapSplash.swift */; };
 		62710D31232DA4D53C102084 /* AppSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3AAF9BC1396F6ED11BDFF8A /* AppSync.swift */; };
 		75661984DCC520F8ED82FED1 /* SignInPromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D838CE3A3E3251D0108A7709 /* SignInPromptView.swift */; };
-		BBBB00010000000000000001 /* ForgotPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBB00020000000000000001 /* ForgotPasswordView.swift */; };
-		CCCC00010000000000000001 /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCC00020000000000000001 /* SignUpView.swift */; };
 		783186622F99E4130096138F /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783186542F99E4130096138F /* HomeView.swift */; };
 		783186632F99E4130096138F /* PlankAIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783186602F99E4130096138F /* PlankAIApp.swift */; };
 		783186642F99E4130096138F /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7831864F2F99E4130096138F /* CameraManager.swift */; };
@@ -22,17 +20,12 @@
 		783186682F99E4130096138F /* Tokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783186512F99E4130096138F /* Tokens.swift */; };
 		783186692F99E4130096138F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7831865F2F99E4130096138F /* Assets.xcassets */; };
 		7831866C2F99E5C60096138F /* PlankEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 7831866B2F99E5C60096138F /* PlankEngine */; };
-		BAD000000000000000000003 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = BAD000000000000000000002 /* RevenueCat */; };
 		783186702F99E73A0096138F /* PlankVoice in Frameworks */ = {isa = PBXBuildFile; productRef = 7831866F2F99E73A0096138F /* PlankVoice */; };
 		783186732F99E7590096138F /* PlankSync in Frameworks */ = {isa = PBXBuildFile; productRef = 783186722F99E7590096138F /* PlankSync */; };
 		7831867A2F9A0B0C0096138F /* DMSans-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 783186772F9A0B0C0096138F /* DMSans-SemiBold.ttf */; };
 		7831867B2F9A0B0C0096138F /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 783186762F9A0B0C0096138F /* DMSans-Regular.ttf */; };
 		7831867C2F9A0B0C0096138F /* DMSans-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 783186742F9A0B0C0096138F /* DMSans-Light.ttf */; };
 		7831867D2F9A0B0C0096138F /* DMSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 783186752F9A0B0C0096138F /* DMSans-Medium.ttf */; };
-		FAFA000000000000000F0001 /* Fraunces72pt-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */; };
-		FAFA000000000000000F0002 /* Fraunces72pt-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0012 /* Fraunces72pt-Regular.ttf */; };
-		FAFA000000000000000F0003 /* Fraunces72pt-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0013 /* Fraunces72pt-SemiBold.ttf */; };
-		FAFA000000000000000F0004 /* Fraunces72pt-SemiBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0014 /* Fraunces72pt-SemiBoldItalic.ttf */; };
 		783187AD2F9ADA810096138F /* stopped_3.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187AB2F9ADA810096138F /* stopped_3.m4a */; };
 		783187AE2F9ADA810096138F /* milestone_90.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7831879D2F9ADA810096138F /* milestone_90.m4a */; };
 		783187AF2F9ADA810096138F /* camera_bad_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187812F9ADA810096138F /* camera_bad_1.m4a */; };
@@ -79,12 +72,12 @@
 		783187D82F9ADA810096138F /* guide_setup_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7831878D2F9ADA810096138F /* guide_setup_1.m4a */; };
 		783187DC2F9AED9D0096138F /* PreSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783187DB2F9AED9D0096138F /* PreSessionView.swift */; };
 		783187DE2F9AF2060096138F /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783187DD2F9AF2060096138F /* Haptics.swift */; };
-		FAFA000000000000000C0001 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0011 /* Components.swift */; };
 		783187E02F9B00FD0096138F /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783187DF2F9B00FD0096138F /* OnboardingView.swift */; };
 		783187E22F9B1A980096138F /* OnboardingComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783187E12F9B1A980096138F /* OnboardingComponents.swift */; };
 		783187F32F9B30000096138F /* kira_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187F02F9B30000096138F /* kira_preview.m4a */; };
 		783187F42F9B30000096138F /* jeni_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187F12F9B30000096138F /* jeni_preview.m4a */; };
 		783187F52F9B30000096138F /* matson_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187F22F9B30000096138F /* matson_preview.m4a */; };
+		78FDCD412FA9CFC70017F2CA /* hero.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 78FDCD402FA9CFC70017F2CA /* hero.mp4 */; };
 		AA0001012FA1000100000001 /* ExerciseBank.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001002FA1000100000001 /* ExerciseBank.swift */; };
 		AA0001032FA1000100000002 /* WorkoutPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001022FA1000100000002 /* WorkoutPreset.swift */; };
 		AA0001052FA1000100000003 /* WorkoutGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001042FA1000100000003 /* WorkoutGenerator.swift */; };
@@ -92,6 +85,7 @@
 		AA0001092FA1000100000005 /* RoutineSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001082FA1000100000005 /* RoutineSessionView.swift */; };
 		AA00010B2FA1000100000006 /* PostRoutineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00010A2FA1000100000006 /* PostRoutineView.swift */; };
 		AA00010D2FA1000100000009 /* RoutineAudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00010C2FA1000100000009 /* RoutineAudioManager.swift */; };
+		AAAA00010000000000000001 /* DeleteAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00020000000000000001 /* DeleteAccountSheet.swift */; };
 		AB009E8A04A12FA8EC0B /* matson_hold_6.m4a in Resources */ = {isa = PBXBuildFile; fileRef = ABB4E0CB3B0D2FA8E8B1 /* matson_hold_6.m4a */; };
 		AB01AB189B1A2FA8EBB1 /* matson_routine_done_4.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AB0E8795E1D22FA8960A /* matson_routine_done_4.m4a */; };
 		AB031E7290A22FA828F7 /* matson_intro_superman_hold.m4a in Resources */ = {isa = PBXBuildFile; fileRef = ABE341D9F6032FA8150A /* matson_intro_superman_hold.m4a */; };
@@ -281,6 +275,11 @@
 		ACFA35257A822FA9FAD6 /* jeni_countdown_10.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AC7B6B2EBF122FA9AB9F /* jeni_countdown_10.m4a */; };
 		ACFA78AFDD322FA929D4 /* matson_hip_sag_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AC22E0C439662FA9B53D /* matson_hip_sag_2.m4a */; };
 		B58D26581F4992F4CA9E29DD /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4541BBF55D20BF977CCAD632 /* AppleSignInService.swift */; };
+		BAD000000000000000000003 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = BAD000000000000000000002 /* RevenueCat */; };
+		BAD000000000000000000010 /* RevenueCatConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000011 /* RevenueCatConfig.swift */; };
+		BAD000000000000000000020 /* PaymentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000021 /* PaymentService.swift */; };
+		BAD000000000000000000040 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000041 /* PaywallView.swift */; };
+		BAD000000000000000000060 /* TrialEndNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000061 /* TrialEndNotificationService.swift */; };
 		BB0AD8572FA200B4DF /* intro_toe_touches.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB59A9BC2FA2002154 /* intro_toe_touches.m4a */; };
 		BB0AFC172FA20048E1 /* skip_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB6BBF7A2FA200AAB0 /* skip_2.m4a */; };
 		BB0F71762FA200B2ED /* exercise_done.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB0E2C2E2FA200D6E9 /* exercise_done.m4a */; };
@@ -319,6 +318,7 @@
 		BBB21F262FA200D16D /* tempo_drive_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBDC8A032FA20020F5 /* tempo_drive_2.m4a */; };
 		BBB81E492FA2006082 /* intro_russian_twists.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB5535B32FA200452D /* intro_russian_twists.m4a */; };
 		BBB8898F2FA20021C7 /* intro_flutter_kicks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBC437F02FA200BF33 /* intro_flutter_kicks.m4a */; };
+		BBBB00010000000000000001 /* ForgotPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBB00020000000000000001 /* ForgotPasswordView.swift */; };
 		BBC715EB2FA2009208 /* intro_side_plank_right.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBEA1BB02FA200B921 /* intro_side_plank_right.m4a */; };
 		BBC8C6B92FA200B0A0 /* intro_bird_dog.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB5BEDFA2FA200133F /* intro_bird_dog.m4a */; };
 		BBC8E0F62FA200FDA9 /* intro_leg_raises.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB8A31152FA200A221 /* intro_leg_raises.m4a */; };
@@ -336,11 +336,8 @@
 		BBFFDBF32FA200A78B /* rest_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBA3130B2FA200431D /* rest_2.m4a */; };
 		CC0001012FA3000100000001 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001002FA3000100000001 /* MainTabView.swift */; };
 		CC0001032FA3000100000002 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001022FA3000100000002 /* AnalyticsView.swift */; };
+		CCCC00010000000000000001 /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCC00020000000000000001 /* SignUpView.swift */; };
 		D82175BFC774BFB8081957D2 /* SupabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAF028D604DCD031A53E9F35 /* SupabaseConfig.swift */; };
-		BAD000000000000000000010 /* RevenueCatConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000011 /* RevenueCatConfig.swift */; };
-		BAD000000000000000000020 /* PaymentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000021 /* PaymentService.swift */; };
-		BAD000000000000000000040 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000041 /* PaywallView.swift */; };
-		BAD000000000000000000060 /* TrialEndNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000061 /* TrialEndNotificationService.swift */; };
 		DD0001012FA4000100000001 /* StreakCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001002FA4000100000001 /* StreakCalculator.swift */; };
 		EE0000012FA50002000001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000012FA50001000001 /* SettingsView.swift */; };
 		EE0000022FA50002000002 /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000022FA50001000002 /* EditProfileView.swift */; };
@@ -349,7 +346,12 @@
 		EE0000052FA50002000005 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000052FA50001000005 /* AccountView.swift */; };
 		EE0000062FA50002000006 /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000062FA50001000006 /* FeedbackView.swift */; };
 		F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A5839CBCA9EBEB79038667 /* DebugAuthView.swift */; };
-		AAAA00010000000000000001 /* DeleteAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00020000000000000001 /* DeleteAccountSheet.swift */; };
+		FAFA000000000000000C0001 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0011 /* Components.swift */; };
+		FAFA000000000000000C0002 /* Stickers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0012 /* Stickers.swift */; };
+		FAFA000000000000000F0001 /* Fraunces72pt-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */; };
+		FAFA000000000000000F0002 /* Fraunces72pt-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0012 /* Fraunces72pt-Regular.ttf */; };
+		FAFA000000000000000F0003 /* Fraunces72pt-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0013 /* Fraunces72pt-SemiBold.ttf */; };
+		FAFA000000000000000F0004 /* Fraunces72pt-SemiBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0014 /* Fraunces72pt-SemiBoldItalic.ttf */; };
 		FF08B4902FA6000B3D /* roast_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF95B9F72FA60004FB /* roast_1.m4a */; };
 		FF1934C52FA7005F95 /* routine_done_4.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF26AEC12FA7000719 /* routine_done_4.m4a */; };
 		FF1EC4C82FA600EDEE /* roast_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF30522C2FA600526A /* roast_2.m4a */; };
@@ -366,7 +368,6 @@
 /* Begin PBXFileReference section */
 		1E3BFB7C26C4CE6073B4BD5B /* AuthService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		27A5839CBCA9EBEB79038667 /* DebugAuthView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DebugAuthView.swift; sourceTree = "<group>"; };
-		AAAA00020000000000000001 /* DeleteAccountSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeleteAccountSheet.swift; sourceTree = "<group>"; };
 		4541BBF55D20BF977CCAD632 /* AppleSignInService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
 		684A46F030FF961D63028458 /* AuthBootstrapSplash.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthBootstrapSplash.swift; sourceTree = "<group>"; };
 		783186412F99E3110096138F /* plankAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = plankAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -382,10 +383,6 @@
 		783186752F9A0B0C0096138F /* DMSans-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Medium.ttf"; sourceTree = "<group>"; };
 		783186762F9A0B0C0096138F /* DMSans-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Regular.ttf"; sourceTree = "<group>"; };
 		783186772F9A0B0C0096138F /* DMSans-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-SemiBold.ttf"; sourceTree = "<group>"; };
-		FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-Light.ttf"; sourceTree = "<group>"; };
-		FAFA000000000000000F0012 /* Fraunces72pt-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-Regular.ttf"; sourceTree = "<group>"; };
-		FAFA000000000000000F0013 /* Fraunces72pt-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-SemiBold.ttf"; sourceTree = "<group>"; };
-		FAFA000000000000000F0014 /* Fraunces72pt-SemiBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		783187812F9ADA810096138F /* camera_bad_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = camera_bad_1.m4a; sourceTree = "<group>"; };
 		783187822F9ADA810096138F /* camera_bad_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = camera_bad_2.m4a; sourceTree = "<group>"; };
 		783187832F9ADA810096138F /* countdown_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = countdown_1.m4a; sourceTree = "<group>"; };
@@ -432,13 +429,13 @@
 		783187AC2F9ADA810096138F /* stopped_4.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = stopped_4.m4a; sourceTree = "<group>"; };
 		783187DB2F9AED9D0096138F /* PreSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreSessionView.swift; sourceTree = "<group>"; };
 		783187DD2F9AF2060096138F /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
-		FAFA000000000000000C0011 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		783187DF2F9B00FD0096138F /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		783187E12F9B1A980096138F /* OnboardingComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingComponents.swift; sourceTree = "<group>"; };
 		783187E32FA2024D0096138F /* plankAI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = plankAI.entitlements; sourceTree = "<group>"; };
 		783187F02F9B30000096138F /* kira_preview.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = kira_preview.m4a; sourceTree = "<group>"; };
 		783187F12F9B30000096138F /* jeni_preview.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_preview.m4a; sourceTree = "<group>"; };
 		783187F22F9B30000096138F /* matson_preview.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = matson_preview.m4a; sourceTree = "<group>"; };
+		78FDCD402FA9CFC70017F2CA /* hero.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = hero.mp4; sourceTree = "<group>"; };
 		AA0001002FA1000100000001 /* ExerciseBank.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseBank.swift; sourceTree = "<group>"; };
 		AA0001022FA1000100000002 /* WorkoutPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPreset.swift; sourceTree = "<group>"; };
 		AA0001042FA1000100000003 /* WorkoutGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGenerator.swift; sourceTree = "<group>"; };
@@ -446,6 +443,7 @@
 		AA0001082FA1000100000005 /* RoutineSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineSessionView.swift; sourceTree = "<group>"; };
 		AA00010A2FA1000100000006 /* PostRoutineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostRoutineView.swift; sourceTree = "<group>"; };
 		AA00010C2FA1000100000009 /* RoutineAudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineAudioManager.swift; sourceTree = "<group>"; };
+		AAAA00020000000000000001 /* DeleteAccountSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeleteAccountSheet.swift; sourceTree = "<group>"; };
 		AB0068A1DFD72FA88E49 /* jeni_hold_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_hold_2.m4a; sourceTree = "<group>"; };
 		AB016A8901C22FA86B1D /* jeni_hold_6.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_hold_6.m4a; sourceTree = "<group>"; };
 		AB0340637C882FA8879F /* jeni_intro_woodchoppers.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_intro_woodchoppers.m4a; sourceTree = "<group>"; };
@@ -634,6 +632,11 @@
 		ACFDEE85B8FB2FA91E85 /* matson_hip_sag_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = matson_hip_sag_1.m4a; sourceTree = "<group>"; };
 		ACFF7880419F2FA95179 /* matson_milestone_120.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = matson_milestone_120.m4a; sourceTree = "<group>"; };
 		ACFFC6438A242FA98E2F /* jeni_countdown_5.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_countdown_5.m4a; sourceTree = "<group>"; };
+		BAD000000000000000000011 /* RevenueCatConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatConfig.swift; sourceTree = "<group>"; };
+		BAD000000000000000000021 /* PaymentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentService.swift; sourceTree = "<group>"; };
+		BAD000000000000000000041 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		BAD000000000000000000050 /* absmaxxing.storekit */ = {isa = PBXFileReference; lastKnownFileType = file.storekit; path = absmaxxing.storekit; sourceTree = "<group>"; };
+		BAD000000000000000000061 /* TrialEndNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialEndNotificationService.swift; sourceTree = "<group>"; };
 		BB02E2382FA200E460 /* tempo_4.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = tempo_4.m4a; sourceTree = "<group>"; };
 		BB040ACA2FA2009B79 /* intro_glute_bridge_hold.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = intro_glute_bridge_hold.m4a; sourceTree = "<group>"; };
 		BB04C6C82FA2000DD4 /* intro_bear_crawl_hold.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = intro_bear_crawl_hold.m4a; sourceTree = "<group>"; };
@@ -675,6 +678,7 @@
 		BBA8450A2FA2004CE4 /* routine_start_3.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = routine_start_3.m4a; sourceTree = "<group>"; };
 		BBACA7ED2FA200B92E /* routine_done_3.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = routine_done_3.m4a; sourceTree = "<group>"; };
 		BBB0D2CC2FA2005C4B /* intro_plank_shoulder_taps.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = intro_plank_shoulder_taps.m4a; sourceTree = "<group>"; };
+		BBBB00020000000000000001 /* ForgotPasswordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgotPasswordView.swift; sourceTree = "<group>"; };
 		BBC437F02FA200BF33 /* intro_flutter_kicks.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = intro_flutter_kicks.m4a; sourceTree = "<group>"; };
 		BBD0B7962FA200A70A /* tempo_drive_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = tempo_drive_1.m4a; sourceTree = "<group>"; };
 		BBD516C02FA200C6AD /* exercise_almost.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = exercise_almost.m4a; sourceTree = "<group>"; };
@@ -690,9 +694,8 @@
 		C3AAF9BC1396F6ED11BDFF8A /* AppSync.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppSync.swift; sourceTree = "<group>"; };
 		CC0001002FA3000100000001 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		CC0001022FA3000100000002 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
-		D838CE3A3E3251D0108A7709 /* SignInPromptView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SignInPromptView.swift; sourceTree = "<group>"; };
-		BBBB00020000000000000001 /* ForgotPasswordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgotPasswordView.swift; sourceTree = "<group>"; };
 		CCCC00020000000000000001 /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
+		D838CE3A3E3251D0108A7709 /* SignInPromptView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SignInPromptView.swift; sourceTree = "<group>"; };
 		DD0001002FA4000100000001 /* StreakCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakCalculator.swift; sourceTree = "<group>"; };
 		EE0000012FA50001000001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		EE0000022FA50001000002 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
@@ -701,11 +704,12 @@
 		EE0000052FA50001000005 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		EE0000062FA50001000006 /* FeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackView.swift; sourceTree = "<group>"; };
 		FAF028D604DCD031A53E9F35 /* SupabaseConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
-		BAD000000000000000000011 /* RevenueCatConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatConfig.swift; sourceTree = "<group>"; };
-		BAD000000000000000000021 /* PaymentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentService.swift; sourceTree = "<group>"; };
-		BAD000000000000000000041 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
-		BAD000000000000000000050 /* absmaxxing.storekit */ = {isa = PBXFileReference; lastKnownFileType = file.storekit; path = absmaxxing.storekit; sourceTree = "<group>"; };
-		BAD000000000000000000061 /* TrialEndNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialEndNotificationService.swift; sourceTree = "<group>"; };
+		FAFA000000000000000C0011 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		FAFA000000000000000C0012 /* Stickers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stickers.swift; sourceTree = "<group>"; };
+		FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-Light.ttf"; sourceTree = "<group>"; };
+		FAFA000000000000000F0012 /* Fraunces72pt-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-Regular.ttf"; sourceTree = "<group>"; };
+		FAFA000000000000000F0013 /* Fraunces72pt-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-SemiBold.ttf"; sourceTree = "<group>"; };
+		FAFA000000000000000F0014 /* Fraunces72pt-SemiBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		FF0C305C2FA6008BF8 /* encourage_3.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = encourage_3.m4a; sourceTree = "<group>"; };
 		FF26AEC12FA7000719 /* routine_done_4.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = routine_done_4.m4a; sourceTree = "<group>"; };
 		FF2B76F92FA6006A4B /* encourage_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = encourage_2.m4a; sourceTree = "<group>"; };
@@ -741,7 +745,6 @@
 				684A46F030FF961D63028458 /* AuthBootstrapSplash.swift */,
 				4541BBF55D20BF977CCAD632 /* AppleSignInService.swift */,
 			);
-			name = Auth;
 			path = Auth;
 			sourceTree = "<group>";
 		};
@@ -777,6 +780,7 @@
 				783186512F99E4130096138F /* Tokens.swift */,
 				783187DD2F9AF2060096138F /* Haptics.swift */,
 				FAFA000000000000000C0011 /* Components.swift */,
+				FAFA000000000000000C0012 /* Stickers.swift */,
 			);
 			path = DesignSystem;
 			sourceTree = "<group>";
@@ -903,6 +907,7 @@
 		783186792F9A0B0C0096138F /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				78FDCD402FA9CFC70017F2CA /* hero.mp4 */,
 				783186782F9A0B0C0096138F /* Fonts */,
 				7831869D2F9A1F7D0096138F /* VoiceClips */,
 				BAD000000000000000000050 /* absmaxxing.storekit */,
@@ -1222,26 +1227,7 @@
 				FAF028D604DCD031A53E9F35 /* SupabaseConfig.swift */,
 				BAD000000000000000000011 /* RevenueCatConfig.swift */,
 			);
-			name = Config;
 			path = Config;
-			sourceTree = "<group>";
-		};
-		BAD000000000000000000030 /* Payment */ = {
-			isa = PBXGroup;
-			children = (
-				BAD000000000000000000021 /* PaymentService.swift */,
-			);
-			name = Payment;
-			path = Payment;
-			sourceTree = "<group>";
-		};
-		BAD000000000000000000070 /* Notifications */ = {
-			isa = PBXGroup;
-			children = (
-				BAD000000000000000000061 /* TrialEndNotificationService.swift */,
-			);
-			name = Notifications;
-			path = Notifications;
 			sourceTree = "<group>";
 		};
 		AA00010C2FA1000100000007 /* Routine */ = {
@@ -1266,6 +1252,22 @@
 			path = Workout;
 			sourceTree = "<group>";
 		};
+		BAD000000000000000000030 /* Payment */ = {
+			isa = PBXGroup;
+			children = (
+				BAD000000000000000000021 /* PaymentService.swift */,
+			);
+			path = Payment;
+			sourceTree = "<group>";
+		};
+		BAD000000000000000000070 /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				BAD000000000000000000061 /* TrialEndNotificationService.swift */,
+			);
+			path = Notifications;
+			sourceTree = "<group>";
+		};
 		CC0001042FA3000100000003 /* Root */ = {
 			isa = PBXGroup;
 			children = (
@@ -1287,7 +1289,6 @@
 			children = (
 				C3AAF9BC1396F6ED11BDFF8A /* AppSync.swift */,
 			);
-			name = Sync;
 			path = Sync;
 			sourceTree = "<group>";
 		};
@@ -1357,9 +1358,9 @@
 			mainGroup = 783186382F99E3110096138F;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */,
-				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */,
-				783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */,
+				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "Packages/PlankEngine" */,
+				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "Packages/PlankVoice" */,
+				783186712F99E7590096138F /* XCLocalSwiftPackageReference "Packages/PlankSync" */,
 				BAD000000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -1414,6 +1415,7 @@
 				783187CE2F9ADA810096138F /* camera_bad_2.m4a in Resources */,
 				783187CF2F9ADA810096138F /* countdown_5.m4a in Resources */,
 				783187D02F9ADA810096138F /* guide_setup_3.m4a in Resources */,
+				78FDCD412FA9CFC70017F2CA /* hero.mp4 in Resources */,
 				783187D12F9ADA810096138F /* hip_pike_1.m4a in Resources */,
 				783187D22F9ADA810096138F /* hip_pike_4.m4a in Resources */,
 				783187D32F9ADA810096138F /* recovery_2.m4a in Resources */,
@@ -1699,6 +1701,7 @@
 				783186632F99E4130096138F /* PlankAIApp.swift in Sources */,
 				783187DE2F9AF2060096138F /* Haptics.swift in Sources */,
 				FAFA000000000000000C0001 /* Components.swift in Sources */,
+				FAFA000000000000000C0002 /* Stickers.swift in Sources */,
 				783186642F99E4130096138F /* CameraManager.swift in Sources */,
 				783186652F99E4130096138F /* PostSessionView.swift in Sources */,
 				783186662F99E4130096138F /* RoastCardView.swift in Sources */,
@@ -1968,15 +1971,15 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */ = {
+		7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "Packages/PlankEngine" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankEngine;
 		};
-		7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */ = {
+		7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "Packages/PlankVoice" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankVoice;
 		};
-		783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */ = {
+		783186712F99E7590096138F /* XCLocalSwiftPackageReference "Packages/PlankSync" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankSync;
 		};
