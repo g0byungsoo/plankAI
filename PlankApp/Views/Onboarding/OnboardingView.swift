@@ -3553,6 +3553,7 @@ struct OnboardingView: View {
         range: 107...213,
         step: 1,
         majorEvery: 10,
+        mediumEvery: 5,            // medium tick every 5 cm
         format: { cm in "\(Int(cm.rounded())) cm" },
         unitName: "cm"
     )
@@ -3560,6 +3561,7 @@ struct OnboardingView: View {
         range: 42...84,            // inches: 3'6" to 7'0"
         step: 1,
         majorEvery: 6,             // half-foot major ticks
+        mediumEvery: 3,            // medium tick every 3 inches
         format: { inches in
             let i = Int(inches.rounded())
             let ft = i / 12

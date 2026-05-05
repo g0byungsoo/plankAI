@@ -532,6 +532,12 @@ struct BiometricSlider: View {
     /// metric cm/kg cleanly; imperial configs override (6 for half-foot
     /// height ticks, 25 for lb).
     var majorTickEvery: Int = 10
+    /// Optional intermediate tier — every N steps render a tick that's
+    /// bolder + longer than minor but unlabeled like minor. Use to
+    /// add visual rhythm between major intervals (e.g., every 5 cm on
+    /// the height ruler so 10-cm major ticks don't read isolated).
+    /// nil → binary major/minor only (default).
+    var mediumTickEvery: Int? = nil
     var unitLabel: String? = nil
 
     @State private var dragStartValue: Double?
@@ -540,7 +546,8 @@ struct BiometricSlider: View {
     private let tickHeight: CGFloat = 10
     private let rulerHeight: CGFloat = 240
     private let majorTickWidth: CGFloat = 36
-    private let minorTickWidth: CGFloat = 18
+    private let mediumTickWidth: CGFloat = 12
+    private let minorTickWidth: CGFloat = 8
 
     private var totalSteps: Int {
         Int(((range.upperBound - range.lowerBound) / step).rounded()) + 1
@@ -609,11 +616,27 @@ struct BiometricSlider: View {
                 // reads bolder so the eye picks up scale at a glance.
                 VStack(spacing: 0) {
                     ForEach(0..<totalSteps, id: \.self) { i in
+                        // Three-tier classification: major (every
+                        // majorTickEvery steps, with label upstream),
+                        // medium (every mediumTickEvery steps when
+                        // configured — visual rhythm between majors),
+                        // minor (everything else). Major wins over
+                        // medium when both intervals match (e.g., 10
+                        // cm is both a multiple of 5 and 10).
                         let major = (i % majorTickEvery == 0)
+                        let medium = !major && (mediumTickEvery.map { i % $0 == 0 } ?? false)
+                        let width: CGFloat = major ? majorTickWidth
+                                           : medium ? mediumTickWidth
+                                                    : minorTickWidth
+                        let height: CGFloat = major ? 2
+                                            : medium ? 1.5
+                                                     : 1
+                        let opacity: Double = major ? 0.7
+                                            : medium ? 0.5
+                                                     : 0.28
                         Rectangle()
-                            .fill(Palette.accent.opacity(major ? 0.7 : 0.28))
-                            .frame(width: major ? majorTickWidth : minorTickWidth,
-                                   height: major ? 2 : 1.5)
+                            .fill(Palette.accent.opacity(opacity))
+                            .frame(width: width, height: height)
                             .frame(maxWidth: .infinity)
                             .frame(height: tickHeight)
                     }
@@ -687,6 +710,10 @@ struct BiometricRulerConfig {
     let range: ClosedRange<Double>
     let step: Double
     let majorEvery: Int
+    /// Optional intermediate tick tier (e.g., every 5 cm on height) —
+    /// renders with bolder weight + length than minor but no label.
+    /// Default nil for the binary major/minor cadence.
+    var mediumEvery: Int? = nil
     let format: (Double) -> String
     /// Toggle button label, e.g., "cm" / "ft" / "kg" / "lb".
     let unitName: String
@@ -756,7 +783,8 @@ struct BiometricRulerScreen<Annotation: View>: View {
                 range: activeConfig.range,
                 step: activeConfig.step,
                 format: activeConfig.format,
-                majorTickEvery: activeConfig.majorEvery
+                majorTickEvery: activeConfig.majorEvery,
+                mediumTickEvery: activeConfig.mediumEvery
             )
             .fixedSize(horizontal: false, vertical: true)
             .id(useImperial ? "imp" : "met")
