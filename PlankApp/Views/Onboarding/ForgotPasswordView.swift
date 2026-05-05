@@ -48,20 +48,38 @@ struct ForgotPasswordView: View {
         self._email = State(initialValue: initialEmail)
     }
 
+    // Phase 16b — forgot-password scatter (LIGHT, 3 stickers).
+    // Different mix from SignUp/SignInPrompt for visual variety.
+    private static let forgotPasswordPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .starLineart,
+                         position: CGPoint(x: 0.92, y: 0.10),
+                         size: 28, rotation: 12, phaseDelay: 0.00),
+        StickerPlacement(sticker: .cherries,
+                         position: CGPoint(x: 0.06, y: 0.45),
+                         size: 28, rotation: -10, phaseDelay: 0.40),
+        StickerPlacement(sticker: .bowSatin,
+                         position: CGPoint(x: 0.92, y: 0.85),
+                         size: 32, rotation: 13, phaseDelay: 0.80),
+    ]
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            switch phase {
-            case .input, .sending, .failed:
-                inputContent
-            case .confirmed:
-                confirmedContent
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            StickerScatter(placements: Self.forgotPasswordPlacements)
+
+            VStack(alignment: .leading, spacing: 0) {
+                switch phase {
+                case .input, .sending, .failed:
+                    inputContent
+                case .confirmed:
+                    confirmedContent
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Space.lg)
+            .padding(.top, Space.lg)
+            .padding(.bottom, Space.xl)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Space.lg)
-        .padding(.top, Space.lg)
-        .padding(.bottom, Space.xl)
-        .background(Palette.bgPrimary)
         .onAppear {
             // Defer focus so the sheet's slide-in animation finishes first;
             // focusing during the transition makes the keyboard cover the

@@ -119,39 +119,61 @@ struct HomeView: View {
         }
     }
 
+    // Phase 16b — Home scatter (LIGHT treatment, 4 stickers). Anchored
+    // to the body ZStack so stickers stay pinned to viewport coords as
+    // the inner ScrollView scrolls. Margins only — never overlapping
+    // cards. Top-bar covers the y<0.07 band with its own opaque cream
+    // background, so all sticker y-values stay below that.
+    private static let homePlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .sparkleGlossy,
+                         position: CGPoint(x: 0.92, y: 0.13),
+                         size: 26, rotation: 12, phaseDelay: 0.00),
+        StickerPlacement(sticker: .heartsLineart,
+                         position: CGPoint(x: 0.06, y: 0.30),
+                         size: 24, rotation: -8, phaseDelay: 0.30),
+        StickerPlacement(sticker: .heartGlossy,
+                         position: CGPoint(x: 0.94, y: 0.50),
+                         size: 28, rotation: -10, phaseDelay: 0.55),
+        StickerPlacement(sticker: .gummyBear,
+                         position: CGPoint(x: 0.10, y: 0.86),
+                         size: 32, rotation: 9, phaseDelay: 0.85),
+    ]
+
     var body: some View {
-        VStack(spacing: 0) {
-            messageTopBar
-            Divider().foregroundStyle(Palette.divider)
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            StickerScatter(placements: Self.homePlacements)
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 14) {
-                    jenifitGreeting
-                        .opacity(msgOpacity[0]).offset(y: msgOffset[0])
+            VStack(spacing: 0) {
+                messageTopBar
+                Divider().foregroundStyle(Palette.divider)
 
-                    jenifitWorkoutCard
-                        .opacity(msgOpacity[1]).offset(y: msgOffset[1])
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 14) {
+                        jenifitGreeting
+                            .opacity(msgOpacity[0]).offset(y: msgOffset[0])
 
-                    jenifitStreakCard
-                        .opacity(msgOpacity[2]).offset(y: msgOffset[2])
+                        jenifitWorkoutCard
+                            .opacity(msgOpacity[1]).offset(y: msgOffset[1])
 
-                    // Benchmark module + voice affirmation kept below the
-                    // primary cards. Phase 6 redesigns the top of the home;
-                    // these surfaces stay on the existing chat-bubble pattern
-                    // and can be re-skinned in a later phase.
-                    Group {
-                        kiraBenchmarkModule
+                        jenifitStreakCard
+                            .opacity(msgOpacity[2]).offset(y: msgOffset[2])
+
+                        // Benchmark module — Phase 16b restyled as a clean
+                        // card matching the workout/streak aesthetic. Avatar
+                        // + chat-bubble framing dropped; the kiraBubble
+                        // conversational element below it removed entirely.
+                        benchmarkCard
                             .opacity(msgOpacity[3]).offset(y: msgOffset[3])
-
-                        if hasCompletedFirstSession {
-                            kiraBubble(statsText)
-                        }
+                            .padding(.horizontal, Space.screenPadding)
                     }
-                    .padding(.horizontal, 10)
+                    .padding(.bottom, 100)
                 }
-                .padding(.bottom, 100)
+                // ScrollView is now transparent so the StickerScatter
+                // behind the body ZStack shows through the card gutters.
+                // Cards have their own bgElevated fills so they stay
+                // crisp on top of the sticker layer.
             }
-            .background(Palette.bgPrimary)
         }
         .task {
             // Wait for first frame to render before animating.
@@ -321,34 +343,23 @@ struct HomeView: View {
         let hasMore = workout.exercises.count > 3
 
         return VStack(alignment: .leading, spacing: 0) {
-            // Hero — editorial placeholder with day badge overlay. Real
-            // photography for v1.1; see TODOS.md for the asset spec.
-            ZStack(alignment: .topLeading) {
-                EditorialPlaceholder(
-                    label: "EDITORIAL · WORKOUT COVER",
-                    cornerRadius: 0
-                )
-                DayBadge(label: "Day \(currentDay)")
-                    .padding(Space.md)
-            }
-            .frame(height: 180)
-            .clipShape(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 16,
-                    bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 0,
-                    topTrailingRadius: 16,
-                    style: .continuous
-                )
-            )
-
             VStack(alignment: .leading, spacing: Space.sm) {
-                // Title — Fraunces.
-                Text(workout.name)
-                    .font(Typo.title)
-                    .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                // Title row — Fraunces title with the DayBadge as a small
+                // leading-trailing pill. The hero EditorialPlaceholder
+                // band that used to sit above the card was dropped in
+                // Phase 16b; the day signal moves inline so the card
+                // matches the streak/benchmark aesthetic.
+                HStack(alignment: .top, spacing: Space.sm) {
+                    Text(workout.name)
+                        .font(Typo.title)
+                        .foregroundStyle(Palette.textPrimary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer(minLength: 0)
+
+                    DayBadge(label: "Day \(currentDay)")
+                }
 
                 // Subtitle — preset description tagline if authored,
                 // otherwise the goal · level eyebrow as the fallback.
@@ -535,65 +546,66 @@ struct HomeView: View {
             .clipShape(Circle())
     }
 
-    // MARK: - Benchmark Module (trainer voice)
+    // MARK: - Benchmark Card (Phase 16b — clean card, no chat-bubble)
+    //
+    // Replaces the avatar + chat-bubble pattern (kiraBenchmarkModule)
+    // with a card matching the workout/streak aesthetic. Same data
+    // (benchmark prompt, last-hold + days-ago stats, LET'S GO CTA)
+    // and same callback into showPreSession.
 
-    private var kiraBenchmarkModule: some View {
-        HStack(alignment: .bottom, spacing: 6) {
-            kiraAvatar
+    private var benchmarkCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(benchmarkText)
+                .font(Typo.body)
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text(benchmarkText)
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textPrimary)
-
-                if let last = lastBenchmark, let days = daysSinceLastBenchmark {
-                    HStack(spacing: 20) {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(String(format: "%.0fs", last.holdTime))
-                                .font(.system(size: 22, weight: .bold, design: .rounded))
-                                .foregroundStyle(Palette.textPrimary)
-                            Text("last hold")
-                                .font(.system(size: 11))
-                                .foregroundStyle(Palette.textSecondary)
-                        }
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("\(days)d")
-                                .font(.system(size: 22, weight: .bold, design: .rounded))
-                                .foregroundStyle(Palette.textPrimary)
-                            Text("ago")
-                                .font(.system(size: 11))
-                                .foregroundStyle(Palette.textSecondary)
-                        }
+            if let last = lastBenchmark, let days = daysSinceLastBenchmark {
+                HStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(String(format: "%.0fs", last.holdTime))
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(Palette.textPrimary)
+                        Text("last hold")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Palette.textSecondary)
                     }
-                }
-
-                Button {
-                    guard payment.hasProAccess else {
-                        print("[HomeView] session entry blocked: hasProAccess=false (plank benchmark)")
-                        return
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("\(days)d")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(Palette.textPrimary)
+                        Text("ago")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Palette.textSecondary)
                     }
-                    print("[HomeView] session entry allowed (plank benchmark)")
-                    Haptics.medium()
-                    showPreSession = true
-                } label: {
-                    Text("LET'S GO")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Palette.textPrimary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 38)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .stroke(Palette.divider, lineWidth: 1.5)
-                        )
                 }
             }
-            .padding(14)
-            .background(Palette.bgElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .plankShadow()
 
-            Spacer(minLength: 16)
+            Button {
+                guard payment.hasProAccess else {
+                    print("[HomeView] session entry blocked: hasProAccess=false (plank benchmark)")
+                    return
+                }
+                print("[HomeView] session entry allowed (plank benchmark)")
+                Haptics.medium()
+                showPreSession = true
+            } label: {
+                Text("LET'S GO")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Palette.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 38)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(Palette.divider, lineWidth: 1.5)
+                    )
+            }
         }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Palette.bgElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .plankShadow()
     }
 
     // MARK: - Trainer Voice (adapts to selected coach)

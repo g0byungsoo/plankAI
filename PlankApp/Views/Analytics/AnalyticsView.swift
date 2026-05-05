@@ -82,41 +82,61 @@ struct AnalyticsView: View {
     @State private var streakPulse = false
     @State private var calendarScale: CGFloat = 0.95
 
+    // Phase 16b — Logs scatter (LIGHT, 3 stickers). Anchored to body
+    // ZStack so they pin to viewport rather than scrolling with the
+    // stats list. cherries + heart_glossy bring warmth toward "your
+    // progress"; hearts_lineart adds a small line-art accent.
+    private static let logsPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .cherries,
+                         position: CGPoint(x: 0.92, y: 0.10),
+                         size: 30, rotation: 12, phaseDelay: 0.00),
+        StickerPlacement(sticker: .heartsLineart,
+                         position: CGPoint(x: 0.06, y: 0.45),
+                         size: 26, rotation: -10, phaseDelay: 0.40),
+        StickerPlacement(sticker: .heartGlossy,
+                         position: CGPoint(x: 0.94, y: 0.85),
+                         size: 28, rotation: 13, phaseDelay: 0.80),
+    ]
+
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 20) {
-                header
-                    .padding(.top, Space.md)
-                    .opacity(sectionOpacity[0])
-                    .offset(y: sectionOffset[0])
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            StickerScatter(placements: Self.logsPlacements)
 
-                if isEmpty {
-                    emptyState
-                } else {
-                    heroStats
-                        .opacity(sectionOpacity[1])
-                        .offset(y: sectionOffset[1])
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 20) {
+                    header
+                        .padding(.top, Space.md)
+                        .opacity(sectionOpacity[0])
+                        .offset(y: sectionOffset[0])
 
-                    activityCalendar
-                        .opacity(sectionOpacity[2])
-                        .offset(y: sectionOffset[2])
-                        .scaleEffect(calendarScale, anchor: .top)
+                    if isEmpty {
+                        emptyState
+                    } else {
+                        heroStats
+                            .opacity(sectionOpacity[1])
+                            .offset(y: sectionOffset[1])
 
-                    if benchmarkCount > 0 {
-                        plankCard
-                            .opacity(sectionOpacity[3])
-                            .offset(y: sectionOffset[3])
+                        activityCalendar
+                            .opacity(sectionOpacity[2])
+                            .offset(y: sectionOffset[2])
+                            .scaleEffect(calendarScale, anchor: .top)
+
+                        if benchmarkCount > 0 {
+                            plankCard
+                                .opacity(sectionOpacity[3])
+                                .offset(y: sectionOffset[3])
+                        }
+
+                        recentSessions
+                            .opacity(sectionOpacity[4])
+                            .offset(y: sectionOffset[4])
                     }
-
-                    recentSessions
-                        .opacity(sectionOpacity[4])
-                        .offset(y: sectionOffset[4])
                 }
+                .padding(.horizontal, Space.screenPadding)
+                .padding(.bottom, 100)
             }
-            .padding(.horizontal, Space.screenPadding)
-            .padding(.bottom, 100)
         }
-        .background(Palette.bgPrimary)
         .onAppear { animateIn() }
     }
 

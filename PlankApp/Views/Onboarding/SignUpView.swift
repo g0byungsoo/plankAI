@@ -95,43 +95,61 @@ struct SignUpView: View {
 
     // MARK: Body
 
+    // Phase 16b — auth scatter (LIGHT, 3 stickers). Right-edge column
+    // since the form is left-aligned. Mix is 1 line-art + 2 painterly.
+    private static let signUpPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .starLineart,
+                         position: CGPoint(x: 0.92, y: 0.10),
+                         size: 30, rotation: 12, phaseDelay: 0.00),
+        StickerPlacement(sticker: .sparkleGlossy,
+                         position: CGPoint(x: 0.94, y: 0.45),
+                         size: 32, rotation: -10, phaseDelay: 0.40),
+        StickerPlacement(sticker: .bowIridescent,
+                         position: CGPoint(x: 0.92, y: 0.85),
+                         size: 32, rotation: 13, phaseDelay: 0.80),
+    ]
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Space.lg) {
-                    headerSection
-                    appleButton
-                    orDivider
-                    emailField
-                    passwordField
-                    if mode == .signUp {
-                        passwordRequirements
-                            .transition(.opacity.combined(with: .move(edge: .top)))
+            ZStack {
+                Palette.bgPrimary.ignoresSafeArea()
+                StickerScatter(placements: Self.signUpPlacements)
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Space.lg) {
+                        headerSection
+                        appleButton
+                        orDivider
+                        emailField
+                        passwordField
+                        if mode == .signUp {
+                            passwordRequirements
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                        if mode == .signIn {
+                            forgotPasswordLink
+                                .transition(.opacity)
+                        }
+                        primaryButton
+                        if let errorMessage {
+                            Text(errorMessage)
+                                .font(Typo.caption)
+                                .foregroundStyle(Palette.stateBad)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        modeToggle
+                        if mode == .signUp {
+                            legalText
+                                .transition(.opacity)
+                        }
                     }
-                    if mode == .signIn {
-                        forgotPasswordLink
-                            .transition(.opacity)
-                    }
-                    primaryButton
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.stateBad)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    modeToggle
-                    if mode == .signUp {
-                        legalText
-                            .transition(.opacity)
-                    }
+                    .padding(.horizontal, Space.lg)
+                    .padding(.top, Space.md)
+                    .padding(.bottom, Space.xl)
+                    .modifier(ShakeEffect(animatableData: shakeTrigger))
                 }
-                .padding(.horizontal, Space.lg)
-                .padding(.top, Space.md)
-                .padding(.bottom, Space.xl)
-                .modifier(ShakeEffect(animatableData: shakeTrigger))
+                .scrollDismissesKeyboard(.interactively)
             }
-            .scrollDismissesKeyboard(.interactively)
-            .background(Palette.bgPrimary)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {

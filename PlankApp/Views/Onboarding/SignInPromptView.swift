@@ -31,19 +31,38 @@ struct SignInPromptView: View {
     @State private var working = false
     @State private var errorMessage: String?
 
-    var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
+    // Phase 16b — sign-in prompt scatter (LIGHT, 3 stickers).
+    // Different mix from SignUpView so back-to-back auth flows don't
+    // look identical. 1 line-art + 2 painterly.
+    private static let signInPromptPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .heartsLineart,
+                         position: CGPoint(x: 0.10, y: 0.10),
+                         size: 28, rotation: -10, phaseDelay: 0.00),
+        StickerPlacement(sticker: .heartGlossy,
+                         position: CGPoint(x: 0.92, y: 0.40),
+                         size: 30, rotation: 13, phaseDelay: 0.40),
+        StickerPlacement(sticker: .gummyBear,
+                         position: CGPoint(x: 0.92, y: 0.85),
+                         size: 32, rotation: -8, phaseDelay: 0.80),
+    ]
 
-            // Brand-shape icon — same lockup vibe as the splash dot trio
-            ZStack {
-                Circle()
-                    .fill(Palette.accent.opacity(0.12))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "person.crop.circle.badge.checkmark")
-                    .font(.system(size: 32, weight: .medium))
-                    .foregroundStyle(Palette.accent)
-            }
+    var body: some View {
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            StickerScatter(placements: Self.signInPromptPlacements)
+
+            VStack(spacing: 0) {
+                Spacer()
+
+                // Brand-shape icon — same lockup vibe as the splash dot trio
+                ZStack {
+                    Circle()
+                        .fill(Palette.accent.opacity(0.12))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "person.crop.circle.badge.checkmark")
+                        .font(.system(size: 32, weight: .medium))
+                        .foregroundStyle(Palette.accent)
+                }
 
             Spacer().frame(height: Space.lg)
 
@@ -87,6 +106,7 @@ struct SignInPromptView: View {
             }
             .padding(.horizontal, Space.screenPadding)
             .padding(.bottom, Space.lg)
+            }
         }
         .sheet(isPresented: $showEmailSheet) {
             SignUpView(initialMode: mode == .signIn ? .signIn : .signUp) {
