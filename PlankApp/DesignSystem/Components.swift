@@ -566,12 +566,26 @@ struct BiometricSlider: View {
 
             Spacer().frame(height: Space.md)
 
-            ZStack {
+            // ZStack(alignment: .top) is intentional. With the default
+            // .center alignment, SwiftUI auto-centers the VStack
+            // (natural height ~770pt for the 77-tick height ruler)
+            // vertically inside the 240pt ZStack frame — every tick
+            // ends up ~rulerHeight/2 above where the contentOffset
+            // formula expects it. That's the cause of the
+            // "ruler-stops-rendering-past-6'2"" walkthrough report:
+            // ticks rendered correctly within the data range, but the
+            // visible viewport was offset so high stepIndex values
+            // landed beyond the clipped frame's bottom edge.
+            //
+            // With alignment: .top the VStack's top pins to ZStack-y=0
+            // and the contentOffset formula
+            //   rulerHeight/2 - (stepIndex + 0.5) * tickHeight
+            // places tick `stepIndex` exactly at the center indicator
+            // for any value across the full range.
+            ZStack(alignment: .top) {
                 // Tick column. Each tick is a horizontal accent bar
                 // centered horizontally in the ruler; every 5th tick
                 // reads bolder so the eye picks up scale at a glance.
-                // Column is offset so the current step lands at the
-                // center selection indicator.
                 VStack(spacing: 0) {
                     ForEach(0..<totalSteps, id: \.self) { i in
                         let major = (i % majorTickEvery == 0)
@@ -586,11 +600,14 @@ struct BiometricSlider: View {
                 .offset(y: contentOffset)
 
                 // Center selection indicator — a thicker cocoa bar
-                // anchored at the ruler's vertical + horizontal center,
-                // marking which tick is currently selected.
+                // marking the currently selected tick. Wrapping in
+                // frame(maxHeight: .infinity) makes it fill the ZStack
+                // vertically; default frame alignment (.center) then
+                // places the indicator at the ruler's vertical center.
                 RoundedRectangle(cornerRadius: 2)
                     .fill(Palette.bgInverse)
                     .frame(width: majorTickWidth + 16, height: 3)
+                    .frame(maxHeight: .infinity)
             }
             .frame(maxWidth: .infinity)
             .frame(height: rulerHeight)
