@@ -28,9 +28,37 @@ struct PostRoutineView: View {
         return Double(completedCount) / Double(exerciseResults.count)
     }
 
+    // Phase 16 — routine celebration scatter (HIGH treatment, 6 stickers,
+    // 1 line-art / 5 painterly). Slightly different sticker mix from
+    // PostSessionView so back-to-back single-hold + routine completion
+    // don't read as the same screen. tulip_bouquet anchors the warmer
+    // bottom-right beat.
+    private static let celebrationPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .starLineart,
+                         position: CGPoint(x: 0.10, y: 0.06),
+                         size: 30, rotation: 12, phaseDelay: 0.00),
+        StickerPlacement(sticker: .cherries,
+                         position: CGPoint(x: 0.92, y: 0.10),
+                         size: 32, rotation: -10, phaseDelay: 0.18),
+        StickerPlacement(sticker: .bowIridescent,
+                         position: CGPoint(x: 0.06, y: 0.42),
+                         size: 36, rotation: 13, phaseDelay: 0.36),
+        StickerPlacement(sticker: .heartGlossy,
+                         position: CGPoint(x: 0.94, y: 0.44),
+                         size: 32, rotation: -8, phaseDelay: 0.55),
+        StickerPlacement(sticker: .gummyBear,
+                         position: CGPoint(x: 0.08, y: 0.92),
+                         size: 38, rotation: 11, phaseDelay: 0.72),
+        StickerPlacement(sticker: .tulipBouquet,
+                         position: CGPoint(x: 0.90, y: 0.93),
+                         size: 40, rotation: -12, phaseDelay: 0.90),
+    ]
+
     var body: some View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
+
+            StickerScatter(placements: Self.celebrationPlacements)
 
             // Confetti particles
             ForEach(particles) { p in

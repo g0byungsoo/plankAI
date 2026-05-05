@@ -425,37 +425,44 @@ struct SectionDividerScreen: View {
     let supporting: String
     let dwellSeconds: Double
     let onAdvance: () -> Void
+    var stickerPlacements: [StickerPlacement] = []
 
     @State private var visible = false
 
     var body: some View {
-        VStack(spacing: Space.md) {
-            Spacer()
+        ZStack {
+            if !stickerPlacements.isEmpty {
+                StickerScatter(placements: stickerPlacements)
+            }
 
-            Text("PART \(partNumber)")
-                .font(Typo.eyebrow)
-                .tracking(2)
-                .foregroundStyle(Palette.accent)
-                .opacity(visible ? 1 : 0)
-                .offset(y: visible ? 0 : 12)
+            VStack(spacing: Space.md) {
+                Spacer()
 
-            Text(title)
-                .font(Typo.title)
-                .foregroundStyle(Palette.textPrimary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Space.lg)
-                .opacity(visible ? 1 : 0)
-                .offset(y: visible ? 0 : 16)
+                Text("PART \(partNumber)")
+                    .font(Typo.eyebrow)
+                    .tracking(2)
+                    .foregroundStyle(Palette.accent)
+                    .opacity(visible ? 1 : 0)
+                    .offset(y: visible ? 0 : 12)
 
-            Text(supporting)
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Space.xl)
-                .opacity(visible ? 1 : 0)
-                .offset(y: visible ? 0 : 16)
+                Text(title)
+                    .font(Typo.title)
+                    .foregroundStyle(Palette.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.lg)
+                    .opacity(visible ? 1 : 0)
+                    .offset(y: visible ? 0 : 16)
 
-            Spacer()
+                Text(supporting)
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.xl)
+                    .opacity(visible ? 1 : 0)
+                    .offset(y: visible ? 0 : 16)
+
+                Spacer()
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
@@ -476,25 +483,43 @@ struct SectionDividerScreen: View {
 
 struct ConfirmationBadge: View {
     let message: String
+    var accentSticker: StickerName? = nil
 
     var body: some View {
-        HStack(spacing: Space.sm) {
-            Image(systemName: "checkmark")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(Palette.textInverse)
-                .frame(width: 22, height: 22)
-                .background(Palette.accent, in: Circle())
+        ZStack(alignment: .topTrailing) {
+            HStack(spacing: Space.sm) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Palette.textInverse)
+                    .frame(width: 22, height: 22)
+                    .background(Palette.accent, in: Circle())
 
-            Text(message)
-                .font(Typo.body)
-                .fontWeight(.semibold)
-                .foregroundStyle(Palette.textInverse)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
+                Text(message)
+                    .font(Typo.body)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.textInverse)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, Space.md)
+            .padding(.vertical, Space.md)
+            .background(Palette.bgInverse, in: RoundedRectangle(cornerRadius: Radius.md))
+
+            // Sticker accent peeks out of the top-right corner of the
+            // pill — "decoration on a label" pattern, not scatter.
+            // accessibilityHidden + non-interactive via Sticker's own
+            // modifiers in Phase 14b.
+            if let accent = accentSticker {
+                Sticker(placement: StickerPlacement(
+                    sticker: accent,
+                    position: .zero,  // unused at this layer (no GeometryReader)
+                    size: 32,
+                    rotation: 12,
+                    phaseDelay: 0
+                ))
+                .offset(x: 14, y: -14)
+            }
         }
-        .padding(.horizontal, Space.md)
-        .padding(.vertical, Space.md)
-        .background(Palette.bgInverse, in: RoundedRectangle(cornerRadius: Radius.md))
         .padding(.horizontal, Space.lg)
     }
 }

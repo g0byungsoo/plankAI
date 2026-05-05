@@ -203,7 +203,7 @@ struct OnboardingView: View {
             if showConfirmation, let msg = pendingConfirmation {
                 VStack {
                     Spacer()
-                    ConfirmationBadge(message: msg)
+                    ConfirmationBadge(message: msg, accentSticker: .heartGlossy)
                         .padding(.bottom, Space.xl)
                 }
                 .transition(.opacity)
@@ -286,37 +286,43 @@ struct OnboardingView: View {
             partNumber: 1, title: "Your story",
             supporting: "Three quick reads on what brought you here.",
             dwellSeconds: 1.6,
-            onAdvance: { go(1) }
+            onAdvance: { go(1) },
+            stickerPlacements: Self.sectionDividerPlacements
         )
         case 201: SectionDividerScreen(
             partNumber: 2, title: "How you move now",
             supporting: "We'll match your plan to where you are today.",
             dwellSeconds: 1.6,
-            onAdvance: { go(2) }
+            onAdvance: { go(2) },
+            stickerPlacements: Self.sectionDividerPlacements
         )
         case 202: SectionDividerScreen(
             partNumber: 3, title: "About you",
             supporting: "A few numbers so the math behind your plan is honest.",
             dwellSeconds: 1.6,
-            onAdvance: { go(130) }
+            onAdvance: { go(130) },
+            stickerPlacements: Self.sectionDividerPlacements
         )
         case 203: SectionDividerScreen(
             partNumber: 4, title: "How you want to feel",
             supporting: "The version of you that's waiting on the other side.",
             dwellSeconds: 1.6,
-            onAdvance: { go(140) }
+            onAdvance: { go(140) },
+            stickerPlacements: Self.sectionDividerPlacements
         )
         case 204: SectionDividerScreen(
             partNumber: 5, title: "What stops you",
             supporting: "Three honest questions. Tap whichever lands.",
             dwellSeconds: 1.6,
-            onAdvance: { go(150) }
+            onAdvance: { go(150) },
+            stickerPlacements: Self.sectionDividerPlacements
         )
         case 205: SectionDividerScreen(
             partNumber: 6, title: "Ready to start",
             supporting: "Last few. Then your plan goes live.",
             dwellSeconds: 1.6,
-            onAdvance: { go(3) }
+            onAdvance: { go(3) },
+            stickerPlacements: Self.sectionDividerPlacements
         )
 
         // ─── Part 1 — Your story ────────────────────────────────
@@ -546,19 +552,23 @@ struct OnboardingView: View {
         }
 
         // ─── Part 4 — How you want to feel ──────────────────────
-        case 140: jfQuestion(
-            "Which one feels most like the new you?",
-            sub: "Pick the version that's pulling you forward.",
-            opts: [
-                ("powerful", "Powerful", "Confident, undeniable",   "bolt.fill"),
-                ("calm",     "Calm",     "At home in my body",      "leaf.fill"),
-                ("light",    "Light",    "Free, unburdened",        "wind"),
-                ("strong",   "Strong",   "Capable, grounded",       "shield.fill"),
-                ("radiant",  "Radiant",  "Glowing from inside out", "sparkles"),
-            ],
-            sel: $identityFeeling, next: 141,
-            confirmation: "That's the goal. Your plan is built around getting you there."
-        )
+        case 140:
+            ZStack {
+                StickerScatter(placements: Self.identityPlacements)
+                jfQuestion(
+                    "Which one feels most like the new you?",
+                    sub: "Pick the version that's pulling you forward.",
+                    opts: [
+                        ("powerful", "Powerful", "Confident, undeniable",   "bolt.fill"),
+                        ("calm",     "Calm",     "At home in my body",      "leaf.fill"),
+                        ("light",    "Light",    "Free, unburdened",        "wind"),
+                        ("strong",   "Strong",   "Capable, grounded",       "shield.fill"),
+                        ("radiant",  "Radiant",  "Glowing from inside out", "sparkles"),
+                    ],
+                    sel: $identityFeeling, next: 141,
+                    confirmation: "That's the goal. Your plan is built around getting you there."
+                )
+            }
 
         case 141: jfQuestion(
             "What's the reward when you hit the goal?",
@@ -767,6 +777,105 @@ struct OnboardingView: View {
         StickerPlacement(sticker: .strawberry,
                          position: CGPoint(x: 0.78, y: 0.95),
                          size: 28, rotation: 13, phaseDelay: 0.93),
+    ]
+
+    // MARK: - Phase 16 sticker presets
+    //
+    // Per-screen scatter placements for the surfaces that earn stickers:
+    // section dividers, identity question, two prediction screens, and
+    // the plan reveal. Each preset uses unique phaseDelay values
+    // 0.0…1.0 so the cluster idles in desync. Mix of line-art and
+    // painterly varies by emotional weight per the sticker style spec.
+
+    /// HIGH treatment — 6 stickers, balanced 2 line-art / 4 painterly,
+    /// shared across all 6 onboarding section dividers (case 200…205).
+    private static let sectionDividerPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .heartsLineart,
+                         position: CGPoint(x: 0.10, y: 0.18),
+                         size: 32, rotation: -10, phaseDelay: 0.00),
+        StickerPlacement(sticker: .bowSatin,
+                         position: CGPoint(x: 0.88, y: 0.16),
+                         size: 38, rotation: 12, phaseDelay: 0.15),
+        StickerPlacement(sticker: .cherries,
+                         position: CGPoint(x: 0.08, y: 0.50),
+                         size: 32, rotation: 9, phaseDelay: 0.30),
+        StickerPlacement(sticker: .flower3D,
+                         position: CGPoint(x: 0.92, y: 0.52),
+                         size: 36, rotation: -11, phaseDelay: 0.45),
+        StickerPlacement(sticker: .starLineart,
+                         position: CGPoint(x: 0.12, y: 0.86),
+                         size: 28, rotation: 14, phaseDelay: 0.65),
+        StickerPlacement(sticker: .gummyBear,
+                         position: CGPoint(x: 0.90, y: 0.84),
+                         size: 38, rotation: -8, phaseDelay: 0.85),
+    ]
+
+    /// LIGHT treatment — 3 small stickers for the identity question
+    /// (case 140), the emotional wedge moment.
+    private static let identityPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .heartsLineart,
+                         position: CGPoint(x: 0.92, y: 0.10),
+                         size: 26, rotation: 12, phaseDelay: 0.00),
+        StickerPlacement(sticker: .heartGlossy,
+                         position: CGPoint(x: 0.94, y: 0.42),
+                         size: 28, rotation: -8, phaseDelay: 0.40),
+        StickerPlacement(sticker: .starLineart,
+                         position: CGPoint(x: 0.08, y: 0.92),
+                         size: 24, rotation: -10, phaseDelay: 0.75),
+    ]
+
+    /// LIGHT treatment — first prediction (case 161). Moment of revelation
+    /// around the weight curve callout.
+    private static let firstPredictionPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .sparkleGlossy,
+                         position: CGPoint(x: 0.92, y: 0.08),
+                         size: 26, rotation: 13, phaseDelay: 0.00),
+        StickerPlacement(sticker: .heartGlossy,
+                         position: CGPoint(x: 0.06, y: 0.45),
+                         size: 28, rotation: -10, phaseDelay: 0.40),
+        StickerPlacement(sticker: .cherries,
+                         position: CGPoint(x: 0.92, y: 0.92),
+                         size: 28, rotation: 9, phaseDelay: 0.80),
+    ]
+
+    /// LIGHT treatment — final prediction with calendar (case 181).
+    /// Pre-commitment moment.
+    private static let finalPredictionPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .heartsLineart,
+                         position: CGPoint(x: 0.08, y: 0.08),
+                         size: 26, rotation: 10, phaseDelay: 0.00),
+        StickerPlacement(sticker: .bowSatin,
+                         position: CGPoint(x: 0.94, y: 0.50),
+                         size: 30, rotation: -12, phaseDelay: 0.40),
+        StickerPlacement(sticker: .strawberry,
+                         position: CGPoint(x: 0.08, y: 0.94),
+                         size: 28, rotation: 13, phaseDelay: 0.80),
+    ]
+
+    /// HIGH treatment — plan reveal (case 21). Celebratory hand-off.
+    /// 7 stickers, weight to painterly (1 line-art + 6 painterly).
+    private static let planRevealPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .heartsLineart,
+                         position: CGPoint(x: 0.08, y: 0.06),
+                         size: 30, rotation: -12, phaseDelay: 0.00),
+        StickerPlacement(sticker: .sparkleGlossy,
+                         position: CGPoint(x: 0.92, y: 0.08),
+                         size: 32, rotation: 13, phaseDelay: 0.13),
+        StickerPlacement(sticker: .bowSatin,
+                         position: CGPoint(x: 0.06, y: 0.22),
+                         size: 36, rotation: -10, phaseDelay: 0.27),
+        StickerPlacement(sticker: .flower3D,
+                         position: CGPoint(x: 0.94, y: 0.24),
+                         size: 36, rotation: 14, phaseDelay: 0.42),
+        StickerPlacement(sticker: .gummyBear,
+                         position: CGPoint(x: 0.94, y: 0.50),
+                         size: 38, rotation: -11, phaseDelay: 0.58),
+        StickerPlacement(sticker: .cherries,
+                         position: CGPoint(x: 0.08, y: 0.92),
+                         size: 32, rotation: 9, phaseDelay: 0.74),
+        StickerPlacement(sticker: .teddyPink,
+                         position: CGPoint(x: 0.92, y: 0.94),
+                         size: 38, rotation: -11, phaseDelay: 0.90),
     ]
 
     private var welcome: some View {
@@ -2474,14 +2583,17 @@ struct OnboardingView: View {
 
     // First weight prediction (161). "We predict you'll be [goal] by [date]"
     private var firstPredictionScreen: some View {
-        predictionScreen(
-            headlinePrefix: "We predict you'll be ",
-            headlineSuffix: ".",
-            subhead: "We're starting to get a clear picture of you.",
-            badge: nil,
-            target: predictionDate(),
-            next: 203
-        )
+        ZStack {
+            StickerScatter(placements: Self.firstPredictionPlacements)
+            predictionScreen(
+                headlinePrefix: "We predict you'll be ",
+                headlineSuffix: ".",
+                subhead: "We're starting to get a clear picture of you.",
+                badge: nil,
+                target: predictionDate(),
+                next: 203
+            )
+        }
     }
 
     // Re-prediction (170) — same shape, earlier date, "Still on track!" badge.
@@ -2499,44 +2611,48 @@ struct OnboardingView: View {
     // Final prediction (181) — runs after the loading carousel, hands off
     // to the redesigned plan reveal.
     private var finalPredictionScreen: some View {
-        VStack(spacing: 0) {
-            Spacer().frame(height: Space.lg)
+        ZStack {
+            StickerScatter(placements: Self.finalPredictionPlacements)
 
-            Text("Based on your answers, your plan is ready.")
-                .font(Typo.title)
-                .foregroundStyle(Palette.textPrimary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Space.screenPadding)
+            VStack(spacing: 0) {
+                Spacer().frame(height: Space.lg)
 
-            Spacer().frame(height: Space.sm)
+                Text("Based on your answers, your plan is ready.")
+                    .font(Typo.title)
+                    .foregroundStyle(Palette.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.screenPadding)
 
-            predictionHeadline()
-                .padding(.horizontal, Space.screenPadding)
+                Spacer().frame(height: Space.sm)
 
-            Spacer().frame(height: Space.md)
+                predictionHeadline()
+                    .padding(.horizontal, Space.screenPadding)
 
-            weightCurve()
-                .frame(height: 180)
-                .padding(.horizontal, Space.screenPadding)
+                Spacer().frame(height: Space.md)
 
-            Spacer().frame(height: Space.lg)
+                weightCurve()
+                    .frame(height: 180)
+                    .padding(.horizontal, Space.screenPadding)
 
-            // First-week calendar dots — represents the first 9 days of
-            // workouts. Accent dots for committed days, divider for rest.
-            firstWeekCalendar()
-                .padding(.horizontal, Space.screenPadding)
+                Spacer().frame(height: Space.lg)
 
-            Spacer().frame(height: Space.md)
+                // First-week calendar dots — represents the first 9 days of
+                // workouts. Accent dots for committed days, divider for rest.
+                firstWeekCalendar()
+                    .padding(.horizontal, Space.screenPadding)
 
-            Text("Designed by trainers, built around your answers.")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Space.screenPadding)
+                Spacer().frame(height: Space.md)
 
-            Spacer()
+                Text("Designed by trainers, built around your answers.")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.screenPadding)
 
-            ctaBtn("Get my plan") { Haptics.heavy(); go(21) }
+                Spacer()
+
+                ctaBtn("Get my plan") { Haptics.heavy(); go(21) }
+            }
         }
     }
 
@@ -2968,7 +3084,10 @@ struct OnboardingView: View {
         let coachPhoto = voicePreference == "encouraging" ? "coach-jeni" : voicePreference == "balanced" ? "coach-matson" : "coach-kira"
         let goalLabel = jenifitGoalLabel()
 
-        return VStack(spacing: 0) {
+        return ZStack {
+            StickerScatter(placements: Self.planRevealPlacements)
+
+            VStack(spacing: 0) {
             Spacer()
 
             // Coach photo
@@ -3042,11 +3161,15 @@ struct OnboardingView: View {
 
             ctaBtn("Set up camera") { Haptics.medium(); go(26) }
                 .opacity(planRevealed ? 1 : 0)
-        }
-        .background(Palette.bgPrimary)
-        .onAppear {
-            Haptics.success()
-            withAnimation(.easeOut(duration: 0.5).delay(0.2)) { planRevealed = true }
+            }
+            // Background is provided by OnboardingView's outer ZStack
+            // (Palette.bgPrimary). Removed the .background here so the
+            // ZStack-wrapped StickerScatter remains visible behind the
+            // VStack content.
+            .onAppear {
+                Haptics.success()
+                withAnimation(.easeOut(duration: 0.5).delay(0.2)) { planRevealed = true }
+            }
         }
     }
 

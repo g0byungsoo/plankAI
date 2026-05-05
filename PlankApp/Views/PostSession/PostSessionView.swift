@@ -13,9 +13,35 @@ struct PostSessionView: View {
     @State private var showStats = false
     @State private var showShareSheet = false
 
+    // Phase 16 — celebration scatter (HIGH treatment, 6 stickers,
+    // 1 line-art / 5 painterly). Margins only — never on the centered
+    // stat cards or score breakdowns.
+    private static let celebrationPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .heartsLineart,
+                         position: CGPoint(x: 0.08, y: 0.08),
+                         size: 28, rotation: -10, phaseDelay: 0.00),
+        StickerPlacement(sticker: .bowIridescent,
+                         position: CGPoint(x: 0.92, y: 0.08),
+                         size: 36, rotation: 12, phaseDelay: 0.18),
+        StickerPlacement(sticker: .cherries,
+                         position: CGPoint(x: 0.08, y: 0.45),
+                         size: 32, rotation: 9, phaseDelay: 0.36),
+        StickerPlacement(sticker: .gummyBear,
+                         position: CGPoint(x: 0.94, y: 0.42),
+                         size: 36, rotation: -10, phaseDelay: 0.55),
+        StickerPlacement(sticker: .strawberry,
+                         position: CGPoint(x: 0.10, y: 0.92),
+                         size: 30, rotation: 13, phaseDelay: 0.72),
+        StickerPlacement(sticker: .teddyPink,
+                         position: CGPoint(x: 0.92, y: 0.94),
+                         size: 38, rotation: -11, phaseDelay: 0.90),
+    ]
+
     var body: some View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
+
+            StickerScatter(placements: Self.celebrationPlacements)
 
             VStack(spacing: Space.lg) {
                 Spacer()
