@@ -718,16 +718,24 @@ struct TickRulerPicker<Annotation: View>: View {
                 )
                 .frame(height: 200)
 
-                // Center selection indicator. UIPickerView draws its
-                // own faint hairlines top + bottom of the selected
-                // row; the cocoa bar reads as the dominant visual
-                // anchor regardless.
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Palette.bgInverse)
-                    .frame(height: 3)
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, Space.lg)
-                    .allowsHitTesting(false)
+                // Subtle selection indicator — two small accent dots
+                // flanking the picker at the row centerline. Sits
+                // outside the tick column so it doesn't visually
+                // compete with the major ticks (which already carry
+                // their own accent treatment); reads as "this row"
+                // via edge emphasis instead of a bar across the
+                // ruler.
+                HStack {
+                    Circle()
+                        .fill(Palette.accent)
+                        .frame(width: 5, height: 5)
+                    Spacer()
+                    Circle()
+                        .fill(Palette.accent)
+                        .frame(width: 5, height: 5)
+                }
+                .padding(.horizontal, Space.md)
+                .allowsHitTesting(false)
             }
             .frame(height: 200)
             .id(imperial ? "imperial" : "metric")
