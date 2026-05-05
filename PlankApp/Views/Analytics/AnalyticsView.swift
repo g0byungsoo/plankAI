@@ -82,20 +82,26 @@ struct AnalyticsView: View {
     @State private var streakPulse = false
     @State private var calendarScale: CGFloat = 0.95
 
-    // Phase 16b — Logs scatter (LIGHT, 3 stickers). Anchored to body
-    // ZStack so they pin to viewport rather than scrolling with the
-    // stats list. cherries + heart_glossy bring warmth toward "your
-    // progress"; hearts_lineart adds a small line-art accent.
+    // Phase 16c — Logs scatter (LIGHT, 3 stickers, line-art-heavy).
+    // Data surface should feel like a dashboard with light touches,
+    // not decorated — 2 line-art + 1 small painterly, all 24–26pt.
+    //
+    // Same placement strategy as Home: stickers live in the top +
+    // bottom horizontal bands where stats cards / activity calendar /
+    // recent sessions list don't extend, so they never overlap data
+    // content regardless of screen width. cherries lands the warmth
+    // touch in one corner; hearts_lineart + star_lineart anchor the
+    // line-art accents in the other two.
     private static let logsPlacements: [StickerPlacement] = [
-        StickerPlacement(sticker: .cherries,
-                         position: CGPoint(x: 0.92, y: 0.10),
-                         size: 30, rotation: 12, phaseDelay: 0.00),
         StickerPlacement(sticker: .heartsLineart,
-                         position: CGPoint(x: 0.06, y: 0.45),
+                         position: CGPoint(x: 0.92, y: 0.13),
+                         size: 24, rotation: 12, phaseDelay: 0.00),
+        StickerPlacement(sticker: .starLineart,
+                         position: CGPoint(x: 0.08, y: 0.86),
                          size: 26, rotation: -10, phaseDelay: 0.40),
-        StickerPlacement(sticker: .heartGlossy,
-                         position: CGPoint(x: 0.94, y: 0.85),
-                         size: 28, rotation: 13, phaseDelay: 0.80),
+        StickerPlacement(sticker: .cherries,
+                         position: CGPoint(x: 0.92, y: 0.89),
+                         size: 24, rotation: 14, phaseDelay: 0.80),
     ]
 
     var body: some View {

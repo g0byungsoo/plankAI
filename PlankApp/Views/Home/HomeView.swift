@@ -119,24 +119,30 @@ struct HomeView: View {
         }
     }
 
-    // Phase 16b — Home scatter (LIGHT treatment, 4 stickers). Anchored
-    // to the body ZStack so stickers stay pinned to viewport coords as
-    // the inner ScrollView scrolls. Margins only — never overlapping
-    // cards. Top-bar covers the y<0.07 band with its own opaque cream
-    // background, so all sticker y-values stay below that.
+    // Phase 16c — Home scatter (LIGHT, 3 stickers, mostly line-art).
+    // Daily-use surface should feel light, not decorated — 2 line-art
+    // + 1 small painterly accent, all ≤26pt.
+    //
+    // Placement zones: cards span full width with only 16pt of cream
+    // gutter on each side, so left/right mid-screen positions inevitably
+    // brush card edges. Instead, stickers sit in the top + bottom
+    // horizontal bands where there's clean negative space regardless
+    // of screen width:
+    //   - top band (between top bar and greeting headline at y≈0.14)
+    //   - bottom band (between benchmarkCard and tab bar at y≈0.88)
+    // Greeting is left-aligned so its right margin is empty for the
+    // top sticker. Bottom band has no content other than the tab bar
+    // pill, leaving both corners free.
     private static let homePlacements: [StickerPlacement] = [
-        StickerPlacement(sticker: .sparkleGlossy,
-                         position: CGPoint(x: 0.92, y: 0.13),
-                         size: 26, rotation: 12, phaseDelay: 0.00),
+        StickerPlacement(sticker: .starLineart,
+                         position: CGPoint(x: 0.92, y: 0.14),
+                         size: 24, rotation: 12, phaseDelay: 0.00),
         StickerPlacement(sticker: .heartsLineart,
-                         position: CGPoint(x: 0.06, y: 0.30),
-                         size: 24, rotation: -8, phaseDelay: 0.30),
-        StickerPlacement(sticker: .heartGlossy,
-                         position: CGPoint(x: 0.94, y: 0.50),
-                         size: 28, rotation: -10, phaseDelay: 0.55),
-        StickerPlacement(sticker: .gummyBear,
-                         position: CGPoint(x: 0.10, y: 0.86),
-                         size: 32, rotation: 9, phaseDelay: 0.85),
+                         position: CGPoint(x: 0.08, y: 0.86),
+                         size: 26, rotation: -10, phaseDelay: 0.40),
+        StickerPlacement(sticker: .sparkleGlossy,
+                         position: CGPoint(x: 0.92, y: 0.89),
+                         size: 26, rotation: 14, phaseDelay: 0.80),
     ]
 
     var body: some View {
@@ -546,40 +552,36 @@ struct HomeView: View {
             .clipShape(Circle())
     }
 
-    // MARK: - Benchmark Card (Phase 16b — clean card, no chat-bubble)
+    // MARK: - Benchmark Card (Phase 16c — pattern alignment)
     //
-    // Replaces the avatar + chat-bubble pattern (kiraBenchmarkModule)
-    // with a card matching the workout/streak aesthetic. Same data
-    // (benchmark prompt, last-hold + days-ago stats, LET'S GO CTA)
-    // and same callback into showPreSession.
+    // Restyled to match jenifitWorkoutCard exactly: Fraunces title
+    // (Typo.title), calm body subtitle in textSecondary, eyebrow stats
+    // line, and the same cocoa pill CTA shape (h:52, rounded 14pt,
+    // tracking-2 all-caps label, accent arrow on the right). Same
+    // callback into showPreSession; the per-voicePreference
+    // benchmarkText shout was replaced with a single calm subtitle so
+    // the three home cards feel like one family.
 
     private var benchmarkCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(benchmarkText)
-                .font(Typo.body)
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Text("Plank benchmark.")
+                .font(Typo.title)
                 .foregroundStyle(Palette.textPrimary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("Test your hold. We'll watch your form.")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let last = lastBenchmark, let days = daysSinceLastBenchmark {
-                HStack(spacing: 20) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(String(format: "%.0fs", last.holdTime))
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundStyle(Palette.textPrimary)
-                        Text("last hold")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("\(days)d")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundStyle(Palette.textPrimary)
-                        Text("ago")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                }
+                Text("LAST: \(Int(last.holdTime))S\u{2009}·\u{2009}\(days)D AGO")
+                    .font(Typo.eyebrow).tracking(1)
+                    .foregroundStyle(Palette.textSecondary)
             }
+
+            Spacer().frame(height: Space.xs)
 
             Button {
                 guard payment.hasProAccess else {
@@ -590,15 +592,19 @@ struct HomeView: View {
                 Haptics.medium()
                 showPreSession = true
             } label: {
-                Text("LET'S GO")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Palette.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 38)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Palette.divider, lineWidth: 1.5)
-                    )
+                HStack {
+                    Text("BEGIN")
+                        .font(.system(size: 15, weight: .bold))
+                        .tracking(2)
+                    Spacer()
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Palette.accent)
+                }
+                .foregroundStyle(Palette.textInverse)
+                .padding(.horizontal, 18)
+                .frame(height: 52)
+                .background(Palette.bgInverse, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
         }
         .padding(Space.md)
