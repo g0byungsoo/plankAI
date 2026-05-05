@@ -537,12 +537,16 @@ struct BiometricSlider: View {
         (value - range.lowerBound) / step
     }
 
-    /// Negative offset shifts the tick column up so a later step lands at
-    /// the center indicator. Computed continuously from `value` so the
-    /// ruler tracks any external change to the binding (e.g., the smart
-    /// goal-weight default applied via .onAppear).
+    /// Vertical offset that places tick `stepIndex` at the ruler's
+    /// vertical center (y = rulerHeight / 2 in ZStack-local space). Each
+    /// tick row sits at VStack-y `(i + 0.5) * tickHeight`; we shift the
+    /// whole VStack so the selected tick aligns with the center
+    /// indicator. Without the rulerHeight/2 anchor, step 0 ended up at
+    /// the top of the viewport and high steps got clipped past the
+    /// center indicator's frame — the cause of the "ruler breaks past
+    /// 5'9"" walkthrough report.
     private var contentOffset: CGFloat {
-        -CGFloat(stepIndex) * tickHeight
+        rulerHeight / 2 - (CGFloat(stepIndex) + 0.5) * tickHeight
     }
 
     var body: some View {

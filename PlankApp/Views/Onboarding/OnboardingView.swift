@@ -42,13 +42,13 @@ struct OnboardingView: View {
     @State private var bodyFocus: Set<String> = []
     @State private var motivation = ""
     @State private var workoutLocation = ""
-    @State private var workoutStyle: Set<String> = ["hiit"]
+    @State private var workoutStyle: Set<String> = []
     @State private var gender = ""
     @State private var heightCm: Double = 170
     @State private var currentWeightKg: Double = 65
     @State private var goalWeightKg: Double = 60
-    @State private var bodyTypeCurrent: Int = 2
-    @State private var bodyTypeDesired: Int = 1
+    @State private var bodyTypeCurrent: Int = 3
+    @State private var bodyTypeDesired: Int = 3
     @State private var identityFeeling = ""
     @State private var rewardChoice = ""
     @State private var relatability1: Bool? = nil
@@ -104,10 +104,11 @@ struct OnboardingView: View {
 
                 currentScreen
                     .id(screen)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: dir > 0 ? .trailing : .leading).combined(with: .opacity),
-                        removal: .move(edge: dir > 0 ? .leading : .trailing).combined(with: .opacity)
-                    ))
+                    // Editorial fade between onboarding screens. Was a
+                    // directional slide which read as app-cliche; the
+                    // straight opacity fade reads premium and avoids
+                    // the visual whiplash on rapid forward/back nav.
+                    .transition(.opacity)
             }
 
             if analyzing { analyzingScreen.transition(.opacity).zIndex(10) }
@@ -146,7 +147,7 @@ struct OnboardingView: View {
                     ConfirmationBadge(message: msg)
                         .padding(.bottom, Space.xl)
                 }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .transition(.opacity)
                 .zIndex(18)
             }
 
@@ -446,7 +447,7 @@ struct OnboardingView: View {
             "Where are you now?",
             sub: "Visual reference, not a number on a scale.",
             position: $bodyTypeCurrent,
-            labels: ["Soft", "Curvy", "Average", "Athletic", "Lean", "Cut"],
+            labels: ["Cut", "Lean", "Athletic", "Average", "Curvy", "Soft"],
             next: 135
         )
 
@@ -454,10 +455,10 @@ struct OnboardingView: View {
             "Where do you want to be?",
             sub: "What we're moving you toward.",
             position: $bodyTypeDesired,
-            labels: ["Soft", "Curvy", "Average", "Athletic", "Lean", "Cut"],
+            labels: ["Cut", "Lean", "Athletic", "Average", "Curvy", "Soft"],
             maxPosition: bodyTypeCurrent,
             markerPosition: bodyTypeCurrent,
-            contextLine: "You said you're at: \(["Soft", "Curvy", "Average", "Athletic", "Lean", "Cut"][bodyTypeCurrent])",
+            contextLine: "You said you're at: \(["Cut", "Lean", "Athletic", "Average", "Curvy", "Soft"][bodyTypeCurrent])",
             next: 203
         )
         .onAppear {
@@ -3549,8 +3550,8 @@ struct OnboardingData {
     var heightCm: Double = 170             // Part 3 slider
     var currentWeightKg: Double = 65       // Part 3 slider
     var goalWeightKg: Double = 60          // Part 3 slider
-    var bodyTypeCurrent: Int = 2           // Part 3 slider 0-5
-    var bodyTypeDesired: Int = 2           // Part 3 slider 0-5
+    var bodyTypeCurrent: Int = 3           // Part 3 slider 0-5 (0=Cut leanest, 5=Soft heaviest, 3=Average)
+    var bodyTypeDesired: Int = 3           // Part 3 slider 0-5 (defaults match current; case 135 reseeds on mount)
     var identityFeeling: String = ""       // Part 4
     var rewardChoice: String = ""          // Part 4
     var relatability1: Bool = false        // Part 5: "I struggle to stay consistent"
