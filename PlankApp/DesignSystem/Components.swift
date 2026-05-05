@@ -712,14 +712,20 @@ struct BiometricRulerScreen<Annotation: View>: View {
     var body: some View {
         VStack(spacing: Space.sm) {
             // Two-segment toggle pill — accent fill on the active side,
-            // divider stroke around the pair.
-            HStack(spacing: 0) {
-                unitButton(label: imperial.unitName, isImperial: true)
-                unitButton(label: metric.unitName, isImperial: false)
+            // divider stroke around the pair. Wrapped in Spacer-pill-
+            // Spacer to explicitly center horizontally regardless of
+            // the parent VStack's alignment defaults.
+            HStack {
+                Spacer()
+                HStack(spacing: 0) {
+                    unitSegment(label: imperial.unitName, isImperial: true)
+                    unitSegment(label: metric.unitName, isImperial: false)
+                }
+                .padding(2)
+                .background(Palette.bgElevated, in: Capsule())
+                .overlay(Capsule().stroke(Palette.divider, lineWidth: 1))
+                Spacer()
             }
-            .padding(2)
-            .background(Palette.bgElevated, in: Capsule())
-            .overlay(Capsule().stroke(Palette.divider, lineWidth: 1))
 
             BiometricSlider(
                 value: activeBinding,
@@ -736,23 +742,26 @@ struct BiometricRulerScreen<Annotation: View>: View {
         }
     }
 
-    private func unitButton(label: String, isImperial: Bool) -> some View {
-        Button {
-            Haptics.light()
-            withAnimation(.easeOut(duration: 0.18)) { useImperial = isImperial }
-        } label: {
-            Text(label)
-                .font(Typo.eyebrow)
-                .tracking(1.5)
-                .foregroundStyle(useImperial == isImperial ? Palette.textInverse : Palette.textSecondary)
-                .padding(.horizontal, Space.md)
-                .padding(.vertical, 6)
-                .background(
-                    useImperial == isImperial ? Palette.bgInverse : Color.clear,
-                    in: Capsule()
-                )
-        }
-        .buttonStyle(.plain)
+    /// Single segment of the toggle pill. Uses Text + onTapGesture
+    /// rather than Button — wrapping the segment in a Button with a
+    /// per-state Capsule background produced animation glitches when
+    /// the active segment flipped (the cm-active branch could render
+    /// inconsistently mid-transition). Direct onTapGesture on the
+    /// already-shaped Text avoids that.
+    private func unitSegment(label: String, isImperial: Bool) -> some View {
+        let active = useImperial == isImperial
+        return Text(label)
+            .font(Typo.eyebrow)
+            .tracking(2)
+            .foregroundStyle(active ? Palette.textInverse : Palette.textSecondary)
+            .padding(.horizontal, Space.md)
+            .padding(.vertical, 6)
+            .background(active ? Palette.bgInverse : Color.clear, in: Capsule())
+            .contentShape(Capsule())
+            .onTapGesture {
+                Haptics.light()
+                withAnimation(.easeOut(duration: 0.18)) { useImperial = isImperial }
+            }
     }
 }
 
