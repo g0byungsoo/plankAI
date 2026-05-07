@@ -31,20 +31,39 @@ struct SignInPromptView: View {
     @State private var working = false
     @State private var errorMessage: String?
 
-    // Phase 16b — sign-in prompt scatter (LIGHT, 3 stickers).
-    // Different mix from SignUpView so back-to-back auth flows don't
-    // look identical. 1 line-art + 2 painterly.
+    // Sign-in prompt scatter — 6-sticker fuller treatment (matches the
+    // section-divider density; auth is a meaningful interstitial, not a
+    // form-heavy screen, so it earns the same density). Edges only,
+    // mid-screen kept clear for the hero sticker + headline + buttons.
+    // 2 line-art + 4 painterly.
     private static let signInPromptPlacements: [StickerPlacement] = [
         StickerPlacement(sticker: .heartsLineart,
-                         position: CGPoint(x: 0.10, y: 0.10),
-                         size: 28, rotation: -10, phaseDelay: 0.00),
+                         position: CGPoint(x: 0.10, y: 0.08),
+                         size: 30, rotation: -10, phaseDelay: 0.00),
+        StickerPlacement(sticker: .starLineart,
+                         position: CGPoint(x: 0.88, y: 0.12),
+                         size: 28, rotation: 12, phaseDelay: 0.18),
         StickerPlacement(sticker: .heartGlossy,
-                         position: CGPoint(x: 0.92, y: 0.40),
-                         size: 30, rotation: 13, phaseDelay: 0.40),
+                         position: CGPoint(x: 0.92, y: 0.42),
+                         size: 32, rotation: 13, phaseDelay: 0.36),
+        StickerPlacement(sticker: .cherries,
+                         position: CGPoint(x: 0.08, y: 0.55),
+                         size: 30, rotation: -8, phaseDelay: 0.54),
         StickerPlacement(sticker: .gummyBear,
-                         position: CGPoint(x: 0.92, y: 0.85),
-                         size: 32, rotation: -8, phaseDelay: 0.80),
+                         position: CGPoint(x: 0.90, y: 0.84),
+                         size: 34, rotation: -8, phaseDelay: 0.72),
+        StickerPlacement(sticker: .bowIridescent,
+                         position: CGPoint(x: 0.10, y: 0.86),
+                         size: 32, rotation: 10, phaseDelay: 0.90),
     ]
+
+    // Hero sticker — sign up mode gets sparkle (forward energy),
+    // sign in mode gets heart (welcome back warmth). Larger size + soft
+    // accent halo behind it so it reads as a deliberate brand mark, not
+    // ambient decor.
+    private var heroStickerName: StickerName {
+        mode == .signIn ? .heartGlossy : .sparkleGlossy
+    }
 
     var body: some View {
         ZStack {
@@ -54,20 +73,35 @@ struct SignInPromptView: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                // Brand-shape icon — same lockup vibe as the splash dot trio
+                // Hero sticker — soft accent halo behind a brand sticker
+                // chosen by mode. Replaces the previous SF Symbol icon for
+                // a warmer, on-brand JeniFit moment.
                 ZStack {
                     Circle()
                         .fill(Palette.accent.opacity(0.12))
-                        .frame(width: 80, height: 80)
-                    Image(systemName: "person.crop.circle.badge.checkmark")
-                        .font(.system(size: 32, weight: .medium))
-                        .foregroundStyle(Palette.accent)
+                        .frame(width: 110, height: 110)
+                    Image(heroStickerName.assetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 78, height: 78)
+                        .opacity(heroStickerName.style.opacity)
                 }
 
             Spacer().frame(height: Space.lg)
 
-            Text(mode == .signIn ? "Welcome back." : "Save your progress.")
-                .font(.system(size: 28, weight: .bold))
+            // Italic accent on the emphasis word — Fraunces italic against
+            // Fraunces SemiBold gives the headline its JeniFit voice.
+            Group {
+                if mode == .signIn {
+                    (Text("Welcome ").font(Typo.title)
+                     + Text("back").font(Typo.titleItalic)
+                     + Text(".").font(Typo.title))
+                } else {
+                    (Text("Save your ").font(Typo.title)
+                     + Text("progress").font(Typo.titleItalic)
+                     + Text(".").font(Typo.title))
+                }
+            }
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
 

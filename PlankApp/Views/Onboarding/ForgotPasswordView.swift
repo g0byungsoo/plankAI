@@ -48,17 +48,25 @@ struct ForgotPasswordView: View {
         self._email = State(initialValue: initialEmail)
     }
 
-    // Phase 16b — forgot-password scatter (LIGHT, 3 stickers).
-    // Different mix from SignUp/SignInPrompt for visual variety.
+    // Forgot-password scatter — 5 stickers (one fewer than the full auth
+    // surfaces because the sheet is shorter). Sheet detents are .medium /
+    // .large; placements stay within the medium frame so the small
+    // version isn't sparse.
     private static let forgotPasswordPlacements: [StickerPlacement] = [
         StickerPlacement(sticker: .starLineart,
-                         position: CGPoint(x: 0.92, y: 0.10),
+                         position: CGPoint(x: 0.92, y: 0.08),
                          size: 28, rotation: 12, phaseDelay: 0.00),
+        StickerPlacement(sticker: .ribbonLineart,
+                         position: CGPoint(x: 0.08, y: 0.10),
+                         size: 26, rotation: -8, phaseDelay: 0.20),
         StickerPlacement(sticker: .cherries,
-                         position: CGPoint(x: 0.06, y: 0.45),
-                         size: 28, rotation: -10, phaseDelay: 0.40),
+                         position: CGPoint(x: 0.06, y: 0.50),
+                         size: 30, rotation: -10, phaseDelay: 0.40),
+        StickerPlacement(sticker: .sparkleGlossy,
+                         position: CGPoint(x: 0.92, y: 0.50),
+                         size: 28, rotation: 8, phaseDelay: 0.60),
         StickerPlacement(sticker: .bowSatin,
-                         position: CGPoint(x: 0.92, y: 0.85),
+                         position: CGPoint(x: 0.92, y: 0.92),
                          size: 32, rotation: 13, phaseDelay: 0.80),
     ]
 
@@ -95,8 +103,9 @@ struct ForgotPasswordView: View {
     private var inputContent: some View {
         VStack(alignment: .leading, spacing: Space.lg) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Reset your password.")
-                    .font(Typo.title)
+                (Text("Reset your ").font(Typo.title)
+                 + Text("password").font(Typo.titleItalic)
+                 + Text(".").font(Typo.title))
                     .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -226,13 +235,21 @@ struct ForgotPasswordView: View {
     private var confirmedContent: some View {
         VStack(alignment: .leading, spacing: Space.lg) {
             VStack(alignment: .leading, spacing: Space.md) {
-                Image(systemName: "envelope.circle.fill")
-                    .font(.system(size: 48, weight: .regular))
-                    .foregroundStyle(Palette.accent)
-                    .padding(.top, Space.sm)
+                ZStack {
+                    Circle()
+                        .fill(Palette.accent.opacity(0.12))
+                        .frame(width: 76, height: 76)
+                    Image(StickerName.heartGlossy.assetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 52, height: 52)
+                        .opacity(StickerName.heartGlossy.style.opacity)
+                }
+                .padding(.top, Space.sm)
 
-                Text("Check your email.")
-                    .font(Typo.title)
+                (Text("Check your ").font(Typo.title)
+                 + Text("email").font(Typo.titleItalic)
+                 + Text(".").font(Typo.title))
                     .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 

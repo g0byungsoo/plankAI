@@ -162,6 +162,11 @@ struct ItalicAccentText: View {
 
 struct OnboardingOptionCard: View {
     var icon: String? = nil
+    /// 17d-1: when set, the icon circle renders this sticker asset
+    /// instead of the SF Symbol (icon param ignored). Used by Q140
+    /// (identity feeling) + Q141 (reward) where each option deserves
+    /// a JeniFit visual handle rather than a generic glyph.
+    var sticker: StickerName? = nil
     let title: String
     var subtitle: String? = nil
     let isSelected: Bool
@@ -174,7 +179,13 @@ struct OnboardingOptionCard: View {
                     Circle()
                         .fill(Palette.accentSubtle)
                         .frame(width: 44, height: 44)
-                    if let icon {
+                    if let sticker {
+                        Image(sticker.assetName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 28, height: 28)
+                            .opacity(sticker.style.opacity)
+                    } else if let icon {
                         Image(systemName: icon)
                             .font(.system(size: 22, weight: .regular))
                             .foregroundStyle(Palette.accent)
@@ -316,9 +327,9 @@ struct DayBadge: View {
 // MARK: - JeniFitWordmark
 //
 // The brand mark: lowercase Fraunces SemiBold flanking a thin Light-weight
-// bullet ("jeni • fit"). Used on AuthBootstrapSplash and the onboarding
-// splash screen. Single canonical size so the brand reads identically
-// everywhere; if a future surface needs scale variants, parametrize then.
+// bullet ("jeni • fit"). Used on the onboarding top bar. Single canonical
+// size so the brand reads identically everywhere; if a future surface
+// needs scale variants, parametrize then.
 //
 // The bullet uses Fraunces72pt-Light at a smaller size with thin spaces
 // (U+2009) padding either side — SemiBold's bullet glyph reads chunky next
@@ -554,25 +565,32 @@ struct BiometricSlider: View {
     let step: Double
     let format: (Double) -> String
     /// How many `step` units per major (labeled) tick. Default 10 fits
-    /// metric cm/kg cleanly; imperial configs override (6 for half-foot
-    /// height ticks, 25 for lb).
+    /// metric cm/kg cleanly; imperial overrides per config (12 for
+    /// whole-foot height labels).
     var majorTickEvery: Int = 10
-    /// Optional intermediate tier — every N steps render a tick that's
-    /// bolder + longer than minor but unlabeled like minor. Use to
-    /// add visual rhythm between major intervals (e.g., every 5 cm on
-    /// the height ruler so 10-cm major ticks don't read isolated).
-    /// nil → binary major/minor only (default).
+    /// Optional intermediate tier — every N steps a tick that's bolder
+    /// than minor but unlabeled. Use for rhythm between majors (e.g.,
+    /// half-foot mediums between whole-foot labels).
     var mediumTickEvery: Int? = nil
+    /// Subscript unit shown below the big value (e.g. "ft", "cm"). nil
+    /// hides it. The toggle pill in the wrapper screen still carries
+    /// the active unit, so this is mostly redundant for the height
+    /// case and can be left nil in practice.
     var unitLabel: String? = nil
 
     @State private var dragStartValue: Double?
     @State private var lastTickValue: Double?
 
     private let tickHeight: CGFloat = 10
-    private let rulerHeight: CGFloat = 240
-    private let majorTickWidth: CGFloat = 36
-    private let mediumTickWidth: CGFloat = 12
-    private let minorTickWidth: CGFloat = 8
+    private let rulerHeight: CGFloat = 380
+    private let majorTickWidth: CGFloat = 28
+    private let mediumTickWidth: CGFloat = 16
+    private let minorTickWidth: CGFloat = 10
+    private let labelColumnWidth: CGFloat = 28
+    private let labelTickGap: CGFloat = 8
+    /// Total width of the left ruler column (label + tick + a hair of
+    /// breathing room). The big value display fills the remainder.
+    private let rulerColumnWidth: CGFloat = 88
 
     private var totalSteps: Int {
         Int(((range.upperBound - range.lowerBound) / step).rounded()) + 1
@@ -582,141 +600,121 @@ struct BiometricSlider: View {
         (value - range.lowerBound) / step
     }
 
-    /// Vertical offset that places tick `stepIndex` at the ruler's
-    /// vertical center (y = rulerHeight / 2 in ZStack-local space). Each
-    /// tick row sits at VStack-y `(i + 0.5) * tickHeight`; we shift the
-    /// whole VStack so the selected tick aligns with the center
-    /// indicator. Without the rulerHeight/2 anchor, step 0 ended up at
-    /// the top of the viewport and high steps got clipped past the
-    /// center indicator's frame — the cause of the "ruler breaks past
-    /// 5'9"" walkthrough report.
+    /// Vertical offset that places the selected tick at the ruler's
+    /// vertical center. Each tick row sits at VStack-y
+    /// `(i + 0.5) * tickHeight`; we shift the whole VStack so the
+    /// selected tick aligns with the indicator line at rulerHeight/2.
     private var contentOffset: CGFloat {
         rulerHeight / 2 - (CGFloat(stepIndex) + 0.5) * tickHeight
     }
 
+    /// Major-tick label text. Strips the unit suffix from the format
+    /// closure ("150 cm" → "150"). For imperial whole-foot ticks the
+    /// format produces e.g. "5'" — drop the apostrophe so the slim
+    /// label column reads just the number.
+    private func labelFor(_ index: Int) -> String {
+        let raw = format(range.lowerBound + Double(index) * step)
+        if let space = raw.lastIndex(of: " ") {
+            return String(raw[..<space])
+        }
+        if raw.hasSuffix("'") {
+            return String(raw.dropLast())
+        }
+        return raw
+    }
+
     var body: some View {
-        VStack(spacing: Space.sm) {
-            // Big Fraunces display value. .contentTransition(.numericText)
-            // was applied here previously but locks per-glyph widths
-            // for digit alignment — that breaks imperial labels like
-            // "5'8\"" where the apostrophe and quote glyphs don't fit
-            // the locked digit cells, rendering too narrow. Plain
-            // animation on `value` keeps the smooth update without
-            // the glyph-width side effect.
-            Text(format(value))
-                .font(Typo.display)
-                .foregroundStyle(Palette.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .animation(.easeOut(duration: 0.12), value: value)
-
-            if let unitLabel {
-                Text(unitLabel)
-                    .font(Typo.caption)
-                    .tracking(1.5)
-                    .foregroundStyle(Palette.textSecondary)
-            }
-
-            Spacer().frame(height: Space.md)
-
-            // ZStack(alignment: .top) is intentional. With the default
-            // .center alignment, SwiftUI auto-centers the VStack
-            // (natural height ~770pt for the 77-tick height ruler)
-            // vertically inside the 240pt ZStack frame — every tick
-            // ends up ~rulerHeight/2 above where the contentOffset
-            // formula expects it. That's the cause of the
-            // "ruler-stops-rendering-past-6'2"" walkthrough report:
-            // ticks rendered correctly within the data range, but the
-            // visible viewport was offset so high stepIndex values
-            // landed beyond the clipped frame's bottom edge.
-            //
-            // With alignment: .top the VStack's top pins to ZStack-y=0
-            // and the contentOffset formula
-            //   rulerHeight/2 - (stepIndex + 0.5) * tickHeight
-            // places tick `stepIndex` exactly at the center indicator
-            // for any value across the full range.
-            ZStack(alignment: .top) {
-                // Tick column. Each tick is a horizontal accent bar
-                // centered horizontally in the ruler; every 5th tick
-                // reads bolder so the eye picks up scale at a glance.
+        HStack(alignment: .center, spacing: 0) {
+            // ── Left: ruler (labels + ticks + indicator). ──
+            ZStack(alignment: .center) {
                 VStack(spacing: 0) {
                     ForEach(0..<totalSteps, id: \.self) { i in
-                        // Three-tier classification: major (every
-                        // majorTickEvery steps, with label upstream),
-                        // medium (every mediumTickEvery steps when
-                        // configured — visual rhythm between majors),
-                        // minor (everything else). Major wins over
-                        // medium when both intervals match (e.g., 10
-                        // cm is both a multiple of 5 and 10).
                         let major = (i % majorTickEvery == 0)
                         let medium = !major && (mediumTickEvery.map { i % $0 == 0 } ?? false)
-                        let width: CGFloat = major ? majorTickWidth
-                                           : medium ? mediumTickWidth
-                                                    : minorTickWidth
-                        let height: CGFloat = major ? 2
-                                            : medium ? 1.5
-                                                     : 1
-                        let opacity: Double = major ? 0.7
-                                            : medium ? 0.5
-                                                     : 0.28
-                        Rectangle()
-                            .fill(Palette.accent.opacity(opacity))
-                            .frame(width: width, height: height)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: tickHeight)
+                        let w: CGFloat = major ? majorTickWidth
+                                       : medium ? mediumTickWidth
+                                                : minorTickWidth
+                        let h: CGFloat = major ? 2 : medium ? 1.5 : 1
+                        let opacity: Double = major ? 0.65
+                                            : medium ? 0.45
+                                                     : 0.25
+                        HStack(spacing: labelTickGap) {
+                            // Right-aligned label column. Empty string
+                            // reserves the same width on non-major rows
+                            // so the tick column lines up vertically.
+                            Text(major ? labelFor(i) : "")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Palette.textSecondary)
+                                .frame(width: labelColumnWidth, alignment: .trailing)
+                            Rectangle()
+                                .fill(Palette.textSecondary.opacity(opacity))
+                                .frame(width: w, height: h)
+                            Spacer(minLength: 0)
+                        }
+                        .frame(height: tickHeight)
                     }
                 }
                 .offset(y: contentOffset)
 
-                // Center selection indicator — a thin accent line
-                // marking the currently selected tick. Subtle: 1pt
-                // accent stroke, slightly wider than the major tick
-                // group beneath it. Reads as "this row" without
-                // dominating the visual hierarchy of the ruler.
+                // Horizontal accent indicator — extends from the right
+                // of the label column across the tick column and a hair
+                // beyond, marking the selected row.
                 Rectangle()
                     .fill(Palette.accent)
-                    .frame(width: majorTickWidth + 32, height: 1)
-                    .frame(maxHeight: .infinity)
+                    .frame(height: 2)
+                    .padding(.leading, labelColumnWidth + labelTickGap - 4)
             }
-            .frame(maxWidth: .infinity)
-            // alignment: .top is critical — without it the outer
-            // height-clamp re-centers the overflowing tick column,
-            // undoing the inner ZStack(alignment: .top) intent and
-            // putting every tick rulerHeight/2 above its target. With
-            // .top the VStack's top stays pinned at FRAME-y=0 across
-            // the whole range and the contentOffset formula correctly
-            // places stepIndex at center.
-            .frame(height: rulerHeight, alignment: .top)
+            .frame(width: rulerColumnWidth, height: rulerHeight)
             .clipped()
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture()
-                    .onChanged { gesture in
-                        if dragStartValue == nil {
-                            dragStartValue = value
-                            lastTickValue = value
-                        }
-                        guard let start = dragStartValue else { return }
-                        let stepsDelta = -gesture.translation.height / tickHeight
-                        let startIndex = (start - range.lowerBound) / step
-                        let newIndex = (startIndex + stepsDelta).rounded()
-                        let clampedIndex = max(0, min(Double(totalSteps - 1), newIndex))
-                        let newValue = range.lowerBound + clampedIndex * step
-                        if newValue != value {
-                            value = newValue
-                            if let last = lastTickValue, last != newValue {
-                                Haptics.soft()
-                            }
-                            lastTickValue = newValue
-                        }
-                    }
-                    .onEnded { _ in
-                        dragStartValue = nil
-                        lastTickValue = nil
-                    }
-            )
+
+            // ── Right: big value display, centered vertically. ──
+            VStack(spacing: 4) {
+                Text(format(value))
+                    .font(.system(size: 64, weight: .bold))
+                    .foregroundStyle(Palette.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .animation(.easeOut(duration: 0.12), value: value)
+                if let unitLabel {
+                    Text(unitLabel)
+                        .font(Typo.caption)
+                        .tracking(1.5)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
         }
-        .padding(.vertical, Space.md)
+        .frame(height: rulerHeight)
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture()
+                .onChanged { gesture in
+                    if dragStartValue == nil {
+                        dragStartValue = value
+                        lastTickValue = value
+                    }
+                    guard let start = dragStartValue else { return }
+                    // Drag down → smaller values (ruler scrolls down,
+                    // exposing the lower end of the range above the
+                    // indicator). Drag up → larger values.
+                    let stepsDelta = -gesture.translation.height / tickHeight
+                    let startIndex = (start - range.lowerBound) / step
+                    let newIndex = (startIndex + stepsDelta).rounded()
+                    let clampedIndex = max(0, min(Double(totalSteps - 1), newIndex))
+                    let newValue = range.lowerBound + clampedIndex * step
+                    if newValue != value {
+                        value = newValue
+                        if let last = lastTickValue, last != newValue {
+                            Haptics.soft()
+                        }
+                        lastTickValue = newValue
+                    }
+                }
+                .onEnded { _ in
+                    dragStartValue = nil
+                    lastTickValue = nil
+                }
+        )
     }
 }
 
@@ -840,6 +838,285 @@ struct BiometricRulerScreen<Annotation: View>: View {
             }
     }
 }
+
+// MARK: - HorizontalBiometricSlider
+//
+// JustFit-style horizontal ruler — used by the weight and goal-weight
+// onboarding screens. Big value display on top with a small unit
+// subscript, vertical accent indicator dropping into a horizontal
+// tick row with major number labels above the major ticks. Drag the
+// row left/right to change value; the row scrolls under the fixed
+// center indicator.
+//
+// Optional bandRange overlays a faded accent block between two values
+// — used on the goal-weight screen to visualize the loss range
+// between current and goal.
+
+struct HorizontalBiometricSlider: View {
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    let step: Double
+    let format: (Double) -> String
+    /// Major ticks every N steps. Major ticks render with a numeric
+    /// label above and a taller, bolder tick mark.
+    var majorTickEvery: Int = 10
+    /// Optional middle tier — between minor and major. nil = binary.
+    var mediumTickEvery: Int? = nil
+    /// Subscript unit shown next to the big value (e.g. "Lbs", "kg").
+    /// nil hides it.
+    var unitLabel: String? = nil
+    /// Faded accent band rendered between two values on the ruler.
+    /// Used on goal-weight screen — band spans current ↔ goal.
+    var bandRange: ClosedRange<Double>? = nil
+
+    @State private var dragStartValue: Double?
+    @State private var lastTickValue: Double?
+
+    private let tickSpacing: CGFloat = 8     // horizontal pt per step
+    private let rulerHeight: CGFloat = 84
+    private let majorTickHeight: CGFloat = 28
+    private let mediumTickHeight: CGFloat = 16
+    private let minorTickHeight: CGFloat = 10
+    private let indicatorHeight: CGFloat = 56
+
+    private var totalSteps: Int {
+        Int(((range.upperBound - range.lowerBound) / step).rounded()) + 1
+    }
+
+    private var stepIndex: Double {
+        (value - range.lowerBound) / step
+    }
+
+    private func xForStep(_ s: Double, centerX: CGFloat) -> CGFloat {
+        // Position step `s` so its center sits at the right pixel —
+        // selected stepIndex always lands at centerX, every other tick
+        // offsets by (s - stepIndex) * tickSpacing.
+        centerX + (CGFloat(s) - CGFloat(stepIndex)) * tickSpacing
+    }
+
+    /// Pulls the trailing unit text off a formatted value so the
+    /// big number can render alone with a smaller unit subscript.
+    /// Returns (number, unit). Imperial height ("5'8\"") collapses
+    /// into the number with no unit since the symbols carry meaning.
+    private func splitUnit(_ formatted: String) -> (String, String?) {
+        if let space = formatted.lastIndex(of: " ") {
+            let num = String(formatted[..<space])
+            let unit = String(formatted[formatted.index(after: space)...])
+            return (num, unit)
+        }
+        return (formatted, nil)
+    }
+
+    var body: some View {
+        let (numberText, splitUnitText) = splitUnit(format(value))
+        let displayedUnit = unitLabel ?? splitUnitText
+
+        VStack(spacing: 0) {
+            // Big value display + small unit subscript.
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(numberText)
+                    .font(.system(size: 56, weight: .bold))
+                    .foregroundStyle(Palette.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                if let u = displayedUnit {
+                    Text(u)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Palette.textPrimary)
+                }
+            }
+            .animation(.easeOut(duration: 0.12), value: value)
+
+            // Vertical indicator line dropping from value to ruler.
+            Rectangle()
+                .fill(Palette.accent)
+                .frame(width: 2, height: indicatorHeight)
+                .padding(.top, Space.xs)
+
+            // Ruler row — labels + ticks scroll under a fixed indicator.
+            GeometryReader { geo in
+                let centerX = geo.size.width / 2
+
+                ZStack {
+                    // Faded loss-range band (goal-weight screen). Rendered
+                    // before ticks so ticks read on top of the soft fill.
+                    if let band = bandRange,
+                       band.upperBound > band.lowerBound {
+                        let bandLowerStep = (band.lowerBound - range.lowerBound) / step
+                        let bandUpperStep = (band.upperBound - range.lowerBound) / step
+                        let bandWidth = CGFloat(bandUpperStep - bandLowerStep) * tickSpacing
+                        let bandCenterStep = (bandLowerStep + bandUpperStep) / 2
+                        Rectangle()
+                            .fill(Palette.accentSubtle)
+                            .frame(width: bandWidth, height: majorTickHeight)
+                            .position(x: xForStep(bandCenterStep, centerX: centerX),
+                                      y: rulerHeight - majorTickHeight / 2 - 4)
+                    }
+
+                    // Major-tick number labels above the ticks.
+                    ForEach(0..<totalSteps, id: \.self) { i in
+                        if i % majorTickEvery == 0 {
+                            let labelText = splitUnit(format(range.lowerBound + Double(i) * step)).0
+                            Text(labelText)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Palette.textSecondary)
+                                .position(x: xForStep(Double(i), centerX: centerX),
+                                          y: rulerHeight - majorTickHeight - 16)
+                        }
+                    }
+
+                    // Tick marks anchored to the bottom of the ruler.
+                    ForEach(0..<totalSteps, id: \.self) { i in
+                        let major = (i % majorTickEvery == 0)
+                        let medium = !major && (mediumTickEvery.map { i % $0 == 0 } ?? false)
+                        let h: CGFloat = major ? majorTickHeight
+                                       : medium ? mediumTickHeight
+                                                : minorTickHeight
+                        let opacity: Double = major ? 0.7
+                                            : medium ? 0.5
+                                                     : 0.28
+                        Rectangle()
+                            .fill(Palette.textSecondary.opacity(opacity))
+                            .frame(width: 1, height: h)
+                            .position(x: xForStep(Double(i), centerX: centerX),
+                                      y: rulerHeight - h / 2 - 4)
+                    }
+
+                    // Center selection indicator — extends a hair above
+                    // the major ticks for emphasis.
+                    Rectangle()
+                        .fill(Palette.accent)
+                        .frame(width: 2, height: majorTickHeight + 12)
+                        .position(x: centerX, y: rulerHeight - (majorTickHeight + 12) / 2 - 2)
+                }
+                .frame(width: geo.size.width, height: rulerHeight)
+                .contentShape(Rectangle())
+                .clipped()
+                .gesture(
+                    DragGesture()
+                        .onChanged { gesture in
+                            if dragStartValue == nil {
+                                dragStartValue = value
+                                lastTickValue = value
+                            }
+                            guard let start = dragStartValue else { return }
+                            // Drag right → values decrease (the ruler
+                            // scrolls right under the fixed indicator,
+                            // exposing smaller numbers). Drag left →
+                            // values increase.
+                            let stepsDelta = -gesture.translation.width / tickSpacing
+                            let startIndex = (start - range.lowerBound) / step
+                            let newIndex = (startIndex + stepsDelta).rounded()
+                            let clampedIndex = max(0, min(Double(totalSteps - 1), newIndex))
+                            let newValue = range.lowerBound + clampedIndex * step
+                            if newValue != value {
+                                value = newValue
+                                if let last = lastTickValue, last != newValue {
+                                    Haptics.soft()
+                                }
+                                lastTickValue = newValue
+                            }
+                        }
+                        .onEnded { _ in
+                            dragStartValue = nil
+                            lastTickValue = nil
+                        }
+                )
+            }
+            .frame(height: rulerHeight)
+        }
+    }
+}
+
+
+// MARK: - HorizontalBiometricRulerScreen
+//
+// Wraps HorizontalBiometricSlider with the same unit-toggle pill the
+// vertical ruler uses, plus a free annotation slot below for BMI /
+// goal cards. Storage in the parent stays metric — the wrapper
+// presents a per-unit binding via toMetric / fromMetric.
+
+struct HorizontalBiometricRulerScreen<Annotation: View>: View {
+    @Binding var valueMetric: Double
+    let metric: BiometricRulerConfig
+    let imperial: BiometricRulerConfig
+    let toMetric: (Double) -> Double
+    let fromMetric: (Double) -> Double
+    /// Optional band range expressed in METRIC units. Wrapper converts
+    /// to active-unit coordinates so the band scrolls correctly when
+    /// the user toggles between kg and lb.
+    var bandMetric: ClosedRange<Double>? = nil
+    @ViewBuilder var annotation: () -> Annotation
+
+    @State private var useImperial = true   // US-first default
+
+    private var activeConfig: BiometricRulerConfig {
+        useImperial ? imperial : metric
+    }
+
+    private var activeBinding: Binding<Double> {
+        Binding(
+            get: { useImperial ? fromMetric(valueMetric) : valueMetric },
+            set: { valueMetric = useImperial ? toMetric($0) : $0 }
+        )
+    }
+
+    private var activeBand: ClosedRange<Double>? {
+        guard let m = bandMetric else { return nil }
+        let lo = useImperial ? fromMetric(m.lowerBound) : m.lowerBound
+        let hi = useImperial ? fromMetric(m.upperBound) : m.upperBound
+        guard hi > lo else { return nil }
+        return lo...hi
+    }
+
+    var body: some View {
+        VStack(spacing: Space.md) {
+            HStack {
+                Spacer()
+                HStack(spacing: 0) {
+                    unitSegment(label: imperial.unitName, isImperial: true)
+                    unitSegment(label: metric.unitName, isImperial: false)
+                }
+                .padding(2)
+                .background(Palette.bgElevated, in: Capsule())
+                .overlay(Capsule().stroke(Palette.divider, lineWidth: 1))
+                Spacer()
+            }
+            .fixedSize(horizontal: false, vertical: true)
+
+            HorizontalBiometricSlider(
+                value: activeBinding,
+                range: activeConfig.range,
+                step: activeConfig.step,
+                format: activeConfig.format,
+                majorTickEvery: activeConfig.majorEvery,
+                mediumTickEvery: activeConfig.mediumEvery,
+                unitLabel: activeConfig.unitName,
+                bandRange: activeBand
+            )
+            .id(useImperial ? "imp" : "met")
+
+            annotation()
+        }
+    }
+
+    private func unitSegment(label: String, isImperial: Bool) -> some View {
+        let active = useImperial == isImperial
+        return Text(label)
+            .font(Typo.eyebrow)
+            .tracking(2)
+            .foregroundStyle(active ? Palette.textInverse : Palette.textSecondary)
+            .padding(.horizontal, Space.md)
+            .padding(.vertical, 6)
+            .background(active ? Palette.bgInverse : Color.clear, in: Capsule())
+            .contentShape(Capsule())
+            .onTapGesture {
+                Haptics.light()
+                withAnimation(.easeOut(duration: 0.18)) { useImperial = isImperial }
+            }
+    }
+}
+
 
 // MARK: - BodyTypeSlider
 //

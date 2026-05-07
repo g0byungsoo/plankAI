@@ -112,7 +112,7 @@ final class AuthService {
         } catch {
             // Bootstrap fails almost exclusively due to network — log raw
             // error for diagnostics, surface a friendly retry prompt to
-            // the user. AuthBootstrapSplash already supplies the
+            // the user. AffirmationLoaderScreen already supplies the
             // "Couldn't connect" headline; this is the body line.
             print("[AuthService] bootstrap FAILED: \(error)")
             bootstrapState = .failed("Make sure you're connected to the internet, then try again.")

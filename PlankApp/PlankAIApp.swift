@@ -109,13 +109,13 @@ private struct RootView: View {
 
     var body: some View {
         Group {
-            // Branch on onboarding state first so the AffirmationScreen
-            // can win over AuthBootstrapSplash for brand-new users —
-            // the pink affirmation IS the loading state on first launch,
-            // and auth resolves in the background while it plays.
-            // Existing users still get the cocoa splash because
-            // "loading your stuff" is the right framing once they have
-            // stuff to load.
+            // Branch on onboarding state first so the first-launch
+            // AffirmationScreen can win over the loader for brand-new
+            // users — the affirmation IS the loading state on first
+            // launch, and auth resolves in the background while it
+            // plays. Returning users see AffirmationLoaderScreen
+            // (a single quote on cream + sticker scatter, no wordmark)
+            // until bootstrap completes.
             if hasCompletedOnboarding {
                 if auth.isReady {
                     MainTabView()
@@ -148,7 +148,7 @@ private struct RootView: View {
                             )
                         }
                 } else {
-                    AuthBootstrapSplash(state: auth.bootstrapState) {
+                    AffirmationLoaderScreen(state: auth.bootstrapState) {
                         Task { await auth.retryBootstrap() }
                     }
                 }
@@ -162,7 +162,7 @@ private struct RootView: View {
                     // still resolving (very slow network on first launch).
                     // Fall through to the cocoa splash briefly until
                     // bootstrap returns.
-                    AuthBootstrapSplash(state: auth.bootstrapState) {
+                    AffirmationLoaderScreen(state: auth.bootstrapState) {
                         Task { await auth.retryBootstrap() }
                     }
                 } else {

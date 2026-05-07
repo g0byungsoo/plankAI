@@ -95,18 +95,29 @@ struct SignUpView: View {
 
     // MARK: Body
 
-    // Phase 16b — auth scatter (LIGHT, 3 stickers). Right-edge column
-    // since the form is left-aligned. Mix is 1 line-art + 2 painterly.
+    // Auth scatter — 6 stickers. Form is left-aligned and pushes content
+    // toward the left, so the right column gets 4 stickers and the left
+    // gets 2 (small, anchored to top-left + bottom-left where the form
+    // doesn't reach). 2 line-art + 4 painterly.
     private static let signUpPlacements: [StickerPlacement] = [
         StickerPlacement(sticker: .starLineart,
-                         position: CGPoint(x: 0.92, y: 0.10),
+                         position: CGPoint(x: 0.92, y: 0.08),
                          size: 30, rotation: 12, phaseDelay: 0.00),
+        StickerPlacement(sticker: .heartsLineart,
+                         position: CGPoint(x: 0.07, y: 0.04),
+                         size: 26, rotation: -10, phaseDelay: 0.16),
         StickerPlacement(sticker: .sparkleGlossy,
-                         position: CGPoint(x: 0.94, y: 0.45),
-                         size: 32, rotation: -10, phaseDelay: 0.40),
+                         position: CGPoint(x: 0.94, y: 0.36),
+                         size: 32, rotation: -10, phaseDelay: 0.32),
+        StickerPlacement(sticker: .flower3D,
+                         position: CGPoint(x: 0.94, y: 0.62),
+                         size: 30, rotation: 11, phaseDelay: 0.48),
         StickerPlacement(sticker: .bowIridescent,
-                         position: CGPoint(x: 0.92, y: 0.85),
-                         size: 32, rotation: 13, phaseDelay: 0.80),
+                         position: CGPoint(x: 0.92, y: 0.88),
+                         size: 32, rotation: 13, phaseDelay: 0.64),
+        StickerPlacement(sticker: .cherries,
+                         position: CGPoint(x: 0.06, y: 0.92),
+                         size: 28, rotation: -8, phaseDelay: 0.80),
     ]
 
     var body: some View {
@@ -186,10 +197,23 @@ struct SignUpView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(headline)
-                .font(Typo.title)
+            // Italic accent on the emphasis word — matches the prediction
+            // headline + welcome screen voice. Sign-up emphasizes "account",
+            // sign-in emphasizes "back".
+            Group {
+                if mode == .signUp {
+                    (Text("Create your ").font(Typo.title)
+                     + Text("account").font(Typo.titleItalic)
+                     + Text(".").font(Typo.title))
+                } else {
+                    (Text("Welcome ").font(Typo.title)
+                     + Text("back").font(Typo.titleItalic)
+                     + Text(".").font(Typo.title))
+                }
+            }
                 .foregroundStyle(Palette.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
+
             Text(subhead)
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)

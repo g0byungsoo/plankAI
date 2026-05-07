@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		133BB5E2136D8E02576DD95D /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E3BFB7C26C4CE6073B4BD5B /* AuthService.swift */; };
-		34416FA981321B4746721203 /* AuthBootstrapSplash.swift in Sources */ = {isa = PBXBuildFile; fileRef = 684A46F030FF961D63028458 /* AuthBootstrapSplash.swift */; };
 		62710D31232DA4D53C102084 /* AppSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3AAF9BC1396F6ED11BDFF8A /* AppSync.swift */; };
 		75661984DCC520F8ED82FED1 /* SignInPromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D838CE3A3E3251D0108A7709 /* SignInPromptView.swift */; };
 		783186622F99E4130096138F /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783186542F99E4130096138F /* HomeView.swift */; };
@@ -349,6 +348,7 @@
 		FAFA000000000000000C0001 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0011 /* Components.swift */; };
 		FAFA000000000000000C0002 /* Stickers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0012 /* Stickers.swift */; };
 		FAFA000000000000000B0001 /* AffirmationScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000B0011 /* AffirmationScreen.swift */; };
+		FAFA000000000000000B0003 /* AffirmationLoaderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000B0013 /* AffirmationLoaderScreen.swift */; };
 		FAFA000000000000000F0001 /* Fraunces72pt-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */; };
 		FAFA000000000000000F0002 /* Fraunces72pt-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0012 /* Fraunces72pt-Regular.ttf */; };
 		FAFA000000000000000F0003 /* Fraunces72pt-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0013 /* Fraunces72pt-SemiBold.ttf */; };
@@ -370,7 +370,6 @@
 		1E3BFB7C26C4CE6073B4BD5B /* AuthService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		27A5839CBCA9EBEB79038667 /* DebugAuthView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DebugAuthView.swift; sourceTree = "<group>"; };
 		4541BBF55D20BF977CCAD632 /* AppleSignInService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
-		684A46F030FF961D63028458 /* AuthBootstrapSplash.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthBootstrapSplash.swift; sourceTree = "<group>"; };
 		783186412F99E3110096138F /* plankAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = plankAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7831864F2F99E4130096138F /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
 		783186512F99E4130096138F /* Tokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tokens.swift; sourceTree = "<group>"; };
@@ -708,6 +707,7 @@
 		FAFA000000000000000C0011 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		FAFA000000000000000C0012 /* Stickers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stickers.swift; sourceTree = "<group>"; };
 		FAFA000000000000000B0011 /* AffirmationScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AffirmationScreen.swift; sourceTree = "<group>"; };
+		FAFA000000000000000B0013 /* AffirmationLoaderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AffirmationLoaderScreen.swift; sourceTree = "<group>"; };
 		FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-Light.ttf"; sourceTree = "<group>"; };
 		FAFA000000000000000F0012 /* Fraunces72pt-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-Regular.ttf"; sourceTree = "<group>"; };
 		FAFA000000000000000F0013 /* Fraunces72pt-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-SemiBold.ttf"; sourceTree = "<group>"; };
@@ -744,7 +744,6 @@
 			isa = PBXGroup;
 			children = (
 				1E3BFB7C26C4CE6073B4BD5B /* AuthService.swift */,
-				684A46F030FF961D63028458 /* AuthBootstrapSplash.swift */,
 				4541BBF55D20BF977CCAD632 /* AppleSignInService.swift */,
 			);
 			path = Auth;
@@ -798,6 +797,7 @@
 			isa = PBXGroup;
 			children = (
 				FAFA000000000000000B0011 /* AffirmationScreen.swift */,
+				FAFA000000000000000B0013 /* AffirmationLoaderScreen.swift */,
 			);
 			path = Welcome;
 			sourceTree = "<group>";
@@ -1714,6 +1714,7 @@
 				FAFA000000000000000C0001 /* Components.swift in Sources */,
 				FAFA000000000000000C0002 /* Stickers.swift in Sources */,
 				FAFA000000000000000B0001 /* AffirmationScreen.swift in Sources */,
+				FAFA000000000000000B0003 /* AffirmationLoaderScreen.swift in Sources */,
 				783186642F99E4130096138F /* CameraManager.swift in Sources */,
 				783186652F99E4130096138F /* PostSessionView.swift in Sources */,
 				783186662F99E4130096138F /* RoastCardView.swift in Sources */,
@@ -1739,7 +1740,6 @@
 				EE0000052FA50002000005 /* AccountView.swift in Sources */,
 				EE0000062FA50002000006 /* FeedbackView.swift in Sources */,
 				133BB5E2136D8E02576DD95D /* AuthService.swift in Sources */,
-				34416FA981321B4746721203 /* AuthBootstrapSplash.swift in Sources */,
 				D82175BFC774BFB8081957D2 /* SupabaseConfig.swift in Sources */,
 				BAD000000000000000000010 /* RevenueCatConfig.swift in Sources */,
 				BAD000000000000000000020 /* PaymentService.swift in Sources */,
