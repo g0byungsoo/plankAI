@@ -402,5 +402,103 @@ echo ""
 echo "=== MATSON routine clips ==="
 generate_routine_clips "$MATSON_VOICE" "matson_"
 
+# =============================================
+# prep_short_<id> — exercise-name-only cues for the 6-11s prep window.
+# Per docs/workout_session_rules.md §7. Source list lives in
+# Scripts/prep_short_clips.tsv (128 entries, regenerated from
+# ExerciseBankData when the bank changes).
+#
+# Each clip says "Next up is <name>." in the trainer's voice. Style
+# variation comes from the voice itself (the text stays identical so
+# we don't have to hand-author 384 lines). Skip-on-existing keeps the
+# rerun cost at zero once a clip is generated.
+# =============================================
+
+generate_prep_shorts() {
+    local V="$1"
+    local P="$2"  # prefix: "" / "sarah_" / "matson_"
+    while IFS=$'\t' read -r id name; do
+        # Skip header line + any blank rows.
+        [[ "$id" =~ ^# ]] && continue
+        [ -z "$id" ] && continue
+        generate "$V" "${P}prep_short_${id}" "Next up is ${name}."
+    done < "$SCRIPT_DIR/prep_short_clips.tsv"
+}
+
+echo ""
+echo "=== prep_short × 3 trainers (128 exercises each) ==="
+echo "--- Kira ---"
+generate_prep_shorts "$KIRA_VOICE" ""
+echo "--- Sarah ---"
+generate_prep_shorts "$SARAH_VOICE" "sarah_"
+echo "--- Matson ---"
+generate_prep_shorts "$MATSON_VOICE" "matson_"
+
+# =============================================
+# prep_full_<id> — long prep window cue (≥12s). Combines exercise
+# name + position-specific setup instruction. The position lookup
+# below is shared across all three trainers; voice character comes
+# from the synth, not the text. Per docs/workout_session_rules.md §7.
+# =============================================
+
+# Position → setup-cue text. Keep these calm + concrete; the user
+# is preparing for the move during this window.
+position_cue() {
+    case "$1" in
+        standing)   echo "Stand tall, feet shoulder-width." ;;
+        quadruped)  echo "Hands and knees, wrists under shoulders." ;;
+        plank)      echo "Forearms down, body in a straight line." ;;
+        prone)      echo "Lie face down on the mat." ;;
+        sideLying)  echo "Lie on your side, hips stacked." ;;
+        supine)     echo "Lie on your back, knees bent." ;;
+        seated)     echo "Sit up tall, legs out long." ;;
+        *)          echo "Get into position." ;;
+    esac
+}
+
+generate_prep_fulls() {
+    local V="$1"
+    local P="$2"  # prefix: "" / "sarah_" / "matson_"
+    while IFS=$'\t' read -r id name position; do
+        [[ "$id" =~ ^# ]] && continue
+        [ -z "$id" ] && continue
+        local cue
+        cue="$(position_cue "$position")"
+        generate "$V" "${P}prep_full_${id}" "Next up is ${name}. ${cue}"
+    done < "$SCRIPT_DIR/prep_full_clips.tsv"
+}
+
+echo ""
+echo "=== prep_full × 3 trainers (128 exercises each) ==="
+echo "--- Kira ---"
+generate_prep_fulls "$KIRA_VOICE" ""
+echo "--- Sarah ---"
+generate_prep_fulls "$SARAH_VOICE" "sarah_"
+echo "--- Matson ---"
+generate_prep_fulls "$MATSON_VOICE" "matson_"
+
+# =============================================
+# Switch-sides hops — minimal cues for unilateral L→R transitions.
+# Per docs/workout_session_rules.md §7: when same exerciseId fires
+# back-to-back with different .side, play one of these instead of
+# re-introducing the exercise. Same exercise, just other side.
+# =============================================
+
+echo ""
+echo "=== Switch-sides cues (3 trainers × 2 variants) ==="
+
+# Kira (un-prefixed — voice manager falls back to base names)
+generate $K "switch_sides_1" "Other side."
+generate $K "switch_sides_2" "Switch sides."
+
+# Sarah
+generate $S "sarah_switch_sides_1" "Now the other side."
+generate $S "sarah_switch_sides_2" "Switch sides, gently."
+
+# Matson (will be renamed to Sam in the next ElevenLabs pass per
+# docs/workout_session_rules.md §7).
+generate $M "matson_switch_sides_1" "Other side, let's go."
+generate $M "matson_switch_sides_2" "Switch sides."
+
 echo ""
 echo "=== Done! $(ls "$OUTPUT_DIR"/*.m4a 2>/dev/null | wc -l | tr -d ' ') clips ==="

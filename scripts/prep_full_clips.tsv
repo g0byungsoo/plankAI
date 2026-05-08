@@ -1,0 +1,130 @@
+# count: 128
+# 128 exercises (id<TAB>name<TAB>position) — for prep_full clip generation
+plank_saw	Plank Saw	plank
+alternating_superman	Alternating Superman	prone
+bird_dog	Bird Dog	quadruped
+floor_dip	Floor Dip	seated
+jumping_lunges	Jumping Lunges	standing
+kneeling_shoulder_tap	Kneeling Shoulder Tap	quadruped
+mountain_climbers	Mountain Climbers	plank
+back_extension_lying	Back Extension	prone
+superman_pull_up	Superman Pull-Up	prone
+superman_hold	Superman Hold	prone
+w_raise	W Raise	prone
+y_raise	Y Raise	prone
+bent_knee_hip_raise	Bent Knee Hip Raise	supine
+boat_flutters	Boat Hold + Flutter	seated
+boat_bicycle	Boat Hold Bicycle	seated
+cocoon_crunch	Cocoon Crunch	supine
+crunch_knee_raise	Crunch + Knee Raise	supine
+alt_knee_raise_crunch	Alternating Knee Raise Crunch	supine
+crunch	Crunch	supine
+dead_bug	Dead Bug	supine
+dead_bug_leg_lower	Dead Bug Leg Lower	supine
+diagonal_plank	Diagonal Plank	plank
+flutter_kicks	Flutter Kicks	supine
+glute_bridge_march	Glute Bridge March	supine
+bicycle_crunch	Bicycle Crunch	supine
+alt_leg_raise	Alternating Leg Raise	supine
+leg_raise_hold	Leg Raise + Hold	supine
+leg_raise	Leg Raise	supine
+leg_raise_hip_lift	Leg Raise + Hip Lift	supine
+reverse_crunch	Reverse Crunch	supine
+seated_knee_tuck	Seated Knee Tuck	seated
+side_plank	Side Plank	sideLying
+side_crunch	Side Crunch	sideLying
+side_crunch_hip_raise	Side Crunch + Hip Raise	sideLying
+sit_up	Sit-Up	supine
+standing_hip_abduction	Standing Hip Abduction	standing
+standing_side_bend	Standing Side Bend	standing
+tabletop_bridge	Tabletop Bridge	supine
+tabletop_bridge_knee_lift	Tabletop Bridge + Knee Lift	supine
+tabletop_hold_knee_lift	Tabletop Hold + Knee Lift	quadruped
+v_up	V-Up	supine
+vertical_leg_crunch	Vertical Leg Crunch	supine
+windshield_wipers	Windshield Wipers	supine
+reverse_to_forward_lunge	Reverse-to-Forward Lunge	standing
+air_squat	Air Squat	standing
+donkey_kick	Donkey Kick	quadruped
+donkey_kick_pulse	Donkey Kick Pulse	quadruped
+donkey_kickback	Donkey Kickback	quadruped
+fire_hydrant	Fire Hydrant	quadruped
+alt_forward_lunge	Alternating Forward Lunge	standing
+glute_bridge	Glute Bridge	supine
+good_morning	Good Morning	standing
+high_plank_leg_raise	High Plank Leg Raise	plank
+kneeling_squat	Kneeling Squat	quadruped
+forward_lunge	Forward Lunge	standing
+reverse_lunge	Reverse Lunge	standing
+low_plank_leg_raise	Low Plank Leg Raise	plank
+narrow_squat	Narrow Squat	standing
+overhead_forward_lunge	Overhead Forward Lunge	standing
+overhead_reverse_lunge	Overhead Reverse Lunge	standing
+side_lunge	Side Lunge	standing
+side_lying_hip_abduction	Side-Lying Hip Abduction	sideLying
+side_plank_hip_abduction	Side Plank Hip Abduction	sideLying
+side_split_squat	Side Split Squat	standing
+single_leg_glute_bridge	Single-Leg Glute Bridge	supine
+single_leg_rdl	Single-Leg RDL	standing
+stiff_leg_deadlift	Stiff-Leg Deadlift	standing
+split_squat	Split Squat	standing
+squat	Squat	standing
+squat_calf_raise	Squat to Calf Raise	standing
+pulse_squat	Pulse Squat	standing
+calf_raise	Calf Raise	standing
+single_leg_calf_raise	Single-Leg Calf Raise	standing
+sumo_squat	Sumo Squat	standing
+wall_sit	Wall Sit	standing
+skipping	Skipping	standing
+bodyweight_swing	Bodyweight Swing	standing
+burpee	Burpee	standing
+burpee_no_jump	Burpee (No Jump)	standing
+burpee_pushup	Burpee + Push-Up	standing
+butt_kicks	Butt Kicks	standing
+crab_toe_touches	Crab Toe Touches	seated
+front_kicks	Front Kicks	standing
+high_knees	High Knees	standing
+jumping_jacks	Jumping Jacks	standing
+modified_burpee	Modified Burpee	standing
+modified_jacks	Modified Jumping Jacks	standing
+plank_frog_jump	Plank Frog Jump	plank
+plank_jacks	Plank Jacks	plank
+boxing_punches	Boxing Punches	standing
+run_punch	Run + Punch	standing
+run_in_place	Run in Place	standing
+plank_run	Plank Run	plank
+side_jacks	Side Jacks	standing
+side_leg_jack	Side Leg Jack	standing
+simple_jacks	Simple Jumping Jacks	standing
+jump_squat	Jump Squat	standing
+squat_front_kick	Squat + Front Kick	standing
+sumo_jump_squat	Sumo Jump Squat	standing
+baby_cobra	Baby Cobra	prone
+bow_pose	Bow Pose	prone
+cat_cow	Cat-Cow	quadruped
+cat_stretch	Cat Stretch	quadruped
+childs_pose	Child's Pose	quadruped
+cobra	Cobra	prone
+cow_stretch	Cow Stretch	quadruped
+shoulder_stretch	Shoulder Stretch	standing
+downward_dog	Downward Dog	quadruped
+puppy_pose	Puppy Pose	quadruped
+forward_fold_bind	Forward Fold + Bind	standing
+neck_stretch	Neck Stretch	standing
+sphinx	Sphinx	prone
+side_tilt	Side Tilt	standing
+backbend	Backbend	standing
+upward_dog	Upward Dog	prone
+reverse_tabletop	Reverse Tabletop	supine
+deep_hip_flexor	Deep Hip Flexor Stretch	quadruped
+hamstring_stretch_standing	Standing Hamstring Stretch	standing
+hip_flexor_stretch	Hip Flexor Stretch	quadruped
+knees_to_chest	Knees to Chest	supine
+lizard_pose	Lizard Pose	quadruped
+lying_glute_stretch	Lying Glute Stretch	supine
+lying_hamstring_stretch	Lying Hamstring Stretch	supine
+single_knee_to_chest	Single Knee to Chest	supine
+kneeling_quad_stretch	Kneeling Quad Stretch	seated
+seated_forward_fold	Seated Forward Fold	seated
+standing_knee_hug	Standing Knee Hug	standing
+standing_quad_stretch	Standing Quad Stretch	standing

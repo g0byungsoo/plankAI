@@ -23,9 +23,28 @@ struct ExerciseSlot: Equatable {
     let exerciseId: String
     let duration: Int      // override, seconds
     let restAfter: Int     // override, seconds
+    /// For unilateral exercises, the engine emits two slots (one per side).
+    /// `nil` for bilateral / alternating exercises.
+    var side: Side? = nil
+    /// Where this slot sits in the session: warmup / main / cooldown.
+    /// Existing presets default to `.main`; the generator labels each slot
+    /// according to `SessionStructure`.
+    var category: ExerciseCategory = .main
+    /// Round number for repeat-pattern sessions (Pamela Reif convention,
+    /// see docs/workout_session_rules.md §4). 1 for normal sessions and
+    /// for the first pass of a 2-round session; 2 for the second pass.
+    /// Used by PreRoutineView to insert "Round N" dividers and by the
+    /// session view to show progress within the round.
+    var round: Int = 1
 
     var exercise: Exercise? {
         ExerciseBank.exercise(id: exerciseId)
+    }
+
+    /// Pre-resolved rendering (handles mirroring of unilateral exercises).
+    var rendering: ExerciseRendering? {
+        guard let exercise else { return nil }
+        return ExerciseMirror.rendering(for: exercise, side: side)
     }
 }
 
@@ -62,14 +81,14 @@ extension WorkoutPreset {
         goal: .strength,
         difficulty: .intermediate,
         exercises: [
-            ExerciseSlot(exerciseId: "hollow_body_hold", duration: 40, restAfter: 15),
-            ExerciseSlot(exerciseId: "russian_twists", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "boat_flutters", duration: 40, restAfter: 15),
+            ExerciseSlot(exerciseId: "windshield_wipers", duration: 40, restAfter: 10),
             ExerciseSlot(exerciseId: "superman_hold", duration: 40, restAfter: 15),
             ExerciseSlot(exerciseId: "mountain_climbers", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_left", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_right", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "bear_crawl_hold", duration: 40, restAfter: 15),
-            ExerciseSlot(exerciseId: "leg_raises", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 30, restAfter: 10, side: .left),
+            ExerciseSlot(exerciseId: "side_plank", duration: 30, restAfter: 10, side: .right),
+            ExerciseSlot(exerciseId: "tabletop_hold_knee_lift", duration: 40, restAfter: 15),
+            ExerciseSlot(exerciseId: "leg_raise", duration: 40, restAfter: 10),
         ],
         estimatedDuration: 7,
         isGenerated: false
@@ -82,14 +101,14 @@ extension WorkoutPreset {
         goal: .strength,
         difficulty: .advanced,
         exercises: [
-            ExerciseSlot(exerciseId: "plank_shoulder_taps", duration: 45, restAfter: 15),
-            ExerciseSlot(exerciseId: "v_ups", duration: 30, restAfter: 15),
-            ExerciseSlot(exerciseId: "side_plank_left", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "superman_pulses", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_right", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "hollow_body_hold", duration: 40, restAfter: 15),
+            ExerciseSlot(exerciseId: "kneeling_shoulder_tap", duration: 45, restAfter: 15),
+            ExerciseSlot(exerciseId: "v_up", duration: 30, restAfter: 15),
+            ExerciseSlot(exerciseId: "side_plank", duration: 40, restAfter: 10, side: .left),
+            ExerciseSlot(exerciseId: "alternating_superman", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 40, restAfter: 10, side: .right),
+            ExerciseSlot(exerciseId: "boat_flutters", duration: 40, restAfter: 15),
             ExerciseSlot(exerciseId: "mountain_climbers", duration: 45, restAfter: 10),
-            ExerciseSlot(exerciseId: "bear_crawl_hold", duration: 45, restAfter: 15),
+            ExerciseSlot(exerciseId: "tabletop_hold_knee_lift", duration: 45, restAfter: 15),
         ],
         estimatedDuration: 8,
         isGenerated: false
@@ -103,11 +122,11 @@ extension WorkoutPreset {
         difficulty: .beginner,
         exercises: [
             ExerciseSlot(exerciseId: "dead_bug", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "glute_bridge_hold", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "glute_bridge", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "bird_dog", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "plank_shoulder_taps", duration: 30, restAfter: 15),
+            ExerciseSlot(exerciseId: "kneeling_shoulder_tap", duration: 30, restAfter: 15),
             ExerciseSlot(exerciseId: "superman_hold", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "bear_crawl_hold", duration: 30, restAfter: 15),
+            ExerciseSlot(exerciseId: "tabletop_hold_knee_lift", duration: 30, restAfter: 15),
         ],
         estimatedDuration: 5,
         isGenerated: false
@@ -120,12 +139,12 @@ extension WorkoutPreset {
         goal: .strength,
         difficulty: .intermediate,
         exercises: [
-            ExerciseSlot(exerciseId: "bear_crawl_hold", duration: 40, restAfter: 15),
+            ExerciseSlot(exerciseId: "tabletop_hold_knee_lift", duration: 40, restAfter: 15),
             ExerciseSlot(exerciseId: "flutter_kicks", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_left", duration: 35, restAfter: 10),
-            ExerciseSlot(exerciseId: "glute_bridge_marches", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_right", duration: 35, restAfter: 10),
-            ExerciseSlot(exerciseId: "hollow_body_hold", duration: 35, restAfter: 15),
+            ExerciseSlot(exerciseId: "side_plank", duration: 35, restAfter: 10, side: .left),
+            ExerciseSlot(exerciseId: "glute_bridge_march", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 35, restAfter: 10, side: .right),
+            ExerciseSlot(exerciseId: "boat_flutters", duration: 35, restAfter: 15),
             ExerciseSlot(exerciseId: "superman_hold", duration: 40, restAfter: 10),
         ],
         estimatedDuration: 7,
@@ -139,15 +158,15 @@ extension WorkoutPreset {
         goal: .strength,
         difficulty: .advanced,
         exercises: [
-            ExerciseSlot(exerciseId: "hollow_body_hold", duration: 45, restAfter: 15),
-            ExerciseSlot(exerciseId: "woodchoppers", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "superman_pulses", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "v_ups", duration: 30, restAfter: 15),
-            ExerciseSlot(exerciseId: "bear_crawl_hold", duration: 45, restAfter: 15),
-            ExerciseSlot(exerciseId: "side_plank_left", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "boat_flutters", duration: 45, restAfter: 15),
+            ExerciseSlot(exerciseId: "boat_bicycle", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "alternating_superman", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "v_up", duration: 30, restAfter: 15),
+            ExerciseSlot(exerciseId: "tabletop_hold_knee_lift", duration: 45, restAfter: 15),
+            ExerciseSlot(exerciseId: "side_plank", duration: 40, restAfter: 10, side: .left),
             ExerciseSlot(exerciseId: "mountain_climbers", duration: 45, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_right", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "plank_shoulder_taps", duration: 45, restAfter: 15),
+            ExerciseSlot(exerciseId: "side_plank", duration: 40, restAfter: 10, side: .right),
+            ExerciseSlot(exerciseId: "kneeling_shoulder_tap", duration: 45, restAfter: 15),
         ],
         estimatedDuration: 10,
         isGenerated: false
@@ -163,13 +182,13 @@ extension WorkoutPreset {
         difficulty: .intermediate,
         exercises: [
             ExerciseSlot(exerciseId: "bicycle_crunch", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "russian_twists", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "leg_raises", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "windshield_wipers", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "leg_raise", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "superman_hold", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "flutter_kicks", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "oblique_crunch_left", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "oblique_crunch_right", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "toe_touches", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .left),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .right),
+            ExerciseSlot(exerciseId: "cocoon_crunch", duration: 30, restAfter: 10),
         ],
         estimatedDuration: 7,
         isGenerated: false
@@ -183,9 +202,9 @@ extension WorkoutPreset {
         difficulty: .beginner,
         exercises: [
             ExerciseSlot(exerciseId: "dead_bug", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "oblique_crunch_left", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "glute_bridge_hold", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "oblique_crunch_right", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .left),
+            ExerciseSlot(exerciseId: "glute_bridge", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .right),
             ExerciseSlot(exerciseId: "reverse_crunch", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "bird_dog", duration: 30, restAfter: 10),
         ],
@@ -200,15 +219,15 @@ extension WorkoutPreset {
         goal: .definition,
         difficulty: .advanced,
         exercises: [
-            ExerciseSlot(exerciseId: "v_ups", duration: 30, restAfter: 15),
-            ExerciseSlot(exerciseId: "russian_twists", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "leg_raises", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "superman_pulses", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "v_up", duration: 30, restAfter: 15),
+            ExerciseSlot(exerciseId: "windshield_wipers", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "leg_raise", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "alternating_superman", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "bicycle_crunch", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "woodchoppers", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "boat_bicycle", duration: 40, restAfter: 10),
             ExerciseSlot(exerciseId: "flutter_kicks", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "hollow_body_hold", duration: 30, restAfter: 15),
-            ExerciseSlot(exerciseId: "toe_touches", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "boat_flutters", duration: 30, restAfter: 15),
+            ExerciseSlot(exerciseId: "cocoon_crunch", duration: 30, restAfter: 10),
         ],
         estimatedDuration: 9,
         isGenerated: false
@@ -222,13 +241,13 @@ extension WorkoutPreset {
         difficulty: .intermediate,
         exercises: [
             ExerciseSlot(exerciseId: "reverse_crunch", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_left", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "toe_touches", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 30, restAfter: 10, side: .left),
+            ExerciseSlot(exerciseId: "cocoon_crunch", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "bird_dog", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_right", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 30, restAfter: 10, side: .right),
             ExerciseSlot(exerciseId: "flutter_kicks", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "oblique_crunch_left", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "oblique_crunch_right", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .left),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .right),
         ],
         estimatedDuration: 7,
         isGenerated: false
@@ -241,10 +260,10 @@ extension WorkoutPreset {
         goal: .definition,
         difficulty: .intermediate,
         exercises: [
-            ExerciseSlot(exerciseId: "leg_raises", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "russian_twists", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "leg_raise", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "windshield_wipers", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "reverse_crunch", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "glute_bridge_marches", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "glute_bridge_march", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "flutter_kicks", duration: 40, restAfter: 10),
             ExerciseSlot(exerciseId: "dead_bug", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "mountain_climbers", duration: 30, restAfter: 15),
@@ -262,14 +281,14 @@ extension WorkoutPreset {
         goal: .sculpting,
         difficulty: .intermediate,
         exercises: [
-            ExerciseSlot(exerciseId: "russian_twists", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "windshield_wipers", duration: 40, restAfter: 10),
             ExerciseSlot(exerciseId: "dead_bug", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_left", duration: 35, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 35, restAfter: 10, side: .left),
             ExerciseSlot(exerciseId: "superman_hold", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_right", duration: 35, restAfter: 10),
-            ExerciseSlot(exerciseId: "oblique_crunch_left", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "inchworms", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "oblique_crunch_right", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 35, restAfter: 10, side: .right),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .left),
+            ExerciseSlot(exerciseId: "downward_dog", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .right),
         ],
         estimatedDuration: 7,
         isGenerated: false
@@ -282,11 +301,11 @@ extension WorkoutPreset {
         goal: .sculpting,
         difficulty: .beginner,
         exercises: [
-            ExerciseSlot(exerciseId: "oblique_crunch_left", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "glute_bridge_hold", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "oblique_crunch_right", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .left),
+            ExerciseSlot(exerciseId: "glute_bridge", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .right),
             ExerciseSlot(exerciseId: "dead_bug", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "russian_twists", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "windshield_wipers", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "bird_dog", duration: 30, restAfter: 10),
         ],
         estimatedDuration: 5,
@@ -300,15 +319,15 @@ extension WorkoutPreset {
         goal: .sculpting,
         difficulty: .advanced,
         exercises: [
-            ExerciseSlot(exerciseId: "woodchoppers", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "hollow_body_hold", duration: 30, restAfter: 15),
-            ExerciseSlot(exerciseId: "side_plank_left", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "boat_bicycle", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "boat_flutters", duration: 30, restAfter: 15),
+            ExerciseSlot(exerciseId: "side_plank", duration: 40, restAfter: 10, side: .left),
             ExerciseSlot(exerciseId: "mountain_climbers", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_right", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "russian_twists", duration: 45, restAfter: 10),
-            ExerciseSlot(exerciseId: "superman_pulses", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "oblique_crunch_left", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "oblique_crunch_right", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 40, restAfter: 10, side: .right),
+            ExerciseSlot(exerciseId: "windshield_wipers", duration: 45, restAfter: 10),
+            ExerciseSlot(exerciseId: "alternating_superman", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .left),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .right),
         ],
         estimatedDuration: 9,
         isGenerated: false
@@ -321,13 +340,13 @@ extension WorkoutPreset {
         goal: .sculpting,
         difficulty: .intermediate,
         exercises: [
-            ExerciseSlot(exerciseId: "russian_twists", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "windshield_wipers", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "bicycle_crunch", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_left", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 30, restAfter: 10, side: .left),
             ExerciseSlot(exerciseId: "bird_dog", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_right", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "woodchoppers", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "plank_shoulder_taps", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 30, restAfter: 10, side: .right),
+            ExerciseSlot(exerciseId: "boat_bicycle", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "kneeling_shoulder_tap", duration: 30, restAfter: 10),
         ],
         estimatedDuration: 6,
         isGenerated: false
@@ -340,16 +359,16 @@ extension WorkoutPreset {
         goal: .sculpting,
         difficulty: .advanced,
         exercises: [
-            ExerciseSlot(exerciseId: "woodchoppers", duration: 45, restAfter: 10),
-            ExerciseSlot(exerciseId: "leg_raises", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_left", duration: 45, restAfter: 10),
-            ExerciseSlot(exerciseId: "superman_pulses", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_right", duration: 45, restAfter: 10),
-            ExerciseSlot(exerciseId: "russian_twists", duration: 45, restAfter: 10),
-            ExerciseSlot(exerciseId: "bear_crawl_hold", duration: 40, restAfter: 15),
-            ExerciseSlot(exerciseId: "oblique_crunch_left", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "oblique_crunch_right", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "v_ups", duration: 30, restAfter: 15),
+            ExerciseSlot(exerciseId: "boat_bicycle", duration: 45, restAfter: 10),
+            ExerciseSlot(exerciseId: "leg_raise", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 45, restAfter: 10, side: .left),
+            ExerciseSlot(exerciseId: "alternating_superman", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 45, restAfter: 10, side: .right),
+            ExerciseSlot(exerciseId: "windshield_wipers", duration: 45, restAfter: 10),
+            ExerciseSlot(exerciseId: "tabletop_hold_knee_lift", duration: 40, restAfter: 15),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .left),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .right),
+            ExerciseSlot(exerciseId: "v_up", duration: 30, restAfter: 15),
         ],
         estimatedDuration: 10,
         isGenerated: false
@@ -365,13 +384,13 @@ extension WorkoutPreset {
         difficulty: .intermediate,
         exercises: [
             ExerciseSlot(exerciseId: "dead_bug", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "russian_twists", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "windshield_wipers", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "superman_hold", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "bicycle_crunch", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "glute_bridge_hold", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "glute_bridge", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "mountain_climbers", duration: 30, restAfter: 15),
-            ExerciseSlot(exerciseId: "side_plank_left", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_right", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 30, restAfter: 10, side: .left),
+            ExerciseSlot(exerciseId: "side_plank", duration: 30, restAfter: 10, side: .right),
         ],
         estimatedDuration: 7,
         isGenerated: false
@@ -385,11 +404,11 @@ extension WorkoutPreset {
         difficulty: .beginner,
         exercises: [
             ExerciseSlot(exerciseId: "dead_bug", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "oblique_crunch_left", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .left),
             ExerciseSlot(exerciseId: "bird_dog", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "oblique_crunch_right", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "glute_bridge_hold", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "toe_touches", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_crunch", duration: 30, restAfter: 10, side: .right),
+            ExerciseSlot(exerciseId: "glute_bridge", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "cocoon_crunch", duration: 30, restAfter: 10),
         ],
         estimatedDuration: 5,
         isGenerated: false
@@ -402,16 +421,16 @@ extension WorkoutPreset {
         goal: .fullCore,
         difficulty: .advanced,
         exercises: [
-            ExerciseSlot(exerciseId: "hollow_body_hold", duration: 40, restAfter: 15),
-            ExerciseSlot(exerciseId: "woodchoppers", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "superman_pulses", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "v_ups", duration: 30, restAfter: 15),
-            ExerciseSlot(exerciseId: "side_plank_left", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "boat_flutters", duration: 40, restAfter: 15),
+            ExerciseSlot(exerciseId: "boat_bicycle", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "alternating_superman", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "v_up", duration: 30, restAfter: 15),
+            ExerciseSlot(exerciseId: "side_plank", duration: 40, restAfter: 10, side: .left),
             ExerciseSlot(exerciseId: "mountain_climbers", duration: 45, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_right", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "leg_raises", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "bear_crawl_hold", duration: 40, restAfter: 15),
-            ExerciseSlot(exerciseId: "plank_shoulder_taps", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 40, restAfter: 10, side: .right),
+            ExerciseSlot(exerciseId: "leg_raise", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "tabletop_hold_knee_lift", duration: 40, restAfter: 15),
+            ExerciseSlot(exerciseId: "kneeling_shoulder_tap", duration: 40, restAfter: 10),
         ],
         estimatedDuration: 10,
         isGenerated: false
@@ -426,11 +445,11 @@ extension WorkoutPreset {
         exercises: [
             ExerciseSlot(exerciseId: "bird_dog", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "bicycle_crunch", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "glute_bridge_marches", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "russian_twists", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "glute_bridge_march", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "windshield_wipers", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "superman_hold", duration: 30, restAfter: 10),
             ExerciseSlot(exerciseId: "flutter_kicks", duration: 30, restAfter: 10),
-            ExerciseSlot(exerciseId: "inchworms", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "downward_dog", duration: 30, restAfter: 10),
         ],
         estimatedDuration: 6,
         isGenerated: false
@@ -444,17 +463,113 @@ extension WorkoutPreset {
         difficulty: .advanced,
         exercises: [
             ExerciseSlot(exerciseId: "mountain_climbers", duration: 45, restAfter: 10),
-            ExerciseSlot(exerciseId: "side_plank_left", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "v_ups", duration: 30, restAfter: 15),
-            ExerciseSlot(exerciseId: "side_plank_right", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "superman_pulses", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "hollow_body_hold", duration: 40, restAfter: 15),
-            ExerciseSlot(exerciseId: "woodchoppers", duration: 45, restAfter: 10),
-            ExerciseSlot(exerciseId: "bear_crawl_hold", duration: 45, restAfter: 15),
-            ExerciseSlot(exerciseId: "leg_raises", duration: 40, restAfter: 10),
-            ExerciseSlot(exerciseId: "plank_shoulder_taps", duration: 45, restAfter: 10),
+            ExerciseSlot(exerciseId: "side_plank", duration: 40, restAfter: 10, side: .left),
+            ExerciseSlot(exerciseId: "v_up", duration: 30, restAfter: 15),
+            ExerciseSlot(exerciseId: "side_plank", duration: 40, restAfter: 10, side: .right),
+            ExerciseSlot(exerciseId: "alternating_superman", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "boat_flutters", duration: 40, restAfter: 15),
+            ExerciseSlot(exerciseId: "boat_bicycle", duration: 45, restAfter: 10),
+            ExerciseSlot(exerciseId: "tabletop_hold_knee_lift", duration: 45, restAfter: 15),
+            ExerciseSlot(exerciseId: "leg_raise", duration: 40, restAfter: 10),
+            ExerciseSlot(exerciseId: "kneeling_shoulder_tap", duration: 45, restAfter: 10),
         ],
         estimatedDuration: 10,
+        isGenerated: false
+    )
+
+    // MARK: Phase 4b — Body-area presets (added 2026-05-07)
+    //
+    // The original 20 presets are core-focused (carry-over from when the
+    // bank was abs/plank only). Phase 4b expands coverage to glutes,
+    // upper body, lower body, and a full-body cardio mix — using the
+    // 128-exercise bank and the position-block ordering convention. Each
+    // preset's slot list is written in standing → quadruped → plank →
+    // prone → side-lying → supine → seated order so the fallback
+    // experience matches what the generator now emits.
+
+    /// Glutes — standing → quadruped (donkey kick / fire hydrant pairs)
+    /// → supine (single-leg + bilateral bridges). Mid-difficulty so the
+    /// fallback hits day-1 users in the right zone for "round butt" focus.
+    static let glutes1 = WorkoutPreset(
+        id: "glutes_1",
+        name: "Lift & Lengthen",
+        description: "Posterior-chain shaping that posture loves. Build the curve through every angle.",
+        goal: .sculpting,
+        difficulty: .intermediate,
+        exercises: [
+            ExerciseSlot(exerciseId: "standing_hip_abduction", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "donkey_kick", duration: 30, restAfter: 5, side: .left),
+            ExerciseSlot(exerciseId: "donkey_kick", duration: 30, restAfter: 12, side: .right),
+            ExerciseSlot(exerciseId: "fire_hydrant", duration: 30, restAfter: 5, side: .left),
+            ExerciseSlot(exerciseId: "fire_hydrant", duration: 30, restAfter: 12, side: .right),
+            ExerciseSlot(exerciseId: "glute_bridge", duration: 40, restAfter: 12),
+            ExerciseSlot(exerciseId: "single_leg_glute_bridge", duration: 30, restAfter: 5, side: .left),
+            ExerciseSlot(exerciseId: "single_leg_glute_bridge", duration: 30, restAfter: 12, side: .right),
+        ],
+        estimatedDuration: 7,
+        isGenerated: false
+    )
+
+    /// Upper body — quadruped → plank → prone → seated. Hits shoulders,
+    /// arms, and posterior delts via plank variants and back raises. No
+    /// pushup-volume so beginners with weaker upper body still finish it.
+    static let upper1 = WorkoutPreset(
+        id: "upper_1",
+        name: "Strong Arms",
+        description: "Shoulders, arms, posture. The upper-body work most home routines skip.",
+        goal: .fullCore,
+        difficulty: .intermediate,
+        exercises: [
+            ExerciseSlot(exerciseId: "kneeling_shoulder_tap", duration: 35, restAfter: 12),
+            ExerciseSlot(exerciseId: "plank_saw", duration: 30, restAfter: 12),
+            ExerciseSlot(exerciseId: "plank_jacks", duration: 30, restAfter: 12),
+            ExerciseSlot(exerciseId: "w_raise", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "y_raise", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "floor_dip", duration: 35, restAfter: 12),
+        ],
+        estimatedDuration: 6,
+        isGenerated: false
+    )
+
+    /// Lower body — standing block (squats + side lunge) into one supine
+    /// glute bridge to round out the posterior chain. All bilateral or
+    /// alternating except side_lunge, which is paired L/R.
+    static let lower1 = WorkoutPreset(
+        id: "lower_1",
+        name: "Long Legs",
+        description: "Squats, lunges, calves. Lean lines through the lower body.",
+        goal: .sculpting,
+        difficulty: .intermediate,
+        exercises: [
+            ExerciseSlot(exerciseId: "air_squat", duration: 35, restAfter: 12),
+            ExerciseSlot(exerciseId: "sumo_squat", duration: 35, restAfter: 12),
+            ExerciseSlot(exerciseId: "side_lunge", duration: 30, restAfter: 5, side: .left),
+            ExerciseSlot(exerciseId: "side_lunge", duration: 30, restAfter: 12, side: .right),
+            ExerciseSlot(exerciseId: "calf_raise", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "glute_bridge", duration: 40, restAfter: 10),
+        ],
+        estimatedDuration: 7,
+        isGenerated: false
+    )
+
+    /// Full-body cardio mix — beginner-friendly, low-equipment-feel. Six
+    /// exercises in standing → plank → supine flow; reads as "move
+    /// everything" rather than a core grind.
+    static let fullBody1 = WorkoutPreset(
+        id: "full_body_1",
+        name: "Move Everything",
+        description: "Cardio + strength in one quick lap. Wake the whole body up.",
+        goal: .fullCore,
+        difficulty: .beginner,
+        exercises: [
+            ExerciseSlot(exerciseId: "jumping_jacks", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "high_knees", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "butt_kicks", duration: 30, restAfter: 10),
+            ExerciseSlot(exerciseId: "mountain_climbers", duration: 30, restAfter: 12),
+            ExerciseSlot(exerciseId: "plank_jacks", duration: 30, restAfter: 12),
+            ExerciseSlot(exerciseId: "glute_bridge", duration: 30, restAfter: 10),
+        ],
+        estimatedDuration: 6,
         isGenerated: false
     )
 }
@@ -468,10 +583,12 @@ extension WorkoutPreset {
         .strength1, .strength2, .strength3, .strength4, .strength5,
         // Definition
         .definition1, .definition2, .definition3, .definition4, .definition5,
-        // Sculpting
+        // Sculpting (incl. Phase 4b body-area additions: glutes, lower body)
         .sculpting1, .sculpting2, .sculpting3, .sculpting4, .sculpting5,
-        // Full Core
+        .glutes1, .lower1,
+        // Full Core (incl. Phase 4b body-area additions: upper body, full body)
         .fullCore1, .fullCore2, .fullCore3, .fullCore4, .fullCore5,
+        .upper1, .fullBody1,
     ]
 
     static func presets(for goal: WorkoutGoal) -> [WorkoutPreset] {

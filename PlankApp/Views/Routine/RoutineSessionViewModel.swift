@@ -4,11 +4,21 @@ import PlankSync
 // MARK: - Session Phase
 
 enum RoutinePhase: Equatable {
-    case preview(exerciseIndex: Int)        // 3s exercise preview
+    /// Combined rest + preview before an exercise. Index points at the
+    /// **upcoming** exercise (the one whose Lottie + name show on screen).
+    /// Duration lives in `timeRemaining` — set by the VM from the previous
+    /// slot's `restAfter`, with a minimum 3s and a fixed 4s for the very
+    /// first prep of the session ("get ready" countdown).
+    case prep(exerciseIndex: Int)
     case active(exerciseIndex: Int)         // timed interval
-    case rest(exerciseIndex: Int)           // rest between exercises
     case done                              // session complete
 }
+
+/// Initial countdown before the first exercise of any session.
+private let initialPrepSeconds = 4
+/// Floor for inter-exercise prep, even if the slot's `restAfter` is smaller.
+/// Just enough to read the next move's name.
+private let minPrepSeconds = 3
 
 // MARK: - View Model
 
@@ -18,8 +28,8 @@ final class RoutineSessionViewModel {
 
     // MARK: - State
 
-    private(set) var phase: RoutinePhase = .preview(exerciseIndex: 0)
-    private(set) var timeRemaining: Int = 3            // countdown for current phase
+    private(set) var phase: RoutinePhase = .prep(exerciseIndex: 0)
+    private(set) var timeRemaining: Int = initialPrepSeconds  // countdown for current phase
     private(set) var totalElapsed: TimeInterval = 0    // total session time
     private(set) var isPaused: Bool = false
 
@@ -33,6 +43,7 @@ final class RoutineSessionViewModel {
 
     private let clock: any Clock<Duration>
     private let audio = RoutineAudioManager()
+    private let music = BackgroundMusicService()
     private let onComplete: ([ExerciseResultEntry], TimeInterval) -> Void
 
     // MARK: - Internal
@@ -44,12 +55,16 @@ final class RoutineSessionViewModel {
 
     var currentExerciseIndex: Int {
         switch phase {
-        case .preview(let i), .active(let i), .rest(let i): return i
+        case .prep(let i), .active(let i): return i
         case .done: return workout.exercises.count - 1
         }
     }
 
     var currentSlot: ExerciseSlot? {
+        // Once the session is done (natural completion or user quit), stop
+        // surfacing the last exercise — otherwise the view flickers a frame
+        // of "exercise N" content while HomeView dismisses the cover.
+        if case .done = phase { return nil }
         let idx = currentExerciseIndex
         guard idx < workout.exercises.count else { return nil }
         return workout.exercises[idx]
@@ -61,6 +76,14 @@ final class RoutineSessionViewModel {
 
     var exerciseCount: Int { workout.exercises.count }
 
+    /// Highest `round` value across the workout's slots. 1 for normal
+    /// sessions; 2-3 for long sessions emitted with Pamela Reif's
+    /// "and now repeat" structure. RoutineSessionView reads this to
+    /// surface "round 1/2" inline.
+    var totalRounds: Int {
+        workout.exercises.map { $0.round }.max() ?? 1
+    }
+
     var progress: Double {
         guard exerciseCount > 0 else { return 0 }
         switch phase {
@@ -68,8 +91,8 @@ final class RoutineSessionViewModel {
         case .active:
             let frac = Double(exerciseElapsed) / Double(workout.exercises[currentExerciseIndex].duration)
             return (Double(exerciseResults.count) + frac) / Double(exerciseCount)
-        default:
-            // Preview and rest: show completed exercises, no fractional drop
+        case .prep:
+            // Prep: show completed exercises, no fractional drop
             return Double(exerciseResults.count) / Double(exerciseCount)
         }
     }
@@ -89,15 +112,19 @@ final class RoutineSessionViewModel {
         self.workout = workout
         self.clock = clock
         self.onComplete = onComplete
+        // Voice manager ducks BGM while cues play — wire the back-reference
+        // at init so the play path can reach the music service.
+        self.audio.music = self.music
     }
 
     // MARK: - Lifecycle
 
     func start() {
-        guard case .preview(0) = phase else { return }
+        guard case .prep(0) = phase else { return }
         activeStartTime = Date()
-        timeRemaining = 4
+        timeRemaining = initialPrepSeconds
         audio.activate()
+        music.start()
         Haptics.vibrate()
         startTimer()
     }
@@ -107,12 +134,27 @@ final class RoutineSessionViewModel {
         isPaused = true
         timerTask?.cancel()
         audio.stop()
+        music.stop()
     }
 
     func resume() {
         guard isPaused else { return }
         isPaused = false
+        music.start()
         startTimer()
+    }
+
+    // MARK: - Audio toggles (independent music + voice mute)
+
+    var musicMuted: Bool { music.isMuted }
+    var voiceMuted: Bool { audio.isMuted }
+
+    func toggleMusic() {
+        music.setMuted(!music.isMuted)
+    }
+
+    func toggleVoice() {
+        audio.setMuted(!audio.isMuted)
     }
 
     func skip() {
@@ -128,13 +170,22 @@ final class RoutineSessionViewModel {
             skipped: true
         ))
 
-        advanceToRest(index: index)
+        advanceToPrep(afterIndex: index)
     }
 
+    /// User-initiated quit (End button). Stops everything immediately and
+    /// hands control back to the host without firing the celebration voice
+    /// — calling `finishSession()` here would schedule an `audio.onSessionDone()`
+    /// "beautiful / good work" cue 1s later, which feels wrong on a quit
+    /// (and racy with the cover dismiss). Natural completion flows through
+    /// `finishSession()` directly from the timer.
     func end() {
         timerTask?.cancel()
+        audio.stop()              // kill any in-flight cue immediately
         audio.deactivate()
-        finishSession()
+        music.stop()
+        phase = .done
+        onComplete(exerciseResults, totalElapsed)
     }
 
     // MARK: - Timer
@@ -157,9 +208,47 @@ final class RoutineSessionViewModel {
         timeRemaining -= 1
 
         switch phase {
-        case .preview(let index):
-            if timeRemaining == 2 {
-                audio.onExercisePreview(exerciseId: workout.exercises[index].exerciseId)
+        case .prep(let index):
+            // First slot of the session: brief "get ready" cue at t=2.
+            // Mid-session prep (longer): play a "rest" cue at the start, then
+            // preview the upcoming exercise as we approach active.
+            let isInitial = (index == 0 && exerciseResults.isEmpty)
+            if !isInitial && timeRemaining == workout.exercises[index].restAfter {
+                // First tick of a mid-session prep — "good job, brief rest"
+                Haptics.soft()
+                if workout.exercises[index].restAfter > 5 {
+                    audio.onRest()
+                }
+            }
+            // Fire the prep cue early enough that the clip itself
+                // doesn't get cut by the active phase starting.
+                // Per docs/workout_session_rules.md §7: prep_full ~4-6s,
+                // prep_short ~2-3s. Fire long-window cues at t=6 so the
+                // clip lands before active; short-window cues at t=2.
+                // ≤5s windows fire nothing — voice would cut.
+                let upcoming = workout.exercises[index]
+                let prepWindow = upcoming.restAfter
+                let cueTime: Int
+                if prepWindow >= 12 { cueTime = 6 }       // long: prep_full will fire
+                else if prepWindow >= 6 { cueTime = 2 }   // medium: prep_short
+                else { cueTime = -1 }                      // ≤5s: silent
+
+            if timeRemaining == cueTime {
+                let prev = (index > 0) ? workout.exercises[index - 1] : nil
+                if let upcomingEx = upcoming.exercise {
+                    audio.onExercisePrep(
+                        upcoming: upcomingEx,
+                        upcomingSide: upcoming.side,
+                        previous: prev?.exercise,
+                        previousSide: prev?.side,
+                        prepWindow: prepWindow
+                    )
+                } else {
+                    // Defensive fallback for any slot whose exerciseId
+                    // doesn't resolve in the bank — keeps the legacy
+                    // intro_X path firing rather than going silent.
+                    audio.onExercisePreview(exerciseId: upcoming.exerciseId)
+                }
             }
             if timeRemaining <= 0 {
                 Haptics.vibrate()
@@ -188,7 +277,7 @@ final class RoutineSessionViewModel {
             // Periodic voice cues
             if let exercise = slot.exercise, remaining > 8 {
                 audio.onActiveTick(
-                    exerciseType: exercise.type,
+                    pace: exercise.pace,
                     secondsIn: exerciseElapsed,
                     duration: slot.duration
                 )
@@ -208,26 +297,7 @@ final class RoutineSessionViewModel {
                 } else {
                     Haptics.rigid()
                     audio.onExerciseDone()
-                    advanceToRest(index: index)
-                }
-            }
-
-        case .rest(let index):
-            if timeRemaining == workout.exercises[index].restAfter - 1 {
-                Haptics.soft()
-                audio.onRest()
-            }
-            if timeRemaining == 2 {
-                Haptics.tick()
-            }
-            if timeRemaining <= 0 {
-                let nextIndex = index + 1
-                if nextIndex < workout.exercises.count {
-                    phase = .preview(exerciseIndex: nextIndex)
-                    timeRemaining = 4
-                } else {
-                    Haptics.success()
-                    finishSession()
+                    advanceToPrep(afterIndex: index)
                 }
             }
 
@@ -236,12 +306,15 @@ final class RoutineSessionViewModel {
         }
     }
 
-    private func advanceToRest(index: Int) {
+    /// Advance from a finished active phase into the prep for the next slot.
+    /// Prep duration = the just-finished slot's `restAfter`, floored at
+    /// `minPrepSeconds`. The combined rest + preview lives here.
+    private func advanceToPrep(afterIndex index: Int) {
         let nextIndex = index + 1
         if nextIndex < workout.exercises.count {
-            let slot = workout.exercises[index]
-            phase = .rest(exerciseIndex: index)
-            timeRemaining = slot.restAfter
+            let prevRest = workout.exercises[index].restAfter
+            phase = .prep(exerciseIndex: nextIndex)
+            timeRemaining = max(minPrepSeconds, prevRest)
         } else {
             finishSession()
         }

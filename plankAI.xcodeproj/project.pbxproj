@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		133BB5E2136D8E02576DD95D /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E3BFB7C26C4CE6073B4BD5B /* AuthService.swift */; };
+		290470E1EF26C3DDFE573B9C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 497B84BED7952F84A2354358 /* Foundation.framework */; };
+		6121FADCC7C7EC4FD090B827 /* StreakCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0940C3025677F6AB12F65FF /* StreakCalculatorTests.swift */; };
 		62710D31232DA4D53C102084 /* AppSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3AAF9BC1396F6ED11BDFF8A /* AppSync.swift */; };
 		75661984DCC520F8ED82FED1 /* SignInPromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D838CE3A3E3251D0108A7709 /* SignInPromptView.swift */; };
 		783186622F99E4130096138F /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783186542F99E4130096138F /* HomeView.swift */; };
@@ -84,6 +86,20 @@
 		AA0001092FA1000100000005 /* RoutineSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001082FA1000100000005 /* RoutineSessionView.swift */; };
 		AA00010B2FA1000100000006 /* PostRoutineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00010A2FA1000100000006 /* PostRoutineView.swift */; };
 		AA00010D2FA1000100000009 /* RoutineAudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00010C2FA1000100000009 /* RoutineAudioManager.swift */; };
+		AA00010E2FA1000100000020 /* ExerciseBankData.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00010F2FA1000100000020 /* ExerciseBankData.swift */; };
+		AA0001102FA1000100000021 /* ExerciseMirror.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001112FA1000100000021 /* ExerciseMirror.swift */; };
+		AA00011220000000000000A0 /* LottieExerciseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00011120000000000000A0 /* LottieExerciseView.swift */; };
+		AA00011220000000000000B0 /* BodyFocus.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00011120000000000000B0 /* BodyFocus.swift */; };
+		AA00011220000000000000B1 /* SessionStructure.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00011120000000000000B1 /* SessionStructure.swift */; };
+		AA00011220000000000000B2 /* SessionCompletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00011120000000000000B2 /* SessionCompletion.swift */; };
+		AA00011220000000000000C0 /* BackgroundMusicService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00011120000000000000C0 /* BackgroundMusicService.swift */; };
+		AA00011220000000000000D0 /* PreRoutineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00011120000000000000D0 /* PreRoutineView.swift */; };
+		AA00011220000000000000E0 /* BrowseWorkoutsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00011120000000000000E0 /* BrowseWorkoutsView.swift */; };
+		AA00011220000000000000F4 /* WeightAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00011120000000000000F4 /* WeightAnalytics.swift */; };
+		AA00011420000000000000F4 /* WeightUnit.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00011320000000000000F4 /* WeightUnit.swift */; };
+		AA00011620000000000000F4 /* WorkoutGeneratorSelfCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00011520000000000000F4 /* WorkoutGeneratorSelfCheck.swift */; };
+		AA00011820000000000000F4 /* StreakCalculatorSelfCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00011720000000000000F4 /* StreakCalculatorSelfCheck.swift */; };
+		AA00011A20000000000000F4 /* WeightSelfCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00011920000000000000F4 /* WeightSelfCheck.swift */; };
 		AAAA00010000000000000001 /* DeleteAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA00020000000000000001 /* DeleteAccountSheet.swift */; };
 		AB009E8A04A12FA8EC0B /* matson_hold_6.m4a in Resources */ = {isa = PBXBuildFile; fileRef = ABB4E0CB3B0D2FA8E8B1 /* matson_hold_6.m4a */; };
 		AB01AB189B1A2FA8EBB1 /* matson_routine_done_4.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AB0E8795E1D22FA8960A /* matson_routine_done_4.m4a */; };
@@ -277,8 +293,12 @@
 		BAD000000000000000000003 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = BAD000000000000000000002 /* RevenueCat */; };
 		BAD000000000000000000010 /* RevenueCatConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000011 /* RevenueCatConfig.swift */; };
 		BAD000000000000000000020 /* PaymentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000021 /* PaymentService.swift */; };
+		BAD000000000000000000022 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = BAD000000000000000000081 /* Lottie */; };
 		BAD000000000000000000040 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000041 /* PaywallView.swift */; };
 		BAD000000000000000000060 /* TrialEndNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000061 /* TrialEndNotificationService.swift */; };
+		BAD000000000000000000091 /* lottie in Resources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000090 /* lottie */; };
+		BAD0000000000000000000A1 /* Music in Resources */ = {isa = PBXBuildFile; fileRef = BAD0000000000000000000A0 /* Music */; };
+		BAD0000000000000000000B1 /* animations in Resources */ = {isa = PBXBuildFile; fileRef = BAD0000000000000000000B0 /* animations */; };
 		BB0AD8572FA200B4DF /* intro_toe_touches.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB59A9BC2FA2002154 /* intro_toe_touches.m4a */; };
 		BB0AFC172FA20048E1 /* skip_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB6BBF7A2FA200AAB0 /* skip_2.m4a */; };
 		BB0F71762FA200B2ED /* exercise_done.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB0E2C2E2FA200D6E9 /* exercise_done.m4a */; };
@@ -333,8 +353,12 @@
 		BBF992B12FA2003E70 /* intro_high_knees.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB6654662FA200D724 /* intro_high_knees.m4a */; };
 		BBFD78BC2FA200AF0C /* hold_5.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BB49D1242FA200A057 /* hold_5.m4a */; };
 		BBFFDBF32FA200A78B /* rest_2.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BBA3130B2FA200431D /* rest_2.m4a */; };
+		C6A6E44908B9CB2AA627FC4B /* WorkoutGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9D9D5181D066CFF61B48409 /* WorkoutGeneratorTests.swift */; };
+		CA9443CBAF24D7D7E7E878EA /* WeightTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E404AC215344DB23528AC /* WeightTests.swift */; };
 		CC0001012FA3000100000001 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001002FA3000100000001 /* MainTabView.swift */; };
 		CC0001032FA3000100000002 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001022FA3000100000002 /* AnalyticsView.swift */; };
+		CC00010520000000000000F0 /* LogWeightSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC00010420000000000000F0 /* LogWeightSheet.swift */; };
+		CC00010520000000000000F2 /* WeightTrendChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC00010420000000000000F2 /* WeightTrendChart.swift */; };
 		CCCC00010000000000000001 /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCC00020000000000000001 /* SignUpView.swift */; };
 		D82175BFC774BFB8081957D2 /* SupabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAF028D604DCD031A53E9F35 /* SupabaseConfig.swift */; };
 		DD0001012FA4000100000001 /* StreakCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001002FA4000100000001 /* StreakCalculator.swift */; };
@@ -345,10 +369,12 @@
 		EE0000052FA50002000005 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000052FA50001000005 /* AccountView.swift */; };
 		EE0000062FA50002000006 /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000062FA50001000006 /* FeedbackView.swift */; };
 		F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A5839CBCA9EBEB79038667 /* DebugAuthView.swift */; };
-		FAFA000000000000000C0001 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0011 /* Components.swift */; };
-		FAFA000000000000000C0002 /* Stickers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0012 /* Stickers.swift */; };
 		FAFA000000000000000B0001 /* AffirmationScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000B0011 /* AffirmationScreen.swift */; };
 		FAFA000000000000000B0003 /* AffirmationLoaderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000B0013 /* AffirmationLoaderScreen.swift */; };
+		FAFA000000000000000C0001 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0011 /* Components.swift */; };
+		FAFA000000000000000C0002 /* Stickers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0012 /* Stickers.swift */; };
+		FAFA000000000000000C0102 /* MagicalLoading.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0112 /* MagicalLoading.swift */; };
+		FAFA000000000000000C0202 /* EffectAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0212 /* EffectAnimation.swift */; };
 		FAFA000000000000000F0001 /* Fraunces72pt-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */; };
 		FAFA000000000000000F0002 /* Fraunces72pt-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0012 /* Fraunces72pt-Regular.ttf */; };
 		FAFA000000000000000F0003 /* Fraunces72pt-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0013 /* Fraunces72pt-SemiBold.ttf */; };
@@ -366,10 +392,22 @@
 		FFF3B6EC2FA6008EAB /* encourage_4.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF4893B32FA6006A83 /* encourage_4.m4a */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		91ED81E51971F980FAB549D2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 783186392F99E3110096138F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 783186402F99E3110096138F;
+			remoteInfo = plankAI;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		1E3BFB7C26C4CE6073B4BD5B /* AuthService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		27A5839CBCA9EBEB79038667 /* DebugAuthView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DebugAuthView.swift; sourceTree = "<group>"; };
+		2D26393518BA28A17D9EC22C /* plankAITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = plankAITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4541BBF55D20BF977CCAD632 /* AppleSignInService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
+		497B84BED7952F84A2354358 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		783186412F99E3110096138F /* plankAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = plankAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7831864F2F99E4130096138F /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
 		783186512F99E4130096138F /* Tokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tokens.swift; sourceTree = "<group>"; };
@@ -436,6 +474,8 @@
 		783187F12F9B30000096138F /* jeni_preview.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_preview.m4a; sourceTree = "<group>"; };
 		783187F22F9B30000096138F /* matson_preview.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = matson_preview.m4a; sourceTree = "<group>"; };
 		78FDCD402FA9CFC70017F2CA /* hero.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = hero.mp4; sourceTree = "<group>"; };
+		8F4E404AC215344DB23528AC /* WeightTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeightTests.swift; sourceTree = "<group>"; };
+		A0940C3025677F6AB12F65FF /* StreakCalculatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StreakCalculatorTests.swift; sourceTree = "<group>"; };
 		AA0001002FA1000100000001 /* ExerciseBank.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseBank.swift; sourceTree = "<group>"; };
 		AA0001022FA1000100000002 /* WorkoutPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPreset.swift; sourceTree = "<group>"; };
 		AA0001042FA1000100000003 /* WorkoutGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGenerator.swift; sourceTree = "<group>"; };
@@ -443,6 +483,20 @@
 		AA0001082FA1000100000005 /* RoutineSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineSessionView.swift; sourceTree = "<group>"; };
 		AA00010A2FA1000100000006 /* PostRoutineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostRoutineView.swift; sourceTree = "<group>"; };
 		AA00010C2FA1000100000009 /* RoutineAudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineAudioManager.swift; sourceTree = "<group>"; };
+		AA00010F2FA1000100000020 /* ExerciseBankData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseBankData.swift; sourceTree = "<group>"; };
+		AA00011120000000000000A0 /* LottieExerciseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LottieExerciseView.swift; sourceTree = "<group>"; };
+		AA00011120000000000000B0 /* BodyFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyFocus.swift; sourceTree = "<group>"; };
+		AA00011120000000000000B1 /* SessionStructure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStructure.swift; sourceTree = "<group>"; };
+		AA00011120000000000000B2 /* SessionCompletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCompletion.swift; sourceTree = "<group>"; };
+		AA00011120000000000000C0 /* BackgroundMusicService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundMusicService.swift; sourceTree = "<group>"; };
+		AA00011120000000000000D0 /* PreRoutineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreRoutineView.swift; sourceTree = "<group>"; };
+		AA00011120000000000000E0 /* BrowseWorkoutsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseWorkoutsView.swift; sourceTree = "<group>"; };
+		AA00011120000000000000F4 /* WeightAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightAnalytics.swift; sourceTree = "<group>"; };
+		AA0001112FA1000100000021 /* ExerciseMirror.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseMirror.swift; sourceTree = "<group>"; };
+		AA00011320000000000000F4 /* WeightUnit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightUnit.swift; sourceTree = "<group>"; };
+		AA00011520000000000000F4 /* WorkoutGeneratorSelfCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGeneratorSelfCheck.swift; sourceTree = "<group>"; };
+		AA00011720000000000000F4 /* StreakCalculatorSelfCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakCalculatorSelfCheck.swift; sourceTree = "<group>"; };
+		AA00011920000000000000F4 /* WeightSelfCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightSelfCheck.swift; sourceTree = "<group>"; };
 		AAAA00020000000000000001 /* DeleteAccountSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeleteAccountSheet.swift; sourceTree = "<group>"; };
 		AB0068A1DFD72FA88E49 /* jeni_hold_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_hold_2.m4a; sourceTree = "<group>"; };
 		AB016A8901C22FA86B1D /* jeni_hold_6.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_hold_6.m4a; sourceTree = "<group>"; };
@@ -637,6 +691,9 @@
 		BAD000000000000000000041 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		BAD000000000000000000050 /* absmaxxing.storekit */ = {isa = PBXFileReference; lastKnownFileType = file.storekit; path = absmaxxing.storekit; sourceTree = "<group>"; };
 		BAD000000000000000000061 /* TrialEndNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialEndNotificationService.swift; sourceTree = "<group>"; };
+		BAD000000000000000000090 /* lottie */ = {isa = PBXFileReference; lastKnownFileType = folder; path = lottie; sourceTree = "<group>"; };
+		BAD0000000000000000000A0 /* Music */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Music; sourceTree = "<group>"; };
+		BAD0000000000000000000B0 /* animations */ = {isa = PBXFileReference; lastKnownFileType = folder; path = animations; sourceTree = "<group>"; };
 		BB02E2382FA200E460 /* tempo_4.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = tempo_4.m4a; sourceTree = "<group>"; };
 		BB040ACA2FA2009B79 /* intro_glute_bridge_hold.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = intro_glute_bridge_hold.m4a; sourceTree = "<group>"; };
 		BB04C6C82FA2000DD4 /* intro_bear_crawl_hold.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = intro_bear_crawl_hold.m4a; sourceTree = "<group>"; };
@@ -692,8 +749,11 @@
 		BBEDE4CA2FA200D5B1 /* hold_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = hold_2.m4a; sourceTree = "<group>"; };
 		BBF739FA2FA200A202 /* routine_done_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = routine_done_1.m4a; sourceTree = "<group>"; };
 		C3AAF9BC1396F6ED11BDFF8A /* AppSync.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppSync.swift; sourceTree = "<group>"; };
+		C9D9D5181D066CFF61B48409 /* WorkoutGeneratorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutGeneratorTests.swift; sourceTree = "<group>"; };
 		CC0001002FA3000100000001 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		CC0001022FA3000100000002 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
+		CC00010420000000000000F0 /* LogWeightSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogWeightSheet.swift; sourceTree = "<group>"; };
+		CC00010420000000000000F2 /* WeightTrendChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightTrendChart.swift; sourceTree = "<group>"; };
 		CCCC00020000000000000001 /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
 		D838CE3A3E3251D0108A7709 /* SignInPromptView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SignInPromptView.swift; sourceTree = "<group>"; };
 		DD0001002FA4000100000001 /* StreakCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakCalculator.swift; sourceTree = "<group>"; };
@@ -704,10 +764,12 @@
 		EE0000052FA50001000005 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
 		EE0000062FA50001000006 /* FeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackView.swift; sourceTree = "<group>"; };
 		FAF028D604DCD031A53E9F35 /* SupabaseConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
-		FAFA000000000000000C0011 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
-		FAFA000000000000000C0012 /* Stickers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stickers.swift; sourceTree = "<group>"; };
 		FAFA000000000000000B0011 /* AffirmationScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AffirmationScreen.swift; sourceTree = "<group>"; };
 		FAFA000000000000000B0013 /* AffirmationLoaderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AffirmationLoaderScreen.swift; sourceTree = "<group>"; };
+		FAFA000000000000000C0011 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		FAFA000000000000000C0012 /* Stickers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stickers.swift; sourceTree = "<group>"; };
+		FAFA000000000000000C0112 /* MagicalLoading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagicalLoading.swift; sourceTree = "<group>"; };
+		FAFA000000000000000C0212 /* EffectAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EffectAnimation.swift; sourceTree = "<group>"; };
 		FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-Light.ttf"; sourceTree = "<group>"; };
 		FAFA000000000000000F0012 /* Fraunces72pt-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-Regular.ttf"; sourceTree = "<group>"; };
 		FAFA000000000000000F0013 /* Fraunces72pt-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-SemiBold.ttf"; sourceTree = "<group>"; };
@@ -726,6 +788,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		341EEA87BC928EC9B6FACAF9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				290470E1EF26C3DDFE573B9C /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7831863E2F99E3110096138F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -734,12 +804,24 @@
 				783186702F99E73A0096138F /* PlankVoice in Frameworks */,
 				7831866C2F99E5C60096138F /* PlankEngine in Frameworks */,
 				BAD000000000000000000003 /* RevenueCat in Frameworks */,
+				BAD000000000000000000022 /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5747CE84C1A2E80AF85C6FB0 /* plankAITests */ = {
+			isa = PBXGroup;
+			children = (
+				8F4E404AC215344DB23528AC /* WeightTests.swift */,
+				A0940C3025677F6AB12F65FF /* StreakCalculatorTests.swift */,
+				C9D9D5181D066CFF61B48409 /* WorkoutGeneratorTests.swift */,
+			);
+			name = plankAITests;
+			path = plankAITests;
+			sourceTree = "<group>";
+		};
 		63DBA493EEE09CA86580DBAD /* Auth */ = {
 			isa = PBXGroup;
 			children = (
@@ -756,6 +838,7 @@
 				783186612F99E4130096138F /* PlankApp */,
 				7831866D2F99E6A70096138F /* Frameworks */,
 				783186422F99E3110096138F /* Products */,
+				5747CE84C1A2E80AF85C6FB0 /* plankAITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -763,6 +846,7 @@
 			isa = PBXGroup;
 			children = (
 				783186412F99E3110096138F /* plankAI.app */,
+				2D26393518BA28A17D9EC22C /* plankAITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -782,6 +866,8 @@
 				783187DD2F9AF2060096138F /* Haptics.swift */,
 				FAFA000000000000000C0011 /* Components.swift */,
 				FAFA000000000000000C0012 /* Stickers.swift */,
+				FAFA000000000000000C0112 /* MagicalLoading.swift */,
+				FAFA000000000000000C0212 /* EffectAnimation.swift */,
 			);
 			path = DesignSystem;
 			sourceTree = "<group>";
@@ -791,15 +877,6 @@
 			children = (
 			);
 			path = Common;
-			sourceTree = "<group>";
-		};
-		FAFA000000000000000B0021 /* Welcome */ = {
-			isa = PBXGroup;
-			children = (
-				FAFA000000000000000B0011 /* AffirmationScreen.swift */,
-				FAFA000000000000000B0013 /* AffirmationLoaderScreen.swift */,
-			);
-			path = Welcome;
 			sourceTree = "<group>";
 		};
 		783186552F99E4130096138F /* Home */ = {
@@ -859,6 +936,7 @@
 			isa = PBXGroup;
 			children = (
 				CC0001052FA3000100000004 /* Analytics */,
+				AA00011120000000000000E1 /* Browse */,
 				783186532F99E4130096138F /* Common */,
 				783186552F99E4130096138F /* Home */,
 				CC0001042FA3000100000003 /* Root */,
@@ -896,6 +974,7 @@
 		7831866D2F99E6A70096138F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				F50A40A68109981801DEC242 /* iOS */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -921,6 +1000,9 @@
 				78FDCD402FA9CFC70017F2CA /* hero.mp4 */,
 				783186782F9A0B0C0096138F /* Fonts */,
 				7831869D2F9A1F7D0096138F /* VoiceClips */,
+				BAD000000000000000000090 /* lottie */,
+				BAD0000000000000000000A0 /* Music */,
+				BAD0000000000000000000B0 /* animations */,
 				BAD000000000000000000050 /* absmaxxing.storekit */,
 			);
 			path = Resources;
@@ -1246,6 +1328,9 @@
 			children = (
 				AA0001062FA1000100000004 /* RoutineSessionViewModel.swift */,
 				AA0001082FA1000100000005 /* RoutineSessionView.swift */,
+				AA00011120000000000000A0 /* LottieExerciseView.swift */,
+				AA00011120000000000000C0 /* BackgroundMusicService.swift */,
+				AA00011120000000000000D0 /* PreRoutineView.swift */,
 				AA00010A2FA1000100000006 /* PostRoutineView.swift */,
 				AA00010C2FA1000100000009 /* RoutineAudioManager.swift */,
 			);
@@ -1256,11 +1341,29 @@
 			isa = PBXGroup;
 			children = (
 				AA0001002FA1000100000001 /* ExerciseBank.swift */,
+				AA00010F2FA1000100000020 /* ExerciseBankData.swift */,
+				AA0001112FA1000100000021 /* ExerciseMirror.swift */,
+				AA00011120000000000000B0 /* BodyFocus.swift */,
+				AA00011120000000000000B1 /* SessionStructure.swift */,
+				AA00011120000000000000B2 /* SessionCompletion.swift */,
+				AA00011120000000000000F4 /* WeightAnalytics.swift */,
+				AA00011320000000000000F4 /* WeightUnit.swift */,
+				AA00011520000000000000F4 /* WorkoutGeneratorSelfCheck.swift */,
+				AA00011720000000000000F4 /* StreakCalculatorSelfCheck.swift */,
+				AA00011920000000000000F4 /* WeightSelfCheck.swift */,
 				AA0001022FA1000100000002 /* WorkoutPreset.swift */,
 				AA0001042FA1000100000003 /* WorkoutGenerator.swift */,
 				DD0001002FA4000100000001 /* StreakCalculator.swift */,
 			);
 			path = Workout;
+			sourceTree = "<group>";
+		};
+		AA00011120000000000000E1 /* Browse */ = {
+			isa = PBXGroup;
+			children = (
+				AA00011120000000000000E0 /* BrowseWorkoutsView.swift */,
+			);
+			path = Browse;
 			sourceTree = "<group>";
 		};
 		BAD000000000000000000030 /* Payment */ = {
@@ -1291,6 +1394,8 @@
 			isa = PBXGroup;
 			children = (
 				CC0001022FA3000100000002 /* AnalyticsView.swift */,
+				CC00010420000000000000F0 /* LogWeightSheet.swift */,
+				CC00010420000000000000F2 /* WeightTrendChart.swift */,
 			);
 			path = Analytics;
 			sourceTree = "<group>";
@@ -1318,9 +1423,44 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		F50A40A68109981801DEC242 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				497B84BED7952F84A2354358 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		FAFA000000000000000B0021 /* Welcome */ = {
+			isa = PBXGroup;
+			children = (
+				FAFA000000000000000B0011 /* AffirmationScreen.swift */,
+				FAFA000000000000000B0013 /* AffirmationLoaderScreen.swift */,
+			);
+			path = Welcome;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		6933F14EC6C91D49C618315E /* plankAITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C3D24D5643A6FAC02EB1AEE8 /* Build configuration list for PBXNativeTarget "plankAITests" */;
+			buildPhases = (
+				A16CA1506A5A95496D8B105C /* Sources */,
+				341EEA87BC928EC9B6FACAF9 /* Frameworks */,
+				830D04C935454B8B446BEFD5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				162C4A03AD3E624D3B16BB2F /* PBXTargetDependency */,
+			);
+			name = plankAITests;
+			productName = plankAITests;
+			productReference = 2D26393518BA28A17D9EC22C /* plankAITests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		783186402F99E3110096138F /* plankAI */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 7831864C2F99E3120096138F /* Build configuration list for PBXNativeTarget "plankAI" */;
@@ -1339,6 +1479,7 @@
 				7831866F2F99E73A0096138F /* PlankVoice */,
 				783186722F99E7590096138F /* PlankSync */,
 				BAD000000000000000000002 /* RevenueCat */,
+				BAD000000000000000000081 /* Lottie */,
 			);
 			productName = plankAI;
 			productReference = 783186412F99E3110096138F /* plankAI.app */;
@@ -1369,10 +1510,11 @@
 			mainGroup = 783186382F99E3110096138F;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "Packages/PlankEngine" */,
-				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "Packages/PlankVoice" */,
-				783186712F99E7590096138F /* XCLocalSwiftPackageReference "Packages/PlankSync" */,
+				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */,
+				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */,
+				783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */,
 				BAD000000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */,
+				BAD000000000000000000080 /* XCRemoteSwiftPackageReference "lottie-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 783186422F99E3110096138F /* Products */;
@@ -1380,6 +1522,7 @@
 			projectRoot = "";
 			targets = (
 				783186402F99E3110096138F /* plankAI */,
+				6933F14EC6C91D49C618315E /* plankAITests */,
 			);
 		};
 /* End PBXProject section */
@@ -1389,6 +1532,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BAD000000000000000000091 /* lottie in Resources */,
+				BAD0000000000000000000A1 /* Music in Resources */,
+				BAD0000000000000000000B1 /* animations in Resources */,
 				7831867A2F9A0B0C0096138F /* DMSans-SemiBold.ttf in Resources */,
 				783187AD2F9ADA810096138F /* stopped_3.m4a in Resources */,
 				783187AE2F9ADA810096138F /* milestone_90.m4a in Resources */,
@@ -1701,6 +1847,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		830D04C935454B8B446BEFD5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -1713,6 +1866,8 @@
 				783187DE2F9AF2060096138F /* Haptics.swift in Sources */,
 				FAFA000000000000000C0001 /* Components.swift in Sources */,
 				FAFA000000000000000C0002 /* Stickers.swift in Sources */,
+				FAFA000000000000000C0102 /* MagicalLoading.swift in Sources */,
+				FAFA000000000000000C0202 /* EffectAnimation.swift in Sources */,
 				FAFA000000000000000B0001 /* AffirmationScreen.swift in Sources */,
 				FAFA000000000000000B0003 /* AffirmationLoaderScreen.swift in Sources */,
 				783186642F99E4130096138F /* CameraManager.swift in Sources */,
@@ -1724,14 +1879,30 @@
 				783187E02F9B00FD0096138F /* OnboardingView.swift in Sources */,
 				783187E22F9B1A980096138F /* OnboardingComponents.swift in Sources */,
 				AA0001012FA1000100000001 /* ExerciseBank.swift in Sources */,
+				AA00010E2FA1000100000020 /* ExerciseBankData.swift in Sources */,
+				AA0001102FA1000100000021 /* ExerciseMirror.swift in Sources */,
+				AA00011220000000000000B0 /* BodyFocus.swift in Sources */,
+				AA00011220000000000000B1 /* SessionStructure.swift in Sources */,
+				AA00011220000000000000B2 /* SessionCompletion.swift in Sources */,
+				AA00011220000000000000F4 /* WeightAnalytics.swift in Sources */,
+				AA00011420000000000000F4 /* WeightUnit.swift in Sources */,
+				AA00011620000000000000F4 /* WorkoutGeneratorSelfCheck.swift in Sources */,
+				AA00011820000000000000F4 /* StreakCalculatorSelfCheck.swift in Sources */,
+				AA00011A20000000000000F4 /* WeightSelfCheck.swift in Sources */,
 				AA0001032FA1000100000002 /* WorkoutPreset.swift in Sources */,
 				AA0001052FA1000100000003 /* WorkoutGenerator.swift in Sources */,
 				AA0001072FA1000100000004 /* RoutineSessionViewModel.swift in Sources */,
 				AA0001092FA1000100000005 /* RoutineSessionView.swift in Sources */,
+				AA00011220000000000000A0 /* LottieExerciseView.swift in Sources */,
+				AA00011220000000000000C0 /* BackgroundMusicService.swift in Sources */,
+				AA00011220000000000000D0 /* PreRoutineView.swift in Sources */,
+				AA00011220000000000000E0 /* BrowseWorkoutsView.swift in Sources */,
 				AA00010B2FA1000100000006 /* PostRoutineView.swift in Sources */,
 				AA00010D2FA1000100000009 /* RoutineAudioManager.swift in Sources */,
 				CC0001012FA3000100000001 /* MainTabView.swift in Sources */,
 				CC0001032FA3000100000002 /* AnalyticsView.swift in Sources */,
+				CC00010520000000000000F0 /* LogWeightSheet.swift in Sources */,
+				CC00010520000000000000F2 /* WeightTrendChart.swift in Sources */,
 				DD0001012FA4000100000001 /* StreakCalculator.swift in Sources */,
 				EE0000012FA50002000001 /* SettingsView.swift in Sources */,
 				EE0000022FA50002000002 /* EditProfileView.swift in Sources */,
@@ -1755,9 +1926,63 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A16CA1506A5A95496D8B105C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA9443CBAF24D7D7E7E878EA /* WeightTests.swift in Sources */,
+				6121FADCC7C7EC4FD090B827 /* StreakCalculatorTests.swift in Sources */,
+				C6A6E44908B9CB2AA627FC4B /* WorkoutGeneratorTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		162C4A03AD3E624D3B16BB2F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = plankAI;
+			target = 783186402F99E3110096138F /* plankAI */;
+			targetProxy = 91ED81E51971F980FAB549D2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		1D82FEA69B56E9BC8D879B2B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAITests;
+				PRODUCT_NAME = plankAITests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/plankAI.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/plankAI";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		6811DFB089046353C3DC2469 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAITests;
+				PRODUCT_NAME = plankAITests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/plankAI.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/plankAI";
+			};
+			name = Debug;
+		};
 		7831864A2F99E3120096138F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1890,7 +2115,9 @@
 				DEVELOPMENT_TEAM = AK7RQAKLYW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "plankAI needs camera access so your AI coach can see your form";
+				INFOPLIST_KEY_CFBundleDisplayName = JeniFit;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSCameraUsageDescription = "JeniFit uses your camera to watch your form during plank sessions. Frames are processed on-device and never leave your phone.";
 				INFOPLIST_KEY_UIAppFonts = "DMSans-Light.ttf DMSans-Regular.ttf DMSans-Medium.ttf DMSans-SemiBold.ttf Fraunces72pt-Light.ttf Fraunces72pt-Regular.ttf Fraunces72pt-SemiBold.ttf Fraunces72pt-SemiBoldItalic.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -1902,7 +2129,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1930,7 +2157,9 @@
 				DEVELOPMENT_TEAM = AK7RQAKLYW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "plankAI needs camera access so your AI coach can see your form";
+				INFOPLIST_KEY_CFBundleDisplayName = JeniFit;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSCameraUsageDescription = "JeniFit uses your camera to watch your form during plank sessions. Frames are processed on-device and never leave your phone.";
 				INFOPLIST_KEY_UIAppFonts = "DMSans-Light.ttf DMSans-Regular.ttf DMSans-Medium.ttf DMSans-SemiBold.ttf Fraunces72pt-Light.ttf Fraunces72pt-Regular.ttf Fraunces72pt-SemiBold.ttf Fraunces72pt-SemiBoldItalic.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -1942,7 +2171,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1980,18 +2209,27 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		C3D24D5643A6FAC02EB1AEE8 /* Build configuration list for PBXNativeTarget "plankAITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1D82FEA69B56E9BC8D879B2B /* Release */,
+				6811DFB089046353C3DC2469 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "Packages/PlankEngine" */ = {
+		7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankEngine;
 		};
-		7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "Packages/PlankVoice" */ = {
+		7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankVoice;
 		};
-		783186712F99E7590096138F /* XCLocalSwiftPackageReference "Packages/PlankSync" */ = {
+		783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankSync;
 		};
@@ -2004,6 +2242,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 5.0.0;
+			};
+		};
+		BAD000000000000000000080 /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.5.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -2025,6 +2271,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = BAD000000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */;
 			productName = RevenueCat;
+		};
+		BAD000000000000000000081 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BAD000000000000000000080 /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
