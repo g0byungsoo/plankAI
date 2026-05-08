@@ -26,7 +26,6 @@ struct SignInPromptView: View {
     let onContinue: () -> Void
     var mode: SignInPromptMode = .signUp
 
-    @State private var rawNonce: String = ""
     @State private var showEmailSheet = false
     @State private var working = false
     @State private var errorMessage: String?
@@ -151,64 +150,49 @@ struct SignInPromptView: View {
     }
 
     // MARK: - Apple
+    //
+    // Custom HIG-style button that triggers the **programmatic** Apple
+    // sign-in path via `AuthService.shared.signInWithApple()`. We dropped
+    // SwiftUI's `SignInWithAppleButton` here because its nonce capture
+    // (state in `@State` between `onRequest` and `onCompletion`) raced
+    // with view rebuilds and produced "Nonces mismatch" 400s from
+    // Supabase. The programmatic path keeps the raw nonce on
+    // `AppleSignInService`'s instance, isolated from view lifecycle.
 
     private var appleButton: some View {
-        SignInWithAppleButton(
-            mode == .signIn ? .continue : .signUp,
-            onRequest: { request in
-                let nonce = AppleSignInService.randomNonce()
-                rawNonce = nonce
-                request.requestedScopes = [.fullName, .email]
-                request.nonce = AppleSignInService.sha256(nonce)
-            },
-            onCompletion: handleAppleCompletion
-        )
-        .signInWithAppleButtonStyle(.black)
-        .frame(height: 50)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        Button(action: triggerAppleSignIn) {
+            HStack(spacing: 8) {
+                Image(systemName: "apple.logo")
+                    .font(.system(size: 19))
+                Text(mode == .signIn ? "Sign in with Apple" : "Sign up with Apple")
+                    .font(.system(size: 17, weight: .semibold))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(Color.black)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
         .disabled(working)
         .opacity(working ? 0.6 : 1)
     }
 
-    private func handleAppleCompletion(_ result: Result<ASAuthorization, Error>) {
-        switch result {
-        case .success(let authorization):
-            guard
-                let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
-                let tokenData = credential.identityToken,
-                let token = String(data: tokenData, encoding: .utf8)
-            else {
-                // Apple's odd-state failure mode (no identity token returned).
-                // Friendly copy matches SignUpView so the auth flow reads
-                // consistent regardless of which sheet surfaced the error.
+    private func triggerAppleSignIn() {
+        Task {
+            working = true
+            defer { working = false }
+            do {
+                try await AuthService.shared.signInWithApple()
+                Haptics.success()
+                onContinue()
+            } catch AppleSignInService.SignInError.canceled {
+                // User-cancel — stay quiet.
+            } catch {
+                #if DEBUG
+                print("[SignInPrompt] Apple sign-in failed: \(error)")
+                #endif
                 errorMessage = "Couldn't sign in with Apple. Try email instead?"
-                return
             }
-            Task {
-                working = true
-                defer { working = false }
-                do {
-                    try await AuthService.shared.completeAppleSignIn(
-                        idToken: token,
-                        rawNonce: rawNonce,
-                        fullName: credential.fullName
-                    )
-                    Haptics.success()
-                    onContinue()
-                } catch {
-                    print("[SignInPrompt] Apple completion failed: \(error)")
-                    errorMessage = "Couldn't sign in with Apple. Try email instead?"
-                }
-            }
-
-        case .failure(let error):
-            // Apple signals user-cancel via ASAuthorizationError.canceled —
-            // stay on this screen quietly, no error UI.
-            if let asError = error as? ASAuthorizationError, asError.code == .canceled {
-                return
-            }
-            print("[SignInPrompt] Apple authorization failed: \(error)")
-            errorMessage = "Couldn't sign in with Apple. Try email instead?"
         }
     }
 

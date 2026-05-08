@@ -7,17 +7,20 @@ struct PostRoutineView: View {
     let workoutName: String
     let streakCount: Int
     let isFirstWorkoutToday: Bool
+    /// `false` when the user ended below the 70% completion threshold.
+    /// Drives a quieter "session ended early" body instead of the
+    /// celebration sequence — the session won't have been saved either.
+    let didMeetThreshold: Bool
     let onRate: (Int, [String]) -> Void
     let onDone: () -> Void
 
     @State private var phase = 0           // 0=black, 1=fire, 2=stats, 3=streak, 4=rate
     @State private var selectedRating: Int = 0
     @State private var selectedTags: Set<String> = []
-    @State private var confettiTrigger = 0
     @State private var fireScale: CGFloat = 0.3
     @State private var fireOpacity: Double = 0
     @State private var streakScale: CGFloat = 0.5
-    @State private var particles: [ConfettiParticle] = []
+    @State private var fireworksKey: Int = 0    // bumps to retrigger LottieEffectView playback
 
     private var completedCount: Int {
         exerciseResults.filter { !$0.skipped }.count
@@ -55,18 +58,82 @@ struct PostRoutineView: View {
     ]
 
     var body: some View {
+        if didMeetThreshold {
+            celebrationBody
+        } else {
+            partialCompletionBody
+        }
+    }
+
+    // MARK: - Partial Completion
+
+    private var partialCompletionBody: some View {
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+
+            VStack(spacing: Space.lg) {
+                Spacer()
+
+                Text("👋")
+                    .font(.system(size: 72))
+
+                VStack(spacing: Space.sm) {
+                    Text("Session ended early")
+                        .font(Typo.titleItalic)
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("You completed \(Int(completionRate * 100))% — finish at least 70% next time and it'll count toward your streak.")
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Space.lg)
+                }
+
+                Spacer()
+
+                Button(action: onDone) {
+                    Text("BACK")
+                        .font(Typo.body).fontWeight(.bold).tracking(2)
+                        .foregroundStyle(Palette.textInverse)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: Space.minTapTarget + 12)
+                        .background(Palette.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
+                }
+                .padding(.horizontal, Space.screenPadding)
+                .padding(.bottom, Space.xl)
+            }
+        }
+    }
+
+    // MARK: - Celebration
+
+    private var celebrationBody: some View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
 
             StickerScatter(placements: Self.celebrationPlacements)
 
-            // Confetti particles
-            ForEach(particles) { p in
-                Circle()
-                    .fill(p.color)
-                    .frame(width: p.size, height: p.size)
-                    .position(p.position)
-                    .opacity(p.opacity)
+            // Phase 19d — fireworks Lottie replaces the per-particle Circle
+            // confetti shower. The Lottie is bigger / more deliberate; the
+            // old shower felt like 2021 Duolingo. Retrigger via .id() bump
+            // when the user gets to the celebration moment again.
+            if phase >= 1 {
+                LottieEffectView(.fireworks, loop: false)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 360)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .padding(.top, Space.xl)
+                    .allowsHitTesting(false)
+                    .id(fireworksKey)
+            }
+
+            // Sparkling-hearts Lottie kicks in at the streak phase, but
+            // only when this is the user's first workout today (the
+            // moment that earns the extra emotional payload).
+            if phase >= 3 && isFirstWorkoutToday && streakCount > 0 {
+                LottieEffectView(.sparklingHearts, loop: false)
+                    .frame(width: 240, height: 240)
+                    .allowsHitTesting(false)
             }
 
             ScrollView(showsIndicators: false) {
@@ -120,16 +187,17 @@ struct PostRoutineView: View {
     // MARK: - Celebration Sequence
 
     private func runCelebrationSequence() {
-        // Phase 1: Fire burst (0.6s)
+        // Phase 1: Fire burst (0.6s) — fireworks Lottie kicks in via the
+        // `phase >= 1` gate in celebrationBody. .id(fireworksKey) bump
+        // ensures the Lottie plays from frame 0 even if the view
+        // re-renders during the celebration sequence.
         Haptics.doubleVibrate()
+        fireworksKey += 1
         withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
             phase = 1
             fireScale = 1.0
             fireOpacity = 1.0
         }
-
-        // Spawn confetti
-        spawnConfetti()
 
         // Phase 2: Stats slide in (1.2s)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -147,16 +215,19 @@ struct PostRoutineView: View {
                     phase = 3
                     streakScale = 1.0
                 }
-                // Extra confetti for streak
-                spawnConfetti()
+                // Re-trigger fireworks Lottie at the streak phase too —
+                // doubled celebration when this is the user's first
+                // workout of the day.
+                fireworksKey += 1
             } else {
                 phase = 3
             }
         }
 
-        // Phase 4: Rating (2.8s)
+        // Phase 4: Rating (2.8s) — calmer fade-in, the user has just
+        // landed; no need to add another spring after the fireworks pop.
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.6) {
-            withAnimation(.easeOut(duration: 0.3)) {
+            withAnimation(Motion.entrance) {
                 phase = 4
             }
         }
@@ -172,35 +243,35 @@ struct PostRoutineView: View {
                 .opacity(fireOpacity)
 
             Text(headline)
-                .font(Typo.title)
+                .font(Typo.titleItalic)   // italic Fraunces — JeniFit voice signal
                 .foregroundStyle(Palette.textPrimary)
         }
     }
 
     private var headline: String {
-        if completionRate >= 0.9 { return "You ate that." }
-        if completionRate >= 0.6 { return "Good work." }
-        return "You showed up."
+        if completionRate >= 0.9 { return "you ate that." }
+        if completionRate >= 0.6 { return "good work." }
+        return "you showed up."
     }
 
     // MARK: - Stats Block
 
     private var statsBlock: some View {
         VStack(spacing: Space.md) {
-            Text(workoutName.uppercased())
+            Text(workoutName.lowercased())
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
-                .tracking(2)
+                .tracking(1)
 
             HStack(spacing: Space.md) {
                 statPill(
                     value: formatDuration(totalDuration),
-                    label: "TIME",
+                    label: "time",
                     icon: "clock"
                 )
                 statPill(
                     value: "\(completedCount)/\(exerciseResults.count)",
-                    label: "DONE",
+                    label: "done",
                     icon: "checkmark.circle"
                 )
             }
@@ -215,7 +286,7 @@ struct PostRoutineView: View {
                 .foregroundStyle(Palette.accent)
             VStack(alignment: .leading, spacing: 2) {
                 Text(value)
-                    .font(Typo.heading)
+                    .font(.custom("Fraunces72pt-SemiBold", size: 22))
                     .foregroundStyle(Palette.textPrimary)
                 Text(label)
                     .font(Typo.caption)
@@ -225,9 +296,20 @@ struct PostRoutineView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Space.cardPadding)
-        .background(Palette.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.md))
-        .plankShadow()
+        .background(
+            // Phase 19d — scrapbook chrome: 24pt corners, 1.5pt accent
+            // border, hard offset shadow. Drops the soft drop shadow
+            // (`plankShadow`) per the trend research.
+            ZStack {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Palette.accent.opacity(0.18))
+                    .offset(x: 4, y: 4)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Palette.bgElevated)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Palette.accent, lineWidth: 1.5)
+            }
+        )
     }
 
     // MARK: - Streak Block
@@ -242,10 +324,11 @@ struct PostRoutineView: View {
                 }
             }
 
-            Text("\(streakCount) DAY STREAK")
-                .font(Typo.heading)
-                .foregroundStyle(Palette.textPrimary)
-                .tracking(2)
+            (
+                Text("\(streakCount) ").font(.custom("Fraunces72pt-SemiBold", size: 28)) +
+                Text("day streak").font(Typo.titleItalic)
+            )
+            .foregroundStyle(Palette.textPrimary)
 
             Text(streakMessage)
                 .font(Typo.body)
@@ -254,10 +337,10 @@ struct PostRoutineView: View {
         .frame(maxWidth: .infinity)
         .padding(Space.lg)
         .background(
-            RoundedRectangle(cornerRadius: Radius.lg)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Palette.bgElevated)
                 .overlay(
-                    RoundedRectangle(cornerRadius: Radius.lg)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(
                             LinearGradient(
                                 colors: [Palette.accent, Palette.accentSubtle],
@@ -268,7 +351,6 @@ struct PostRoutineView: View {
                         )
                 )
         )
-        .plankShadow()
         .padding(.horizontal, Space.screenPadding)
     }
 
@@ -289,16 +371,15 @@ struct PostRoutineView: View {
 
     private var ratingSection: some View {
         VStack(spacing: Space.md) {
-            Text("HOW WAS THAT?")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-                .tracking(2)
+            Text("how was that?")
+                .font(Typo.titleItalic)
+                .foregroundStyle(Palette.textPrimary)
 
             HStack(spacing: Space.lg) {
                 ForEach(1...5, id: \.self) { star in
                     Button {
                         Haptics.light()
-                        withAnimation(.easeInOut(duration: 0.15)) {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
                             selectedRating = star
                         }
                     } label: {
@@ -307,15 +388,25 @@ struct PostRoutineView: View {
                             .foregroundStyle(
                                 star <= selectedRating ? Palette.accent : Palette.divider
                             )
+                            .scaleEffect(star == selectedRating ? 1.15 : 1.0)
+                            .tappableArea()
                     }
                 }
             }
         }
         .frame(maxWidth: .infinity)
         .padding(Space.cardPadding)
-        .background(Palette.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.md))
-        .plankShadow()
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Palette.accent.opacity(0.18))
+                    .offset(x: 4, y: 4)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Palette.bgElevated)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Palette.accent, lineWidth: 1.5)
+            }
+        )
     }
 
     // MARK: - Tags
@@ -390,41 +481,6 @@ struct PostRoutineView: View {
         .padding(.bottom, Space.lg)
     }
 
-    // MARK: - Confetti
-
-    private func spawnConfetti() {
-        let screenWidth = UIScreen.main.bounds.width
-        let screenHeight = UIScreen.main.bounds.height
-        let colors: [Color] = [Palette.accent, Palette.stateGood, Palette.accentSubtle, .orange, .yellow]
-
-        for _ in 0..<40 {
-            let p = ConfettiParticle(
-                position: CGPoint(
-                    x: CGFloat.random(in: 0...screenWidth),
-                    y: CGFloat.random(in: -50...0)
-                ),
-                color: colors.randomElement()!,
-                size: CGFloat.random(in: 4...10),
-                opacity: 1.0
-            )
-            particles.append(p)
-        }
-
-        // Animate particles falling
-        withAnimation(.easeIn(duration: 2.5)) {
-            for i in particles.indices {
-                particles[i].position.y += screenHeight + 100
-                particles[i].position.x += CGFloat.random(in: -80...80)
-                particles[i].opacity = 0
-            }
-        }
-
-        // Clean up
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-            particles.removeAll()
-        }
-    }
-
     // MARK: - Helpers
 
     private func formatDuration(_ time: TimeInterval) -> String {
@@ -433,16 +489,6 @@ struct PostRoutineView: View {
         if minutes > 0 { return "\(minutes)m \(seconds)s" }
         return "\(seconds)s"
     }
-}
-
-// MARK: - Confetti Particle
-
-struct ConfettiParticle: Identifiable {
-    let id = UUID()
-    var position: CGPoint
-    let color: Color
-    let size: CGFloat
-    var opacity: Double
 }
 
 // MARK: - Flow Layout

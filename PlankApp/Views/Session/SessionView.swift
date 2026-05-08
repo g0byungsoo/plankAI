@@ -63,10 +63,10 @@ struct SessionView: View {
     /// Short form label.
     private var formLabel: String? {
         switch currentState {
-        case .hipSag: return "HIPS"
-        case .hipPike: return "HIPS DOWN"
-        case .shoulderCreep: return "SHOULDERS"
-        case .notInPosition where sessionActive: return "GET BACK DOWN"
+        case .hipSag: return "hips"
+        case .hipPike: return "hips down"
+        case .shoulderCreep: return "shoulders"
+        case .notInPosition where sessionActive: return "get back down"
         default: return nil
         }
     }
@@ -134,7 +134,7 @@ struct SessionView: View {
             }
             .ignoresSafeArea()
             .allowsHitTesting(false)
-            .animation(.easeInOut(duration: 0.3), value: currentState)
+            .animation(Motion.crossFade, value: currentState)
 
             // Layer 4a: Good form — steady neon green glow from edges
             if currentState == .goodForm {
@@ -170,9 +170,9 @@ struct SessionView: View {
             VStack {
                 // Top bar
                 HStack {
-                    Text("Day \(dayNumber)")
-                        .font(Typo.caption)
-                        .foregroundStyle(.white.opacity(0.6))
+                    Text("day \(dayNumber)")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                        .foregroundStyle(.white.opacity(0.7))
 
                     Spacer()
 
@@ -185,7 +185,9 @@ struct SessionView: View {
                             .frame(width: 32, height: 32)
                             .background(.ultraThinMaterial)
                             .clipShape(Circle())
+                            .tappableArea()
                     }
+                    .accessibilityLabel("End plank")
                 }
                 .padding(.horizontal, Space.screenPadding)
                 .padding(.top, Space.sm)
@@ -199,16 +201,16 @@ struct SessionView: View {
                     .shadow(color: .black.opacity(0.7), radius: 20, y: 6)
                     .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
                     .contentTransition(.numericText())
-                    .animation(.easeInOut(duration: 0.3), value: currentState)
+                    .animation(Motion.crossFade, value: currentState)
 
                 // Form fault label
                 if let label = formLabel {
                     Text(label)
-                        .font(.system(size: 15, weight: .bold))
-                        .tracking(2)
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
+                        .tracking(1)
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 9)
                         .background(Palette.stateBad.opacity(0.7))
                         .clipShape(Capsule())
                         .transition(.opacity.combined(with: .scale(scale: 0.8)))
@@ -220,7 +222,7 @@ struct SessionView: View {
                 // Bottom controls
                 HStack {
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) { showGuideFrame.toggle() }
+                        withAnimation(Motion.tap) { showGuideFrame.toggle() }
                     } label: {
                         Image(systemName: "figure.stand")
                             .font(.system(size: 15))
@@ -239,6 +241,7 @@ struct SessionView: View {
                             .frame(width: 36, height: 36)
                             .background(.ultraThinMaterial)
                             .clipShape(Circle())
+                            .tappableArea()
                     }
 
                     Spacer()
@@ -252,15 +255,18 @@ struct SessionView: View {
                     .transition(.opacity)
             }
         }
-        .alert("End Session?", isPresented: $showEndConfirm) {
-            Button("End", role: .destructive) {
+        .alert("end session?", isPresented: $showEndConfirm) {
+            Button("end", role: .destructive) {
                 Task { await engine.endSession() }
             }
-            Button("Keep Going", role: .cancel) {}
+            Button("keep going", role: .cancel) {}
         }
         .task {
             // Unlock all orientations for session (user planks in landscape)
             OrientationManager.shared.allowedOrientations = .all
+            // Defensive: clear any voice-line dedup / cooldown state that
+            // could survive across .fullScreenCover presentations.
+            await audioQueue.resetSession()
             withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) {
                 borderRotation = 360
             }
@@ -293,18 +299,18 @@ struct SessionView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: Space.lg) {
-                Text("SESSION PAUSED")
-                    .font(Typo.caption)
-                    .foregroundStyle(.white.opacity(0.6))
-                    .tracking(3)
+                Text("paused")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                    .foregroundStyle(.white.opacity(0.65))
+                    .tracking(2)
 
-                Text("Plank Hold")
-                    .font(Typo.title)
+                Text("plank hold")
+                    .font(Typo.titleItalic)
                     .foregroundStyle(.white)
 
                 Text("\(formatTime(elapsedTime)) elapsed")
                     .font(Typo.body)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.white.opacity(0.65))
 
                 VStack(spacing: Space.sm) {
                     Button {
@@ -313,23 +319,26 @@ struct SessionView: View {
                         camera.startSession()
                         startTimer()
                     } label: {
-                        Text("RESUME")
-                            .font(Typo.body)
-                            .fontWeight(.bold)
-                            .foregroundStyle(Palette.textInverse)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: Space.minTapTarget + 12)
-                            .background(Palette.accent)
-                            .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
+                        HStack {
+                            Text("resume")
+                                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                            Spacer()
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                        .foregroundStyle(Palette.textInverse)
+                        .padding(.horizontal, 22)
+                        .frame(height: 60)
+                        .background(Palette.accent)
+                        .clipShape(Capsule())
                     }
 
                     Button {
                         pausedByBackground = false
                         Task { await engine.endSession() }
                     } label: {
-                        Text("END SESSION")
+                        Text("end session")
                             .font(Typo.body)
-                            .fontWeight(.medium)
                             .foregroundStyle(.white.opacity(0.6))
                             .frame(maxWidth: .infinity)
                             .frame(height: Space.minTapTarget + 4)
@@ -381,7 +390,7 @@ struct SessionView: View {
 
             switch event {
             case .stateChanged(let state):
-                withAnimation(.easeInOut(duration: 0.3)) {
+                withAnimation(Motion.crossFade) {
                     currentState = state
                 }
                 // Haptic feedback for state changes
@@ -572,7 +581,7 @@ struct PoseOverlay: View {
             }
         }
         .allowsHitTesting(false)
-        .animation(.easeInOut(duration: 0.15), value: state)
+        .animation(Motion.tap, value: state)
     }
 }
 

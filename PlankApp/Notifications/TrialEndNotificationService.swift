@@ -36,7 +36,9 @@ final class TrialEndNotificationService {
     func scheduleIfNeeded(trialEndDate: Date) async {
         let fireDate = trialEndDate.addingTimeInterval(-86_400)  // 24h before
         guard fireDate > Date() else {
+            #if DEBUG
             print("[TrialEndNotification] less than 24h until expiration — skipping")
+            #endif
             return
         }
 
@@ -49,11 +51,15 @@ final class TrialEndNotificationService {
         do {
             let granted = try await center.requestAuthorization(options: [.alert, .sound])
             guard granted else {
+                #if DEBUG
                 print("[TrialEndNotification] permission denied — skipping")
+                #endif
                 return
             }
         } catch {
+            #if DEBUG
             print("[TrialEndNotification] permission request FAILED: \(error)")
+            #endif
             return
         }
 
@@ -74,9 +80,13 @@ final class TrialEndNotificationService {
 
         do {
             try await center.add(request)
+            #if DEBUG
             print("[TrialEndNotification] scheduled for date=\(fireDate) identifier=\(identifier)")
+            #endif
         } catch {
+            #if DEBUG
             print("[TrialEndNotification] schedule FAILED: \(error)")
+            #endif
         }
     }
 
@@ -89,7 +99,9 @@ final class TrialEndNotificationService {
         let pending = await center.pendingNotificationRequests()
         guard pending.contains(where: { $0.identifier == identifier }) else { return }
         center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        #if DEBUG
         print("[TrialEndNotification] cancelled identifier=\(identifier)")
+        #endif
     }
 
     /// Bulk cleanup. Currently equivalent to cancelTrialEndReminder

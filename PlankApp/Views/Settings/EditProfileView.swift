@@ -40,105 +40,201 @@ struct EditProfileView: View {
     }
 
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: Space.lg) {
-                Text("Edit Profile")
-                    .font(Typo.title)
-                    .foregroundStyle(Palette.textPrimary)
+                header
 
-                // Name
-                VStack(alignment: .leading, spacing: Space.sm) {
-                    Text("NAME")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Palette.textSecondary)
-                        .tracking(2)
-
-                    TextField("Your name", text: $editName)
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textPrimary)
-                        .padding(14)
-                        .background(Palette.bgElevated)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .plankShadow()
-                        .onSubmit { saveName() }
+                section(title: "name") {
+                    scrapbookField {
+                        TextField("your name", text: $editName)
+                            .font(Typo.body)
+                            .foregroundStyle(Palette.textPrimary)
+                            .onSubmit { saveName() }
+                    }
                 }
 
-                // Goal
-                VStack(alignment: .leading, spacing: Space.sm) {
-                    Text("FOCUS AREA")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Palette.textSecondary)
-                        .tracking(2)
-
-                    ForEach(goalOptions, id: \.value) { option in
-                        let selected = currentBodyFocus == option.value
-                        Button {
-                            Haptics.light()
-                            selectBodyFocus(option.value)
-                        } label: {
-                            HStack {
-                                Text(option.label)
-                                    .font(Typo.body)
-                                    .foregroundStyle(Palette.textPrimary)
-                                Spacer()
-                                if selected {
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundStyle(Palette.accent)
-                                }
+                section(title: "focus area") {
+                    VStack(spacing: Space.sm) {
+                        ForEach(goalOptions, id: \.value) { option in
+                            optionRow(
+                                label: option.label,
+                                selected: currentBodyFocus == option.value
+                            ) {
+                                Haptics.light()
+                                selectBodyFocus(option.value)
                             }
-                            .padding(14)
-                            .background(selected ? Palette.accent.opacity(0.08) : Palette.bgElevated)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
                     }
                 }
 
-                // Session length
-                VStack(alignment: .leading, spacing: Space.sm) {
-                    Text("SESSION LENGTH")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Palette.textSecondary)
-                        .tracking(2)
-
+                section(title: "session length") {
                     HStack(spacing: Space.sm) {
                         ForEach([5, 7, 10], id: \.self) { mins in
-                            Button {
-                                Haptics.light()
-                                sessionLengthPref = mins
-                            } label: {
-                                Text("\(mins) min")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundStyle(sessionLengthPref == mins ? Palette.textInverse : Palette.textPrimary)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(sessionLengthPref == mins ? Palette.bgInverse : Palette.bgElevated)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            }
+                            lengthChip(mins)
                         }
                     }
                 }
 
-                // Save button
-                Button {
-                    Haptics.medium()
-                    saveName()
-                } label: {
-                    Text(saved ? "Saved" : "Save Changes")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(saved ? Palette.stateGood : Palette.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .background(saved ? Palette.stateGood.opacity(0.12) : Palette.bgInverse)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                }
-                .padding(.top, Space.sm)
+                saveButton
+                    .padding(.top, Space.sm)
+
+                Spacer().frame(height: Space.xl)
             }
             .padding(.horizontal, Space.screenPadding)
             .padding(.top, Space.md)
         }
         .background(Palette.bgPrimary)
         .onAppear { editName = userName }
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Text("settings")
+                .font(Typo.eyebrow).tracking(2)
+                .foregroundStyle(Palette.accent)
+            Text("edit profile.")
+                .font(Typo.titleItalic)
+                .foregroundStyle(Palette.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // Heart sticker — caring-for-self framing, low-key on the page.
+        .overlay(alignment: .topTrailing) {
+            Image(StickerName.heartGlossy.assetName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 52, height: 52)
+                .rotationEffect(.degrees(12))
+                .offset(x: 4, y: -8)
+                .opacity(StickerName.heartGlossy.style.opacity)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+
+    // MARK: - Section
+
+    private func section<Content: View>(
+        title: String,
+        @ViewBuilder _ content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Text(title)
+                .font(Typo.eyebrow).tracking(3)
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.bottom, 2)
+            content()
+        }
+    }
+
+    // MARK: - Scrapbook input chrome
+
+    private func scrapbookField<Content: View>(
+        @ViewBuilder _ content: () -> Content
+    ) -> some View {
+        content()
+            .padding(Space.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(scrapbookChrome(tint: Palette.accent))
+    }
+
+    private func optionRow(label: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(label)
+                    .font(Typo.body)
+                    .foregroundStyle(selected ? Palette.textInverse : Palette.textPrimary)
+                Spacer()
+                if selected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Palette.textInverse)
+                }
+            }
+            .padding(Space.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(Palette.accent.opacity(0.15))
+                        .offset(x: 4, y: 4)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(selected ? Palette.accent : Palette.bgElevated)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(Palette.accent, lineWidth: 1.5)
+                }
+            )
+        }
+        .buttonStyle(SettingsPressStyle())
+    }
+
+    private func lengthChip(_ mins: Int) -> some View {
+        let isSelected = sessionLengthPref == mins
+        return Button {
+            Haptics.light()
+            sessionLengthPref = mins
+        } label: {
+            Text("\(mins) min")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                .foregroundStyle(isSelected ? Palette.textInverse : Palette.textPrimary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(Palette.accent.opacity(0.15))
+                            .offset(x: 3, y: 3)
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(isSelected ? Palette.bgInverse : Palette.bgElevated)
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(isSelected ? Palette.bgInverse : Palette.accent, lineWidth: 1.5)
+                    }
+                )
+        }
+        .buttonStyle(SettingsPressStyle())
+    }
+
+    private var saveButton: some View {
+        Button {
+            Haptics.medium()
+            saveName()
+        } label: {
+            HStack {
+                Text(saved ? "saved" : "save changes")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
+                Spacer()
+                Image(systemName: saved ? "checkmark" : "arrow.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(saved ? Palette.stateGood : Palette.accent)
+            }
+            .foregroundStyle(Palette.textInverse)
+            .padding(.horizontal, Space.lg)
+            .frame(maxWidth: .infinity)
+            .frame(height: 60)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .fill(Palette.accent.opacity(0.18))
+                        .offset(x: 4, y: 4)
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .fill(Palette.bgInverse)
+                }
+            )
+        }
+        .buttonStyle(SettingsPressStyle())
+    }
+
+    private func scrapbookChrome(tint: Color) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(tint.opacity(0.15))
+                .offset(x: 4, y: 4)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Palette.bgElevated)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(tint, lineWidth: 1.5)
+        }
     }
 
     private func saveName() {
@@ -152,11 +248,11 @@ struct EditProfileView: View {
 
     private var goalOptions: [(label: String, value: String)] {
         [
-            ("Flat belly",                "flatBelly"),
-            ("Toned arms",                "tonedArms"),
-            ("Round butt",                "roundButt"),
-            ("Slim legs",                 "slimLegs"),
-            ("Full body transformation",  "fullBody"),
+            ("flat belly",                "flatBelly"),
+            ("toned arms",                "tonedArms"),
+            ("round butt",                "roundButt"),
+            ("slim legs",                 "slimLegs"),
+            ("full body transformation",  "fullBody"),
         ]
     }
 
@@ -198,5 +294,15 @@ struct EditProfileView: View {
         case "flatBelly": return "abs"
         default:          return "fullCore"
         }
+    }
+}
+
+/// Subtle press feedback shared by every scrapbook tappable in settings.
+private struct SettingsPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(configuration.isPressed ? 0.92 : 1.0)
+            .animation(Motion.tap, value: configuration.isPressed)
     }
 }

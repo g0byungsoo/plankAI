@@ -11,20 +11,18 @@ struct NotificationSettingsView: View {
     @State private var saved = false
 
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: Space.lg) {
-                Text("Notifications")
-                    .font(Typo.title)
-                    .foregroundStyle(Palette.textPrimary)
+                header
 
-                // Toggle
+                // Toggle row — scrapbook chrome.
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Daily Reminder")
-                            .font(.system(size: 15, weight: .medium))
+                        Text("daily reminder")
+                            .font(Typo.body)
                             .foregroundStyle(Palette.textPrimary)
-                        Text("Get reminded to work out")
-                            .font(.system(size: 13))
+                        Text("nudge yourself, gently.")
+                            .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                     }
                     Spacer()
@@ -32,48 +30,40 @@ struct NotificationSettingsView: View {
                         .tint(Palette.accent)
                         .labelsHidden()
                 }
-                .padding(14)
-                .background(Palette.bgElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .plankShadow()
+                .padding(Space.md)
+                .background(scrapbookChrome())
                 .onChange(of: notificationsEnabled) { _, enabled in
                     if enabled {
                         requestPermission()
                         scheduleNotification()
                     } else {
-                        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+                        // Surgical — drop only the daily reminder (and
+                        // its legacy id from the pre-rebrand). The
+                        // trial-end notification has its own identifier
+                        // and stays scheduled regardless.
+                        UNUserNotificationCenter.current()
+                            .removePendingNotificationRequests(withIdentifiers: [
+                                NotificationPermission.dailyReminderIdentifier,
+                                "daily-plank"  // legacy
+                            ])
                     }
                 }
 
-                // Time picker
                 if notificationsEnabled {
                     VStack(alignment: .leading, spacing: Space.sm) {
-                        Text("REMINDER TIME")
-                            .font(.system(size: 11, weight: .bold))
+                        Text("reminder time")
+                            .font(Typo.eyebrow).tracking(3)
                             .foregroundStyle(Palette.textSecondary)
-                            .tracking(2)
+                            .padding(.bottom, 2)
 
                         DatePicker("Time", selection: $pickerTime, displayedComponents: .hourAndMinute)
                             .datePickerStyle(.wheel)
                             .labelsHidden()
                             .frame(maxWidth: .infinity)
-                            .padding(14)
-                            .background(Palette.bgElevated)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .plankShadow()
+                            .padding(Space.sm)
+                            .background(scrapbookChrome())
 
-                        Button {
-                            Haptics.medium()
-                            saveTime()
-                        } label: {
-                            Text(saved ? "Saved" : "Save Time")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundStyle(saved ? Palette.stateGood : Palette.textInverse)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 44)
-                                .background(saved ? Palette.stateGood.opacity(0.12) : Palette.bgInverse)
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        }
+                        saveButton
                     }
                     .transition(.opacity.combined(with: .offset(y: 8)))
                 }
@@ -82,14 +72,16 @@ struct NotificationSettingsView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(Palette.stateWarn)
-                        Text("Notifications are off in Settings. Go to Settings > JeniFit > Notifications to enable.")
-                            .font(.system(size: 13))
+                        Text("notifications are off in iOS settings. enable them under Settings → JeniFit → Notifications.")
+                            .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(14)
-                    .background(Palette.stateWarn.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .padding(Space.md)
+                    .background(scrapbookChrome(tint: Palette.stateWarn))
                 }
+
+                Spacer().frame(height: Space.xl)
             }
             .padding(.horizontal, Space.screenPadding)
             .padding(.top, Space.md)
@@ -99,6 +91,76 @@ struct NotificationSettingsView: View {
             pickerTime = Calendar.current.date(from: DateComponents(hour: notificationHour, minute: notificationMinute)) ?? Date()
         }
         .task { await checkPermission() }
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Text("settings")
+                .font(Typo.eyebrow).tracking(2)
+                .foregroundStyle(Palette.accent)
+            Text("notifications.")
+                .font(Typo.titleItalic)
+                .foregroundStyle(Palette.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // Sparkle sticker — gentle nudge, not alarm.
+        .overlay(alignment: .topTrailing) {
+            Image(StickerName.sparkleGlossy.assetName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 50, height: 50)
+                .rotationEffect(.degrees(-12))
+                .offset(x: 4, y: -8)
+                .opacity(StickerName.sparkleGlossy.style.opacity)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+
+    // MARK: - Save
+
+    private var saveButton: some View {
+        Button {
+            Haptics.medium()
+            saveTime()
+        } label: {
+            HStack {
+                Text(saved ? "saved" : "save time")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
+                Spacer()
+                Image(systemName: saved ? "checkmark" : "arrow.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(saved ? Palette.stateGood : Palette.accent)
+            }
+            .foregroundStyle(Palette.textInverse)
+            .padding(.horizontal, Space.lg)
+            .frame(maxWidth: .infinity)
+            .frame(height: 60)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .fill(Palette.accent.opacity(0.18))
+                        .offset(x: 4, y: 4)
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .fill(Palette.bgInverse)
+                }
+            )
+        }
+        .buttonStyle(NotifPressStyle())
+    }
+
+    private func scrapbookChrome(tint: Color = Palette.accent) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(tint.opacity(0.15))
+                .offset(x: 4, y: 4)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Palette.bgElevated)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(tint, lineWidth: 1.5)
+        }
     }
 
     private func saveTime() {
@@ -112,32 +174,17 @@ struct NotificationSettingsView: View {
         }
     }
 
-    /// Notification body adapts to the selected coach so the reminder
-    /// reads in the same voice as the rest of the app.
-    private var notificationBody: String {
-        switch voicePreference {
-        case "encouraging": return "Your workout is ready. Your coach is waiting."
-        case "balanced":    return "Your workout is ready. Matson's got something for you."
-        default:            return "Your workout is ready. Don't make Kira wait."
-        }
-    }
-
+    /// Schedule the daily reminder via the shared helper. Routes through
+    /// `NotificationPermission.scheduleDailyReminder` so the identifier,
+    /// title, and voice-adaptive body stay consistent with the
+    /// onboarding completion path. Removed the local duplicate +
+    /// `removeAllPendingNotificationRequests()` which was nuking the
+    /// trial-end reminder as a side effect.
     private func scheduleNotification() {
-        let center = UNUserNotificationCenter.current()
-        center.removeAllPendingNotificationRequests()
-
-        let content = UNMutableNotificationContent()
-        content.title = "Time to work"
-        content.body = notificationBody
-        content.sound = .default
-
-        var dateComponents = DateComponents()
-        dateComponents.hour = notificationHour
-        dateComponents.minute = notificationMinute
-        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-
-        let request = UNNotificationRequest(identifier: "daily_reminder", content: content, trigger: trigger)
-        center.add(request)
+        let time = Calendar.current.date(
+            from: DateComponents(hour: notificationHour, minute: notificationMinute)
+        ) ?? Date()
+        NotificationPermission.scheduleDailyReminder(at: time)
     }
 
     private func requestPermission() {
@@ -150,5 +197,14 @@ struct NotificationSettingsView: View {
     private func checkPermission() async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         permissionGranted = settings.authorizationStatus == .authorized
+    }
+}
+
+private struct NotifPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(configuration.isPressed ? 0.92 : 1.0)
+            .animation(Motion.tap, value: configuration.isPressed)
     }
 }

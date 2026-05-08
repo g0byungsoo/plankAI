@@ -21,8 +21,8 @@ struct AccountView: View {
 
         var message: String {
             switch self {
-            case .success: return "Subscriptions restored"
-            case .nothingToRestore: return "No active subscription found. If you think this is wrong, contact support."
+            case .success: return "subscriptions restored."
+            case .nothingToRestore: return "no active subscription found. if this looks wrong, contact support."
             case .error(let msg): return msg
             }
         }
@@ -36,51 +36,23 @@ struct AccountView: View {
     }
 
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: Space.lg) {
-                Text("Account")
-                    .font(Typo.title)
-                    .foregroundStyle(Palette.textPrimary)
+                header
 
-                // App info
-                VStack(spacing: 0) {
-                    infoRow(label: "Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
-                    Divider().padding(.leading, 14)
-                    infoRow(label: "Build", value: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
-                }
-                .background(Palette.bgElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .plankShadow()
+                appInfoCard
 
-                // Account state — adapts to anonymous vs signed-in
                 if auth.isAnonymous || !auth.isAuthenticated {
                     anonymousSection
                 } else {
                     signedInSection
                 }
 
-                Spacer().frame(height: Space.xl)
+                Spacer().frame(height: Space.lg)
 
-                // Reset
-                Button {
-                    showResetConfirm = true
-                } label: {
-                    Text("Reset Onboarding")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(Palette.stateBad)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Palette.stateBad.opacity(0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
-                .alert("Reset onboarding?", isPresented: $showResetConfirm) {
-                    Button("Reset", role: .destructive) {
-                        hasCompletedOnboarding = false
-                    }
-                    Button("Cancel", role: .cancel) {}
-                } message: {
-                    Text("This will take you back to the intro screens. Your workout data stays.")
-                }
+                resetButton
+
+                Spacer().frame(height: Space.xl)
             }
             .padding(.horizontal, Space.screenPadding)
             .padding(.top, Space.md)
@@ -88,68 +60,95 @@ struct AccountView: View {
         .background(Palette.bgPrimary)
     }
 
+    // MARK: - Header
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Text("settings")
+                .font(Typo.eyebrow).tracking(2)
+                .foregroundStyle(Palette.accent)
+            Text("your account.")
+                .font(Typo.titleItalic)
+                .foregroundStyle(Palette.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // Heart-lock — "your stuff, locked to you" framing.
+        .overlay(alignment: .topTrailing) {
+            Image(StickerName.heartLock.assetName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 56, height: 56)
+                .rotationEffect(.degrees(10))
+                .offset(x: 4, y: -10)
+                .opacity(StickerName.heartLock.style.opacity)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+
+    // MARK: - App info
+
+    private var appInfoCard: some View {
+        VStack(spacing: 0) {
+            infoRow(label: "version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
+            Divider().padding(.horizontal, Space.md)
+            infoRow(label: "build", value: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
+        }
+        .background(scrapbookChrome())
+    }
+
     private func infoRow(label: String, value: String) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 15))
+                .font(Typo.body)
                 .foregroundStyle(Palette.textPrimary)
             Spacer()
             Text(value)
-                .font(.system(size: 15))
+                .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
         }
-        .padding(14)
+        .padding(Space.md)
     }
 
     // MARK: - Anonymous
 
     private var anonymousSection: some View {
         VStack(alignment: .leading, spacing: Space.sm) {
-            Text("SAVE YOUR PROGRESS")
-                .font(.system(size: 11, weight: .bold))
+            Text("save your progress")
+                .font(Typo.eyebrow).tracking(3)
                 .foregroundStyle(Palette.textSecondary)
-                .tracking(2)
+                .padding(.bottom, 2)
 
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Space.md) {
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(Palette.accent.opacity(0.12))
-                            .frame(width: 40, height: 40)
+                            .fill(Palette.accent.opacity(0.18))
+                            .frame(width: 44, height: 44)
                         Image(systemName: "icloud.and.arrow.up")
-                            .font(.system(size: 16))
+                            .font(.system(size: 17))
                             .foregroundStyle(Palette.accent)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Not signed in")
-                            .font(.system(size: 15, weight: .semibold))
+                        Text("not signed in.")
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
                             .foregroundStyle(Palette.textPrimary)
-                        Text("Sign in to back up your routine")
-                            .font(.system(size: 13))
+                        Text("sign in to back up your routine.")
+                            .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                     }
                     Spacer()
                 }
 
-                Button {
+                cocoaPill(text: "sign in", icon: "arrow.right") {
                     Haptics.light()
                     showSignInSheet = true
-                } label: {
-                    Text("Sign In")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(Palette.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(Palette.bgInverse)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
 
                 restorePurchasesButton
             }
-            .padding(14)
-            .background(Palette.bgElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .plankShadow()
+            .padding(Space.md)
+            .background(scrapbookChrome())
         }
         .sheet(isPresented: $showSignInSheet) {
             NavigationStack {
@@ -166,7 +165,9 @@ struct AccountView: View {
                                     .frame(width: 30, height: 30)
                                     .background(Palette.bgElevated)
                                     .clipShape(Circle())
+                                    .tappableArea()
                             }
+                            .accessibilityLabel("Close sign in")
                         }
                     }
             }
@@ -177,70 +178,55 @@ struct AccountView: View {
 
     private var signedInSection: some View {
         VStack(alignment: .leading, spacing: Space.sm) {
-            Text("ACCOUNT")
-                .font(.system(size: 11, weight: .bold))
+            Text("account")
+                .font(Typo.eyebrow).tracking(3)
                 .foregroundStyle(Palette.textSecondary)
-                .tracking(2)
+                .padding(.bottom, 2)
 
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Space.md) {
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(Palette.stateGood.opacity(0.12))
-                            .frame(width: 40, height: 40)
+                            .fill(Palette.stateGood.opacity(0.18))
+                            .frame(width: 44, height: 44)
                         Image(systemName: providerIcon)
-                            .font(.system(size: 16))
+                            .font(.system(size: 17))
                             .foregroundStyle(Palette.stateGood)
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(displayLabel)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                             .foregroundStyle(Palette.textPrimary)
                             .lineLimit(1)
                             .truncationMode(.middle)
                         Text(providerLabel)
-                            .font(.system(size: 13))
+                            .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                     }
                     Spacer()
                 }
 
-                Button {
+                outlineButton(
+                    text: signingOut ? "signing out…" : "sign out",
+                    tint: Palette.stateBad
+                ) {
                     Haptics.light()
                     showSignOutConfirm = true
-                } label: {
-                    Text(signingOut ? "Signing out…" : "Sign Out")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(Palette.stateBad)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(Palette.stateBad.opacity(0.10))
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .disabled(signingOut)
 
                 restorePurchasesButton
             }
-            .padding(14)
-            .background(Palette.bgElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .plankShadow()
+            .padding(Space.md)
+            .background(scrapbookChrome())
 
             // Delete Account — Apple App Store Review Guideline 5.1.1(v)
             // requires every account-creating app to expose this in-app.
             // Only shown when signed in; anonymous users have no cloud row
             // to delete.
-            Button {
+            outlineButton(text: "delete account", tint: Palette.stateBad) {
                 Haptics.light()
                 showDeleteAccountSheet = true
-            } label: {
-                Text("Delete Account")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Palette.stateBad)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Palette.stateBad.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             .padding(.top, Space.sm)
         }
@@ -277,6 +263,37 @@ struct AccountView: View {
         }
     }
 
+    private var resetButton: some View {
+        Button {
+            showResetConfirm = true
+        } label: {
+            Text("reset onboarding")
+                .font(Typo.body)
+                .foregroundStyle(Palette.stateBad)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .fill(Palette.stateBad.opacity(0.10))
+                            .offset(x: 3, y: 3)
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .fill(Palette.bgElevated)
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .stroke(Palette.stateBad.opacity(0.45), lineWidth: 1.5)
+                    }
+                )
+        }
+        .alert("Reset onboarding?", isPresented: $showResetConfirm) {
+            Button("Reset", role: .destructive) {
+                hasCompletedOnboarding = false
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will take you back to the intro screens. Your workout data stays.")
+        }
+    }
+
     private var displayLabel: String {
         if let email = auth.currentUser?.email, !email.isEmpty {
             return email
@@ -286,10 +303,10 @@ struct AccountView: View {
 
     private var providerLabel: String {
         switch auth.authMethod {
-        case .apple: return "Signed in with Apple"
-        case .email: return "Signed in with email"
-        case .anonymous: return "Anonymous"
-        case .unknown: return "Signed in"
+        case .apple: return "signed in with apple."
+        case .email: return "signed in with email."
+        case .anonymous: return "anonymous."
+        case .unknown: return "signed in."
         }
     }
 
@@ -313,8 +330,8 @@ struct AccountView: View {
                 Task { await performRestore() }
             } label: {
                 ZStack {
-                    Text("Restore Purchases")
-                        .font(.system(size: 15, weight: .semibold))
+                    Text("restore purchases")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                         .foregroundStyle(Palette.accent)
                         .opacity(restoring ? 0 : 1)
                     if restoring {
@@ -345,7 +362,7 @@ struct AccountView: View {
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
                 await MainActor.run {
                     if restoreFeedback == captured {
-                        withAnimation(.easeOut(duration: 0.2)) {
+                        withAnimation(Motion.crossFade) {
                             restoreFeedback = nil
                         }
                     }
@@ -355,20 +372,26 @@ struct AccountView: View {
     }
 
     private func performRestore() async {
+        #if DEBUG
         print("[Settings] Restore Purchases tapped")
+        #endif
         restoring = true
         restoreFeedback = nil
         defer { restoring = false }
 
         do {
             let restored = try await PaymentService.shared.restorePurchases()
+            #if DEBUG
             print("[Settings] Restore success: hasProAccess=\(restored)")
-            withAnimation(.easeOut(duration: 0.2)) {
+            #endif
+            withAnimation(Motion.crossFade) {
                 restoreFeedback = restored ? .success : .nothingToRestore
             }
         } catch {
+            #if DEBUG
             print("[Settings] Restore failed: \(error)")
-            withAnimation(.easeOut(duration: 0.2)) {
+            #endif
+            withAnimation(Motion.crossFade) {
                 restoreFeedback = .error("Couldn't restore. Check your internet and try again.")
             }
         }
@@ -385,6 +408,62 @@ struct AccountView: View {
         } catch {
             // No alert here — keep the user in Settings; they can retry.
             // Phase F may surface this via a global error toast.
+        }
+    }
+
+    // MARK: - Shared chrome
+
+    private func cocoaPill(text: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(text)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
+                Spacer()
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Palette.accent)
+            }
+            .foregroundStyle(Palette.textInverse)
+            .padding(.horizontal, Space.md)
+            .frame(height: 50)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 25, style: .continuous)
+                    .fill(Palette.bgInverse)
+            )
+        }
+    }
+
+    private func outlineButton(text: String, tint: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(text)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                .foregroundStyle(tint)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 25, style: .continuous)
+                            .fill(tint.opacity(0.10))
+                            .offset(x: 3, y: 3)
+                        RoundedRectangle(cornerRadius: 25, style: .continuous)
+                            .fill(Palette.bgElevated)
+                        RoundedRectangle(cornerRadius: 25, style: .continuous)
+                            .stroke(tint.opacity(0.55), lineWidth: 1.5)
+                    }
+                )
+        }
+    }
+
+    private func scrapbookChrome(tint: Color = Palette.accent) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(tint.opacity(0.15))
+                .offset(x: 4, y: 4)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Palette.bgElevated)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(tint, lineWidth: 1.5)
         }
     }
 }

@@ -154,7 +154,7 @@ struct PaywallView: View {
         }
         let yearlyPrice = yearly.storeProduct.price as NSDecimalNumber
         let perWeek = yearlyPrice.dividing(by: NSDecimalNumber(value: 52))
-        let formatter = yearly.storeProduct.priceFormatter ?? defaultCurrencyFormatter
+        let formatter = yearly.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
         let perWeekStr = formatter.string(from: perWeek) ?? "\(perWeek)"
 
         guard let weekly = weeklyPackage else {
@@ -179,11 +179,11 @@ struct PaywallView: View {
         return "$4.99/week"
     }
 
-    private var defaultCurrencyFormatter: NumberFormatter {
+    private static let defaultCurrencyFormatter: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .currency
         return f
-    }
+    }()
 
     private var ctaLabel: String {
         switch selectedPlan {
@@ -290,7 +290,9 @@ struct PaywallView: View {
                         .foregroundStyle(Palette.textSecondary)
                         .frame(width: 32, height: 32)
                         .background(Palette.bgElevated, in: Circle())
+                        .tappableArea()
                 }
+                .accessibilityLabel("Close paywall")
                 .buttonStyle(.plain)
             } else {
                 Color.clear.frame(width: 32, height: 32)
@@ -335,14 +337,31 @@ struct PaywallView: View {
                 heading: "Unlimited custom workouts",
                 detail: "Built around your goals & level"
             )
+            // Coach-name benefit personalizes to the voice the user
+            // picked in onboarding (Jeni / Kira / Sam display name).
+            // Falls back to the generic three-voice framing for the
+            // unlikely path where voicePreference is unset.
             benefitRow(
-                heading: "Jeni, your personal coach",
+                heading: coachBenefitHeading,
                 detail: "Form tips, swaps, and pep talks"
             )
             benefitRow(
                 heading: "Progress tracking & check-ins",
                 detail: "See your glow-up week by week"
             )
+        }
+    }
+
+    /// Personalized coach-benefit heading. Reads `voicePreference`
+    /// directly from UserDefaults so this view doesn't need a new
+    /// @AppStorage just for the paywall surface.
+    private var coachBenefitHeading: String {
+        let pref = UserDefaults.standard.string(forKey: "voicePreference") ?? ""
+        switch pref {
+        case "encouraging": return "Jeni, your personal coach"
+        case "keepItReal":  return "Kira, your personal coach"
+        case "balanced":    return "Sam, your personal coach"
+        default:            return "Your coach, in three voices"
         }
     }
 
@@ -367,6 +386,10 @@ struct PaywallView: View {
             }
             Spacer(minLength: 0)
         }
+        // Compound row — VoiceOver reads each benefit as one phrase
+        // (e.g., "unlimited custom workouts. built around your goals
+        // and level.") instead of walking icon/heading/detail.
+        .accessibilityElement(children: .combine)
     }
 
     private var pricingSection: some View {
@@ -380,7 +403,7 @@ struct PaywallView: View {
                 isSelected: selectedPlan == .yearly
             ) {
                 Haptics.light()
-                withAnimation(.easeOut(duration: 0.2)) { selectedPlan = .yearly }
+                withAnimation(Motion.tap) { selectedPlan = .yearly }
             }
             .padding(.top, 10)  // room for the floating badge
 
@@ -391,7 +414,7 @@ struct PaywallView: View {
                 isSelected: selectedPlan == .weekly
             ) {
                 Haptics.light()
-                withAnimation(.easeOut(duration: 0.2)) { selectedPlan = .weekly }
+                withAnimation(Motion.tap) { selectedPlan = .weekly }
             }
         }
     }
@@ -414,7 +437,7 @@ struct PaywallView: View {
         }
         let yearlyPriceDecimal = yearly.storeProduct.price as NSDecimalNumber
         let perWeek = yearlyPriceDecimal.dividing(by: NSDecimalNumber(value: 52))
-        let formatter = yearly.storeProduct.priceFormatter ?? defaultCurrencyFormatter
+        let formatter = yearly.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
         let perWeekStr = formatter.string(from: perWeek) ?? "\(perWeek)"
         let yearlyStr = yearly.storeProduct.localizedPriceString
         return "\(perWeekStr)/wk · billed \(yearlyStr)/yr"
@@ -504,11 +527,15 @@ struct PaywallView: View {
             let offerings = try await Purchases.shared.offerings()
             offering = offerings.current
             if offering == nil {
+                #if DEBUG
                 print("[Paywall] offerings returned nil current — check RC dashboard offering '\(RevenueCatConfig.offeringID)' is marked current")
+                #endif
                 offeringsLoadFailed = true
             }
         } catch {
+            #if DEBUG
             print("[Paywall] offerings load FAILED: \(error)")
+            #endif
             offeringsLoadFailed = true
         }
         loadingOfferings = false
@@ -542,7 +569,9 @@ struct PaywallView: View {
                 errorMessage = "Purchase didn't activate Pro. Try again or contact support@jenifit.app."
             }
         } catch {
+            #if DEBUG
             print("[Paywall] purchase FAILED: \(error)")
+            #endif
             errorMessage = "Couldn't complete purchase. Try again in a moment."
         }
     }
@@ -571,7 +600,9 @@ struct PaywallView: View {
                 )
             }
         } catch {
+            #if DEBUG
             print("[Paywall] restore FAILED: \(error)")
+            #endif
             restoreAlert = RestoreAlert(
                 title: "Couldn't restore",
                 message: "Something went wrong checking your subscription. Try again in a moment."

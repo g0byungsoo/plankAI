@@ -114,7 +114,9 @@ final class AuthService {
             // error for diagnostics, surface a friendly retry prompt to
             // the user. AffirmationLoaderScreen already supplies the
             // "Couldn't connect" headline; this is the body line.
+            #if DEBUG
             print("[AuthService] bootstrap FAILED: \(error)")
+            #endif
             bootstrapState = .failed("Make sure you're connected to the internet, then try again.")
             didStartBootstrap = false  // allow retry
         }
@@ -178,12 +180,17 @@ final class AuthService {
     /// + UserDefaults cleanup is the caller's responsibility (AppSync
     /// orchestrates).
     func deleteAccount() async throws {
+        #if DEBUG
         let uid = currentUser?.id.uuidString ?? "<nil>"
         print("[AuthService] deleteAccount: calling RPC delete_user_account for user_id=\(uid)")
+        #endif
         do {
             let response = try await supabase.rpc("delete_user_account").execute()
+            #if DEBUG
             print("[AuthService] deleteAccount: RPC returned status=\(response.status)")
+            #endif
         } catch {
+            #if DEBUG
             print("[AuthService] deleteAccount FAILED: \(error)")
             print("[AuthService] error type: \(type(of: error))")
             print("[AuthService] error localizedDescription: \(error.localizedDescription)")
@@ -193,6 +200,7 @@ final class AuthService {
                     print("[AuthService] error.\(label) = \(child.value)")
                 }
             }
+            #endif
             throw error
         }
     }

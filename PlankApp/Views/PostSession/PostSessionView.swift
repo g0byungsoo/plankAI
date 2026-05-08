@@ -11,7 +11,6 @@ struct PostSessionView: View {
     let onDone: () -> Void
 
     @State private var showStats = false
-    @State private var showShareSheet = false
 
     // Phase 16 — celebration scatter (HIGH treatment, 6 stickers,
     // 1 line-art / 5 painterly). Margins only — never on the centered
@@ -43,6 +42,24 @@ struct PostSessionView: View {
 
             StickerScatter(placements: Self.celebrationPlacements)
 
+            // Fireworks Lottie burst — kicks in once the stats reveal
+            // (1.2s after appearance) so it lands with the haptic + spring.
+            if showStats {
+                LottieEffectView(.fireworks, loop: false)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 320)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .padding(.top, Space.xl)
+                    .allowsHitTesting(false)
+            }
+
+            // Sparkling-hearts as a secondary effect when the user crushed it.
+            if showStats && qualityScore >= 7.0 {
+                LottieEffectView(.sparklingHearts, loop: false)
+                    .frame(width: 240, height: 240)
+                    .allowsHitTesting(false)
+            }
+
             VStack(spacing: Space.lg) {
                 Spacer()
 
@@ -52,7 +69,7 @@ struct PostSessionView: View {
                         .transition(.scale.combined(with: .opacity))
 
                     Text(headline)
-                        .font(Typo.title)
+                        .font(Typo.titleItalic)
                         .foregroundStyle(Palette.textPrimary)
                         .transition(.opacity)
 
@@ -66,12 +83,12 @@ struct PostSessionView: View {
                     HStack(spacing: Space.sm) {
                         scoreCard(
                             value: String(format: "%.0f%%", formScore * 100),
-                            label: "FORM",
+                            label: "form",
                             color: formScore >= 0.7 ? Palette.stateGood : Palette.stateWarn
                         )
                         scoreCard(
                             value: String(format: "%.0f%%", timeScore * 100),
-                            label: "TIME",
+                            label: "time",
                             color: timeScore >= 0.7 ? Palette.stateGood : Palette.stateWarn
                         )
                     }
@@ -79,13 +96,13 @@ struct PostSessionView: View {
 
                     // Stats row
                     HStack(spacing: Space.sm) {
-                        StatCard(value: formatTime(holdTime), label: "HOLD TIME")
-                        StatCard(value: "\(streakCount)", label: "STREAK")
+                        StatCard(value: formatTime(holdTime), label: "hold time")
+                        StatCard(value: "\(streakCount)", label: "streak")
                     }
                     .padding(.horizontal, Space.screenPadding)
 
                     // Day progress
-                    Text("Day \(dayNumber) of 30 complete")
+                    Text("day \(dayNumber) of 30 complete")
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
 
@@ -94,10 +111,9 @@ struct PostSessionView: View {
                     // Best roast
                     if let bestRoast = playedLines.first {
                         VStack(alignment: .leading, spacing: Space.xs) {
-                            Text("BEST ROAST")
-                                .font(Typo.caption)
+                            Text("best roast")
+                                .font(Typo.eyebrow).tracking(2)
                                 .foregroundStyle(Palette.textSecondary)
-                                .tracking(2)
                             Text("\"\(bestRoast)\"")
                                 .font(Typo.body)
                                 .foregroundStyle(Palette.textSecondary)
@@ -105,42 +121,50 @@ struct PostSessionView: View {
                         }
                         .padding(Space.cardPadding)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Palette.bgElevated)
-                        .clipShape(RoundedRectangle(cornerRadius: Radius.md))
-                        .plankShadow()
+                        .background(
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                    .fill(Palette.accent.opacity(0.15))
+                                    .offset(x: 4, y: 4)
+                                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                    .fill(Palette.bgElevated)
+                                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                    .stroke(Palette.divider, lineWidth: 1.5)
+                            }
+                        )
                         .padding(.horizontal, Space.screenPadding)
                     }
 
                     // CTAs
                     VStack(spacing: Space.sm) {
-                        Button {
-                            // TODO: UIActivityViewController with RoastCardView render
-                            showShareSheet = true
-                        } label: {
-                            Text("SHARE")
-                                .font(Typo.caption)
-                                .fontWeight(.semibold)
+                        ShareLink(item: shareMessage) {
+                            Text("share")
+                                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                                 .foregroundStyle(Palette.textPrimary)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: Space.minTapTarget + 8)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: Radius.lg)
-                                        .stroke(Palette.divider, lineWidth: 1)
+                                    Capsule()
+                                        .stroke(Palette.divider, lineWidth: 1.5)
                                 )
-                                .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
                         }
+                        .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
 
                         Button {
                             onDone()
                         } label: {
-                            Text("DONE")
-                                .font(Typo.body)
-                                .fontWeight(.bold)
-                                .foregroundStyle(Palette.textInverse)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: Space.minTapTarget + 12)
-                                .background(Palette.bgInverse)
-                                .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
+                            HStack {
+                                Text("done")
+                                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                                Spacer()
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 16, weight: .bold))
+                            }
+                            .foregroundStyle(Palette.textInverse)
+                            .padding(.horizontal, 22)
+                            .frame(height: 60)
+                            .background(Palette.bgInverse)
+                            .clipShape(Capsule())
                         }
                     }
                     .padding(.horizontal, Space.screenPadding)
@@ -152,7 +176,7 @@ struct PostSessionView: View {
             Haptics.success()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                 Haptics.heavy()
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                withAnimation(Motion.gentleSpring) {
                     showStats = true
                 }
             }
@@ -167,15 +191,22 @@ struct PostSessionView: View {
     }
 
     private var headline: String {
-        if qualityScore >= 7.0 { return "Crushed it." }
-        if qualityScore >= 4.0 { return "Survived." }
-        return "It happened."
+        if qualityScore >= 7.0 { return "crushed it." }
+        if qualityScore >= 4.0 { return "survived." }
+        return "it happened."
     }
 
     private var summaryText: String {
-        if qualityScore >= 7.0 { return "Your form was solid. Your core felt that." }
-        if qualityScore >= 4.0 { return "Your hips dropped a few times but you held it. Barely." }
-        return "We're not gonna talk about it. Tomorrow's a new day."
+        if qualityScore >= 7.0 { return "your form was solid. your core felt that." }
+        if qualityScore >= 4.0 { return "your hips dropped a few times but you held it. barely." }
+        return "we're not gonna talk about it. tomorrow's a new day."
+    }
+
+    private var shareMessage: String {
+        let seconds = Int(holdTime.rounded())
+        let emoji = qualityScore >= 7.0 ? "🔥" : qualityScore >= 4.0 ? "😤" : "😅"
+        let streakSuffix = streakCount > 1 ? ", \(streakCount)-day streak" : ""
+        return "day \(dayNumber) done — \(seconds)s plank\(streakSuffix) \(emoji) jenifit"
     }
 
     /// Form score = % of hold time with good form (the 70% weight component)
@@ -194,7 +225,7 @@ struct PostSessionView: View {
     private func scoreCard(value: String, label: String, color: Color) -> some View {
         VStack(spacing: Space.xs) {
             Text(value)
-                .font(Typo.title)
+                .font(.custom("Fraunces72pt-SemiBold", size: 28))
                 .foregroundStyle(color)
             Text(label)
                 .font(Typo.caption)
@@ -203,9 +234,17 @@ struct PostSessionView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(Space.cardPadding)
-        .background(Palette.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.md))
-        .plankShadow()
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(color.opacity(0.18))
+                    .offset(x: 4, y: 4)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Palette.bgElevated)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(color, lineWidth: 1.5)
+            }
+        )
     }
 
     private func formatTime(_ time: TimeInterval) -> String {

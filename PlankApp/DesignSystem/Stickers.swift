@@ -30,6 +30,18 @@ enum StickerName: String, CaseIterable {
     case teddyPlaid
     case teddyPink
     case gummyBear
+    // Phase 19c additions — 10 painterly stickers (iridescent / dreamy
+    // palette, match the existing painterly style).
+    case candyIridescent
+    case discoBall
+    case iceCream
+    case candyLong
+    case heartLock
+    case cherub
+    case strawberryRipe
+    case perfume
+    case candyPearl
+    case butterflyRing
 
     var assetName: String {
         switch self {
@@ -50,6 +62,16 @@ enum StickerName: String, CaseIterable {
         case .teddyPlaid:     return "sticker_teddy_plaid"
         case .teddyPink:      return "sticker_teddy_pink"
         case .gummyBear:      return "sticker_gummy_bear"
+        case .candyIridescent: return "sticker_candy_iridescent"
+        case .discoBall:       return "sticker_disco_ball"
+        case .iceCream:        return "sticker_ice_cream"
+        case .candyLong:       return "sticker_candy_long"
+        case .heartLock:       return "sticker_heart_lock"
+        case .cherub:          return "sticker_cherub"
+        case .strawberryRipe:  return "sticker_strawberry_ripe"
+        case .perfume:         return "sticker_perfume"
+        case .candyPearl:      return "sticker_candy_pearl"
+        case .butterflyRing:   return "sticker_butterfly_ring"
         }
     }
 

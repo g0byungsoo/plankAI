@@ -131,10 +131,18 @@ public actor PlankSessionEngine {
     }
 
     /// End the session manually (user taps "End session").
+    ///
+    /// Works even if the user never reached `sessionActive == true` — i.e.
+    /// they tapped End before the camera detected them in plank position.
+    /// In that case we emit `.sessionEnd` with `holdTime: 0` so the view's
+    /// event stream consumer sees the terminal event, runs `onComplete`,
+    /// and dismisses the screen. Without this, the End button on the
+    /// pre-plank "get in position" screen silently does nothing.
     public func endSession() {
-        guard sessionActive else { return }
+        // Idempotent — re-calling is safe; eventContinuation?.finish()
+        // makes any second emit a no-op.
         sessionActive = false
-        let holdTime = activePlankTime
+        let holdTime = activePlankTime   // 0 if user never reached plank
         let quality = computeQualityScore(holdTime: holdTime)
         emit(.sessionEnd(holdTime: holdTime, qualityScore: quality))
         eventContinuation?.finish()

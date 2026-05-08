@@ -157,7 +157,9 @@ final class AppSync {
     private func hydrateAndSync(userId: String) async {
         guard !userId.isEmpty else { return }
         if hydrationsInFlight.contains(userId) {
+            #if DEBUG
             print("[AppSync] hydrateAndSync: SKIP — already in flight for \(userId)")
+            #endif
             return
         }
         hydrationsInFlight.insert(userId)
@@ -167,6 +169,7 @@ final class AppSync {
         guard let container = modelContainer else { return }
 
         await service.hydrateFromCloud(userId: userId)
+        await service.hydrateWeightLogs(userId: userId)
         syncUserDefaultsFromUserRecord(context: container.mainContext, userId: userId)
     }
 
@@ -259,6 +262,12 @@ final class AppSync {
         await service.upsertDayProgress(progress)
     }
 
+    func upsertWeightLog(_ log: WeightLogRecord) async {
+        guard let service = syncService else { return }
+        guard !log.userId.isEmpty else { return }
+        await service.upsertWeightLog(log)
+    }
+
     // MARK: Delete account
 
     /// End-to-end delete-account orchestration:
@@ -276,32 +285,48 @@ final class AppSync {
     /// best-effort and don't throw.
     func deleteCurrentAccount() async throws {
         let userIdToWipe = currentUserId
+        #if DEBUG
         print("[AppSync] deleteCurrentAccount: ENTER user_id=\(userIdToWipe ?? "<nil>")")
+        #endif
 
         do {
             try await AuthService.shared.deleteAccount()
+            #if DEBUG
             print("[AppSync] deleteCurrentAccount: RPC succeeded, proceeding with local cleanup")
+            #endif
         } catch {
+            #if DEBUG
             print("[AppSync] deleteCurrentAccount: RPC threw, aborting local cleanup. Error: \(error)")
+            #endif
             throw error
         }
 
         if let userId = userIdToWipe, !userId.isEmpty,
            let container = modelContainer {
             clearLocalUserData(context: container.mainContext, userId: userId)
+            #if DEBUG
             print("[AppSync] deleteCurrentAccount: local SwiftData cleared for user_id=\(userId)")
+            #endif
         } else {
+            #if DEBUG
             print("[AppSync] deleteCurrentAccount: skipped SwiftData clear — empty userId or no modelContainer")
+            #endif
         }
 
         clearOnboardingUserDefaults()
+        #if DEBUG
         print("[AppSync] deleteCurrentAccount: UserDefaults onboarding keys cleared")
+        #endif
 
         do {
             try await AuthService.shared.signOut()
+            #if DEBUG
             print("[AppSync] deleteCurrentAccount: signOut + re-bootstrap complete; EXIT success")
+            #endif
         } catch {
+            #if DEBUG
             print("[AppSync] deleteCurrentAccount: signOut threw (cloud already deleted). Error: \(error)")
+            #endif
             throw error
         }
     }

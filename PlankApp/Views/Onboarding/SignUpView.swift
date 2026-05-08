@@ -34,7 +34,10 @@ struct SignUpView: View {
     @State private var emailFormatError: String?
     @State private var password = ""
     @State private var showPassword = false
-    @State private var rawNonce = ""
+    // rawNonce removed — Apple sign-in now uses the programmatic
+    // AppleSignInService path (held on the service instance, not @State).
+    // SwiftUI's SignInWithAppleButton had a nonce-capture race that
+    // produced "Nonces mismatch" 400s from Supabase.
     @State private var working = false
     @State private var errorMessage: String?
     @State private var shakeTrigger: CGFloat = 0
@@ -172,6 +175,8 @@ struct SignUpView: View {
                             .frame(width: 30, height: 30)
                             .background(Palette.bgElevated)
                             .clipShape(Circle())
+                            .tappableArea()
+                            .accessibilityLabel("Close")
                     }
                 }
             }
@@ -222,21 +227,39 @@ struct SignUpView: View {
     }
 
     private var appleButton: some View {
-        SignInWithAppleButton(
-            mode == .signUp ? .signUp : .signIn,
-            onRequest: { request in
-                let nonce = AppleSignInService.randomNonce()
-                rawNonce = nonce
-                request.requestedScopes = [.fullName, .email]
-                request.nonce = AppleSignInService.sha256(nonce)
-            },
-            onCompletion: handleAppleCompletion
-        )
-        .signInWithAppleButtonStyle(.black)
-        .frame(height: 50)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+        Button(action: triggerAppleSignIn) {
+            HStack(spacing: 8) {
+                Image(systemName: "apple.logo")
+                    .font(.system(size: 19))
+                Text(mode == .signUp ? "Sign up with Apple" : "Sign in with Apple")
+                    .font(.system(size: 17, weight: .semibold))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(Color.black)
+            .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+        }
         .disabled(working)
         .opacity(working ? 0.6 : 1)
+    }
+
+    private func triggerAppleSignIn() {
+        Task {
+            working = true
+            defer { working = false }
+            do {
+                try await AuthService.shared.signInWithApple()
+                Haptics.success()
+                dismiss()
+                onSuccess()
+            } catch AppleSignInService.SignInError.canceled {
+                // User-cancel — stay quiet.
+            } catch {
+                errorMessage = "Couldn't sign in with Apple. Try email instead?"
+                triggerShake()
+            }
+        }
     }
 
     private var orDivider: some View {
@@ -288,7 +311,7 @@ struct SignUpView: View {
                 RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                     .stroke(focused == .email ? Palette.textPrimary : Palette.divider, lineWidth: 1)
             )
-            .animation(.easeOut(duration: 0.15), value: focused)
+            .animation(Motion.tap, value: focused)
 
             if let emailFormatError {
                 Text(emailFormatError)
@@ -342,6 +365,7 @@ struct SignUpView: View {
                         .font(.system(size: 16))
                         .foregroundStyle(Palette.textSecondary)
                         .frame(width: 24, height: 24)
+                        .tappableArea()
                 }
                 .buttonStyle(.plain)
             }
@@ -354,7 +378,7 @@ struct SignUpView: View {
                 RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                     .stroke(focused == .password ? Palette.textPrimary : Palette.divider, lineWidth: 1)
             )
-            .animation(.easeOut(duration: 0.15), value: focused)
+            .animation(Motion.tap, value: focused)
         }
     }
 
@@ -384,7 +408,7 @@ struct SignUpView: View {
                 .font(Typo.caption)
                 .foregroundStyle(satisfied ? Palette.accent : Palette.textSecondary)
         }
-        .animation(.easeOut(duration: 0.2), value: satisfied)
+        .animation(Motion.tap, value: satisfied)
     }
 
     private var forgotPasswordLink: some View {
@@ -419,7 +443,7 @@ struct SignUpView: View {
             .frame(height: 50)
             .background(disabled ? Palette.accent.opacity(0.4) : Palette.accent)
             .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
-            .animation(.easeOut(duration: 0.15), value: disabled)
+            .animation(Motion.tap, value: disabled)
         }
         .buttonStyle(PressFeedbackStyle())
         .disabled(disabled)
@@ -428,7 +452,7 @@ struct SignUpView: View {
     private var modeToggle: some View {
         Button {
             Haptics.light()
-            withAnimation(.easeOut(duration: 0.2)) {
+            withAnimation(Motion.crossFade) {
                 mode = (mode == .signUp ? .signIn : .signUp)
             }
             errorMessage = nil
@@ -462,49 +486,6 @@ struct SignUpView: View {
                 }
                 return .handled
             })
-    }
-
-    // MARK: Apple completion
-
-    private func handleAppleCompletion(_ result: Result<ASAuthorization, Error>) {
-        switch result {
-        case .success(let authorization):
-            guard
-                let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
-                let tokenData = credential.identityToken,
-                let token = String(data: tokenData, encoding: .utf8)
-            else {
-                errorMessage = "Apple did not return an identity token."
-                triggerShake()
-                return
-            }
-            Task {
-                working = true
-                defer { working = false }
-                do {
-                    try await AuthService.shared.completeAppleSignIn(
-                        idToken: token,
-                        rawNonce: rawNonce,
-                        fullName: credential.fullName
-                    )
-                    Haptics.success()
-                    dismiss()
-                    onSuccess()
-                } catch {
-                    errorMessage = "Couldn't sign in with Apple. Try email instead?"
-                    triggerShake()
-                }
-            }
-
-        case .failure(let error):
-            // Apple signals user-cancel via ASAuthorizationError.canceled —
-            // stay on this screen quietly, no error UI.
-            if let asError = error as? ASAuthorizationError, asError.code == .canceled {
-                return
-            }
-            errorMessage = "Couldn't sign in with Apple. Try email instead?"
-            triggerShake()
-        }
     }
 
     // MARK: Submit

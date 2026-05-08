@@ -166,7 +166,7 @@ struct ForgotPasswordView: View {
                 RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                     .stroke(emailFocused ? Palette.textPrimary : Palette.divider, lineWidth: 1)
             )
-            .animation(.easeOut(duration: 0.15), value: emailFocused)
+            .animation(Motion.tap, value: emailFocused)
 
             if let validationError {
                 Text(validationError)
@@ -203,7 +203,7 @@ struct ForgotPasswordView: View {
             .frame(height: 50)
             .background(isDisabled ? Palette.accent.opacity(0.4) : Palette.accent)
             .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
-            .animation(.easeOut(duration: 0.15), value: isDisabled)
+            .animation(Motion.tap, value: isDisabled)
         }
         .buttonStyle(PressFeedbackStyle())
         .disabled(isDisabled)

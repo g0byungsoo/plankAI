@@ -43,7 +43,9 @@ struct SettingsView: View {
                             .frame(width: 30, height: 30)
                             .background(Palette.bgElevated)
                             .clipShape(Circle())
+                            .tappableArea()
                     }
+                    .accessibilityLabel("Close settings")
                 }
             }
         }

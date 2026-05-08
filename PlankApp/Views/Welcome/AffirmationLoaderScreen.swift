@@ -23,22 +23,25 @@ struct AffirmationLoaderScreen: View {
     let state: BootstrapState
     let onRetry: () -> Void
 
-    @State private var quote: String = ""
+    @State private var quoteIndex: Int = 0
     @State private var quoteVisible = false
     @State private var stickerRevealCount = 0
     @State private var pulse = false
 
-    private static let quotes: [String] = [
-        "She's already in you.",
-        "Soft girl. Strong body.",
-        "Show up. That's the whole thing.",
-        "Your body, your pace.",
-        "Small reps. Real changes.",
-        "You don't have to earn rest.",
-        "Slow days count too.",
-        "Today counts.",
-        "You already started.",
-        "Trust the season.",
+    /// Each quote pairs the line with the word(s) to render in italic
+    /// Fraunces — JeniFit voice signal (italic = the punch). All quotes
+    /// stay short + present-tense; the italic carries the emphasis.
+    private static let quotes: [(line: String, italics: [String])] = [
+        ("She's already in you.",          ["already"]),
+        ("Soft girl. Strong body.",        ["Strong"]),
+        ("Show up. That's the whole thing.", ["whole"]),
+        ("Your body, your pace.",          ["pace"]),
+        ("Small reps. Real changes.",      ["Real"]),
+        ("You don't have to earn rest.",   ["earn"]),
+        ("Slow days count too.",           ["count"]),
+        ("Today counts.",                   ["Today"]),
+        ("You already started.",            ["already"]),
+        ("Trust the season.",               ["season"]),
     ]
 
     // 4-sticker scatter. Edges only so the centered quote breathes.
@@ -83,13 +86,17 @@ struct AffirmationLoaderScreen: View {
             VStack(spacing: Space.lg) {
                 Spacer()
 
-                Text(quote)
-                    .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                    .foregroundStyle(Palette.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Space.lg)
-                    .opacity(quoteVisible ? 1 : 0)
-                    .scaleEffect(quoteVisible ? 1.0 : 0.95)
+                ItalicAccentText(
+                    Self.quotes[quoteIndex].line,
+                    italic: Self.quotes[quoteIndex].italics,
+                    baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
+                    color: Palette.textPrimary,
+                    alignment: .center
+                )
+                .padding(.horizontal, Space.lg)
+                .opacity(quoteVisible ? 1 : 0)
+                .scaleEffect(quoteVisible ? 1.0 : 0.95)
 
                 Spacer()
 
@@ -121,19 +128,23 @@ struct AffirmationLoaderScreen: View {
             EmptyView()
         case .failed(let message):
             VStack(spacing: Space.md) {
-                Text("Couldn't connect")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Palette.textPrimary)
+                // Fraunces voice instead of system bold; italic punch
+                // word per JeniFit pattern.
+                (
+                    Text("couldn't ").font(.custom("Fraunces72pt-SemiBold", size: 18)) +
+                    Text("connect.").font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
+                )
+                .foregroundStyle(Palette.textPrimary)
 
                 Text(message)
-                    .font(.system(size: 13))
+                    .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, Space.lg)
 
                 Button(action: onRetry) {
-                    Text("Try again")
-                        .font(.system(size: 15, weight: .bold))
+                    Text("try again")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                         .foregroundStyle(Palette.textInverse)
                         .frame(width: 160, height: 44)
                         .background(Palette.bgInverse)
@@ -147,9 +158,12 @@ struct AffirmationLoaderScreen: View {
 
     @MainActor
     private func runChoreography() async {
-        quote = Self.quotes.randomElement() ?? "She's already in you."
+        // Random per mount so a quick bootstrap shows a different quote
+        // each launch. Index instead of a copy of the string so the
+        // ItalicAccentText render always pairs the right italics array.
+        quoteIndex = Int.random(in: 0..<Self.quotes.count)
 
-        withAnimation(.easeOut(duration: 0.4)) { quoteVisible = true }
+        withAnimation(Motion.entranceSoft) { quoteVisible = true }
         pulse = true
 
         // Quick sticker cascade — 80ms between reveals so the whole

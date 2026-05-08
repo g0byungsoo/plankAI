@@ -79,6 +79,7 @@ struct OnboardingView: View {
     @State private var showConfetti = false
     @State private var showWelcomeSignInSheet = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // Data — legacy
     @State private var goal = ""
@@ -143,7 +144,6 @@ struct OnboardingView: View {
     @State private var planSparkleBurstVisible = false
     @State private var planCardsVisible = false
     @State private var planCtaVisible = false
-    @State private var chartAnimated = false
     @State private var proofCount = 0
     @State private var celebVisible = false
 
@@ -154,7 +154,6 @@ struct OnboardingView: View {
     @State private var personalStatVisible = false
 
     // Phase 5 — prediction / loading / plan reveal animations
-    @State private var predictionVisible = false
     @State private var carouselProgress: CGFloat = 0
     @State private var carouselFrame: Int = 0
     @State private var carouselDone = false
@@ -257,6 +256,7 @@ struct OnboardingView: View {
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(Palette.textSecondary)
                         }
+                        .accessibilityLabel("Close sign in")
                     }
                 }
             }
@@ -265,12 +265,12 @@ struct OnboardingView: View {
 
     private func showToast(_ msg: String) {
         feedback = msg
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { showFeedback = true }
+        withAnimation(Motion.gentleSpring) { showFeedback = true }
         Haptics.soft()
     }
 
     private func hideToast() {
-        withAnimation(.easeOut(duration: 0.2)) { showFeedback = false }
+        withAnimation(Motion.exit) { showFeedback = false }
     }
 
     // Flow (25 screens):
@@ -768,7 +768,9 @@ struct OnboardingView: View {
                         .frame(width: max(8, geo.size.width * progressFraction), height: 4)
                         // easeOut, not spring — spring can overshoot on a small
                         // forward delta (e.g., 69% → 73%) and look like a regression.
-                        .animation(.easeOut(duration: 0.35), value: screen)
+                        // Slightly slower than the page-swap so the bar reads as
+                        // catching up to the screen, not racing it.
+                        .animation(Motion.entrance, value: screen)
                 }
             }.frame(height: 4)
             Color.clear.frame(width: 40, height: 40)
@@ -1103,14 +1105,18 @@ struct OnboardingView: View {
         guard !welcomeAppeared else { return }
         welcomeAppeared = true
 
+        // Phase 20d: welcome reveal swells through Motion.entranceSoft
+        // (0.42s) so each line lands with a calm beat instead of a snap.
+        // Video gets the longer Motion.entrance (0.55s) to acknowledge
+        // its visual weight — landing too fast reads as a flicker.
         try? await Task.sleep(nanoseconds: 100_000_000)
-        withAnimation(.easeOut(duration: 0.4)) { welcomeEyebrowVisible = true }
+        withAnimation(Motion.entranceSoft) { welcomeEyebrowVisible = true }
         try? await Task.sleep(nanoseconds: 200_000_000)
-        withAnimation(.easeOut(duration: 0.4)) { welcomeHeadlineVisible = true }
+        withAnimation(Motion.entranceSoft) { welcomeHeadlineVisible = true }
         try? await Task.sleep(nanoseconds: 200_000_000)
-        withAnimation(.easeOut(duration: 0.4)) { welcomeSubheadVisible = true }
+        withAnimation(Motion.entranceSoft) { welcomeSubheadVisible = true }
         try? await Task.sleep(nanoseconds: 200_000_000)
-        withAnimation(.easeOut(duration: 0.5)) { welcomeVideoVisible = true }
+        withAnimation(Motion.entrance) { welcomeVideoVisible = true }
         // Confetti burst — fires once the headline+subhead+video are
         // settled, paired with a success haptic. The global ZStack
         // already mounts ConfettiView when showConfetti flips true.
@@ -1160,12 +1166,12 @@ struct OnboardingView: View {
         Haptics.medium()
         if let msg = confirmation {
             pendingConfirmation = msg
-            withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+            withAnimation(Motion.gentleSpring) {
                 showConfirmation = true
             }
             Haptics.success()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                withAnimation(.easeOut(duration: 0.18)) { showConfirmation = false }
+                withAnimation(Motion.exit) { showConfirmation = false }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
                     pendingConfirmation = nil
                     go(next)
@@ -1210,7 +1216,7 @@ struct OnboardingView: View {
                         isSelected: sel.wrappedValue == key,
                         action: {
                             Haptics.light()
-                            withAnimation(.easeOut(duration: 0.18)) {
+                            withAnimation(Motion.tap) {
                                 sel.wrappedValue = key
                             }
                         }
@@ -1687,7 +1693,7 @@ struct OnboardingView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Palette.textPrimary)
                 Text(bmiText)
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.custom("Fraunces72pt-SemiBold", size: 32))
                     .foregroundStyle(color)
                     .contentTransition(.numericText())
                 Text(label)
@@ -1877,15 +1883,7 @@ struct OnboardingView: View {
     private func questionView(_ title: String, sub: String?, opts: [(String, String)],
                               sel: Binding<String>, feedbacks: [String: String], next: Int) -> some View {
         VStack(spacing: 0) {
-            // Question + subtitle at top
-            VStack(alignment: .leading, spacing: Space.xs) {
-                Text(title).font(.system(size: 28, weight: .bold)).foregroundStyle(Palette.textPrimary)
-                if let sub {
-                    Text(sub).font(Typo.body).foregroundStyle(Palette.textSecondary)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Space.screenPadding)
+            jfHeader(title, sub: sub)
 
             Spacer().frame(height: Space.lg)
 
@@ -1977,14 +1975,7 @@ struct OnboardingView: View {
         ]
 
         return VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: Space.xs) {
-                Text(title).font(.system(size: 28, weight: .bold)).foregroundStyle(Palette.textPrimary)
-                if let sub {
-                    Text(sub).font(Typo.body).foregroundStyle(Palette.textSecondary)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Space.screenPadding)
+            jfHeader(title, sub: sub)
 
             Spacer().frame(height: Space.lg)
 
@@ -2192,7 +2183,6 @@ struct OnboardingView: View {
             withAnimation(.easeOut(duration: 1.0).delay(0.8)) { chartLine1 = true }
             withAnimation(.easeOut(duration: 1.2).delay(1.2)) { chartLine2 = true }
             withAnimation(.spring(response: 0.4, dampingFraction: 0.5).delay(2.4)) { chartDot = true }
-            chartAnimated = true
         }
     }
 
@@ -2235,14 +2225,10 @@ struct OnboardingView: View {
                                 )
 
                             // Photo
-                            Group {
-                                if UIImage(named: photo) != nil {
-                                    Image(photo).resizable().aspectRatio(contentMode: .fill)
-                                } else {
-                                    Palette.accentSubtle
-                                }
-                            }
-                            .frame(width: 68, height: 68)
+                            Image(photo)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 68, height: 68)
                             .clipShape(Circle())
                             .overlay(Circle().stroke(Palette.bgPrimary, lineWidth: 3))
                         }
@@ -2278,8 +2264,11 @@ struct OnboardingView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 withAnimation(.easeOut(duration: 0.6)) { celebVisible = true }
             }
-            // Pulse rings start after everything settles
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { coachRingPulse = true }
+            // Pulse rings start after everything settles. Skipped under
+            // reduce-motion since it's a forever-repeating breath effect.
+            if !reduceMotion {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { coachRingPulse = true }
+            }
         }
     }
 
@@ -2293,7 +2282,7 @@ struct OnboardingView: View {
 
             // Hook
             Text("Other apps\ncount seconds.")
-                .font(.system(size: 28, weight: .bold))
+                .font(Typo.title)
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
                 .opacity(formStep >= 1 ? 1 : 0)
@@ -2301,7 +2290,7 @@ struct OnboardingView: View {
                 .animation(.easeOut(duration: 0.4), value: formStep)
 
             Text("We watch your form.")
-                .font(.system(size: 28, weight: .bold))
+                .font(Typo.titleItalic)
                 .foregroundStyle(Palette.accent)
                 .multilineTextAlignment(.center)
                 .padding(.top, 4)
@@ -2526,9 +2515,13 @@ struct OnboardingView: View {
         .clipped()
         .onAppear {
             cardsVisible = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                withAnimation(.linear(duration: 40).repeatForever(autoreverses: false)) {
-                    marqueeOffset1 = -1
+            // 40s perpetual marquee scroll — WCAG 2.2.2 Pause/Stop/Hide.
+            // Skip under reduce-motion; static cards still render.
+            if !reduceMotion {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    withAnimation(.linear(duration: 40).repeatForever(autoreverses: false)) {
+                        marqueeOffset1 = -1
+                    }
                 }
             }
             let t = 2847
@@ -2586,23 +2579,10 @@ struct OnboardingView: View {
 
     private func socialCard(asset: String, caption: String? = nil, width: CGFloat, height: CGFloat, rotation: Double) -> some View {
         ZStack(alignment: .bottomLeading) {
-            Group {
-                if UIImage(named: asset) != nil {
-                    Image(asset)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } else {
-                    LinearGradient(
-                        colors: [Palette.accent.opacity(0.15), Palette.accentSubtle.opacity(0.08)],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Palette.divider.opacity(0.3), lineWidth: 1)
-                    )
-                }
-            }
-            .frame(width: width, height: height)
+            Image(asset)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: width, height: height)
 
             if let caption {
                 // Bottom gradient + caption pinned bottom-left
@@ -2701,7 +2681,7 @@ struct OnboardingView: View {
             Spacer().frame(height: Space.lg)
 
             Text("What people are saying")
-                .font(.system(size: 28, weight: .bold))
+                .font(Typo.title)
                 .foregroundStyle(Palette.textPrimary)
 
             Spacer().frame(height: Space.lg)
@@ -2764,7 +2744,7 @@ struct OnboardingView: View {
                 Spacer()
                 AnimatedIcon(name: "calendar", size: 52)
                 Spacer().frame(height: Space.lg)
-                Text("30 days.\n5 exercises.\nOne mission.").font(.system(size: 28, weight: .bold))
+                Text("30 days.\n5 exercises.\nOne mission.").font(Typo.title)
                     .foregroundStyle(Palette.textPrimary).multilineTextAlignment(.center)
                 Spacer().frame(height: Space.sm)
                 Text("Start with plank. Earn the rest.\nYour core score tracks everything.")
@@ -2931,7 +2911,7 @@ struct OnboardingView: View {
                         sticker: .heartGlossy
                     )
                     trainerRow(
-                        id: "balanced", photo: "coach-matson", name: "Matson",
+                        id: "balanced", photo: "coach-matson", name: "Sam",
                         vibe: "Chill & Playful",
                         quote: "\"We're gonna have a good time\"",
                         preview: "matson_preview",
@@ -2949,7 +2929,7 @@ struct OnboardingView: View {
                     withAnimation(.spring(response: 0.3)) { showFeedback = true }
                     Haptics.success()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
-                        withAnimation(.easeOut(duration: 0.2)) { showFeedback = false }
+                        withAnimation(Motion.exit) { showFeedback = false }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                             go(180)
                         }
@@ -2976,20 +2956,11 @@ struct OnboardingView: View {
             HStack(spacing: 14) {
                 // Tall portrait photo
                 ZStack(alignment: .bottomTrailing) {
-                    Group {
-                        if UIImage(named: photo) != nil {
-                            Image(photo).resizable().aspectRatio(contentMode: .fill)
-                        } else {
-                            LinearGradient(
-                                colors: id == "keepItReal" ? [Palette.accent, Palette.stateWarn] :
-                                        id == "encouraging" ? [Palette.stateGood, Palette.accentSubtle] :
-                                        [Palette.bgInverse, Palette.accent.opacity(0.6)],
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            )
-                        }
-                    }
-                    .frame(width: 80, height: 100)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    Image(photo)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 80, height: 100)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     // Playing indicator
                     if playing {
@@ -3077,8 +3048,19 @@ struct OnboardingView: View {
         switch voicePreference {
         case "keepItReal": return "Kira"
         case "encouraging": return "Jeni"
-        case "balanced": return "Matson"
+        case "balanced": return "Sam"
         default: return "coach"
+        }
+    }
+
+    /// Mirror of NotificationPermission.dailyReminderBody — kept in
+    /// sync so the onboarding mockup matches what the user actually
+    /// receives post-grant. Don't drift.
+    private var notificationPreviewBody: String {
+        switch voicePreference {
+        case "encouraging": return "Your workout is ready. Your coach is waiting."
+        case "balanced":    return "Your workout is ready. Sam's got something for you."
+        default:            return "Your workout is ready. Don't make Kira wait."
         }
     }
 
@@ -3364,7 +3346,8 @@ struct OnboardingView: View {
                 // visual anchor of the screen. numericText transition
                 // ticks it smoothly as the progress advances.
                 Text("\(Int(carouselProgress * 100))%")
-                    .font(.custom("Fraunces72pt-SemiBold", size: 64))
+                    .font(.custom("Fraunces72pt-SemiBold", size: 64, relativeTo: .largeTitle))
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                     .foregroundStyle(Palette.textPrimary)
                     .contentTransition(.numericText())
 
@@ -3603,11 +3586,17 @@ struct OnboardingView: View {
         return cal.date(byAdding: .day, value: max(28, days), to: Date()) ?? Date()
     }
 
-    /// "Mar 5" style. Short month + day, no year.
-    private func formatGoalDate(_ date: Date) -> String {
+    /// Cached — DateFormatter init is ~10ms and the prediction-screen chart
+    /// animation re-evaluates this date label each frame.
+    private static let goalDateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "MMM d"
-        return f.string(from: date)
+        return f
+    }()
+
+    /// "Mar 5" style. Short month + day, no year.
+    private func formatGoalDate(_ date: Date) -> String {
+        Self.goalDateFormatter.string(from: date)
     }
 
     /// JeniFit goal phrasing derived from bodyFocus (Phase 4 multi-select).
@@ -3899,7 +3888,7 @@ struct OnboardingView: View {
     ]
 
     private var planRevealScreen: some View {
-        let coachName = voicePreference == "encouraging" ? "Jeni" : voicePreference == "balanced" ? "Matson" : "Kira"
+        let coachName = voicePreference == "encouraging" ? "Jeni" : voicePreference == "balanced" ? "Sam" : "Kira"
         let coachPhoto = voicePreference == "encouraging" ? "coach-jeni" : voicePreference == "balanced" ? "coach-matson" : "coach-kira"
         let goalLabel = jenifitGoalLabel()
 
@@ -4187,10 +4176,15 @@ struct OnboardingView: View {
                         .tracking(1.5)
                         .foregroundStyle(Palette.textSecondary)
                 }
-                Text("JeniFit")
+                // Notification preview — must match what
+                // NotificationPermission.dailyReminderBody() actually
+                // schedules so the user isn't surprised post-grant.
+                // Title is "Time to work" with voice-adaptive body
+                // depending on the coach picked above this screen.
+                Text("Time to work")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Palette.textPrimary)
-                Text("Time to plank — your coach is waiting.")
+                Text(notificationPreviewBody)
                     .font(.system(size: 14))
                     .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -4291,7 +4285,7 @@ struct OnboardingView: View {
                 Spacer().frame(height: Space.md)
 
                 Text("Your core activates\nbefore every movement\nyou make.")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(Typo.title)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
                     .opacity(factVisible ? 1 : 0)
@@ -4313,7 +4307,7 @@ struct OnboardingView: View {
             }.padding(.horizontal, Space.screenPadding)
         }
         .onAppear {
-            withAnimation(.easeOut(duration: 0.5)) { factVisible = true }
+            withAnimation(Motion.entrance) { factVisible = true }
         }
     }
 
@@ -4326,7 +4320,7 @@ struct OnboardingView: View {
             Spacer()
 
             Text("Why JeniFit\nworks")
-                .font(.system(size: 28, weight: .bold))
+                .font(Typo.title)
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
                 .opacity(featureVisible ? 1 : 0)
@@ -4354,7 +4348,7 @@ struct OnboardingView: View {
                 .opacity(featureVisible ? 1 : 0)
         }
         .onAppear {
-            withAnimation(.easeOut(duration: 0.4)) { featureVisible = true }
+            withAnimation(Motion.entranceSoft) { featureVisible = true }
         }
     }
 
@@ -4390,14 +4384,12 @@ struct OnboardingView: View {
     // MARK: - BEFORE/AFTER STAT (screen 16)
     // ═══════════════════════════════════════
 
-    @State private var statCount = 0
-
     private var beforeAfterScreen: some View {
         VStack(spacing: 0) {
             Spacer()
 
             Text("What 5 minutes a day\nlooks like")
-                .font(.system(size: 28, weight: .bold))
+                .font(Typo.title)
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
                 .opacity(beforeAfterVisible ? 1 : 0)
@@ -4457,7 +4449,7 @@ struct OnboardingView: View {
         }
         .background(Palette.bgPrimary)
         .onAppear {
-            withAnimation(.easeOut(duration: 0.4)) { beforeAfterVisible = true }
+            withAnimation(Motion.entranceSoft) { beforeAfterVisible = true }
         }
     }
 
@@ -4528,7 +4520,7 @@ struct OnboardingView: View {
 
             if !name.trimmingCharacters(in: .whitespaces).isEmpty {
                 Text("Built for \(name)")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(Typo.titleItalic)
                     .foregroundStyle(Palette.textPrimary)
                     .opacity(personalStatVisible ? 1 : 0)
                     .offset(y: personalStatVisible ? 0 : 10)
@@ -4571,7 +4563,7 @@ struct OnboardingView: View {
         .background(Palette.bgPrimary)
         .onAppear {
             Haptics.success()
-            withAnimation(.easeOut(duration: 0.5)) { personalStatVisible = true }
+            withAnimation(Motion.entrance) { personalStatVisible = true }
         }
     }
 
@@ -4657,7 +4649,11 @@ struct OnboardingView: View {
         let fromIdx = Self.flowOrder.firstIndex(of: screen) ?? 0
         let toIdx = Self.flowOrder.firstIndex(of: to) ?? 0
         dir = toIdx >= fromIdx ? 1 : -1
-        withAnimation(.easeOut(duration: 0.3)) { screen = to }
+        // Phase 20b: was 0.3s easeOut — read as rushed on a 26-screen
+        // flow where every transition is the user's full attention.
+        // Motion.crossFade (0.45s easeInOut) gives the slide more swell
+        // without dragging.
+        withAnimation(Motion.crossFade) { screen = to }
     }
     private func goBack() {
         // Walk one step backward in flowOrder. Raw screen index math
@@ -5276,38 +5272,6 @@ struct OnboardingData {
 
 // MARK: - CTA Button Style
 
-// MARK: - Wobbly Rect (slightly uneven rounded corners)
-
-struct WobblyRect: Shape {
-    func path(in rect: CGRect) -> Path {
-        let w = rect.width, h = rect.height
-        var p = Path()
-        p.move(to: CGPoint(x: w * 0.5, y: h * 0.005))
-        p.addCurve(
-            to: CGPoint(x: w * 0.995, y: h * 0.49),
-            control1: CGPoint(x: w * 0.77, y: -h * 0.01),
-            control2: CGPoint(x: w * 1.005, y: h * 0.21)
-        )
-        p.addCurve(
-            to: CGPoint(x: w * 0.505, y: h * 0.995),
-            control1: CGPoint(x: w * 1.0, y: h * 0.78),
-            control2: CGPoint(x: w * 0.78, y: h * 1.01)
-        )
-        p.addCurve(
-            to: CGPoint(x: w * 0.005, y: h * 0.51),
-            control1: CGPoint(x: w * 0.23, y: h * 1.005),
-            control2: CGPoint(x: w * 0.0, y: h * 0.79)
-        )
-        p.addCurve(
-            to: CGPoint(x: w * 0.5, y: h * 0.005),
-            control1: CGPoint(x: w * 0.005, y: h * 0.22),
-            control2: CGPoint(x: w * 0.24, y: -h * 0.005)
-        )
-        p.closeSubpath()
-        return p
-    }
-}
-
 /// Press-feedback wrapper applied on top of buttons that already paint their
 /// own background. Renamed from CTAButtonStyle in JeniFit phase 2; the
 /// canonical brand button style now lives in DesignSystem/Components.swift
@@ -5320,59 +5284,6 @@ struct PressFeedbackStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
             .opacity(configuration.isPressed ? 0.85 : 1.0)
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
-    }
-}
-
-// MARK: - Rough Capsule (hand-drawn feel)
-
-struct RoughCapsule: Shape {
-    func path(in rect: CGRect) -> Path {
-        // Inset slightly so the rough edges have room
-        let r = rect.insetBy(dx: 2, dy: 2)
-        let w = r.width, h = r.height
-        let ox = r.minX, oy = r.minY
-
-        var path = Path()
-        // Start left center
-        path.move(to: CGPoint(x: ox + h * 0.4, y: oy + h * 0.5))
-        // Left cap (slightly uneven)
-        path.addCurve(
-            to: CGPoint(x: ox + h * 0.5, y: oy + h * 0.03),
-            control1: CGPoint(x: ox - h * 0.02, y: oy + h * 0.15),
-            control2: CGPoint(x: ox + h * 0.1, y: oy - h * 0.04)
-        )
-        // Top edge (slight wave)
-        path.addCurve(
-            to: CGPoint(x: ox + w - h * 0.5, y: oy + h * 0.06),
-            control1: CGPoint(x: ox + w * 0.35, y: oy - h * 0.02),
-            control2: CGPoint(x: ox + w * 0.65, y: oy + h * 0.08)
-        )
-        // Right cap
-        path.addCurve(
-            to: CGPoint(x: ox + w - h * 0.4, y: oy + h * 0.55),
-            control1: CGPoint(x: ox + w - h * 0.08, y: oy - h * 0.02),
-            control2: CGPoint(x: ox + w + h * 0.03, y: oy + h * 0.2)
-        )
-        // Right cap bottom
-        path.addCurve(
-            to: CGPoint(x: ox + w - h * 0.5, y: oy + h * 0.97),
-            control1: CGPoint(x: ox + w + h * 0.02, y: oy + h * 0.85),
-            control2: CGPoint(x: ox + w - h * 0.1, y: oy + h * 1.03)
-        )
-        // Bottom edge (slight wave)
-        path.addCurve(
-            to: CGPoint(x: ox + h * 0.5, y: oy + h * 0.94),
-            control1: CGPoint(x: ox + w * 0.6, y: oy + h * 1.04),
-            control2: CGPoint(x: ox + w * 0.35, y: oy + h * 0.92)
-        )
-        // Left cap close
-        path.addCurve(
-            to: CGPoint(x: ox + h * 0.4, y: oy + h * 0.5),
-            control1: CGPoint(x: ox + h * 0.08, y: oy + h * 1.05),
-            control2: CGPoint(x: ox - h * 0.03, y: oy + h * 0.8)
-        )
-        path.closeSubpath()
-        return path
     }
 }
 

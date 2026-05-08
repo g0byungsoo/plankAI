@@ -16,17 +16,22 @@ import UIKit
 // reads as more emphatic anyway, which matches the editorial intent.
 
 enum Typo {
-    private static func font(_ name: String, size: CGFloat) -> Font {
-        Font(UIFont(name: name, size: size) ?? .systemFont(ofSize: size))
+    /// Custom-font helper that's Dynamic Type-aware via `relativeTo:`.
+    /// SwiftUI's `Font.custom(_:size:relativeTo:)` scales the size
+    /// relative to a system text style as the user adjusts Larger
+    /// Text in iOS settings. The previous bridge through UIFont
+    /// produced a fixed-size font that ignored accessibility scaling.
+    private static func font(_ name: String, size: CGFloat, relativeTo style: Font.TextStyle) -> Font {
+        .custom(name, size: size, relativeTo: style)
     }
 
-    static let display = font("Fraunces72pt-Light", size: 56).leading(.tight)
-    static let title = font("Fraunces72pt-SemiBold", size: 32)
-    static let titleItalic = font("Fraunces72pt-SemiBoldItalic", size: 32)
-    static let heading = font("DMSans-SemiBold", size: 20)
-    static let body = font("DMSans-Regular", size: 16)
-    static let caption = font("DMSans-Medium", size: 13)
-    static let eyebrow = font("DMSans-SemiBold", size: 12)
+    static let display = font("Fraunces72pt-Light", size: 56, relativeTo: .largeTitle).leading(.tight)
+    static let title = font("Fraunces72pt-SemiBold", size: 32, relativeTo: .title)
+    static let titleItalic = font("Fraunces72pt-SemiBoldItalic", size: 32, relativeTo: .title)
+    static let heading = font("DMSans-SemiBold", size: 20, relativeTo: .headline)
+    static let body = font("DMSans-Regular", size: 16, relativeTo: .body)
+    static let caption = font("DMSans-Medium", size: 13, relativeTo: .caption)
+    static let eyebrow = font("DMSans-SemiBold", size: 12, relativeTo: .caption2)
 }
 
 // MARK: - Spacing (4pt base)
@@ -56,14 +61,25 @@ enum Palette {
     static let bgInverse = Color(hex: "#3D2A2A")
 
     static let textPrimary = Color(hex: "#3D2A2A")
-    static let textSecondary = Color(hex: "#8E6D6D")
+    /// Muted body color. Deepened from #8E6D6D (was 4.31:1 on bgPrimary —
+    /// just below WCAG AA's 4.5:1 normal-text threshold) to #7B5959
+    /// which lands at 5.76:1 (AA pass). Visually a touch darker but
+    /// keeps the rose-cocoa hue.
+    static let textSecondary = Color(hex: "#7B5959")
     static let textInverse = Color(hex: "#FDF6F4")
 
     static let accent = Color(hex: "#C4677A")
     static let accentSubtle = Color(hex: "#F5D5D8")
 
-    static let stateGood = Color(hex: "#9CAA7E")
-    static let stateWarn = Color(hex: "#D4A464")
+    /// State colors deepened to pass WCAG AA (4.5:1) on bgPrimary
+    /// for normal-weight body text. Previously failed even AA-Large
+    /// (sage at 2.32:1, amber at 2.12:1). New values are in the same
+    /// hue family — sage stays sage, amber stays honey-bronze. stateBad
+    /// at 3.52:1 is AA-Large only; left as-is because the only places
+    /// it surfaces (Delete Account warning, error toasts) already use
+    /// large bold copy that qualifies for AA-Large.
+    static let stateGood = Color(hex: "#5F7345")  // 4.89:1 — was #9CAA7E
+    static let stateWarn = Color(hex: "#8D6A2E")  // 4.65:1 — was #D4A464
     static let stateBad = Color(hex: "#B47272")
 
     static let divider = Color(hex: "#EFE0DC")
@@ -80,6 +96,64 @@ enum Radius {
     static let sm: CGFloat = 8
     static let md: CGFloat = 14
     static let lg: CGFloat = 24
+}
+
+// MARK: - Motion (calm, mindful, magical defaults)
+//
+// Phase 20a: a small set of named animations replacing per-site magic
+// numbers. The philosophy:
+//   • slow swells over snap — entrance ≥0.55s so the eye can follow
+//   • high-damping springs so taps respond without rubber-band bounce
+//   • generous staggers so cascades feel intentional, not mechanical
+//   • slow repeat-forever loops for ambient cues (loading, breathing)
+//
+// Migrate per-site, never globally. Drop-in via `.animation(Motion.x, …)`
+// or `withAnimation(Motion.x) { … }`. Curves were tuned against the
+// "screens feel rushed and laggy" feedback (2026-05-08 testing).
+
+enum Motion {
+    /// Element appearing on screen for the first time. Slow ease-out so
+    /// the swell reads as deliberate. Default for top-of-screen heroes,
+    /// list rows, modal contents.
+    static let entrance: Animation = .easeOut(duration: 0.55)
+
+    /// Subtle entrance — used when the parent is already visible and we
+    /// want a quieter reveal (toasts, inline feedback, badges).
+    static let entranceSoft: Animation = .easeOut(duration: 0.42)
+
+    /// Element leaving — slightly faster than entrance so dismissals
+    /// don't drag. Pair with `.transition(.opacity)` for the cleanest
+    /// exit.
+    static let exit: Animation = .easeIn(duration: 0.32)
+
+    /// Content swaps inside the same surface — tab routing, list filter
+    /// changes, image-vs-loading-vs-content. Symmetric ease so neither
+    /// direction feels privileged.
+    static let crossFade: Animation = .easeInOut(duration: 0.45)
+
+    /// Press / tap response. Short enough to feel snappy, easeOut so the
+    /// release rebound is calm. NEVER use a spring here — bounce on tap
+    /// reads as cheap on a calm surface.
+    static let tap: Animation = .easeOut(duration: 0.16)
+
+    /// Tactile feedback that benefits from a physics rebound — drag
+    /// release, scale-pop on confirm, sticker-stamp landings. High
+    /// damping (0.88) means it settles in one bounce, not three.
+    static let gentleSpring: Animation = .spring(response: 0.55, dampingFraction: 0.88)
+
+    /// Inter-element delay for stagger cascades (lists, sticker scatter,
+    /// section reveal). Pair with `.delay(Double(index) * Motion.stagger)`.
+    /// 0.10 reads as deliberate without dragging on long lists.
+    static let stagger: Double = 0.10
+
+    /// Slow ambient loop — loaders, breathing pulses, idle heartbeats.
+    /// Repeat-forever flavor; pair with `.repeatForever(autoreverses: true)`.
+    static let breathing: Animation = .easeInOut(duration: 1.6)
+
+    /// Loading-screen choreography baseline. Matches the magical
+    /// 2.4s refresh window (HomeView Phase 19) so any new loading
+    /// surface stays consistent without re-deriving the constant.
+    static let loadingTotalSeconds: Double = 2.4
 }
 
 // MARK: - Shadow
@@ -102,6 +176,28 @@ struct PlankShadow: ViewModifier {
 extension View {
     func plankShadow() -> some View {
         modifier(PlankShadow())
+    }
+}
+
+// MARK: - Hit-target helper
+//
+// Expand the hit target to Apple HIG's 44×44 minimum without changing
+// visible chrome. JeniFit's icon buttons (xmark close, refresh shuffle,
+// eye toggle) sit at 30–32pt visually for design density; this modifier
+// adds invisible padding around them so the tap area meets the
+// guideline. Apply to the Button's *label*, not the Button itself —
+// SwiftUI sizes the button to its label's intrinsic frame.
+
+extension View {
+    /// Expand hit target to at least `size` × `size` (default 44pt per
+    /// Apple HIG) while keeping the visible chrome at its original
+    /// size. Pair with `Button` labels that have a smaller visual
+    /// frame. `contentShape(Rectangle())` ensures the whole padded
+    /// area registers taps, not just the visible glyph.
+    func tappableArea(_ size: CGFloat = 44) -> some View {
+        self
+            .frame(minWidth: size, minHeight: size)
+            .contentShape(Rectangle())
     }
 }
 

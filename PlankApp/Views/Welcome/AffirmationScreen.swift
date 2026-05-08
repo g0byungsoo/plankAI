@@ -127,8 +127,12 @@ struct AffirmationScreen: View {
                     .opacity(line2Visible ? 1 : 0)
                     .scaleEffect(line2Visible ? 1.0 : 0.95)
 
+                // Line 3 promoted to italic — JeniFit voice signal
+                // (italic = the punch). Matches the becoming-tab + home
+                // greeting + welcome screen patterns where the closer
+                // line lands in italic Fraunces.
                 Text(kAffirmationLine3)
-                    .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
                     .opacity(line3Visible ? 1 : 0)
@@ -158,7 +162,7 @@ struct AffirmationScreen: View {
         }
 
         // t=0 background fade
-        withAnimation(.easeOut(duration: 0.4)) { bgVisible = true }
+        withAnimation(Motion.entranceSoft) { bgVisible = true }
 
         // Concurrent legs of the timeline. async let keeps everything
         // structured under .task — if the view unmounts (tap-skip
@@ -191,15 +195,15 @@ struct AffirmationScreen: View {
     private func revealText() async {
         try? await Task.sleep(nanoseconds: 800_000_000) // t=0.8
         await MainActor.run {
-            withAnimation(.easeOut(duration: 0.6)) { line1Visible = true }
+            withAnimation(Motion.entrance) { line1Visible = true }
         }
         try? await Task.sleep(nanoseconds: 1_200_000_000) // → t=2.0
         await MainActor.run {
-            withAnimation(.easeOut(duration: 0.6)) { line2Visible = true }
+            withAnimation(Motion.entrance) { line2Visible = true }
         }
         try? await Task.sleep(nanoseconds: 1_500_000_000) // → t=3.5
         await MainActor.run {
-            withAnimation(.easeOut(duration: 0.6)) { line3Visible = true }
+            withAnimation(Motion.entrance) { line3Visible = true }
         }
     }
 

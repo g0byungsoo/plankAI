@@ -15,6 +15,7 @@ struct ChangeTrainerView: View {
     @State private var cardOffset: [CGFloat] = [24, 24, 24]
     @State private var cardScale: [CGFloat] = [0.92, 0.92, 0.92]
     @State private var hasAnimated = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // Loading state
     @State private var isLoading = false
@@ -25,7 +26,7 @@ struct ChangeTrainerView: View {
     private let trainers: [(id: String, photo: String, name: String, vibe: String, quote: String, preview: String)] = [
         ("encouraging", "coach-jeni", "Jeni", "Warm & Supportive", "\"You're doing amazing — keep breathing.\"", "jeni_preview"),
         ("keepItReal", "coach-kira", "Kira", "Sassy & Real", "\"My mama planks better than this.\"", "kira_preview"),
-        ("balanced", "coach-matson", "Matson", "Chill & Playful", "\"Come on, we're gonna have a good time.\"", "matson_preview"),
+        ("balanced", "coach-matson", "Sam", "Chill & Playful", "\"Come on, we're gonna have a good time.\"", "matson_preview"),
     ]
 
     private let loadingWords = [
@@ -44,23 +45,14 @@ struct ChangeTrainerView: View {
 
     var body: some View {
         ZStack {
-            // Main content
             if !isLoading {
-                ScrollView {
+                ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: Space.lg) {
-                        VStack(alignment: .leading, spacing: Space.sm) {
-                            Text("Your Coach")
-                                .font(Typo.title)
-                                .foregroundStyle(Palette.textPrimary)
+                        header
+                            .opacity(headerOpacity)
+                            .offset(y: headerOffset)
 
-                            Text("Tap to preview their voice.")
-                                .font(Typo.body)
-                                .foregroundStyle(Palette.textSecondary)
-                        }
-                        .opacity(headerOpacity)
-                        .offset(y: headerOffset)
-
-                        VStack(spacing: 12) {
+                        VStack(spacing: Space.sm) {
                             ForEach(Array(trainers.enumerated()), id: \.element.id) { i, trainer in
                                 trainerCard(trainer)
                                     .opacity(cardOpacity[i])
@@ -69,45 +61,95 @@ struct ChangeTrainerView: View {
                             }
                         }
 
-                        // Change button
                         if hasChanged {
                             let newTrainer = trainers.first { $0.id == selectedId }
-                            Button {
-                                Haptics.vibrate()
-                                previewPlayer?.stop()
-                                startLoading(newName: newTrainer?.name ?? "coach")
-                            } label: {
-                                Text("Switch to \(newTrainer?.name ?? "coach")")
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundStyle(Palette.textInverse)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 48)
-                                    .background(Palette.bgInverse)
-                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            }
-                            .transition(.opacity.combined(with: .offset(y: 8)))
-                            .padding(.top, Space.sm)
+                            switchPill(newTrainer?.name ?? "coach")
+                                .transition(.opacity.combined(with: .offset(y: 8)))
+                                .padding(.top, Space.sm)
                         }
+
+                        Spacer().frame(height: Space.xl)
                     }
                     .padding(.horizontal, Space.screenPadding)
                     .padding(.top, Space.md)
-                    .padding(.bottom, 40)
                 }
                 .background(Palette.bgPrimary)
             }
 
-            // Loading screen
             if isLoading {
                 loadingScreen
                     .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: hasChanged)
+        .animation(Motion.crossFade, value: hasChanged)
         .onAppear {
             selectedId = voicePreference
             animateIn()
         }
         .onDisappear { previewPlayer?.stop() }
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Text("settings")
+                .font(Typo.eyebrow).tracking(2)
+                .foregroundStyle(Palette.accent)
+            Text("your coach.")
+                .font(Typo.titleItalic)
+                .foregroundStyle(Palette.textPrimary)
+            Text("tap to preview their voice.")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // Bow sticker — "pick your favorite", playful framing.
+        .overlay(alignment: .topTrailing) {
+            Image(StickerName.bowIridescent.assetName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 54, height: 54)
+                .rotationEffect(.degrees(-10))
+                .offset(x: 4, y: -8)
+                .opacity(StickerName.bowIridescent.style.opacity)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+
+    // MARK: - Switch pill
+
+    private func switchPill(_ name: String) -> some View {
+        Button {
+            Haptics.vibrate()
+            previewPlayer?.stop()
+            startLoading(newName: name)
+        } label: {
+            HStack {
+                Text("switch to \(name.lowercased())")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
+                Spacer()
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Palette.accent)
+            }
+            .foregroundStyle(Palette.textInverse)
+            .padding(.horizontal, Space.lg)
+            .frame(maxWidth: .infinity)
+            .frame(height: 60)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .fill(Palette.accent.opacity(0.18))
+                        .offset(x: 4, y: 4)
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .fill(Palette.bgInverse)
+                }
+            )
+        }
+        .buttonStyle(TrainerButtonStyle())
     }
 
     // MARK: - Loading Screen
@@ -153,7 +195,7 @@ struct ChangeTrainerView: View {
 
         for i in 0..<wordChanges {
             DispatchQueue.main.asyncAfter(deadline: .now() + interval * Double(i)) {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(Motion.crossFade) {
                     loadingWordIndex = (loadingWordIndex + 1) % loadingWords.count
                     loadingWord = loadingWords[loadingWordIndex]
                     loadingDots = ""
@@ -183,16 +225,27 @@ struct ChangeTrainerView: View {
         guard !hasAnimated else { return }
         hasAnimated = true
 
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.85).delay(0.1)) {
+        if reduceMotion {
+            headerOpacity = 1
+            headerOffset = 0
+            for i in 0..<3 {
+                cardOpacity[i] = 1
+                cardOffset[i] = 0
+                cardScale[i] = 1.0
+            }
+            return
+        }
+
+        withAnimation(Motion.gentleSpring.delay(0.1)) {
             headerOpacity = 1
             headerOffset = 0
         }
 
         for i in 0..<3 {
-            let delay = 0.2 + Double(i) * 0.12
+            let delay = 0.2 + Double(i) * Motion.stagger
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 Haptics.soft()
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.78)) {
+                withAnimation(Motion.gentleSpring) {
                     cardOpacity[i] = 1
                     cardOffset[i] = 0
                     cardScale[i] = 1.0
@@ -210,74 +263,83 @@ struct ChangeTrainerView: View {
 
         return Button {
             Haptics.medium()
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+            withAnimation(Motion.gentleSpring) {
                 selectedId = trainer.id
             }
             playPreview(trainer.preview, id: trainer.id)
         } label: {
-            HStack(spacing: 14) {
+            HStack(spacing: Space.md) {
                 Image(trainer.photo)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 56, height: 56)
+                    .frame(width: 64, height: 64)
                     .clipShape(Circle())
                     .overlay(
                         Circle()
-                            .stroke(isSelected ? Palette.accent : Color.clear, lineWidth: 2.5)
+                            .stroke(Palette.accent, lineWidth: 2)
                     )
                     .scaleEffect(isSelected ? 1.05 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
-                        Text(trainer.name)
-                            .font(.system(size: 16, weight: .semibold))
+                        Text(trainer.name.lowercased() + ".")
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 20))
                             .foregroundStyle(Palette.textPrimary)
 
                         if isCurrent {
                             Text("current")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(Typo.eyebrow).tracking(1)
                                 .foregroundStyle(Palette.stateGood)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(Palette.stateGood.opacity(0.1))
+                                .background(Palette.stateGood.opacity(0.12))
                                 .clipShape(Capsule())
                         }
                     }
 
-                    Text(trainer.vibe)
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.textSecondary)
+                    Text(trainer.vibe.lowercased())
+                        .font(Typo.eyebrow).tracking(2)
+                        .foregroundStyle(Palette.accent)
 
                     Text(trainer.quote)
-                        .font(.system(size: 12))
+                        .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                         .italic()
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Spacer()
+                Spacer(minLength: 0)
 
                 if isPlaying {
                     Image(systemName: "waveform")
-                        .font(.system(size: 14))
+                        .font(.system(size: 16))
                         .foregroundStyle(Palette.accent)
                         .symbolEffect(.variableColor.iterative)
                         .transition(.scale.combined(with: .opacity))
                 } else if isSelected && !isCurrent {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 18))
+                        .font(.system(size: 20))
                         .foregroundStyle(Palette.accent)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
-            .padding(14)
-            .background(isSelected ? Palette.accent.opacity(0.06) : Palette.bgElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(isSelected ? Palette.accent.opacity(0.3) : Color.clear, lineWidth: 1.5)
+            .padding(Space.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // Scrapbook chrome — accent border, hard offset shadow.
+            // Selected card gets a stronger accent fill.
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(Palette.accent.opacity(0.18))
+                        .offset(x: 4, y: 4)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(isSelected ? Palette.accent.opacity(0.10) : Palette.bgElevated)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(Palette.accent, lineWidth: isSelected ? 2 : 1.5)
+                }
             )
-            .plankShadow()
         }
         .buttonStyle(TrainerButtonStyle())
     }
@@ -299,6 +361,6 @@ private struct TrainerButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+            .animation(Motion.tap, value: configuration.isPressed)
     }
 }

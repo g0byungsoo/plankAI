@@ -48,19 +48,38 @@ struct DeleteAccountSheet: View {
 
     private var confirmContent: some View {
         VStack(alignment: .leading, spacing: Space.lg) {
-            Text("Delete your account?")
-                .font(Typo.title)
-                .foregroundStyle(Palette.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text("permanent")
+                    .font(Typo.eyebrow).tracking(2)
+                    .foregroundStyle(Palette.stateBad)
+                Text("delete your account?")
+                    .font(Typo.titleItalic)
+                    .foregroundStyle(Palette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
-            Text("This permanently deletes your routine history, progress, and account. If you have an active subscription, cancel it from your iOS Settings before continuing — deletion does not cancel App Store subscriptions.")
+            // Warning card with sage-style chrome but in stateBad red.
+            Text("this permanently deletes your routine history, progress, and account. if you have an active subscription, cancel it from your iOS settings first — deletion does not cancel App Store subscriptions.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(Space.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(Palette.stateBad.opacity(0.10))
+                            .offset(x: 4, y: 4)
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(Palette.bgElevated)
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .stroke(Palette.stateBad.opacity(0.55), lineWidth: 1.5)
+                    }
+                )
 
-            Spacer().frame(height: Space.sm)
+            Spacer().frame(height: Space.xs)
 
-            VStack(spacing: 12) {
+            VStack(spacing: Space.sm) {
                 deleteButton
                 cancelButton
             }
@@ -90,8 +109,8 @@ struct DeleteAccountSheet: View {
             }
         } label: {
             ZStack {
-                Text("Delete account")
-                    .font(.system(size: 16, weight: .bold))
+                Text("delete account")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
                     .foregroundStyle(Palette.textInverse)
                     .opacity(phase == .deleting ? 0 : 1)
                 if phase == .deleting {
@@ -99,9 +118,16 @@ struct DeleteAccountSheet: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .background(Palette.stateBad)
-            .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+            .frame(height: 56)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .fill(Palette.stateBad.opacity(0.20))
+                        .offset(x: 4, y: 4)
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .fill(Palette.stateBad)
+                }
+            )
         }
         .buttonStyle(PressFeedbackStyle())
         .disabled(phase == .deleting)
@@ -112,16 +138,21 @@ struct DeleteAccountSheet: View {
             Haptics.light()
             onCancel()
         } label: {
-            Text("Cancel")
-                .font(.system(size: 16, weight: .semibold))
+            Text("cancel")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
                 .foregroundStyle(Palette.textPrimary)
                 .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(Palette.bgElevated)
-                .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
-                        .stroke(Palette.divider, lineWidth: 1)
+                .frame(height: 56)
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .fill(Palette.divider.opacity(0.2))
+                            .offset(x: 3, y: 3)
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .fill(Palette.bgElevated)
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .stroke(Palette.divider, lineWidth: 1.5)
+                    }
                 )
         }
         .buttonStyle(PressFeedbackStyle())
@@ -134,10 +165,10 @@ struct DeleteAccountSheet: View {
         VStack(spacing: Space.md) {
             Spacer().frame(height: Space.lg)
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 48, weight: .regular))
+                .font(.system(size: 52, weight: .regular))
                 .foregroundStyle(Palette.stateGood)
-            Text("Account deleted")
-                .font(Typo.heading)
+            Text("account deleted.")
+                .font(Typo.titleItalic)
                 .foregroundStyle(Palette.textPrimary)
             Spacer().frame(height: Space.lg)
         }

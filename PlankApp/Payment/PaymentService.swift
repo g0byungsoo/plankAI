@@ -16,16 +16,40 @@ import RevenueCat
 @Observable
 final class PaymentService {
     static let shared = PaymentService()
-    private init() {}
+
+    /// UserDefaults key for the last-known entitlement state. Read at
+    /// init to seed hasProAccess so returning paying users don't see a
+    /// paywall flash before the customerInfoStream first emit lands;
+    /// written on every emit. Stale-true risk (churned user, cached true)
+    /// is bounded — the stream emit (typically <500ms after configure)
+    /// corrects any divergence and the next render re-evaluates the
+    /// paywall gate.
+    private static let lastKnownEntitlementKey = "PaymentService.lastKnownEntitlement"
+
+    private init() {
+        hasProAccess = UserDefaults.standard.bool(forKey: Self.lastKnownEntitlementKey)
+    }
 
     /// Whether `configure(appUserID:)` has run. Idempotent — guarded so a
     /// re-render of RootView's task block doesn't double-configure.
     private(set) var isConfigured: Bool = false
 
-    /// Whether the current user has the Pro entitlement active. Driven by
-    /// Purchases.shared.customerInfoStream — flips reactively on every
-    /// purchase, restore, expiration, or RevenueCat dashboard tweak.
+    /// Whether the current user has the Pro entitlement active. Seeded
+    /// in init from the last-known cached value (UserDefaults) so the
+    /// app doesn't render hasProAccess=false on every cold start; then
+    /// driven by Purchases.shared.customerInfoStream — flips reactively
+    /// on every purchase, restore, expiration, or RevenueCat dashboard
+    /// tweak.
     private(set) var hasProAccess: Bool = false
+
+    /// Whether the customerInfoStream has emitted at least once (or the
+    /// 3s safety timeout fired) since startCustomerInfoStream ran.
+    /// Default false; flips true on the first emit. RootView holds the
+    /// splash until this is true so the paywall fullScreenCover never
+    /// evaluates against a never-checked default — fixes the cold-start
+    /// paywall flash for paying users where hasProAccess hadn't been
+    /// confirmed yet by RevenueCat.
+    private(set) var isEntitlementReady: Bool = false
 
     /// True from the moment handleAuthChange flips RevenueCat's appUserID
     /// until the next customerInfoStream emit lands (or a 1s safety
@@ -51,6 +75,14 @@ final class PaymentService {
     /// so handleAuthChange can cancel the prior timeout when a new auth
     /// transition starts before the previous one's window closes.
     private var authTransitionSafetyTask: Task<Void, Never>?
+
+    /// Safety timeout that flips isEntitlementReady true even if the
+    /// customerInfoStream hangs (offline launch, RevenueCat outage).
+    /// Without this, RootView's splash would never dismiss for users
+    /// in that state. 3s is generous for cached emits (<500ms typical)
+    /// and short enough that users in a true offline launch see the
+    /// cached hasProAccess decision quickly.
+    private var entitlementReadyTimeoutTask: Task<Void, Never>?
 
     /// Last trial-end date we passed to TrialEndNotificationService.
     /// nil means no trial-active state was last observed. Used by
@@ -101,10 +133,12 @@ final class PaymentService {
                 guard let self else { return }
                 let isActive = customerInfo.entitlements[RevenueCatConfig.entitlementID]?.isActive ?? false
                 self.hasProAccess = isActive
+                UserDefaults.standard.set(isActive, forKey: Self.lastKnownEntitlementKey)
                 #if DEBUG
                 let activeKeys = customerInfo.entitlements.active.keys.sorted()
                 print("[PaymentService] customerInfo updated: hasProAccess=\(isActive) entitlements=\(activeKeys)")
                 #endif
+                self.markEntitlementReady(reason: "customerInfoStream emit")
                 // First emit since an auth change closes the suppression
                 // window early — paywall presentation is allowed again as
                 // soon as we know the new user's actual entitlement state.
@@ -112,6 +146,23 @@ final class PaymentService {
                 await self.reconcileTrialReminder(from: customerInfo)
             }
         }
+
+        entitlementReadyTimeoutTask?.cancel()
+        entitlementReadyTimeoutTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled else { return }
+            self?.markEntitlementReady(reason: "safety timeout")
+        }
+    }
+
+    private func markEntitlementReady(reason: String) {
+        guard !isEntitlementReady else { return }
+        isEntitlementReady = true
+        entitlementReadyTimeoutTask?.cancel()
+        entitlementReadyTimeoutTask = nil
+        #if DEBUG
+        print("[PaymentService] entitlement ready (\(reason))")
+        #endif
     }
 
     /// Single source of truth for trial-end notification scheduling.
@@ -214,7 +265,9 @@ final class PaymentService {
                 #endif
             }
         } catch {
+            #if DEBUG
             print("[PaymentService] auth sync FAILED: \(error)")
+            #endif
             // Failed network call won't trigger a stream emit; clear the
             // gate explicitly so the user isn't stuck in suppression
             // forever (until the safety timeout would fire anyway).

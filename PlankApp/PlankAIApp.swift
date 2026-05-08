@@ -39,6 +39,19 @@ struct PlankAIApp: App {
         // registration bypasses the Info.plist parsing entirely and survives
         // future font additions without re-touching project settings.
         Self.registerBundledFonts()
+
+        // Run the self-checks once at launch in DEBUG. Output is
+        // silent on success; failures print with a clear prefix so
+        // regressions surface in Xcode's console without needing a
+        // separate test target. Detached + low priority so the work
+        // doesn't block first-frame rendering.
+        #if DEBUG
+        Task.detached(priority: .background) {
+            _ = WorkoutGeneratorSelfCheck.runAll()
+            _ = StreakCalculatorSelfCheck.runAll()
+            _ = WeightSelfCheck.runAll()
+        }
+        #endif
     }
 
     private static func registerBundledFonts() {
@@ -72,6 +85,7 @@ struct PlankAIApp: App {
             ExerciseRecord.self,
             ExerciseCalibrationRecord.self,
             SessionRatingRecord.self,
+            WeightLogRecord.self,
         ])
     }
 }
@@ -108,6 +122,12 @@ private struct RootView: View {
     }
 
     var body: some View {
+        // Phase 20a: route swaps now cross-fade through Motion.crossFade
+        // (0.45s easeInOut) so cold-launch / onboarding-complete / auth-
+        // resolved transitions stop snapping. Per-leaf `.transition(.opacity)`
+        // is required for SwiftUI to interpolate between sibling views;
+        // the watch-value `.animation(_:value:)` chain at the bottom of
+        // the Group fires on every state that drives a route change.
         Group {
             // Branch on onboarding state first so the first-launch
             // AffirmationScreen can win over the loader for brand-new
@@ -117,8 +137,17 @@ private struct RootView: View {
             // (a single quote on cream + sticker scatter, no wordmark)
             // until bootstrap completes.
             if hasCompletedOnboarding {
-                if auth.isReady {
+                // Hold the splash until BOTH auth and the first
+                // entitlement check have resolved. Without the
+                // isEntitlementReady gate, returning paying users see a
+                // ~200-500ms paywall flash on cold launch because
+                // hasProAccess defaults to its cached value (or false on
+                // fresh install) before customerInfoStream has emitted
+                // RevenueCat's authoritative answer. The seeded cache +
+                // 3s safety timeout in PaymentService bound the wait.
+                if auth.isReady && payment.isEntitlementReady {
                     MainTabView()
+                        .transition(.opacity)
                         .fullScreenCover(isPresented: .constant(!payment.hasProAccess && !payment.isInAuthTransition)) {
                             // Hard paywall — sits between onboarding completion
                             // and MainTabView. dismissable: false hides the X
@@ -140,7 +169,9 @@ private struct RootView: View {
                                         do {
                                             _ = try await Purchases.shared.restorePurchases()
                                         } catch {
+                                            #if DEBUG
                                             print("[Paywall] restore FAILED: \(error)")
+                                            #endif
                                         }
                                     }
                                 },
@@ -151,12 +182,14 @@ private struct RootView: View {
                     AffirmationLoaderScreen(state: auth.bootstrapState) {
                         Task { await auth.retryBootstrap() }
                     }
+                    .transition(.opacity)
                 }
             } else {
                 if !affirmationDone {
                     AffirmationScreen {
                         affirmationDone = true
                     }
+                    .transition(.opacity)
                 } else if !auth.isReady {
                     // Rare edge case: affirmation finished but auth is
                     // still resolving (very slow network on first launch).
@@ -165,11 +198,22 @@ private struct RootView: View {
                     AffirmationLoaderScreen(state: auth.bootstrapState) {
                         Task { await auth.retryBootstrap() }
                     }
+                    .transition(.opacity)
                 } else {
                     OnboardingView(onComplete: handleOnboardingComplete)
+                        .transition(.opacity)
                 }
             }
         }
+        // Cross-fade between route states. Each watch-value triggers a
+        // re-evaluation of the Group; SwiftUI interpolates between the
+        // outgoing leaf and the incoming one because every leaf carries
+        // an explicit `.transition(.opacity)`. Without these, a route
+        // swap reads as a hard cut even with the .animation modifier.
+        .animation(Motion.crossFade, value: hasCompletedOnboarding)
+        .animation(Motion.crossFade, value: auth.isReady)
+        .animation(Motion.crossFade, value: payment.isEntitlementReady)
+        .animation(Motion.crossFade, value: affirmationDone)
         .task {
             // Order matters: auth bootstrap → AppSync configure + onLaunch.
             // AppSync needs both AuthService.currentUser and the model
@@ -218,6 +262,13 @@ private struct RootView: View {
         UserDefaults.standard.set(data.baselineHoldSeconds, forKey: "userBaselineSeconds")
         UserDefaults.standard.set(data.barriers.joined(separator: ","), forKey: "userBarriers")
         UserDefaults.standard.set(data.notificationsEnabled, forKey: "notificationsEnabled")
+        // Phase A: AnalyticsView reads weights via @AppStorage. Without
+        // this write the keys default to 0, the chart's starting-baseline
+        // path never fires, and the seed-on-onboarding step below is
+        // dead weight. (Bug existed silently — OnboardingView held weight
+        // in @State only.)
+        UserDefaults.standard.set(data.currentWeightKg, forKey: "onboardingCurrentWeightKg")
+        UserDefaults.standard.set(data.goalWeightKg, forKey: "onboardingGoalWeightKg")
 
         // Persist the profile to SwiftData + Supabase. Anonymous-first
         // bootstrap guarantees currentUserId exists by the time onboarding
@@ -229,6 +280,24 @@ private struct RootView: View {
             // SyncService.upsertUser swallows them and the next anon → named
             // transition will retry.
             Task { await AppSync.shared.upsertUser(record) }
+
+            // Phase A: seed the first weight log at the actual onboarding
+            // completion moment (not lazily on first Analytics view, which
+            // pre-Phase-A dated the row at view-time and was prone to never
+            // firing if the user logged a manual weight first). Source
+            // tagged "onboarding" so the analytics surface can label it
+            // distinctly from manual logs.
+            if data.currentWeightKg > 0 {
+                let log = WeightLogRecord(
+                    userId: userId,
+                    weightKg: data.currentWeightKg,
+                    loggedAt: .now,
+                    source: "onboarding"
+                )
+                modelContext.insert(log)
+                try? modelContext.save()
+                Task { await AppSync.shared.upsertWeightLog(log) }
+            }
         } else {
             os_log("onboarding complete but no current auth user; profile not persisted",
                    log: .default, type: .error)

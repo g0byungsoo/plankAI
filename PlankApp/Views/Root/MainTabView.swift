@@ -1,60 +1,41 @@
 import SwiftUI
 
-enum AppTab: String, CaseIterable {
-    case workout
-    case log
-}
-
+/// iOS 26 native TabView. Picking native over the prior custom HStack
+/// pill so we get liquid glass styling for free — and so future tabs
+/// (search, profile, etc.) can be added without reinventing chrome.
+///
+/// `Tab` (iOS 18+) gets us the cleanest declaration; on iOS 26 the bar
+/// renders as liquid glass automatically.
 struct MainTabView: View {
-    @State private var selectedTab: AppTab = .workout
-    @State private var hasOpenedLog = false
 
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            HomeView()
-                .opacity(selectedTab == .workout ? 1 : 0)
-                .allowsHitTesting(selectedTab == .workout)
-
-            if hasOpenedLog {
-                AnalyticsView()
-                    .opacity(selectedTab == .log ? 1 : 0)
-                    .allowsHitTesting(selectedTab == .log)
-            }
-
-            // iOS-style pill tab bar
-            HStack(spacing: 0) {
-                tabButton(.workout, label: "workout")
-                tabButton(.log, label: "log")
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 6)
-            .background(
-                Capsule()
-                    .fill(Palette.bgElevated)
-                    .shadow(color: Palette.bgInverse.opacity(0.06), radius: 16, y: 6)
-            )
-            .padding(.bottom, 20)
-        }
+    enum AppTab: Hashable {
+        case workout
+        case log
     }
 
-    private func tabButton(_ tab: AppTab, label: String) -> some View {
-        Button {
-            Haptics.light()
-            if tab == .log { hasOpenedLog = true }
-            withAnimation(.easeInOut(duration: 0.2)) {
-                selectedTab = tab
-            }
-        } label: {
-            Text(label)
-                .font(.system(size: 14, weight: selectedTab == tab ? .semibold : .medium))
-                .foregroundStyle(selectedTab == tab ? Palette.textInverse : Palette.textSecondary)
-                .padding(.horizontal, 28)
-                .padding(.vertical, 12)
-                .background(
-                    selectedTab == tab
-                        ? Capsule().fill(Palette.bgInverse)
-                        : Capsule().fill(Color.clear)
-                )
+    @State private var selectedTab: AppTab = .workout
+
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            // Mindful naming: "present" for today's plan + active state,
+            // "past" for the log of what's already happened. The pair reads
+            // as a meditation cue, not a feature menu, which fits the
+            // JeniFit voice better than "Workout / Log".
+            HomeView()
+                .tabItem {
+                    Label("present", systemImage: "sparkles")
+                }
+                .tag(AppTab.workout)
+
+            AnalyticsView()
+                .tabItem {
+                    // "becoming" leans into Dweck/Burnette growth-mindset
+                    // research — present-progressive framing accommodates
+                    // plateaus better than the static "past" frame did.
+                    Label("becoming", systemImage: "book.closed.fill")
+                }
+                .tag(AppTab.log)
         }
+        .tint(Palette.accent)
     }
 }
