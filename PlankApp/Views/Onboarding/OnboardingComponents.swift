@@ -80,15 +80,17 @@ struct AnswerFeedback: View {
 struct PhotoSlot: View {
     let name: String
     let height: CGFloat
+    private let assetExists: Bool
 
     init(_ name: String, height: CGFloat = 200) {
         self.name = name
         self.height = height
+        self.assetExists = UIImage(named: name) != nil
     }
 
     var body: some View {
         Group {
-            if UIImage(named: name) != nil {
+            if assetExists {
                 Image(name)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -157,6 +159,15 @@ struct ConfettiView: View {
 // MARK: - Notification Permission
 
 struct NotificationPermission {
+    /// Canonical identifier for the user's daily workout reminder.
+    /// Both schedulers (onboarding completion + Settings tab) write to
+    /// this so changing the time later doesn't leave a duplicate
+    /// pending. The legacy `daily-plank` identifier (from the
+    /// pre-JeniFit rebrand) is also removed during scheduling — covers
+    /// users who set the reminder before this fix shipped.
+    static let dailyReminderIdentifier = "daily_reminder"
+    private static let legacyIdentifier = "daily-plank"
+
     static func request() async -> Bool {
         let center = UNUserNotificationCenter.current()
         do {
@@ -167,13 +178,24 @@ struct NotificationPermission {
         }
     }
 
+    /// Schedule the daily reminder at `time`. Idempotent — calling
+    /// twice with different times replaces the prior pending request
+    /// (single identifier) and clears any legacy `daily-plank`. Body
+    /// adapts to the selected coach so the reminder reads in the same
+    /// voice the user picked in onboarding.
     static func scheduleDailyReminder(at time: Date) {
         let center = UNUserNotificationCenter.current()
-        center.removeAllPendingNotificationRequests()
+        // Remove BOTH the canonical and legacy identifiers — surgical,
+        // doesn't touch the trial-end notification (different id) the
+        // way removeAllPendingNotificationRequests() would have.
+        center.removePendingNotificationRequests(withIdentifiers: [
+            dailyReminderIdentifier,
+            legacyIdentifier
+        ])
 
         let content = UNMutableNotificationContent()
-        content.title = "Time to plank"
-        content.body = "Your coach is waiting. Don't make her roast you for no-showing."
+        content.title = "Time to work"
+        content.body = dailyReminderBody()
         content.sound = .default
 
         let calendar = Calendar.current
@@ -182,8 +204,25 @@ struct NotificationPermission {
         components.minute = calendar.component(.minute, from: time)
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
-        let request = UNNotificationRequest(identifier: "daily-plank", content: content, trigger: trigger)
+        let request = UNNotificationRequest(
+            identifier: dailyReminderIdentifier,
+            content: content,
+            trigger: trigger
+        )
         center.add(request)
+    }
+
+    /// Voice-adaptive body. Pulls `voicePreference` from UserDefaults
+    /// (same key NotificationSettingsView uses) so the reminder reads
+    /// in the trainer's voice. Default = encouraging (Jeni → "Sarah"
+    /// voice copy still pending the rename pass).
+    private static func dailyReminderBody() -> String {
+        let pref = UserDefaults.standard.string(forKey: "voicePreference") ?? "encouraging"
+        switch pref {
+        case "encouraging": return "Your workout is ready. Your coach is waiting."
+        case "balanced":    return "Your workout is ready. Sam's got something for you."
+        default:            return "Your workout is ready. Don't make Kira wait."
+        }
     }
 }
 

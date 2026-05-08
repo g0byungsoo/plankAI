@@ -206,6 +206,41 @@ ON CONFLICT (type) DO UPDATE SET
     is_static = EXCLUDED.is_static;
 
 -- =====================================================================
+-- public.weight_logs — append-only weight history
+-- =====================================================================
+--
+-- Phase 7 (weight-loss analytics). Append-only timeline of weigh-ins;
+-- the analytics surface reads this to draw the 7-day EMA trend.
+-- See docs/weight_loss_analytics_research.md.
+--
+-- `source` audits input modality:
+--   onboarding   — seeded from users.onboarding_current_weight_kg
+--   manual       — user typed it on the analytics tab
+--   healthkit    — pulled from Apple Health (Phase 7b)
+--
+-- Client-generated UUIDs so crash retries idempotently upsert.
+
+CREATE TABLE IF NOT EXISTS public.weight_logs (
+    id text PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    weight_kg double precision NOT NULL,
+    logged_at timestamptz NOT NULL DEFAULT now(),
+    source text NOT NULL DEFAULT 'manual',
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS weight_logs_user_logged_idx
+    ON public.weight_logs (user_id, logged_at DESC);
+
+-- 2026-05-07 — Postgres GRANT for the authenticated role.
+-- Tables created via raw SQL (vs. the Supabase Table Editor UI) don't get
+-- the implicit role grants the dashboard adds; without this, every insert
+-- 42501s "permission denied" before RLS even evaluates. Idempotent — Postgres
+-- allows re-granting the same privileges. Anonymous-bootstrap users still
+-- run as `authenticated` (not `anon`), so this single grant covers them.
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.weight_logs TO authenticated;
+
+-- =====================================================================
 -- (Optional) Auto-create users profile row on auth.users insert
 -- =====================================================================
 --

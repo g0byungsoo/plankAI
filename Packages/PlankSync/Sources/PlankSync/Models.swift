@@ -247,6 +247,42 @@ public final class SessionRatingRecord {
     }
 }
 
+// MARK: - Weight Log
+//
+// Append-only weight history. Each entry is a single weigh-in. Source tags
+// the input modality so we can audit data quality later (manual entries are
+// trusted differently than HealthKit pulls).
+//
+// See `docs/weight_loss_analytics_research.md` — weight trend (7-day EMA)
+// is the load-bearing metric for the analytics surface; without history,
+// the trend chart can't render.
+
+@Model
+public final class WeightLogRecord {
+    @Attribute(.unique) public var id: String   // client-generated UUID
+    public var userId: String
+    public var weightKg: Double
+    public var loggedAt: Date
+    /// One of: "onboarding" | "manual" | "healthkit" | "apple_health"
+    public var source: String
+    public var pendingUpsert: Bool
+
+    public init(
+        id: String = UUID().uuidString,
+        userId: String,
+        weightKg: Double,
+        loggedAt: Date = .now,
+        source: String = "manual"
+    ) {
+        self.id = id
+        self.userId = userId
+        self.weightKg = weightKg
+        self.loggedAt = loggedAt
+        self.source = source
+        self.pendingUpsert = true
+    }
+}
+
 // MARK: - Exercise
 
 @Model

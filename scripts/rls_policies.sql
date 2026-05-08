@@ -71,6 +71,22 @@ BEGIN
     END IF;
 END $$;
 
+-- ---------- weight_logs ----------
+DO $$
+BEGIN
+    IF to_regclass('public.weight_logs') IS NOT NULL THEN
+        EXECUTE 'ALTER TABLE public.weight_logs ENABLE ROW LEVEL SECURITY';
+        EXECUTE 'DROP POLICY IF EXISTS "weight_logs_select_own" ON public.weight_logs';
+        EXECUTE 'DROP POLICY IF EXISTS "weight_logs_insert_own" ON public.weight_logs';
+        EXECUTE 'DROP POLICY IF EXISTS "weight_logs_update_own" ON public.weight_logs';
+        EXECUTE 'DROP POLICY IF EXISTS "weight_logs_delete_own" ON public.weight_logs';
+        EXECUTE 'CREATE POLICY "weight_logs_select_own" ON public.weight_logs FOR SELECT TO authenticated USING (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "weight_logs_insert_own" ON public.weight_logs FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "weight_logs_update_own" ON public.weight_logs FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "weight_logs_delete_own" ON public.weight_logs FOR DELETE TO authenticated USING (auth.uid() = user_id)';
+    END IF;
+END $$;
+
 -- ---------- onboarding_profiles ----------
 DO $$
 BEGIN

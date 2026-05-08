@@ -455,10 +455,106 @@ public actor SyncService {
             predicate: #Predicate { $0.pendingUpsert == true }
         )
 
-        guard let pending = try? context.fetch(descriptor) else { return }
+        if let pending = try? context.fetch(descriptor) {
+            for session in pending {
+                await upsertSessionLog(session)
+            }
+        }
 
-        for session in pending {
-            await upsertSessionLog(session)
+        // Weight logs share the same fire-and-forget retry shape.
+        let weightDescriptor = FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate { $0.pendingUpsert == true }
+        )
+        if let pending = try? context.fetch(weightDescriptor) {
+            for log in pending {
+                await upsertWeightLog(log)
+            }
+        }
+    }
+
+    // MARK: - Weight log upsert / fetch
+
+    public func upsertWeightLog(_ log: WeightLogRecord) async {
+        let logId = log.id
+        guard !log.userId.isEmpty else { return }
+
+        let payload = SupabaseWeightLogUpsert(
+            id: log.id,
+            user_id: log.userId,
+            weight_kg: log.weightKg,
+            logged_at: ISO8601DateFormatter().string(from: log.loggedAt),
+            source: log.source
+        )
+
+        do {
+            try await supabase.from("weight_logs")
+                .upsert(payload)
+                .execute()
+
+            await MainActor.run {
+                let descriptor = FetchDescriptor<WeightLogRecord>(
+                    predicate: #Predicate { $0.id == logId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
+            }
+        } catch {
+            print("[SyncService] upsertWeightLog FAILED for \(logId): \(error)")
+        }
+    }
+
+    /// Pull the user's full weight history from Supabase. Used during
+    /// hydrate-on-sign-in so the trend chart renders immediately on a
+    /// fresh device install.
+    @MainActor
+    public func hydrateWeightLogs(userId: String) async {
+        struct Row: Decodable {
+            let id: String
+            let user_id: String
+            let weight_kg: Double
+            let logged_at: String
+            let source: String?
+        }
+
+        do {
+            let rows: [Row] = try await supabase.from("weight_logs")
+                .select()
+                .eq("user_id", value: userId)
+                .order("logged_at", ascending: true)
+                .execute()
+                .value
+
+            let context = modelContainer.mainContext
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let formatterFallback = ISO8601DateFormatter()
+
+            for row in rows {
+                let rowId = row.id   // #Predicate can't capture struct field directly
+                let descriptor = FetchDescriptor<WeightLogRecord>(
+                    predicate: #Predicate { $0.id == rowId }
+                )
+                if (try? context.fetch(descriptor).first) != nil {
+                    continue   // already local
+                }
+                let date = formatter.date(from: row.logged_at)
+                    ?? formatterFallback.date(from: row.logged_at)
+                    ?? .now
+                let log = WeightLogRecord(
+                    id: row.id,
+                    userId: row.user_id,
+                    weightKg: row.weight_kg,
+                    loggedAt: date,
+                    source: row.source ?? "manual"
+                )
+                log.pendingUpsert = false   // came from server, no need to push back
+                context.insert(log)
+            }
+            try? context.save()
+        } catch {
+            print("[SyncService] hydrateWeightLogs FAILED: \(error)")
         }
     }
 }
@@ -485,6 +581,18 @@ private struct SupabaseSessionLogUpsert: Encodable {
     let plank_hold_time: Double?
     let plank_form_score: Double?
     let exercise_results: [ExerciseResultEntry]?
+}
+
+/// Typed upsert payload for public.weight_logs. Append-only history; client
+/// UUID id so retries idempotently upsert. See
+/// `docs/weight_loss_analytics_research.md` for the analytics design that
+/// reads this table.
+private struct SupabaseWeightLogUpsert: Encodable {
+    let id: String
+    let user_id: String
+    let weight_kg: Double
+    let logged_at: String
+    let source: String
 }
 
 /// Typed upsert payload for public.day_progress. Composite primary key
