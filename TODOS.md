@@ -1,6 +1,6 @@
 # TODOS
 
-## Status (2026-05-04)
+## Status (2026-05-08)
 
 **Shipped:**
 - ✅ Auth + sync (cross-account isolation, profile hydration, typed upserts)
@@ -10,29 +10,127 @@
   prediction + loading carousel + plan reveal, home redesign, paywall redesign,
   settings sweep, Sarah → Jeni asset rename, anti-AI sweep, preset rename, URL +
   email sweep, dead-code cleanup)
+- ✅ Workout engine — position blocks, same-area secondary sort, family
+  clustering, block-repeat (Pamela Reif Round 1/2), exercise-aware rest mini-
+  factor, duration grid {30..60}, rest grid {5..20}, difficulty floor + cap,
+  side-lying L/R batching, 5 DEBUG validators. Source-of-truth doc at
+  `docs/workout_session_rules.md`.
+- ✅ Voice prep-cue logic + clip taxonomy — switch-sides detection, window-aware
+  variant cascade (prep_full ≥12s, prep_short 6–11s, silent ≤5s), VM fires cue
+  early enough for the chosen variant to fit (rules §7 voice-never-cut hard rule).
+  TSV-driven generation script ready for ElevenLabs run (384 prep_short + 384
+  prep_full + 6 switch_sides clips).
+- ✅ Becoming tab (was "past") — identity hero from `motivation` + `identityFeeling`,
+  WHO Activity Ring (with adaptive 90-min target), Goal Pace Projection (ACSM
+  0.5–1%/wk overlay), BMI card (AHA banding), Barrier-Resolved Card,
+  plank Mastery Curve (+X% capability), adaptive home subtitle (barrier/experience
+  tagged), first-session hint replacing the binary empty-state branch.
+- ✅ Phase F — TrialEndNotificationService wired into PaymentService.reconcileTrialReminder.
+  Daily reminder unified through NotificationPermission.scheduleDailyReminder
+  (canonical "daily_reminder" id, voice-adaptive body, surgical pending-removal so
+  trial-end reminder isn't nuked).
+- ✅ Settings sub-pages polish — 6 screens with scrapbook chrome (24pt corners,
+  1.5pt accent border, hard offset shadow, italic Fraunces titles, cocoa pill
+  primaries, sticker accents).
+- ✅ Motion design system — 8 tokens (`entrance`, `entranceSoft`, `exit`, `crossFade`,
+  `tap`, `gentleSpring`, `stagger`, `breathing`) in DesignSystem/Tokens.swift.
+  ~100 of 180 animation sites migrated to tokens; remaining 80 are intentional
+  bespoke set-pieces.
+- ✅ Accessibility passes — accessibilityLabel on icon buttons, accessibilityHidden
+  on decorative stickers, hit-target `tappableArea(_)` extension applied to 11
+  icon buttons (44×44 HIG minimum), reduce-motion gates on cascades, Dynamic Type
+  via `Font.custom(_:size:relativeTo:)` for all Typo tokens with hero-numeric
+  clamps, WCAG AA palette darkenings (textSecondary, stateGood, stateWarn),
+  VoiceOver compound-view grouping on 5 row types.
+- ✅ Weight features — kg storage canonical, lb-default display via WeightUnit
+  enum, kg/lb toggle pill in LogWeightSheet, one-per-day policy (update-in-place
+  rather than appending), seed first weight log at onboarding completion.
+- ✅ Self-check harness — DEBUG-only detached runtime checks across 3 modules
+  (WorkoutGenerator, StreakCalculator, Weight: Unit + Analytics). Migrate
+  cleanly to XCTest when a test target lands.
+- ✅ Pre-TestFlight metadata — `MARKETING_VERSION = 1.0.0`, `CFBundleDisplayName = JeniFit`,
+  `LSApplicationCategoryType = public.app-category.healthcare-fitness`,
+  `NSCameraUsageDescription` rewritten anti-AI + on-device privacy disclosure.
+  DebugAuthView verified release-safe (4 layers of `#if DEBUG`).
+- ✅ Privacy + Terms drafts at `docs/privacy_policy.md` + `docs/terms_of_service.md`,
+  plus `docs/app_store_metadata.md` (subtitle, promo text, description ~2,700 chars,
+  keywords ranked by conversion, what's-new, reviewer notes, screenshot ordering).
+- ✅ DB GRANT fix — `weight_logs` schema patched in `scripts/schema.sql` to
+  `GRANT SELECT, INSERT, UPDATE, DELETE ON public.weight_logs TO authenticated`
+  (was throwing 42501 permission denied for users on fresh deployments).
+- ✅ Matson → Sam display rename (asset prefix `matson_` stays internal — actual
+  rename pairs with the next ElevenLabs voice re-recording pass).
+- ✅ Pre-TestFlight cleanup pass: FeedbackView wired to `support@jenifit.app`
+  via mailto handoff (was fake-submit — "sent. thank you." with no actual
+  send). PostSessionView dead share button replaced with SwiftUI `ShareLink`
+  composing a brand-voice string from session data (`day N done — Ns plank,
+  N-day streak 🔥 jenifit`, emoji adapts to qualityScore band). 26
+  production-path `print()` calls wrapped in `#if DEBUG` across PlankAIApp,
+  AuthService, AppSync, PaymentService, TrialEndNotificationService,
+  HomeView, SignInPromptView, PaywallView, BackgroundMusicService,
+  AccountView — was leaking user UUIDs + payment IDs to Console.app system
+  logs on TestFlight builds. Email standardized: PreSessionView's
+  `hello@jenifit.app` → `support@jenifit.app` matching every other surface.
+  4 dead `@State` vars + 2 orphan Shape structs (`WobblyRect`,
+  `RoughCapsule`, ~80 lines) removed. `UIImage(named:)` existence checks
+  moved out of body-recompute path — `PhotoSlot` caches at init; 3
+  OnboardingView inline sites switched to direct `Image()` since assets are
+  confirmed-existent (eliminates allocations during marquee scroll
+  animation).
+- ✅ XCTest target via pbxproj surgery — `Scripts/add_test_target.rb`
+  (idempotent, uses the `xcodeproj` Ruby gem). 29 tests covering Weight
+  (Unit + Analytics), StreakCalculator, WorkoutGenerator. `⌘U` works.
+  Surfaced + fixed two real bugs in `WorkoutGenerator.validatePositionFlow`:
+  (1) round-blind — walked all main slots in one pass, treating Round 2's
+  standing block as a re-entry of Round 1's; now per (category, round);
+  (2) over-applied to warmup/cooldown — those are mobility flows ordered by
+  area variety per rules §2.1, not position monotonicity. Now scoped to
+  `.main` only. SelfCheck modules untouched (still run at DEBUG launch as
+  belt-and-suspenders until CI is wired).
+- ✅ Asset catalog binary dedup — `Scripts/dedupe_imagesets.sh` (idempotent).
+  Saved 26MB (62MB → 36MB, 42% reduction) by collapsing byte-identical
+  @1x/@2x/@3x duplicates: 11 social/logo imagesets had three identical
+  3-9MB PNGs each, collapsed to single @3x. 3 coach imagesets had identical
+  @2x/@3x; collapsed those (kept the `@1x` slot since it's a different
+  file — see open item below).
+
+**Coach imageset @1x mismatch** (one-line decision pending):
+The 3 coach imagesets (`coach-jeni`, `coach-kira`, `coach-matson`) ship a
+`@1x` slot pointing to a real photo (`Woman_in_pink`, `Black_woman_confident`,
+`Man_in_t-shirt`) while `@3x` is the flat-vector illustration shown
+elsewhere. Modern iPhones use `@3x` (illustration); old iPads use `@1x`
+(different photo). Almost certainly leftover from design exploration — the
+fix is to drop the `@1x` slot so all devices show the illustration, saving
+another ~1.1MB. Held off pending intent confirmation.
 
 **Pre-TestFlight blockers** (Ben handles, not Claude Code):
-- ⏳ Privacy policy + Terms hosted on jenifit.app (HSTS-preload domain, TLS mandatory)
-- ⏳ App icon design / commission (1024×1024 + all device variants)
-- ⏳ App Store screenshots (5–10 captures from simulator at 6.7" + 6.5" + 5.5")
-- ⏳ App Store description (~4,000 chars, JeniFit voice)
-- ⏳ App Store keywords (100 chars, ASO-tuned)
-- ⏳ App Store Connect: banking + tax + paid agreement verification
+- ⏳ Privacy + Terms hosted at jenifit.app/privacy + jenifit.app/terms — drafts
+  ready in `docs/`. `.app` TLD is HSTS-preloaded so TLS is mandatory; any of
+  Cloudflare Pages / Vercel / Netlify gives that for free.
+- ⏳ App icon — PNGs exist in `Assets.xcassets/AppIcon.appiconset/` (light, dark,
+  tinted) but filenames look placeholder ("Group 1000005733.png" etc.).
+  **All 3 variants are byte-identical** (same MD5: `2b347c18065ff2bbd43ca33447f139a7`,
+  same image as `logo_jenifit_bow`). iOS 18+ tinted-icon mode applies the
+  system tint to whatever's in the tinted slot — feeding it the colorful logo
+  produces a desaturated accent-color version, which often reads worse than a
+  monochrome glyph designed for the slot. Worth supplying differentiated
+  light/dark/tinted artwork before submission.
+- ⏳ App Store screenshots (5–10 captures from simulator at 6.7" + 6.5" + 5.5"
+  per Apple's required device matrix; see metadata doc for suggested ordering).
+- ⏳ App Store Connect: banking + tax + paid agreement verification.
 - ⏳ Yearly subscription submitted with the v1.0 binary (Apple requires the first
-  sub to be submitted with the app version)
-- ⏳ DebugAuthView removed (it's `#if DEBUG` so doesn't ship in release builds, but
-  worth confirming the conditional is intact + removing the menu entry in
-  HomeView's overflow)
-- ⏳ Version bump to 1.0.0 (currently dev/preview build numbering)
+  sub to be submitted with the app version).
+- ⏳ Verify the `support@jenifit.app` mailbox is monitored (referenced in privacy
+  policy + terms + reviewer notes; first reply lateness is App Review-flagged).
 
-**Pending — non-blocking:**
-- ⏳ Payment Phase F — schedule local trial-end notification 24h before yearly renews
-- ⏳ Payment Phase G — Restore Purchases in Settings (paywall already has restore;
-  Settings entry is the redundant secondary surface)
+**Pending — non-blocking, Claude-actionable:**
 - ⏳ Phase G smoke test on physical device with real Apple Sandbox account (the
-  CLI smoke test in Phase 13 was code-level grep verification, not runtime)
-- ⏳ Camera permission flow (see entry below)
-- ⏳ v1.1 anonymous → authenticated upgrade data preservation (see entry below)
+  CLI smoke test in Phase 13 was code-level grep verification, not runtime).
+- ⏳ Run `Scripts/generate_voice_clips.sh` against ElevenLabs to materialize the
+  prep_full + prep_short + switch_sides audio assets (cascade in code is wired;
+  fallback to legacy `intro_<id>` works for the 24 clips that already exist).
+- ⏳ Validate position-block ordering visually on device — highest-EV change of
+  the recent batch and only shows up at runtime.
 
 ## Payment Phase E — scheme StoreKit Configuration setup
 **What:** In Xcode: Product → Scheme → Edit Scheme → Run → Options tab → StoreKit Configuration → select `absmaxxing.storekit`. Manual step because scheme is per-developer (xcuserdata) and shouldn't be force-overwritten by automation.
@@ -40,19 +138,10 @@
 **Status:** One-time per dev. Each dev does this on their own machine.
 
 
-## Camera Permission Flow
-**What:** Three-state camera permission request flow (notDetermined → pre-permission screen, denied → Settings redirect, restricted → dead-end screen).  
-**Why:** The app literally doesn't work without camera access. A raw system dialog gets denied more often than a pre-permission screen with context.  
-**Lives in:** PlankApp/ (onboarding + session pre-flight)  
-**Depends on:** Nothing (can be built independently)  
-**Estimated:** 30–45 min  
-
-### Spec
-- `.notDetermined`: Full-screen "Your AI Coach Needs to See You" with illustration. CTA triggers `AVCaptureDevice.requestAccess(for: .video)`. Never show system dialog without pre-permission screen first.
-- `.denied`: "Camera access is turned off" with "Open Settings" CTA → `UIApplication.openSettingsURLString`. Secondary "Why do I need this?" expandable.
-- `.restricted`: Unskippable "Camera access is restricted on this device." No primary CTA. Secondary "Contact support" link.
-- **Placement:** End of onboarding, after quiz + personalized plan, before paywall. Recheck on every session launch.
-- **Analytics events:** `camera_permission_requested`, `camera_permission_granted`, `camera_permission_denied`, `camera_permission_settings_opened`
+## Camera Permission Flow — ✅ shipped
+**What:** Three-state camera permission flow (notDetermined → pre-permission screen with "your coach needs to see you" + research-backed framing, denied → Settings redirect with expandable "why do I need this?", restricted → dead-end with support email).
+**Where:** `PlankApp/Views/Session/PreSessionView.swift`
+**Status:** Done. Verified 2026-05-08 — all three states render with appropriate copy, system dialog only fires after the user-initiated CTA on the pre-permission screen.
 
 ## v1.1 — Cross-device trial-end notification scheduling
 **What:** Trial-end reminder is currently scheduled per-device via UNUserNotificationCenter. Users who start a trial on iPhone and only check iPad won't see the 24h reminder on iPad.
