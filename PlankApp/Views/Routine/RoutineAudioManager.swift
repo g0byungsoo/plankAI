@@ -249,11 +249,17 @@ final class RoutineAudioManager {
     }
 
     func onExerciseAlmost() {
-        play("exercise_almost")
+        // Force — the 5-second warning is a hard transition cue and must
+        // not be silently dropped just because a tempo / hold cue is
+        // still mid-utterance.
+        play("exercise_almost", force: true)
     }
 
     func onExerciseDone() {
-        play("exercise_done")
+        // Force — completion acknowledgment. A non-force call here used
+        // to drop silently if a recent encourage/hold cue was still
+        // playing, leaving the slot transition unannounced.
+        play("exercise_done", force: true)
     }
 
     func onRest() {
@@ -272,7 +278,10 @@ final class RoutineAudioManager {
             return
         }
 
-        guard secondsIn >= 10, secondsIn % 12 == 0, remaining > 8 else { return }
+        // Periodic encourage / hold / tempo cues. Floor at remaining > 10
+        // so the cue (typical 2-3s) finishes by remaining ~7-8, leaving
+        // a clean gap before onExerciseAlmost cuts in at remaining=5.
+        guard secondsIn >= 10, secondsIn % 12 == 0, remaining > 10 else { return }
 
         let roll = Int.random(in: 1...10)
 

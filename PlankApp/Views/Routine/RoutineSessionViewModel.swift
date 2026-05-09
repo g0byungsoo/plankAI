@@ -246,28 +246,29 @@ final class RoutineSessionViewModel {
 
         switch phase {
         case .prep(let index):
-            // First slot of the session: brief "get ready" cue at t=2.
-            // Mid-session prep (longer): play a "rest" cue at the start, then
-            // preview the upcoming exercise as we approach active.
+            // Voice orchestration during prep is single-cue per window:
+            // prep cue plays once, nothing else. The previous design
+            // stacked onRest + prep + onExerciseStart inside the same
+            // 5-15s window — they cut each other. Now the prep cue is
+            // the only voice during prep; "Go" only fires for the
+            // initial first-slot prep where no prep cue plays.
             let isInitial = (index == 0 && exerciseResults.isEmpty)
             if !isInitial && timeRemaining == workout.exercises[index].restAfter {
-                // First tick of a mid-session prep — "good job, brief rest"
                 Haptics.soft()
-                if workout.exercises[index].restAfter > 5 {
-                    audio.onRest()
-                }
             }
-            // Fire the prep cue early enough that the clip itself
-                // doesn't get cut by the active phase starting.
-                // Per docs/workout_session_rules.md §7: prep_full ~4-6s,
-                // prep_short ~2-3s. Fire long-window cues at t=6 so the
-                // clip lands before active; short-window cues at t=2.
-                // ≤5s windows fire nothing — voice would cut.
+            // Fire the prep cue early enough that the full clip lands
+            // before the active phase starts. Budgets bumped from the
+            // original (6 / 2) — prep_full clips run 3-5s and prep_short
+            // 1.5-2.5s; the previous 2s budget for medium windows
+            // routinely cut the prep_short tail.
+            //   prepWindow ≥ 12 (rest=15 or 20) → 7s budget for prep_full
+            //   prepWindow 6-11 (rest=10)        → 4s budget for prep_short
+            //   prepWindow ≤ 5  (rest=5)         → silent (voice would cut)
                 let upcoming = workout.exercises[index]
                 let prepWindow = upcoming.restAfter
                 let cueTime: Int
-                if prepWindow >= 12 { cueTime = 6 }       // long: prep_full will fire
-                else if prepWindow >= 6 { cueTime = 2 }   // medium: prep_short
+                if prepWindow >= 12 { cueTime = 7 }       // long: prep_full
+                else if prepWindow >= 6 { cueTime = 4 }   // medium: prep_short
                 else { cueTime = -1 }                      // ≤5s: silent
 
             if timeRemaining == cueTime {
@@ -289,7 +290,13 @@ final class RoutineSessionViewModel {
             }
             if timeRemaining <= 0 {
                 Haptics.vibrate()
-                audio.onExerciseStart()
+                // Only fire "Go" on the initial 4s prep where no prep
+                // cue plays. Mid-session, the prep cue is the
+                // announcement; firing onExerciseStart here would
+                // force-cut the prep cue's tail.
+                if isInitial {
+                    audio.onExerciseStart()
+                }
                 let slot = workout.exercises[index]
                 phase = .active(exerciseIndex: index)
                 timeRemaining = slot.duration
