@@ -305,6 +305,16 @@ struct HomeView: View {
             try? await Task.sleep(for: .milliseconds(300))
             animateIn()
         }
+        // Regenerate when the user changes a signal that affects what the
+        // daily workout looks like. Without this, dailyWorkout stays stale
+        // — e.g., user picks "5 min" in EditProfile but the home card
+        // keeps showing the 15-min generation from before the change.
+        .onChange(of: sessionLengthPref) { _, _ in
+            dailyWorkout = generateDailyWorkout()
+        }
+        .onChange(of: bodyFocusValue) { _, _ in
+            dailyWorkout = generateDailyWorkout()
+        }
         .fullScreenCover(isPresented: $showBrowse) {
             BrowseWorkoutsView(
                 onSelect: { workout in

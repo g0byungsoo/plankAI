@@ -41,12 +41,20 @@ struct BrowseWorkoutsView: View {
 
                     section(title: "by length",
                             staggerIndex: 1) {
+                        // Match the onboarding + EditProfile session-length
+                        // options. User can pick any length they could have
+                        // chosen during setup, regardless of their saved
+                        // preference. The user's preference still drives
+                        // the daily home card; this surface is for
+                        // alternatives.
                         VStack(spacing: Space.sm) {
-                            lengthCard(15, label: "quick hit",
-                                       blurb: "time-poor day, full payoff.")
-                            lengthCard(30, label: "full sweat",
-                                       blurb: "real session — warmup, work, wind-down.")
-                            lengthCard(45, label: "deep work",
+                            lengthCard(5, label: "quick reset",
+                                       blurb: "five minutes is enough.")
+                            lengthCard(10, label: "daily routine",
+                                       blurb: "solid session, fits anywhere.")
+                            lengthCard(15, label: "full session",
+                                       blurb: "warmup, work, wind-down.")
+                            lengthCard(20, label: "deep work",
                                        blurb: "long-form, structured, balanced.")
                         }
                     }

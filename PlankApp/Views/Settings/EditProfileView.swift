@@ -68,8 +68,12 @@ struct EditProfileView: View {
                 }
 
                 section(title: "session length") {
+                    // Match the onboarding options exactly so a user can
+                    // change to any value they could have picked during
+                    // onboarding (the "7" default is a legacy fallback for
+                    // users who skipped — never offered as a real choice).
                     HStack(spacing: Space.sm) {
-                        ForEach([5, 7, 10], id: \.self) { mins in
+                        ForEach([5, 10, 15, 20], id: \.self) { mins in
                             lengthChip(mins)
                         }
                     }
