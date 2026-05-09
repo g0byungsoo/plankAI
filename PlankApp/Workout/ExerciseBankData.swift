@@ -2145,14 +2145,14 @@ enum ExerciseBankData {
             impact: .low,
             difficulty: 1,
             met: 2.3,
-            symmetry: .alternating,
-            defaultSide: nil,
+            symmetry: .unilateral,
+            defaultSide: .left,
             pace: .hold,
             position: .standing,
             lottieFile: "woman-doing-side-tilt-stretching",
             defaultDurationSec: 20,
             restAfterSec: 15,
-            note: ""
+            note: "Lottie shows one side; engine emits L+R pair so both sides get held. Right slot mirrors the animation horizontally."
         ),
         Exercise(
             id: "backbend",

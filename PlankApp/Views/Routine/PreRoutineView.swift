@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 import PlankSync
 
 /// Shown after the user taps Start on the Home card and before the live
@@ -9,6 +10,12 @@ struct PreRoutineView: View {
     let workout: WorkoutPreset
     let onStart: () -> Void
     let onCancel: () -> Void
+
+    /// Held across the view's lifetime so the spoken intro doesn't get
+    /// cut off if SwiftUI recreates the body. Single utterance per
+    /// presentation — guarded by `didSpeakIntro`.
+    @State private var ttsSynthesizer = AVSpeechSynthesizer()
+    @State private var didSpeakIntro = false
 
     /// Reference body weight for kcal estimation. Real per-user weight
     /// arrives in Phase 7 (weight-loss analytics) — until then this gives a
@@ -75,6 +82,30 @@ struct PreRoutineView: View {
                     .padding(.bottom, Space.lg)
             }
         }
+        .onAppear {
+            speakIntroIfNeeded()
+        }
+        .onDisappear {
+            if ttsSynthesizer.isSpeaking {
+                ttsSynthesizer.stopSpeaking(at: .immediate)
+            }
+        }
+    }
+
+    /// Brief TTS intro spoken once when the screen appears. Guarded so a
+    /// SwiftUI re-render (e.g., scenePhase tick) doesn't restart the
+    /// utterance. Robotic system voice for now — the next ElevenLabs
+    /// pass will replace this with a recorded clip per voicePreference.
+    private func speakIntroIfNeeded() {
+        guard !didSpeakIntro else { return }
+        didSpeakIntro = true
+        let totalMin = max(1, workout.estimatedDuration)
+        let exerciseCount = workout.exercises.count
+        let text = "\(workout.name). \(exerciseCount) exercises, about \(totalMin) minutes. When you're ready, tap start."
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        ttsSynthesizer.speak(utterance)
     }
 
     // MARK: - Top bar

@@ -931,7 +931,8 @@ struct AnalyticsView: View {
             if !hideWeightStats, weightLogs.count >= 2 {
                 WeightTrendChart(
                     logs: weightLogs,
-                    goalWeightKg: onboardingGoalWeightKg > 0 ? onboardingGoalWeightKg : nil
+                    goalWeightKg: onboardingGoalWeightKg > 0 ? onboardingGoalWeightKg : nil,
+                    unit: weightUnit
                 )
                 .padding(.top, 4)
                 .transition(.opacity)

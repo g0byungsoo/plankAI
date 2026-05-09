@@ -16,21 +16,27 @@ import PlankSync
 struct WeightTrendChart: View {
     let logs: [WeightLogRecord]
     let goalWeightKg: Double?
+    /// Display unit. Chart values are rendered in this unit; underlying
+    /// `logs` stay kg-canonical. Defaults to `.lb` to match the WeightUnit
+    /// enum default + the rest of the app's display surfaces.
+    var unit: WeightUnit = .lb
 
     private static let alpha: Double = 2.0 / (7.0 + 1.0)   // standard 7-day EMA
     private static let windowDays: Int = 60
 
     private var points: [EMAPoint] { Self.computeEMA(logs: logs) }
 
+    private func toDisplay(_ kg: Double) -> Double { unit.display(fromKg: kg) }
+
     var body: some View {
         Chart {
             // Goal reference (subtle dashed) — only when set.
             if let goal = goalWeightKg, goal > 0 {
-                RuleMark(y: .value("Goal", goal))
+                RuleMark(y: .value("Goal", toDisplay(goal)))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                     .foregroundStyle(Palette.stateGood.opacity(0.45))
                     .annotation(position: .top, alignment: .leading) {
-                        Text("GOAL\u{2009}·\u{2009}\(goal, specifier: "%.0f") kg")
+                        Text("GOAL\u{2009}·\u{2009}\(toDisplay(goal), specifier: "%.0f") \(unit.label)")
                             .font(Typo.eyebrow).tracking(2)
                             .foregroundStyle(Palette.stateGood)
                             .padding(.leading, 2)
@@ -41,7 +47,7 @@ struct WeightTrendChart: View {
             ForEach(points.filter { $0.rawKg != nil }, id: \.date) { p in
                 PointMark(
                     x: .value("Date", p.date),
-                    y: .value("Weight", p.rawKg ?? 0)
+                    y: .value("Weight", toDisplay(p.rawKg ?? 0))
                 )
                 .foregroundStyle(Palette.accent.opacity(0.25))
                 .symbolSize(28)
@@ -51,7 +57,7 @@ struct WeightTrendChart: View {
             ForEach(points, id: \.date) { p in
                 LineMark(
                     x: .value("Date", p.date),
-                    y: .value("Trend", p.emaKg)
+                    y: .value("Trend", toDisplay(p.emaKg))
                 )
                 .interpolationMethod(.catmullRom)
                 .foregroundStyle(Palette.accent)
@@ -80,17 +86,21 @@ struct WeightTrendChart: View {
     }
 
     /// Compress the y range so small swings read clearly without losing the
-    /// goal reference. Adds a small kg padding above + below.
+    /// goal reference. Computed in the display unit so chart bounds align
+    /// with what the user sees. Adds ~15% padding above + below; floor at
+    /// 1 unit for absolute-tiny ranges.
     private var yDomain: ClosedRange<Double> {
-        let weights = points.map(\.emaKg) + points.compactMap(\.rawKg)
-        var lo = weights.min() ?? 0
-        var hi = weights.max() ?? 0
+        let weightsKg = points.map(\.emaKg) + points.compactMap(\.rawKg)
+        var lo = (weightsKg.min() ?? 0)
+        var hi = (weightsKg.max() ?? 0)
         if let goal = goalWeightKg, goal > 0 {
             lo = min(lo, goal)
             hi = max(hi, goal)
         }
-        let pad = max(1.0, (hi - lo) * 0.15)
-        return (lo - pad)...(hi + pad)
+        let displayLo = toDisplay(lo)
+        let displayHi = toDisplay(hi)
+        let pad = max(1.0, (displayHi - displayLo) * 0.15)
+        return (displayLo - pad)...(displayHi + pad)
     }
 
     // MARK: - EMA

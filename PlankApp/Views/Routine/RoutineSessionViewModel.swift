@@ -184,6 +184,43 @@ final class RoutineSessionViewModel {
         audio.stop()              // kill any in-flight cue immediately
         audio.deactivate()
         music.stop()
+
+        // Pad results to the full workout length so the post-session
+        // "X/Y completed" denominator reflects the workout the user
+        // started, not the subset they reached. Without this padding, a
+        // 10-slot workout that the user quit on slot 3 reads as e.g.
+        // "2/3" — wrong denominator. The current in-flight slot (active
+        // or prep) is recorded with whatever credit it earned; later
+        // slots count as skipped with 0 completed time.
+        if case .active(let index) = phase {
+            let slot = workout.exercises[index]
+            exerciseResults.append(ExerciseResultEntry(
+                exerciseId: slot.exerciseId,
+                duration: slot.duration,
+                completedDuration: exerciseElapsed,
+                skipped: true
+            ))
+        } else if case .prep(let index) = phase {
+            let slot = workout.exercises[index]
+            exerciseResults.append(ExerciseResultEntry(
+                exerciseId: slot.exerciseId,
+                duration: slot.duration,
+                completedDuration: 0,
+                skipped: true
+            ))
+        }
+        if exerciseResults.count < workout.exercises.count {
+            for i in exerciseResults.count..<workout.exercises.count {
+                let slot = workout.exercises[i]
+                exerciseResults.append(ExerciseResultEntry(
+                    exerciseId: slot.exerciseId,
+                    duration: slot.duration,
+                    completedDuration: 0,
+                    skipped: true
+                ))
+            }
+        }
+
         phase = .done
         onComplete(exerciseResults, totalElapsed)
     }

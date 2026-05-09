@@ -9,6 +9,14 @@ final class RoutineAudioManager {
     private var lastPlayTime: Date = .distantPast
     private let cooldown: TimeInterval = 3.0
 
+    /// System TTS used as fallback when no bundled clip exists for an
+    /// exercise (most of the 128-exercise bank doesn't have prep clips
+    /// yet — those land with the next ElevenLabs run). Without a fallback
+    /// the prep window is silent and the user can't tell what's coming
+    /// next. TTS is robotic but functional; ElevenLabs-rendered clips
+    /// will replace it on the same code path once available.
+    private let synthesizer = AVSpeechSynthesizer()
+
     /// Reference back to the BGM service so voice cues can duck it. Set by
     /// the VM at init; nil during tests / preview where music isn't wired.
     /// Weak to avoid a retain cycle with the VM that owns both.
@@ -116,6 +124,9 @@ final class RoutineAudioManager {
     func stop() {
         player?.stop()
         player = nil
+        if synthesizer.isSpeaking {
+            synthesizer.stopSpeaking(at: .immediate)
+        }
     }
 
     // MARK: - Routine Events
@@ -154,11 +165,12 @@ final class RoutineAudioManager {
 
         let id = upcoming.id
 
+        let played: Bool
         if prepWindow >= 12 {
             // Long window — full prep cue with position instruction
             // baked in. Falls through to short / legacy if the full
             // variant hasn't been generated yet.
-            playFirstAvailable([
+            played = playFirstAvailable([
                 "prep_full_\(id)",
                 "prep_short_\(id)",
                 "intro_\(id)"
@@ -166,12 +178,48 @@ final class RoutineAudioManager {
         } else if prepWindow >= 6 {
             // Medium — short cue; position cue if a position-only clip
             // exists, else the legacy intro.
-            playFirstAvailable([
+            played = playFirstAvailable([
                 "prep_short_\(id)",
                 "intro_\(id)"
             ], force: true)
+        } else {
+            // ≤5s: silent. Any cue risks getting cut, which reads as
+            // broken.
+            played = true
         }
-        // ≤5s: silent. Any cue risks getting cut, which reads as broken.
+
+        // TTS fallback when no clip resolved (most of the 128-exercise
+        // bank lacks bundled prep clips today). Speaking "next up: X"
+        // beats silence — voice-clip generation is staged for an
+        // ElevenLabs pass that'll replace this on the same path.
+        if !played {
+            speakNextUp(name: upcoming.name)
+        }
+    }
+
+    /// Speak the upcoming exercise name via system TTS. Ducks BGM for the
+    /// estimated utterance duration. Cooperates with the voice-clip
+    /// `play()` ducking via the same `duckGeneration` counter so cue
+    /// stacking stays sane.
+    private func speakNextUp(name: String) {
+        if isMuted { return }
+        let text = "Next: \(name)"
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        synthesizer.speak(utterance)
+
+        // Estimate duration at ~14 chars/sec (typical English TTS at
+        // default rate). Pad 0.4s for the leading silence + tail.
+        let estimated = max(1.5, Double(text.count) / 14.0 + 0.4)
+        duckGeneration &+= 1
+        let myGeneration = duckGeneration
+        music?.duck(to: duckedVolume)
+        DispatchQueue.main.asyncAfter(deadline: .now() + estimated) { [weak self] in
+            guard let self else { return }
+            guard self.duckGeneration == myGeneration else { return }
+            self.music?.unduck(to: self.normalVolume)
+        }
     }
 
     /// Try a list of clip names in order; play the first one that
