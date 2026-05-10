@@ -160,8 +160,12 @@ final class RoutineSessionViewModel {
     func skip() {
         guard case .active(let index) = phase else { return }
 
+        // Haptic ack only — no skip cue. The natural prep tick fires
+        // the "next up is X" announcement at cueTime once the prep
+        // phase begins, which is more useful than a generic "moving
+        // forward". Stacking both made transitions noisy and the skip
+        // cue often cut the prep cue that followed.
         Haptics.light()
-        audio.onSkip()
         let slot = workout.exercises[index]
         exerciseResults.append(ExerciseResultEntry(
             exerciseId: slot.exerciseId,
@@ -262,11 +266,11 @@ final class RoutineSessionViewModel {
             // the prep before slot N+1) — `upcoming.restAfter` is wrong
             // and was the source of cues firing at the wrong time when
             // a workout had varying rest values.
-            //   prepWindow ≥ 12 → cueTime 7  (prep_full ~3-5s)
-            //   prepWindow ≥ 6  → cueTime 4  (prep_short ~1.5-2.5s)
-            //   prepWindow ≥ 4  → cueTime 2  (prep_short, mild overrun ok)
-            //   prepWindow ≥ 2  → cueTime 1  (brief preview)
-            //   prepWindow ≤ 1  → silent
+            //   prepWindow ≥ 12 → cueTime 8  (prep_full clips run 4-6s with the new voice)
+            //   prepWindow ≥ 8  → cueTime 5  (prep_short room to land cleanly)
+            //   prepWindow ≥ 5  → cueTime 3  (prep_short, ends near active)
+            //   prepWindow ≥ 3  → cueTime 1  (brief — clip mostly overruns into active)
+            //   prepWindow ≤ 2  → silent (window too short to start)
             // Initial prep (first slot) is intentionally silent here —
             // onExerciseStart fires its own "Go" cue at remaining=0
             // and would force-cut a prep clip if both fired.
@@ -280,10 +284,10 @@ final class RoutineSessionViewModel {
                     prepWindow = 0
                 }
                 let cueTime: Int
-                if prepWindow >= 12 { cueTime = 7 }
-                else if prepWindow >= 6 { cueTime = 4 }
-                else if prepWindow >= 4 { cueTime = 2 }
-                else if prepWindow >= 2 { cueTime = 1 }
+                if prepWindow >= 12 { cueTime = 8 }
+                else if prepWindow >= 8 { cueTime = 5 }
+                else if prepWindow >= 5 { cueTime = 3 }
+                else if prepWindow >= 3 { cueTime = 1 }
                 else { cueTime = -1 }
 
             if cueTime > 0 && timeRemaining == cueTime {
