@@ -129,15 +129,14 @@ struct PreRoutineView: View {
             default:            prefix = ""
             }
 
-            // Resolve the clip with this priority:
-            //  1. focus_intro_<bodyFocus> — workout-specific welcome
-            //     that names the focus area + a tip ("Today we wake
-            //     up your glutes. Move with intention…")
-            //  2. routine_start_<n> — generic welcome fallback
-            // Try the trainer-prefixed variant first, fall back to the
-            // un-prefixed Kira clip if the trainer's variant isn't bundled.
+            // Chained welcome: focus_intro (focus + benefit) →
+            // duration_intro (length + "tap start" CTA). The pair
+            // gives the user the workout's purpose AND duration in
+            // the coach's voice, replacing the generic single-clip
+            // welcome.
             let focusKey = UserDefaults.standard.string(forKey: "bodyFocus") ?? ""
             let focusBase = focusKey.isEmpty ? nil : "focus_intro_\(focusKey)"
+            let durationBase = "duration_intro_\(Self.nearestDurationKey(workout.estimatedDuration))"
             let routineStartBase = "routine_start_\(Int.random(in: 1...3))"
 
             func resolveURL(_ base: String) -> URL? {
@@ -146,16 +145,42 @@ struct PreRoutineView: View {
                     ?? Bundle.main.url(forResource: base, withExtension: "m4a")
             }
 
-            let url = (focusBase.flatMap(resolveURL)) ?? resolveURL(routineStartBase)
-            guard let url else { return }
+            // First clip — focus_intro if user has a focus set, else
+            // the generic routine_start fallback.
+            let firstURL = focusBase.flatMap(resolveURL) ?? resolveURL(routineStartBase)
+            guard let firstURL else { return }
             do {
-                introPlayer = try AVAudioPlayer(contentsOf: url)
+                introPlayer = try AVAudioPlayer(contentsOf: firstURL)
                 introPlayer?.volume = 1.0
                 introPlayer?.play()
             } catch {
-                // Audio failure is non-fatal — silent intro is acceptable
+                return
+            }
+
+            // Chain the duration_intro after the first clip finishes
+            // + 0.4s breathing room. Uses the loaded player's
+            // duration so we don't hard-code a length per clip.
+            let firstDuration = introPlayer?.duration ?? 8.0
+            guard let secondURL = resolveURL(durationBase) else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + firstDuration + 0.4) {
+                guard didPlayIntro else { return }   // view still alive
+                do {
+                    introPlayer = try AVAudioPlayer(contentsOf: secondURL)
+                    introPlayer?.volume = 1.0
+                    introPlayer?.play()
+                } catch {
+                    // duration_intro failure is non-fatal
+                }
             }
         }
+    }
+
+    /// Snap workout duration to the nearest pre-recorded duration_intro
+    /// bucket: {5, 10, 15, 20}.
+    private static func nearestDurationKey(_ minutes: Int) -> String {
+        let options = [5, 10, 15, 20]
+        let nearest = options.min(by: { abs($0 - minutes) < abs($1 - minutes) }) ?? 10
+        return "\(nearest)"
     }
 
     // MARK: - Top bar
