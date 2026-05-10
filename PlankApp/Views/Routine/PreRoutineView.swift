@@ -93,33 +93,18 @@ struct PreRoutineView: View {
         }
     }
 
-    /// Play a recorded coach voice clip on first appearance. Picks a
+    /// Play a recorded coach voice clip after a short delay. Picks a
     /// random `routine_start_<n>` from the trainer the user selected
     /// (Kira / Jeni / Sam), so the welcome is on-brand instead of
     /// robotic system TTS. Guarded by `didPlayIntro` so a SwiftUI
-    /// re-render doesn't restart playback.
+    /// re-render doesn't restart playback. The 1.5s delay lets the
+    /// screen finish its appearance animation and gives the user a
+    /// moment to start reading before the voice lands — firing
+    /// immediately on appear felt rushed and the brief clip ended
+    /// before the user had absorbed the screen.
     private func playIntroIfNeeded() {
         guard !didPlayIntro else { return }
         didPlayIntro = true
-
-        // Trainer prefix — empty for Kira, "jeni_" for Jeni, "matson_"
-        // for Sam (kept internal; user-facing display is "Sam").
-        // Mirrors RoutineAudioManager.prefix.
-        let prefix: String
-        switch UserDefaults.standard.string(forKey: "voicePreference") ?? "encouraging" {
-        case "encouraging": prefix = "jeni_"
-        case "balanced":    prefix = "matson_"
-        default:            prefix = ""
-        }
-
-        // Try the trainer-prefixed variant first, fall back to the
-        // un-prefixed Kira clip if the trainer's variant isn't bundled.
-        let pick = Int.random(in: 1...3)
-        let baseName = "routine_start_\(pick)"
-        let trainerName = prefix.isEmpty ? baseName : "\(prefix)\(baseName)"
-        let url = Bundle.main.url(forResource: trainerName, withExtension: "m4a")
-            ?? Bundle.main.url(forResource: baseName, withExtension: "m4a")
-        guard let url else { return }
 
         // Activate the audio session in playback mode so the clip
         // plays even with the device on silent. Without this, the
@@ -133,12 +118,32 @@ struct PreRoutineView: View {
             // Continue regardless — playback can still work in audible mode
         }
 
-        do {
-            introPlayer = try AVAudioPlayer(contentsOf: url)
-            introPlayer?.volume = 1.0
-            introPlayer?.play()
-        } catch {
-            // Audio failure is non-fatal — silent intro is acceptable
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            // Trainer prefix — empty for Kira, "jeni_" for Jeni, "matson_"
+            // for Sam (kept internal; user-facing display is "Sam").
+            // Mirrors RoutineAudioManager.prefix.
+            let prefix: String
+            switch UserDefaults.standard.string(forKey: "voicePreference") ?? "encouraging" {
+            case "encouraging": prefix = "jeni_"
+            case "balanced":    prefix = "matson_"
+            default:            prefix = ""
+            }
+
+            // Try the trainer-prefixed variant first, fall back to the
+            // un-prefixed Kira clip if the trainer's variant isn't bundled.
+            let pick = Int.random(in: 1...3)
+            let baseName = "routine_start_\(pick)"
+            let trainerName = prefix.isEmpty ? baseName : "\(prefix)\(baseName)"
+            let url = Bundle.main.url(forResource: trainerName, withExtension: "m4a")
+                ?? Bundle.main.url(forResource: baseName, withExtension: "m4a")
+            guard let url else { return }
+            do {
+                introPlayer = try AVAudioPlayer(contentsOf: url)
+                introPlayer?.volume = 1.0
+                introPlayer?.play()
+            } catch {
+                // Audio failure is non-fatal — silent intro is acceptable
+            }
         }
     }
 

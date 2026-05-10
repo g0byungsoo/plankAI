@@ -269,7 +269,10 @@ final class RoutineSessionViewModel {
             //   prepWindow ≥ 12 → cueTime 8  (prep_full clips run 4-6s with the new voice)
             //   prepWindow ≥ 8  → cueTime 5  (prep_short room to land cleanly)
             //   prepWindow ≥ 5  → cueTime 3  (prep_short, ends near active)
-            //   prepWindow ≥ 3  → cueTime 1  (brief — clip mostly overruns into active)
+            //   prepWindow ≥ 3  → cueTime 2  (warmup transitions — 2s budget;
+            //                                  clip overruns by ~1s into active,
+            //                                  no other voice fires for ≥ 10s
+            //                                  of active so the overrun is safe)
             //   prepWindow ≤ 2  → silent (window too short to start)
             // Initial prep (first slot) is intentionally silent here —
             // onExerciseStart fires its own "Go" cue at remaining=0
@@ -287,7 +290,7 @@ final class RoutineSessionViewModel {
                 if prepWindow >= 12 { cueTime = 8 }
                 else if prepWindow >= 8 { cueTime = 5 }
                 else if prepWindow >= 5 { cueTime = 3 }
-                else if prepWindow >= 3 { cueTime = 1 }
+                else if prepWindow >= 3 { cueTime = 2 }
                 else { cueTime = -1 }
 
             if cueTime > 0 && timeRemaining == cueTime {
