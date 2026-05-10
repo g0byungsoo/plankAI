@@ -330,10 +330,11 @@ final class RoutineSessionViewModel {
             }
             if timeRemaining <= 0 {
                 Haptics.vibrate()
-                // Start beep fires on the FIRST active tick (below)
-                // instead of here, so the user clearly hears it after
-                // the countdown beep at "1" rather than colliding
-                // with it at the prep→active boundary.
+                // Start beep fires here so the 3-2-1-GO cadence is on
+                // a single 1-second rhythm (one beep per tick). The
+                // display transitions straight to the active phase
+                // on this tick — user never actually sees "0".
+                audio.playStartBeep()
                 let slot = workout.exercises[index]
                 phase = .active(exerciseIndex: index)
                 timeRemaining = slot.duration
@@ -344,15 +345,6 @@ final class RoutineSessionViewModel {
             exerciseElapsed += 1
             let slot = workout.exercises[index]
             let remaining = timeRemaining
-
-            // Distinct "GO" beep on the first active tick — fires
-            // one tick AFTER the countdown beep at "1" so the user
-            // hears the cadence cleanly: beep · beep · beep · (next
-            // tick) GO. Cleaner separation than firing it at the
-            // prep→active boundary itself.
-            if exerciseElapsed == 1 {
-                audio.playStartBeep()
-            }
 
             // Countdown beeps for the final 3 seconds of the active
             // phase (3-2-1). No start beep at remaining=0 here — the
