@@ -9,7 +9,7 @@ KIRA_VOICE="03vEurziQfq3V8WZhQvn"
 # voicePreference="encouraging" maps to this voice. User-facing
 # display name is "Jeni" (mindful, cheerful, kind). Asset prefix
 # `jeni_` is internal-only and predates the persona rename.
-JENI_VOICE="nf4MCGNSdM0hxM95ZBQR"
+JENI_VOICE="hA4zGnmTwX2NQiTRMt7o"
 # voicePreference="balanced" maps to this voice. Asset prefix `matson_`
 # (kept for back-compat; user-facing display name is "Sam").
 MATSON_VOICE="ZRwrL4id6j1HPGFkeCzO"

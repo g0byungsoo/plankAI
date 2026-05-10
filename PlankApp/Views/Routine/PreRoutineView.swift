@@ -120,6 +120,19 @@ struct PreRoutineView: View {
         let url = Bundle.main.url(forResource: trainerName, withExtension: "m4a")
             ?? Bundle.main.url(forResource: baseName, withExtension: "m4a")
         guard let url else { return }
+
+        // Activate the audio session in playback mode so the clip
+        // plays even with the device on silent. Without this, the
+        // default ambient category respects the silent switch and the
+        // welcome clip fires inaudibly. Idempotent — RoutineAudioManager
+        // re-activates with the same category once the session starts.
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            // Continue regardless — playback can still work in audible mode
+        }
+
         do {
             introPlayer = try AVAudioPlayer(contentsOf: url)
             introPlayer?.volume = 1.0

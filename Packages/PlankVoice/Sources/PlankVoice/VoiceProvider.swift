@@ -86,7 +86,7 @@ public final class SystemTTSProvider: NSObject, VoiceProvider, AVSpeechSynthesiz
 /// trainer name (Kira / Jeni / Sam).
 public enum CoachVoice {
     public static let kira = "03vEurziQfq3V8WZhQvn"
-    public static let jeni = "nf4MCGNSdM0hxM95ZBQR"
+    public static let jeni = "hA4zGnmTwX2NQiTRMt7o"
     public static let sam  = "ZRwrL4id6j1HPGFkeCzO"
 
     /// Resolve a `voicePreference` string to the trainer's voice ID.
