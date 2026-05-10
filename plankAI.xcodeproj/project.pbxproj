@@ -105,6 +105,7 @@
 		1C838D6A2849D0A291330F13 /* prep_short_upward_dog.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 39982E9093FF9E303E07FF75 /* prep_short_upward_dog.m4a */; };
 		1C88ECF7C828F4996B553B2B /* prep_full_shoulder_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7C028CD131D3A0C10BD11A26 /* prep_full_shoulder_stretch.m4a */; };
 		1CA61FB2A631DFBBE6ADFA53 /* prep_short_standing_hip_abduction.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CA63939F64528D694AAE1D98 /* prep_short_standing_hip_abduction.m4a */; };
+		1CBBCBDCC3E6F6D008054744 /* countdown_beep_final.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 128FBE018EC08C48596ACBE1 /* countdown_beep_final.m4a */; };
 		1CD087B1AFF78350A928B93F /* prep_full_seated_knee_tuck.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6854FF90C726FBC3FB0F7A83 /* prep_full_seated_knee_tuck.m4a */; };
 		1CE2B9DB78ACABA1EA29D7B4 /* matson_prep_short_jump_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E510F82FF83CA0E136023332 /* matson_prep_short_jump_squat.m4a */; };
 		1D55BF17104A290444C4FF3B /* jeni_prep_short_bird_dog.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8F6BE6C3E89BF39523152CD5 /* jeni_prep_short_bird_dog.m4a */; };
@@ -1240,6 +1241,7 @@
 		124158C827C1C3F16D801A7E /* jeni_prep_full_deep_hip_flexor.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_deep_hip_flexor.m4a; sourceTree = "<group>"; };
 		125792892A3C8C711FDF2557 /* prep_short_low_plank_leg_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_low_plank_leg_raise.m4a; sourceTree = "<group>"; };
 		1278991062E2E594F7C44F34 /* prep_short_seated_forward_fold.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_seated_forward_fold.m4a; sourceTree = "<group>"; };
+		128FBE018EC08C48596ACBE1 /* countdown_beep_final.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = countdown_beep_final.m4a; sourceTree = "<group>"; };
 		13153FE51DDF04B35AC400BD /* matson_prep_short_alternating_superman.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_alternating_superman.m4a; sourceTree = "<group>"; };
 		1345C881AC495AB9C78E1EEC /* prep_short_donkey_kick_pulse.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_donkey_kick_pulse.m4a; sourceTree = "<group>"; };
 		1386D4105F0FA70206192907 /* prep_short_jumping_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_jumping_jacks.m4a; sourceTree = "<group>"; };
@@ -3635,6 +3637,7 @@
 				F8B89A0977483739D98E32F2 /* switch_sides_1.m4a */,
 				C5F001B47B985EFDB88BF374 /* switch_sides_2.m4a */,
 				B8A9E5D2E1AD5DFA0B20F9A2 /* countdown_beep.m4a */,
+				128FBE018EC08C48596ACBE1 /* countdown_beep_final.m4a */,
 			);
 			path = VoiceClips;
 			sourceTree = "<group>";
@@ -4944,6 +4947,7 @@
 				BF17C04184E22E9DB992473A /* switch_sides_1.m4a in Resources */,
 				78028E5484424406B5A33D77 /* switch_sides_2.m4a in Resources */,
 				3E6B6C63EF6A462B8F51425A /* countdown_beep.m4a in Resources */,
+				1CBBCBDCC3E6F6D008054744 /* countdown_beep_final.m4a in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

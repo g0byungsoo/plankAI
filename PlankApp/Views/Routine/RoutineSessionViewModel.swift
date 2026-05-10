@@ -267,9 +267,11 @@ final class RoutineSessionViewModel {
                 Haptics.soft()
             }
             // Countdown beeps for the last 5 seconds of prep, matching
-            // the active-phase countdown.
+            // the active-phase countdown. Final beep (remaining=1) is
+            // a distinct higher / longer tone so the transition feels
+            // like a starter's pistol.
             if timeRemaining >= 1 && timeRemaining <= 5 {
-                audio.playCountdownBeep()
+                audio.playCountdownBeep(isFinal: timeRemaining == 1)
             }
             // Fire the prep cue with a budget that fits the chosen clip
             // variant. Prep window = the rest after the PREVIOUS slot
@@ -347,12 +349,11 @@ final class RoutineSessionViewModel {
             let remaining = timeRemaining
 
             // Countdown beeps for the final 5 seconds of the active
-            // phase. Replaces the prior voice "Five seconds left" cue
-            // — beeps are clearer and don't collide with other
-            // utterances. Haptic tick still fires at 3, 2, 1 for the
-            // physical countdown feel.
+            // phase. Final beep (remaining=1) is a higher / longer
+            // tone so the transition is distinct from the steady
+            // 5/4/3/2 ticks. Haptic tick still fires at 3, 2, 1.
             if remaining >= 1 && remaining <= 5 {
-                audio.playCountdownBeep()
+                audio.playCountdownBeep(isFinal: remaining == 1)
             }
             if remaining <= 3 && remaining >= 1 {
                 Haptics.tick()

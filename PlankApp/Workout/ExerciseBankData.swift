@@ -2399,8 +2399,8 @@ enum ExerciseBankData {
             lottieFile: "woman-doing-spinal-flexion-forward-bending-stretching",
             defaultDurationSec: 25,
             restAfterSec: 15,
-            note: "Source Lottie animates a standing forward fold; rotated 90° so the figure reads as seated/folded over.",
-            lottieRotation: 90
+            note: "Source Lottie animates a standing forward fold; rotated counter-clockwise so the figure reads as seated/folded over.",
+            lottieRotation: -90
         ),
         Exercise(
             id: "standing_knee_hug",
