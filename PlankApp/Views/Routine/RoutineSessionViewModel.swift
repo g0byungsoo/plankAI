@@ -330,11 +330,10 @@ final class RoutineSessionViewModel {
             }
             if timeRemaining <= 0 {
                 Haptics.vibrate()
-                // Distinct "GO" beep at the prep → active transition.
-                // Closes the countdown cadence: beep · beep · beep · GO.
-                // The prep_full cue already announced the exercise +
-                // position; no voice "Go" needed.
-                audio.playStartBeep()
+                // Start beep fires on the FIRST active tick (below)
+                // instead of here, so the user clearly hears it after
+                // the countdown beep at "1" rather than colliding
+                // with it at the prep→active boundary.
                 let slot = workout.exercises[index]
                 phase = .active(exerciseIndex: index)
                 timeRemaining = slot.duration
@@ -346,11 +345,19 @@ final class RoutineSessionViewModel {
             let slot = workout.exercises[index]
             let remaining = timeRemaining
 
+            // Distinct "GO" beep on the first active tick — fires
+            // one tick AFTER the countdown beep at "1" so the user
+            // hears the cadence cleanly: beep · beep · beep · (next
+            // tick) GO. Cleaner separation than firing it at the
+            // prep→active boundary itself.
+            if exerciseElapsed == 1 {
+                audio.playStartBeep()
+            }
+
             // Countdown beeps for the final 3 seconds of the active
-            // phase (3-2-1). No distinct "start" beep at remaining=0
-            // here — the active phase is ending, not starting, and
-            // onExerciseDone fires the "And done" voice cue. Haptic
-            // tick still fires at 3, 2, 1.
+            // phase (3-2-1). No start beep at remaining=0 here — the
+            // active phase is ending, not starting, and onExerciseDone
+            // fires the "And done" voice cue.
             if remaining >= 1 && remaining <= 3 {
                 audio.playCountdownBeep()
             }
