@@ -136,18 +136,24 @@ final class RoutineAudioManager {
     /// playing in the same tick — both can sound at once.
     private var beepPlayer: AVAudioPlayer?
 
-    /// Short high-pitched beep for the 5-4-3-2-1 countdown in both prep
-    /// and active phases. The `isFinal` variant (last beep before the
-    /// phase transitions) uses a higher / longer tone so the user
-    /// hears "beep beep beep beep BEEEP" — the final tick is
-    /// distinct, like a starter's pistol. Replaces the prior voice
-    /// "Five seconds left" cue and the prep-window silence. Respects
-    /// `isMuted`. Uses its own player instance so the BGM duck logic +
-    /// voice-clip path are unaffected.
-    func playCountdownBeep(isFinal: Bool = false) {
+    /// Short high-pitched countdown tick — fires at remaining 3, 2, 1
+    /// in both prep and active phases. Same tone for all three so the
+    /// cadence reads as "beep beep beep" leading into the transition.
+    func playCountdownBeep() {
+        playBeep(resource: "countdown_beep")
+    }
+
+    /// Distinct higher / longer "GO" tone that fires only at the
+    /// prep → active transition (the 1→0 moment when the exercise is
+    /// actually starting). Pairs with the three preceding countdown
+    /// beeps: "beep · beep · beep · GO".
+    func playStartBeep() {
+        playBeep(resource: "countdown_beep_final")
+    }
+
+    private func playBeep(resource: String) {
         if isMuted { return }
         if let beepPlayer, beepPlayer.isPlaying { return }
-        let resource = isFinal ? "countdown_beep_final" : "countdown_beep"
         guard let url = Bundle.main.url(forResource: resource, withExtension: "m4a") else { return }
         do {
             beepPlayer = try AVAudioPlayer(contentsOf: url)

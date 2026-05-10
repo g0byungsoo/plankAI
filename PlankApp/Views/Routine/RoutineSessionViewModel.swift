@@ -267,10 +267,10 @@ final class RoutineSessionViewModel {
                 Haptics.soft()
             }
             // Countdown beeps for the last 3 seconds of prep (3-2-1).
-            // Final beep (remaining=1) is a distinct higher / longer
-            // tone so the transition feels like a starter's pistol.
+            // Same tone for all three; the distinct "start" beep fires
+            // separately at the 1→0 transition below.
             if timeRemaining >= 1 && timeRemaining <= 3 {
-                audio.playCountdownBeep(isFinal: timeRemaining == 1)
+                audio.playCountdownBeep()
             }
             // Fire the prep cue with a budget that fits the chosen clip
             // variant. Prep window = the rest after the PREVIOUS slot
@@ -330,12 +330,11 @@ final class RoutineSessionViewModel {
             }
             if timeRemaining <= 0 {
                 Haptics.vibrate()
-                // No "Go" cue at the boundary — the prep cue is the
-                // announcement, and force-firing onExerciseStart here
-                // cuts its tail. Initial prep now fires the prep cue
-                // too (10s window has room) so even the first
-                // exercise lands announced rather than with a generic
-                // "Go".
+                // Distinct "GO" beep at the prep → active transition.
+                // Closes the countdown cadence: beep · beep · beep · GO.
+                // The prep_full cue already announced the exercise +
+                // position; no voice "Go" needed.
+                audio.playStartBeep()
                 let slot = workout.exercises[index]
                 phase = .active(exerciseIndex: index)
                 timeRemaining = slot.duration
@@ -348,11 +347,12 @@ final class RoutineSessionViewModel {
             let remaining = timeRemaining
 
             // Countdown beeps for the final 3 seconds of the active
-            // phase (3-2-1). Final beep (remaining=1) is a higher /
-            // longer tone so the transition is distinct from 3 and 2.
-            // Haptic tick still fires at 3, 2, 1.
+            // phase (3-2-1). No distinct "start" beep at remaining=0
+            // here — the active phase is ending, not starting, and
+            // onExerciseDone fires the "And done" voice cue. Haptic
+            // tick still fires at 3, 2, 1.
             if remaining >= 1 && remaining <= 3 {
-                audio.playCountdownBeep(isFinal: remaining == 1)
+                audio.playCountdownBeep()
             }
             if remaining <= 3 && remaining >= 1 {
                 Haptics.tick()

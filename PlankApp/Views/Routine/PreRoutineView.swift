@@ -129,13 +129,24 @@ struct PreRoutineView: View {
             default:            prefix = ""
             }
 
+            // Resolve the clip with this priority:
+            //  1. focus_intro_<bodyFocus> — workout-specific welcome
+            //     that names the focus area + a tip ("Today we wake
+            //     up your glutes. Move with intention…")
+            //  2. routine_start_<n> — generic welcome fallback
             // Try the trainer-prefixed variant first, fall back to the
             // un-prefixed Kira clip if the trainer's variant isn't bundled.
-            let pick = Int.random(in: 1...3)
-            let baseName = "routine_start_\(pick)"
-            let trainerName = prefix.isEmpty ? baseName : "\(prefix)\(baseName)"
-            let url = Bundle.main.url(forResource: trainerName, withExtension: "m4a")
-                ?? Bundle.main.url(forResource: baseName, withExtension: "m4a")
+            let focusKey = UserDefaults.standard.string(forKey: "bodyFocus") ?? ""
+            let focusBase = focusKey.isEmpty ? nil : "focus_intro_\(focusKey)"
+            let routineStartBase = "routine_start_\(Int.random(in: 1...3))"
+
+            func resolveURL(_ base: String) -> URL? {
+                let trainerName = prefix.isEmpty ? base : "\(prefix)\(base)"
+                return Bundle.main.url(forResource: trainerName, withExtension: "m4a")
+                    ?? Bundle.main.url(forResource: base, withExtension: "m4a")
+            }
+
+            let url = (focusBase.flatMap(resolveURL)) ?? resolveURL(routineStartBase)
             guard let url else { return }
             do {
                 introPlayer = try AVAudioPlayer(contentsOf: url)
