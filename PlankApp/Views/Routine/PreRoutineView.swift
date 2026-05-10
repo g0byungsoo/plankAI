@@ -11,11 +11,13 @@ struct PreRoutineView: View {
     let onStart: () -> Void
     let onCancel: () -> Void
 
-    /// Held across the view's lifetime so the spoken intro doesn't get
-    /// cut off if SwiftUI recreates the body. Single utterance per
-    /// presentation — guarded by `didSpeakIntro`.
-    @State private var ttsSynthesizer = AVSpeechSynthesizer()
-    @State private var didSpeakIntro = false
+    /// Holds the welcome clip player so it doesn't get cut off if SwiftUI
+    /// recreates the body. Single playback per presentation — guarded by
+    /// `didPlayIntro`. Recorded coach voice (one of the `routine_start_*`
+    /// clips for the selected trainer) — replaces the prior robotic
+    /// AVSpeechSynthesizer intro.
+    @State private var introPlayer: AVAudioPlayer?
+    @State private var didPlayIntro = false
 
     /// Reference body weight for kcal estimation. Real per-user weight
     /// arrives in Phase 7 (weight-loss analytics) — until then this gives a
@@ -83,29 +85,48 @@ struct PreRoutineView: View {
             }
         }
         .onAppear {
-            speakIntroIfNeeded()
+            playIntroIfNeeded()
         }
         .onDisappear {
-            if ttsSynthesizer.isSpeaking {
-                ttsSynthesizer.stopSpeaking(at: .immediate)
-            }
+            introPlayer?.stop()
+            introPlayer = nil
         }
     }
 
-    /// Brief TTS intro spoken once when the screen appears. Guarded so a
-    /// SwiftUI re-render (e.g., scenePhase tick) doesn't restart the
-    /// utterance. Robotic system voice for now — the next ElevenLabs
-    /// pass will replace this with a recorded clip per voicePreference.
-    private func speakIntroIfNeeded() {
-        guard !didSpeakIntro else { return }
-        didSpeakIntro = true
-        let totalMin = max(1, workout.estimatedDuration)
-        let exerciseCount = workout.exercises.count
-        let text = "\(workout.name). \(exerciseCount) exercises, about \(totalMin) minutes. When you're ready, tap start."
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
-        ttsSynthesizer.speak(utterance)
+    /// Play a recorded coach voice clip on first appearance. Picks a
+    /// random `routine_start_<n>` from the trainer the user selected
+    /// (Kira / Jeni / Sam), so the welcome is on-brand instead of
+    /// robotic system TTS. Guarded by `didPlayIntro` so a SwiftUI
+    /// re-render doesn't restart playback.
+    private func playIntroIfNeeded() {
+        guard !didPlayIntro else { return }
+        didPlayIntro = true
+
+        // Trainer prefix — empty for Kira, "jeni_" for Jeni, "matson_"
+        // for Sam (kept internal; user-facing display is "Sam").
+        // Mirrors RoutineAudioManager.prefix.
+        let prefix: String
+        switch UserDefaults.standard.string(forKey: "voicePreference") ?? "encouraging" {
+        case "encouraging": prefix = "jeni_"
+        case "balanced":    prefix = "matson_"
+        default:            prefix = ""
+        }
+
+        // Try the trainer-prefixed variant first, fall back to the
+        // un-prefixed Kira clip if the trainer's variant isn't bundled.
+        let pick = Int.random(in: 1...3)
+        let baseName = "routine_start_\(pick)"
+        let trainerName = prefix.isEmpty ? baseName : "\(prefix)\(baseName)"
+        let url = Bundle.main.url(forResource: trainerName, withExtension: "m4a")
+            ?? Bundle.main.url(forResource: baseName, withExtension: "m4a")
+        guard let url else { return }
+        do {
+            introPlayer = try AVAudioPlayer(contentsOf: url)
+            introPlayer?.volume = 1.0
+            introPlayer?.play()
+        } catch {
+            // Audio failure is non-fatal — silent intro is acceptable
+        }
     }
 
     // MARK: - Top bar

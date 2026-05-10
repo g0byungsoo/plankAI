@@ -82,17 +82,17 @@ public final class SystemTTSProvider: NSObject, VoiceProvider, AVSpeechSynthesiz
 
 /// Per-coach ElevenLabs voice IDs. Resolved at request time from
 /// `voicePreference` so coach selection drives the actual voice rather
-/// than a single hardcoded ID. Also handles legacy preference values
-/// (e.g. "sarah") by mapping them to the closest current coach.
+/// than a single hardcoded ID. Naming aligns with the user-facing
+/// trainer name (Kira / Jeni / Sam).
 public enum CoachVoice {
     public static let kira = "03vEurziQfq3V8WZhQvn"
-    public static let jeni = "hA4zGnmTwX2NQiTRMt7o"
+    public static let jeni = "nf4MCGNSdM0hxM95ZBQR"
     public static let sam  = "ZRwrL4id6j1HPGFkeCzO"
 
     /// Resolve a `voicePreference` string to the trainer's voice ID.
-    /// Anything unrecognized — including the legacy "sarah" key — falls
-    /// through to Jeni (the warm/encouraging coach), preserving the
-    /// previous default coach for users with stale settings.
+    /// Anything unrecognized — including the legacy "sarah" key —
+    /// falls through to Jeni (the warm/encouraging coach, default
+    /// voice for the app).
     public static func voiceId(for preference: String?) -> String {
         switch preference {
         case "keepItReal": return kira
@@ -129,20 +129,14 @@ public final class ElevenLabsProvider: VoiceProvider, @unchecked Sendable {
         return fallbackVoiceId
     }
 
-    /// Some isolated one-word prompts ("Go!", "Rest.") read robotic in
-    /// TTS because the model has no rhythmic / emotional context. Expand
-    /// them to a phrase of equivalent meaning before sending — the
-    /// caller-supplied `line.text` is preserved on the UI side; only the
-    /// API payload changes. Narrow list — never expand a phrase that's
-    /// already clear.
-    static func expandForTTS(_ text: String) -> String {
-        switch text {
-        case "Go.", "Go!":          return "Three, two, one, go!"
-        case "Rest.":               return "Rest now."
-        case "Good work.":          return "Good work, keep going."
-        default:                    return text
-        }
-    }
+    /// Pass-through for now. Earlier we expanded a few isolated short
+    /// phrases ("Go." → "Three, two, one, go!") to give TTS more
+    /// emotional context, but the rewritten output read worse than the
+    /// shorter original on real workouts. The clip texts authored in
+    /// `scripts/generate_voice_clips.sh` already include enough flow
+    /// ("And done.", "Okay, rest.", "Beautiful work.") for the model
+    /// to interpret rhythm.
+    static func expandForTTS(_ text: String) -> String { text }
 
     public func play(_ line: VoiceLine) async {
         let voiceId = currentVoiceId

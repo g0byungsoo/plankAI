@@ -24,7 +24,7 @@ struct ChangeTrainerView: View {
     @State private var loadingDots = ""
 
     private let trainers: [(id: String, photo: String, name: String, vibe: String, quote: String, preview: String)] = [
-        ("encouraging", "coach-jeni", "Jeni", "Warm & Supportive", "\"You're doing amazing — keep breathing.\"", "jeni_preview"),
+        ("encouraging", "coach-jeni", "Jeni", "Mindful & Kind", "\"You're doing beautifully — keep breathing.\"", "jeni_preview"),
         ("keepItReal", "coach-kira", "Kira", "Sassy & Real", "\"My mama planks better than this.\"", "kira_preview"),
         ("balanced", "coach-matson", "Sam", "Chill & Playful", "\"Come on, we're gonna have a good time.\"", "matson_preview"),
     ]

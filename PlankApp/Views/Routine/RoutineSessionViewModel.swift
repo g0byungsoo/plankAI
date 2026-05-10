@@ -256,20 +256,26 @@ final class RoutineSessionViewModel {
             if !isInitial && timeRemaining == workout.exercises[index].restAfter {
                 Haptics.soft()
             }
-            // Fire the prep cue early enough that the full clip lands
-            // before the active phase starts. Budgets bumped from the
-            // original (6 / 2) — prep_full clips run 3-5s and prep_short
-            // 1.5-2.5s; the previous 2s budget for medium windows
-            // routinely cut the prep_short tail.
-            //   prepWindow ≥ 12 (rest=15 or 20) → 7s budget for prep_full
-            //   prepWindow 6-11 (rest=10)        → 4s budget for prep_short
-            //   prepWindow ≤ 5  (rest=5)         → silent (voice would cut)
+            // Fire the prep cue with a budget that fits the chosen clip
+            // variant. If the clip overruns the prep window slightly
+            // (e.g., a long prep_short into a 5s window), it continues
+            // into the active phase silently — onActiveTick / onExerciseStart
+            // are already gated to never interrupt mid-prep-cue (see the
+            // voice-orchestration fix earlier).
+            //   prepWindow ≥ 12 → cueTime 7  (prep_full ~3-5s)
+            //   prepWindow ≥ 6  → cueTime 4  (prep_short ~1.5-2.5s)
+            //   prepWindow ≥ 4  → cueTime 2  (prep_short, allows mild overrun)
+            //   prepWindow ≥ 2  → cueTime 1  (brief — even short windows
+            //                                  still tell the user what's next)
+            //   prepWindow ≤ 1  → silent
                 let upcoming = workout.exercises[index]
                 let prepWindow = upcoming.restAfter
                 let cueTime: Int
-                if prepWindow >= 12 { cueTime = 7 }       // long: prep_full
-                else if prepWindow >= 6 { cueTime = 4 }   // medium: prep_short
-                else { cueTime = -1 }                      // ≤5s: silent
+                if prepWindow >= 12 { cueTime = 7 }
+                else if prepWindow >= 6 { cueTime = 4 }
+                else if prepWindow >= 4 { cueTime = 2 }
+                else if prepWindow >= 2 { cueTime = 1 }
+                else { cueTime = -1 }
 
             if timeRemaining == cueTime {
                 let prev = (index > 0) ? workout.exercises[index - 1] : nil

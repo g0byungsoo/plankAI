@@ -175,23 +175,24 @@ final class RoutineAudioManager {
                 "prep_short_\(id)",
                 "intro_\(id)"
             ], force: true)
-        } else if prepWindow >= 6 {
-            // Medium — short cue; position cue if a position-only clip
-            // exists, else the legacy intro.
+        } else if prepWindow >= 2 {
+            // Anything from 2 to 11s — short cue announcing the next
+            // exercise. The clip may briefly overrun the prep window
+            // into the active phase; onActiveTick + onExerciseStart
+            // are already gated so they never interrupt mid-utterance.
             played = playFirstAvailable([
                 "prep_short_\(id)",
                 "intro_\(id)"
             ], force: true)
         } else {
-            // ≤5s: silent. Any cue risks getting cut, which reads as
-            // broken.
+            // ≤1s window — too short to even start a clip. Silent.
             played = true
         }
 
-        // TTS fallback when no clip resolved (most of the 128-exercise
-        // bank lacks bundled prep clips today). Speaking "next up: X"
-        // beats silence — voice-clip generation is staged for an
-        // ElevenLabs pass that'll replace this on the same path.
+        // TTS fallback when no clip resolved (e.g., a brand-new exercise
+        // added before its clip is generated). Speaking the name beats
+        // silence; the next ElevenLabs run replaces TTS on the same
+        // code path.
         if !played {
             speakNextUp(name: upcoming.name)
         }

@@ -6,9 +6,10 @@ OUTPUT_DIR="$PROJECT_DIR/PlankApp/Resources/VoiceClips"
 source "$PROJECT_DIR/.env"
 
 KIRA_VOICE="03vEurziQfq3V8WZhQvn"
-# voicePreference="encouraging" maps to this voice. Asset prefix `jeni_`.
-# Replaced 2026-05-10: previous voice was deprecated; new ID below.
-JENI_VOICE="hA4zGnmTwX2NQiTRMt7o"
+# voicePreference="encouraging" maps to this voice. User-facing
+# display name is "Jeni" (mindful, cheerful, kind). Asset prefix
+# `jeni_` is internal-only and predates the persona rename.
+JENI_VOICE="nf4MCGNSdM0hxM95ZBQR"
 # voicePreference="balanced" maps to this voice. Asset prefix `matson_`
 # (kept for back-compat; user-facing display name is "Sam").
 MATSON_VOICE="ZRwrL4id6j1HPGFkeCzO"
@@ -25,21 +26,12 @@ mkdir -p "$OUTPUT_DIR"
 # 0.0; we override stability and similarity for short-phrase fidelity.
 VOICE_SETTINGS='{"stability":0.55,"similarity_boost":0.85,"style":0.0,"use_speaker_boost":true}'
 
-# Some isolated one-word prompts ("Go!", "Rest.") read robotic in TTS
-# because the model has nothing to interpret rhythm or emotion from.
-# Expand them to a phrase of equivalent meaning before sending — UI
-# clip names + on-screen text stay unchanged, only the TTS input
-# changes. Keep this list narrow: never expand a phrase that's
-# already clear (e.g., "Next up: squats." is fine as-is).
+# Pass-through. Earlier we expanded short prompts ("Go." → "Three,
+# two, one, go!") but the rewritten output read worse than the
+# original on real workouts. Existing clip texts already have
+# enough flow ("And done.", "Okay, rest.") for the model.
 expand_for_tts() {
-    local text="$1"
-    case "$text" in
-        "Go.")          echo "Three, two, one, go!" ;;
-        "Go!")          echo "Three, two, one, go!" ;;
-        "Rest.")        echo "Rest now." ;;
-        "Good work.")   echo "Good work, keep going." ;;
-        *)              echo "$text" ;;
-    esac
+    echo "$1"
 }
 
 generate() {
