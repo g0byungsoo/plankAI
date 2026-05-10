@@ -80,20 +80,72 @@ public final class SystemTTSProvider: NSObject, VoiceProvider, AVSpeechSynthesiz
 
 // MARK: - ElevenLabs Provider
 
+/// Per-coach ElevenLabs voice IDs. Resolved at request time from
+/// `voicePreference` so coach selection drives the actual voice rather
+/// than a single hardcoded ID. Also handles legacy preference values
+/// (e.g. "sarah") by mapping them to the closest current coach.
+public enum CoachVoice {
+    public static let kira = "03vEurziQfq3V8WZhQvn"
+    public static let jeni = "hA4zGnmTwX2NQiTRMt7o"
+    public static let sam  = "ZRwrL4id6j1HPGFkeCzO"
+
+    /// Resolve a `voicePreference` string to the trainer's voice ID.
+    /// Anything unrecognized — including the legacy "sarah" key — falls
+    /// through to Jeni (the warm/encouraging coach), preserving the
+    /// previous default coach for users with stale settings.
+    public static func voiceId(for preference: String?) -> String {
+        switch preference {
+        case "keepItReal": return kira
+        case "balanced":   return sam
+        case "encouraging", "sarah", .none, .some(""): return jeni
+        default: return jeni
+        }
+    }
+}
+
 public final class ElevenLabsProvider: VoiceProvider, @unchecked Sendable {
     private let apiKey: String
-    private let voiceId: String
+    /// Read-only fallback when no preference is supplied. Resolution at
+    /// request time prefers `UserDefaults["voicePreference"]` so coach
+    /// changes from Settings take effect without re-creating the provider.
+    private let fallbackVoiceId: String
     private var player: AVAudioPlayer?
     private var _isPlaying = false
 
-    public init(apiKey: String, voiceId: String = "03vEurziQfq3V8WZhQvn") {
+    public init(apiKey: String, voiceId: String = CoachVoice.jeni) {
         self.apiKey = apiKey
-        self.voiceId = voiceId
+        self.fallbackVoiceId = voiceId
     }
 
     public var isPlaying: Bool { _isPlaying }
 
+    /// Coach-aware voice ID. Re-reads the preference at every play() so
+    /// switching coaches mid-session works without a provider rebuild.
+    private var currentVoiceId: String {
+        if let pref = UserDefaults.standard.string(forKey: "voicePreference"),
+           !pref.isEmpty {
+            return CoachVoice.voiceId(for: pref)
+        }
+        return fallbackVoiceId
+    }
+
+    /// Some isolated one-word prompts ("Go!", "Rest.") read robotic in
+    /// TTS because the model has no rhythmic / emotional context. Expand
+    /// them to a phrase of equivalent meaning before sending — the
+    /// caller-supplied `line.text` is preserved on the UI side; only the
+    /// API payload changes. Narrow list — never expand a phrase that's
+    /// already clear.
+    static func expandForTTS(_ text: String) -> String {
+        switch text {
+        case "Go.", "Go!":          return "Three, two, one, go!"
+        case "Rest.":               return "Rest now."
+        case "Good work.":          return "Good work, keep going."
+        default:                    return text
+        }
+    }
+
     public func play(_ line: VoiceLine) async {
+        let voiceId = currentVoiceId
         let urlString = "https://api.elevenlabs.io/v1/text-to-speech/\(voiceId)"
         guard let url = URL(string: urlString) else { return }
 
@@ -103,13 +155,21 @@ public final class ElevenLabsProvider: VoiceProvider, @unchecked Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
 
+        // Workout coach prompt settings — tuned for the short,
+        // command-style phrases the app sends. Medium stability avoids
+        // robotic flatness on one-shot phrases; high similarity preserves
+        // coach identity on tiny clips; style at 0 keeps short prompts
+        // from going overly dramatic / inconsistent; speaker_boost trades
+        // a touch of latency for clarity. Defaults per ElevenLabs docs
+        // are 0.75 / 0.0; we override stability + similarity for fidelity.
         let body: [String: Any] = [
-            "text": line.text,
+            "text": Self.expandForTTS(line.text),
             "model_id": "eleven_turbo_v2_5",
             "voice_settings": [
-                "stability": 0.4,
-                "similarity_boost": 0.75,
-                "style": 0.6
+                "stability": 0.55,
+                "similarity_boost": 0.85,
+                "style": 0.0,
+                "use_speaker_boost": true
             ]
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)

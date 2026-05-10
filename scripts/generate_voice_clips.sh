@@ -6,10 +6,41 @@ OUTPUT_DIR="$PROJECT_DIR/PlankApp/Resources/VoiceClips"
 source "$PROJECT_DIR/.env"
 
 KIRA_VOICE="03vEurziQfq3V8WZhQvn"
-SARAH_VOICE="nf4MCGNSdM0hxM95ZBQR"
+# voicePreference="encouraging" maps to this voice. Asset prefix `jeni_`.
+# Replaced 2026-05-10: previous voice was deprecated; new ID below.
+JENI_VOICE="hA4zGnmTwX2NQiTRMt7o"
+# voicePreference="balanced" maps to this voice. Asset prefix `matson_`
+# (kept for back-compat; user-facing display name is "Sam").
 MATSON_VOICE="ZRwrL4id6j1HPGFkeCzO"
 
 mkdir -p "$OUTPUT_DIR"
+
+# Workout coach prompt settings — tuned for the short, command-style
+# phrases ElevenLabs gets in this app. Medium stability avoids the
+# robotic flatness very-high stability produces on one-shot phrases;
+# high similarity preserves coach identity on tiny clips; style at 0
+# stops short prompts from going inconsistent or overly dramatic;
+# speaker_boost trades a touch of latency for clarity, which we want
+# for pre-generated clips. Defaults per ElevenLabs docs are 0.75 /
+# 0.0; we override stability and similarity for short-phrase fidelity.
+VOICE_SETTINGS='{"stability":0.55,"similarity_boost":0.85,"style":0.0,"use_speaker_boost":true}'
+
+# Some isolated one-word prompts ("Go!", "Rest.") read robotic in TTS
+# because the model has nothing to interpret rhythm or emotion from.
+# Expand them to a phrase of equivalent meaning before sending — UI
+# clip names + on-screen text stay unchanged, only the TTS input
+# changes. Keep this list narrow: never expand a phrase that's
+# already clear (e.g., "Next up: squats." is fine as-is).
+expand_for_tts() {
+    local text="$1"
+    case "$text" in
+        "Go.")          echo "Three, two, one, go!" ;;
+        "Go!")          echo "Three, two, one, go!" ;;
+        "Rest.")        echo "Rest now." ;;
+        "Good work.")   echo "Good work, keep going." ;;
+        *)              echo "$text" ;;
+    esac
+}
 
 generate() {
     local voice_id="$1"
@@ -18,20 +49,22 @@ generate() {
     local output="$OUTPUT_DIR/${id}.m4a"
     [ -f "$output" ] && { echo "SKIP $id"; return; }
     echo "GEN  $id"
+    local payload_text
+    payload_text="$(expand_for_tts "$text")"
     local url="https://api.elevenlabs.io/v1/text-to-speech/$voice_id"
     local tmp=$(mktemp /tmp/voice_XXXXXX.mp3)
     curl -s -X POST "$url" \
         -H "xi-api-key: $ELEVENLABS_API_KEY" \
         -H "Content-Type: application/json" \
         -H "Accept: audio/mpeg" \
-        -d "{\"text\":\"$text\",\"model_id\":\"eleven_turbo_v2_5\",\"voice_settings\":{\"stability\":0.4,\"similarity_boost\":0.75,\"style\":0.6}}" \
+        -d "{\"text\":\"${payload_text}\",\"model_id\":\"eleven_turbo_v2_5\",\"voice_settings\":${VOICE_SETTINGS}}" \
         -o "$tmp"
     afconvert "$tmp" "$output" -d aac -f m4af -b 128000 2>/dev/null
     rm -f "$tmp"; sleep 0.5
 }
 
 K="$KIRA_VOICE"
-S="$SARAH_VOICE"
+J="$JENI_VOICE"
 M="$MATSON_VOICE"
 
 echo "=== KIRA (existing plank session clips) ==="
@@ -84,46 +117,46 @@ generate $K "camera_bad_2" "Back up your phone. I need the full picture."
 
 # Coach previews
 generate $K "kira_preview" "Hey, I'm Kira. I don't do gentle. But I'll get you right."
-generate $S "sarah_preview" "Hi, I'm Sarah. We'll take this one breath at a time."
+generate $J "jeni_preview" "Hi, I'm Jeni. We'll take this one breath at a time."
 generate $M "matson_preview" "What's up, I'm Matson. We're gonna have a good time."
 
 # =============================================
-# SARAH plank session clips
+# JENI plank session clips
 # =============================================
 echo ""
-echo "=== SARAH plank session clips ==="
-generate $S "sarah_guide_setup_1" "Set your phone where it can see you, then ease into plank. Forearms down, elbows under shoulders."
-generate $S "sarah_guide_setup_2" "Place your phone about six feet away, then come into plank position. I want to see your whole body."
-generate $S "sarah_guide_good_1" "Beautiful. Hold that."
-generate $S "sarah_guide_good_2" "That's lovely."
-generate $S "sarah_guide_good_3" "Yes. Keep breathing."
-generate $S "sarah_hip_sag_1" "Gently lift your hips. Think of lengthening your spine."
-generate $S "sarah_hip_sag_2" "Hips up a little. Draw your belly in."
-generate $S "sarah_hip_sag_3" "Your hips are dropping. Engage your core, lift gently."
-generate $S "sarah_hip_pike_1" "Lower your hips just a touch. Find that straight line."
-generate $S "sarah_hip_pike_2" "Hips are a bit high. Ease them down."
-generate $S "sarah_shoulder_1" "Relax your shoulders away from your ears."
-generate $S "sarah_shoulder_2" "Let your shoulders melt down. You're safe here."
-generate $S "sarah_recovery_1" "There it is. Beautiful."
-generate $S "sarah_recovery_2" "That's the alignment. Hold it."
-generate $S "sarah_stopped_1" "Come back when you're ready. We're still going."
-generate $S "sarah_stopped_2" "Take a breath, then come back down."
-generate $S "sarah_milestone_10" "Ten seconds. You're doing great."
-generate $S "sarah_milestone_30" "Thirty seconds. Wonderful."
-generate $S "sarah_milestone_60" "One minute. I'm so proud of you."
-generate $S "sarah_milestone_90" "Ninety seconds. That's incredible."
-generate $S "sarah_milestone_120" "Two minutes. You are amazing."
-generate $S "sarah_countdown_10" "Ten seconds left. You've got this."
-generate $S "sarah_countdown_5" "Five."
-generate $S "sarah_countdown_3" "Three."
-generate $S "sarah_countdown_2" "Two."
-generate $S "sarah_countdown_1" "One."
-generate $S "sarah_start_1" "Whenever you're ready. Go."
-generate $S "sarah_start_2" "Let's begin together."
-generate $S "sarah_end_good" "You did it. Be proud of yourself."
-generate $S "sarah_end_bad" "It's okay. You showed up. That's what matters."
-generate $S "sarah_camera_bad_1" "I can't quite see you. Move your phone back a little."
-generate $S "sarah_camera_bad_2" "Adjust your phone so I can see your full body."
+echo "=== JENI plank session clips ==="
+generate $J "jeni_guide_setup_1" "Set your phone where it can see you, then ease into plank. Forearms down, elbows under shoulders."
+generate $J "jeni_guide_setup_2" "Place your phone about six feet away, then come into plank position. I want to see your whole body."
+generate $J "jeni_guide_good_1" "Beautiful. Hold that."
+generate $J "jeni_guide_good_2" "That's lovely."
+generate $J "jeni_guide_good_3" "Yes. Keep breathing."
+generate $J "jeni_hip_sag_1" "Gently lift your hips. Think of lengthening your spine."
+generate $J "jeni_hip_sag_2" "Hips up a little. Draw your belly in."
+generate $J "jeni_hip_sag_3" "Your hips are dropping. Engage your core, lift gently."
+generate $J "jeni_hip_pike_1" "Lower your hips just a touch. Find that straight line."
+generate $J "jeni_hip_pike_2" "Hips are a bit high. Ease them down."
+generate $J "jeni_shoulder_1" "Relax your shoulders away from your ears."
+generate $J "jeni_shoulder_2" "Let your shoulders melt down. You're safe here."
+generate $J "jeni_recovery_1" "There it is. Beautiful."
+generate $J "jeni_recovery_2" "That's the alignment. Hold it."
+generate $J "jeni_stopped_1" "Come back when you're ready. We're still going."
+generate $J "jeni_stopped_2" "Take a breath, then come back down."
+generate $J "jeni_milestone_10" "Ten seconds. You're doing great."
+generate $J "jeni_milestone_30" "Thirty seconds. Wonderful."
+generate $J "jeni_milestone_60" "One minute. I'm so proud of you."
+generate $J "jeni_milestone_90" "Ninety seconds. That's incredible."
+generate $J "jeni_milestone_120" "Two minutes. You are amazing."
+generate $J "jeni_countdown_10" "Ten seconds left. You've got this."
+generate $J "jeni_countdown_5" "Five."
+generate $J "jeni_countdown_3" "Three."
+generate $J "jeni_countdown_2" "Two."
+generate $J "jeni_countdown_1" "One."
+generate $J "jeni_start_1" "Whenever you're ready. Go."
+generate $J "jeni_start_2" "Let's begin together."
+generate $J "jeni_end_good" "You did it. Be proud of yourself."
+generate $J "jeni_end_bad" "It's okay. You showed up. That's what matters."
+generate $J "jeni_camera_bad_1" "I can't quite see you. Move your phone back a little."
+generate $J "jeni_camera_bad_2" "Adjust your phone so I can see your full body."
 
 # =============================================
 # MATSON plank session clips
@@ -169,11 +202,11 @@ generate $M "matson_camera_bad_2" "Move your phone back, I need the full picture
 
 generate_routine_clips() {
     local V="$1"
-    local P="$2"  # prefix: "" for Kira, "sarah_" for Sarah, "matson_" for Matson
+    local P="$2"  # prefix: "" for Kira, "jeni_" for Jeni, "matson_" for Matson
 
     # --- Session bookends ---
     case "$P" in
-        sarah_)
+        jeni_)
             generate $V "${P}routine_start_1" "Let's begin."
             generate $V "${P}routine_start_2" "Take a breath. We're starting."
             generate $V "${P}routine_start_3" "Ready when you are."
@@ -207,7 +240,7 @@ generate_routine_clips() {
 
     # --- Exercise intros ---
     case "$P" in
-        sarah_)
+        jeni_)
             generate $V "${P}intro_bicycle_crunch" "Bicycle crunches. Nice and controlled."
             generate $V "${P}intro_reverse_crunch" "Reverse crunches. Bring those knees in gently."
             generate $V "${P}intro_leg_raises" "Leg raises. Slow, mindful movements."
@@ -289,7 +322,7 @@ generate_routine_clips() {
 
     # --- Tempo / Hold / Rest / Cues ---
     case "$P" in
-        sarah_)
+        jeni_)
             generate $V "${P}tempo_1" "Keep flowing, keep flowing."
             generate $V "${P}tempo_2" "Stay with the movement."
             generate $V "${P}tempo_3" "Beautiful pace."
@@ -395,8 +428,8 @@ echo "=== KIRA routine clips ==="
 generate_routine_clips "$KIRA_VOICE" ""
 
 echo ""
-echo "=== SARAH routine clips ==="
-generate_routine_clips "$SARAH_VOICE" "sarah_"
+echo "=== JENI routine clips ==="
+generate_routine_clips "$JENI_VOICE" "jeni_"
 
 echo ""
 echo "=== MATSON routine clips ==="
@@ -416,7 +449,7 @@ generate_routine_clips "$MATSON_VOICE" "matson_"
 
 generate_prep_shorts() {
     local V="$1"
-    local P="$2"  # prefix: "" / "sarah_" / "matson_"
+    local P="$2"  # prefix: "" / "jeni_" / "matson_"
     while IFS=$'\t' read -r id name; do
         # Skip header line + any blank rows.
         [[ "$id" =~ ^# ]] && continue
@@ -429,8 +462,8 @@ echo ""
 echo "=== prep_short × 3 trainers (128 exercises each) ==="
 echo "--- Kira ---"
 generate_prep_shorts "$KIRA_VOICE" ""
-echo "--- Sarah ---"
-generate_prep_shorts "$SARAH_VOICE" "sarah_"
+echo "--- Jeni ---"
+generate_prep_shorts "$JENI_VOICE" "jeni_"
 echo "--- Matson ---"
 generate_prep_shorts "$MATSON_VOICE" "matson_"
 
@@ -458,7 +491,7 @@ position_cue() {
 
 generate_prep_fulls() {
     local V="$1"
-    local P="$2"  # prefix: "" / "sarah_" / "matson_"
+    local P="$2"  # prefix: "" / "jeni_" / "matson_"
     while IFS=$'\t' read -r id name position; do
         [[ "$id" =~ ^# ]] && continue
         [ -z "$id" ] && continue
@@ -472,8 +505,8 @@ echo ""
 echo "=== prep_full × 3 trainers (128 exercises each) ==="
 echo "--- Kira ---"
 generate_prep_fulls "$KIRA_VOICE" ""
-echo "--- Sarah ---"
-generate_prep_fulls "$SARAH_VOICE" "sarah_"
+echo "--- Jeni ---"
+generate_prep_fulls "$JENI_VOICE" "jeni_"
 echo "--- Matson ---"
 generate_prep_fulls "$MATSON_VOICE" "matson_"
 
@@ -491,9 +524,9 @@ echo "=== Switch-sides cues (3 trainers × 2 variants) ==="
 generate $K "switch_sides_1" "Other side."
 generate $K "switch_sides_2" "Switch sides."
 
-# Sarah
-generate $S "sarah_switch_sides_1" "Now the other side."
-generate $S "sarah_switch_sides_2" "Switch sides, gently."
+# Jeni
+generate $J "jeni_switch_sides_1" "Now the other side."
+generate $J "jeni_switch_sides_2" "Switch sides, gently."
 
 # Matson (will be renamed to Sam in the next ElevenLabs pass per
 # docs/workout_session_rules.md §7).

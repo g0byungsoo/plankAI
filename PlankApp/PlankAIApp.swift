@@ -32,6 +32,15 @@ struct PlankAIApp: App {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         try? FileManager.default.createDirectory(at: appSupport, withIntermediateDirectories: true)
 
+        // Migrate any legacy `voicePreference == "sarah"` value to the
+        // current "encouraging" key. Sarah was renamed to Jeni in the
+        // rebrand; users who upgraded with an old preference set in
+        // UserDefaults would otherwise hit the default-fallback branch
+        // and lose their selection. Idempotent — no-op once normalized.
+        if UserDefaults.standard.string(forKey: "voicePreference") == "sarah" {
+            UserDefaults.standard.set("encouraging", forKey: "voicePreference")
+        }
+
         // Register every .ttf file bundled with the app. INFOPLIST_KEY_UIAppFonts
         // as a space-separated string doesn't actually populate UIAppFonts in
         // the generated Info.plist (Xcode interprets the whole value as one
