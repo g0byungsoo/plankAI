@@ -266,11 +266,10 @@ final class RoutineSessionViewModel {
             if !isInitial && timeRemaining == workout.exercises[index].restAfter {
                 Haptics.soft()
             }
-            // Countdown beeps for the last 5 seconds of prep, matching
-            // the active-phase countdown. Final beep (remaining=1) is
-            // a distinct higher / longer tone so the transition feels
-            // like a starter's pistol.
-            if timeRemaining >= 1 && timeRemaining <= 5 {
+            // Countdown beeps for the last 3 seconds of prep (3-2-1).
+            // Final beep (remaining=1) is a distinct higher / longer
+            // tone so the transition feels like a starter's pistol.
+            if timeRemaining >= 1 && timeRemaining <= 3 {
                 audio.playCountdownBeep(isFinal: timeRemaining == 1)
             }
             // Fire the prep cue with a budget that fits the chosen clip
@@ -348,11 +347,11 @@ final class RoutineSessionViewModel {
             let slot = workout.exercises[index]
             let remaining = timeRemaining
 
-            // Countdown beeps for the final 5 seconds of the active
-            // phase. Final beep (remaining=1) is a higher / longer
-            // tone so the transition is distinct from the steady
-            // 5/4/3/2 ticks. Haptic tick still fires at 3, 2, 1.
-            if remaining >= 1 && remaining <= 5 {
+            // Countdown beeps for the final 3 seconds of the active
+            // phase (3-2-1). Final beep (remaining=1) is a higher /
+            // longer tone so the transition is distinct from 3 and 2.
+            // Haptic tick still fires at 3, 2, 1.
+            if remaining >= 1 && remaining <= 3 {
                 audio.playCountdownBeep(isFinal: remaining == 1)
             }
             if remaining <= 3 && remaining >= 1 {
