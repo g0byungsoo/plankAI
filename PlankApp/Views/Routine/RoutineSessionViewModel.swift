@@ -14,11 +14,17 @@ enum RoutinePhase: Equatable {
     case done                              // session complete
 }
 
-/// Initial countdown before the first exercise of any session.
-private let initialPrepSeconds = 4
+/// Initial countdown before the first exercise of any session. Long
+/// enough to deliver the prep cue ("Next up is X. <position cue>.")
+/// AND give the user time to get into the starting position.
+private let initialPrepSeconds = 10
 /// Floor for inter-exercise prep, even if the slot's `restAfter` is smaller.
 /// Just enough to read the next move's name.
 private let minPrepSeconds = 3
+/// Minimum prep window when the upcoming exercise's position differs
+/// from the just-finished one (standing → supine, plank → seated,
+/// etc.). The user has to physically reposition — 5s is too rushed.
+private let positionChangePrepSeconds = 10
 
 // MARK: - View Model
 
@@ -251,21 +257,22 @@ final class RoutineSessionViewModel {
         switch phase {
         case .prep(let index):
             // Voice orchestration during prep is single-cue per window:
-            // prep cue plays once, nothing else. The previous design
-            // stacked onRest + prep + onExerciseStart inside the same
-            // 5-15s window — they cut each other. Now the prep cue is
-            // the only voice during prep; "Go" only fires for the
-            // initial first-slot prep where no prep cue plays.
+            // prep cue plays once, nothing else. Even the initial prep
+            // (first exercise of the session) gets the cue now — the
+            // 10s initial window has room for the prep clip to land,
+            // and there's no longer an onExerciseStart "Go" that would
+            // cut it.
             let isInitial = (index == 0 && exerciseResults.isEmpty)
             if !isInitial && timeRemaining == workout.exercises[index].restAfter {
                 Haptics.soft()
             }
             // Fire the prep cue with a budget that fits the chosen clip
-            // variant. The prep window for the upcoming slot is the
-            // `restAfter` of the PREVIOUS slot (rest after slot N IS
-            // the prep before slot N+1) — `upcoming.restAfter` is wrong
-            // and was the source of cues firing at the wrong time when
-            // a workout had varying rest values.
+            // variant. Prep window = the rest after the PREVIOUS slot
+            // for mid-session preps (rest after slot N IS the prep
+            // before slot N+1). Initial prep uses `initialPrepSeconds`.
+            // Position-change preps are floored at
+            // `positionChangePrepSeconds` so the budget logic gets the
+            // same value advanceToPrep wrote into `timeRemaining`.
             //   prepWindow ≥ 12 → cueTime 8  (prep_full clips run 4-6s with the new voice)
             //   prepWindow ≥ 8  → cueTime 5  (prep_short room to land cleanly)
             //   prepWindow ≥ 5  → cueTime 3  (prep_short, ends near active)
@@ -274,15 +281,18 @@ final class RoutineSessionViewModel {
             //                                  no other voice fires for ≥ 10s
             //                                  of active so the overrun is safe)
             //   prepWindow ≤ 2  → silent (window too short to start)
-            // Initial prep (first slot) is intentionally silent here —
-            // onExerciseStart fires its own "Go" cue at remaining=0
-            // and would force-cut a prep clip if both fired.
                 let upcoming = workout.exercises[index]
                 let prepWindow: Int
                 if isInitial {
-                    prepWindow = 0    // skip prep cue for initial; onExerciseStart owns it
+                    prepWindow = initialPrepSeconds
                 } else if index > 0 {
-                    prepWindow = max(minPrepSeconds, workout.exercises[index - 1].restAfter)
+                    let basePrep = max(minPrepSeconds, workout.exercises[index - 1].restAfter)
+                    let prevPosition = workout.exercises[index - 1].exercise?.position
+                    let nextPosition = upcoming.exercise?.position
+                    let isPositionChange = prevPosition != nil
+                        && nextPosition != nil
+                        && prevPosition != nextPosition
+                    prepWindow = isPositionChange ? max(positionChangePrepSeconds, basePrep) : basePrep
                 } else {
                     prepWindow = 0
                 }
@@ -312,13 +322,12 @@ final class RoutineSessionViewModel {
             }
             if timeRemaining <= 0 {
                 Haptics.vibrate()
-                // Only fire "Go" on the initial 4s prep where no prep
-                // cue plays. Mid-session, the prep cue is the
-                // announcement; firing onExerciseStart here would
-                // force-cut the prep cue's tail.
-                if isInitial {
-                    audio.onExerciseStart()
-                }
+                // No "Go" cue at the boundary — the prep cue is the
+                // announcement, and force-firing onExerciseStart here
+                // cuts its tail. Initial prep now fires the prep cue
+                // too (10s window has room) so even the first
+                // exercise lands announced rather than with a generic
+                // "Go".
                 let slot = workout.exercises[index]
                 phase = .active(exerciseIndex: index)
                 timeRemaining = slot.duration
@@ -379,8 +388,17 @@ final class RoutineSessionViewModel {
         let nextIndex = index + 1
         if nextIndex < workout.exercises.count {
             let prevRest = workout.exercises[index].restAfter
+            let basePrep = max(minPrepSeconds, prevRest)
+            // Position change → user has to physically reposition.
+            // Floor the prep window at `positionChangePrepSeconds` so
+            // they have room to move + hear the prep cue.
+            let prevPosition = workout.exercises[index].exercise?.position
+            let nextPosition = workout.exercises[nextIndex].exercise?.position
+            let isPositionChange = prevPosition != nil
+                && nextPosition != nil
+                && prevPosition != nextPosition
             phase = .prep(exerciseIndex: nextIndex)
-            timeRemaining = max(minPrepSeconds, prevRest)
+            timeRemaining = isPositionChange ? max(positionChangePrepSeconds, basePrep) : basePrep
         } else {
             finishSession()
         }

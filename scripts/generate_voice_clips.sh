@@ -197,11 +197,18 @@ generate_routine_clips() {
     local P="$2"  # prefix: "" for Kira, "jeni_" for Jeni, "matson_" for Matson
 
     # --- Session bookends ---
+    # routine_start_* clips are the welcome on PreRoutineView. Length
+    # target ~5-7s — enough for a proper instructor-style intro, short
+    # enough to not delay the user from tapping Start. Texts are
+    # persona-specific (mindful/warm for Jeni, sassy for Kira, chill
+    # for Sam). The specific workout details (focus area, duration,
+    # exercise list) live on the screen visually; voice carries
+    # personality + framing.
     case "$P" in
         jeni_)
-            generate $V "${P}routine_start_1" "Let's begin."
-            generate $V "${P}routine_start_2" "Take a breath. We're starting."
-            generate $V "${P}routine_start_3" "Ready when you are."
+            generate $V "${P}routine_start_1" "Welcome. Take a breath and settle in. Today is about moving with intention. I'll be with you the whole way."
+            generate $V "${P}routine_start_2" "I'm glad you're here. We'll check in with your body, work through this together, and finish feeling stronger. Whenever you're ready."
+            generate $V "${P}routine_start_3" "Take a moment to land in your body. Today we're going to move steady and present. Tap start when you're ready."
             generate $V "${P}routine_done_1" "Beautiful work. You should feel proud of yourself."
             generate $V "${P}routine_done_2" "You did it. Take a moment to appreciate that."
             generate $V "${P}routine_done_3" "All done. Your body is grateful for that."
@@ -209,9 +216,9 @@ generate_routine_clips() {
             generate $V "${P}routine_done_5" "Session complete. Carry this feeling with you."
             ;;
         matson_)
-            generate $V "${P}routine_start_1" "Alright, let's do this thing."
-            generate $V "${P}routine_start_2" "Here we go, easy does it."
-            generate $V "${P}routine_start_3" "Let's get after it."
+            generate $V "${P}routine_start_1" "Alright, glad you showed up. We're gonna take this nice and steady — solid work, no rushing. Tap start when you're ready."
+            generate $V "${P}routine_start_2" "Here we go. Quick check-in with the body, then we'll get to it together. You've got this."
+            generate $V "${P}routine_start_3" "Let's do this thing. I'll keep the pace honest, you stay with the form, and we'll be done before you know it."
             generate $V "${P}routine_done_1" "Dude, you crushed that. Seriously."
             generate $V "${P}routine_done_2" "That's what I'm talking about. Good stuff."
             generate $V "${P}routine_done_3" "Nice work, that was solid."
@@ -219,9 +226,9 @@ generate_routine_clips() {
             generate $V "${P}routine_done_5" "That's a wrap. You killed it today."
             ;;
         *)
-            generate $V "routine_start_1" "Let's work."
-            generate $V "routine_start_2" "We're going."
-            generate $V "routine_start_3" "Time to go."
+            generate $V "routine_start_1" "Alright, time to work. Show up, do the reps, no excuses. Tap start when you're ready and let's go."
+            generate $V "routine_start_2" "I see you out here. We're going hard but smart — form first, ego last. Hit start, let's get it."
+            generate $V "routine_start_3" "Let's get into it. I'll keep you honest, you keep showing up. That's the deal. Tap start."
             generate $V "routine_done_1" "Yes! You just put in real work. I'm proud of you."
             generate $V "routine_done_2" "Done! That was all you. Remember this feeling."
             generate $V "routine_done_3" "You showed up and you finished. That's everything."
