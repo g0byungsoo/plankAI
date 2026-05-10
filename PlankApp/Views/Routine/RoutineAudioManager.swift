@@ -129,6 +129,31 @@ final class RoutineAudioManager {
         }
     }
 
+    // MARK: - Countdown beep
+
+    /// Dedicated player for the 5-4-3-2-1 countdown beep. Separate from
+    /// the voice `player` so beeps don't preempt a prep cue still
+    /// playing in the same tick — both can sound at once.
+    private var beepPlayer: AVAudioPlayer?
+
+    /// Short high-pitched beep for the 5-4-3-2-1 countdown in both prep
+    /// and active phases. Replaces the prior voice "Five seconds left"
+    /// cue and the prep-window silence. Respects `isMuted`. Uses its
+    /// own player instance so the BGM duck logic + voice-clip path are
+    /// unaffected.
+    func playCountdownBeep() {
+        if isMuted { return }
+        if let beepPlayer, beepPlayer.isPlaying { return }
+        guard let url = Bundle.main.url(forResource: "countdown_beep", withExtension: "m4a") else { return }
+        do {
+            beepPlayer = try AVAudioPlayer(contentsOf: url)
+            beepPlayer?.volume = 0.85
+            beepPlayer?.play()
+        } catch {
+            // Beep failure is non-fatal — haptics still mark the countdown.
+        }
+    }
+
     // MARK: - Routine Events
 
     func onSessionDone() {

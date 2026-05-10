@@ -256,24 +256,20 @@ final class RoutineSessionViewModel {
 
         switch phase {
         case .prep(let index):
-            // Voice orchestration during prep:
-            //   - Initial prep (first exercise): a brief "let's go" cue
-            //     at the start, then 10s of silence so the user can get
-            //     into position. Skipping the full prep cascade here
-            //     because the user just heard the long welcome on
-            //     PreRoutineView — back-to-back long voice felt
-            //     "too long and cut" per testing.
-            //   - Mid-session prep: prep cue at cueTime, single voice
-            //     per window. No other voice fires during the prep
-            //     window so nothing cuts the announcement.
+            // Voice orchestration during prep is a single cue per
+            // window: prep cue at cueTime, nothing else. Even initial
+            // prep gets the same prep_full announcement ("Next up is
+            // X. <position cue>.") — the previous "Go" cue was
+            // confusing because users couldn't tell what position they
+            // needed for the first exercise.
             let isInitial = (index == 0 && exerciseResults.isEmpty)
-            if isInitial && timeRemaining == initialPrepSeconds - 1 {
-                // First tick of initial prep — quick "let's go" then
-                // silent until active starts.
-                audio.onExerciseStart()
-            }
             if !isInitial && timeRemaining == workout.exercises[index].restAfter {
                 Haptics.soft()
+            }
+            // Countdown beeps for the last 5 seconds of prep, matching
+            // the active-phase countdown.
+            if timeRemaining >= 1 && timeRemaining <= 5 {
+                audio.playCountdownBeep()
             }
             // Fire the prep cue with a budget that fits the chosen clip
             // variant. Prep window = the rest after the PREVIOUS slot
@@ -293,10 +289,9 @@ final class RoutineSessionViewModel {
                 let upcoming = workout.exercises[index]
                 let prepWindow: Int
                 if isInitial {
-                    // Initial owns its own cue at first tick; skip the
-                    // full prep cascade so the user gets silent time to
-                    // get into position rather than another long voice.
-                    prepWindow = 0
+                    // Initial prep fires the prep_full announcement so
+                    // the user hears the exercise + position cue.
+                    prepWindow = initialPrepSeconds
                 } else if index > 0 {
                     let basePrep = max(minPrepSeconds, workout.exercises[index - 1].restAfter)
                     let prevPosition = workout.exercises[index - 1].exercise?.position
@@ -310,7 +305,7 @@ final class RoutineSessionViewModel {
                 }
                 let cueTime: Int
                 if prepWindow >= 12 { cueTime = 8 }
-                else if prepWindow >= 8 { cueTime = 5 }
+                else if prepWindow >= 8 { cueTime = 6 }    // bumped from 5 — prep_full ~5s clip fits cleanly
                 else if prepWindow >= 5 { cueTime = 3 }
                 else if prepWindow >= 3 { cueTime = 2 }
                 else { cueTime = -1 }
@@ -351,14 +346,16 @@ final class RoutineSessionViewModel {
             let slot = workout.exercises[index]
             let remaining = timeRemaining
 
-            // Haptic countdown: tick at 3, 2, 1
+            // Countdown beeps for the final 5 seconds of the active
+            // phase. Replaces the prior voice "Five seconds left" cue
+            // — beeps are clearer and don't collide with other
+            // utterances. Haptic tick still fires at 3, 2, 1 for the
+            // physical countdown feel.
+            if remaining >= 1 && remaining <= 5 {
+                audio.playCountdownBeep()
+            }
             if remaining <= 3 && remaining >= 1 {
                 Haptics.tick()
-            }
-
-            // Voice: "five seconds" at 5s remaining
-            if remaining == 5 {
-                audio.onExerciseAlmost()
             }
 
             // Periodic voice cues
