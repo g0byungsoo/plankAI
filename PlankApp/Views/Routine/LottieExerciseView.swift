@@ -28,6 +28,7 @@ struct LottieExerciseView: View {
                     .playing(loopMode: .loop)
                     .resizable()
                     .scaleEffect(x: rendering.mirrorHorizontally ? -1 : 1, y: 1)
+                    .rotationEffect(.degrees(rendering.exercise.lottieRotation))
             } else {
                 fallback
             }

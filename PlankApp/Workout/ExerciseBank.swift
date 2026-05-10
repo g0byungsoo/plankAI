@@ -83,6 +83,11 @@ struct Exercise: Identifiable, Equatable, Codable {
     let defaultDurationSec: Int
     let restAfterSec: Int
     let note: String
+    /// Clockwise rotation (degrees) applied to the Lottie at render time.
+    /// Defaults to 0. Use sparingly — when the source animation's
+    /// orientation doesn't match the exercise's intended body position
+    /// (e.g., a standing-pose Lottie repurposed for a seated stretch).
+    var lottieRotation: Double = 0
 
     /// First listed area, used as the headline label on UI.
     var primaryArea: TargetArea { targetAreas.first ?? .fullBody }

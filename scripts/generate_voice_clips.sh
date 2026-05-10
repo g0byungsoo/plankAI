@@ -322,13 +322,13 @@ generate_routine_clips() {
     # --- Tempo / Hold / Rest / Cues ---
     case "$P" in
         jeni_)
-            generate $V "${P}tempo_1" "Keep flowing, keep flowing."
+            generate $V "${P}tempo_1" "Keep flowing."
             generate $V "${P}tempo_2" "Stay with the movement."
             generate $V "${P}tempo_3" "Beautiful pace."
             generate $V "${P}tempo_4" "A little quicker now."
-            generate $V "${P}tempo_twist_1" "Twist gently, twist gently."
+            generate $V "${P}tempo_twist_1" "Twist gently."
             generate $V "${P}tempo_twist_2" "Side to side, breathe through it."
-            generate $V "${P}tempo_drive_1" "Keep moving, keep moving."
+            generate $V "${P}tempo_drive_1" "Keep moving."
             generate $V "${P}tempo_drive_2" "Lift a little higher."
             generate $V "${P}hold_1" "Hold right here. Breathe."
             generate $V "${P}hold_2" "Stay present."
@@ -352,13 +352,13 @@ generate_routine_clips() {
             generate $V "${P}skip_2" "Moving forward."
             ;;
         matson_)
-            generate $V "${P}tempo_1" "Keep it rolling, keep it rolling."
+            generate $V "${P}tempo_1" "Keep it rolling."
             generate $V "${P}tempo_2" "Don't slow down on me now."
             generate $V "${P}tempo_3" "That's the pace right there."
             generate $V "${P}tempo_4" "Little faster, you got it."
-            generate $V "${P}tempo_twist_1" "Twist it, twist it."
+            generate $V "${P}tempo_twist_1" "Twist it through."
             generate $V "${P}tempo_twist_2" "Side to side, lookin' good."
-            generate $V "${P}tempo_drive_1" "Drive, drive, drive."
+            generate $V "${P}tempo_drive_1" "Drive through it."
             generate $V "${P}tempo_drive_2" "Get those knees up higher."
             generate $V "${P}hold_1" "Hold that right there."
             generate $V "${P}hold_2" "Stay locked in."
@@ -386,13 +386,13 @@ generate_routine_clips() {
             generate $V "${P}skip_2" "Onto the next one."
             ;;
         *)
-            generate $V "tempo_1" "Keep going, keep going."
+            generate $V "tempo_1" "Keep going."
             generate $V "tempo_2" "Don't stop on me."
-            generate $V "tempo_3" "Same pace, same pace."
-            generate $V "tempo_4" "Pick it up, pick it up."
-            generate $V "tempo_twist_1" "Twist, twist."
+            generate $V "tempo_3" "Same pace."
+            generate $V "tempo_4" "Pick it up."
+            generate $V "tempo_twist_1" "Twist through."
             generate $V "tempo_twist_2" "Side to side."
-            generate $V "tempo_drive_1" "Drive, drive."
+            generate $V "tempo_drive_1" "Drive through."
             generate $V "tempo_drive_2" "Get those knees higher."
             generate $V "hold_1" "Hold it right there."
             generate $V "hold_2" "Stay with me."

@@ -682,14 +682,14 @@ enum ExerciseBankData {
             impact: .low,
             difficulty: 2,
             met: 4.0,
-            symmetry: .alternating,
-            defaultSide: nil,
+            symmetry: .unilateral,
+            defaultSide: .left,
             pace: .rep,
             position: .standing,
             lottieFile: "woman-doing-standing-hip-abduction-exercise-for-legs",
             defaultDurationSec: 30,
             restAfterSec: 15,
-            note: ""
+            note: "Lottie shows one side; engine emits L+R pair so both sides get worked. Right slot mirrors the animation horizontally."
         ),
         Exercise(
             id: "standing_side_bend",
@@ -2399,7 +2399,8 @@ enum ExerciseBankData {
             lottieFile: "woman-doing-spinal-flexion-forward-bending-stretching",
             defaultDurationSec: 25,
             restAfterSec: 15,
-            note: ""
+            note: "Source Lottie animates a standing forward fold; rotated 90° so the figure reads as seated/folded over.",
+            lottieRotation: 90
         ),
         Exercise(
             id: "standing_knee_hug",

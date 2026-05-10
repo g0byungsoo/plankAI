@@ -256,13 +256,22 @@ final class RoutineSessionViewModel {
 
         switch phase {
         case .prep(let index):
-            // Voice orchestration during prep is single-cue per window:
-            // prep cue plays once, nothing else. Even the initial prep
-            // (first exercise of the session) gets the cue now — the
-            // 10s initial window has room for the prep clip to land,
-            // and there's no longer an onExerciseStart "Go" that would
-            // cut it.
+            // Voice orchestration during prep:
+            //   - Initial prep (first exercise): a brief "let's go" cue
+            //     at the start, then 10s of silence so the user can get
+            //     into position. Skipping the full prep cascade here
+            //     because the user just heard the long welcome on
+            //     PreRoutineView — back-to-back long voice felt
+            //     "too long and cut" per testing.
+            //   - Mid-session prep: prep cue at cueTime, single voice
+            //     per window. No other voice fires during the prep
+            //     window so nothing cuts the announcement.
             let isInitial = (index == 0 && exerciseResults.isEmpty)
+            if isInitial && timeRemaining == initialPrepSeconds - 1 {
+                // First tick of initial prep — quick "let's go" then
+                // silent until active starts.
+                audio.onExerciseStart()
+            }
             if !isInitial && timeRemaining == workout.exercises[index].restAfter {
                 Haptics.soft()
             }
@@ -284,7 +293,10 @@ final class RoutineSessionViewModel {
                 let upcoming = workout.exercises[index]
                 let prepWindow: Int
                 if isInitial {
-                    prepWindow = initialPrepSeconds
+                    // Initial owns its own cue at first tick; skip the
+                    // full prep cascade so the user gets silent time to
+                    // get into position rather than another long voice.
+                    prepWindow = 0
                 } else if index > 0 {
                     let basePrep = max(minPrepSeconds, workout.exercises[index - 1].restAfter)
                     let prevPosition = workout.exercises[index - 1].exercise?.position
