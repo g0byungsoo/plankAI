@@ -48,7 +48,7 @@ struct PreRoutineView: View {
     private var tip: String {
         let names = primaryAreas.map { $0.rawValue.camelCaseToWords.lowercased() }
         if names.isEmpty {
-            return "A balanced routine to keep you moving today."
+            return "A balanced routine that builds full-body strength with recovery built in, so you can keep showing up."
         }
         let joined: String = {
             switch names.count {
@@ -57,7 +57,10 @@ struct PreRoutineView: View {
             default: return names.dropLast().joined(separator: ", ") + ", and \(names.last!)"
             }
         }()
-        return "Targets your \(joined). Built around recovery so you can come back tomorrow."
+        // Plain-language description: WHAT the workout builds + WHY
+        // (designed-for-recovery copy preserved for consistency with
+        // the voice intro).
+        return "Builds the muscles in your \(joined). Designed for steady progress with recovery built in, so you can come back stronger tomorrow."
     }
 
     var body: some View {
