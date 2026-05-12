@@ -59,6 +59,27 @@ final class PaymentService {
     /// entitlement fetch causes a paywall flicker on sign-in.
     private(set) var isInAuthTransition: Bool = false
 
+    #if DEBUG
+    /// DEBUG-only override that forces the paywall to present even when
+    /// the user has the `pro` entitlement on RevenueCat. Set from
+    /// `DebugAuthView` so we can QA the paywall flow without revoking
+    /// entitlements in the RC dashboard or signing out. Reads through
+    /// `effectiveHasProAccess` so production code keeps the simple
+    /// `hasProAccess` API.
+    var debugForcePaywall: Bool = false
+    #endif
+
+    /// Effective entitlement state used by the paywall gate. In DEBUG
+    /// honors `debugForcePaywall`; in release it's identical to
+    /// `hasProAccess`. Always reads through this in PlankAIApp.
+    var effectiveHasProAccess: Bool {
+        #if DEBUG
+        return hasProAccess && !debugForcePaywall
+        #else
+        return hasProAccess
+        #endif
+    }
+
     /// Last appUserID we've sent to RevenueCat via logIn/logOut. Skips
     /// redundant calls when AppSync.onAuthChanged fires multiple times
     /// for the same identity transition (currentUser?.id onChange +

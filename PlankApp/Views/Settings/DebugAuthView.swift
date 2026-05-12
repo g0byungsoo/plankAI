@@ -7,6 +7,7 @@ import Auth  // MemberImportVisibility: User.id / .email are defined in Supabase
 /// Delete this file when Phase D + E ship the production surfaces.
 struct DebugAuthView: View {
     @State private var auth = AuthService.shared
+    @State private var payment = PaymentService.shared
 
     @State private var email = ""
     @State private var password = ""
@@ -123,6 +124,22 @@ struct DebugAuthView: View {
             actionButton("Send password reset", color: Palette.stateGood) {
                 try await auth.sendPasswordReset(email: email)
                 return "reset email sent to \(email)"
+            }
+
+            // Paywall force-toggle — QA the paywall without revoking the
+            // RC entitlement or signing out. Flipping this re-evaluates
+            // PlankAIApp's fullScreenCover gate on the next render.
+            Button {
+                payment.debugForcePaywall.toggle()
+                status = "debugForcePaywall = \(payment.debugForcePaywall) · hasProAccess = \(payment.hasProAccess) · effective = \(payment.effectiveHasProAccess)"
+            } label: {
+                Text(payment.debugForcePaywall ? "Force paywall: ON (tap to disable)" : "Force paywall: OFF (tap to enable)")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Palette.textInverse)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(payment.debugForcePaywall ? Palette.accent : Palette.textSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         }
     }

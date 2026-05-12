@@ -2297,14 +2297,14 @@ enum ExerciseBankData {
             impact: .low,
             difficulty: 3,
             met: 2.5,
-            symmetry: .alternating,
-            defaultSide: nil,
+            symmetry: .unilateral,
+            defaultSide: .left,
             pace: .hold,
             position: .quadruped,
             lottieFile: "woman-doing-lizard-pose-stretching",
             defaultDurationSec: 20,
             restAfterSec: 15,
-            note: ""
+            note: "Lottie shows the left side; engine emits L+R pair so both legs get the hip-flexor stretch. Right slot mirrors the animation horizontally."
         ),
         Exercise(
             id: "lying_glute_stretch",
@@ -2373,14 +2373,14 @@ enum ExerciseBankData {
             impact: .low,
             difficulty: 2,
             met: 2.3,
-            symmetry: .alternating,
-            defaultSide: nil,
+            symmetry: .unilateral,
+            defaultSide: .left,
             pace: .hold,
             position: .seated,
             lottieFile: "woman-doing-sitting-kneeling-quadriceps-stretching",
             defaultDurationSec: 25,
             restAfterSec: 15,
-            note: ""
+            note: "Lottie shows the left side; engine emits L+R pair so both quads get the stretch. Right slot mirrors the animation horizontally."
         ),
         Exercise(
             id: "seated_forward_fold",

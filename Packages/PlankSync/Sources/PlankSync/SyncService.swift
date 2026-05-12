@@ -93,7 +93,9 @@ public actor SyncService {
                 }
             }
         } catch {
+            #if DEBUG
             print("[SyncService] upsertSessionLog FAILED for \(sessionId): \(error)")
+            #endif
             // pendingUpsert stays true. Retry on next launch.
         }
     }
@@ -156,11 +158,26 @@ public actor SyncService {
             onboarding_relatability_3: user.onboardingRelatability3
         )
 
+        let userId = user.id
         do {
             try await supabase.from("users")
                 .upsert(payload)
                 .execute()
+            // Clear the pending flag once the cloud has accepted the row.
+            // Refetch on the main context — `user` may have been captured
+            // off-main and the property write needs to happen where the
+            // @Model lives.
+            await MainActor.run {
+                let descriptor = FetchDescriptor<UserRecord>(
+                    predicate: #Predicate { $0.id == userId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
+            }
         } catch {
+            #if DEBUG
             print("[SyncService] upsertUser FAILED: \(error)")
             print("[SyncService] error type: \(type(of: error))")
             print("[SyncService] error localizedDescription: \(error.localizedDescription)")
@@ -171,6 +188,7 @@ public actor SyncService {
                     print("[SyncService] error.\(label) = \(child.value)")
                 }
             }
+            #endif
         }
     }
 
@@ -202,7 +220,9 @@ public actor SyncService {
                 .upsert(payload, onConflict: "user_id,program_day")
                 .execute()
         } catch {
+            #if DEBUG
             print("[SyncService] upsertDayProgress FAILED for user=\(progress.userId) day=\(progress.programDay): \(error)")
+            #endif
             // Non-fatal. DayProgress syncs on next attempt.
         }
     }
@@ -315,11 +335,15 @@ public actor SyncService {
             do {
                 try context.save()
             } catch {
+                #if DEBUG
                 print("[SyncService] hydrateUser: SAVE FAILED: \(error)")
+                #endif
                 return
             }
         } catch {
+            #if DEBUG
             print("[SyncService] hydrateUser FAILED for \(userId): \(error)")
+            #endif
         }
     }
 
@@ -451,6 +475,19 @@ public actor SyncService {
     @MainActor
     public func retryPendingUpserts() async {
         let context = modelContainer.mainContext
+
+        // User profile retries run FIRST so a settings edit that didn't
+        // land before the previous app session ended gets pushed to cloud
+        // before the next hydrate overwrites local with stale server data.
+        let userDescriptor = FetchDescriptor<UserRecord>(
+            predicate: #Predicate { $0.pendingUpsert == true }
+        )
+        if let pending = try? context.fetch(userDescriptor) {
+            for user in pending {
+                await upsertUser(user)
+            }
+        }
+
         let descriptor = FetchDescriptor<SessionLogRecord>(
             predicate: #Predicate { $0.pendingUpsert == true }
         )
@@ -501,7 +538,9 @@ public actor SyncService {
                 }
             }
         } catch {
+            #if DEBUG
             print("[SyncService] upsertWeightLog FAILED for \(logId): \(error)")
+            #endif
         }
     }
 
@@ -554,7 +593,9 @@ public actor SyncService {
             }
             try? context.save()
         } catch {
+            #if DEBUG
             print("[SyncService] hydrateWeightLogs FAILED: \(error)")
+            #endif
         }
     }
 }

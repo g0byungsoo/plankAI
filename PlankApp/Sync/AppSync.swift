@@ -217,12 +217,19 @@ final class AppSync {
         if let sessionLengthPref = record.onboardingSessionLengthPref {
             defaults.set(sessionLengthPref, forKey: "sessionLengthPref")
         }
+        // Phase 4 bodyFocus mirror. HomeView's WorkoutGenerator + PaywallView's
+        // personalized headline both read this AppStorage key directly, so a
+        // fresh-device sign-in needs this written or workouts fall back to
+        // .fullBody until the next EditProfile selection.
+        if let firstFocus = record.onboardingBodyFocus.first, !firstFocus.isEmpty {
+            defaults.set(firstFocus, forKey: "bodyFocus")
+        }
     }
 
     /// Re-attribute local SessionLog + DayProgress rows from the previous
     /// user_id to the new one so they land in the signed-in account on
-    /// the next push. Marks SessionLog rows pendingUpsert so retry sends
-    /// them; DayProgress is upserted again next session.
+    /// the next push. Marks SessionLog + WeightLog rows pendingUpsert so
+    /// retry sends them; DayProgress is upserted again next session.
     private func reattributeLocalRows(from oldId: String, to newId: String, modelContext: ModelContext) {
         let sessions = (try? modelContext.fetch(FetchDescriptor<SessionLogRecord>(
             predicate: #Predicate { $0.userId == oldId }
@@ -239,6 +246,19 @@ final class AppSync {
             p.userId = newId
             p.compositeKey = "\(newId):\(p.programDay)"
             p.updatedAt = .now
+        }
+
+        // Weight logs are the load-bearing source for the analytics weight
+        // trend; without this, an onboarding-seeded log (or any manual log
+        // collected during the anonymous period) stays attached to the
+        // anon user_id and goes invisible after sign-in because the views
+        // filter by the current user_id.
+        let weightLogs = (try? modelContext.fetch(FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate { $0.userId == oldId }
+        ))) ?? []
+        for w in weightLogs {
+            w.userId = newId
+            w.pendingUpsert = true
         }
 
         try? modelContext.save()

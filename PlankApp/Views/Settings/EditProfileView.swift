@@ -26,7 +26,12 @@ struct EditProfileView: View {
     /// Phase 4 columns or for fresh installs that haven't synced yet.
     private var currentUserRecord: UserRecord? {
         guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return nil }
-        return userRecords.first { $0.id == userId }
+        // Prefer @Query (auto-refreshes the view); fall back to a direct
+        // SwiftData fetch on the write path so a brief snapshot lag right
+        // after hydration doesn't silently skip the upsert.
+        if let hit = userRecords.first(where: { $0.id == userId }) { return hit }
+        let descriptor = FetchDescriptor<UserRecord>(predicate: #Predicate { $0.id == userId })
+        return try? modelContext.fetch(descriptor).first
     }
 
     /// Selected bodyFocus, preferring the synced UserRecord value over
@@ -177,7 +182,7 @@ struct EditProfileView: View {
         let isSelected = sessionLengthPref == mins
         return Button {
             Haptics.light()
-            sessionLengthPref = mins
+            selectSessionLength(mins)
         } label: {
             Text("\(mins) min")
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
@@ -242,11 +247,33 @@ struct EditProfileView: View {
     }
 
     private func saveName() {
-        guard !editName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        userName = editName.trimmingCharacters(in: .whitespaces)
+        let trimmed = editName.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        userName = trimmed
+        if let record = currentUserRecord {
+            record.name = trimmed
+            record.pendingUpsert = true
+            try? modelContext.save()
+            Task { await AppSync.shared.upsertUser(record) }
+        }
         withAnimation { saved = true }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             withAnimation { saved = false }
+        }
+    }
+
+    /// Persist session length to AppStorage + UserRecord + Supabase.
+    /// pendingUpsert guarantees the cloud push happens even if the
+    /// fire-and-forget Task dies before completing (force-quit, network
+    /// drop) — retryPendingUpserts on next launch picks it up before
+    /// hydrate would overwrite local with the stale cloud value.
+    private func selectSessionLength(_ mins: Int) {
+        sessionLengthPref = mins
+        if let record = currentUserRecord {
+            record.onboardingSessionLengthPref = mins
+            record.pendingUpsert = true
+            try? modelContext.save()
+            Task { await AppSync.shared.upsertUser(record) }
         }
     }
 
@@ -285,6 +312,7 @@ struct EditProfileView: View {
         if let record = currentUserRecord {
             record.onboardingBodyFocus = [value]
             record.onboardingFocusArea = focusAreaFromBodyFocus(value)
+            record.pendingUpsert = true
             try? modelContext.save()
             Task { await AppSync.shared.upsertUser(record) }
         }

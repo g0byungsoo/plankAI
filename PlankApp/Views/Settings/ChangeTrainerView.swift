@@ -1,12 +1,28 @@
 import SwiftUI
+import SwiftData
 import AVFoundation
+import PlankSync
+import Auth
 
 struct ChangeTrainerView: View {
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Query private var userRecords: [UserRecord]
+    @State private var auth = AuthService.shared
     @State private var previewPlayer: AVAudioPlayer?
     @State private var playingId: String?
     @State private var selectedId: String = ""
+
+    /// Cross-device-synced UserRecord row for the current auth user.
+    /// Returns nil for legacy users whose record predates Phase 4 columns
+    /// or for fresh installs that haven't hydrated yet.
+    private var currentUserRecord: UserRecord? {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return nil }
+        if let hit = userRecords.first(where: { $0.id == userId }) { return hit }
+        let descriptor = FetchDescriptor<UserRecord>(predicate: #Predicate { $0.id == userId })
+        return try? modelContext.fetch(descriptor).first
+    }
 
     // Animation
     @State private var headerOpacity: Double = 0
@@ -212,6 +228,12 @@ struct ChangeTrainerView: View {
         // Apply change and dismiss
         DispatchQueue.main.asyncAfter(deadline: .now() + totalDuration) {
             voicePreference = selectedId
+            if let record = currentUserRecord {
+                record.onboardingVoicePreference = selectedId
+                record.pendingUpsert = true
+                try? modelContext.save()
+                Task { await AppSync.shared.upsertUser(record) }
+            }
             Haptics.success()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 dismiss()

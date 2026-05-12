@@ -21,6 +21,27 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     ) -> UIInterfaceOrientationMask {
         OrientationManager.shared.allowedOrientations
     }
+
+    /// Programmatic scene config — required because the pure SwiftUI App
+    /// lifecycle doesn't reliably read scene-delegate class names from
+    /// Info.plist alone. Returning a fully-constructed UISceneConfiguration
+    /// here is the supported path for AirPlay external-display routing.
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        let role = connectingSceneSession.role
+        #if DEBUG
+        print("[AppDelegate] configurationForConnecting role=\(role.rawValue)")
+        #endif
+        if role == .windowExternalDisplayNonInteractive {
+            let config = UISceneConfiguration(name: "External Display", sessionRole: role)
+            config.delegateClass = ExternalDisplaySceneDelegate.self
+            return config
+        }
+        return UISceneConfiguration(name: "Default Configuration", sessionRole: role)
+    }
 }
 
 @main
@@ -157,7 +178,7 @@ private struct RootView: View {
                 if auth.isReady && payment.isEntitlementReady {
                     MainTabView()
                         .transition(.opacity)
-                        .fullScreenCover(isPresented: .constant(!payment.hasProAccess && !payment.isInAuthTransition)) {
+                        .fullScreenCover(isPresented: .constant(!payment.effectiveHasProAccess && !payment.isInAuthTransition)) {
                             // Hard paywall — sits between onboarding completion
                             // and MainTabView. dismissable: false hides the X
                             // close button. Cover dismisses automatically when
@@ -371,6 +392,7 @@ private struct RootView: View {
         record.onboardingRelatability1 = data.relatability1
         record.onboardingRelatability2 = data.relatability2
         record.onboardingRelatability3 = data.relatability3
+        record.pendingUpsert = true
         try? modelContext.save()
         return record
     }

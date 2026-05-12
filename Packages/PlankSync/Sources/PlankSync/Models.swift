@@ -61,6 +61,14 @@ public final class UserRecord {
     public var onboardingRelatability2: Bool?
     public var onboardingRelatability3: Bool?
 
+    /// Set true by any client-side write (settings edits, onboarding-complete)
+    /// and cleared on successful upsert. Drives the retry sweep on app launch
+    /// so a force-quit between write + network response never silently loses
+    /// the edit when the next hydrate overwrites local with stale cloud.
+    /// Defaults to false — SwiftData lightweight migration covers existing
+    /// rows so they're treated as already-synced (the cloud row IS them).
+    public var pendingUpsert: Bool = false
+
     public init(
         id: String,
         name: String,
