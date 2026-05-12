@@ -27,3 +27,4 @@ Pods/
 *.code-workspace
 AuthKey_*.p8
 *.p8
+.gstack/
