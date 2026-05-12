@@ -93,7 +93,7 @@ final class RoutineAudioManager {
         guard let url else { return }
         player?.stop()
         player = try? AVAudioPlayer(contentsOf: url)
-        player?.volume = 1.0    // defensive — defaults to 1.0 but pin it
+        player?.volume = Self.userVoiceVolume()
         player?.play()
         lastPlayTime = Date()
 
@@ -157,11 +157,35 @@ final class RoutineAudioManager {
         guard let url = Bundle.main.url(forResource: resource, withExtension: "m4a") else { return }
         do {
             beepPlayer = try AVAudioPlayer(contentsOf: url)
-            beepPlayer?.volume = 0.85
+            beepPlayer?.volume = Self.userBeepVolume()
             beepPlayer?.play()
         } catch {
             // Beep failure is non-fatal — haptics still mark the countdown.
         }
+    }
+
+    // MARK: - User-controlled volumes
+    //
+    // Pulled from UserDefaults each time so the volume sheet can read/write
+    // without a publisher chain. Defaults match the previously-hardcoded
+    // levels so existing installs sound identical until the user opens the
+    // mixer for the first time.
+
+    static func userVoiceVolume() -> Float {
+        let raw = UserDefaults.standard.object(forKey: "voiceVolume") as? Double
+        return Float(raw ?? 1.0)
+    }
+
+    static func userBeepVolume() -> Float {
+        let raw = UserDefaults.standard.object(forKey: "prepBeepVolume") as? Double
+        return Float(raw ?? 0.85)
+    }
+
+    /// Apply latest slider values to any actively-playing player so the
+    /// user hears the new level immediately rather than on the next clip.
+    func applyUserVolumes() {
+        player?.volume = Self.userVoiceVolume()
+        beepPlayer?.volume = Self.userBeepVolume()
     }
 
     // MARK: - Routine Events

@@ -28,7 +28,7 @@ final class BackgroundMusicService {
         do {
             let p = try AVAudioPlayer(contentsOf: url)
             p.numberOfLoops = -1
-            p.volume = 0.35   // sits under the voice
+            p.volume = Self.userVolume()
             p.prepareToPlay()
             p.play()
             self.player = p
@@ -37,6 +37,21 @@ final class BackgroundMusicService {
             print("[BackgroundMusicService] Failed to start: \(error)")
             #endif
         }
+    }
+
+    /// User-controlled mixer volume (0–1) — pulled from UserDefaults each
+    /// time so the volume sheet can read/write without a publisher chain.
+    /// Default 0.35 matches the original "sits under the voice" level.
+    static func userVolume() -> Float {
+        let raw = UserDefaults.standard.object(forKey: "bgmVolume") as? Double
+        return Float(raw ?? 0.35)
+    }
+
+    /// Apply the latest user-set volume to the currently-playing track so
+    /// slider edits in the volume sheet take effect immediately without
+    /// having to wait for the next session.
+    func applyUserVolume() {
+        player?.volume = Self.userVolume()
     }
 
     func stop() {
@@ -60,7 +75,7 @@ final class BackgroundMusicService {
     /// `resumeAfterVoice()` because the source voice clips are mastered
     /// quiet enough that even 0.10 BGM drowns them.
     func duck(to volume: Float = 0.15) { player?.volume = volume }
-    func unduck(to volume: Float = 0.35) { player?.volume = volume }
+    func unduck(to volume: Float = 0.35) { player?.volume = Self.userVolume() }
 
     /// Voice-priority pause. Stops the music output without dropping the
     /// player so `resumeAfterVoice()` continues from the same offset —
@@ -70,8 +85,9 @@ final class BackgroundMusicService {
     func pauseForVoice() { player?.pause() }
     func resumeAfterVoice() {
         guard !isMuted else { return }
-        // Restore normal volume in case duck() was called separately.
-        player?.volume = 0.35
+        // Restore the user-set volume (in case duck() was called or the
+        // user changed it via the volume sheet while ducked).
+        player?.volume = Self.userVolume()
         player?.play()
     }
 

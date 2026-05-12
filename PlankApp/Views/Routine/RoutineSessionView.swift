@@ -11,6 +11,26 @@ struct RoutineSessionView: View {
     /// (Pamela Reif "round 2" beat). Auto-clears 1.6s later.
     @State private var roundToast: Int? = nil
 
+    /// Justfit-pattern right-side button stack opens three discrete
+    /// sheets — modeled here so each can present + dismiss independently.
+    /// Fullscreen toggle is a placeholder until Phase B lands the
+    /// landscape layout (no-op tap clearly logged).
+    @State private var showVolumeSheet = false
+    @State private var showMusicSheet = false
+    @State private var showInfoSheet = false
+
+    /// Shared bridge that publishes the active VM to the external-display
+    /// scene + drives the AirPlay button's "TV connected" affordance.
+    /// Lifecycle is owned by `.task` / `.onDisappear` below.
+    private var sessionBridge: SessionBridge { SessionBridge.shared }
+
+    /// Landscape "cinema" mode for the live session — animation fills
+    /// the screen, controls reduce to the essentials. Toggled by the
+    /// fullscreen button in the right-side stack; auto-locks back to
+    /// portrait on disappear so the rest of the app keeps its
+    /// portrait-only contract.
+    @State private var isFullScreen = false
+
     let onDismiss: ([ExerciseResultEntry], TimeInterval) -> Void
 
     init(
@@ -110,9 +130,65 @@ struct RoutineSessionView: View {
     // MARK: - Session Content
 
     private var sessionContent: some View {
-        ZStack {
+        ZStack(alignment: .topTrailing) {
             Palette.bgPrimary.ignoresSafeArea()
 
+            if isFullScreen {
+                fullScreenLayout
+            } else {
+                portraitLayout
+            }
+
+            if pausedByBackground {
+                sessionPausedOverlay
+                    .transition(.opacity)
+            }
+        }
+        .alert("End Workout?", isPresented: $showEndConfirm) {
+            Button("End", role: .destructive) { vm.end() }
+            Button("Keep Going", role: .cancel) {}
+        }
+        .sheet(isPresented: $showVolumeSheet) {
+            VolumeSheet(onChange: { vm.applyVolumeChanges() })
+        }
+        .sheet(isPresented: $showMusicSheet) {
+            MusicSourceSheet(onChange: { source in vm.setMusicSource(source) })
+        }
+        .sheet(isPresented: $showInfoSheet) {
+            if let exercise = vm.currentExercise {
+                ExerciseInfoSheet(
+                    exercise: exercise,
+                    stepLabel: "step \(vm.currentExerciseIndex + 1)/\(vm.exerciseCount)"
+                )
+            }
+        }
+        .task {
+            vm.start()
+            sessionBridge.vm = vm
+        }
+        .onDisappear {
+            sessionBridge.vm = nil
+            // Always lock back to portrait when leaving the session so
+            // the rest of the app honors its portrait-only contract.
+            setOrientation(landscape: false)
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background || newPhase == .inactive {
+                if !vm.isPaused, case .done = vm.phase {} else if !vm.isPaused {
+                    vm.pause()
+                    pausedByBackground = true
+                }
+            }
+        }
+    }
+
+    // MARK: - Portrait + Fullscreen Layouts
+
+    /// Default portrait layout — top bar with progress + back X, hero
+    /// animation centered, info panel with timer + media controls,
+    /// right-side button stack overlay.
+    private var portraitLayout: some View {
+        ZStack(alignment: .topTrailing) {
             VStack(spacing: 0) {
                 topBar
                     .padding(.top, Space.sm)
@@ -126,24 +202,263 @@ struct RoutineSessionView: View {
                     .padding(.bottom, Space.lg)
             }
 
-            if pausedByBackground {
-                sessionPausedOverlay
-                    .transition(.opacity)
-            }
+            rightButtonStack
+                .padding(.top, Space.sm + Space.lg + Space.sm)
+                .padding(.trailing, Space.screenPadding)
         }
-        .alert("End Workout?", isPresented: $showEndConfirm) {
-            Button("End", role: .destructive) { vm.end() }
-            Button("Keep Going", role: .cancel) {}
-        }
-        .task { vm.start() }
-        .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .background || newPhase == .inactive {
-                if !vm.isPaused, case .done = vm.phase {} else if !vm.isPaused {
-                    vm.pause()
-                    pausedByBackground = true
+    }
+
+    /// Landscape cinema layout — animation fills the left half, minimal
+    /// timer + name + step in the bottom-left, phase eyebrow in the
+    /// bottom-right, progress bar at the top, minimize icon top-right.
+    /// All session controls (audio toggles, sheets) collapse away — to
+    /// adjust them, user exits fullscreen first.
+    private var fullScreenLayout: some View {
+        GeometryReader { geo in
+            ZStack {
+                Palette.bgPrimary.ignoresSafeArea()
+
+                // Progress bar pinned to the very top
+                VStack {
+                    progressSegments
+                        .padding(.horizontal, Space.lg)
+                        .padding(.top, Space.sm)
+                    Spacer()
+                }
+
+                // Center: huge Lottie filling available space
+                fullScreenHero(in: geo.size)
+
+                // Minimize button top-right
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button { exitFullScreen() } label: {
+                            Image(systemName: "arrow.down.right.and.arrow.up.left")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(Palette.textPrimary)
+                                .frame(width: 44, height: 44)
+                                .background(
+                                    ZStack {
+                                        Circle().fill(Palette.bgElevated.opacity(0.92))
+                                        Circle().stroke(Palette.accent.opacity(0.35), lineWidth: 1)
+                                    }
+                                )
+                        }
+                        .accessibilityLabel("Exit fullscreen")
+                    }
+                    .padding(.trailing, Space.lg)
+                    .padding(.top, Space.sm)
+                    Spacer()
+                }
+
+                // Bottom-left: pause/timer + exercise meta
+                VStack {
+                    Spacer()
+                    HStack(alignment: .bottom) {
+                        fullScreenMetaPanel
+                        Spacer()
+                        fullScreenPhaseLabel
+                    }
+                    .padding(.horizontal, Space.lg)
+                    .padding(.bottom, Space.lg)
                 }
             }
         }
+    }
+
+    private func fullScreenHero(in size: CGSize) -> some View {
+        let dim = min(size.width, size.height) - Space.xl - Space.lg
+        return Group {
+            if let rendering = vm.currentSlot?.rendering {
+                LottieExerciseView(rendering: rendering, isPaused: vm.isPaused)
+                    .id(rendering.exercise.id + (rendering.side?.rawValue ?? ""))
+                    .frame(width: dim, height: dim)
+            } else {
+                Color.clear
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var fullScreenMetaPanel: some View {
+        if let exercise = vm.currentExercise {
+            HStack(alignment: .center, spacing: Space.md) {
+                Button {
+                    Haptics.medium()
+                    if vm.isPaused { vm.resume() } else { vm.pause() }
+                } label: {
+                    ZStack {
+                        Circle()
+                            .stroke(Palette.accent, lineWidth: 2.5)
+                            .frame(width: 56, height: 56)
+                        Circle()
+                            .fill(Palette.bgElevated)
+                            .frame(width: 48, height: 48)
+                        Image(systemName: vm.isPaused ? "play.fill" : "pause.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Palette.accent)
+                    }
+                }
+                .accessibilityLabel(vm.isPaused ? "Resume" : "Pause")
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(exercise.name.lowercased())
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("step \(vm.currentExerciseIndex + 1)/\(vm.exerciseCount) · \(vm.timeRemaining)s")
+                        .font(.custom("DMSans-Medium", size: 14))
+                        .foregroundStyle(Palette.textSecondary)
+                        .tracking(2)
+                }
+            }
+        }
+    }
+
+    private var fullScreenPhaseLabel: some View {
+        let label: String
+        let color: Color
+        switch (vm.phase, vm.currentSlot?.category ?? .main) {
+        case (.prep, .warmup):     label = "warm up";   color = Palette.accent
+        case (.prep, .cooldown):   label = "cool down"; color = Palette.stateGood
+        case (.prep(let i), .main):
+            let initial = (i == 0 && vm.exerciseResults.isEmpty)
+            label = initial ? "get ready" : "rest"
+            color = initial ? Palette.accent : Palette.textSecondary
+        case (.active, .warmup):     label = "warm up";   color = Palette.accent
+        case (.active, .cooldown):   label = "cool down"; color = Palette.stateGood
+        case (.active, _):           label = "go";        color = Palette.stateGood
+        case (.done, _):             label = "done";      color = Palette.stateGood
+        }
+        return Text(label)
+            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 36))
+            .tracking(3)
+            .foregroundStyle(color)
+    }
+
+    // MARK: - Fullscreen orientation control
+
+    private func enterFullScreen() {
+        setOrientation(landscape: true)
+        withAnimation(Motion.crossFade) { isFullScreen = true }
+    }
+
+    private func exitFullScreen() {
+        Haptics.light()
+        setOrientation(landscape: false)
+        withAnimation(Motion.crossFade) { isFullScreen = false }
+    }
+
+    /// Drives the iOS-16+ orientation update path. `OrientationManager`
+    /// gates the allowed mask (read by `AppDelegate.supportedInterfaceOrientationsFor`);
+    /// `requestGeometryUpdate` actually nudges the window to rotate.
+    private func setOrientation(landscape: Bool) {
+        OrientationManager.shared.allowedOrientations = landscape ? .landscape : .portrait
+
+        let scene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first
+        let mask: UIInterfaceOrientationMask = landscape ? .landscapeRight : .portrait
+        scene?.requestGeometryUpdate(.iOS(interfaceOrientations: mask)) { _ in }
+        scene?.keyWindow?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+    }
+
+    // MARK: - Right-Side Button Stack (Justfit pattern)
+    //
+    // Five circular scrapbook buttons stacked vertically: fullscreen,
+    // music, volume, AirPlay, info. Music + volume tap open bottom
+    // sheets; AirPlay surfaces the system route picker; info opens an
+    // exercise detail sheet. Fullscreen is a placeholder until Phase B.
+
+    private var rightButtonStack: some View {
+        VStack(spacing: Space.sm) {
+            stackButton(icon: "arrow.up.left.and.arrow.down.right",
+                        accessibilityLabel: "Enter fullscreen") {
+                Haptics.light()
+                enterFullScreen()
+            }
+            stackButton(
+                icon: vm.musicMuted ? "music.note.list" : "music.note",
+                accent: !vm.musicMuted,
+                accessibilityLabel: "Music source"
+            ) {
+                Haptics.light()
+                showMusicSheet = true
+            }
+            stackButton(icon: "speaker.wave.2.fill",
+                        accessibilityLabel: "Set volume") {
+                Haptics.light()
+                showVolumeSheet = true
+            }
+            airPlayButton
+            stackButton(icon: "info",
+                        accessibilityLabel: "Exercise info") {
+                Haptics.light()
+                showInfoSheet = true
+            }
+        }
+    }
+
+    private func stackButton(
+        icon: String,
+        accent: Bool = false,
+        accessibilityLabel: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(accent ? Palette.textInverse : Palette.textPrimary)
+                .frame(width: 40, height: 40)
+                .background(
+                    ZStack {
+                        Circle()
+                            .fill(Palette.accent.opacity(0.18))
+                            .offset(x: 2, y: 2)
+                        Circle()
+                            .fill(accent ? Palette.accent : Palette.bgElevated)
+                        Circle()
+                            .stroke(Palette.accent.opacity(accent ? 0.0 : 0.35), lineWidth: 1)
+                    }
+                )
+                .tappableArea()
+        }
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// AirPlay wraps `AVRoutePickerView` so the system handles route
+    /// discovery + the picker UI. We surface the same circular chrome as
+    /// the rest of the stack so it reads as a single family of controls.
+    /// When an external screen is connected, a tiny accent dot pulses at
+    /// the top-right corner so the user knows the TV cinema view is live.
+    private var airPlayButton: some View {
+        let mirroring = sessionBridge.isMirroring
+        return ZStack(alignment: .topTrailing) {
+            ZStack {
+                Circle()
+                    .fill(Palette.accent.opacity(0.18))
+                    .offset(x: 2, y: 2)
+                Circle()
+                    .fill(mirroring ? Palette.accent : Palette.bgElevated)
+                Circle()
+                    .stroke(Palette.accent.opacity(mirroring ? 0.0 : 0.35), lineWidth: 1)
+                AirPlayPickerView(tint: UIColor(mirroring ? Palette.textInverse : Palette.textPrimary))
+                    .frame(width: 28, height: 28)
+            }
+            .frame(width: 40, height: 40)
+
+            if mirroring {
+                Circle()
+                    .fill(Palette.stateGood)
+                    .frame(width: 8, height: 8)
+                    .overlay(Circle().stroke(Palette.bgPrimary, lineWidth: 1.5))
+                    .offset(x: 2, y: -2)
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(width: 40, height: 40)
+        .accessibilityLabel(mirroring ? "AirPlay — TV connected" : "AirPlay")
     }
 
     // MARK: - Pause Overlay
@@ -207,57 +522,38 @@ struct RoutineSessionView: View {
 
     // MARK: - Top Bar
 
+    /// Top bar — Justfit-shaped: progress segments span the width, with a
+    /// single back/end button on the left. Music + voice + AirPlay + info
+    /// + fullscreen all live in the right-side stack now.
     private var topBar: some View {
         HStack(alignment: .center, spacing: Space.sm) {
-            progressSegments
-                .frame(maxWidth: .infinity)
-
-            audioToggle(
-                onIcon: "music.note",
-                offIcon: "speaker.slash.fill",
-                isMuted: vm.musicMuted,
-                action: { Haptics.light(); vm.toggleMusic() }
-            )
-            .accessibilityLabel(vm.musicMuted ? "Unmute music" : "Mute music")
-
-            audioToggle(
-                onIcon: "mic.fill",
-                offIcon: "mic.slash.fill",
-                isMuted: vm.voiceMuted,
-                action: { Haptics.light(); vm.toggleVoice() }
-            )
-            .accessibilityLabel(vm.voiceMuted ? "Unmute voice" : "Mute voice")
-
             Button {
                 showEndConfirm = true
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Palette.textSecondary)
-                    .frame(width: 32, height: 32)
-                    .background(Palette.bgElevated)
-                    .clipShape(Circle())
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary)
+                    .frame(width: 36, height: 36)
+                    .background(
+                        ZStack {
+                            Circle()
+                                .fill(Palette.accent.opacity(0.18))
+                                .offset(x: 2, y: 2)
+                            Circle().fill(Palette.bgElevated)
+                            Circle().stroke(Palette.accent.opacity(0.35), lineWidth: 1)
+                        }
+                    )
                     .tappableArea()
             }
             .accessibilityLabel("End workout")
+
+            progressSegments
+                .frame(maxWidth: .infinity)
+                // Reserve the right edge so segments don't slide under the
+                // overlay button stack and look truncated.
+                .padding(.trailing, 48)
         }
         .padding(.horizontal, Space.screenPadding)
-    }
-
-    private func audioToggle(
-        onIcon: String,
-        offIcon: String,
-        isMuted: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: isMuted ? offIcon : onIcon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(isMuted ? Palette.textSecondary : Palette.accent)
-                .frame(width: 32, height: 32)
-                .background(Palette.bgElevated)
-                .clipShape(Circle())
-        }
     }
 
     private var progressSegments: some View {
@@ -284,7 +580,7 @@ struct RoutineSessionView: View {
     @ViewBuilder
     private var heroAnimation: some View {
         if let rendering = vm.currentSlot?.rendering {
-            LottieExerciseView(rendering: rendering)
+            LottieExerciseView(rendering: rendering, isPaused: vm.isPaused)
                 .aspectRatio(1, contentMode: .fit)
                 .id(rendering.exercise.id + (rendering.side?.rawValue ?? ""))
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))

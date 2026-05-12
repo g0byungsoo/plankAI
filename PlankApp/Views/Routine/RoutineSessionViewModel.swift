@@ -163,6 +163,22 @@ final class RoutineSessionViewModel {
         audio.setMuted(!audio.isMuted)
     }
 
+    /// Re-read voice / music / beep volumes from UserDefaults and apply
+    /// them to any active player. Called by the volume sheet on every
+    /// slider tick so the change is audible immediately.
+    func applyVolumeChanges() {
+        music.applyUserVolume()
+        audio.applyUserVolumes()
+    }
+
+    /// Music source picker (Justfit-shaped sheet). Today the only "live"
+    /// option is our bundled playlist; "none" mutes BGM the same way the
+    /// old toggle did. Spotify / Apple Music belong in a later phase.
+    func setMusicSource(_ source: String) {
+        let shouldMute = (source == "none")
+        music.setMuted(shouldMute)
+    }
+
     func skip() {
         guard case .active(let index) = phase else { return }
 
