@@ -31,7 +31,7 @@ enum RevenueCatConfig {
     enum ProductID {
         /// $4.99/week, no introductory offer.
         static let weekly = "absmaxxing_weekly"
-        /// $29.99/year with a 3-day free trial introductory offer.
+        /// $69.99/year with a 3-day free trial introductory offer.
         static let yearly = "absmaxxing_yearly"
     }
 }

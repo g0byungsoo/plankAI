@@ -135,14 +135,14 @@ struct PaywallView: View {
 
     // MARK: Pricing display
 
-    /// Localized price for the yearly card ("$29.99/year" in en-US,
+    /// Localized price for the yearly card ("$69.99/year" in en-US,
     /// equivalent in other locales). Falls back to a placeholder while
     /// offerings are loading or if the lookup misses.
     private var yearlyPriceText: String {
         if let pkg = yearlyPackage {
             return "\(pkg.storeProduct.localizedPriceString)/year"
         }
-        return "$29.99/year"
+        return "$69.99/year"
     }
 
     /// Per-week math + savings %, both computed from the actual yearly
@@ -150,7 +150,7 @@ struct PaywallView: View {
     /// formatter so the per-week amount shows in the same locale/currency.
     private var yearlyPerWeekText: String {
         guard let yearly = yearlyPackage else {
-            return "Just $0.58/week · save 88%"
+            return "Just $1.35/week · save 73%"
         }
         let yearlyPrice = yearly.storeProduct.price as NSDecimalNumber
         let perWeek = yearlyPrice.dividing(by: NSDecimalNumber(value: 52))
@@ -419,21 +419,21 @@ struct PaywallView: View {
         }
     }
 
-    /// Yearly card price ("$59.99"). Strips the "/year" suffix used by the
+    /// Yearly card price ("$69.99"). Strips the "/year" suffix used by the
     /// legacy headline text — the card subtitle already carries the
     /// billing cadence so the price reads cleanly.
     private var yearlyPrice: String {
         if let pkg = yearlyPackage {
             return pkg.storeProduct.localizedPriceString
         }
-        return "$59.99"
+        return "$69.99"
     }
 
-    /// "$1.15/wk · billed $59.99/yr" — factual rate breakdown only.
+    /// "$1.35/wk · billed $69.99/yr" — factual rate breakdown only.
     /// Savings % renders as its own element below the price (yearlySavings).
     private var yearlySubtitle: String {
         guard let yearly = yearlyPackage else {
-            return "$1.15/wk · billed $59.99/yr"
+            return "$1.35/wk · billed $69.99/yr"
         }
         let yearlyPriceDecimal = yearly.storeProduct.price as NSDecimalNumber
         let perWeek = yearlyPriceDecimal.dividing(by: NSDecimalNumber(value: 52))
@@ -450,7 +450,7 @@ struct PaywallView: View {
     /// packages haven't synced.
     private var yearlySavings: String? {
         guard let yearly = yearlyPackage, let weekly = weeklyPackage else {
-            return yearlyPackage == nil && weeklyPackage == nil ? "save 77%" : nil
+            return yearlyPackage == nil && weeklyPackage == nil ? "save 73%" : nil
         }
         let yearlyPriceDecimal = yearly.storeProduct.price as NSDecimalNumber
         let weeklyPriceDecimal = weekly.storeProduct.price as NSDecimalNumber
