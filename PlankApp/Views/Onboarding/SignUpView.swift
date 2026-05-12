@@ -1,6 +1,7 @@
 import SwiftUI
 import AuthenticationServices
 import SafariServices
+import Supabase
 
 // MARK: - SignUpView
 //
@@ -520,21 +521,41 @@ struct SignUpView: View {
         }
     }
 
-    /// Translate Supabase's error strings into the Phase E error copy. Falls
-    /// back to a generic message — no raw error text in the UI.
+    /// Translate Supabase's error into the Phase E error copy. Falls back to
+    /// a generic message — no raw error text in the UI. Pattern matches the
+    /// structured `AuthError.errorCode` first (resilient to wording changes),
+    /// then falls back to substring checks for transport-layer errors that
+    /// surface as `URLError` or `NSError`.
     private func friendlyError(from error: Error, mode: Mode) -> String {
+        if let authError = error as? AuthError {
+            switch authError {
+            case .api(_, let code, _, _):
+                switch code {
+                case .emailExists, .userAlreadyExists, .identityAlreadyExists:
+                    return "Looks like you have an account. Try signing in instead."
+                case .invalidCredentials, .userNotFound:
+                    return "That email and password don't match. Try again or reset your password."
+                case .overRequestRateLimit, .overEmailSendRateLimit:
+                    return "Too many tries. Wait a minute and try again."
+                case .signupDisabled, .emailProviderDisabled:
+                    return "Email sign-up is unavailable right now. Try Apple sign-in."
+                case .userBanned:
+                    return "This account is locked. Contact support@jenifit.app."
+                case .emailNotConfirmed:
+                    return "Confirm your email first — check your inbox."
+                default:
+                    break
+                }
+            case .weakPassword:
+                return "Add an uppercase letter and a number."
+            default:
+                break
+            }
+        }
+
         let raw = error.localizedDescription.lowercased()
-        if raw.contains("already registered") || raw.contains("already in use") {
-            return "Looks like you have an account. Try signing in instead."
-        }
-        if raw.contains("invalid login") || raw.contains("invalid credentials") {
-            return "That email and password don't match. Try again or reset your password."
-        }
-        if raw.contains("network") || raw.contains("connection") || raw.contains("offline") {
+        if raw.contains("network") || raw.contains("connection") || raw.contains("offline") || raw.contains("internet") {
             return "Couldn't connect. Check your internet and try again."
-        }
-        if raw.contains("password") && raw.contains("weak") {
-            return "Add an uppercase letter and a number."
         }
         return mode == .signUp
             ? "Couldn't create account. Try again in a moment."
