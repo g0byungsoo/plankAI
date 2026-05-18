@@ -907,6 +907,7 @@
 		BAD000000000000000000020 /* PaymentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000021 /* PaymentService.swift */; };
 		BAD000000000000000000022 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = BAD000000000000000000081 /* Lottie */; };
 		BAD000000000000000000040 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000041 /* PaywallView.swift */; };
+		BAD000000000000000000042 /* DownsellPaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000043 /* DownsellPaywallView.swift */; };
 		BAD000000000000000000060 /* TrialEndNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000061 /* TrialEndNotificationService.swift */; };
 		BAD000000000000000000091 /* lottie in Resources */ = {isa = PBXBuildFile; fileRef = BAD000000000000000000090 /* lottie */; };
 		BAD0000000000000000000A1 /* Music in Resources */ = {isa = PBXBuildFile; fileRef = BAD0000000000000000000A0 /* Music */; };
@@ -2107,6 +2108,7 @@
 		BAD000000000000000000011 /* RevenueCatConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatConfig.swift; sourceTree = "<group>"; };
 		BAD000000000000000000021 /* PaymentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentService.swift; sourceTree = "<group>"; };
 		BAD000000000000000000041 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		BAD000000000000000000043 /* DownsellPaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownsellPaywallView.swift; sourceTree = "<group>"; };
 		BAD000000000000000000050 /* absmaxxing.storekit */ = {isa = PBXFileReference; lastKnownFileType = file.storekit; path = absmaxxing.storekit; sourceTree = "<group>"; };
 		BAD000000000000000000061 /* TrialEndNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialEndNotificationService.swift; sourceTree = "<group>"; };
 		BAD000000000000000000090 /* lottie */ = {isa = PBXFileReference; lastKnownFileType = folder; path = lottie; sourceTree = "<group>"; };
@@ -2519,6 +2521,7 @@
 			isa = PBXGroup;
 			children = (
 				BAD000000000000000000041 /* PaywallView.swift */,
+				BAD000000000000000000043 /* DownsellPaywallView.swift */,
 			);
 			path = Paywall;
 			sourceTree = "<group>";
@@ -5143,6 +5146,7 @@
 				BAD000000000000000000010 /* RevenueCatConfig.swift in Sources */,
 				BAD000000000000000000020 /* PaymentService.swift in Sources */,
 				BAD000000000000000000040 /* PaywallView.swift in Sources */,
+				BAD000000000000000000042 /* DownsellPaywallView.swift in Sources */,
 				BAD000000000000000000060 /* TrialEndNotificationService.swift in Sources */,
 				F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */,
 				AAAA00010000000000000001 /* DeleteAccountSheet.swift in Sources */,

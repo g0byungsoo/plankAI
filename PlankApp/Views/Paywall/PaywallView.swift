@@ -23,17 +23,20 @@ struct PaywallView: View {
     let onSubscribed: () -> Void
     let onRestore: () -> Void
     let onDismiss: () -> Void
+    let onPurchaseCancelled: () -> Void
 
     init(
         dismissable: Bool = true,
         onSubscribed: @escaping () -> Void,
         onRestore: @escaping () -> Void = {},
-        onDismiss: @escaping () -> Void = {}
+        onDismiss: @escaping () -> Void = {},
+        onPurchaseCancelled: @escaping () -> Void = {}
     ) {
         self.dismissable = dismissable
         self.onSubscribed = onSubscribed
         self.onRestore = onRestore
         self.onDismiss = onDismiss
+        self.onPurchaseCancelled = onPurchaseCancelled
     }
 
     // On-device fast-path mirror, written by handleOnboardingComplete +
@@ -558,6 +561,11 @@ struct PaywallView: View {
         do {
             let result = try await Purchases.shared.purchase(package: package)
             if result.userCancelled {
+                // User dismissed Apple's purchase sheet — surface the
+                // downsell so they have a discounted path before falling
+                // off entirely. Parent's onPurchaseCancelled is the
+                // signal; this view doesn't know what to present.
+                onPurchaseCancelled()
                 return
             }
             let isActive = result.customerInfo

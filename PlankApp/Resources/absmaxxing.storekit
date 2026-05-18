@@ -62,6 +62,27 @@
           "referenceName" : "absmaxxing yearly",
           "subscriptionGroupID" : "BAD0AAAA-0000-0000-0000-000000000002",
           "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "34.99",
+          "familyShareable" : false,
+          "groupNumber" : 3,
+          "internalID" : "BAD0AAAA-0000-0000-0000-000000000006",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Limited-time 50% off — your full plan, half price",
+              "displayName" : "JeniFit Pro Yearly · 50% off",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "jenifit_yearly_discount",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "jenifit yearly discount",
+          "subscriptionGroupID" : "BAD0AAAA-0000-0000-0000-000000000002",
+          "type" : "RecurringSubscription"
         }
       ]
     }

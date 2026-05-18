@@ -26,6 +26,13 @@ enum RevenueCatConfig {
     /// dashboard-marked default if this changes).
     static let offeringID = "default"
 
+    /// Downsell offering identifier. Presented by DownsellPaywallView when
+    /// the user dismisses the main paywall for the first time per install.
+    /// Configure in RevenueCat dashboard → Offerings: create an offering
+    /// named `discount` containing a single annual Package that maps to
+    /// `ProductID.yearlyDiscount` below.
+    static let discountOfferingID = "discount"
+
     /// App Store Connect product identifiers. Must match the SKU strings
     /// configured in App Store Connect → Subscriptions exactly.
     enum ProductID {
@@ -33,5 +40,12 @@ enum RevenueCatConfig {
         static let weekly = "absmaxxing_weekly"
         /// $69.99/year with a 3-day free trial introductory offer.
         static let yearly = "absmaxxing_yearly"
+        /// $34.99/year — 50% off the standard yearly, no trial. Create in
+        /// App Store Connect as a new auto-renewable subscription in the
+        /// SAME subscription group as the yearly above so users who claim
+        /// the downsell can later upgrade/downgrade without leaving the
+        /// group. No introductory offer (trial-stacking with the standard
+        /// yearly's 3-day trial would require additional StoreKit nuance).
+        static let yearlyDiscount = "jenifit_yearly_discount"
     }
 }

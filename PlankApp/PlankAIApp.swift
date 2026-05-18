@@ -139,6 +139,17 @@ private struct RootView: View {
     @State private var auth = AuthService.shared
     @State private var payment = PaymentService.shared
 
+    // Downsell paywall state. Hard-paywall model: the cover stays up
+    // until the user subscribes or restores. The downsell is presented as
+    // a .sheet over PaywallView — fires automatically after dwell time
+    // (`downsellDwellSeconds`) OR immediately on the paywall's X tap.
+    // Sheet dismiss returns to the paywall; cover never opens without
+    // a real purchase/restore. `autoTriggered` ensures the auto-pop only
+    // fires once per cover-presentation (X tap can still re-open after).
+    @State private var showingDownsell = false
+    @State private var autoTriggered = false
+    private static let downsellDwellSeconds: UInt64 = 8
+
     // First-launch affirmation gate. Captured as @State (not
     // @AppStorage) so the screen's mid-flight write of
     // hasSeenAffirmation at t=1s does not unmount the screen
@@ -180,20 +191,15 @@ private struct RootView: View {
                         .transition(.opacity)
                         .fullScreenCover(isPresented: .constant(!payment.effectiveHasProAccess && !payment.isInAuthTransition)) {
                             // Hard paywall — sits between onboarding completion
-                            // and MainTabView. dismissable: false hides the X
-                            // close button. Cover dismisses automatically when
-                            // PaymentService.hasProAccess flips via the
-                            // customerInfoStream after a successful purchase
-                            // or restore.
+                            // and MainTabView. Cover dismisses only when
+                            // PaymentService.hasProAccess flips true (purchase
+                            // or restore). The downsell appears as a .sheet
+                            // over this view: auto-pops after dwell time, OR
+                            // on X tap. Sheet dismiss returns here without
+                            // letting the user out of the cover.
                             PaywallView(
-                                dismissable: false,
-                                onSubscribed: {
-                                    // No-op; the cover dismisses on its own
-                                    // when hasProAccess flips. Keeping this
-                                    // empty so the parent has a hook for
-                                    // post-purchase routing later (e.g.,
-                                    // analytics event, first-session push).
-                                },
+                                dismissable: true,
+                                onSubscribed: {},
                                 onRestore: {
                                     Task {
                                         do {
@@ -205,8 +211,48 @@ private struct RootView: View {
                                         }
                                     }
                                 },
-                                onDismiss: {}
+                                onDismiss: {
+                                    showingDownsell = true
+                                },
+                                onPurchaseCancelled: {
+                                    showingDownsell = true
+                                }
                             )
+                            .task {
+                                // Dwell timer: if the user lingers on the
+                                // paywall without subscribing, surface the
+                                // discount automatically. autoTriggered
+                                // gates re-fire so dismiss → re-cover
+                                // doesn't replay the pop. Cancelled
+                                // automatically when the cover dismisses.
+                                guard !autoTriggered,
+                                      !payment.effectiveHasProAccess else { return }
+                                try? await Task.sleep(nanoseconds: Self.downsellDwellSeconds * 1_000_000_000)
+                                guard !Task.isCancelled,
+                                      !autoTriggered,
+                                      !showingDownsell,
+                                      !payment.effectiveHasProAccess else { return }
+                                autoTriggered = true
+                                showingDownsell = true
+                            }
+                            .sheet(isPresented: $showingDownsell) {
+                                DownsellPaywallView(
+                                    onSubscribed: {},
+                                    onDismiss: {
+                                        showingDownsell = false
+                                    }
+                                )
+                                .interactiveDismissDisabled(false)
+                            }
+                        }
+                        .onChange(of: payment.effectiveHasProAccess) { _, newValue in
+                            // Reset cover state on entitlement flip so a
+                            // future expiration → re-present cycle starts
+                            // fresh (no stale downsell, dwell timer resets).
+                            if newValue {
+                                showingDownsell = false
+                                autoTriggered = false
+                            }
                         }
                 } else {
                     AffirmationLoaderScreen(state: auth.bootstrapState) {

@@ -1,6 +1,7 @@
 import SwiftUI
 import AVFoundation
 import AVKit
+import StoreKit
 
 // MARK: - Onboarding Flow
 // Interleaved: 2-3 questions → education/celebration → repeat
@@ -79,6 +80,11 @@ struct OnboardingView: View {
     @State private var showConfetti = false
     @State private var showWelcomeSignInSheet = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    // Onboarding review prompt — fires once per install via SKStoreReviewController
+    // gated by a soft "Loving JeniFit?" prefilter (case 215). Persisted so a back-
+    // nav into onboarding or a fresh launch mid-flow doesn't double-prompt; iOS
+    // also caps requestReview() to 3 per 365 days regardless.
+    @AppStorage("onboardingReviewPromptShown") private var onboardingReviewPromptShown = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // Data — legacy
@@ -235,7 +241,7 @@ struct OnboardingView: View {
         }
         .sheet(isPresented: $showWelcomeSignInSheet) {
             NavigationStack {
-                SignInPromptView(mode: .signIn) {
+                SignInPromptView(onContinue:  {
                     // After Apple/email/cancel closes the prompt: if the user
                     // is now signed in (non-anonymous), they're recovering an
                     // existing account — skip the rest of onboarding and
@@ -245,7 +251,7 @@ struct OnboardingView: View {
                     if !AuthService.shared.isAnonymous {
                         hasCompletedOnboarding = true
                     }
-                }
+                }, mode: .signIn)
                 .background(Palette.bgPrimary)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -687,6 +693,7 @@ struct OnboardingView: View {
         case 21: planRevealScreen
         case 22: personalStatScreen
         case 23: cameraSetupScreen
+        case 215: reviewPromptScreen
         case 26: SignInPromptView { Haptics.medium(); go(22) }
 
         // Legacy showcase screens (kept for Phase 5 reuse, not in flow)
@@ -747,7 +754,7 @@ struct OnboardingView: View {
         // Phase 5 — loading carousel + final prediction → plan reveal.
         // Onboarding ends at camera setup (23); the post-onboarding
         // paywall lives outside the flow as RootView's fullScreenCover.
-        180, 181, 21, 26, 22, 23,
+        180, 181, 21, 215, 26, 22, 23,
     ]
 
     private var progressFraction: CGFloat {
@@ -1059,6 +1066,10 @@ struct OnboardingView: View {
             alignment: .leading
         )
         .frame(maxWidth: .infinity, alignment: .leading)
+        // Headline wraps to 2-3 lines at 38pt. The parent VStack uses
+        // fixed spacers + a tall video block, so without fixedSize the
+        // last line ("home.") gets squeezed and truncated with "...".
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private var welcomeSubhead: some View {
@@ -4000,7 +4011,7 @@ struct OnboardingView: View {
 
             Spacer()
 
-            ctaBtn("Almost done") { Haptics.medium(); go(26) }
+            ctaBtn("Almost done") { Haptics.medium(); go(215) }
                 .opacity(planCtaVisible ? 1 : 0)
             }
             .onAppear { runPlanReveal() }
@@ -4228,6 +4239,89 @@ struct OnboardingView: View {
             }
             .padding(.horizontal, Space.screenPadding)
             .padding(.bottom, Space.lg)
+        }
+    }
+
+    /// Soft review prefilter, fires right after plan reveal. "Loving it" routes
+    /// through SKStoreReviewController so only positive-sentiment users see
+    /// the App Store rating sheet — protects the rating from users who tap
+    /// 1-star out of pre-paywall friction. iOS gates requestReview() to 3
+    /// per 365 days; the AppStorage flag adds an install-level guard so
+    /// re-entry into onboarding (rare but possible via sign-out) doesn't
+    /// re-fire and burn a slot.
+    private var reviewPromptScreen: some View {
+        VStack(spacing: 0) {
+            Spacer()
+
+            ZStack {
+                Circle()
+                    .fill(Palette.accent.opacity(0.12))
+                    .frame(width: 110, height: 110)
+                Image(StickerName.heartGlossy.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 78, height: 78)
+                    .opacity(StickerName.heartGlossy.style.opacity)
+            }
+
+            Spacer().frame(height: Space.lg)
+
+            (Text("Loving ").font(Typo.title)
+             + Text("JeniFit").font(Typo.titleItalic)
+             + Text(" so far?").font(Typo.title))
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.center)
+
+            Spacer().frame(height: Space.sm)
+
+            Text("Your plan's ready. A quick rating helps other women find us — and keeps the app independent.")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Space.lg)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer()
+
+            VStack(spacing: 10) {
+                ctaBtn("Loving it") {
+                    Haptics.success()
+                    requestAppStoreReview()
+                    // Brief delay so the system sheet has a beat to appear
+                    // before we slide forward; if iOS suppresses it (quota,
+                    // throttle), the user just lands on the next screen.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        go(26)
+                    }
+                }
+
+                Button {
+                    Haptics.light()
+                    onboardingReviewPromptShown = true
+                    go(26)
+                } label: {
+                    Text("Not yet")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Palette.textSecondary)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(PressFeedbackStyle())
+            }
+            .padding(.horizontal, Space.screenPadding)
+            .padding(.bottom, Space.lg)
+        }
+    }
+
+    /// Trigger the App Store rating sheet via SKStoreReviewController.
+    /// Walks UIScene to find an active foreground windowScene — required
+    /// since iOS 14. No-ops if the install-level flag is already set; iOS
+    /// itself enforces the 3-per-365-days quota and can silently suppress.
+    private func requestAppStoreReview() {
+        guard !onboardingReviewPromptShown else { return }
+        onboardingReviewPromptShown = true
+        if let scene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+            SKStoreReviewController.requestReview(in: scene)
         }
     }
 
