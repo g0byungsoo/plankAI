@@ -267,6 +267,28 @@ struct HomeView: View {
         return Calendar.current.dateComponents([.day], from: last.completedAt, to: .now).day
     }
 
+    /// True when the user has prior sessions but the most recent one is
+    /// ≥7 days old. Drives the workout-card eyebrow into a softer
+    /// "restart gently" register instead of the default "picked for today."
+    /// Soft framing, not punitive — comeback is the highest-leverage
+    /// retention moment in the women's weight-loss audience.
+    private var isReturningAfterInactivity: Bool {
+        guard let last = sessionLogs.first?.completedAt else { return false }
+        return Date().timeIntervalSince(last) >= 7 * 24 * 60 * 60
+    }
+
+    /// Eyebrow shown above the workout card title. Three states:
+    ///   • fresh user (no sessions yet)          → "today's short session"
+    ///   • returning after ≥7 days off           → "restart gently"
+    ///   • any active user (recent session)      → "picked for today"
+    /// Read in `jenifitWorkoutCard` only. Stays lowercase + uppercase-eyebrow-
+    /// styled (Typo.eyebrow) to fit the existing scrapbook chrome.
+    private var workoutCardEyebrow: String {
+        if sessionLogs.isEmpty { return "today's short session" }
+        if isReturningAfterInactivity { return "restart gently" }
+        return "today's pick"
+    }
+
     private var benchmarkDue: Bool {
         guard let days = daysSinceLastBenchmark else { return true }
         return days >= 7
@@ -795,8 +817,23 @@ struct HomeView: View {
         ("short sessions count. all of them count.", ["count"], ["time"]),
         // consistency / gaveUp (Lally 2010 — habit formation tolerates lapses)
         ("missed days don't reset you. they're noise in a long signal.", ["don't reset"], ["consistency", "gaveUp"]),
-        // boring barrier (variety as the antidote — engineered into refresh)
-        ("variety is the antidote. your plan reshuffles.", ["antidote"], ["boring"]),
+        // boring barrier (reshuffle reframed as user-led variety, not the
+        // app fixing a "problem" — softer than the prior "antidote" line).
+        ("want it different? your plan reshuffles.", ["different"], ["boring"]),
+        // Coach-voice retention pass (A2). Process-over-outcome framing
+        // explicitly aligned with weight-loss audience research — never
+        // promises a number, just reinforces repeats.
+        ("your body doesn't need perfect. it needs repeats.", ["repeats"], ["general", "consistency"]),
+        // Trend-over-snapshot — Noom-style framing applied to home, not
+        // just the weight card. Calm coach register.
+        ("start with movement. the trend follows.", ["trend"], ["general"]),
+        // Gentle process reinforcement — paraphrase the user's own
+        // language ("small moves still count.").
+        ("small moves still count.", ["still"], ["general", "time"]),
+        // Comeback line — biased in via the "comeback" tag when the user
+        // is returning after ≥7 days off. Soft, non-punitive, never says
+        // "you fell off" or "get back on track".
+        ("starting again is the hardest part. one short one is enough.", ["starting again"], ["comeback", "gaveUp"]),
     ]
 
     /// Set of onboarding barriers, parsed from the CSV AppStorage mirror.
@@ -816,6 +853,11 @@ struct HomeView: View {
         if userBarriersSet.contains("motivation") { tags.insert("consistency") }
         if userBarriersSet.contains("boring")     { tags.insert("boring") }
         if userExperience == "gaveUp"             { tags.insert("gaveUp") }
+        // Comeback bias — when the user has sessions but the most recent
+        // is ≥7 days old, surface the "starting again" line preferentially.
+        // The day-of-year rotation still applies, but the pool narrows so
+        // the comeback line lands when it matters most.
+        if isReturningAfterInactivity            { tags.insert("comeback") }
         return tags
     }
 
@@ -898,11 +940,24 @@ struct HomeView: View {
 
                 Spacer().frame(height: Space.xs)
 
-                // Stats — lowercase, accent. Reads more "raw" than uppercase
-                // tracked eyebrow text.
-                Text("\(workout.estimatedDuration) min · \(workout.exercises.count) exercises · no equipment")
-                    .font(Typo.caption)
+                // Eyebrow — intentional-selection framing. Soft re-entry
+                // copy ("restart gently") when the user is returning after
+                // ≥7 days off; default "picked for today" otherwise.
+                // Tracking matches Typo.eyebrow elsewhere in the app.
+                Text(workoutCardEyebrow)
+                    .font(Typo.eyebrow).tracking(2)
                     .foregroundStyle(Palette.accent)
+
+                // Meta line — lowercase, secondary. "easy to finish" only
+                // surfaces on ≤10-min sessions; on 20–30 min workouts it
+                // would read patronizing or inaccurate. "no equipment" stays
+                // because the women's weight-loss audience reads it as a
+                // no-friction signal, not jargon.
+                Text(workout.estimatedDuration <= 10
+                     ? "\(workout.estimatedDuration) min · no equipment · easy to finish"
+                     : "\(workout.estimatedDuration) min · no equipment")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
 
                 // Title — italic Fraunces lowercase. The italic carries
                 // the brand personality, the lowercase carries the rawness.
