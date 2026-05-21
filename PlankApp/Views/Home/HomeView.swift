@@ -75,7 +75,23 @@ struct HomeView: View {
     // Settings
     @State private var activeSheet: SettingsSheet?
 
-    private var currentDay: Int { (dayProgress.first?.programDay ?? 0) + 1 }
+    /// Day-progress record for today's calendar day (if a session
+    /// already landed today). Used to keep `currentDay` and the save
+    /// path consistent — multiple sessions in the same day belong to
+    /// the same `programDay` slot.
+    private var todayProgress: DayProgressRecord? {
+        let cal = Calendar.current
+        return dayProgress.first { cal.isDate($0.date, inSameDayAs: .now) }
+    }
+
+    /// The user's current program day. If they've already started today,
+    /// returns today's `programDay` (so additional same-day sessions
+    /// stay on the same number). Otherwise returns the next-day-to-do
+    /// (highest existing programDay + 1).
+    private var currentDay: Int {
+        if let today = todayProgress { return today.programDay }
+        return (dayProgress.first?.programDay ?? 0) + 1
+    }
 
     private var streakResult: StreakCalculator.Result {
         let dates = Set(dayProgress.map { Calendar.current.startOfDay(for: $0.date) })
@@ -411,6 +427,11 @@ struct HomeView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
+        .onAppear {
+            #if DEBUG
+            print("[FUNNEL] home_appeared | hasProAccess=\(payment.hasProAccess) | effectiveHasProAccess=\(payment.effectiveHasProAccess) | isEntitlementReady=\(payment.isEntitlementReady) | isInAuthTransition=\(payment.isInAuthTransition)")
+            #endif
+        }
     }
 
     // MARK: - Animation (slower, smoother)
@@ -599,7 +620,15 @@ struct HomeView: View {
                 accentColor: benchmarkDue ? Palette.accent : Palette.textSecondary,
                 showDot: benchmarkDue,
                 action: {
-                    guard payment.hasProAccess else { return }
+                    // Pro-access enforcement is the paywall cover's job in
+                    // PlankAIApp. A silent guard here used to mask race
+                    // conditions where the cover's binding hadn't caught
+                    // up after a fresh purchase — the user would tap and
+                    // nothing would happen. Trust the cover, surface the
+                    // tap.
+                    #if DEBUG
+                    print("[FUNNEL] plank_checkin_tapped | hasProAccess=\(payment.hasProAccess)")
+                    #endif
                     Haptics.medium()
                     showPreSession = true
                 }
@@ -935,12 +964,16 @@ struct HomeView: View {
                 // gradient (per trend research). Springy press handled
                 // by the implicit Button style on a custom label.
                 Button {
-                    guard payment.hasProAccess else {
-                        #if DEBUG
-                        print("[HomeView] session entry blocked: hasProAccess=false (routine)")
-                        #endif
-                        return
-                    }
+                    // Pro-access enforcement lives in the paywall cover
+                    // (PlankAIApp). The inner `guard payment.hasProAccess`
+                    // that used to live here was masking race conditions
+                    // — after a fresh purchase, hasProAccess could lag the
+                    // cover dismiss by a few hundred ms, and the silent
+                    // guard would no-op the user's first tap. Trust the
+                    // cover; surface the tap.
+                    #if DEBUG
+                    print("[FUNNEL] start_button_tapped | hasProAccess=\(payment.hasProAccess)")
+                    #endif
                     Haptics.vibrate()
                     currentWorkout = workout
                     showRoutineSession = true
@@ -1179,16 +1212,20 @@ struct HomeView: View {
             totalDuration: duration
         )
         modelContext.insert(session)
-        let compositeKey = "\(userId):\(currentDay)"
-        let descriptor = FetchDescriptor<DayProgressRecord>(predicate: #Predicate { $0.compositeKey == compositeKey })
+        // Look up today's progress record by calendar date — NOT by
+        // composite key. `currentDay` advances after each save, so a
+        // composite-key lookup would miss the same-day record and
+        // create a duplicate programDay slot. Date-based lookup keeps
+        // multiple same-day sessions on the same programDay number.
         let progressRecord: DayProgressRecord
-        if let existing = try? modelContext.fetch(descriptor).first {
+        if let existing = todayProgress {
             existing.primarySessionId = session.id
             var ids = existing.sessionLogIds ?? []; ids.append(session.id); existing.sessionLogIds = ids
             existing.updatedAt = .now
             progressRecord = existing
         } else {
-            let progress = DayProgressRecord(userId: userId, programDay: currentDay, primarySessionId: session.id,
+            let nextDay = (dayProgress.first?.programDay ?? 0) + 1
+            let progress = DayProgressRecord(userId: userId, programDay: nextDay, primarySessionId: session.id,
                                             primaryQualityScore: 0, primaryHoldTime: 0)
             progress.sessionLogIds = [session.id]; modelContext.insert(progress)
             progressRecord = progress
@@ -1211,15 +1248,16 @@ struct HomeView: View {
             plankHoldTime: holdTime, plankFormScore: quality
         )
         modelContext.insert(session)
-        let compositeKey = "\(userId):\(currentDay)"
-        let descriptor = FetchDescriptor<DayProgressRecord>(predicate: #Predicate { $0.compositeKey == compositeKey })
+        // Date-based lookup (see saveSession comment): keeps multiple
+        // same-day sessions on the same programDay number.
         let progressRecord: DayProgressRecord
-        if let existing = try? modelContext.fetch(descriptor).first {
+        if let existing = todayProgress {
             var ids = existing.sessionLogIds ?? []; ids.append(session.id); existing.sessionLogIds = ids
             existing.updatedAt = .now
             progressRecord = existing
         } else {
-            let progress = DayProgressRecord(userId: userId, programDay: currentDay, primarySessionId: session.id,
+            let nextDay = (dayProgress.first?.programDay ?? 0) + 1
+            let progress = DayProgressRecord(userId: userId, programDay: nextDay, primarySessionId: session.id,
                                             primaryQualityScore: quality, primaryHoldTime: holdTime)
             progress.sessionLogIds = [session.id]; modelContext.insert(progress)
             progressRecord = progress

@@ -225,13 +225,20 @@ private struct RootView: View {
                                 // gates re-fire so dismiss → re-cover
                                 // doesn't replay the pop. Cancelled
                                 // automatically when the cover dismisses.
+                                //
+                                // Uses `hasProAccess` (not effectiveHasProAccess)
+                                // so a successful purchase suppresses the
+                                // auto-pop even when DEBUG `debugForcePaywall`
+                                // is keeping the cover artificially up — no
+                                // mystery downsell pops on top of a real
+                                // purchase that just succeeded.
                                 guard !autoTriggered,
-                                      !payment.effectiveHasProAccess else { return }
+                                      !payment.hasProAccess else { return }
                                 try? await Task.sleep(nanoseconds: Self.downsellDwellSeconds * 1_000_000_000)
                                 guard !Task.isCancelled,
                                       !autoTriggered,
                                       !showingDownsell,
-                                      !payment.effectiveHasProAccess else { return }
+                                      !payment.hasProAccess else { return }
                                 autoTriggered = true
                                 showingDownsell = true
                             }
@@ -245,7 +252,10 @@ private struct RootView: View {
                                 .interactiveDismissDisabled(false)
                             }
                         }
-                        .onChange(of: payment.effectiveHasProAccess) { _, newValue in
+                        .onChange(of: payment.effectiveHasProAccess) { oldValue, newValue in
+                            #if DEBUG
+                            print("[FUNNEL] paywall_cover_state_change | effectiveHasProAccess: \(oldValue) → \(newValue) | cover will \(newValue ? "DISMISS" : "PRESENT")")
+                            #endif
                             // Reset cover state on entitlement flip so a
                             // future expiration → re-present cycle starts
                             // fresh (no stale downsell, dwell timer resets).

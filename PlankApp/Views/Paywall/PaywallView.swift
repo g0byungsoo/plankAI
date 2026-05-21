@@ -550,6 +550,17 @@ struct PaywallView: View {
     /// regardless, but the callback gives the parent a chance to do
     /// post-purchase routing). Errors → friendly inline message + log.
     private func purchase() async {
+        // Re-entrancy guard. The Button's `.disabled(working)` modifier
+        // catches most double-taps, but the gap between tap and the
+        // working=true assignment below can race — observed in production
+        // logs as the same purchase firing twice for one user tap. This
+        // guard makes the function strictly idempotent per call site.
+        guard !working else {
+            #if DEBUG
+            print("[FUNNEL] paywall_purchase_DUPLICATE_SUPPRESSED | already in flight")
+            #endif
+            return
+        }
         guard let package = selectedPackage else {
             errorMessage = "Couldn't load pricing. Check your connection and try again."
             return
@@ -570,6 +581,9 @@ struct PaywallView: View {
             }
             let isActive = result.customerInfo
                 .entitlements[RevenueCatConfig.entitlementID]?.isActive == true
+            #if DEBUG
+            print("[FUNNEL] paywall_purchase_completed | isActive=\(isActive) | productId=\(package.storeProduct.productIdentifier)")
+            #endif
             if isActive {
                 Haptics.success()
                 onSubscribed()

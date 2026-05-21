@@ -495,6 +495,15 @@ struct DownsellPaywallView: View {
     }
 
     private func purchase() async {
+        // Re-entrancy guard mirroring PaywallView.purchase — prevents
+        // the same purchase firing twice when a fast tap beats the
+        // working=true assignment.
+        guard !working else {
+            #if DEBUG
+            print("[DownsellPaywall] purchase_DUPLICATE_SUPPRESSED | already in flight")
+            #endif
+            return
+        }
         guard let package = discountPackage else {
             errorMessage = "Couldn't load pricing. Check your connection and try again."
             return

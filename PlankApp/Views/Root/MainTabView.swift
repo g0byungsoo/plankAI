@@ -37,5 +37,10 @@ struct MainTabView: View {
                 .tag(AppTab.log)
         }
         .tint(Palette.accent)
+        .onAppear {
+            #if DEBUG
+            print("[FUNNEL] main_tab_appeared | paywall cover dismissed, user is now in the app")
+            #endif
+        }
     }
 }

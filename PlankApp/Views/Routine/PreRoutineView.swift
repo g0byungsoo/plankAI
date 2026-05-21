@@ -88,6 +88,9 @@ struct PreRoutineView: View {
             }
         }
         .onAppear {
+            #if DEBUG
+            print("[FUNNEL] preroutine_appeared | workout cover rendered successfully")
+            #endif
             playIntroIfNeeded()
         }
         .onDisappear {
