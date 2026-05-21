@@ -194,7 +194,12 @@ struct NotificationPermission {
         ])
 
         let content = UNMutableNotificationContent()
-        content.title = "Time to work"
+        // Title — lowercase + low-commitment framing. The previous "Time to
+        // work" read as labor; the women's weight-loss audience responds to
+        // gentle return language ("a short one is waiting") far better than
+        // imperative-coded copy. Lowercase matches the in-app brand voice
+        // even on the lock screen, where it reads softer than TitleCase.
+        content.title = "today's short session."
         content.body = dailyReminderBody()
         content.sound = .default
 
@@ -213,15 +218,19 @@ struct NotificationPermission {
     }
 
     /// Voice-adaptive body. Pulls `voicePreference` from UserDefaults
-    /// (same key NotificationSettingsView uses) so the reminder reads
-    /// in the trainer's voice. Default = encouraging (Jeni → "Sarah"
-    /// voice copy still pending the rename pass).
+    /// (same key NotificationSettingsView uses) so the reminder reads in
+    /// the trainer's voice. Gentle-return register — "five minutes is
+    /// enough," "easy to finish," "come back when you can." Never uses
+    /// labor verbs (work, push, grind), challenge language (don't break
+    /// your streak), or imperatives ("make X wait" softens to "X is here
+    /// when you are"). Lowercase matches in-app brand voice on the lock
+    /// screen.
     private static func dailyReminderBody() -> String {
         let pref = UserDefaults.standard.string(forKey: "voicePreference") ?? "encouraging"
         switch pref {
-        case "encouraging": return "Your workout is ready. Your coach is waiting."
-        case "balanced":    return "Your workout is ready. Sam's got something for you."
-        default:            return "Your workout is ready. Don't make Kira wait."
+        case "encouraging": return "five minutes is enough today. small moves still count."
+        case "balanced":    return "sam picked a short one. easy to finish."
+        default:            return "kira's got a short one ready today."
         }
     }
 }
