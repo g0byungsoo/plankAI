@@ -140,15 +140,21 @@ private struct RootView: View {
     @State private var payment = PaymentService.shared
 
     // Downsell paywall state. Hard-paywall model: the cover stays up
-    // until the user subscribes or restores. The downsell is presented as
-    // a .sheet over PaywallView — fires automatically after dwell time
-    // (`downsellDwellSeconds`) OR immediately on the paywall's X tap.
-    // Sheet dismiss returns to the paywall; cover never opens without
-    // a real purchase/restore. `autoTriggered` ensures the auto-pop only
-    // fires once per cover-presentation (X tap can still re-open after).
+    // until the user subscribes or restores. The downsell is presented
+    // as a .sheet over PaywallView — appears ONLY in response to a user
+    // action (X tap on the main paywall, or Apple purchase-sheet cancel).
+    // Auto-pop after dwell was removed: it was hiding inside successful
+    // purchase flows as the discount sheet appearing right as the cover
+    // dismissed, creating an awkward "did I get the discount or the
+    // standard?" moment for the user.
     @State private var showingDownsell = false
-    @State private var autoTriggered = false
-    private static let downsellDwellSeconds: UInt64 = 8
+
+    // Celebration screen state. Set true by PaywallView/DownsellPaywallView
+    // `onSubscribed` callbacks — so it fires ONLY on a fresh-from-paywall
+    // purchase, not when a returning paid user's entitlement auto-restores
+    // on cold launch. PremiumWelcomeScreen calls onComplete after ~2.5s
+    // and we flip this back to false.
+    @State private var justSubscribed = false
 
     // First-launch affirmation gate. Captured as @State (not
     // @AppStorage) so the screen's mid-flight write of
@@ -199,7 +205,9 @@ private struct RootView: View {
                             // letting the user out of the cover.
                             PaywallView(
                                 dismissable: true,
-                                onSubscribed: {},
+                                onSubscribed: {
+                                    justSubscribed = true
+                                },
                                 onRestore: {
                                     Task {
                                         do {
@@ -218,33 +226,12 @@ private struct RootView: View {
                                     showingDownsell = true
                                 }
                             )
-                            .task {
-                                // Dwell timer: if the user lingers on the
-                                // paywall without subscribing, surface the
-                                // discount automatically. autoTriggered
-                                // gates re-fire so dismiss → re-cover
-                                // doesn't replay the pop. Cancelled
-                                // automatically when the cover dismisses.
-                                //
-                                // Uses `hasProAccess` (not effectiveHasProAccess)
-                                // so a successful purchase suppresses the
-                                // auto-pop even when DEBUG `debugForcePaywall`
-                                // is keeping the cover artificially up — no
-                                // mystery downsell pops on top of a real
-                                // purchase that just succeeded.
-                                guard !autoTriggered,
-                                      !payment.hasProAccess else { return }
-                                try? await Task.sleep(nanoseconds: Self.downsellDwellSeconds * 1_000_000_000)
-                                guard !Task.isCancelled,
-                                      !autoTriggered,
-                                      !showingDownsell,
-                                      !payment.hasProAccess else { return }
-                                autoTriggered = true
-                                showingDownsell = true
-                            }
                             .sheet(isPresented: $showingDownsell) {
                                 DownsellPaywallView(
-                                    onSubscribed: {},
+                                    onSubscribed: {
+                                        justSubscribed = true
+                                        showingDownsell = false
+                                    },
                                     onDismiss: {
                                         showingDownsell = false
                                     }
@@ -256,12 +243,23 @@ private struct RootView: View {
                             #if DEBUG
                             print("[FUNNEL] paywall_cover_state_change | effectiveHasProAccess: \(oldValue) → \(newValue) | cover will \(newValue ? "DISMISS" : "PRESENT")")
                             #endif
-                            // Reset cover state on entitlement flip so a
+                            // Reset downsell state on entitlement flip so a
                             // future expiration → re-present cycle starts
-                            // fresh (no stale downsell, dwell timer resets).
+                            // fresh with no stale sheet state.
                             if newValue {
                                 showingDownsell = false
-                                autoTriggered = false
+                            }
+                        }
+                        .fullScreenCover(isPresented: $justSubscribed) {
+                            // Celebration moment between paywall purchase
+                            // success and MainTabView. Auto-dismisses after
+                            // ~2.5s via PremiumWelcomeScreen.onComplete.
+                            // Sits OUTSIDE the paywall cover binding so
+                            // the paywall cover dismisses first (cover
+                            // transition completes cleanly), then this
+                            // celebration cover presents fresh.
+                            PremiumWelcomeScreen {
+                                justSubscribed = false
                             }
                         }
                 } else {
