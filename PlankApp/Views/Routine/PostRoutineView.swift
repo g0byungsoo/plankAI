@@ -170,6 +170,17 @@ struct PostRoutineView: View {
                                 .transition(.opacity.combined(with: .move(edge: .bottom)))
                         }
 
+                        // Afterglow — soft reinforcement + return reason.
+                        // Sits between rating and DONE so it reads as a
+                        // parting note from the app, not a celebration
+                        // afterthought. No buttons here intentionally:
+                        // post-workout is reinforcement, not the moment
+                        // to push another action.
+                        afterglowBlock
+                            .padding(.horizontal, Space.screenPadding)
+                            .padding(.top, Space.sm)
+                            .transition(.opacity)
+
                         Spacer().frame(height: Space.sm)
 
                         doneButton
@@ -457,6 +468,29 @@ struct PostRoutineView: View {
         case "good_variety": return "Good Variety"
         default: return tag
         }
+    }
+
+    // MARK: - Afterglow
+
+    /// Two-line reinforcement block. First line confirms the loop (small
+    /// repeats > single big effort — anti-shame, anti-streak-anxiety).
+    /// Second line gives a concrete return reason without committing to
+    /// a specific workout (we don't pre-generate tomorrow's routine; the
+    /// promise is just "there will be one"). Soft register, calm cadence,
+    /// no exclamation marks, no challenge language.
+    private var afterglowBlock: some View {
+        VStack(spacing: Space.xs) {
+            Text("small repeats are how trends form.")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+
+            Text("tomorrow's short one is waiting.")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Done Button
