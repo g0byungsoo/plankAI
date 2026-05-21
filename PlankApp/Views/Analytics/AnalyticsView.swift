@@ -449,20 +449,32 @@ struct AnalyticsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Trailing word for the headline. " powerful." / " calm." / " light." /
-    /// " strong." / " radiant." — drawn from Q140's option keys. Empty
-    /// returns just ". " so the title still reads as a complete sentence
-    /// ("becoming.") for users with no identity answer.
+    /// Trailing word for the headline — behavior-derived so the hero
+    /// reflects who the user has actually been, not just the onboarding
+    /// answer. Cascade order (most retention-critical first):
+    ///   • returning after ≥7 days off (any prior session) → " steady."
+    ///   • any plank check-in completed                    → " stronger."
+    ///   • any weight log                                  → " clear."
+    ///   • any session completed                           → " consistent."
+    ///   • fresh user, nothing logged yet                  → " present."
+    /// Noom-style identity-over-outcome framing applied to existing fields.
+    /// Onboarding identityFeeling (Q140) intentionally not consulted here;
+    /// the motivationLine below still echoes Q111 so personal voice remains.
     private var identityTrailer: String {
-        let key = currentUserRecord?.onboardingIdentityFeeling ?? ""
-        switch key {
-        case "powerful": return " powerful."
-        case "calm":     return " calm."
-        case "light":    return " light."
-        case "strong":   return " strong."
-        case "radiant":  return " radiant."
-        default:         return "."
-        }
+        if isReturningAfterInactivity { return " steady." }
+        if benchmarkCount > 0         { return " stronger." }
+        if !weightLogs.isEmpty        { return " clear." }
+        if !sessionLogs.isEmpty       { return " consistent." }
+        return " present."
+    }
+
+    /// True when the user has prior sessions but the most recent one is
+    /// ≥7 days old. Frames re-engagement as "steady" — soft, non-punitive,
+    /// avoids streak-loss shame. Sessions are sorted desc so .first is the
+    /// most recent.
+    private var isReturningAfterInactivity: Bool {
+        guard let last = sessionLogs.first?.completedAt else { return false }
+        return Date().timeIntervalSince(last) >= 7 * 24 * 60 * 60
     }
 
     /// Subtitle echoing the user's stated motivation (Q111). Returns nil
@@ -709,14 +721,19 @@ struct AnalyticsView: View {
                     Text(String(format: "%.1f", bmi))
                         .font(.custom("Fraunces72pt-SemiBold", size: 36))
                         .foregroundStyle(Palette.textPrimary)
+                    // Label de-emphasized — uses textSecondary instead of
+                    // band.color so the word ("overweight"/"obese") doesn't
+                    // shout. Range bar below still color-codes for
+                    // orientation. Anti-shame: keep the screening info,
+                    // remove the visual weight from the verdict.
                     Text(band.label)
                         .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                        .foregroundStyle(band.color)
+                        .foregroundStyle(Palette.textSecondary)
                 }
 
                 bmiRangeBar(currentBMI: bmi)
 
-                Text("BMI is a screening tool, not a diagnosis. it doesn't account for muscle vs. fat — your trend matters more than the number.")
+                Text(bmiCaption)
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -736,6 +753,29 @@ struct AnalyticsView: View {
     /// composition above doesn't allocate a new string each render.
     private static let bmiCaptionText =
         "BMI is a screening tool, not a diagnosis. Your trend matters more than the number."
+
+    /// Caption shown beneath the BMI number. Default is the standard
+    /// screening-tool disclaimer (anti-shame, research-grounded). When
+    /// the user has had ≥4 weight logs and all of them fall in the same
+    /// AHA band, switches to a "steady in [band]" reframe — the trend-
+    /// matters narrative applied to a flat trend, so a long stable run
+    /// reads as success, not failure.
+    private var bmiCaption: String {
+        if let stableBand = stableBMIBand {
+            return "steady in \(stableBand) range these past few logs. the trend matters more than the label."
+        }
+        return "BMI is a screening tool, not a diagnosis. it doesn't account for muscle vs. fat — your trend matters more than the number."
+    }
+
+    /// Returns the AHA band label when the most recent 4 weight logs all
+    /// fall in the same band; nil otherwise (including when there are
+    /// fewer than 4 logs or no heightMeters). Used by `bmiCaption` to
+    /// reframe stable BMI as evidence of consistency, not stagnation.
+    private var stableBMIBand: String? {
+        guard let m = heightMeters, weightLogs.count >= 4 else { return nil }
+        let bands = weightLogs.prefix(4).map { bmiBand(for: $0.weightKg / (m * m)).label }
+        return Set(bands).count == 1 ? bands.first : nil
+    }
 
     /// AHA 2021 banding. Returns label + color tuple for a given BMI.
     /// Color choice: stateGood for normal, stateWarn for overweight,
@@ -1189,7 +1229,11 @@ struct AnalyticsView: View {
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Activity")
+                // "your repeats" reframes the grid from a completion board
+                // (failure-coded when sparse) to show-up proof (identity-
+                // coded). Same data, calmer reading — one square is enough
+                // to start.
+                Text("your repeats")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Palette.textPrimary)
                 Spacer()
