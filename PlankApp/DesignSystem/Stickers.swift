@@ -42,6 +42,17 @@ enum StickerName: String, CaseIterable {
     case perfume
     case candyPearl
     case butterflyRing
+    // Phase 9.9 additions — 6 painterly iridescent stickers added by
+    // product to expand the lesson-ritual icon vocabulary. Used both
+    // as decorative scatter AND as inline iconography (e.g., peach to
+    // illustrate body / hydration moments, teacup for "morning ritual",
+    // peace sign / finger-heart for affirmations).
+    case fingerHeart
+    case fluffyHeart
+    case peaceSign
+    case peach
+    case teacup
+    case toteBag
 
     var assetName: String {
         switch self {
@@ -72,6 +83,12 @@ enum StickerName: String, CaseIterable {
         case .perfume:         return "sticker_perfume"
         case .candyPearl:      return "sticker_candy_pearl"
         case .butterflyRing:   return "sticker_butterfly_ring"
+        case .fingerHeart:     return "sticker_finger_heart"
+        case .fluffyHeart:     return "sticker_fluffy_heart"
+        case .peaceSign:       return "sticker_peace_sign"
+        case .peach:           return "sticker_peach"
+        case .teacup:          return "sticker_teacup"
+        case .toteBag:         return "sticker_tote_bag"
         }
     }
 
@@ -259,6 +276,59 @@ extension StickerScatter {
     /// primary corners with two painterly accents (iridescent bow,
     /// gummy bear) for warmth. Positions hug the margins so the
     /// center column stays clear for the wordmark + CTA.
+    /// Coach intro — dense corner + side scatter framing the central
+    /// coach portrait + sparkle burst. All placements hug the left/right
+    /// margins and the top so the center column (portrait, greeting,
+    /// focal beat) and bottom CTA stay clear. Mixes the y2k coquette pack
+    /// (bow, flower, cherries, butterfly, gummy bear) with line-art
+    /// accents (star) for variety.
+    static func coachIntroDefault() -> [StickerPlacement] {
+        [
+            // top band
+            StickerPlacement(sticker: .bowIridescent, position: CGPoint(x: 0.12, y: 0.07), size: 40, rotation: -12, phaseDelay: 0.0),
+            StickerPlacement(sticker: .starLineart, position: CGPoint(x: 0.86, y: 0.06), size: 28, rotation: 13, phaseDelay: 0.2),
+            // upper sides
+            StickerPlacement(sticker: .cherries, position: CGPoint(x: 0.08, y: 0.24), size: 34, rotation: -8, phaseDelay: 0.35),
+            StickerPlacement(sticker: .sparkleGlossy, position: CGPoint(x: 0.91, y: 0.22), size: 26, rotation: 12, phaseDelay: 0.5),
+            // mid sides
+            StickerPlacement(sticker: .flower3D, position: CGPoint(x: 0.09, y: 0.5), size: 38, rotation: 9, phaseDelay: 0.6),
+            StickerPlacement(sticker: .butterflyRing, position: CGPoint(x: 0.92, y: 0.48), size: 32, rotation: 10, phaseDelay: 0.7),
+            // lower sides (above CTA)
+            StickerPlacement(sticker: .gummyBear, position: CGPoint(x: 0.11, y: 0.74), size: 36, rotation: 11, phaseDelay: 0.85),
+            StickerPlacement(sticker: .fluffyHeart, position: CGPoint(x: 0.89, y: 0.72), size: 36, rotation: -9, phaseDelay: 1.0),
+        ]
+    }
+
+    /// Breathwork primer — denser scatter mixing "morning ritual"
+    /// vocabulary (teacup) with coquette accents. Text-heavy + scrolling,
+    /// so placements hug the left/right margins and the very top/bottom
+    /// where the scroll content has room.
+    static func breathworkPrimerDefault() -> [StickerPlacement] {
+        [
+            StickerPlacement(sticker: .teacup, position: CGPoint(x: 0.13, y: 0.06), size: 42, rotation: -10, phaseDelay: 0.0),
+            StickerPlacement(sticker: .heartsLineart, position: CGPoint(x: 0.5, y: 0.035), size: 26, rotation: 6, phaseDelay: 0.15),
+            StickerPlacement(sticker: .sparkleGlossy, position: CGPoint(x: 0.88, y: 0.07), size: 26, rotation: 12, phaseDelay: 0.3),
+            StickerPlacement(sticker: .cherub, position: CGPoint(x: 0.08, y: 0.34), size: 34, rotation: -8, phaseDelay: 0.45),
+            StickerPlacement(sticker: .bowSatin, position: CGPoint(x: 0.92, y: 0.5), size: 32, rotation: 11, phaseDelay: 0.6),
+            StickerPlacement(sticker: .flower3D, position: CGPoint(x: 0.11, y: 0.88), size: 38, rotation: 9, phaseDelay: 0.75),
+            StickerPlacement(sticker: .fluffyHeart, position: CGPoint(x: 0.89, y: 0.9), size: 34, rotation: -8, phaseDelay: 0.9),
+        ]
+    }
+
+    /// Breathwork session — soft scatter kept to the top band so the
+    /// centered breath bloom and bottom choice/CTA stay completely
+    /// clear. Denser than before but still calm; the gentle idle drift
+    /// reads as ambient, not busy.
+    static func breathworkSessionDefault() -> [StickerPlacement] {
+        [
+            StickerPlacement(sticker: .cherub, position: CGPoint(x: 0.5, y: 0.05), size: 28, rotation: 5, phaseDelay: 0.0),
+            StickerPlacement(sticker: .flower3D, position: CGPoint(x: 0.12, y: 0.1), size: 36, rotation: -10, phaseDelay: 0.2),
+            StickerPlacement(sticker: .butterflyRing, position: CGPoint(x: 0.88, y: 0.11), size: 34, rotation: 11, phaseDelay: 0.4),
+            StickerPlacement(sticker: .sparkleGlossy, position: CGPoint(x: 0.24, y: 0.18), size: 24, rotation: 8, phaseDelay: 0.6),
+            StickerPlacement(sticker: .fluffyHeart, position: CGPoint(x: 0.78, y: 0.19), size: 28, rotation: -7, phaseDelay: 0.8),
+        ]
+    }
+
     static func welcomeDefault() -> [StickerPlacement] {
         [
             StickerPlacement(

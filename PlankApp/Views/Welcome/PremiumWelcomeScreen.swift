@@ -34,6 +34,12 @@ struct PremiumWelcomeScreen: View {
     @State private var headlineVisible = false
     @State private var subtitleVisible = false
     @State private var didAdvance = false
+    /// Phase 9.28 — CTA controls the welcome→ritual handoff. Auto-
+    /// advance was replaced with this explicit tap so iOS doesn't
+    /// drop the dismiss+present sequence (it was racing the cover
+    /// transition queue and sometimes failing silently). Fades in
+    /// after the subtitle lands.
+    @State private var ctaVisible = false
 
     // Sparkle burst placements — 8 sparkles fanning out from the heart.
     // Sizes vary 12-22pt for organic feel; offsets are in points from center.
@@ -64,10 +70,21 @@ struct PremiumWelcomeScreen: View {
                     .padding(.horizontal, Space.lg)
 
                 Spacer()
+
+                // Phase 9.28 — explicit CTA replaces the auto-advance.
+                // User taps "let's begin" → advance() → onComplete()
+                // → PlankAIApp transitions to Module 1. No more silent
+                // failures from cover-transition queue races.
+                Button(action: advance) {
+                    Text("let's begin")
+                }
+                .buttonStyle(.ctaPrimary)
+                .padding(.horizontal, Space.lg)
+                .padding(.bottom, Space.xl)
+                .opacity(ctaVisible ? 1 : 0)
+                .offset(y: ctaVisible ? 0 : 12)
             }
         }
-        .contentShape(Rectangle())
-        .onTapGesture { advance() }
         .onAppear {
             if reduceMotion {
                 runReducedMotion()
@@ -167,9 +184,10 @@ struct PremiumWelcomeScreen: View {
         withAnimation(.easeOut(duration: 0.4).delay(0.85)) {
             subtitleVisible = true
         }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            advance()
+        // Phase 9.28 — CTA fades in just after the subtitle lands.
+        // User-initiated tap is the only way forward; no auto-advance.
+        withAnimation(.easeOut(duration: 0.4).delay(1.20)) {
+            ctaVisible = true
         }
     }
 
@@ -181,9 +199,7 @@ struct PremiumWelcomeScreen: View {
         subtitleVisible = true
         sparkleBurstActive = true
         sparkleBurstVisible = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            advance()
-        }
+        ctaVisible = true
     }
 
     private func advance() {

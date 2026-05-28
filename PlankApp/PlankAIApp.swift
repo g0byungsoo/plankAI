@@ -3,6 +3,7 @@ import SwiftData
 import PlankSync
 import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
 import RevenueCat
+import PostHog
 import os.log
 
 // MARK: - Orientation Control
@@ -49,6 +50,14 @@ struct PlankAIApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     init() {
+        // PostHog must be set up *before* any Analytics.track call lands
+        // — the wrapper queues to its own background queue, so a race
+        // where an early track fires before sink registration would be
+        // dropped. Initializing in App.init() (before any view body or
+        // service init) keeps the funnel intact from the very first
+        // event (onboarding_start / paywall_view).
+        Self.bootstrapAnalytics()
+
         // Ensure Application Support directory exists before SwiftData tries to create the store
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         try? FileManager.default.createDirectory(at: appSupport, withIntermediateDirectories: true)
@@ -83,6 +92,73 @@ struct PlankAIApp: App {
         }
         #endif
     }
+
+    /// Initialize PostHog and append a sink to `Analytics.sinks` so
+    /// every existing `Analytics.track(...)` call flows to PostHog
+    /// without any call-site change. Idempotent — guarded against a
+    /// re-invocation (App.init can run more than once in SwiftUI
+    /// previews / hot-reload). DEBUG-only console sink stays in
+    /// place alongside PostHog so events are still visible in Xcode.
+    private static func bootstrapAnalytics() {
+        // Re-init guard. PostHogSDK has its own internal guard but
+        // re-appending the sink would double-fire every event.
+        guard !analyticsBootstrapped else { return }
+        analyticsBootstrapped = true
+
+        let config = PostHogConfig(
+            projectToken: PostHogAppConfig.apiKey,
+            host: PostHogAppConfig.host
+        )
+        config.captureApplicationLifecycleEvents = PostHogAppConfig.captureApplicationLifecycleEvents
+        config.captureScreenViews = false  // we emit our own screen events
+        #if DEBUG
+        // DEBUG-only verification helpers:
+        //   - debug: PostHog SDK logs every capture + flush to console
+        //     so "[PostHog] queue capture …" lines appear alongside our
+        //     "[ANALYTICS] …" lines — confirms the SDK actually received
+        //     the event from the sink.
+        //   - flushAt = 1: ship every event immediately instead of
+        //     batching at the default of 20. PostHog "Live events"
+        //     stream shows them in <5s instead of waiting for a batch
+        //     fill or the 30s flush interval. Release builds keep the
+        //     defaults for battery / network efficiency.
+        config.debug = true
+        config.flushAt = 1
+        #endif
+        PostHogSDK.shared.setup(config)
+
+        Analytics.sinks.append(PostHogSink())
+
+        #if DEBUG
+        // Internal/test traffic separation. Two layers in PostHog:
+        //
+        //   1. Person identity. Stable distinct_id prefixed `dev-…` so
+        //      every test device shows up as one Person profile per
+        //      simulator/device instead of a fresh anonymous user
+        //      each launch. PostHog → Persons → search "dev-" gives
+        //      you exactly the test sessions.
+        //
+        //   2. Super-properties via `register`. PostHog attaches these
+        //      to every subsequent event AND person profile. Pair
+        //      with PostHog → Settings → "Internal & test accounts"
+        //      filter (set: person property `is_test_user` equals
+        //      true) so insights / funnels hide test traffic by
+        //      default — toggleable per insight.
+        let vendorId = UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
+        PostHogSDK.shared.identify("dev-\(vendorId)")
+        PostHogSDK.shared.register([
+            "environment":  "debug",
+            "is_test_user": true,
+            "device_model": UIDevice.current.model,
+            "device_name":  UIDevice.current.name
+        ])
+        #else
+        PostHogSDK.shared.register([
+            "environment": "production"
+        ])
+        #endif
+    }
+    nonisolated(unsafe) private static var analyticsBootstrapped = false
 
     private static func registerBundledFonts() {
         guard let urls = Bundle.main.urls(forResourcesWithExtension: "ttf", subdirectory: nil) else {
@@ -154,7 +230,16 @@ private struct RootView: View {
     // purchase, not when a returning paid user's entitlement auto-restores
     // on cold launch. PremiumWelcomeScreen calls onComplete after ~2.5s
     // and we flip this back to false.
-    @State private var justSubscribed = false
+
+    // The JeniFit Method post-purchase education flow (Phase 2 of
+    // docs/diet_education_plan.md). Set true from PremiumWelcomeScreen's
+    // onComplete iff the feature flag is on AND the user's goal is on
+    // the fat-loss allowlist AND Lesson 1 has not already started.
+    // Forward-only: restore-purchase and cold relaunch never re-fire
+    // because both go through onSubscribed-less code paths (restore) or
+    // never transition effectiveHasProAccess false→true (cold relaunch
+    // on an already-paid user). Default-off behind the flag.
+    @State private var showingCoachIntro = false
 
     // First-launch affirmation gate. Captured as @State (not
     // @AppStorage) so the screen's mid-flight write of
@@ -206,7 +291,24 @@ private struct RootView: View {
                             PaywallView(
                                 dismissable: true,
                                 onSubscribed: {
-                                    justSubscribed = true
+                                    #if DEBUG
+                                    print("[Paywall.main] onSubscribed fired (debugForcePaywall was \(payment.debugForcePaywall))")
+                                    // Phase 9.31 — auto-clear the force-
+                                    // paywall debug flag on a successful
+                                    // purchase. Otherwise the paywall
+                                    // never dismisses (effectiveHasProAccess
+                                    // stays false) and the coach flow gets
+                                    // stuck queued forever. Dev re-enables
+                                    // in Debug menu to re-test.
+                                    payment.debugForcePaywall = false
+                                    #endif
+                                    // Phase A (2026-05-27): PremiumWelcomeScreen
+                                    // removed — it was redundant with Jeni's
+                                    // welcome (CoachIntroView). Purchase now
+                                    // goes straight to the post-purchase flow.
+                                    // The feature-flag + idempotency gate that
+                                    // lived in the welcome CTA moves here.
+                                    presentPostPurchaseFlowIfEligible()
                                 },
                                 onRestore: {
                                     Task {
@@ -226,17 +328,49 @@ private struct RootView: View {
                                     showingDownsell = true
                                 }
                             )
+                            .onAppear {
+                                // Paywall view event. variant_id is fixed
+                                // until we run paywall experiments; the
+                                // property is here so future variants slot
+                                // in without changing the call site.
+                                Analytics.track(.paywallView, properties: [
+                                    "paywall_id": "main",
+                                    "placement": "onboarding_final",
+                                    "variant_id": "control",
+                                    "default_plan": "annual",
+                                    "has_trial": true,
+                                    "trial_days": 3
+                                ])
+                            }
                             .sheet(isPresented: $showingDownsell) {
                                 DownsellPaywallView(
                                     onSubscribed: {
-                                        justSubscribed = true
+                                        #if DEBUG
+                                        print("[Paywall.downsell] onSubscribed fired (debugForcePaywall was \(payment.debugForcePaywall))")
+                                        // Phase 9.31 — auto-clear the
+                                        // force-paywall debug flag on
+                                        // successful purchase (same as
+                                        // main path).
+                                        payment.debugForcePaywall = false
+                                        #endif
                                         showingDownsell = false
+                                        presentPostPurchaseFlowIfEligible()
                                     },
                                     onDismiss: {
                                         showingDownsell = false
                                     }
                                 )
                                 .interactiveDismissDisabled(false)
+                                .onAppear {
+                                    Analytics.track(.paywallView, properties: [
+                                        "paywall_id": "downsell",
+                                        "placement": "onboarding_final_downsell",
+                                        "variant_id": "control",
+                                        "default_plan": "annual_50pct",
+                                        "has_trial": false,
+                                        "discount_shown": true
+                                    ])
+                                }
                             }
                         }
                         .onChange(of: payment.effectiveHasProAccess) { oldValue, newValue in
@@ -248,19 +382,40 @@ private struct RootView: View {
                             // fresh with no stale sheet state.
                             if newValue {
                                 showingDownsell = false
+                                // Purchase / trial start events fire from
+                                // PaymentService.startCustomerInfoStream
+                                // where product_id and trial-period info
+                                // are first-class — don't double-emit here.
                             }
                         }
-                        .fullScreenCover(isPresented: $justSubscribed) {
-                            // Celebration moment between paywall purchase
-                            // success and MainTabView. Auto-dismisses after
-                            // ~2.5s via PremiumWelcomeScreen.onComplete.
-                            // Sits OUTSIDE the paywall cover binding so
-                            // the paywall cover dismisses first (cover
-                            // transition completes cleanly), then this
-                            // celebration cover presents fresh.
-                            PremiumWelcomeScreen {
-                                justSubscribed = false
-                            }
+                        .fullScreenCover(isPresented: $showingCoachIntro) {
+                            // Phase A: the post-purchase sequence — Jeni
+                            // welcome → breathwork primer → breath
+                            // session → choice. All phases live inside
+                            // PostPurchaseFlowView (one cover, internal
+                            // cross-fades) so transitions read as smooth
+                            // fades, not iOS cover slides. The single
+                            // exit routes the user to the first workout
+                            // (launchWorkout: true → the
+                            // `pendingPostRitualWorkoutLaunch` flag
+                            // HomeView reads on appear) or to Home
+                            // (launchWorkout: false → user picks their
+                            // own moment, workout card stays prominent).
+                            PostPurchaseFlowView(onFinish: { launchWorkout in
+                                CoachIntroState.markShown()
+                                if launchWorkout {
+                                    UserDefaults.standard.set(
+                                        true,
+                                        forKey: "pendingPostRitualWorkoutLaunch"
+                                    )
+                                }
+                                var t = Transaction()
+                                t.disablesAnimations = true
+                                withTransaction(t) {
+                                    showingCoachIntro = false
+                                }
+                            })
+                            .presentationBackground(Palette.bgPrimary)
                         }
                 } else {
                     AffirmationLoaderScreen(state: auth.bootstrapState) {
@@ -320,6 +475,31 @@ private struct RootView: View {
         }
     }
 
+    // MARK: - The JeniFit Method (Phase 2)
+
+    /// Phase A (2026-05-27): present the post-purchase flow (Jeni welcome
+    /// → breathwork primer → breath session → choice) if eligible.
+    /// Replaces the old PremiumWelcomeScreen + shouldTriggerJeniMethodPostPurchase
+    /// gate. The Jeni welcome is UNIVERSAL — every paying user meets their
+    /// coach, regardless of goal (the old growGlutes exclusion applied to
+    /// the fat-loss curriculum, which now gates separately on the home
+    /// lesson card). Only the feature flag + once-per-user idempotency
+    /// (CoachIntroState) gate this. Wrapped in a no-animation transaction
+    /// so the cover presents as the paywall dismisses, no double slide.
+    private func presentPostPurchaseFlowIfEligible() {
+        let flagEnabled = JeniMethodFeatureFlag.isEnabled
+        let idempotencyOK = CoachIntroState.shouldShowOnPurchase()
+        #if DEBUG
+        print("[PostPurchase] onSubscribed. shouldShow=\(flagEnabled && idempotencyOK) (flag=\(flagEnabled), idempotency=\(idempotencyOK))")
+        #endif
+        guard flagEnabled && idempotencyOK else { return }
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) {
+            showingCoachIntro = true
+        }
+    }
+
     private func handleOnboardingComplete(_ data: OnboardingData) {
         userName = data.name
         // focusArea (Q10) drives the WorkoutGoal pipeline (anatomy).
@@ -345,6 +525,10 @@ private struct RootView: View {
         UserDefaults.standard.set(data.sessionLengthMinutes, forKey: "sessionLengthPref")
         UserDefaults.standard.set(data.baselineHoldSeconds, forKey: "userBaselineSeconds")
         UserDefaults.standard.set(data.barriers.joined(separator: ","), forKey: "userBarriers")
+        // Phase 9.20 — identityFeeling (Q140: "how do you want to feel?")
+        // persisted so JeniMethodUserContext can personalize ritual copy.
+        // Values: "powerful" | "calm" | "light" | "strong" | "radiant" | "".
+        UserDefaults.standard.set(data.identityFeeling, forKey: "identityFeeling")
         UserDefaults.standard.set(data.notificationsEnabled, forKey: "notificationsEnabled")
         // Phase A: AnalyticsView reads weights via @AppStorage. Without
         // this write the keys default to 0, the chart's starting-baseline
@@ -353,6 +537,23 @@ private struct RootView: View {
         // in @State only.)
         UserDefaults.standard.set(data.currentWeightKg, forKey: "onboardingCurrentWeightKg")
         UserDefaults.standard.set(data.goalWeightKg, forKey: "onboardingGoalWeightKg")
+        // Phase A: persist the goal date the user just saw on the projection
+        // chart so CoachIntroView + JenisNoteCard can reference it without
+        // recomputing. Mirrors `predictionDate()` in OnboardingView.swift:5278
+        // — 12-week base (84 days) ± 14 days for activityLevel. Stored as a
+        // TimeInterval (seconds since reference date) for @AppStorage compat.
+        let goalDateDays: Int = {
+            var d = 84
+            switch data.activityLevel {
+            case "athlete":   d -= 14
+            case "sedentary": d += 14
+            default: break
+            }
+            return d
+        }()
+        if let goalDate = Calendar.current.date(byAdding: .day, value: goalDateDays, to: Date()) {
+            UserDefaults.standard.set(goalDate.timeIntervalSinceReferenceDate, forKey: "onboardingGoalDate")
+        }
 
         // Persist the profile to SwiftData + Supabase. Anonymous-first
         // bootstrap guarantees currentUserId exists by the time onboarding
