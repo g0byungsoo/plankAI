@@ -6,6 +6,8 @@ struct AccountView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var auth = AuthService.shared
+    @State private var payment = PaymentService.shared
+    @Environment(\.openURL) private var openURL
     @State private var showResetConfirm = false
     @State private var showSignInSheet = false
     @State private var showSignOutConfirm = false
@@ -40,7 +42,7 @@ struct AccountView: View {
             VStack(alignment: .leading, spacing: Space.lg) {
                 header
 
-                appInfoCard
+                membershipCard
 
                 if auth.isAnonymous || !auth.isAuthenticated {
                     anonymousSection
@@ -48,9 +50,13 @@ struct AccountView: View {
                     signedInSection
                 }
 
+                #if DEBUG
                 Spacer().frame(height: Space.lg)
+                resetButton   // QA-only: wipes onboarding, hidden from real users
+                #endif
 
-                resetButton
+                Spacer().frame(height: Space.lg)
+                versionFooter
 
                 Spacer().frame(height: Space.xl)
             }
@@ -88,26 +94,60 @@ struct AccountView: View {
 
     // MARK: - App info
 
-    private var appInfoCard: some View {
-        VStack(spacing: 0) {
-            infoRow(label: "version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
-            Divider().padding(.horizontal, Space.md)
-            infoRow(label: "build", value: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
+    // MARK: - Membership
+    //
+    // Replaces the old version+build "app info" card (a developer artifact
+    // that sat in the highest-priority slot). Leads with what the user cares
+    // about — her membership — and surfaces the Apple-required manage path.
+
+    private var membershipCard: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Text("membership")
+                .font(Typo.eyebrow).tracking(3)
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.bottom, 2)
+
+            VStack(alignment: .leading, spacing: Space.md) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle().fill(Palette.accent.opacity(0.18)).frame(width: 44, height: 44)
+                        Image(StickerName.sparkleGlossy.assetName)
+                            .resizable().scaledToFit().frame(width: 24, height: 24)
+                            .opacity(StickerName.sparkleGlossy.style.opacity)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(payment.hasProAccess ? "jenifit plus" : "free plan")
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
+                            .foregroundStyle(Palette.textPrimary)
+                        Text(payment.hasProAccess
+                             ? "you're all in. everything jeni planned is yours."
+                             : "unlock everything jeni planned for you.")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                }
+
+                if payment.hasProAccess {
+                    outlineButton(text: "manage subscription", tint: Palette.accent) {
+                        Haptics.light()
+                        if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                            openURL(url)
+                        }
+                    }
+                }
+            }
+            .padding(Space.md)
+            .background(scrapbookChrome())
         }
-        .background(scrapbookChrome())
     }
 
-    private func infoRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(Typo.body)
-                .foregroundStyle(Palette.textPrimary)
-            Spacer()
-            Text(value)
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-        }
-        .padding(Space.md)
+    private var versionFooter: some View {
+        Text("jenifit · v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
+            .font(Typo.caption)
+            .foregroundStyle(Palette.textSecondary.opacity(0.7))
+            .frame(maxWidth: .infinity, alignment: .center)
     }
 
     // MARK: - Anonymous
