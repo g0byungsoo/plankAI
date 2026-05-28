@@ -329,6 +329,114 @@ PROMPTS: dict[str, str] = {
         "sparkles scattered around it like confetti. Celebration of the "
         "5-day journey. Joyful but not loud."
     ),
+
+    # ─── Phase 10 — Days 2-14 primer fact-screen illustrations ───────
+    # Chroma-keyed character illustrations, same Storyset treatment as
+    # lesson_d2_consistency so the expanded arc reads as one set. Shared
+    # appearance: dark brown hair, warm light-brown skin, dusty rose top
+    # + cream bottoms, subtle pink blush, body-neutral loose clothing.
+    "lesson_d2_paradox": (
+        "Young woman with dark brown hair in a loose low ponytail, warm "
+        "light-brown skin, dusty rose cropped sweatshirt and cream "
+        "joggers, subtle pink cheek blush. Standing outdoors mid-stroll "
+        "on a soft pink path, relaxed and content, one hand resting "
+        "gently over her heart, calm half-smile, eyes forward and "
+        "peaceful. Behind her a faint translucent treadmill-display "
+        "number floats and is gently dissolving into soft pink dots. "
+        "Body-neutral, loose clothing, no curves emphasized. Pose "
+        "communicates 'i move for how it feels, not the number.' Single "
+        "character. Storyset wellness flat vector style. Composition "
+        "centered, figure occupies the middle 70% of the canvas."
+    ),
+    "lesson_d4_plank": (
+        "Young woman with dark brown hair in a soft bun, warm light-brown "
+        "skin, dusty rose tank and cream leggings, subtle pink cheek "
+        "blush. Holding a steady forearm plank on a soft cream mat, body "
+        "in a calm straight line, serene focused expression with eyes "
+        "lowered. A few soft golden stillness-glow lines radiate gently "
+        "around her core (golden #E8B86A, subtle). Body-neutral, loose "
+        "fit. Pose communicates 'quiet strength, holding still.' Single "
+        "character. Storyset wellness flat vector style. Composition "
+        "centered, figure occupies the middle 70% of the canvas."
+    ),
+    "lesson_d5_walk": (
+        "Young woman with dark brown hair in a loose ponytail, warm "
+        "light-brown skin, dusty rose oversized tee and cream joggers, "
+        "subtle pink cheek blush. Taking a gentle relaxed walk, mid-step, "
+        "a small steaming cream teacup motif floating softly beside her, "
+        "calm content smile. A soft pink path curves under her feet. "
+        "Body-neutral, loose clothing. Pose communicates 'an easy little "
+        "walk after eating.' Single character. Storyset wellness flat "
+        "vector style. Composition centered, figure occupies the middle "
+        "70% of the canvas."
+    ),
+    "lesson_d7_habit": (
+        "Young woman with dark brown hair in a soft bob, warm light-brown "
+        "skin, dusty rose puff-sleeve top and cream trousers, subtle pink "
+        "cheek blush. Kneeling and tending a small potted seedling with "
+        "two tiny green leaves, watering it from a little cream watering "
+        "can, patient tender expression. A few soft sprout-glow dots rise "
+        "from the pot. Body-neutral, loose fit. Pose communicates 'small "
+        "daily care, over time.' Single character. Storyset wellness flat "
+        "vector style. Composition centered, figure occupies the middle "
+        "70% of the canvas."
+    ),
+    "lesson_d8_return": (
+        "Young woman with dark brown hair in a loose ponytail, warm "
+        "light-brown skin, dusty rose sweatshirt and cream joggers, "
+        "subtle pink cheek blush. Gently rising back up from a soft "
+        "kneel, one hand pushing off the floor, the other reaching "
+        "forward, hopeful soft-determined expression. A gentle upward "
+        "arc of small pink dots beside her. Body-neutral, loose clothing. "
+        "Pose communicates 'getting back up, coming back.' Single "
+        "character. Storyset wellness flat vector style. Composition "
+        "centered, figure occupies the middle 70% of the canvas."
+    ),
+    "lesson_d9_kindness": (
+        "Young woman with dark brown hair in a soft low bun, warm "
+        "light-brown skin, dusty rose knit top and cream trousers, subtle "
+        "pink cheek blush. Standing with both hands pressed softly over "
+        "her own heart, eyes gently closed, a warm tender self-"
+        "compassionate smile. A soft pink heart-glow radiates from her "
+        "chest. Body-neutral, loose fit. Pose communicates 'being kind to "
+        "myself.' Single character. Storyset wellness flat vector style. "
+        "Composition centered, figure occupies the middle 70% of the "
+        "canvas."
+    ),
+    "lesson_d11_enjoy": (
+        "Young woman with dark brown hair in a bouncy ponytail, warm "
+        "light-brown skin, dusty rose cropped tee and cream joggers, "
+        "subtle pink cheek blush. Moving joyfully mid-sway with small "
+        "headphones on, eyes closed, a relaxed happy smile. A couple of "
+        "soft music-note motifs and small pink sparkles float around her. "
+        "Body-neutral, loose comfy clothing. Pose communicates 'movement "
+        "that's actually fun.' Single character. Storyset wellness flat "
+        "vector style. Composition centered, figure occupies the middle "
+        "70% of the canvas."
+    ),
+    "lesson_d12_snack": (
+        "Young woman with dark brown hair in a loose ponytail, warm "
+        "light-brown skin, dusty rose tee and cream joggers, subtle pink "
+        "cheek blush. Climbing a short flight of soft cream stairs with a "
+        "light energetic spring, one foot up a step, a small cream "
+        "reusable tote in one hand, bright but calm expression. A few "
+        "soft motion dashes trail behind her. Body-neutral, loose "
+        "clothing. Pose communicates 'a quick burst of movement woven "
+        "into the day.' Single character. Storyset wellness flat vector "
+        "style. Composition centered, figure occupies the middle 70% of "
+        "the canvas."
+    ),
+    "lesson_d14_freshstart": (
+        "Young woman with dark brown hair in a soft bob, warm light-brown "
+        "skin, dusty rose blouse and cream trousers, subtle pink cheek "
+        "blush. Gently pushing open a soft arched door toward warm "
+        "golden-pink morning light that washes over her, hopeful peaceful "
+        "expression with eyes toward the light. A couple of small "
+        "sparkles drift in the doorway. Body-neutral, loose fit. Pose "
+        "communicates 'a fresh start, beginning again.' Single character. "
+        "Storyset wellness flat vector style. Composition centered, "
+        "figure occupies the middle 70% of the canvas."
+    ),
 }
 
 
@@ -355,6 +463,10 @@ CHROMA_NAMES = {
     # Storyset character treatment as Day 1, chroma-keyed PNG.
     "lesson_d2_consistency", "lesson_d3_neat",
     "lesson_d4_protein", "lesson_d5_sleep",
+    # Phase 10 — Days 2-14 primer fact-screen illustrations.
+    "lesson_d2_paradox", "lesson_d4_plank", "lesson_d5_walk",
+    "lesson_d7_habit", "lesson_d8_return", "lesson_d9_kindness",
+    "lesson_d11_enjoy", "lesson_d12_snack", "lesson_d14_freshstart",
 }
 
 
