@@ -417,34 +417,26 @@ struct HomeView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: Space.md) {
-                        // Phase 10: engagement-day program-shape signal.
-                        // "day N of 14" + dot arc, advancing only when the
-                        // user completes a session (currentDay). Shown only
-                        // to JeniMethod-enrolled users — no calendar, no
-                        // "you're behind."
-                        if jeniMethodEnrolled {
-                            WeekProgressStrip(currentDay: currentDay)
-                                .padding(.horizontal, Space.screenPadding)
-                                .opacity(msgOpacity[0]).offset(y: msgOffset[0])
-                        }
+                        // Phase 10 cohesion pass — ONE coach voice + ONE
+                        // daily action + ONE day count. Order: coach line
+                        // (replaces the old greeting + note box) → HERO
+                        // session → momentum strip → (escape-hatch workout)
+                        // → demoted stats/actions → data rails.
 
-                        // Phase 10 home redesign — single clear daily
-                        // action above the fold (home-UX research: one tap,
-                        // not a dashboard). Order: parasocial check-in →
-                        // HERO session → Jeni's note → (escape-hatch
-                        // workout) → demoted stats/actions → data rails.
-
-                        // Parasocial check-in — Jeni's voice at the top.
-                        jenifitGreeting
+                        // ONE coach voice at the top: Jeni avatar + the
+                        // daily templated line (which already carries the
+                        // time-of-day greeting). Voice-only / chrome-light
+                        // so the hero below stays the single visual hero.
+                        JenisNoteCard(note: jenisNoteForToday)
+                            .padding(.horizontal, Space.screenPadding)
                             .opacity(msgOpacity[0]).offset(y: msgOffset[0])
 
                         // HERO — the single daily action. When a lesson is
-                        // due it IS the hero (one tap → lesson → workout).
-                        // Otherwise today's workout card is the hero.
+                        // due it IS the hero (one tap → lesson → workout);
+                        // otherwise today's workout card is the hero.
                         if let lessonId = jeniMethodCardLessonId,
                            let lesson = LessonID(rawValue: lessonId) {
                             JeniMethodTodayCard(
-                                lessonId: lessonId,
                                 teaser: lesson.headline,
                                 onTap: {
                                     // Kill the cover slide so the lesson
@@ -463,18 +455,19 @@ struct HomeView: View {
                                 .opacity(msgOpacity[1]).offset(y: msgOffset[1])
                         }
 
-                        // Jeni's daily note — the seed of the AI-coach
-                        // agent surface (vision: agent ingests all data →
-                        // conversations/recommendations). Kept prominent
-                        // right under the hero. Hides itself when nil.
-                        JenisNoteCard(note: jenisNoteForToday)
-                            .padding(.horizontal, Space.screenPadding)
-                            .opacity(msgOpacity[1]).offset(y: msgOffset[1])
+                        // Momentum — engagement "day N of 14" dots + "shown
+                        // up N times". The single home for the day count;
+                        // the hero cards no longer repeat it. Enrolled only.
+                        if jeniMethodEnrolled {
+                            WeekProgressStrip(currentDay: currentDay,
+                                              sessionsShownUp: dayProgress.count)
+                                .padding(.horizontal, Space.screenPadding)
+                                .opacity(msgOpacity[2]).offset(y: msgOffset[2])
+                        }
 
                         // Escape hatch — when the lesson is the hero, the
-                        // workout is still one tap away below the fold for
-                        // anyone who'd rather just move today. (When no
-                        // lesson is due the workout already IS the hero.)
+                        // workout is still one tap away for anyone who'd
+                        // rather just move today.
                         if jeniMethodCardLessonId != nil {
                             jenifitWorkoutCard
                                 .opacity(msgOpacity[2]).offset(y: msgOffset[2])
@@ -1051,155 +1044,6 @@ struct HomeView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - JeniFit Greeting (Phase 18 — compact bubble)
-    //
-    // One headline + one one-line subtitle. The previous layout stacked
-    // three Fraunces lines (Hey [name]. / Today's your day. / Today's X
-    // minutes. Let's go.) which read as three competing brand statements.
-    // The v1 mockup is a single-line greeting + one body subtitle tying
-    // it to today's session.
-
-    private var jenifitGreeting: some View {
-        let displayName = userName.isEmpty ? "you" : userName.lowercased()
-        return VStack(alignment: .leading, spacing: Space.xs) {
-            (
-                Text("hey \(displayName). ").font(Typo.title) +
-                Text("today's your day.").font(Typo.titleItalic)
-            )
-            .foregroundStyle(Palette.textPrimary)
-            .lineLimit(2)
-            .fixedSize(horizontal: false, vertical: true)
-
-            // Subtitle — rotates through evidence-backed lines drawn from
-            // weight-loss adherence research (Teixeira 2012 autonomous
-            // motivation, Clear/Oyserman identity-based habits, Linardon
-            // 2021 process > outcome framing, Neff self-compassion, Dweck
-            // growth mindset). Replaces "your plan's ready when you are"
-            // which was generic and added no value for users motivated by
-            // weight loss. Stays calm, lowercase, no body-shaming.
-            mindfulSubtitle
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Space.screenPadding)
-        .padding(.top, Space.sm)
-        .padding(.bottom, Space.xs)
-        // Sticker accent — gummy bear. Playful, soft, on-brand without
-        // implying a food rule (ice cream / strawberry both leaned into
-        // diet-coded territory; gummy is just a cute object).
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.gummyBear.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 52, height: 52)
-                .rotationEffect(.degrees(14))
-                .offset(x: -2, y: -10)
-                .opacity(StickerName.gummyBear.style.opacity)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
-    }
-
-    // MARK: - Mindful subtitle (research-backed weight-loss messaging)
-    //
-    // Pulls one line per local-day from a curated rotation. Picking by
-    // day-of-year means the user sees the same line all day (no
-    // distracting reshuffles between renders) but a fresh one tomorrow.
-    // Each line is annotated with the research principle in code so
-    // future copy edits keep the evidence base in mind.
-
-    /// 10 subtitle options. The asterisked words render in italic Fraunces
-    /// via `ItalicAccentText` — matches the "italic = the punch" pattern
-    /// established in Phases 17/18. Each line is tagged so Phase D's
-    /// adaptive picker can bias toward lines that address the user's
-    /// stated barriers ("time", "consistency", "boring", "gaveUp"). All
-    /// lines tagged "general" stay in the rotation for users without a
-    /// matching barrier — ensures we never empty the pool.
-    private static let mindfulSubtitles: [(line: String, italics: [String], tags: Set<String>)] = [
-        // process > outcome (Linardon 2021, Annesi)
-        ("today counts more than perfect.", ["today"], ["general"]),
-        // identity-based habit (Clear, Oyserman 2015)
-        ("you're someone who shows up. that's the whole thing.", ["shows up"], ["general", "consistency"]),
-        // autonomous motivation (Teixeira 2012)
-        ("small kept promises, to yourself.", ["kept"], ["general", "consistency"]),
-        // growth mindset (Dweck, Burnette 2013)
-        ("becoming her, one ordinary day at a time.", ["becoming"], ["general"]),
-        // self-compassion (Neff)
-        ("yesterday isn't the assignment. today is.", ["today"], ["general", "consistency"]),
-        // anti-shame (Tylka intuitive eating)
-        ("you don't have to earn rest. or movement.", ["rest", "movement"], ["general"]),
-        // Phase D — barrier-tagged additions
-        // time barrier (ACSM 2018: dose-response is linear, even small bouts count)
-        ("five minutes is enough.", ["enough"], ["time"]),
-        // time barrier (Rhodes & de Bruijn 2013 — implementation intentions)
-        ("short sessions count. all of them count.", ["count"], ["time"]),
-        // consistency / gaveUp (Lally 2010 — habit formation tolerates lapses)
-        ("missed days don't reset you. they're noise in a long signal.", ["don't reset"], ["consistency", "gaveUp"]),
-        // boring barrier (reshuffle reframed as user-led variety, not the
-        // app fixing a "problem" — softer than the prior "antidote" line).
-        ("want it different? your plan reshuffles.", ["different"], ["boring"]),
-        // Coach-voice retention pass (A2). Process-over-outcome framing
-        // explicitly aligned with weight-loss audience research — never
-        // promises a number, just reinforces repeats.
-        ("your body doesn't need perfect. it needs repeats.", ["repeats"], ["general", "consistency"]),
-        // Trend-over-snapshot — Noom-style framing applied to home, not
-        // just the weight card. Calm coach register.
-        ("start with movement. the trend follows.", ["trend"], ["general"]),
-        // Gentle process reinforcement — paraphrase the user's own
-        // language ("small moves still count.").
-        ("small moves still count.", ["still"], ["general", "time"]),
-        // Comeback line — biased in via the "comeback" tag when the user
-        // is returning after ≥7 days off. Soft, non-punitive, never says
-        // "you fell off" or "get back on track".
-        ("starting again is the hardest part. one short one is enough.", ["starting again"], ["comeback", "gaveUp"]),
-    ]
-
-    /// Set of onboarding barriers, parsed from the CSV AppStorage mirror.
-    /// Empty when the user picked nothing or onboarded under a legacy
-    /// flow before barriers existed.
-    private var userBarriersSet: Set<String> {
-        Set(userBarriersCSV.split(separator: ",").map(String.init).filter { !$0.isEmpty })
-    }
-
-    /// Tags to bias the subtitle rotation toward. Always includes
-    /// "general" so the pool can never be empty. Adds barrier-specific
-    /// tags only when the user actually picked them — no defensive
-    /// over-tagging that would dilute the bias.
-    private var preferredSubtitleTags: Set<String> {
-        var tags: Set<String> = ["general"]
-        if userBarriersSet.contains("time")       { tags.insert("time") }
-        if userBarriersSet.contains("motivation") { tags.insert("consistency") }
-        if userBarriersSet.contains("boring")     { tags.insert("boring") }
-        if userExperience == "gaveUp"             { tags.insert("gaveUp") }
-        // Comeback bias — when the user has sessions but the most recent
-        // is ≥7 days old, surface the "starting again" line preferentially.
-        // The day-of-year rotation still applies, but the pool narrows so
-        // the comeback line lands when it matters most.
-        if isReturningAfterInactivity            { tags.insert("comeback") }
-        return tags
-    }
-
-    @ViewBuilder
-    private var mindfulSubtitle: some View {
-        let day = Calendar.current.ordinality(of: .day, in: .year, for: .now) ?? 1
-        // Pool = lines whose tags overlap with the user's preferred set.
-        // Falls back to the full rotation if the filter empties (defensive
-        // — shouldn't happen because every line carries at least one tag
-        // and "general" is always preferred).
-        let pool = Self.mindfulSubtitles.filter { !$0.tags.isDisjoint(with: preferredSubtitleTags) }
-        let candidates = pool.isEmpty ? Self.mindfulSubtitles : pool
-        let pick = candidates[day % candidates.count]
-        ItalicAccentText(
-            pick.line,
-            italic: pick.italics,
-            baseFont: Typo.body,
-            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
-            color: Palette.textSecondary
-        )
-    }
-
     // MARK: - Refresh Button
 
     /// Circular shuffle button that re-rolls today's generated workout.
@@ -1252,21 +1096,19 @@ struct HomeView: View {
 
         return VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: Space.sm) {
-                HStack(alignment: .top) {
-                    DayBadge(label: "day \(currentDay)")
+                // Header — eyebrow paired with the quiet refresh control on
+                // one row, so the card top has two anchors instead of a lone
+                // icon floating in an empty row (the orphaned-control dead
+                // zone). Day count lives once, in the momentum strip.
+                // Eyebrow copy: "restart gently" on ≥7-day return, else
+                // "picked for today."
+                HStack(alignment: .center) {
+                    Text(workoutCardEyebrow)
+                        .font(Typo.eyebrow).tracking(2)
+                        .foregroundStyle(Palette.accent)
                     Spacer()
                     refreshButton
                 }
-
-                Spacer().frame(height: Space.xs)
-
-                // Eyebrow — intentional-selection framing. Soft re-entry
-                // copy ("restart gently") when the user is returning after
-                // ≥7 days off; default "picked for today" otherwise.
-                // Tracking matches Typo.eyebrow elsewhere in the app.
-                Text(workoutCardEyebrow)
-                    .font(Typo.eyebrow).tracking(2)
-                    .foregroundStyle(Palette.accent)
 
                 // Meta line — lowercase, secondary. "easy to finish" only
                 // surfaces on ≤10-min sessions; on 20–30 min workouts it
@@ -1283,6 +1125,7 @@ struct HomeView: View {
                 // the brand personality, the lowercase carries the rawness.
                 Text(workout.name.lowercased())
                     .font(Typo.titleItalic)
+                    .tracking(-0.5)   // tighten the Fraunces display so it reads intentional
                     .foregroundStyle(Palette.textPrimary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1333,7 +1176,7 @@ struct HomeView: View {
                     }
                 }
 
-                Spacer().frame(height: Space.sm)
+                Spacer().frame(height: 20)   // loose gap: CTA is a separate unit
 
                 // Start CTA — pill, 2pt cocoa outline, no shadow, no
                 // gradient (per trend research). Springy press handled
@@ -1376,7 +1219,7 @@ struct HomeView: View {
                     .clipShape(Capsule())
                 }
             }
-            .padding(Space.md)
+            .padding(20)   // hero card breathes more than the default card padding
         }
         .background(
             // Hard offset shadow first (sits behind the card body), then

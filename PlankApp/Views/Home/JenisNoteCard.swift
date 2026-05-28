@@ -35,52 +35,39 @@ struct JenisNoteCard: View {
 
     @ViewBuilder
     private func content(for note: JenisNote) -> some View {
-        let card = HStack(alignment: .top, spacing: Space.md) {
-            // Small jeni accent — a sticker dot, not a portrait. Keeps
-            // the card compact and lets the workout card stay the visual
-            // hero. The portrait moment lives in CoachIntroView; this is
-            // the daily lower-key continuation.
+        // Voice, not a card — the single coach line at the top of Home.
+        // Kept chrome-light (avatar + one line, no card fill/border/shadow)
+        // so the hero session card below stays the only visual hero and
+        // the screen reads as one cohesive voice, not stacked widgets.
+        // The note body already carries the time-of-day greeting + daily
+        // message (JenisNoteTemplate), so this replaces the old separate
+        // greeting entirely. This is also the seed of the future coach-
+        // agent surface (it grows into Jeni's conversation/recommendations).
+        let line = HStack(alignment: .top, spacing: Space.md) {
             Circle()
                 .fill(Palette.accentSubtle)
-                .frame(width: 36, height: 36)
+                .frame(width: 40, height: 40)
                 .overlay(
                     Text("j")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 20, relativeTo: .body))
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22, relativeTo: .body))
                         .foregroundStyle(Palette.accent)
                 )
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("FROM JENI")
-                    .font(Typo.eyebrow)
-                    .tracking(1.0)
-                    .foregroundStyle(Palette.textSecondary)
-
-                ItalicAccentText(note.body,
-                                 italic: note.italicTerms,
-                                 baseFont: bodyFont,
-                                 italicFont: bodyItalicFont,
-                                 color: Palette.textPrimary,
-                                 alignment: .leading)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            ItalicAccentText(note.body,
+                             italic: note.italicTerms,
+                             baseFont: bodyFont,
+                             italicFont: bodyItalicFont,
+                             color: Palette.textPrimary,
+                             alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(Space.md)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Palette.bgElevated)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Palette.accent.opacity(0.35), lineWidth: 1.5)
-        )
-        .shadow(color: Color.black.opacity(0.04), radius: 0, x: 3, y: 3)
 
         if let onTap = onTap {
-            Button(action: onTap) { card }
+            Button(action: onTap) { line }
                 .buttonStyle(.plain)
         } else {
-            card
+            line
         }
     }
 

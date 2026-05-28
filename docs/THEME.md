@@ -187,6 +187,45 @@ modules, Browse, PreSession, LogWeightSheet, PostSession, PostRoutine):
 hit area without changing visible chrome — applied to icon buttons that
 visually sit at 30–32pt.
 
+### Home screen layout spec (Phase 10 — Gen-Z visual-craft research)
+Governing rule: **spacing is proportional to relationship**, never uniform.
+A gap that's both large and unanchored reads as "didn't finish loading," not
+a designed breath. The home is ONE designed screen, not stacked widgets.
+
+**Hierarchy (top → bottom):**
+1. ONE coach voice line — Jeni avatar + a single daily line (one italic punch
+   word). Flat, voice not a card; the only coach surface (no second greeting).
+   Seed of the future coach-agent surface.
+2. ONE hero session card — the only elevated, fully-pink, scrapbook-chromed
+   object, and the only primary CTA. Lesson when due (tap → lesson → workout),
+   otherwise today's workout.
+3. Momentum strip — "day N of 14" dots + "shown up N times". The single home
+   for the day count (the hero never repeats it). Flat, low emphasis.
+4. Below fold: quick actions, then de-emphasized future-feature rails
+   (steps / food / body-scan seeds).
+
+**Spacing (hero card):** screen margins 20 · gap between cards 16 · hero
+internal padding 20 · inside the hero: eyebrow→title 4, title→meta 8,
+meta/list→CTA 20 (loose = its own unit). Internal padding ≤ inter-card gap.
+No orphaned controls — a lone icon never sits in a full-width row (pair it
+with the eyebrow on one baseline, or float it as a quiet corner overlay).
+
+**Type:** ~5 roles max; negative tracking (−0.5 to −2%) on Fraunces display/
+title; +6% on eyebrows; ONE italic punch word per surface; never set body in
+Fraunces (display face, ≥20pt only).
+
+**Color/depth:** one saturated accent, reserved for CTA + punch word + sticker
+highlight only (all other pinks are tints). Warm rose-tinted offset shadow,
+never grey. One elevation level — only the hero is raised.
+
+**Stickers:** ≤3 per screen, 1 hero sticker per card, corner-anchored bleeding
+~30–40% off the edge, rotated 4–8°; 100% opacity on the punctuation sticker /
+8–15% on background motifs; never behind text or a CTA.
+
+Sources: NN/g (visual hierarchy, color+signal), Baymard (card consistency),
+Refactoring UI (proportional space, de-emphasis, constrained scale),
+Material/Atlassian (8pt grid), Apple HIG (type, 44pt targets).
+
 ---
 
 ## 5. Motion (calm, mindful, magical)

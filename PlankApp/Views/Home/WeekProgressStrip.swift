@@ -20,6 +20,10 @@ struct WeekProgressStrip: View {
     /// The user's current engagement day (1-based). < 1 = hidden.
     let currentDay: Int
 
+    /// Total completed sessions (day_progress count) — the additive tenure.
+    /// Monotonic, never decrements; the "shown up N times" line.
+    var sessionsShownUp: Int = 0
+
     /// Total numbered lessons in the method arc.
     var totalDays: Int = 14
 
@@ -41,6 +45,13 @@ struct WeekProgressStrip: View {
                     }
                 }
                 .accessibilityHidden(true)
+
+                if let tenure = tenureLine {
+                    Text(tenure)
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.accent)
+                        .accessibilityLabel(tenure)
+                }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Space.xs)
@@ -55,6 +66,15 @@ struct WeekProgressStrip: View {
 
     private var accessibilityLabel: String {
         currentDay <= totalDays ? "Day \(currentDay) of \(totalDays)" : "Day \(currentDay)"
+    }
+
+    /// Additive tenure — never decrements; omitted on day 0 (nothing to
+    /// celebrate yet). Singular/plural handled.
+    private var tenureLine: String? {
+        guard sessionsShownUp >= 1 else { return nil }
+        return sessionsShownUp == 1
+            ? "you've shown up once"
+            : "you've shown up \(sessionsShownUp) times"
     }
 
     private func dotFill(idx: Int, filled: Int) -> Color {

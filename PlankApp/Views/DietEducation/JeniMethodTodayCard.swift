@@ -15,7 +15,6 @@ import SwiftUI
 /// Accessibility: combine-children element with a single composed label
 /// + hint, so VoiceOver reads the card as one tappable summary.
 struct JeniMethodTodayCard: View {
-    let lessonId: Int
     let teaser: String        // typically the lesson's learnHeadline
     let onTap: () -> Void
 
@@ -29,7 +28,7 @@ struct JeniMethodTodayCard: View {
                     .font(Typo.heading)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.leading)
-                Text("lesson \(lessonId) of \(LessonID.dailyLessons.count)")
+                Text("today's lesson")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .padding(.top, 2)
@@ -46,7 +45,7 @@ struct JeniMethodTodayCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("The JeniFit Method, lesson \(lessonId) of \(LessonID.dailyLessons.count): \(teaser)")
+        .accessibilityLabel("The JeniFit Method, today's lesson: \(teaser)")
         .accessibilityHint("Opens today's lesson")
     }
 }
@@ -55,12 +54,10 @@ struct JeniMethodTodayCard: View {
 #Preview("Lesson 2 and Lesson 5") {
     VStack(spacing: 20) {
         JeniMethodTodayCard(
-            lessonId: 2,
             teaser: "muscle is the prize.",
             onTap: {}
         )
         JeniMethodTodayCard(
-            lessonId: 5,
             teaser: "trust the trend.",
             onTap: {}
         )
