@@ -30,15 +30,8 @@ struct JenisNoteCard: View {
     /// whichever coach the user picked, not always Jeni.
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
 
-    /// voicePreference → coach portrait asset. Mirrors the mapping in
-    /// CoachIntroView / BreathworkPrimerView / OnboardingView.
-    private var coachImageName: String {
-        switch voicePreference {
-        case "balanced":   return "coach-matson"
-        case "keepItReal": return "coach-kira"
-        default:           return "coach-jeni"
-        }
-    }
+    /// voicePreference → coach portrait asset (shared CoachAsset helper).
+    private var coachImageName: String { CoachAsset.imageName(for: voicePreference) }
 
     var body: some View {
         if let note = note {

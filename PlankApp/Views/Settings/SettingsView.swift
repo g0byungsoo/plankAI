@@ -1,6 +1,7 @@
 import SwiftUI
 
 enum SettingsSheet: Identifiable {
+    case profileHub       // the settings hub (entry point from home avatar)
     case editProfile
     case trainer
     case notifications
@@ -22,6 +23,7 @@ struct SettingsView: View {
         NavigationStack {
             Group {
                 switch sheet {
+                case .profileHub: ProfileHubView()
                 case .editProfile: EditProfileView()
                 case .trainer: ChangeTrainerView()
                 case .notifications: NotificationSettingsView()

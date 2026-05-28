@@ -18,10 +18,10 @@ struct NotificationSettingsView: View {
                 // Toggle row — scrapbook chrome.
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("daily reminder")
+                        Text("daily check-in")
                             .font(Typo.body)
                             .foregroundStyle(Palette.textPrimary)
-                        Text("nudge yourself, gently.")
+                        Text("\(coachName) taps in once a day ♥")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                     }
@@ -64,6 +64,8 @@ struct NotificationSettingsView: View {
                             .background(scrapbookChrome())
 
                         saveButton
+
+                        reminderPreviewCard
                     }
                     .transition(.opacity.combined(with: .offset(y: 8)))
                 }
@@ -149,6 +151,62 @@ struct NotificationSettingsView: View {
             )
         }
         .buttonStyle(NotifPressStyle())
+    }
+
+    // MARK: - "from your coach" preview
+    //
+    // Reframes the reminder as the coach checking in (the parasocial-Jeni
+    // vision) rather than a system nag — shows the coach avatar + the exact
+    // voice-adaptive message that will land, at the saved time.
+
+    private var coachName: String { CoachAsset.displayName(for: voicePreference) }
+
+    /// Mirrors NotificationPermission.dailyReminderBody() so the preview
+    /// matches what actually gets scheduled.
+    private var coachMessage: String {
+        switch voicePreference {
+        case "balanced":   return "sam picked a short one. easy to finish."
+        case "keepItReal": return "kira's got a short one ready today."
+        default:           return "five minutes is enough today. small moves still count."
+        }
+    }
+
+    private var reminderTimeLabel: String {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        let d = Calendar.current.date(
+            from: DateComponents(hour: notificationHour, minute: notificationMinute)
+        ) ?? Date()
+        return f.string(from: d).lowercased()
+    }
+
+    private var reminderPreviewCard: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Text("what \(coachName) sends at \(reminderTimeLabel)")
+                .font(Typo.eyebrow).tracking(2)
+                .foregroundStyle(Palette.textSecondary)
+
+            HStack(alignment: .top, spacing: Space.sm) {
+                Image(CoachAsset.imageName(for: voicePreference))
+                    .resizable().scaledToFill()
+                    .frame(width: 40, height: 40)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Palette.accentSubtle, lineWidth: 1.5))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("today's short session.")
+                        .font(Typo.body).fontWeight(.semibold)
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(coachMessage)
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(Space.md)
+            .background(scrapbookChrome())
+        }
     }
 
     private func scrapbookChrome(tint: Color = Palette.accent) -> some View {
