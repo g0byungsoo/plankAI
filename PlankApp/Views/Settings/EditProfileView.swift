@@ -100,12 +100,16 @@ struct EditProfileView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
-            Text("settings")
+            Text("your program")
                 .font(Typo.eyebrow).tracking(2)
                 .foregroundStyle(Palette.accent)
-            Text("edit profile.")
+            Text("my plan.")
                 .font(Typo.titleItalic)
                 .foregroundStyle(Palette.textPrimary)
+            Text("jeni built this for you. tweak it anytime.")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         // Heart sticker — caring-for-self framing, low-key on the page.

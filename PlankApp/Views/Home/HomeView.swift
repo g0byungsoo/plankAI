@@ -84,6 +84,8 @@ struct HomeView: View {
     @State private var showRoutineSession = false
     @State private var currentWorkout: WorkoutPreset?
     @State private var showBrowse = false
+    /// Difficulty-override sheet, opened by the quiet card link.
+    @State private var showEnergySheet = false
     /// Phase A: tapped FutureRailRow chip surfaces its explainer sheet.
     /// `nil` = no sheet presented; tap on a card sets it to the rail.
     @State private var presentedFutureRail: FutureRail? = nil
@@ -764,6 +766,9 @@ struct HomeView: View {
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $showEnergySheet) {
+            energySheet
+        }
         .onAppear {
             #if DEBUG
             print("[FUNNEL] home_appeared | hasProAccess=\(payment.hasProAccess) | effectiveHasProAccess=\(payment.effectiveHasProAccess) | isEntitlementReady=\(payment.isEntitlementReady) | isInAuthTransition=\(payment.isInAuthTransition)")
@@ -823,27 +828,8 @@ struct HomeView: View {
             .foregroundStyle(Palette.textPrimary)
 
             Spacer()
-
-            // Branded avatar → the profile/settings hub (replaces the old
-            // SF-Symbol overflow menu; the hub holds all settings entries).
-            Button {
-                Haptics.light()
-                activeSheet = .profileHub
-            } label: {
-                ZStack {
-                    Circle().fill(Palette.accentSubtle).frame(width: 40, height: 40)
-                    if let initial = userName.first.map({ String($0).uppercased() }) {
-                        Text(initial)
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
-                            .foregroundStyle(Palette.accent)
-                    } else {
-                        Image(StickerName.heartGlossy.assetName)
-                            .resizable().scaledToFit().frame(width: 22, height: 22)
-                            .opacity(StickerName.heartGlossy.style.opacity)
-                    }
-                }
-            }
-            .accessibilityLabel("profile and settings")
+            // Settings now live in the dedicated "you" tab (more discoverable
+            // than a top-corner avatar), so the bar is just the wordmark.
         }
         .padding(.horizontal, Space.screenPadding)
         .padding(.vertical, Space.xs)
@@ -1002,47 +988,84 @@ struct HomeView: View {
     //   - Lowercase title and stats line (italic Fraunces SemiBoldItalic)
     //   - START button: 2pt black outline, pill, no fill gradient
 
-    // MARK: - Today's-energy control
+    // MARK: - Today's-energy sheet
     //
-    // Single feeling-labeled knob for overall session effort. Feeling words
-    // (not RPE/numbers/"intensity") — beginners can't self-rate exertion.
-    // Writes `workoutEnergy` (-1/0/+1), which the generator reads as
-    // intensityOffset (nudges the effective tier). Default = steady.
-    private var energyControl: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("today's energy")
-                .font(Typo.eyebrow).tracking(1.5)
-                .foregroundStyle(Palette.textSecondary)
-            HStack(spacing: 6) {
-                energyStop(label: "ease in", value: -1)
-                energyStop(label: "steady", value: 0)
-                energyStop(label: "push it", value: 1, italic: true)
+    // Difficulty override lives behind ONE quiet link on the card (Freeletics
+    // "adapt session" pattern), not a persistent 3-button segment. Feeling
+    // words, never RPE/numbers — beginners can't self-rate exertion. Writes
+    // `workoutEnergy` (-1/0/+1) → generator reads it as intensityOffset
+    // (nudges the effective tier). The post-session "how'd that feel?" loop
+    // remains the primary auto-tuner.
+    @ViewBuilder
+    private var energySheet: some View {
+        VStack(alignment: .leading, spacing: Space.lg) {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text("today's energy")
+                    .font(Typo.eyebrow).tracking(2)
+                    .foregroundStyle(Palette.accent)
+                (
+                    Text("how much have you got ") +
+                    Text("today").font(.custom("Fraunces72pt-SemiBoldItalic", size: 28)) +
+                    Text("?")
+                )
+                .font(Typo.title)
+                .foregroundStyle(Palette.textPrimary)
             }
+
+            VStack(spacing: Space.sm) {
+                energyPill("ease in", value: -1, note: "i'll keep it gentle")
+                energyPill("steady", value: 0, note: "today's plan, as planned")
+                energyPill("push it", value: 1, note: "give me a little more", italic: true)
+            }
+
+            Spacer()
         }
+        .padding(Space.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Palette.bgPrimary)
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 
-    private func energyStop(label: String, value: Int, italic: Bool = false) -> some View {
+    private func energyPill(_ label: String, value: Int, note: String, italic: Bool = false) -> some View {
         let selected = workoutEnergy == value
         return Button {
-            guard workoutEnergy != value else { return }
             Haptics.light()
-            withAnimation(Motion.tap) { workoutEnergy = value }
+            workoutEnergy = value
             Analytics.track(.workoutEnergyChanged, properties: ["value": value])
+            showEnergySheet = false
         } label: {
-            Text(label)
-                .font(italic
-                      ? .custom("Fraunces72pt-SemiBoldItalic", size: 14)
-                      : Typo.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(selected ? Palette.textInverse : Palette.textSecondary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 9)
-                .background(
-                    Capsule().fill(selected ? Palette.accent : Palette.bgPrimary.opacity(0.6))
-                )
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label)
+                        .font(italic
+                              ? .custom("Fraunces72pt-SemiBoldItalic", size: 18)
+                              : Typo.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(selected ? Palette.textInverse : Palette.textPrimary)
+                    Text(note)
+                        .font(Typo.caption)
+                        .foregroundStyle(selected ? Palette.textInverse.opacity(0.8) : Palette.textSecondary)
+                }
+                Spacer()
+                if selected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Palette.textInverse)
+                }
+            }
+            .padding(Space.md)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(selected ? Palette.accent : Palette.bgElevated)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(selected ? Color.clear : Palette.divider, lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(label)\(selected ? ", selected" : "")")
     }
 
     private var jenifitWorkoutCard: some View {
@@ -1095,12 +1118,6 @@ struct HomeView: View {
 
                 Spacer().frame(height: Space.xs)
 
-                // Today's-energy knob — one control for the whole session's
-                // effort (maps to intensityOffset → effective tier). Framed
-                // as energy for today, not a permanent setting.
-                energyControl
-                    .padding(.bottom, Space.xs)
-
                 // Exercise list preview — first 3, with expand-to-all.
                 VStack(spacing: Space.xs) {
                     ForEach(Array(workout.exercises.prefix(visibleCount).enumerated()), id: \.offset) { i, slot in
@@ -1137,6 +1154,25 @@ struct HomeView: View {
                         }
                     }
                 }
+
+                // Quiet difficulty override — Jeni offering flexibility, not
+                // a control panel (Freeletics "adapt session" pattern). Opens
+                // the energy sheet; the post-session loop is the primary tuner.
+                Button {
+                    Haptics.light()
+                    showEnergySheet = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("feeling it differently today?")
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundStyle(Palette.accent)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, Space.sm)
+                }
+                .buttonStyle(.plain)
 
                 Spacer().frame(height: 20)   // loose gap: CTA is a separate unit
 

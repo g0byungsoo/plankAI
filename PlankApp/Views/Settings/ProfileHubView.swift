@@ -58,10 +58,12 @@ struct ProfileHubView: View {
                     .padding(.horizontal, Space.screenPadding)
 
                 VStack(spacing: Space.sm) {
-                    coachRow
-                    hubRow(title: "edit profile",
-                           subtitle: "name · focus · session length",
+                    // "my plan" first — the plan-shaping inputs jeni uses, the
+                    // thing users most need to find ("edit profile" hid it).
+                    hubRow(title: "my plan",
+                           subtitle: "focus area · session length",
                            sticker: .bowSatin) { EditProfileView() }
+                    coachRow
                     hubRow(title: "reminders",
                            subtitle: "when jeni checks in",
                            sticker: .sparkleGlossy) { NotificationSettingsView() }
