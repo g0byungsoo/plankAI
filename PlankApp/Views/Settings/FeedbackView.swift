@@ -1,10 +1,8 @@
 import SwiftUI
-import UIKit
 
 struct FeedbackView: View {
     @State private var feedbackText = ""
     @State private var submitted = false
-    @State private var mailUnavailable = false
     @FocusState private var focused: Bool
 
     private static let supportEmail = "support@jenifit.app"
@@ -21,13 +19,14 @@ struct FeedbackView: View {
 
                 if submitted {
                     VStack(spacing: Space.md) {
-                        Image(systemName: "envelope.circle.fill")
-                            .font(.system(size: 44))
-                            .foregroundStyle(Palette.stateGood)
-                        Text("opened in mail.")
+                        Image(StickerName.fluffyHeart.assetName)
+                            .resizable().scaledToFit()
+                            .frame(width: 52, height: 52)
+                            .opacity(StickerName.fluffyHeart.style.opacity)
+                        Text("got it ♥")
                             .font(Typo.titleItalic)
                             .foregroundStyle(Palette.textPrimary)
-                        Text("tap send in mail to finish. we read every one.")
+                        Text("jeni reads every one.")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .multilineTextAlignment(.center)
@@ -49,13 +48,12 @@ struct FeedbackView: View {
 
                     sendButton
 
-                    if mailUnavailable {
-                        Text("no mail app set up. email \(Self.supportEmail) directly.")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.stateWarn)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .transition(.opacity)
-                    }
+                    // Quiet fallback for anyone who'd rather email.
+                    Text("or email \(Self.supportEmail)")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, Space.xs)
                 }
 
                 Spacer().frame(height: Space.xl)
@@ -96,7 +94,7 @@ struct FeedbackView: View {
         return Button {
             Haptics.medium()
             focused = false
-            handoffToMail(body: feedbackText)
+            submit()
         } label: {
             HStack {
                 Text("send")
@@ -123,24 +121,19 @@ struct FeedbackView: View {
         .disabled(isEmpty)
     }
 
-    private func handoffToMail(body: String) {
-        var components = URLComponents()
-        components.scheme = "mailto"
-        components.path = Self.supportEmail
-        components.queryItems = [
-            URLQueryItem(name: "subject", value: "JeniFit feedback"),
-            URLQueryItem(name: "body", value: body)
-        ]
-        guard let url = components.url else { return }
-        UIApplication.shared.open(url) { success in
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                if success {
-                    mailUnavailable = false
-                    submitted = true
-                } else {
-                    mailUnavailable = true
-                }
-            }
+    /// Capture feedback in-app via the existing PostHog pipeline — no Mail
+    /// dependency (the old mailto handoff produced zero submissions: most
+    /// users have no Mail app configured, and "success" only meant Mail
+    /// opened, not sent). Every message now lands + is measurable in PostHog.
+    private func submit() {
+        let text = feedbackText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        Analytics.track(.feedbackSubmitted, properties: [
+            "message": text,
+            "source": "settings"
+        ])
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            submitted = true
         }
     }
 

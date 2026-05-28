@@ -135,6 +135,7 @@ enum AnalyticsEvent: String {
     case settingsHubOpened            = "settings_hub_opened"
     case workoutEnergyChanged         = "workout_energy_changed"
     case sessionFeedbackGiven         = "session_feedback_given"
+    case feedbackSubmitted            = "feedback_submitted"
 
     // ── Post-purchase breathwork (Phase A — first actionable beat) ──
     // Inserted between CoachIntroView and the first workout. Breathwork
