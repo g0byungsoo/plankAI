@@ -20,6 +20,12 @@ struct WorkoutGenerator {
         let recentSessionExerciseIds: [[String]]   // last 7 days, each day's exercise IDs
         let recentRatings: [Int]                   // last N session ratings (1-5)
         let startingTier: Int                      // 1/2/3 from onboarding signals
+        /// Manual "today's energy" knob: -1 ease in, 0 steady, +1 push it.
+        /// Nudges the effective tier ±1 (clamped 1–3) so it flows through
+        /// the existing rest / duration / difficulty machinery coherently —
+        /// and stays consistent with the DEBUG validators, which key off the
+        /// same effective tier.
+        var intensityOffset: Int = 0
     }
 
     static func generate(from input: Input) -> WorkoutPreset {
@@ -211,12 +217,15 @@ struct WorkoutGenerator {
     /// Use the input tier on cold start; once 3+ ratings exist, let user
     /// feedback nudge the tier up or down.
     private static func effectiveTier(input: Input) -> Int {
-        guard input.recentRatings.count >= 3 else { return input.startingTier }
-        let recent = input.recentRatings.suffix(3)
-        let avg = Double(recent.reduce(0, +)) / Double(recent.count)
-        if avg >= 4.0 { return min(3, input.startingTier + 1) }
-        if avg <= 2.5 { return max(1, input.startingTier - 1) }
-        return input.startingTier
+        var base = input.startingTier
+        if input.recentRatings.count >= 3 {
+            let recent = input.recentRatings.suffix(3)
+            let avg = Double(recent.reduce(0, +)) / Double(recent.count)
+            if avg >= 4.0 { base = min(3, input.startingTier + 1) }
+            else if avg <= 2.5 { base = max(1, input.startingTier - 1) }
+        }
+        // Manual "today's energy" knob nudges the (rating-adjusted) tier ±1.
+        return min(3, max(1, base + input.intensityOffset))
     }
 
     /// Tier 1 → ≤2, tier 2 → ≤4, tier 3 → ≤5 on the 1-5 scale.

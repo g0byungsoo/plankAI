@@ -17,6 +17,10 @@ struct PostRoutineView: View {
     @State private var phase = 0           // 0=black, 1=fire, 2=stats, 3=streak, 4=rate
     @State private var selectedRating: Int = 0
     @State private var selectedTags: Set<String> = []
+    /// Relative difficulty feedback ("too_easy"/"just_right"/"too_hard").
+    /// Feeling-based + relative (not RPE numbers) — beginners can't
+    /// self-rate exertion. Nudges next session's energy.
+    @State private var effortFeel: String = ""
     @State private var fireScale: CGFloat = 0.3
     @State private var fireOpacity: Double = 0
     @State private var streakScale: CGFloat = 0.5
@@ -161,6 +165,10 @@ struct PostRoutineView: View {
                     // Phase 4: Rating + done
                     if phase >= 4 {
                         ratingSection
+                            .padding(.horizontal, Space.screenPadding)
+                            .transition(.opacity.combined(with: .move(edge: .bottom)))
+
+                        effortSection
                             .padding(.horizontal, Space.screenPadding)
                             .transition(.opacity.combined(with: .move(edge: .bottom)))
 
@@ -420,6 +428,51 @@ struct PostRoutineView: View {
         )
     }
 
+    // MARK: - Effort (relative difficulty → nudges next session's energy)
+
+    private var effortSection: some View {
+        VStack(spacing: Space.sm) {
+            Text("how'd that feel?")
+                .font(Typo.body).fontWeight(.semibold)
+                .foregroundStyle(Palette.textPrimary)
+            HStack(spacing: Space.sm) {
+                effortChip("too easy", "too_easy")
+                effortChip("just right", "just_right")
+                effortChip("too hard", "too_hard")
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(Space.cardPadding)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Palette.accent.opacity(0.15))
+                    .offset(x: 4, y: 4)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Palette.bgElevated)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Palette.accent, lineWidth: 1.5)
+            }
+        )
+    }
+
+    private func effortChip(_ label: String, _ value: String) -> some View {
+        let sel = effortFeel == value
+        return Button {
+            Haptics.light()
+            withAnimation(Motion.tap) { effortFeel = (sel ? "" : value) }
+        } label: {
+            Text(label)
+                .font(Typo.caption).fontWeight(.medium)
+                .foregroundStyle(sel ? Palette.textInverse : Palette.textPrimary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Space.sm)
+                .background(Capsule().fill(sel ? Palette.accent : Palette.bgPrimary.opacity(0.6)))
+                .overlay(Capsule().stroke(sel ? Color.clear : Palette.divider, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: - Tags
 
     private var tagSection: some View {
@@ -456,13 +509,11 @@ struct PostRoutineView: View {
     }
 
     private var availableTags: [String] {
-        ["too_easy", "too_hard", "loved_it", "boring", "good_variety"]
+        ["loved_it", "boring", "good_variety"]
     }
 
     private func tagLabel(_ tag: String) -> String {
         switch tag {
-        case "too_easy": return "Too Easy"
-        case "too_hard": return "Too Hard"
         case "loved_it": return "Loved It"
         case "boring": return "Boring"
         case "good_variety": return "Good Variety"
@@ -498,8 +549,11 @@ struct PostRoutineView: View {
     private var doneButton: some View {
         Button {
             Haptics.medium()
-            if selectedRating > 0 {
-                onRate(selectedRating, Array(selectedTags))
+            // Deliver the rating + tags + the relative effort feel (the
+            // effort drives the next-session energy nudge in RoutineSessionView).
+            let tags = Array(selectedTags) + (effortFeel.isEmpty ? [] : [effortFeel])
+            if selectedRating > 0 || !effortFeel.isEmpty {
+                onRate(selectedRating, tags)
             }
             onDone()
         } label: {

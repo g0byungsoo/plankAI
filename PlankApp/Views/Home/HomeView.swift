@@ -37,6 +37,10 @@ struct HomeView: View {
     @AppStorage("dailyRefreshCount") private var dailyRefreshCount = 0
     @AppStorage("dailyRefreshDate") private var dailyRefreshDate = ""
 
+    /// "Today's energy" knob (-1 ease in · 0 steady · +1 push it). Passed to
+    /// the generator as intensityOffset; nudges the effective tier ±1.
+    @AppStorage("workoutEnergy") private var workoutEnergy = 0
+
     // The JeniFit Method (Phase 3). The @AppStorage here observes the
     // same key JeniMethodState writes when a lesson completes — so the
     // home card auto-hides the moment the user finishes today's lesson
@@ -344,7 +348,8 @@ struct HomeView: View {
                 baselineSeconds: userBaselineSeconds,
                 activityLevel: activityLevel,
                 ageRange: ageRange
-            )
+            ),
+            intensityOffset: workoutEnergy
         ))
     }
 
@@ -553,6 +558,13 @@ struct HomeView: View {
                 DispatchQueue.main.async {
                     UIView.setAnimationsEnabled(true)
                 }
+            }
+        }
+        .onChange(of: workoutEnergy) { _, _ in
+            // Re-roll today's card at the new energy (only when not mid-session).
+            guard currentWorkout == nil else { return }
+            withAnimation(Motion.gentleSpring) {
+                dailyWorkout = generateDailyWorkout()
             }
         }
         .onChange(of: pendingPostRitualWorkoutLaunch) { _, newValue in
@@ -812,32 +824,26 @@ struct HomeView: View {
 
             Spacer()
 
-            Menu {
-                Button { activeSheet = .editProfile } label: { Label("Edit Profile", systemImage: "person") }
-                Button { activeSheet = .trainer } label: { Label("Coach", systemImage: "person.wave.2") }
-                Button { activeSheet = .notifications } label: { Label("Notifications", systemImage: "bell") }
-                Button { activeSheet = .account } label: { Label("Account", systemImage: "gearshape") }
-                // Phase 7 (Phase 10: 5→14): the JeniFit Method re-read
-                // entry appears once the user has completed the full 14-day
-                // arc AND the flag is on. lastCompletedLessonId is set on
-                // each lesson finish (markLessonCompleted) and drives the
-                // gate — the menu re-evaluates when the user reopens it.
-                if jeniMethodFlagEnabled && jeniMethodLastCompletedId >= 14 {
-                    Divider()
-                    Button { activeSheet = .jeniMethod } label: { Label("The JeniFit Method", systemImage: "book") }
-                }
-                Divider()
-                Button { activeSheet = .feedback } label: { Label("Feedback", systemImage: "bubble.left") }
-                #if DEBUG
-                Divider()
-                Button { activeSheet = .debugAuth } label: { Label("Debug Auth", systemImage: "ladybug") }
-                #endif
+            // Branded avatar → the profile/settings hub (replaces the old
+            // SF-Symbol overflow menu; the hub holds all settings entries).
+            Button {
+                Haptics.light()
+                activeSheet = .profileHub
             } label: {
-                Image(systemName: "person.crop.circle")
-                    .font(.system(size: 22, weight: .regular))
-                    .foregroundStyle(Palette.textPrimary)
-                    .frame(width: 40, height: 40)
+                ZStack {
+                    Circle().fill(Palette.accentSubtle).frame(width: 40, height: 40)
+                    if let initial = userName.first.map({ String($0).uppercased() }) {
+                        Text(initial)
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
+                            .foregroundStyle(Palette.accent)
+                    } else {
+                        Image(StickerName.heartGlossy.assetName)
+                            .resizable().scaledToFit().frame(width: 22, height: 22)
+                            .opacity(StickerName.heartGlossy.style.opacity)
+                    }
+                }
             }
+            .accessibilityLabel("profile and settings")
         }
         .padding(.horizontal, Space.screenPadding)
         .padding(.vertical, Space.xs)
@@ -996,6 +1002,49 @@ struct HomeView: View {
     //   - Lowercase title and stats line (italic Fraunces SemiBoldItalic)
     //   - START button: 2pt black outline, pill, no fill gradient
 
+    // MARK: - Today's-energy control
+    //
+    // Single feeling-labeled knob for overall session effort. Feeling words
+    // (not RPE/numbers/"intensity") — beginners can't self-rate exertion.
+    // Writes `workoutEnergy` (-1/0/+1), which the generator reads as
+    // intensityOffset (nudges the effective tier). Default = steady.
+    private var energyControl: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("today's energy")
+                .font(Typo.eyebrow).tracking(1.5)
+                .foregroundStyle(Palette.textSecondary)
+            HStack(spacing: 6) {
+                energyStop(label: "ease in", value: -1)
+                energyStop(label: "steady", value: 0)
+                energyStop(label: "push it", value: 1, italic: true)
+            }
+        }
+    }
+
+    private func energyStop(label: String, value: Int, italic: Bool = false) -> some View {
+        let selected = workoutEnergy == value
+        return Button {
+            guard workoutEnergy != value else { return }
+            Haptics.light()
+            withAnimation(Motion.tap) { workoutEnergy = value }
+            Analytics.track(.workoutEnergyChanged, properties: ["value": value])
+        } label: {
+            Text(label)
+                .font(italic
+                      ? .custom("Fraunces72pt-SemiBoldItalic", size: 14)
+                      : Typo.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(selected ? Palette.textInverse : Palette.textSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .background(
+                    Capsule().fill(selected ? Palette.accent : Palette.bgPrimary.opacity(0.6))
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(label)\(selected ? ", selected" : "")")
+    }
+
     private var jenifitWorkoutCard: some View {
         let workout = todaysWorkout
         let visibleCount = showAllExercises ? workout.exercises.count : min(3, workout.exercises.count)
@@ -1045,6 +1094,12 @@ struct HomeView: View {
                 }
 
                 Spacer().frame(height: Space.xs)
+
+                // Today's-energy knob — one control for the whole session's
+                // effort (maps to intensityOffset → effective tier). Framed
+                // as energy for today, not a permanent setting.
+                energyControl
+                    .padding(.bottom, Space.xs)
 
                 // Exercise list preview — first 3, with expand-to-all.
                 VStack(spacing: Space.xs) {
