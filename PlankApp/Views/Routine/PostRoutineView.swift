@@ -81,7 +81,7 @@ struct PostRoutineView: View {
                     Text("Session ended early")
                         .font(Typo.titleItalic)
                         .foregroundStyle(Palette.textPrimary)
-                    Text("You completed \(Int(completionRate * 100))% — finish at least 70% next time and it'll count toward your streak.")
+                    Text("You completed \(Int(completionRate * 100))%. finish at least 70% next time and it'll count toward your streak.")
                         .font(Typo.body)
                         .foregroundStyle(Palette.textSecondary)
                         .multilineTextAlignment(.center)

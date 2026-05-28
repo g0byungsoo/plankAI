@@ -153,12 +153,28 @@ final class PaymentService {
             for await customerInfo in Purchases.shared.customerInfoStream {
                 guard let self else { return }
                 let isActive = customerInfo.entitlements[RevenueCatConfig.entitlementID]?.isActive ?? false
+                let wasActive = self.hasProAccess
                 self.hasProAccess = isActive
                 UserDefaults.standard.set(isActive, forKey: Self.lastKnownEntitlementKey)
                 #if DEBUG
                 let activeKeys = customerInfo.entitlements.active.keys.sorted()
                 print("[PaymentService] customerInfo updated: hasProAccess=\(isActive) entitlements=\(activeKeys)")
                 #endif
+                // Monetization analytics — fires only on transitions
+                // into entitlement (not on every emit). product_id +
+                // period type are sourced from the RevenueCat entitlement
+                // so funnel queries can split trial vs. paid converts.
+                if isActive && !wasActive {
+                    let entitlement = customerInfo.entitlements[RevenueCatConfig.entitlementID]
+                    let productId = entitlement?.productIdentifier ?? "unknown"
+                    let isTrial = entitlement?.periodType == .trial
+                    Analytics.track(isTrial ? .trialStart : .purchaseCompleted,
+                                    properties: [
+                                        "product_id": productId,
+                                        "placement": "onboarding_final",
+                                        "is_trial": isTrial
+                                    ])
+                }
                 self.markEntitlementReady(reason: "customerInfoStream emit")
                 // First emit since an auth change closes the suppression
                 // window early — paywall presentation is allowed again as

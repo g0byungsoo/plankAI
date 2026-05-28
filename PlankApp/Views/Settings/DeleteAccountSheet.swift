@@ -59,7 +59,7 @@ struct DeleteAccountSheet: View {
             }
 
             // Warning card with sage-style chrome but in stateBad red.
-            Text("this permanently deletes your routine history, progress, and account. if you have an active subscription, cancel it from your iOS settings first — deletion does not cancel App Store subscriptions.")
+            Text("this permanently deletes your routine history, progress, and account. if you have an active subscription, cancel it from your iOS settings first. deletion does not cancel App Store subscriptions.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

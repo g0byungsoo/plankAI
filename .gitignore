@@ -28,3 +28,8 @@ Pods/
 AuthKey_*.p8
 *.p8
 .gstack/
+
+# Device captures + raw source art (kept local; not app build inputs)
+screenshots/
+/Resources/
+.claude/scheduled_tasks.lock

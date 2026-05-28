@@ -15,6 +15,21 @@ struct DebugAuthView: View {
     @State private var status = ""
     @State private var working = false
 
+    // Phase 7 dev tooling — present lessons + re-read index without
+    // going through paywall purchase + HomeView card unlock paths.
+    @State private var showingJeniReReadDebug = false
+    /// Phase 9.4 — preview the new ritual view side-by-side with the
+    /// existing card flow. Set to a lesson to open the ritual; nil to
+    /// dismiss.
+    @State private var debugRitualToPresent: LessonID? = nil
+    // Observe the flag's underlying UserDefaults key so the toggle and
+    // state row stay in sync without manual refresh.
+    @AppStorage("jenimethod.feature_enabled") private var jeniMethodFlag = false
+    // Same observer pattern for the state rows so the debug screen
+    // re-renders when an in-app action (Reset, Mark complete, etc.)
+    // mutates UserDefaults.
+    @AppStorage("jenimethod.last_lesson_completed_id") private var jeniMethodLastCompleted = 0
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.lg) {
@@ -27,6 +42,8 @@ struct DebugAuthView: View {
                 credentialFields
 
                 actionButtons
+
+                jeniMethodSection
 
                 if !status.isEmpty {
                     Text(status)
@@ -42,6 +59,35 @@ struct DebugAuthView: View {
             .padding(.top, Space.md)
         }
         .background(Palette.bgPrimary)
+        .fullScreenCover(item: $debugRitualToPresent) { lesson in
+            // Phase 9.19 — debug test path uses the same flag-based
+            // hand-off as PlankAIApp's post-paywall flow. HomeView
+            // reads `pendingPostRitualWorkoutLaunch` on its next
+            // appear and launches the routine session. From debug
+            // this lets us phone-test the full Day-1 → workout flow.
+            JeniMethodRitualView(
+                lesson: lesson,
+                user: .fromAppStorage(),
+                onComplete: { debugRitualToPresent = nil },
+                onSkip:     { _ in debugRitualToPresent = nil },
+                onCompleteAndStartWorkout: {
+                    UserDefaults.standard.set(
+                        true,
+                        forKey: "pendingPostRitualWorkoutLaunch"
+                    )
+                    // Phase 9.24 — instant dismiss so the cover
+                    // slide-down doesn't peek through the splash bridge.
+                    var t = Transaction()
+                    t.disablesAnimations = true
+                    withTransaction(t) {
+                        debugRitualToPresent = nil
+                    }
+                }
+            )
+        }
+        .sheet(isPresented: $showingJeniReReadDebug) {
+            JeniMethodReReadView()
+        }
     }
 
     // MARK: - State header
@@ -142,6 +188,140 @@ struct DebugAuthView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         }
+    }
+
+    // MARK: - JeniFit Method debug controls (Phase 7)
+
+    private var jeniMethodSection: some View {
+        VStack(alignment: .leading, spacing: Space.md) {
+            Text("JENIFIT METHOD")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Palette.textSecondary)
+                .tracking(2)
+
+            // Flag toggle — flipping this enables the feature flag, which
+            // is what guards the post-purchase trigger AND the HomeView
+            // card AND the Settings re-read entry. Off by default in
+            // production; this toggle is per-device.
+            Toggle("Enable JeniFit Method flag", isOn: $jeniMethodFlag)
+                .tint(Palette.accent)
+                .padding(.vertical, 4)
+
+            // Live state — re-renders on @AppStorage changes.
+            VStack(alignment: .leading, spacing: 4) {
+                row("flag",          "\(JeniMethodFeatureFlag.isEnabled)")
+                row("enrolled_at",   JeniMethodState.enrolledAt().map { shortDate($0) } ?? "—")
+                row("days_enrolled", JeniMethodState.daysSinceEnrolled().map { "\($0)" } ?? "—")
+                row("last_done",     "\(jeniMethodLastCompleted)")
+                row("skip_count",    "\(JeniMethodState.skipCount)")
+                row("card_lesson",   JeniMethodState.todaysLessonForCard().map { "Day \($0)" } ?? "none")
+            }
+            .padding(12)
+            .background(Palette.bgElevated)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            // Phase 9.22 — production now ships the ritual view
+            // (old card-based JeniMethodLessonView deleted). One
+            // entry point: pick any day to launch the live ritual
+            // with full analytics + state mutations + workout hand-off.
+            Text("present ritual")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Palette.textSecondary)
+                .tracking(2)
+            HStack(spacing: 6) {
+                ForEach(LessonID.allCases) { lesson in
+                    Button(lesson == .generic ? "Daily" : "Day \(lesson.rawValue)") {
+                        // Phase 9.27 — fade-in appear instead of slide-up.
+                        UIView.setAnimationsEnabled(false)
+                        debugRitualToPresent = lesson
+                        DispatchQueue.main.async {
+                            UIView.setAnimationsEnabled(true)
+                        }
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.textInverse)
+                    .frame(maxWidth: .infinity, minHeight: 40)
+                    .background(Palette.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+            }
+
+            Button("Open re-read index") { showingJeniReReadDebug = true }
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Palette.textInverse)
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .background(Palette.textSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            // State manipulation — exercise the HomeView card across
+            // calendar-day boundaries without waiting overnight.
+            Text("state controls")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Palette.textSecondary)
+                .tracking(2)
+            HStack(spacing: 6) {
+                Button("Enroll now") {
+                    JeniMethodState._debugReset()
+                    JeniMethodState.markEnrolled()
+                    status = "enrolled at now · card_lesson = \(JeniMethodState.todaysLessonForCard().map(String.init) ?? "none")"
+                }
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .background(Palette.stateGood)
+                .foregroundStyle(Palette.textInverse)
+                .font(.system(size: 13, weight: .semibold))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                Button("Enroll 2d ago") {
+                    JeniMethodState._debugReset()
+                    JeniMethodState.markEnrolled(now: Date().addingTimeInterval(-2 * 86_400))
+                    status = "enrolled 2d ago · card_lesson = \(JeniMethodState.todaysLessonForCard().map(String.init) ?? "none")"
+                }
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .background(Palette.stateGood)
+                .foregroundStyle(Palette.textInverse)
+                .font(.system(size: 13, weight: .semibold))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                Button("Enroll 5d ago") {
+                    JeniMethodState._debugReset()
+                    JeniMethodState.markEnrolled(now: Date().addingTimeInterval(-5 * 86_400))
+                    status = "enrolled 5d ago · card_lesson = \(JeniMethodState.todaysLessonForCard().map(String.init) ?? "none")"
+                }
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .background(Palette.stateGood)
+                .foregroundStyle(Palette.textInverse)
+                .font(.system(size: 13, weight: .semibold))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+
+            HStack(spacing: 6) {
+                Button("Mark all done") {
+                    JeniMethodState.markLessonCompleted(5)
+                    status = "marked all 5 complete · re-read entry unlocked in Menu"
+                }
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .background(Palette.textSecondary)
+                .foregroundStyle(Palette.textInverse)
+                .font(.system(size: 13, weight: .semibold))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                Button("Reset all") {
+                    JeniMethodState._debugReset()
+                    status = "JeniMethod state cleared"
+                }
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .background(Palette.stateBad)
+                .foregroundStyle(Palette.textInverse)
+                .font(.system(size: 13, weight: .semibold))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+        }
+    }
+
+    private func shortDate(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d, HH:mm"
+        return f.string(from: date)
     }
 
     private func actionButton(

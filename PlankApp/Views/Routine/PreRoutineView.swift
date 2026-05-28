@@ -18,6 +18,12 @@ struct PreRoutineView: View {
     /// AVSpeechSynthesizer intro.
     @State private var introPlayer: AVAudioPlayer?
     @State private var didPlayIntro = false
+    /// Phase 9.26 — content opacity for the fade-in appear animation.
+    /// The fullScreenCover binding is set with `Transaction.disablesAnimations`
+    /// upstream (HomeView), so the cover materializes instantly with
+    /// no slide-up; this fade then handles the visual reveal. Result:
+    /// the workout "appears" softly instead of popping up.
+    @State private var contentOpacity: Double = 0
 
     /// Reference body weight for kcal estimation. Real per-user weight
     /// arrives in Phase 7 (weight-loss analytics) — until then this gives a
@@ -87,10 +93,17 @@ struct PreRoutineView: View {
                     .padding(.bottom, Space.lg)
             }
         }
+        .opacity(contentOpacity)
         .onAppear {
             #if DEBUG
             print("[FUNNEL] preroutine_appeared | workout cover rendered successfully")
             #endif
+            // Phase 9.26 — fade content in over 0.6s. With the
+            // cover-present animation disabled upstream, this is the
+            // only motion the user sees: a calm fade-in reveal.
+            withAnimation(.easeInOut(duration: 0.6)) {
+                contentOpacity = 1
+            }
             playIntroIfNeeded()
         }
         .onDisappear {

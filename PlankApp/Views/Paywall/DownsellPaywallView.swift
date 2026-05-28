@@ -283,7 +283,7 @@ struct DownsellPaywallView: View {
                             .padding(.top, Space.xs)
                     }
                 } else {
-                    Text("—")
+                    Text("—")  // voice-lint:allow — visual placeholder for missing price, not prose
                         .font(.system(size: 40, weight: .bold))
                         .foregroundStyle(Palette.textSecondary)
                     Text("pricing unavailable")

@@ -30,7 +30,7 @@ struct RoastCardView: View {
                 }
 
                 // Attribution
-                Text("— Your Plank Coach, Day \(dayNumber)")
+                Text("— Your Plank Coach, Day \(dayNumber)")  // voice-lint:allow — typographic signature convention
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .italic()

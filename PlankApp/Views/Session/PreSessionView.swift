@@ -32,6 +32,11 @@ struct PreSessionView: View {
 
     @State private var cameraStatus: AVAuthorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
     @State private var showWhyExpanded = false
+    /// Phase 9.26 — content fade-in on appear. Pairs with the
+    /// Transaction.disablesAnimations wrap on showPreSession in
+    /// HomeView so the cover materializes instantly with no slide-up;
+    /// this fade is the only motion the user sees.
+    @State private var contentOpacity: Double = 0
 
     var body: some View {
         ZStack {
@@ -67,6 +72,12 @@ struct PreSessionView: View {
                     .padding(.horizontal, Space.screenPadding)
                     .padding(.bottom, Space.lg)
                 }
+            }
+        }
+        .opacity(contentOpacity)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.6)) {
+                contentOpacity = 1
             }
         }
     }
@@ -197,7 +208,7 @@ struct PreSessionView: View {
             (
                 Text("a hold under ").font(Typo.body) +
                 Text("30 seconds").font(.custom("Fraunces72pt-SemiBoldItalic", size: 16)) +
-                Text(" is one of the few pre-symptom predictors of future low-back pain. building it up isn't vanity work — it's the part of fitness that protects every other part.").font(Typo.body)
+                Text(" is one of the few pre-symptom predictors of future low-back pain. building it up isn't vanity work. it's the part of fitness that protects every other part.").font(Typo.body)
             )
             .foregroundStyle(Palette.textPrimary)
             .fixedSize(horizontal: false, vertical: true)
@@ -480,7 +491,7 @@ struct PreSessionView: View {
                 }
 
                 if showWhyExpanded {
-                    Text("Your coach uses on-device pose tracking to watch your alignment, count time in good form, and call out hip sag or shoulder creep. Frames are processed live and never leave your phone — nothing is recorded or uploaded.")
+                    Text("Your coach uses on-device pose tracking to watch your alignment, count time in good form, and call out hip sag or shoulder creep. Frames are processed live and never leave your phone. nothing is recorded or uploaded.")
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                         .multilineTextAlignment(.leading)

@@ -1052,7 +1052,7 @@ struct AnalyticsView: View {
 
                 if hideWeightStats {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("—")
+                        Text("—")  // voice-lint:allow — visual placeholder for hidden weight value
                             .font(.custom("Fraunces72pt-SemiBold", size: 36))
                             .foregroundStyle(Palette.textSecondary)
                         Text("hidden")

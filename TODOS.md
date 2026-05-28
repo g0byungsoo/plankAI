@@ -132,6 +132,68 @@ another ~1.1MB. Held off pending intent confirmation.
 - ⏳ Validate position-block ordering visually on device — highest-EV change of
   the recent batch and only shows up at runtime.
 
+## JeniFit Method — Phase 8 unblock playbook (BLOCKING — flag stays OFF until done)
+
+Phases 1–7 of `docs/diet_education_plan.md` are merged + green; the
+feature stays invisible to users until `jenimethod.feature_enabled`
+flips. Phase 8 = flip + TestFlight + funnel monitor. **The flip is
+hard-gated** by the Lessons 4 & 5 copy review below (locked
+decision #6).
+
+### Step 1 — Lessons 4 & 5 copy review (mandatory)
+
+Audience is young women with elevated ED risk. The §5.1 invariant suite
+(4 500-string matrix walk) already catches every banned framing /
+digit-near-nutrition / timeline / portion phrase via regex. This review
+catches the *tone + nuance* the regex can't.
+
+- [ ] Open `PlankApp/Views/DietEducation/JeniMethodContent.swift` and read every variant of **Lesson 4**: `learnHeadline`, `learnBody`, `actionLabel`, all 6 `completeLine` identity variants, `previewLine`. The food lesson is the most sensitive — eating-disorder-aware review required.
+- [ ] Same for **Lesson 5**. The "non-scale win" framing must read as celebration, not avoidance.
+- [ ] Confirm out loud: no restriction language, no portion analogies, no shame, no "earn it" framing.
+- [ ] Sign off below with date + initials.
+
+**Sign-off:** _(date) _ _(initials) ____________________________________
+
+### Step 2 — Flip the flag
+
+One-line change in `PlankApp/Views/DietEducation/JeniMethodFeatureFlag.swift`:
+
+```swift
+static var isEnabled: Bool {
+    UserDefaults.standard.bool(forKey: key)
+}
+```
+
+becomes:
+
+```swift
+static var isEnabled: Bool {
+    // Default-on after Lessons 4 & 5 copy review sign-off (see TODOS.md).
+    let defaults = UserDefaults.standard
+    return defaults.object(forKey: key) == nil ? true : defaults.bool(forKey: key)
+}
+```
+
+This makes the new default `true` for users who've never set the key while
+preserving any explicit `false` set via a debug menu. (A plain `set(true,…)`
+in app launch would clobber user choice; the object-existence check
+respects it.)
+
+Bump build number (`MARKETING_VERSION`, `CURRENT_PROJECT_VERSION`) and
+ship.
+
+### Step 3 — TestFlight + funnel monitor (one week)
+
+- [ ] Submit to TestFlight. Pin internal testers first (the dev team), then external testers in a small slice.
+- [ ] PostHog dashboard: build a funnel from `diet_education_started` → `diet_education_lesson_viewed` (lesson_id=5) → `diet_education_completed`. Split by `user_goal` and `experience`.
+- [ ] Watch `diet_education_skipped` skew by `lesson_id` × `screen` — high skip on a single (lesson, screen) is a content signal worth acting on.
+- [ ] Read PostHog "Live events" for the first 24 hours to verify property shape matches plan §7 (esp. that no numeric body data leaks — the `testNoNumericBodyDataOnAnyEvent` test enforces this at compile time, but live data is the final check).
+- [ ] One week of green → App Store push. Otherwise: iterate copy / branching with Phase 4.5 (variant cap is enforced by `testVariantCountCappedAtSixPerSlotPerLesson`).
+
+### Rollback
+
+If anything goes wrong: revert Step 2's edit (back to `UserDefaults.standard.bool(forKey: key)` — default `false` for never-set keys). Existing in-flight users keep their stored `true` value; new users see the flag off. Add a follow-up in this file if a hard kill is needed for in-flight users.
+
 ## Payment Phase E — scheme StoreKit Configuration setup
 **What:** In Xcode: Product → Scheme → Edit Scheme → Run → Options tab → StoreKit Configuration → select `absmaxxing.storekit`. Manual step because scheme is per-developer (xcuserdata) and shouldn't be force-overwritten by automation.
 **Why:** Without this, running from Xcode hits the live App Store sandbox (requires real sandbox tester accounts). With it, purchases simulate locally via the .storekit file — Debug → StoreKit → Manage Transactions for trial expiry / refund / cancel testing.

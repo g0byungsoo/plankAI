@@ -47,6 +47,15 @@ struct PaywallView: View {
     // shows the right personalized headline immediately.
     @AppStorage("bodyFocus") private var bodyFocusMirror: String = ""
 
+    // Phase 1 conversion pass — paywall reads the user's onboarding
+    // answers to personalize plan-bridge + week-1 preview + coach
+    // promise. All keys are written by PlankAIApp.handleOnboardingComplete
+    // so they're populated by the time the paywall cover presents.
+    @AppStorage("userName")           private var userName: String = ""
+    @AppStorage("commitmentDays")     private var commitmentDays: String = ""
+    @AppStorage("sessionLengthPref")  private var sessionLengthPref: String = ""
+    @AppStorage("voicePreference")    private var voicePreference: String = "encouraging"
+
     @Query private var userRecords: [UserRecord]
     @State private var auth = AuthService.shared
 
@@ -103,19 +112,25 @@ struct PaywallView: View {
 
     // MARK: Copy
 
-    /// Personalized headline keyed off the bodyFocus.first answer from
-    /// onboarding (Phase 4 multi-select, surfaced to AppStorage in
-    /// PlankAIApp.handleOnboardingComplete). Returns the base + the italic
-    /// fragments separately so the view can render with ItalicAccentText
-    /// — italic Fraunces on the body-zone phrase or "30 days."
+    /// 2026 research-led headline. The "becoming ritual" frame echoes
+    /// the user's onboarding answer (the Becoming tab + the daily ritual
+    /// they just saw on case 250) — Noom-style personalization that
+    /// lifts +15-25%. "becoming" is the italic punch word + the brand-
+    /// anchor verb from the Becoming tab.
+    ///
+    /// Why not outcome framing ("lose X lbs"): TikTok content moderation
+    /// post-Ozempic flags direct weight-loss copy + this audience now
+    /// pattern-matches it to scammy (Rolling Stone 2026). Identity has
+    /// caught up to outcome for the 22-35F cohort.
+    ///
+    /// Name prefix when known — "hi sarah." reads as a personal note,
+    /// not a sales pitch. Falls back gracefully when name missing.
     private var headlineParts: (base: String, italic: [String]) {
-        switch bodyFocus {
-        case "flatBelly": return ("Define your flat belly in 30 days.",  ["flat belly"])
-        case "tonedArms": return ("Sculpt your toned arms in 30 days.",  ["toned arms"])
-        case "roundButt": return ("Build your round butt in 30 days.",   ["round butt"])
-        case "slimLegs":  return ("Define your slim legs in 30 days.",   ["slim legs"])
-        default:          return ("Become her in 30 days.",              ["30 days."])
+        let first = displayFirstName
+        if first.isEmpty {
+            return ("your 5-min becoming ritual starts today.", ["becoming"])
         }
+        return ("hi \(first). your 5-min becoming ritual starts today.", ["becoming"])
     }
 
     // MARK: RevenueCat package lookup
@@ -188,20 +203,38 @@ struct PaywallView: View {
         return f
     }()
 
+    /// 2026 research: lowercase "continue" beat "start free trial" by
+    /// +31% install-to-trial in the documented Adapty case (Berylo /
+    /// RevenueCat redesign teardowns). The trial promise lives in the
+    /// disclosure below + the timeline card — not in the button shout.
+    /// Also de-risks Apple Guideline 3.1.2: Apple wants disclosure,
+    /// not button-shouting.
     private var ctaLabel: String {
         switch selectedPlan {
-        case .yearly: return "Start free trial"
-        case .weekly: return "Subscribe — \(weeklyPriceText)"
+        case .yearly: return "continue"
+        case .weekly: return "subscribe — \(weeklyPriceText)"
         }
     }
 
     private var renewalDisclosure: String {
         switch selectedPlan {
         case .yearly:
-            return "3 days free, then \(yearlyPriceText). Auto-renews. Cancel anytime in Settings."
+            return "$0 today. \(yearlyPriceText) billed \(chargeDateText) unless you cancel. auto-renews yearly."
         case .weekly:
-            return "\(weeklyPriceText). Auto-renews. Cancel anytime in Settings."
+            return "\(weeklyPriceText). auto-renews. cancel anytime in settings."
         }
+    }
+
+    /// Literal charge date for the yearly trial — "may 28" style. Three
+    /// days from today per the locked 3-day trial. Lowercased to match
+    /// brand voice. Removes the "when am i charged?" friction that
+    /// Cal AI + Blinkist documented as the highest-impact disclosure
+    /// move (Superwall case study: +30% trial-to-paid).
+    private var chargeDateText: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        let charge = Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date()
+        return formatter.string(from: charge).lowercased()
     }
 
     // MARK: Body
@@ -210,14 +243,26 @@ struct PaywallView: View {
         ZStack(alignment: .top) {
             Palette.bgPrimary.ignoresSafeArea()
 
+            // Sticker scatter — LIGHT (4 stickers, edge-only). Brand
+            // cue without crowding the dense pricing decision zone.
+            StickerScatter(placements: Self.paywallPlacements)
+
+            // 2026 research-led order: hero → 3-row trial timeline
+            // card (trust before decision) → pricing → CTA → renewal
+            // disclosure with literal charge date → trust strip
+            // (research + anti-shame) → legal.
+            //
+            // Why timeline before pricing: Blinkist + Cal AI documented
+            // pattern — clarity about WHEN money changes hands lowers
+            // the perceived risk, so the price reads as the next step
+            // rather than a surprise (Cal AI +30% trial-to-paid).
             ScrollView {
                 VStack(spacing: Space.lg) {
-                    // Reserve space for the floating top bar.
-                    Spacer().frame(height: 48)
+                    Spacer().frame(height: 56)  // floating top bar reserve
 
                     headerBlock
 
-                    benefitsSection
+                    trialTimelineCard
 
                     pricingSection
                     if offeringsLoadFailed {
@@ -231,7 +276,11 @@ struct PaywallView: View {
                             .foregroundStyle(Palette.stateBad)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+
                     renewalText
+
+                    trustStrip
+
                     legalFooter
                 }
                 .padding(.horizontal, Space.lg)
@@ -254,22 +303,37 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: - Header block (eyebrow + headline + subhead)
+    // MARK: - Hero block (product-forward, no avatar)
+    //
+    // 2026 research call: illustrated coach portraits on a paywall hero
+    // trigger the AI-slop pattern-match for women 22-35 (Tandfonline
+    // Gen-Z femvertising 2024). Jeni earns trust on case 250's preview
+    // screen; the paywall itself stays product-forward. The hero is now:
+    // eyebrow → headline (with name + becoming-ritual frame) → simple
+    // trial disclosure subhead.
 
     private var headerBlock: some View {
         let parts = headlineParts
+
         return VStack(spacing: Space.sm) {
             Text("JENIFIT PREMIUM")
                 .font(Typo.eyebrow)
-                .tracking(1.5)
+                .tracking(1.8)
                 .foregroundStyle(Palette.accent)
 
             ItalicAccentText(parts.base,
                              italic: parts.italic,
+                             baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
+                             italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
                              alignment: .center)
                 .padding(.horizontal, Space.sm)
+                .fixedSize(horizontal: false, vertical: true)
 
-            Text("Unlock your full plan, your coach & the path to your strongest self.")
+            // Subhead — trial disclosure in plain language. No
+            // personalization recap (the personalization lives in the
+            // headline's name + "becoming ritual" frame). Lowercase,
+            // peer voice.
+            Text("3 days free. cancel anytime in settings.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
@@ -278,6 +342,128 @@ struct PaywallView: View {
         }
         .frame(maxWidth: .infinity)
     }
+
+    /// 3-row trial timeline card. Blinkist + Cal AI documented winner —
+    /// "today / day 2 / day 3" with explicit reminder promise. Drives
+    /// +10-15% trial-to-paid AND lowers refund rate (RevenueFlo) by
+    /// removing the "when am i charged?" friction. Also satisfies
+    /// Apple Guideline 3.1.2 "trial length must be clear" check.
+    ///
+    /// Placed BEFORE pricing in the body — trust before the decision.
+    private var trialTimelineCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("YOUR 3 FREE DAYS")
+                .font(Typo.eyebrow)
+                .tracking(2)
+                .foregroundStyle(Palette.accent)
+                .padding(.bottom, Space.sm)
+
+            timelineRow(label: "today",
+                        text: "unlock jeni's ritual + your full plan",
+                        isFirst: true, isLast: false)
+            timelineRow(label: "day 2",
+                        text: "i'll text you before anything changes",
+                        isFirst: false, isLast: false)
+            timelineRow(label: "day 3",
+                        text: "trial converts unless you cancel",
+                        isFirst: false, isLast: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Space.md)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Palette.bgElevated)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(Palette.divider, lineWidth: 1)
+                )
+        )
+    }
+
+    private func timelineRow(label: String, text: String, isFirst: Bool, isLast: Bool) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(isFirst ? Color.clear : Palette.accent.opacity(0.3))
+                    .frame(width: 1, height: 6)
+                Circle()
+                    .fill(Palette.accent)
+                    .frame(width: 8, height: 8)
+                Rectangle()
+                    .fill(isLast ? Color.clear : Palette.accent.opacity(0.3))
+                    .frame(width: 1)
+                    .frame(maxHeight: .infinity)
+            }
+            .frame(width: 8)
+
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(label)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                    .foregroundStyle(Palette.accent)
+                    .frame(width: 50, alignment: .leading)
+                Text(text)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.vertical, 4)
+            Spacer(minLength: 0)
+        }
+        .padding(.bottom, isLast ? 0 : 6)
+    }
+
+    /// Consolidated trust strip — research citations + anti-shame line
+    /// in two compact lines. Replaces the separate citation footer +
+    /// the removed coach-promise card's anti-shame disclaimer. Single
+    /// strongest differentiator for the anti-femvertising audience
+    /// (Drake & Salinas 2024).
+    private var trustStrip: some View {
+        VStack(spacing: 4) {
+            Text("built on mcgill plank research + 3-month habit science.")
+                .font(.system(size: 11))
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+            Text("no scales. no before-afters. just 5 minutes a day.")
+                .font(.system(size: 11))
+                .italic()
+                .foregroundStyle(Palette.textSecondary.opacity(0.85))
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, Space.md)
+    }
+
+    // MARK: - Compact paywall helpers
+
+    /// First-name extraction. Splits on whitespace and lowercases for
+    /// the JeniFit voice — even a user typing "Sarah Smith" reads as
+    /// "sarah" in peer voice. Falls back to "" so headlineParts
+    /// gracefully drops the "hi {name}." prefix.
+    private var displayFirstName: String {
+        let trimmed = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        return trimmed
+            .split(separator: " ").first
+            .map { String($0).lowercased() } ?? ""
+    }
+
+    /// 4-sticker LIGHT scatter for the paywall. Edge-only so the dense
+    /// pricing zone stays uncluttered. Matches the consent + method
+    /// preview scatter language for visual consistency across the
+    /// onboarding endgame.
+    private static let paywallPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .sparkleGlossy,
+                         position: CGPoint(x: 0.08, y: 0.07),
+                         size: 28, rotation: -12, phaseDelay: 0.00),
+        StickerPlacement(sticker: .bowIridescent,
+                         position: CGPoint(x: 0.93, y: 0.08),
+                         size: 32, rotation: 14, phaseDelay: 0.30),
+        StickerPlacement(sticker: .heartGlossy,
+                         position: CGPoint(x: 0.07, y: 0.94),
+                         size: 28, rotation: 11, phaseDelay: 0.60),
+        StickerPlacement(sticker: .starLineart,
+                         position: CGPoint(x: 0.93, y: 0.95),
+                         size: 26, rotation: -10, phaseDelay: 0.85),
+    ]
 
     // MARK: - Top bar (close + restore)
 
@@ -333,67 +519,6 @@ struct PaywallView: View {
     }
 
     // MARK: Sections
-
-    private var benefitsSection: some View {
-        VStack(alignment: .leading, spacing: Space.md) {
-            benefitRow(
-                heading: "Unlimited custom workouts",
-                detail: "Built around your goals & level"
-            )
-            // Coach-name benefit personalizes to the voice the user
-            // picked in onboarding (Jeni / Kira / Sam display name).
-            // Falls back to the generic three-voice framing for the
-            // unlikely path where voicePreference is unset.
-            benefitRow(
-                heading: coachBenefitHeading,
-                detail: "Form tips, swaps, and pep talks"
-            )
-            benefitRow(
-                heading: "Progress tracking & check-ins",
-                detail: "See your glow-up week by week"
-            )
-        }
-    }
-
-    /// Personalized coach-benefit heading. Reads `voicePreference`
-    /// directly from UserDefaults so this view doesn't need a new
-    /// @AppStorage just for the paywall surface.
-    private var coachBenefitHeading: String {
-        let pref = UserDefaults.standard.string(forKey: "voicePreference") ?? ""
-        switch pref {
-        case "encouraging": return "Jeni, your personal coach"
-        case "keepItReal":  return "Kira, your personal coach"
-        case "balanced":    return "Sam, your personal coach"
-        default:            return "Your coach, in three voices"
-        }
-    }
-
-    private func benefitRow(heading: String, detail: String) -> some View {
-        HStack(alignment: .top, spacing: Space.sm) {
-            ZStack {
-                Circle()
-                    .fill(Palette.accent.opacity(0.12))
-                    .frame(width: 24, height: 24)
-                Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Palette.accent)
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(heading)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Palette.textPrimary)
-                Text(detail)
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        // Compound row — VoiceOver reads each benefit as one phrase
-        // (e.g., "unlimited custom workouts. built around your goals
-        // and level.") instead of walking icon/heading/detail.
-        .accessibilityElement(children: .combine)
-    }
 
     private var pricingSection: some View {
         VStack(spacing: 14) {

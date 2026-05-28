@@ -44,21 +44,25 @@ final class TrialEndNotificationService {
 
         let center = UNUserNotificationCenter.current()
 
-        // requestAuthorization is iOS-cached: prompts on first call,
-        // returns the prior decision instantly thereafter. So even if
-        // we hit this path many times across launches it only ever asks
-        // the user once.
-        do {
-            let granted = try await center.requestAuthorization(options: [.alert, .sound])
-            guard granted else {
-                #if DEBUG
-                print("[TrialEndNotification] permission denied — skipping")
-                #endif
-                return
-            }
-        } catch {
+        // Permission check ONLY — never request here. The trial reminder
+        // scheduler fires from PaymentService.customerInfoStream the
+        // moment a cached trial entitlement is restored at launch (e.g.
+        // a sandbox-tester reinstalling the app on the same device).
+        // Calling requestAuthorization() at that moment surfaces the
+        // iOS popup on the welcome screen before the user has tapped
+        // anything — confusing and out of context.
+        //
+        // Case 19 ("Turn on reminders?") is the single intended trigger
+        // for the iOS permission popup. Here we just read the current
+        // status: if the user already granted, schedule silently; if
+        // not (or undetermined), skip. The reminder is a nice-to-have,
+        // not load-bearing — the user still sees the trial-end charge
+        // in their iOS subscription settings either way.
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized
+                || settings.authorizationStatus == .provisional else {
             #if DEBUG
-            print("[TrialEndNotification] permission request FAILED: \(error)")
+            print("[TrialEndNotification] permission not yet granted (status=\(settings.authorizationStatus.rawValue)) — skipping schedule, no prompt fired")
             #endif
             return
         }

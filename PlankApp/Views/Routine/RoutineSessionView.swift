@@ -458,7 +458,7 @@ struct RoutineSessionView: View {
             }
         }
         .frame(width: 40, height: 40)
-        .accessibilityLabel(mirroring ? "AirPlay — TV connected" : "AirPlay")
+        .accessibilityLabel(mirroring ? "AirPlay, TV connected" : "AirPlay")
     }
 
     // MARK: - Pause Overlay

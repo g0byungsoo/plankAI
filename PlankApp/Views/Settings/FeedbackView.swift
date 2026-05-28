@@ -27,7 +27,7 @@ struct FeedbackView: View {
                         Text("opened in mail.")
                             .font(Typo.titleItalic)
                             .foregroundStyle(Palette.textPrimary)
-                        Text("tap send in mail to finish — we read every one.")
+                        Text("tap send in mail to finish. we read every one.")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .multilineTextAlignment(.center)

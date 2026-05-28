@@ -6,6 +6,7 @@ enum SettingsSheet: Identifiable {
     case notifications
     case account
     case feedback
+    case jeniMethod       // Phase 7: read-only re-read index
     #if DEBUG
     case debugAuth
     #endif
@@ -26,6 +27,7 @@ struct SettingsView: View {
                 case .notifications: NotificationSettingsView()
                 case .account: AccountView()
                 case .feedback: FeedbackView()
+                case .jeniMethod: JeniMethodReReadView()
                 #if DEBUG
                 case .debugAuth: DebugAuthView()
                 #endif
