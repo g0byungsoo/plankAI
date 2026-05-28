@@ -829,28 +829,22 @@ struct HomeView: View {
 
             Spacer()
 
-            // "you" chip → the profile/settings hub. A labeled pill (not a
-            // bare icon/avatar) is the most discoverable top-corner settings
-            // entry — a text label beats any glyph (NN/g) — and reads as pure
-            // brand surface. Tabs stay reserved for program surfaces.
+            // Clean two-line menu mark → the profile/settings hub. Luxury-
+            // minimal register (Chanel / Tiffany & Co): thin cocoa lines, no
+            // chrome, generous tap area. Tabs stay reserved for program surfaces.
             Button {
                 Haptics.light()
                 activeSheet = .profileHub
             } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 11, weight: .semibold))
-                    Text("you")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
+                VStack(alignment: .trailing, spacing: 5) {
+                    Capsule().frame(width: 24, height: 1.5)
+                    Capsule().frame(width: 24, height: 1.5)
                 }
-                .foregroundStyle(Palette.accent)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(Capsule().fill(Palette.accentSubtle.opacity(0.6)))
-                .overlay(Capsule().stroke(Palette.accent.opacity(0.5), lineWidth: 1))
-                .tappableArea()
+                .foregroundStyle(Palette.textPrimary)
+                .frame(width: 44, height: 44, alignment: .trailing)
+                .contentShape(Rectangle())
             }
-            .accessibilityLabel("you, profile and settings")
+            .accessibilityLabel("menu, profile and settings")
         }
         .padding(.horizontal, Space.screenPadding)
         .padding(.vertical, Space.xs)
