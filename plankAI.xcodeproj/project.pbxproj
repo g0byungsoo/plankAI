@@ -1317,7 +1317,7 @@
 		14BED72A23D676836FFA0F5B /* jeni_prep_short_modified_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_modified_jacks.m4a; sourceTree = "<group>"; };
 		14CDD271027695F76A7BEA44 /* matson_prep_full_modified_burpee.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_modified_burpee.m4a; sourceTree = "<group>"; };
 		14E9BC92E188FCDFDC1BF5EB /* prep_short_bow_pose.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_bow_pose.m4a; sourceTree = "<group>"; };
-		150A5A29BBC3373555AFCE06 /* method_preview_kira.m4a */ = {isa = PBXFileReference; includeInIndex = 1; path = method_preview_kira.m4a; sourceTree = "<group>"; };
+		150A5A29BBC3373555AFCE06 /* method_preview_kira.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = method_preview_kira.m4a; sourceTree = "<group>"; };
 		1550F9318E8403AF71603030 /* matson_prep_full_air_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_air_squat.m4a; sourceTree = "<group>"; };
 		157A24828D416C19D7569014 /* prep_short_neck_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_neck_stretch.m4a; sourceTree = "<group>"; };
 		159F6B2B937991D07FCD3BE9 /* matson_prep_short_lying_hamstring_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_lying_hamstring_stretch.m4a; sourceTree = "<group>"; };
@@ -1375,7 +1375,7 @@
 		2766EF720AF4D1AC34F1036F /* focus_intro_tonedArms.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = focus_intro_tonedArms.m4a; sourceTree = "<group>"; };
 		277CE68961E6DDC404C2DA8E /* matson_prep_full_leg_raise_hip_lift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_leg_raise_hip_lift.m4a; sourceTree = "<group>"; };
 		278745163B0ED000CB590D24 /* JeniMethodAnalytics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMethodAnalytics.swift; sourceTree = "<group>"; };
-		27956D60CBC8F73FDD7F5F9C /* method_preview_jeni.m4a */ = {isa = PBXFileReference; includeInIndex = 1; path = method_preview_jeni.m4a; sourceTree = "<group>"; };
+		27956D60CBC8F73FDD7F5F9C /* method_preview_jeni.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = method_preview_jeni.m4a; sourceTree = "<group>"; };
 		27A5839CBCA9EBEB79038667 /* DebugAuthView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DebugAuthView.swift; sourceTree = "<group>"; };
 		27DEF2FEFCE5FBF48B7E2C98 /* prep_short_plank_run.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_plank_run.m4a; sourceTree = "<group>"; };
 		280E1A0C4D263F4810EAB938 /* prep_full_alt_forward_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_alt_forward_lunge.m4a; sourceTree = "<group>"; };
@@ -2417,7 +2417,7 @@
 		F7926CE270751885CC5C6D4B /* prep_short_seated_knee_tuck.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_seated_knee_tuck.m4a; sourceTree = "<group>"; };
 		F79A1F9EA85E0E48101682F8 /* prep_full_plank_saw.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_plank_saw.m4a; sourceTree = "<group>"; };
 		F7DF71B207F02EA52D68AD83 /* prep_full_dead_bug_leg_lower.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_dead_bug_leg_lower.m4a; sourceTree = "<group>"; };
-		F8765C2F855920FD55B0D986 /* method_preview_matson.m4a */ = {isa = PBXFileReference; includeInIndex = 1; path = method_preview_matson.m4a; sourceTree = "<group>"; };
+		F8765C2F855920FD55B0D986 /* method_preview_matson.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = method_preview_matson.m4a; sourceTree = "<group>"; };
 		F8B89A0977483739D98E32F2 /* switch_sides_1.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = switch_sides_1.m4a; sourceTree = "<group>"; };
 		FA43645C64DB01F25281169D /* prep_short_tabletop_hold_knee_lift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_tabletop_hold_knee_lift.m4a; sourceTree = "<group>"; };
 		FAEB1E10BFD5CBA21787B3C6 /* jeni_prep_short_floor_dip.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_floor_dip.m4a; sourceTree = "<group>"; };
@@ -2504,7 +2504,6 @@
 				36767C28B943D7D81B6CA9F3 /* JeniMethodRitualView.swift */,
 				9C2612EBEFBE3C35473C751C /* RitualMusicPlayer.swift */,
 			);
-			name = DietEducation;
 			path = DietEducation;
 			sourceTree = "<group>";
 		};
@@ -4042,9 +4041,9 @@
 			mainGroup = 783186382F99E3110096138F;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */,
-				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */,
-				783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */,
+				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "Packages/PlankEngine" */,
+				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "Packages/PlankVoice" */,
+				783186712F99E7590096138F /* XCLocalSwiftPackageReference "Packages/PlankSync" */,
 				BAD000000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 				BAD000000000000000000080 /* XCRemoteSwiftPackageReference "lottie-ios" */,
 				78DE5B982FC2E689006B9BA4 /* XCRemoteSwiftPackageReference "posthog-ios" */,
@@ -5481,7 +5480,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = plankAI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = AK7RQAKLYW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -5491,7 +5490,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.3;
+				MARKETING_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -5515,7 +5514,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = plankAI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = AK7RQAKLYW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -5525,7 +5524,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.3;
+				MARKETING_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -5575,15 +5574,15 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */ = {
+		7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "Packages/PlankEngine" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankEngine;
 		};
-		7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */ = {
+		7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "Packages/PlankVoice" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankVoice;
 		};
-		783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */ = {
+		783186712F99E7590096138F /* XCLocalSwiftPackageReference "Packages/PlankSync" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankSync;
 		};
