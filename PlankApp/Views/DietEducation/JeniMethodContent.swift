@@ -2,11 +2,12 @@ import Foundation
 
 // MARK: - Lesson identifiers
 
-/// The five lessons of The JeniFit Method, in order. Numeric raw values
-/// 1-5 double as the user-visible "day N of 5" index. Phase 9.21 adds
-/// `.generic` (rawValue 6) for the Day 6+ daily check-in ritual that
-/// loops forever after the 5-day arc completes. Use `LessonID.dailyLessons`
-/// when you want the 1-5 arc specifically (analytics counts, progress
+/// The fourteen lessons of The JeniFit Method, in order. Numeric raw
+/// values 1-14 double as the user-visible "day N of 14" index. Phase 10
+/// extended the arc from 5 → 14 days (tight "daily drop" rewrite). The
+/// `.generic` case (rawValue 15) is the Day 15+ daily check-in ritual
+/// that loops forever after the arc completes. Use `LessonID.dailyLessons`
+/// when you want the 1-14 arc specifically (analytics counts, progress
 /// bars, etc); `.allCases` includes the generic.
 enum LessonID: Int, CaseIterable {
     case day1 = 1
@@ -14,25 +15,46 @@ enum LessonID: Int, CaseIterable {
     case day3 = 3
     case day4 = 4
     case day5 = 5
-    case generic = 6
+    case day6 = 6
+    case day7 = 7
+    case day8 = 8
+    case day9 = 9
+    case day10 = 10
+    case day11 = 11
+    case day12 = 12
+    case day13 = 13
+    case day14 = 14
+    case generic = 15
 
     /// Stable slug used in analytics properties (lesson_topic). Never
     /// shown to users.
     var topicSlug: String {
         switch self {
-        case .day1:    return "why_this_works"
-        case .day2:    return "dont_lose_the_good_stuff"
-        case .day3:    return "workouts_are_the_protection"
-        case .day4:    return "eat_to_fuel"
-        case .day5:    return "trust_the_trend"
+        case .day1:    return "muscle_changes_the_math"
+        case .day2:    return "the_exercise_paradox"
+        case .day3:    return "the_invisible_burn"
+        case .day4:    return "stillness_is_training"
+        case .day5:    return "walk_after_you_eat"
+        case .day6:    return "small_beats_heroic"
+        case .day7:    return "sixty_six_days"
+        case .day8:    return "the_return"
+        case .day9:    return "be_your_own_friend"
+        case .day10:   return "protein_every_meal"
+        case .day11:   return "enjoyment_is_the_ingredient"
+        case .day12:   return "exercise_snacks"
+        case .day13:   return "sleep_is_the_multiplier"
+        case .day14:   return "begin_again"
         case .generic: return "daily_check_in"
         }
     }
 
-    /// The five-day numbered arc (Day 1..5). Use this instead of
+    /// The fourteen-day numbered arc (Day 1..14). Use this instead of
     /// `allCases` for anything that should NOT count the generic
     /// ritual — analytics totals, progress %, day-of-N copy.
-    static let dailyLessons: [LessonID] = [.day1, .day2, .day3, .day4, .day5]
+    static let dailyLessons: [LessonID] = [
+        .day1, .day2, .day3, .day4, .day5, .day6, .day7,
+        .day8, .day9, .day10, .day11, .day12, .day13, .day14,
+    ]
 
     /// Phase 9.22 — short teaser headline per lesson. Used by the
     /// HomeView card + JeniMethodReReadView index so they don't have
@@ -41,10 +63,19 @@ enum LessonID: Int, CaseIterable {
     var headline: String {
         switch self {
         case .day1:    return "muscle changes the math."
-        case .day2:    return "small you do beats heroic you can't."
-        case .day3:    return "your steps add up to more than your workout."
-        case .day4:    return "protein at every meal. that's it."
-        case .day5:    return "rest is offensive, not optional."
+        case .day2:    return "you can't out-burn the machine."
+        case .day3:    return "your day burns more than your workout."
+        case .day4:    return "the boring hold wins."
+        case .day5:    return "walk right after you eat."
+        case .day6:    return "small you'll do beats heroic you won't."
+        case .day7:    return "it takes about sixty-six days."
+        case .day8:    return "one slip doesn't undo you."
+        case .day9:    return "kindness gets you back on track."
+        case .day10:   return "protein at every meal. that's it."
+        case .day11:   return "the workout you'll repeat wins."
+        case .day12:   return "a few one-minute bursts count."
+        case .day13:   return "sleep is where the change happens."
+        case .day14:   return "you can always begin again."
         case .generic: return "good to see you."
         }
     }

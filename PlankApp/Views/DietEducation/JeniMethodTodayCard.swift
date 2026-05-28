@@ -5,8 +5,8 @@ import SwiftUI
 ///
 /// Tap opens `JeniMethodLessonView` as a dismissable sheet (locked
 /// decision #5 — the card never auto-opens). Visibility is decided
-/// upstream by HomeView via `JeniMethodState.todaysLessonForCard()` plus
-/// the feature flag + goal-gate. When no lesson is due, the caller wraps
+/// upstream by HomeView via `JeniMethodState.lessonForCard(currentDay:)`
+/// plus the feature flag + goal-gate. When no lesson is due, the caller wraps
 /// this view in `if let ... { ... }` so nothing is rendered — no
 /// spacer, no padding, zero layout shift on completed/no-lesson days.
 ///
@@ -29,7 +29,7 @@ struct JeniMethodTodayCard: View {
                     .font(Typo.heading)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.leading)
-                Text("lesson \(lessonId) of 5")
+                Text("lesson \(lessonId) of \(LessonID.dailyLessons.count)")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .padding(.top, 2)
@@ -46,7 +46,7 @@ struct JeniMethodTodayCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("The JeniFit Method, lesson \(lessonId) of 5: \(teaser)")
+        .accessibilityLabel("The JeniFit Method, lesson \(lessonId) of \(LessonID.dailyLessons.count): \(teaser)")
         .accessibilityHint("Opens today's lesson")
     }
 }

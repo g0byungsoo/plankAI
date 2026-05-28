@@ -26,7 +26,7 @@ struct JeniMethodReReadView: View {
                     .lineSpacing(2)
 
                 VStack(spacing: Space.md) {
-                    // dailyLessons (not allCases) so the generic Day 6+
+                    // dailyLessons (not allCases) so the generic Day 15+
                     // check-in doesn't appear in the re-read index — it's
                     // not a fixed lesson, it's a rotating daily ritual.
                     ForEach(LessonID.dailyLessons) { lesson in
@@ -54,7 +54,7 @@ struct JeniMethodReReadView: View {
             selectedLesson = lesson
         } label: {
             VStack(alignment: .leading, spacing: Space.xs) {
-                Text("lesson \(lesson.rawValue) of 5")
+                Text("lesson \(lesson.rawValue) of \(LessonID.dailyLessons.count)")
                     .font(Typo.eyebrow)
                     .foregroundStyle(Palette.textSecondary)
                 Text(lesson.headline)
@@ -73,7 +73,7 @@ struct JeniMethodReReadView: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Lesson \(lesson.rawValue) of 5: \(lesson.headline)")
+        .accessibilityLabel("Lesson \(lesson.rawValue) of \(LessonID.dailyLessons.count): \(lesson.headline)")
         .accessibilityHint("Re-read this lesson")
     }
 }

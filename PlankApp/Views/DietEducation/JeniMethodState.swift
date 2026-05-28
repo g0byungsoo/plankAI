@@ -115,55 +115,41 @@ enum JeniMethodState {
         return calendar.dateComponents([.day], from: startDay, to: today).day
     }
 
-    /// Highest lesson ID currently available, capped at 5. nil if not
-    /// enrolled. Day 1 = available on enrollment; one new lesson unlocks
-    /// per calendar-day boundary.
-    static func highestUnlockedLessonId(now: Date = .now,
-                                        calendar: Calendar = .current) -> Int? {
-        guard let days = daysSinceEnrolled(now: now, calendar: calendar) else { return nil }
-        return min(5, days + 1)
+    // MARK: - Unified engagement day → lesson (Phase 10)
+
+    /// The single source of truth for "which lesson on day N". Engagement
+    /// day = the user's current program day (their Nth active day), which
+    /// only advances when they complete a session — so missing calendar
+    /// days never skips a lesson and nobody "falls behind." Days 1-14 map
+    /// to that lesson; day 15+ loops on the generic ritual. Pure +
+    /// calendar-free; HomeView passes its existing `currentDay` (derived
+    /// from `DayProgressRecord.programDay`, no new persisted state).
+    static func lessonId(forDay day: Int) -> Int {
+        let clamped = max(day, 1)
+        return clamped <= 14 ? clamped : LessonID.generic.rawValue
     }
 
-    /// The next lesson the HomeView card should surface (Phase 3 will read
-    /// this). nil when the user is up-to-date for today, or fully done.
-    /// Card does NOT auto-open on Day 2 (locked decision #5) — this just
-    /// tells the card which lesson to point to, not whether to open it.
-    static func todaysLessonForCard(now: Date = .now,
-                                    calendar: Calendar = .current) -> Int? {
-        guard let unlocked = highestUnlockedLessonId(now: now, calendar: calendar) else { return nil }
-        let next = lastCompletedLessonId + 1
-        guard next <= 5 else { return nil }       // fully done
-        guard next <= unlocked else { return nil } // tomorrow's not unlocked yet
-        return next
+    /// The lesson the HomeView card should point at for the current
+    /// engagement day. nil if not enrolled. Caller hides the card once
+    /// today's session is done.
+    static func lessonForCard(currentDay: Int) -> LessonID? {
+        guard enrolledAt() != nil else { return nil }
+        return LessonID(rawValue: lessonId(forDay: currentDay))
     }
 
-    // MARK: - Daily ritual scheduling (Phase 9.21)
+    // MARK: - Daily ritual scheduling (Phase 9.21, engagement-based)
 
-    /// The ritual that should appear today, given completion state +
-    /// once-per-day gate. Phase 9.23 — sequential progression based on
-    /// completion, NOT calendar day. Module 1 fires post-paywall. The
-    /// next-uncompleted module fires the next time the user opens the
-    /// app after the previous one is marked complete. Module 6 (the
-    /// short pre-workout warmup) fires every day after Module 5 is
-    /// done. `hasShownRitualToday` keeps the same module from firing
-    /// twice in one session.
-    ///
-    /// Completion mapping (lastCompletedLessonId → next ritual):
-    ///   0 (never completed)  → .day1
-    ///   1 (Module 1 done)    → .day2
-    ///   2 (Module 2 done)    → .day3
-    ///   3 (Module 3 done)    → .day4
-    ///   4 (Module 4 done)    → .day5
-    ///   5+ (Module 5 done)   → .generic
-    static func ritualForToday(now: Date = .now,
+    /// The ritual to auto-present today, given the user's engagement day
+    /// (`currentDay`) + the once-per-calendar-day gate. nil if not enrolled
+    /// or already shown today. Because `currentDay` only advances on a
+    /// completed session, this is purely engagement-based — calendar time
+    /// since signup never advances or skips the lesson.
+    static func ritualForToday(currentDay: Int,
+                               now: Date = .now,
                                calendar: Calendar = .current) -> LessonID? {
         guard enrolledAt() != nil else { return nil }
         guard !hasShownRitualToday(now: now, calendar: calendar) else { return nil }
-        let nextId = lastCompletedLessonId + 1
-        if let lesson = LessonID(rawValue: nextId), lesson != .generic {
-            return lesson
-        }
-        return .generic
+        return LessonID(rawValue: lessonId(forDay: currentDay))
     }
 
     /// True iff a ritual was opened earlier today (calendar-day

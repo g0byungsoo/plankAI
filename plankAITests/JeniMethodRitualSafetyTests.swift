@@ -1,20 +1,17 @@
 import XCTest
 @testable import plankAI
 
-/// Phase 9.28 — rebuilt safety + structural test suite against the new
-/// ritual model. The old card-based suite (JeniMethodContentTests,
-/// JeniMethodResolverTests, JeniMethodAnalyticsTests) was deleted in
-/// the 9.22 cleanup because it targeted the deleted LessonCard /
-/// LessonCardKind / ActionKind types. This re-implements the most
-/// valuable check from that suite — the banned-phrase scanner across
-/// the full user-context matrix — plus a handful of structural
-/// invariants on the new LessonRitual + LessonBeat shape.
+/// Phase 10 — safety + structural test suite for the primer-style lesson
+/// model (LessonScript / LessonPage). Replaces the beat-engine suite. The
+/// most valuable check carries over: the banned-phrase scanner across the
+/// full user-context matrix, plus structural invariants on the new page
+/// shape.
 ///
 /// Coverage shape:
-///   - Walk every LessonID × user-context permutation (~864 contexts)
-///   - Extract every user-facing text string from every beat
+///   - Walk every LessonID × user-context permutation (~900 contexts)
+///   - Extract every user-facing string from every page
 ///   - Run a battery of banned-phrase regexes against the text
-///   - Assert structural invariants on the ritual shape
+///   - Assert structural invariants on the LessonScript + LessonPage shape
 ///
 /// A failure prints lesson + user-context provenance so the bad string
 /// is locatable from the test log without manual hunting.
@@ -22,9 +19,6 @@ final class JeniMethodRitualSafetyTests: XCTestCase {
 
     // MARK: - Safety matrix
 
-    /// All non-empty values for each axis of personalization. The
-    /// Cartesian product is the safety matrix. Empty-string variants
-    /// are included for axes where the user might skip / not answer.
     private static let goals = ["loseWeight", "slimLegs", "toneCore", "fullBody", ""]
     private static let experiences = ["neverTried", "triedFailed", "sometimes", "regularly", ""]
     private static let bodyFoci: [[String]] = [
@@ -58,23 +52,20 @@ final class JeniMethodRitualSafetyTests: XCTestCase {
 
     // MARK: - Text extraction
 
-    /// One sample of user-facing text with provenance.
     private struct TextSample {
         let text: String
         let lesson: LessonID
         let context: String
     }
 
-    /// Every user-facing string from every beat across the full matrix.
-    /// Pause labels are included only if non-nil (nil labels are silent
-    /// pauses by design and shouldn't be checked).
+    /// Every user-facing string from every page across the full matrix.
     private func everyText() -> [TextSample] {
         var out: [TextSample] = []
         for lesson in LessonID.allCases {
             for user in Self.safetyMatrix {
-                let ritual = JeniMethodRitualContent.resolve(lesson: lesson, user: user)
-                for beat in ritual.beats {
-                    for text in beatTexts(beat.kind) {
+                let script = JeniMethodRitualContent.resolve(lesson: lesson, user: user)
+                for page in script.pages {
+                    for text in pageTexts(page) {
                         out.append(TextSample(
                             text: text,
                             lesson: lesson,
@@ -87,27 +78,14 @@ final class JeniMethodRitualSafetyTests: XCTestCase {
         return out
     }
 
-    private func beatTexts(_ kind: LessonBeatKind) -> [String] {
-        switch kind {
-        case .welcome(let line, _):
-            return [line]
-        case .breath:
-            return []
-        case .line(let text, _):
-            return [text]
-        case .illustration:
-            return []
-        case .illustratedExplanation(_, let eyebrow, let headline, _, let body):
-            return [eyebrow, headline, body]
-        case .movement(let invitation, _):
-            return [invitation]
-        case .pause(let label):
-            return label.map { [$0] } ?? []
-        case .close(let line, _):
-            return [line]
-        case .workoutHandoff(let line, _, let ctaLabel):
-            return [line, ctaLabel]
-        }
+    /// All user-facing strings on a page (skips nil optionals).
+    private func pageTexts(_ page: LessonPage) -> [String] {
+        var texts: [String] = [page.headline, page.ctaLabel]
+        if let eyebrow = page.eyebrow { texts.append(eyebrow) }
+        if let body = page.body { texts.append(body) }
+        if let citation = page.citation { texts.append(citation) }
+        if let breathLine = page.breathLine { texts.append(breathLine) }
+        return texts
     }
 
     private func describe(_ u: JeniMethodUserContext) -> String {
@@ -124,23 +102,18 @@ final class JeniMethodRitualSafetyTests: XCTestCase {
 
     // MARK: - Banned-phrase scanners
 
-    /// "earn it" / "earn food" / "earn this" framing reinforces
-    /// restriction logic — the body shouldn't be told it must earn
-    /// rest or food. Day 4 says "you never earn food" / "you don't
-    /// earn food by working out" which is the ANTI-framing; the test
-    /// allows "don't earn" and "never earn" preceding the noun.
+    /// "earn it" / "earn food" / "earn this" framing reinforces restriction
+    /// logic. Day 10 says "you never earn food" which is the ANTI-framing;
+    /// the test allows "don't earn" / "never earn" / "no earn" / "not earn".
     func testNoEarnItFraming() {
-        // Match "earn (it|food|rest|...)", but not when preceded by
-        // "don't" / "never" / "no" within ~10 chars.
         let pattern = #"(?<!don['’]t )(?<!never )(?<!no )(?<!\bnot )\bearn[s]?\s+(it|food|rest|your|this|the)\b"#
         for sample in everyText() where firstMatch(pattern, in: sample.text) {
             XCTFail("[\(sample.lesson) | \(sample.context)] 'earn it' framing: \"\(sample.text)\"")
         }
     }
 
-    /// Restriction-coded language: cleanses, detoxes, starvation,
-    /// crash diets. Day 4 says "no cleanses. no detoxes." — that's
-    /// anti-restriction; the test whitelists when preceded by "no ".
+    /// Restriction-coded language: cleanses, detoxes, starvation, crash
+    /// diets — whitelisted only when preceded by "no ".
     func testNoRestrictionLanguage() {
         let banned = ["cleanse", "detox", "starve", "starvation", "crash diet"]
         for sample in everyText() {
@@ -148,7 +121,6 @@ final class JeniMethodRitualSafetyTests: XCTestCase {
             for term in banned {
                 var searchStart = lower.startIndex
                 while let r = lower.range(of: term, range: searchStart..<lower.endIndex) {
-                    // Anti-framing window: "no " in the 5 chars before.
                     let windowStart = lower.index(r.lowerBound, offsetBy: -5, limitedBy: lower.startIndex) ?? lower.startIndex
                     let window = String(lower[windowStart..<r.lowerBound])
                     let isAnti = window.contains("no ")
@@ -161,8 +133,7 @@ final class JeniMethodRitualSafetyTests: XCTestCase {
         }
     }
 
-    /// Body-shape promises — "you'll look slim", "you will be skinny",
-    /// etc. The ritual never promises a body outcome on a timeline.
+    /// Body-shape promises — "you'll look slim", "you will be skinny", etc.
     func testNoBodyShapePromises() {
         let pattern = #"you('ll| will) (look|be|feel) (skinny|slim|thin|smaller|tiny)\b"#
         for sample in everyText() where firstMatch(pattern, in: sample.text) {
@@ -170,23 +141,18 @@ final class JeniMethodRitualSafetyTests: XCTestCase {
         }
     }
 
-    /// Timeline promises — "in 30 days", "in 2 weeks", "in a month".
-    /// The ritual makes no date-bound result claim.
+    /// Timeline promises — "in 30 days", "in 2 weeks". Numeric form only;
+    /// spelled-out ("sixty-six days") reads as science, not a result clock.
     func testNoTimelinePromises() {
-        // Match "in <digit>+ <day/week/month unit>". Spelled-out
-        // ("in three weeks") would be caught visually; the regex
-        // targets the numeric form because that's the more
-        // marketing-flavored phrasing prone to creep in.
         let pattern = #"\bin\s+\d+\s+(day|days|week|weeks|month|months)\b"#
         for sample in everyText() where firstMatch(pattern, in: sample.text) {
             XCTFail("[\(sample.lesson) | \(sample.context)] timeline promise: \"\(sample.text)\"")
         }
     }
 
-    /// Numeric digits next to nutrition words. Spelled-out numbers
-    /// ("three hundred calories") are OK for science discussion
-    /// because they don't read as a tracking instruction. A literal
-    /// digit next to calorie/gram/macro is closer to "track this."
+    /// Numeric digits next to nutrition words. Spelled-out numbers are OK
+    /// (science framing); a literal digit next to calorie/gram/portion is
+    /// closer to "track this."
     func testNoDigitsNearNutritionWords() {
         let pattern = #"\b\d+\s*(calorie|calories|gram|grams|macro|macros|kcal|portion|portions)\b"#
         for sample in everyText() where firstMatch(pattern, in: sample.text) {
@@ -194,14 +160,8 @@ final class JeniMethodRitualSafetyTests: XCTestCase {
         }
     }
 
-    /// Brand voice consistency: no "AI" / "absmaxxing" / "Sarah" /
-    /// "plankAI" leaks (per the rebrand smoke test in CLAUDE.md).
-    /// Note "sarah" appears as a TEST NAME in the matrix — we filter
-    /// for the word inside user-facing copy, not the substituted name.
+    /// Brand voice consistency: no legacy brand leaks.
     func testNoLegacyBrandLeak() {
-        // Match the legacy brand words only when not preceded by
-        // namedPrefix interpolation (which would put "sarah." at the
-        // start of the line followed by space — those are name uses).
         let banned = ["absmaxxing", "plankai"]
         for sample in everyText() {
             let lower = sample.text.lowercased()
@@ -213,100 +173,84 @@ final class JeniMethodRitualSafetyTests: XCTestCase {
 
     // MARK: - Structural invariants
 
-    /// Every ritual returns a non-empty beat sequence for every user.
-    func testEveryRitualHasBeats() {
+    /// Every lesson returns a non-empty page sequence for every user.
+    func testEveryLessonHasPages() {
         for lesson in LessonID.allCases {
             for user in Self.safetyMatrix {
-                let ritual = JeniMethodRitualContent.resolve(lesson: lesson, user: user)
+                let script = JeniMethodRitualContent.resolve(lesson: lesson, user: user)
                 XCTAssertFalse(
-                    ritual.beats.isEmpty,
-                    "[\(lesson) | \(describe(user))] empty ritual"
+                    script.pages.isEmpty,
+                    "[\(lesson) | \(describe(user))] empty lesson"
                 )
             }
         }
     }
 
-    /// Every ritual ends on a `.close` or `.workoutHandoff` beat —
-    /// the only beat kinds that complete the flow. A `.line` or
-    /// `.pause` as the final beat would leave the user unable to
-    /// finish (no terminal "tap when you're ready" affordance).
-    func testEveryRitualEndsCleanly() {
+    /// Every lesson ends on an `isHandoff` page — the only page whose CTA
+    /// completes the lesson and launches the workout. A non-handoff final
+    /// page would leave the user with a dead-end "continue."
+    func testEveryLessonEndsWithHandoff() {
         for lesson in LessonID.allCases {
             for user in Self.safetyMatrix {
-                let ritual = JeniMethodRitualContent.resolve(lesson: lesson, user: user)
-                guard let last = ritual.beats.last else {
-                    XCTFail("[\(lesson) | \(describe(user))] no beats")
+                let script = JeniMethodRitualContent.resolve(lesson: lesson, user: user)
+                guard let last = script.pages.last else {
+                    XCTFail("[\(lesson) | \(describe(user))] no pages")
                     continue
                 }
-                let ok: Bool
-                switch last.kind {
-                case .close, .workoutHandoff: ok = true
-                default: ok = false
-                }
                 XCTAssertTrue(
-                    ok,
-                    "[\(lesson) | \(describe(user))] last beat is \(last.id) (kind: \(last.kind)) — must be .close or .workoutHandoff"
+                    last.isHandoff,
+                    "[\(lesson) | \(describe(user))] last page '\(last.id)' is not a handoff"
                 )
             }
         }
     }
 
-    /// Beat IDs must be unique within a lesson — SwiftUI uses them as
-    /// the timer-cancellation key, and duplicates cause stale timers
-    /// to fire on the wrong beat.
-    func testBeatIdsUniqueWithinLesson() {
+    /// Exactly the final page is a handoff — no earlier page should claim
+    /// the workout-launch CTA (would let the user skip the rest).
+    func testOnlyFinalPageIsHandoff() {
         for lesson in LessonID.allCases {
-            // Beat structure is the same regardless of user context
-            // (only text strings vary), so .empty is sufficient.
-            let ritual = JeniMethodRitualContent.resolve(lesson: lesson, user: .empty)
-            let ids = ritual.beats.map { $0.id }
-            let unique = Set(ids)
+            let script = JeniMethodRitualContent.resolve(lesson: lesson, user: .empty)
+            let handoffCount = script.pages.filter { $0.isHandoff }.count
             XCTAssertEqual(
-                ids.count, unique.count,
-                "[\(lesson)] duplicate beat IDs in \(ids.sorted())"
+                handoffCount, 1,
+                "[\(lesson)] expected exactly 1 handoff page, found \(handoffCount)"
+            )
+            XCTAssertTrue(
+                script.pages.last?.isHandoff == true,
+                "[\(lesson)] handoff page is not last"
             )
         }
     }
 
-    /// No beat-extracted text is empty. (Nil pause labels are silent
-    /// by design and excluded from extraction; only non-nil text
-    /// should always have content.)
-    func testNoBeatHasEmptyText() {
+    /// Page IDs must be unique within a lesson.
+    func testPageIdsUniqueWithinLesson() {
+        for lesson in LessonID.allCases {
+            let script = JeniMethodRitualContent.resolve(lesson: lesson, user: .empty)
+            let ids = script.pages.map { $0.id }
+            XCTAssertEqual(
+                ids.count, Set(ids).count,
+                "[\(lesson)] duplicate page IDs in \(ids.sorted())"
+            )
+        }
+    }
+
+    /// No extracted user-facing text is empty.
+    func testNoPageHasEmptyText() {
         for sample in everyText() {
             XCTAssertFalse(
                 sample.text.isEmpty,
-                "[\(sample.lesson) | \(sample.context)] empty beat text"
-            )
-        }
-    }
-
-    /// Modules 1-5 (LessonID.dailyLessons) must include a
-    /// `.workoutHandoff` beat so the lesson can hand off to the
-    /// workout cover. The generic Module 6 also ends with a handoff
-    /// (it IS the pre-workout ritual).
-    func testEveryRitualHasWorkoutHandoff() {
-        for lesson in LessonID.allCases {
-            let ritual = JeniMethodRitualContent.resolve(lesson: lesson, user: .empty)
-            let hasHandoff = ritual.beats.contains { beat in
-                if case .workoutHandoff = beat.kind { return true }
-                return false
-            }
-            XCTAssertTrue(
-                hasHandoff,
-                "[\(lesson)] no .workoutHandoff beat — ritual can't hand off to workout"
+                "[\(sample.lesson) | \(sample.context)] empty page text"
             )
         }
     }
 
     // MARK: - Analytics shape sanity
 
-    /// `JeniMethodAnalytics.lessonProps` returns the expected keys
-    /// after the Phase 9.22 cleanup (cards field removed from
-    /// ResolvedLesson).
+    /// `JeniMethodAnalytics.lessonProps` returns the expected keys.
     func testLessonPropsKeyset() {
         let shim = ResolvedLesson(
             id: 1,
-            topic: "why_this_works",
+            topic: "muscle_changes_the_math",
             standingSafetyLine: "stand on something stable",
             voice: "encouraging"
         )
@@ -329,16 +273,15 @@ final class JeniMethodRitualSafetyTests: XCTestCase {
             "lessonProps missing keys: \(expected.subtracting(props.keys))"
         )
         XCTAssertEqual(props["lesson_id"] as? Int, 1)
-        XCTAssertEqual(props["lesson_topic"] as? String, "why_this_works")
+        XCTAssertEqual(props["lesson_topic"] as? String, "muscle_changes_the_math")
         XCTAssertEqual(props["paid_status"] as? String, "entitled")
     }
 
-    /// `JeniMethodAnalytics.completedProps` returns the cohort total
-    /// keys reported on the terminal `diet_education_completed` event.
+    /// `JeniMethodAnalytics.completedProps` returns the cohort total keys.
     func testCompletedPropsKeyset() {
         let user = JeniMethodUserContext.empty
         let props = JeniMethodAnalytics.completedProps(
-            user: user, lessonsCompleted: 5, lessonsSkipped: 1, daysElapsed: 5
+            user: user, lessonsCompleted: 14, lessonsSkipped: 1, daysElapsed: 14
         )
         let expected: Set<String> = [
             "lessons_completed", "lessons_skipped", "days_elapsed",
@@ -348,8 +291,8 @@ final class JeniMethodRitualSafetyTests: XCTestCase {
             expected.isSubset(of: Set(props.keys)),
             "completedProps missing keys: \(expected.subtracting(props.keys))"
         )
-        XCTAssertEqual(props["lessons_completed"] as? Int, 5)
+        XCTAssertEqual(props["lessons_completed"] as? Int, 14)
         XCTAssertEqual(props["lessons_skipped"] as? Int, 1)
-        XCTAssertEqual(props["days_elapsed"] as? Int, 5)
+        XCTAssertEqual(props["days_elapsed"] as? Int, 14)
     }
 }
