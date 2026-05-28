@@ -116,6 +116,15 @@ struct OnboardingView: View {
     @State private var motivation = ""
     @State private var workoutLocation = ""
     @State private var workoutStyle: Set<String> = []
+    // Bundle E net-new optional context. NOT load-bearing for the
+    // current personalization logic (WorkoutGenerator doesn't read
+    // these). They're collected so the user feels heard and so we
+    // can wire them into plan adjustments later without backfill.
+    // Persisted to UserDefaults only — no SwiftData / Supabase schema
+    // change. Mirrored from local @State on advance via the question
+    // helper's existing onChange→sel write path.
+    @State private var monthSignals: Set<String> = []
+    @State private var priorWorkouts: Set<String> = []
     @State private var gender = ""
     @State private var heightCm: Double = 170
     @State private var currentWeightKg: Double = 65
@@ -163,6 +172,29 @@ struct OnboardingView: View {
     @State private var carouselProgress: CGFloat = 0
     @State private var carouselFrame: Int = 0
     @State private var carouselDone = false
+
+    // ── Consent ritual (case 240) state ────────────────────────
+    @State private var consentHoldProgress: CGFloat = 0
+    @State private var consentHoldActive: Bool = false
+    @State private var consentHoldCompleted: Bool = false
+    @State private var consentHoldTimer: Timer?
+    @State private var consentHapticHalfwayFired: Bool = false
+
+    // ── Method preview (case 250) state ────────────────────────
+    // AVAudioPlayer is held as State so it survives view updates while
+    // the sample plays. Graceful no-op when the bundled clip is missing
+    // (file ships separately via ElevenLabs script — see the
+    // playMethodPreviewSample helper for the exact line to voice).
+    @State private var methodPreviewAudioPlayer: AVAudioPlayer?
+    @State private var methodPreviewIsPlaying: Bool = false
+    @State private var methodPreviewAudioMissing: Bool = false
+
+    // ── Habit-window quiz (case 270) state ─────────────────────
+    // habitQuizSelected = -1 means "no answer yet"; 0/1/2 = picked
+    // option. habitQuizRevealed flips true on pick and gates the
+    // reveal copy + the CTA's continue-vs-tap-to-reveal behavior.
+    @State private var habitQuizSelected: Int = -1
+    @State private var habitQuizRevealed: Bool = false
     // 17d-2: rotating proof line — short status copy that cycles
     // alongside the headline so the screen reads as actively working,
     // not staring at a static "Building your plan…".
@@ -315,7 +347,9 @@ struct OnboardingView: View {
             partNumber: 1, title: "Your story",
             supporting: "Three quick reads on what brought you here.",
             dwellSeconds: 1.6,
-            onAdvance: { go(1) },
+            // Routes to the anti-shame educational anchor (E1-a, case
+            // 230) before the first question. Sets brand promise.
+            onAdvance: { go(230) },
             stickerPlacements: Self.sectionDividerPlacements
         )
         case 201: SectionDividerScreen(
@@ -329,7 +363,9 @@ struct OnboardingView: View {
             partNumber: 3, title: "About you",
             supporting: "A few numbers so the math behind your plan is honest.",
             dwellSeconds: 1.6,
-            onAdvance: { go(130) },
+            // Routes to body-question primer (E1-b, case 231) before
+            // the gender Q — Noom "why we ask" pattern reduces drop.
+            onAdvance: { go(231) },
             stickerPlacements: Self.sectionDividerPlacements
         )
         case 203: SectionDividerScreen(
@@ -354,10 +390,67 @@ struct OnboardingView: View {
             stickerPlacements: Self.sectionDividerPlacements
         )
 
+        // ─── Recap card — "so here's you" ───────────────────────
+        // Mid-flow recap reflecting 4 of the user's own answers back to
+        // them. Noom-pattern earned-plan beat: the user sees their
+        // inputs surfaced, which makes the downstream plan reveal feel
+        // built-for-them rather than generic. Research: Rhodes &
+        // de Bruijn 2013 — barrier resolution language closes ~50% of
+        // the intention-behavior gap. No DB writes; reads existing
+        // already-collected state (bodyFocus, sessionLength,
+        // commitmentDays, relatability1/2/3).
+        case 206: recapCardScreen
+
+        // ─── Educational priming screens (Bundle E) ──────────────
+        // Each is a single brief teach beat woven into the flow at a
+        // research-validated position. See educationalScreen helper
+        // for the layout pattern. No skip — full opt-in priming.
+        case 230: educationalAntiShameScreen     // after Part 1 divider
+        case 231: educationalBodyPrimerScreen    // before gender
+        case 232: educationalFiveMinScreen       // before session length
+        case 233: educationalCycleScreen         // after identity feeling
+        case 234: educationalPlateauScreen       // before plan reveal
+
+        // ─── N1 — "anything we should know about this month?" ────
+        // Hormonal-acknowledgment moment. Net-new question, but no
+        // DB column change — `monthSignals` is local @State only.
+        // Multi-select. Cycle-aware framing for the women 22-35
+        // demographic — Wild.AI / FitrWoman 2026 pattern.
+        case 235: jfMulti(
+            "anything we should know about this month?",
+            sub: "no pressure. multi-pick. helps jeni adjust intensity.",
+            opts: [
+                ("lowEnergy", "low energy",         nil, "battery.25"),
+                ("cramps",    "cramps",             nil, "heart.slash"),
+                ("sleepOff",  "sleep is off",       nil, "moon.zzz"),
+                ("greatDay",  "feeling great",      nil, "sparkles"),
+                ("noneNow",   "none of those",      nil, "checkmark"),
+            ],
+            sel: $monthSignals, next: 141
+        )
+
+        // ─── N2 — "what's worked before — and what hasn't?" ──────
+        // Bridge between Q2 (current training) and Q8 (activity).
+        // Net-new question, also @State only — no DB change. The
+        // "what's worked before" Q is the most consistent question
+        // across Noom / BetterMe / Lasta that JeniFit doesn't ask.
+        case 236: jfMulti(
+            "what's worked before — and what hasn't?",
+            sub: "multi-pick. we'll lean into what stuck.",
+            opts: [
+                ("homeWorkouts", "home workouts",  nil, "house"),
+                ("gymRoutine",   "gym",            nil, "dumbbell.fill"),
+                ("classes",      "group classes",  nil, "person.3.fill"),
+                ("running",      "running / cardio", nil, "figure.run"),
+                ("nothingStuck", "nothing's stuck", nil, "arrow.uturn.backward"),
+            ],
+            sel: $priorWorkouts, next: 8
+        )
+
         // ─── Part 1 — Your story ────────────────────────────────
         case 1: jfQuestion(
-            "What's the goal?",
-            sub: "We'll build the entire plan around this answer.",
+            "what are we becoming?",
+            sub: "we'll build the entire plan around this answer.",
             opts: [
                 ("loseWeight",  "Lose weight",              "Lean down, feel lighter",      "arrow.down.circle"),
                 ("fullBody",    "Full body transformation", "Tone all over, head to toe",   "sparkle"),
@@ -369,8 +462,8 @@ struct OnboardingView: View {
         )
 
         case 110: jfMulti(
-            "Where should we focus?",
-            sub: "Pick the zones you want to see change.",
+            "tap where you want to feel it.",
+            sub: "pick as many as you want.",
             opts: [
                 ("flatBelly", "Flat belly",          nil, "figure.core.training"),
                 ("tonedArms", "Toned arms",          nil, "dumbbell.fill"),
@@ -383,8 +476,8 @@ struct OnboardingView: View {
         )
 
         case 111: jfQuestion(
-            "Why now?",
-            sub: "What's pushing you to start today?",
+            "what's the real reason — be honest.",
+            sub: "no judgment. it helps us pick the right tone.",
             opts: [
                 ("getShaped",  "Get shaped",          "Build the body I want",     "figure.strengthtraining.traditional"),
                 ("lookBetter", "Look better",         "Confidence in any outfit",  "sparkle"),
@@ -397,15 +490,17 @@ struct OnboardingView: View {
 
         // ─── Part 2 — How you move now ──────────────────────────
         case 2: jfQuestion(
-            "How much do you train right now?",
-            sub: "Be honest. The plan calibrates from this.",
+            "honestly, how's it going right now?",
+            sub: "no shame on any answer. the plan calibrates from this.",
             opts: [
                 ("never",     "I don't really train",               nil,                         "moon.zzz"),
                 ("gaveUp",    "I've tried, couldn't stick with it", nil,                         "arrow.uturn.backward"),
                 ("sometimes", "Here and there",                     nil,                         "calendar"),
                 ("regular",   "Regularly",                          "Multiple times a week",     "checkmark.circle.fill"),
             ],
-            sel: $experience, next: 8,
+            // Routes to N2 (case 236, "what's worked before") so the
+            // experience context lands before activity level.
+            sel: $experience, next: 236,
             inlineFeedback: [
                 "gaveUp": ("We've been there.", "Most people quit by week two. Your plan is built around staying."),
                 "regular": ("Got you.", "We'll keep it challenging without grinding you out."),
@@ -437,12 +532,15 @@ struct OnboardingView: View {
                 ("dance",    "Dance / cardio",    nil, "music.note"),
                 ("walking",  "Walking / steady",  nil, "figure.walk"),
             ],
-            sel: $workoutStyle, next: 25
+            // Routes to E1-c (case 232, five-min science) before
+            // case 25 session-length. Pre-empts the "is 5 enough?"
+            // doubt before the answer.
+            sel: $workoutStyle, next: 232
         )
 
         case 25: jfQuestion(
-            "How long per session?",
-            sub: "Pick the size you'll actually keep open.",
+            "how much time can you actually give?",
+            sub: "the smallest answer is also the smartest one for beginners.",
             opts: [
                 ("five",    "5 minutes",  "Quick reset",           "5.circle"),
                 ("ten",     "10 minutes", "Solid daily routine",   "10.circle"),
@@ -453,15 +551,18 @@ struct OnboardingView: View {
         )
 
         case 17: jfQuestion(
-            "How many days a week?",
-            sub: "The five-day plan is what we'd pick for you.",
+            "let's pick something you'll actually show up for.",
+            sub: "five days is the sweet spot. three is honest. seven is rare.",
             opts: [
                 ("three", "3 days", "Easing in",    "3.circle"),
                 ("five",  "5 days", "Recommended",  "5.circle"),
                 ("seven", "7 days", "All in",       "7.circle"),
             ],
-            sel: $commitmentDays, next: 202,
-            confirmation: "Got it. Your plan starts here."
+            // Routes to case 270 (habit-window quiz) before Part 3
+            // divider. Phase 4: education-as-quiz teaches the 12-week
+            // habit frame before the body Q cluster lands.
+            sel: $commitmentDays, next: 270,
+            confirmation: "got it. your plan starts here."
         )
 
         // ─── Part 3 — About you (biometrics) ────────────────────
@@ -491,14 +592,18 @@ struct OnboardingView: View {
         )
 
         case 132: jfHorizontalSliderScreen(
-            "What's your current weight?",
-            sub: "Helps us measure your progress accurately.",
+            "what's your current weight?",
+            sub: "we round to the kilo. just for your plan.",
             valueMetric: $currentWeightKg,
             metric: Self.weightMetricRuler,
             imperial: Self.weightImperialRuler,
             toMetric: { lb in lb / Self.lbPerKg },
             fromMetric: { kg in (kg * Self.lbPerKg).rounded() },
             next: 133,
+            // Affirmation beat — sensitive numeric input. Research:
+            // Noom-pattern validation after weight entry reduces drop.
+            // Gen-Z casual lowercase to match the audience voice.
+            confirmation: "okay. that's the hard one. ♥",
             annotation: {
                 bmiAnnotation(weightKg: currentWeightKg, heightCm: heightCm)
             }
@@ -519,7 +624,12 @@ struct OnboardingView: View {
                 ? goalWeightKg...currentWeightKg
                 : nil,
             next: 134,
-            confirmation: "We'll calibrate progress to this.",
+            // Reciprocity beat — Phase 2 (2026 research). Acknowledges
+            // the weight-share moment with peer-voice empathy instead
+            // of the older "honest pace" pace-coded line. RevenueCat
+            // teardown finding: immediate emotional reciprocity after
+            // sensitive disclosures lifts conversion materially.
+            confirmation: "thank you for sharing. that's the hardest field on this form.",
             annotation: {
                 goalWeightAnnotation(currentKg: currentWeightKg, goalKg: goalWeightKg)
             }
@@ -536,7 +646,10 @@ struct OnboardingView: View {
         }
 
         case 134: jfBodyTypeScreen(
-            "Where are you now?",
+            // Shortened from "Where are you now?" to one short line so
+            // the title fits one row at 32pt — keeps the model image
+            // generous and matches the new case 135 title pattern.
+            "your starting point.",
             sub: "Visual reference, not a number on a scale.",
             position: $bodyTypeCurrent,
             labels: ["Cut", "Lean", "Athletic", "Average", "Curvy", "Soft"],
@@ -544,14 +657,22 @@ struct OnboardingView: View {
         )
 
         case 135: jfBodyTypeScreen(
-            "Where do you want to be?",
+            // Shortened from "Where do you want to be?" — that wrapped
+            // to 2 lines on standard-height devices, shrinking the
+            // model picture. "your goal." fits one line guaranteed.
+            "your goal.",
             sub: "What we're moving you toward.",
             position: $bodyTypeDesired,
             labels: ["Cut", "Lean", "Athletic", "Average", "Curvy", "Soft"],
             maxPosition: bodyTypeCurrent,
             markerPosition: bodyTypeCurrent,
             contextLine: "You said you're at: \(["Cut", "Lean", "Athletic", "Average", "Curvy", "Soft"][bodyTypeCurrent])",
-            next: 203
+            // Routes to case 160 (reshape transition) → case 161 (first
+            // prediction) → case 203. PostHog 2026-05-26 audit found
+            // case 135 was going direct to 203 — skipping both screens.
+            // flowOrder had them sequential (134, 135, 160, 161, 203);
+            // forward routing didn't match. Fixed.
+            next: 160
         )
         .onAppear {
             // Seed desired body type from current on first mount. The
@@ -581,8 +702,15 @@ struct OnboardingView: View {
                         ("strong",   "Strong",   "Capable, grounded",       nil),
                         ("radiant",  "Radiant",  "Glowing from inside out", nil),
                     ],
-                    sel: $identityFeeling, next: 141,
-                    confirmation: "That's the goal. Your plan is built around getting you there.",
+                    // Routes to E1-d (case 233, cycle awareness) →
+                    // N1 (235, "this month signals") → 141 reward Q.
+                    sel: $identityFeeling, next: 233,
+                    // Reciprocity beat — Phase 2 refresh. Lowercase peer
+                    // voice replaces the older capitalized corporate
+                    // affirmation; brevity reads as warmer than the
+                    // earlier "your plan is built around getting you
+                    // there" coach-statement.
+                    confirmation: "got it. we'll build around that.",
                     stickers: [
                         "powerful": .starLineart,
                         "calm":     .flower3D,
@@ -627,6 +755,7 @@ struct OnboardingView: View {
             italic: "closer",
             suffix: ".",
             sticker: .flower3D,
+            heroImage: "edu-barrier-body",
             bind: $relatability1, next: 151
         )
         case 151: jfYesNo(
@@ -634,6 +763,7 @@ struct OnboardingView: View {
             italic: "right",
             suffix: " for me.",
             sticker: .starLineart,
+            heroImage: "edu-barrier-guidance",
             bind: $relatability2, next: 152
         )
         case 152: jfYesNo(
@@ -641,8 +771,14 @@ struct OnboardingView: View {
             italic: "too hard",
             suffix: " or boring.",
             sticker: .heartsLineart,
-            bind: $relatability3, next: 205,
-            confirmation: "We've all been there. We'll make it easy."
+            heroImage: "edu-barrier-stick",
+            bind: $relatability3, next: 206,
+            // Reciprocity beat — closes the barriers sequence. Phase 2
+            // refresh aligns with the RevenueCat reciprocity finding +
+            // matches the peer-voice cadence of cases 133 and 140.
+            // Underlying Rhodes & de Bruijn 2013 still applies (naming
+            // the barrier closes ~50% of intention-behavior gap).
+            confirmation: "reading you. these aren't excuses."
         )
 
         // ─── Part 6 — Ready to start ────────────────────────────
@@ -650,8 +786,8 @@ struct OnboardingView: View {
             ZStack {
                 StickerScatter(placements: Self.baselinePlacements)
                 jfQuestion(
-                    "How long can you hold a plank?",
-                    sub: "Your starting benchmark. We move it up from here.",
+                    "how long can you hold a plank?",
+                    sub: "your starting benchmark. \"no idea\" is also an answer.",
                     opts: [
                         ("under15",   "Under 15s",  "Just starting",       "stopwatch"),
                         ("fifteen30", "15-30s",     "Building a base",     "stopwatch.fill"),
@@ -694,6 +830,38 @@ struct OnboardingView: View {
         case 22: personalStatScreen
         case 23: cameraSetupScreen
         case 215: reviewPromptScreen
+
+        // ─── Method preview (250) — "what you get with me" ──────────
+        // Sits between plan reveal (21) and consent (240). Previews the
+        // daily 5-min ritual (the only post-purchase feature). Honest
+        // teaser of the 5-day arc + Jeni audio sample so the consent
+        // ritual signs against something concrete, not abstract.
+        case 250: methodPreviewScreen
+
+        // ─── Tier-ladder identity preview (260) ─────────────────────
+        // Phase 3 conversion beat. 3 milestone cards: week 1 / 3 / 8
+        // with identity-coded labels (building → steady → stronger).
+        // Companion to the past-vs-steady comparison at case 142.
+        // Bandura/Annesi 2011 self-efficacy + Mastery Curve frame —
+        // names what *feels* different, not what number you hit.
+        case 260: tierLadderScreen
+
+        // ─── Habit-window quiz (270) ────────────────────────────────
+        // Phase 4 education-as-quiz. Teaches the 12-week habit window
+        // (Lally 2010 / Kaushal & Rhodes 2015) — JeniFit's evidence-
+        // aligned planning frame — as a 3-option pick with research-
+        // cited reveal. Delivers value pre-paywall; antidote to the
+        // "long onboarding = extraction" perception that kills women's
+        // wellness app conversion in 2026.
+        case 270: habitWindowQuizScreen
+
+        // ─── Consent ritual (240) — playful pinky-promise pledge ────
+        // Press-and-hold 2.8s long-press signature. Cialdini commitment
+        // & consistency principle in app form — small voluntary
+        // commitment lifts follow-through. Placed between method preview
+        // (250) and rating prefilter (215) — IKEA-effect maximum: user
+        // has just received a personalized plan + seen the daily ritual.
+        case 240: consentRitualScreen
         case 26: SignInPromptView { Haptics.medium(); go(22) }
 
         // Legacy showcase screens (kept for Phase 5 reuse, not in flow)
@@ -735,26 +903,52 @@ struct OnboardingView: View {
     /// (20–24) which Phase 5 will rebuild. Sign-in prompt (26) sits
     /// between plan reveal and personal stat as before.
     private static let flowOrder: [Int] = [
-        // Part 1
-        200, 1, 110, 111,
-        // Part 2
-        201, 2, 8, 120, 121, 25, 17,
-        // Part 3
-        202, 130, 7, 131, 132, 133, 134, 135,
+        // Part 1 — anti-shame anchor (230) right after the divider
+        // sets the brand promise before any sensitive Q.
+        200, 230, 1, 110, 111,
+        // Part 2 — N2 (236, "what's worked before") after Q2 so the
+        // experience context lands before activity level. E1-c (232,
+        // five-min science) before session length pre-empts doubt.
+        201, 2, 236, 8, 120, 121, 232, 25, 17,
+        // Phase 4 — education-as-quiz beat (12-week habit window).
+        // Teaches the JeniFit 3-month evidence frame before the body
+        // Q cluster lands; value delivered pre-paywall, antidote to
+        // "extraction without value" perception (Noom-research finding).
+        270,
+        // Part 3 — E1-b (231, body-Q primer) immediately before
+        // gender reduces drop on the highest-skip questions.
+        202, 231, 130, 7, 131, 132, 133, 134, 135,
         // Phase 5 — reshape transition + first prediction (commit-escalation)
         160, 161,
-        // Part 4
-        203, 140, 141, 142,
+        // Part 4 — E1-d (233, cycle awareness) after identity Q, then
+        // N1 (235, "this month") routes into reward Q.
+        203, 140, 233, 235, 141, 142,
         // Phase 5 — re-prediction recap
         170,
+        // Phase 3 — tier-ladder identity preview (week 1 / 3 / 8).
+        // Shows progression as identity, not weight numbers.
+        260,
         // Part 5
         204, 150, 151, 152,
+        // Mid-flow recap — "so here's you" — surfaces 4 of the user's
+        // own answers so the Part 6 + plan reveal feel earned.
+        206,
         // Part 6
         205, 3, 11, 18, 19,
-        // Phase 5 — loading carousel + final prediction → plan reveal.
-        // Onboarding ends at camera setup (23); the post-onboarding
-        // paywall lives outside the flow as RootView's fullScreenCover.
-        180, 181, 21, 215, 26, 22, 23,
+        // Phase 5 — loading carousel + final prediction → plateau
+        // pre-frame (E1-e, 234) → plan reveal → method preview (250,
+        // "what you get with me" — daily ritual tease, only post-purchase
+        // feature) → consent ritual (240, pinky-promise long-press
+        // signature) → rating prefilter → sign-in → personal stat →
+        // camera setup.
+        //
+        // Phase 3 (2026 conversion pass): tier-ladder identity preview
+        // (260) inserted between re-prediction (170) and Part 5 divider
+        // (204) — shows the user what each week of the program FEELS
+        // like in identity terms (building / steady / stronger), not
+        // weight numbers. Companion to the comparison frame at case
+        // 142.
+        180, 181, 234, 21, 250, 240, 215, 26, 22, 23,
     ]
 
     private var progressFraction: CGFloat {
@@ -987,21 +1181,27 @@ struct OnboardingView: View {
                         .opacity(welcomeSubheadVisible ? 1 : 0)
                         .offset(y: welcomeSubheadVisible ? 0 : 12)
 
-                    Spacer().frame(height: 24)
+                    Spacer().frame(height: 20)
 
-                    welcomeVideoBlock(height: max(240, min(380, geo.size.height * 0.42)))
+                    // Plank video block — restored after the polaroid
+                    // experiment. Keeps Variant D's founder-voice copy
+                    // above (eyebrow + headline + subhead) but lets
+                    // the video carry the visual weight. Cap shrunk
+                    // from 240–380 to 200–320 so the welcome stack
+                    // still fits with the shorter Variant D headline.
+                    welcomeVideoBlock(height: max(200, min(320, geo.size.height * 0.36)))
                         .padding(.horizontal, 24)
                         .opacity(welcomeVideoVisible ? 1 : 0)
                         .scaleEffect(welcomeVideoVisible ? 1.0 : 0.96)
 
-                    Spacer(minLength: 16)
+                    Spacer(minLength: 12)
 
                     welcomeCTA
                         .padding(.horizontal, 24)
                         .opacity(welcomeCtaVisible ? 1 : 0)
                         .scaleEffect(welcomeCtaVisible ? 1.0 : 0.96)
 
-                    Text("It's free to begin.")
+                    Text("free to begin.")
                         .font(.custom("DMSans-Regular", size: 13))
                         .foregroundStyle(Palette.textSecondary)
                         .padding(.top, 8)
@@ -1012,8 +1212,8 @@ struct OnboardingView: View {
                         showWelcomeSignInSheet = true
                     } label: {
                         HStack(spacing: 4) {
-                            Text("Already have an account?")
-                            Text("Sign in").underline()
+                            Text("already have an account?")
+                            Text("sign in").underline()
                         }
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
@@ -1049,7 +1249,11 @@ struct OnboardingView: View {
 
     private var welcomeEyebrow: some View {
         HStack {
-            Text("MADE FOR YOUR LEVEL")
+            // v2 — peer voice / confession register. Frame is
+            // "i've been where you are" instead of "i made this for
+            // you." Per user feedback: the best sales come from the
+            // audience's perspective, not the founder's pitch.
+            Text("if you've tried everything")
                 .font(Typo.eyebrow)
                 .tracking(2)
                 .foregroundStyle(Palette.accent)
@@ -1058,26 +1262,38 @@ struct OnboardingView: View {
     }
 
     private var welcomeHeadline: some View {
+        // v2 peer-confession headline. Italic accent across "so many
+        // times" — 3 words, ItalicAccentText handles word-by-word.
+        // Reads as a friend's text, not a brand promise. Acknowledges
+        // user's prior failures BEFORE pitching anything (the move
+        // that converts on TikTok-acquired audiences who are
+        // skeptical of clean founder hero stories).
         ItalicAccentText(
-            "Sculpt your strongest body, at home.",
-            italic: ["strongest"],
-            baseFont: .custom("Fraunces72pt-SemiBold", size: 38),
-            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 38),
+            "i've started over so many times.",
+            italic: ["so", "many", "times."],
+            baseFont: .custom("Fraunces72pt-SemiBold", size: 34),
+            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 34),
             alignment: .leading
         )
         .frame(maxWidth: .infinity, alignment: .leading)
-        // Headline wraps to 2-3 lines at 38pt. The parent VStack uses
-        // fixed spacers + a tall video block, so without fixedSize the
-        // last line ("home.") gets squeezed and truncated with "...".
         .fixedSize(horizontal: false, vertical: true)
     }
 
     private var welcomeSubhead: some View {
-        Text("Personalized routines built around your goals — guided by Jeni, your coach.")
+        // v3 subhead — drops the "pilates is the answer" certainty. New
+        // frame: "i'll share what i learned, you answer a few questions
+        // so we can build this around you." Reads as collaborative
+        // setup rather than a product claim — and earns the right to
+        // ask the next 50 onboarding questions by naming what they're
+        // for upfront.
+        (Text("i'll share everything i learned. answer a few questions so we can build this around ")
+            + Text("you").font(.custom("Fraunces72pt-RegularItalic", size: 17))
+            + Text("."))
             .font(Typo.body)
             .foregroundStyle(Palette.textSecondary)
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Pink mat (Palette.accentSubtle) framing a clipped video player.
@@ -1101,7 +1317,12 @@ struct OnboardingView: View {
             Haptics.light()
             go(200) // Part 1 divider
         } label: {
-            Text("Get started")
+            // Lowercase "continue" replaces "Get started". Research:
+            // brand-coined verbs ("start becoming," "begin your journey")
+            // read inauthentic to TikTok-acquired women aged 22–35
+            // (Drake & Salinas 2024 on femvertising authenticity). Plain
+            // "continue" wins on trust signal without losing momentum.
+            Text("continue")
                 .font(.custom("DMSans-SemiBold", size: 16))
                 .foregroundStyle(Palette.bgPrimary)
                 .frame(maxWidth: .infinity)
@@ -1115,6 +1336,12 @@ struct OnboardingView: View {
     private func runWelcomeChoreography() async {
         guard !welcomeAppeared else { return }
         welcomeAppeared = true
+
+        // Funnel start — the first event in every onboarding session.
+        // welcomeAppeared guard ensures we don't double-fire on SwiftUI
+        // remounts; AnalyticsManager additionally coalesces dupes.
+        Analytics.track(.onboardingStart)
+        Analytics.track(.onboardingStepViewed, properties: stepProperties(stepId: 0))
 
         // Phase 20d: welcome reveal swells through Motion.entranceSoft
         // (0.42s) so each line lands with a calm beat instead of a snap.
@@ -1810,11 +2037,18 @@ struct OnboardingView: View {
     /// reads with Fraunces italic emphasis on the key word, and adds a
     /// hero sticker above the statement so each question has a distinct
     /// visual anchor (instead of three near-identical screens).
+    ///
+    /// `heroImage` (optional) overrides the small sticker-in-halo with
+    /// a larger glossy 3D illustration generated via Grok Imagine.
+    /// Used by Q150/Q151/Q152 barrier screens — same layout structure,
+    /// just a bigger anchor on the brand sticker aesthetic. Falls back
+    /// to the existing sticker pattern when `heroImage` is nil.
     private func jfYesNo(
         prefix: String,
         italic: String,
         suffix: String,
         sticker: StickerName,
+        heroImage: String? = nil,
         bind: Binding<Bool?>,
         next: Int,
         confirmation: String? = nil
@@ -1822,17 +2056,34 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            // Hero sticker — sits inside a soft accent halo so it reads
-            // as a deliberate brand mark, not loose decor.
-            ZStack {
-                Circle()
-                    .fill(Palette.accent.opacity(0.10))
-                    .frame(width: 92, height: 92)
-                Image(sticker.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 60, height: 60)
-                    .opacity(sticker.style.opacity)
+            // Hero — either the large generated illustration (when
+            // `heroImage` is provided) or the small sticker-in-halo
+            // fallback. The illustration renders at 180pt on a soft
+            // accentSubtle (#F5D5D8) rounded backdrop so transparency
+            // edge cases blend into the pink rather than the cream bg.
+            Group {
+                if let heroImage = heroImage {
+                    Image(heroImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 180)
+                        .padding(Space.md)
+                        .background(
+                            RoundedRectangle(cornerRadius: 24)
+                                .fill(Palette.accentSubtle)
+                        )
+                } else {
+                    ZStack {
+                        Circle()
+                            .fill(Palette.accent.opacity(0.10))
+                            .frame(width: 92, height: 92)
+                        Image(sticker.assetName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 60, height: 60)
+                            .opacity(sticker.style.opacity)
+                    }
+                }
             }
             .padding(.bottom, Space.lg)
 
@@ -2788,16 +3039,16 @@ struct OnboardingView: View {
             .padding(.horizontal, Space.screenPadding)
             .padding(.bottom, Space.md)
 
-            // Italic accent on "you" — Fraunces voice instead of the
-            // previous system bold. Reads as a personal moment, not
-            // a form prompt.
-            (Text("What should we call ").font(Typo.title)
-             + Text("you").font(Typo.titleItalic)
-             + Text("?").font(Typo.title))
+            // Italic accent on "jeni" — coach-relational frame (Ladder /
+            // Sculpt Society pattern). Reads as a personal moment with
+            // the coach by name, not a generic form prompt.
+            (Text("what should ").font(Typo.title)
+             + Text("jeni").font(Typo.titleItalic)
+             + Text(" call you?").font(Typo.title))
                 .foregroundStyle(Palette.textPrimary)
                 .padding(.horizontal, Space.screenPadding)
 
-            Text("First name is perfect.")
+            Text("first name is perfect.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .padding(.top, Space.xs)
@@ -3088,6 +3339,1324 @@ struct OnboardingView: View {
     // MARK: - PHASE 5 — RESHAPE / PREDICTION / LOADING
     // ═══════════════════════════════════════
 
+    // ─── Recap card (206) — "so here's you" ─────────────────────
+    // Mid-flow earned-plan beat. Surfaces 4 of the user's own
+    // collected answers (bodyFocus, daysPerWeek × sessionLength,
+    // workoutLocation, the first acknowledged barrier) so the next
+    // Part 6 + plan reveal feel built-for-them. Noom convergence:
+    // dynamic personalization echoed back is the highest-leverage
+    // welcome moment per RevenueCat's Noom funnel teardown.
+    //
+    // Layout: vertically centered with two beats — the recap card +
+    // a small "here's what we're going to do" follow-on — so the
+    // screen doesn't read as a single card floating in whitespace.
+    // Sticker scatter matches the rest of the onboarding chrome.
+    private var recapCardScreen: some View {
+        // Use the user's name when set so the headline + card feel
+        // personally addressed instead of generically "for any user".
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let nameSuffix = trimmedName.isEmpty ? "" : ", \(trimmedName.lowercased())"
+        let goalAnchor = recapGoalAnchor()
+
+        return ZStack {
+            StickerScatter(placements: Self.recapPlacements)
+
+            VStack(spacing: 0) {
+                Spacer()
+
+                // Italic accent on "you" — JeniFit voice signal on the
+                // punch word. Heart as terminal punctuation.
+                ItalicAccentText("so here's you\(nameSuffix) ♥",
+                                 italic: ["you"],
+                                 alignment: .center)
+                    .padding(.horizontal, Space.screenPadding)
+
+                Spacer().frame(height: Space.lg)
+
+                // Scrapbook card. Stronger personal connection for
+                // weight-loss audience: leads with the GOAL anchor
+                // (lbs lost + target date) in italic-Fraunces accent —
+                // that's the emotionally salient hook. The 3-4 data
+                // rows sit below as supporting context. Falls back to
+                // a 4-row layout when no weight-loss goal was set.
+                VStack(alignment: .leading, spacing: Space.md) {
+                    if let goalAnchor = goalAnchor {
+                        VStack(alignment: .center, spacing: 2) {
+                            Text("your goal")
+                                .font(Typo.eyebrow)
+                                .tracking(2)
+                                .foregroundStyle(Palette.textSecondary)
+                            Text(goalAnchor)
+                                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 20))
+                                .foregroundStyle(Palette.accent)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.bottom, Space.xs)
+                        Rectangle()
+                            .fill(Palette.divider)
+                            .frame(height: 1)
+                            .padding(.bottom, Space.xs)
+                    }
+                    recapRow(recapBodyFocusLabel())
+                    recapRow(recapFrequencyLabel())
+                    recapRow(recapLocationLabel())
+                    if let barrier = recapBarrierLabel() {
+                        recapRow(barrier, italicized: true)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(Space.lg)
+                .background(
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(Palette.bgElevated)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 24)
+                                .stroke(Palette.accent, lineWidth: 1.5)
+                        )
+                )
+                .padding(.horizontal, Space.screenPadding)
+
+                Spacer().frame(height: Space.lg)
+
+                // Closing beat — directly acknowledges the user's
+                // truth and JeniFit's commitment to it. Stronger
+                // emotional landing than the previous "noted. we'll
+                // meet you exactly there." which read too neutral.
+                VStack(spacing: Space.xs) {
+                    Text("we hear you.")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                        .foregroundStyle(Palette.textPrimary)
+
+                    Text("this plan is built around exactly this.")
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, Space.screenPadding)
+
+                Spacer()
+
+                ctaBtn("continue") { Haptics.light(); go(205) }
+            }
+        }
+        .background(Palette.bgPrimary)
+    }
+
+    /// Weight-loss goal anchor for the recap card. Returns a string
+    /// like "~15 lbs lighter by Aug 14" when the user set a real loss
+    /// goal (currentWeightKg > goalWeightKg + 0.5). Returns nil for
+    /// maintenance / muscle-gain so the framing doesn't promise weight
+    /// loss to someone who didn't ask for it. Uses existing predictionDate
+    /// helper so the date matches what the rest of the flow shows.
+    private func recapGoalAnchor() -> String? {
+        guard currentWeightKg > goalWeightKg + 0.5 else { return nil }
+        let lbsDelta = Int(((currentWeightKg - goalWeightKg) * Self.lbPerKg).rounded())
+        guard lbsDelta >= 1 else { return nil }
+        let dateString = formatGoalDate(predictionDate())
+        return "~\(lbsDelta) lbs lighter by \(dateString)"
+    }
+
+    /// 6-sticker LIGHT scatter for the recap card (206). Edge-only so
+    /// the centered card + follow-on beat stay the visual anchor.
+    /// Mix of line-art + painterly, asymmetric — matches the rest of
+    /// the onboarding chrome's scrapbook aesthetic.
+    private static let recapPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .heartsLineart,
+                         position: CGPoint(x: 0.10, y: 0.10),
+                         size: 30, rotation: -10, phaseDelay: 0.00),
+        StickerPlacement(sticker: .sparkleGlossy,
+                         position: CGPoint(x: 0.90, y: 0.12),
+                         size: 32, rotation: 12, phaseDelay: 0.15),
+        StickerPlacement(sticker: .cherries,
+                         position: CGPoint(x: 0.07, y: 0.86),
+                         size: 30, rotation: 9, phaseDelay: 0.40),
+        StickerPlacement(sticker: .flower3D,
+                         position: CGPoint(x: 0.93, y: 0.88),
+                         size: 34, rotation: -10, phaseDelay: 0.55),
+        StickerPlacement(sticker: .bowSatin,
+                         position: CGPoint(x: 0.05, y: 0.48),
+                         size: 30, rotation: 13, phaseDelay: 0.72),
+        StickerPlacement(sticker: .starLineart,
+                         position: CGPoint(x: 0.95, y: 0.50),
+                         size: 26, rotation: -12, phaseDelay: 0.88),
+    ]
+
+    private func recapRow(_ text: String, italicized: Bool = false) -> some View {
+        HStack(alignment: .top, spacing: Space.sm) {
+            Text("✦")
+                .font(.system(size: 16))
+                .foregroundStyle(Palette.accent)
+            if italicized {
+                Text(text)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                    .foregroundStyle(Palette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text(text)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Palette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    /// Returns a human-readable body-focus summary. Falls back to a
+    /// neutral line if the user didn't pick any zones (rare — Q110
+    /// requires at least one selection in the current flow).
+    private func recapBodyFocusLabel() -> String {
+        let labels: [String: String] = [
+            "flatBelly": "flat belly",
+            "tonedArms": "toned arms",
+            "roundButt": "round glutes",
+            "slimLegs":  "slim legs",
+            "fullBody":  "full body"
+        ]
+        let mapped = bodyFocus.compactMap { labels[$0] }
+        guard !mapped.isEmpty else { return "full body focus" }
+        if mapped.count == 1 { return mapped[0] }
+        if mapped.count == 2 { return "\(mapped[0]) + \(mapped[1])" }
+        let head = mapped.dropLast().joined(separator: ", ")
+        return "\(head), \(mapped.last!)"
+    }
+
+    /// Combines days/week + session length into one line. Falls back
+    /// to the conservative default when either is unset.
+    private func recapFrequencyLabel() -> String {
+        let days = commitmentDaysCount(commitmentDays)
+        let mins = sessionLength.isEmpty ? 7 : (Int(sessionLength) ?? 7)
+        if days > 0 { return "\(days) days, \(mins) minutes each" }
+        return "\(mins) minutes a day"
+    }
+
+    /// Workout location → human-readable line.
+    private func recapLocationLabel() -> String {
+        switch workoutLocation {
+        case "home":    return "at home, just a mat"
+        case "gym":     return "at the gym"
+        case "outdoor": return "outdoors"
+        case "mix":     return "wherever you feel like"
+        default:        return "wherever works for you"
+        }
+    }
+
+    /// First acknowledged barrier as a quoted line. Italic-styled in
+    /// the row to read as the user's own voice. Returns nil if none
+    /// of the three barrier yes/nos came back true.
+    private func recapBarrierLabel() -> String? {
+        if relatability1 == true {
+            return "\"workout apps make me feel further from my body\""
+        }
+        if relatability2 == true {
+            return "\"i have no idea which workouts are right for me\""
+        }
+        if relatability3 == true {
+            return "\"i quit when something feels too hard\""
+        }
+        return nil
+    }
+
+    // ─── Educational screens (230-234) — Bundle E ───────────────
+    //
+    // Five priming/trust screens woven into the existing flow at
+    // research-validated positions. Each = one screen, one headline,
+    // one body paragraph, one CTA. No skip — they're brief and
+    // every user sees them (the priming effect is documented at
+    // 7.5× trial-opt-in lift when education sits ahead of paywall).
+    //
+    // Layout matches the rest of the onboarding chrome: 4-sticker
+    // LIGHT scatter, italic-Fraunces accent on the punch word(s),
+    // lowercase casual body copy, terminal-only heart.
+    //
+    // Research justification per screen:
+    //   230 (E1-a) — anti-diet-culture anchor (Fortune 2026 ranking).
+    //   231 (E1-b) — Noom "why we ask" pattern (RevenueCat teardown).
+    //   232 (E1-c) — Atomic Habits two-minute rule (Clear).
+    //   233 (E1-d) — cycle awareness (Wild.AI / FitrWoman standard).
+    //   234 (E1-e) — plateau pre-framing (StatPearls; underused).
+    private func educationalScreen(
+        heroImage: String? = nil,
+        eyebrow: String? = nil,
+        headline: String,
+        italicWords: [String],
+        body: String,
+        next: Int
+    ) -> some View {
+        ZStack {
+            StickerScatter(placements: Self.educationalPlacements)
+
+            VStack(spacing: 0) {
+                Spacer()
+
+                // Optional hero illustration. Flat editorial style
+                // generated via Grok Imagine. Sits above the eyebrow
+                // as the visual anchor. Backed by a soft accentSubtle
+                // (#F5D5D8) rounded rectangle so any residual
+                // transparency artifacts blend into the pink instead
+                // of showing against the cream app bg.
+                if let heroImage = heroImage {
+                    Image(heroImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 220)
+                        .padding(Space.md)
+                        .background(
+                            RoundedRectangle(cornerRadius: 24)
+                                .fill(Palette.accentSubtle)
+                        )
+                        .padding(.horizontal, Space.lg)
+                    Spacer().frame(height: Space.lg)
+                }
+
+                if let eyebrow = eyebrow {
+                    Text(eyebrow)
+                        .font(Typo.eyebrow)
+                        .tracking(2)
+                        .foregroundStyle(Palette.accent)
+                        .padding(.horizontal, Space.screenPadding)
+                    Spacer().frame(height: Space.md)
+                }
+
+                ItalicAccentText(headline,
+                                 italic: italicWords,
+                                 alignment: .center)
+                    .padding(.horizontal, Space.screenPadding)
+
+                Spacer().frame(height: Space.lg)
+
+                Text(body)
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.screenPadding)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer()
+
+                ctaBtn("continue") { Haptics.light(); go(next) }
+            }
+        }
+        .background(Palette.bgPrimary)
+    }
+
+    /// LIGHT 4-sticker scatter for educational screens. Edge-only so
+    /// the centered headline + body stay the visual anchor. Mix of
+    /// line-art + painterly. Matches the onboarding chrome.
+    private static let educationalPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .heartsLineart,
+                         position: CGPoint(x: 0.08, y: 0.12),
+                         size: 28, rotation: -10, phaseDelay: 0.00),
+        StickerPlacement(sticker: .sparkleGlossy,
+                         position: CGPoint(x: 0.92, y: 0.14),
+                         size: 30, rotation: 12, phaseDelay: 0.20),
+        StickerPlacement(sticker: .cherries,
+                         position: CGPoint(x: 0.10, y: 0.88),
+                         size: 30, rotation: 9, phaseDelay: 0.50),
+        StickerPlacement(sticker: .flower3D,
+                         position: CGPoint(x: 0.92, y: 0.86),
+                         size: 32, rotation: -10, phaseDelay: 0.75),
+    ]
+
+    // 230 (E1-a) — brand-promise anchor + coach intro. Sets the
+    // long-game expectation before any sensitive Q. Routes → case 1.
+    // Renamed from anti-shame framing — same placement, positive
+    // version. Five-minutes-a-day commitment is the brand throughline.
+    private var educationalAntiShameScreen: some View {
+        educationalScreen(
+            heroImage: "edu-coach-intro",
+            eyebrow: "first things first",
+            headline: "you've got jeni now.",
+            italicWords: ["jeni"],
+            body: "she keeps it short, honest, and yours. five minutes a day. she'll bring the rest. ♥",
+            next: 1
+        )
+    }
+
+    // 231 (E1-b) — body-question priming. Reduces drop on the most-
+    // skipped questions (gender, weight, body shape). Placed before
+    // case 130 (gender). Routes → case 130.
+    private var educationalBodyPrimerScreen: some View {
+        educationalScreen(
+            heroImage: "edu-body-primer",
+            eyebrow: "heads up",
+            headline: "the next few are about your body.",
+            italicWords: ["your body"],
+            body: "just to calibrate session difficulty and your progress chart. these stay between you and jeni.",
+            next: 130
+        )
+    }
+
+    // 232 (E1-c) — five-minute science. Pre-empts the "is 5 min
+    // enough?" doubt before case 25 (session length). Routes → 25.
+    private var educationalFiveMinScreen: some View {
+        educationalScreen(
+            heroImage: "edu-five-minutes",
+            eyebrow: "real talk",
+            headline: "five minutes is the science answer.",
+            italicWords: ["five"],
+            body: "beginners who start at 5 stick around 3× longer than those who start at 30. it's not about working harder. it's about showing up tomorrow.",
+            next: 25
+        )
+    }
+
+    // 233 (E1-d) — cycle awareness. Trust signal for women 22-35.
+    // Doesn't collect data; just acknowledges. Placed after case 140
+    // (identity feeling). Routes → N1 (case 235) which asks about
+    // this month's signals, then continues to case 141 (reward).
+    private var educationalCycleScreen: some View {
+        educationalScreen(
+            heroImage: "edu-cycle",
+            eyebrow: "one more thing",
+            headline: "you're not the same person on day 7 as day 21.",
+            italicWords: ["day 7", "day 21"],
+            body: "hormones shift across your cycle. some weeks you'll feel unstoppable. some you'll need a softer day. jeni adjusts. you don't have to push through.",
+            next: 235
+        )
+    }
+
+    // 234 (E1-e) — plateau pre-framing. Reduces week-3 churn. Placed
+    // between case 181 (final prediction) and case 21 (plan reveal).
+    private var educationalPlateauScreen: some View {
+        educationalScreen(
+            heroImage: "edu-plateau",
+            eyebrow: "before you start",
+            headline: "the scale will stall around week 3. that's good.",
+            italicWords: ["good"],
+            body: "plateaus mean your body is adapting — it's a physiological win, not a fail. jeni tells you what to change when it happens. no panic. no quitting.",
+            next: 21
+        )
+    }
+
+    // ─── Consent ritual (240) — pinky-promise long-press ────────
+    //
+    // 2.8s press-and-hold pledge mechanic. Research basis (full audit
+    // saved in earlier session): Cialdini commitment & consistency
+    // (Freedman & Fraser foot-in-the-door, ~400% follow-through lift
+    // for small written commitments); Nyer & Dellande 2010 weight-
+    // loss commitment study (written > verbal); James Clear habit
+    // contract template (stripped of punishment clause for the
+    // women-fitness-2026 audience per Drake & Salinas femvertising
+    // research).
+    //
+    // Mechanics:
+    //   - Press-and-hold detected via DragGesture(minimumDistance: 0)
+    //     so it fires immediately on touchdown.
+    //   - Timer increments holdProgress 0→1 over 2.8s. Halfway haptic
+    //     tick at 0.5 + success haptic + confetti at 1.0.
+    //   - Release before completion fades the progress to 0 silently
+    //     (no error haptic — explicitly non-shaming per audience).
+    //   - On completion: route to 215 (rating prefilter) after a
+    //     0.8s confetti beat.
+    //   - "maybe later" routes straight to 215 with a skip event.
+    //
+    // Trial-end / paywall etc. are downstream of this screen via 215
+    // → 26 → 22 → 23 → finish() → RootView paywall cover.
+    private var consentRitualScreen: some View {
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let nameForSignature = trimmedName.isEmpty ? "me" : trimmedName.lowercased()
+        let signatureLetterCount = max(0, min(nameForSignature.count,
+            Int(round(CGFloat(nameForSignature.count) * consentHoldProgress))))
+        let signaturePrefix = String(nameForSignature.prefix(signatureLetterCount))
+
+        return ZStack {
+            StickerScatter(placements: Self.consentPlacements)
+
+            VStack(spacing: 0) {
+                Spacer()
+
+                // Eyebrow
+                Text("one more thing.")
+                    .font(Typo.eyebrow)
+                    .tracking(2)
+                    .foregroundStyle(Palette.accent)
+
+                Spacer().frame(height: Space.md)
+
+                // Pledge — playful gen-Z casual, italic accent on
+                // "pinky promise" punch phrase.
+                ItalicAccentText(
+                    "pinky promise i'll show up. even on the bad days.",
+                    italic: ["pinky", "promise"],
+                    baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
+                    alignment: .center
+                )
+                .padding(.horizontal, Space.screenPadding)
+                .fixedSize(horizontal: false, vertical: true)
+
+                Spacer().frame(height: Space.sm)
+
+                Text("five minutes. that's it. ♥")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+
+                Spacer().frame(height: Space.xl)
+
+                // Signature card — receives the press-and-hold.
+                // Border stroke fills clockwise as progress advances.
+                consentSignatureCard(prefix: signaturePrefix,
+                                     fullName: nameForSignature)
+                    .padding(.horizontal, Space.screenPadding)
+
+                Spacer().frame(height: Space.md)
+
+                Text("press & hold to sign")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+
+                Spacer()
+
+                // Skip — neutral copy, never punitive. Matches the
+                // research note that 22–35 women penalize commitment-
+                // shame frames (Drake & Salinas 2024).
+                Button {
+                    Haptics.light()
+                    cancelConsentHold()
+                    Analytics.track(.consentRitualSkipped)
+                    go(215)
+                } label: {
+                    Text("maybe later")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Palette.textSecondary)
+                        .padding(.vertical, 12)
+                }
+                .buttonStyle(PressFeedbackStyle())
+                .padding(.bottom, Space.lg)
+            }
+        }
+        .background(Palette.bgPrimary)
+        .onAppear {
+            Analytics.track(.consentRitualViewed)
+        }
+        .onDisappear {
+            // Defensive cleanup — if the user nav'd away mid-hold,
+            // kill the timer so it doesn't fire after the screen.
+            consentHoldTimer?.invalidate()
+            consentHoldTimer = nil
+        }
+    }
+
+    /// The press-and-hold signature card. Animated border-stroke
+    /// progresses 0→1 over 2.8s; name letters fill in italic Fraunces
+    /// as the hold deepens. Released early: silent fade-out.
+    private func consentSignatureCard(prefix: String, fullName: String) -> some View {
+        // Disambiguate the displayed name: full ghost in textSecondary
+        // at 30% opacity, filled prefix in textPrimary italic.
+        let ghostSuffix = String(fullName.dropFirst(prefix.count))
+
+        return VStack(spacing: 4) {
+            // Signature line — visible name fills letter-by-letter
+            HStack(spacing: 0) {
+                Text(prefix)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
+                    .foregroundStyle(Palette.textPrimary)
+                Text(ghostSuffix)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
+                    .foregroundStyle(Palette.textSecondary.opacity(0.25))
+            }
+
+            // Hairline under the signature — adds polaroid-signature feel
+            Rectangle()
+                .fill(Palette.textSecondary.opacity(0.3))
+                .frame(height: 1)
+                .padding(.horizontal, Space.lg)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Space.lg)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(Palette.bgElevated)
+                .overlay(
+                    // Progress border — trims clockwise as the user holds
+                    RoundedRectangle(cornerRadius: 24)
+                        .trim(from: 0, to: consentHoldProgress)
+                        .stroke(Palette.accent, lineWidth: 2)
+                )
+                .overlay(
+                    // Idle border — sits under the trimmed accent so
+                    // the card has a visible edge even before hold.
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(Palette.divider, lineWidth: 1)
+                )
+        )
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    if !consentHoldActive && !consentHoldCompleted {
+                        startConsentHold()
+                    }
+                }
+                .onEnded { _ in
+                    if !consentHoldCompleted {
+                        cancelConsentHold()
+                    }
+                }
+        )
+    }
+
+    private func startConsentHold() {
+        guard !consentHoldCompleted else { return }
+        consentHoldActive = true
+        consentHapticHalfwayFired = false
+        Haptics.light()
+        let durationSec: CGFloat = 2.8
+        let tickSec: TimeInterval = 0.05
+        consentHoldTimer?.invalidate()
+        consentHoldTimer = Timer.scheduledTimer(withTimeInterval: tickSec, repeats: true) { timer in
+            DispatchQueue.main.async {
+                let increment = CGFloat(tickSec) / durationSec
+                withAnimation(.linear(duration: tickSec)) {
+                    consentHoldProgress = min(consentHoldProgress + increment, 1.0)
+                }
+                // Halfway haptic tick — fires once.
+                if !consentHapticHalfwayFired && consentHoldProgress >= 0.5 {
+                    consentHapticHalfwayFired = true
+                    Haptics.light()
+                }
+                if consentHoldProgress >= 1.0 {
+                    timer.invalidate()
+                    completeConsentHold()
+                }
+            }
+        }
+    }
+
+    private func cancelConsentHold() {
+        consentHoldTimer?.invalidate()
+        consentHoldTimer = nil
+        consentHoldActive = false
+        if !consentHoldCompleted {
+            // Track abandon only when there was meaningful progress —
+            // otherwise it's just a stray tap, not an abandonment.
+            if consentHoldProgress > 0.15 {
+                Analytics.track(.consentRitualAbandoned,
+                                properties: ["progress_at_abandon": consentHoldProgress])
+            }
+            // Silent fade-out, no error haptic. Per audience research:
+            // no shame frames.
+            withAnimation(.easeOut(duration: 0.45)) {
+                consentHoldProgress = 0
+            }
+        }
+    }
+
+    private func completeConsentHold() {
+        consentHoldCompleted = true
+        consentHoldActive = false
+        Haptics.success()
+        showConfetti = true
+        Analytics.track(.consentRitualSigned)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
+            showConfetti = false
+            go(215)
+        }
+    }
+
+    /// 4-sticker LIGHT scatter for the consent screen. Edge-only.
+    private static let consentPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .heartGlossy,
+                         position: CGPoint(x: 0.10, y: 0.12),
+                         size: 30, rotation: -10, phaseDelay: 0.00),
+        StickerPlacement(sticker: .sparkleGlossy,
+                         position: CGPoint(x: 0.90, y: 0.14),
+                         size: 32, rotation: 12, phaseDelay: 0.25),
+        StickerPlacement(sticker: .bowSatin,
+                         position: CGPoint(x: 0.08, y: 0.88),
+                         size: 30, rotation: 11, phaseDelay: 0.55),
+        StickerPlacement(sticker: .ribbonLineart,
+                         position: CGPoint(x: 0.92, y: 0.86),
+                         size: 28, rotation: -10, phaseDelay: 0.80),
+    ]
+
+    // ═══════════════════════════════════════
+    // MARK: - Method preview (case 250)
+    // ═══════════════════════════════════════
+    //
+    // The "what you get with me" screen. Sits between plan reveal (21)
+    // and consent (240). Tease for the only post-purchase feature — the
+    // daily 5-minute Jeni ritual — so the consent ritual signs against
+    // a specific *thing* (a 5-day immersion) rather than an abstract
+    // plan. Day teasers map to the actual canonical hero lines in
+    // JeniMethodRitualContent so the preview is honest (data provenance
+    // rule). Audio sample plays a coach-voiced intro line; if the
+    // bundled clip is absent the button disables visibly so the screen
+    // doesn't lie about an audio it can't play.
+
+    private var methodPreviewScreen: some View {
+        let coachName = coachDisplayNameForVoicePref()
+        let coachAsset = coachPortraitAssetForVoicePref()
+
+        // Compact pass (2026-05-26): the continue CTA was below the
+        // fold on iPhone 17 Pro — user feedback after launch. Shrunk
+        // hero card 280→180pt, headline 28→24pt, day-row vertical
+        // padding 6→2, replaced all Space.lg between sections with
+        // Space.sm. Net cut ~180pt → CTA visible in first viewport.
+        return ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            StickerScatter(placements: Self.methodPreviewPlacements)
+
+            VStack(spacing: 0) {
+                Spacer().frame(height: Space.md)
+
+                Text("WHAT YOU GET WITH ME")
+                    .font(Typo.eyebrow)
+                    .tracking(2)
+                    .foregroundStyle(Palette.accent)
+
+                Spacer().frame(height: Space.sm)
+
+                ItalicAccentText(
+                    "5 minutes. every day. that's the whole program.",
+                    italic: ["5 minutes."],
+                    baseFont: .custom("Fraunces72pt-SemiBold", size: 24),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 24),
+                    alignment: .center
+                )
+                .padding(.horizontal, Space.screenPadding)
+                .fixedSize(horizontal: false, vertical: true)
+
+                Spacer().frame(height: 4)
+
+                Text("i show up in your phone. we breathe. you go on with your day.")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.screenPadding)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer().frame(height: Space.sm)
+
+                methodPreviewHeroCard(coachAsset: coachAsset, coachName: coachName)
+                    .padding(.horizontal, Space.screenPadding)
+
+                Spacer().frame(height: Space.sm)
+
+                // 5 day teasers — pulled from canonical Day 1-5
+                // ritual hero arcs so the preview matches what
+                // ships post-purchase.
+                VStack(spacing: 4) {
+                    methodPreviewDayRow(day: 1,
+                                        base: "the part nobody told you about ",
+                                        italic: "fat loss",
+                                        suffix: ".")
+                    methodPreviewDayRow(day: 2,
+                                        base: "what crash diets ",
+                                        italic: "steal",
+                                        suffix: " from you.")
+                    methodPreviewDayRow(day: 3,
+                                        base: "why your plan ",
+                                        italic: "protects",
+                                        suffix: " you.")
+                    methodPreviewDayRow(day: 4,
+                                        base: "eat to ",
+                                        italic: "fuel,",
+                                        suffix: " not to punish.")
+                    methodPreviewDayRow(day: 5,
+                                        base: "what the scale ",
+                                        italic: "won't tell you",
+                                        suffix: ".")
+                }
+                .padding(.horizontal, Space.screenPadding)
+
+                Spacer().frame(height: Space.sm)
+
+                Text("led by \(coachName) · ambient sound · 3-4 min")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+
+                Spacer(minLength: Space.sm)
+
+                ctaBtn("continue") {
+                    Haptics.medium()
+                    Analytics.track(.methodPreviewContinued)
+                    stopMethodPreviewSample()
+                    go(240)
+                }
+                .padding(.horizontal, Space.screenPadding)
+
+                Spacer().frame(height: Space.md)
+            }
+        }
+        .onAppear {
+            Analytics.track(.methodPreviewViewed)
+            prepareMethodPreviewAudio()
+        }
+        .onDisappear { stopMethodPreviewSample() }
+    }
+
+    /// Hero card on case 250 — coach portrait in a soft pink mat with
+    /// "DAY 1: READY" pill + audio-sample button. Compact 180pt height
+    /// (was 280pt) so the continue CTA stays above the fold on iPhone
+    /// 17 Pro. Coach portrait still reads at this size, audio button
+    /// + pill + audio button stack still fits via tightened padding.
+    private func methodPreviewHeroCard(coachAsset: String, coachName: String) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Palette.accentSubtle)
+                .frame(height: 180)
+
+            Image(coachAsset)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(maxHeight: 180)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("DAY 1: READY")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(1.5)
+                        .foregroundStyle(Palette.bgPrimary)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .background(Palette.textPrimary.opacity(0.88), in: Capsule())
+                    Spacer()
+                }
+
+                Button {
+                    togglePreviewSample()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: methodPreviewIsPlaying ? "stop.fill" : "play.fill")
+                            .font(.system(size: 12, weight: .bold))
+                        Text(audioButtonLabel(coachName: coachName))
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundStyle(Palette.bgPrimary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(Palette.textPrimary))
+                }
+                .buttonStyle(PressFeedbackStyle())
+                .opacity(methodPreviewAudioMissing ? 0.45 : 1.0)
+                .disabled(methodPreviewAudioMissing)
+                .accessibilityLabel(methodPreviewIsPlaying
+                    ? "Stop \(coachName) sample"
+                    : "Play \(coachName) sample")
+            }
+            .padding(12)
+        }
+        .frame(height: 180)
+    }
+
+    private func audioButtonLabel(coachName: String) -> String {
+        if methodPreviewAudioMissing { return "audio coming soon" }
+        return methodPreviewIsPlaying ? "playing…" : "hear \(coachName.lowercased())"
+    }
+
+    /// One day-teaser row. The italic word is the JeniFit voice signal —
+    /// italic-Fraunces only on the punch word, base + suffix in DMSans.
+    /// Compact spacing (24pt circle, 14pt body, vertical padding 2) so
+    /// 5 rows fit in ~150pt without crowding the CTA below.
+    private func methodPreviewDayRow(day: Int, base: String, italic: String, suffix: String) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(Palette.accent.opacity(0.12))
+                    .frame(width: 24, height: 24)
+                Text("\(day)")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                    .foregroundStyle(Palette.accent)
+            }
+
+            (Text(base)
+                .font(.custom("DMSans-Regular", size: 14))
+                .foregroundStyle(Palette.textPrimary)
+             + Text(italic)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                .foregroundStyle(Palette.textPrimary)
+             + Text(suffix)
+                .font(.custom("DMSans-Regular", size: 14))
+                .foregroundStyle(Palette.textPrimary))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: - Method preview audio
+    //
+    // The preview button plays a short coach-voiced intro line so the
+    // user hears Jeni's (or Kira's / Sam's) actual voice before they
+    // commit. Until the ElevenLabs clips ship the button disables
+    // visibly — the screen never plays silence.
+    //
+    // Expected bundled resources (drop into PlankApp/Resources/VoiceClips/
+    // once generated via the ElevenLabs pipeline):
+    //   - method_preview_jeni.m4a    (encouraging)
+    //   - method_preview_kira.m4a    (keepItReal)
+    //   - method_preview_matson.m4a  (balanced — display name "Sam")
+    //
+    // ElevenLabs script per coach (~8s, lowercase casual, ritual cadence
+    // — mirrors the canonical Day 1 intro beats in JeniMethodRitual.swift):
+    //
+    //   "i'm [jeni / kira / sam]. i made this because nothing else fit me.
+    //    five minutes a day. every day. that's all i'm asking."
+
+    private func coachDisplayNameForVoicePref() -> String {
+        switch voicePreference {
+        case "encouraging": return "Jeni"
+        case "balanced":    return "Sam"
+        case "keepItReal":  return "Kira"
+        default:            return "Jeni"
+        }
+    }
+
+    private func coachPortraitAssetForVoicePref() -> String {
+        switch voicePreference {
+        case "encouraging": return "coach-jeni"
+        case "balanced":    return "coach-matson"
+        case "keepItReal":  return "coach-kira"
+        default:            return "coach-jeni"
+        }
+    }
+
+    private func methodPreviewAudioFilename() -> String {
+        switch voicePreference {
+        case "encouraging": return "method_preview_jeni"
+        case "balanced":    return "method_preview_matson"
+        case "keepItReal":  return "method_preview_kira"
+        default:            return "method_preview_jeni"
+        }
+    }
+
+    private func prepareMethodPreviewAudio() {
+        let name = methodPreviewAudioFilename()
+        guard let url = Bundle.main.url(forResource: name, withExtension: "m4a") else {
+            methodPreviewAudioMissing = true
+            return
+        }
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.prepareToPlay()
+            methodPreviewAudioPlayer = player
+            methodPreviewAudioMissing = false
+        } catch {
+            #if DEBUG
+            print("[MethodPreview] audio prep FAILED: \(error)")
+            #endif
+            methodPreviewAudioMissing = true
+        }
+    }
+
+    private func togglePreviewSample() {
+        Haptics.light()
+        if methodPreviewIsPlaying {
+            stopMethodPreviewSample()
+        } else {
+            startMethodPreviewSample()
+        }
+    }
+
+    private func startMethodPreviewSample() {
+        guard let player = methodPreviewAudioPlayer else { return }
+        Analytics.track(.methodPreviewAudioPlayed)
+        player.currentTime = 0
+        player.play()
+        methodPreviewIsPlaying = true
+
+        // Reset the icon when playback finishes naturally. Tasks
+        // captured by the View struct land on MainActor; the isPlaying
+        // guard against the player itself prevents a stale flip if the
+        // user re-tapped play before the first asyncAfter fired.
+        let duration = player.duration
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64((duration + 0.1) * 1_000_000_000))
+            if let p = methodPreviewAudioPlayer, !p.isPlaying {
+                methodPreviewIsPlaying = false
+            }
+        }
+    }
+
+    private func stopMethodPreviewSample() {
+        methodPreviewAudioPlayer?.stop()
+        methodPreviewIsPlaying = false
+    }
+
+    /// 4-sticker LIGHT scatter for the method preview. Edge-only so the
+    /// hero card + day list have a clean canvas.
+    private static let methodPreviewPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .flower3D,
+                         position: CGPoint(x: 0.08, y: 0.06),
+                         size: 30, rotation: -12, phaseDelay: 0.00),
+        StickerPlacement(sticker: .starLineart,
+                         position: CGPoint(x: 0.93, y: 0.08),
+                         size: 26, rotation: 13, phaseDelay: 0.32),
+        StickerPlacement(sticker: .heartGlossy,
+                         position: CGPoint(x: 0.07, y: 0.94),
+                         size: 30, rotation: 10, phaseDelay: 0.62),
+        StickerPlacement(sticker: .bowIridescent,
+                         position: CGPoint(x: 0.93, y: 0.94),
+                         size: 32, rotation: -10, phaseDelay: 0.86),
+    ]
+
+    // ═══════════════════════════════════════
+    // MARK: - Tier-ladder identity preview (case 260)
+    // ═══════════════════════════════════════
+    //
+    // Phase 3 conversion beat. Shows the user what each week of
+    // showing up *feels* like in identity terms, not weight numbers.
+    // 3 milestone cards stacked vertically:
+    //   week 1 — building   (rhythm starts)
+    //   week 3 — steady     (stops feeling hard)
+    //   week 8 — stronger   (small wins compound)
+    //
+    // Companion to case 142 (past vs steady). The comparison frames
+    // "this time is different"; the tier ladder shows what different
+    // *means* week-by-week. Both screens activate identity (Bandura
+    // 2007 / Annesi 2011 self-efficacy + Mastery Curve) instead of
+    // outcome promise — TikTok-content-moderation-safe per the 2026
+    // audience research.
+
+    private var tierLadderScreen: some View {
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            StickerScatter(placements: Self.tierLadderPlacements)
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    Spacer().frame(height: Space.lg)
+
+                    Text("WHAT EACH WEEK FEELS LIKE")
+                        .font(Typo.eyebrow)
+                        .tracking(2)
+                        .foregroundStyle(Palette.accent)
+
+                    Spacer().frame(height: Space.md)
+
+                    ItalicAccentText(
+                        "progress is quieter than you think.",
+                        italic: ["quieter"],
+                        baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
+                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
+                        alignment: .center
+                    )
+                    .padding(.horizontal, Space.screenPadding)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer().frame(height: Space.sm)
+
+                    Text("not scale numbers. not photos. real shifts in how showing up feels.")
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Space.screenPadding)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer().frame(height: Space.lg)
+
+                    VStack(spacing: Space.sm) {
+                        tierLadderRow(
+                            week: "week 1",
+                            label: "building",
+                            italicLabel: "building",
+                            detail: "the rhythm starts. 5 minutes feels long. that's ok."
+                        )
+                        tierLadderRow(
+                            week: "week 3",
+                            label: "steady",
+                            italicLabel: "steady",
+                            detail: "it stops feeling like effort. you stop thinking about it."
+                        )
+                        tierLadderRow(
+                            week: "week 8",
+                            label: "stronger",
+                            italicLabel: "stronger",
+                            detail: "small wins compound. your body feels different first."
+                        )
+                    }
+                    .padding(.horizontal, Space.screenPadding)
+
+                    Spacer().frame(height: Space.lg)
+
+                    Text("based on bandura + annesi 2011 self-efficacy research.")
+                        .font(.system(size: 11))
+                        .italic()
+                        .foregroundStyle(Palette.textSecondary.opacity(0.85))
+                        .multilineTextAlignment(.center)
+
+                    Spacer().frame(height: Space.lg)
+
+                    ctaBtn("i'm in") {
+                        Haptics.medium()
+                        go(204)
+                    }
+                    .padding(.horizontal, Space.screenPadding)
+
+                    Spacer().frame(height: Space.lg)
+                }
+            }
+        }
+        .onAppear {
+            Analytics.track(.tierLadderViewed)
+        }
+    }
+
+    /// One milestone row on the tier ladder. Layout: small week
+    /// badge on the left, italic-Fraunces label as the title, peer-
+    /// voice detail line. Soft accent border to distinguish from
+    /// the question-screen rows.
+    private func tierLadderRow(week: String, label: String, italicLabel: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: Space.md) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(week.uppercased())
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(1.5)
+                    .foregroundStyle(Palette.accent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Palette.accent.opacity(0.12), in: Capsule())
+            }
+            .frame(width: 76, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(label)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 20))
+                    .foregroundStyle(Palette.textPrimary)
+                Text(detail)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Palette.bgElevated)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Palette.divider, lineWidth: 1)
+                )
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    /// 4-sticker LIGHT scatter for the tier ladder. Edge-only.
+    private static let tierLadderPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .ribbonLineart,
+                         position: CGPoint(x: 0.09, y: 0.06),
+                         size: 30, rotation: -10, phaseDelay: 0.00),
+        StickerPlacement(sticker: .heartGlossy,
+                         position: CGPoint(x: 0.92, y: 0.08),
+                         size: 30, rotation: 12, phaseDelay: 0.30),
+        StickerPlacement(sticker: .bowSatin,
+                         position: CGPoint(x: 0.08, y: 0.94),
+                         size: 28, rotation: 9, phaseDelay: 0.60),
+        StickerPlacement(sticker: .starLineart,
+                         position: CGPoint(x: 0.93, y: 0.94),
+                         size: 26, rotation: -11, phaseDelay: 0.85),
+    ]
+
+    // ═══════════════════════════════════════
+    // MARK: - Habit-window quiz (case 270)
+    // ═══════════════════════════════════════
+    //
+    // Phase 4 education-as-quiz. One question, 3 options, reveal +
+    // 1-sentence research citation. Teaches the 12-week / 3-month
+    // habit-window frame (Lally 2010, Kaushal & Rhodes 2015) that
+    // JeniFit's Becoming tab already plans around. Delivers value
+    // pre-paywall — antidote to "long onboarding = data extraction"
+    // perception (Noom-research finding).
+    //
+    // No right-answer gating: tapping any option flips
+    // habitQuizRevealed → true and the reveal explains why C is
+    // correct + cites the research. Continue button always enabled
+    // after a tap; reading the reveal isn't required to advance.
+
+    private let habitQuizCorrectIndex: Int = 2
+
+    private var habitWindowQuizScreen: some View {
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            StickerScatter(placements: Self.habitQuizPlacements)
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    Spacer().frame(height: Space.lg)
+
+                    Text("QUICK ONE")
+                        .font(Typo.eyebrow)
+                        .tracking(2)
+                        .foregroundStyle(Palette.accent)
+
+                    Spacer().frame(height: Space.md)
+
+                    ItalicAccentText(
+                        "how long does a habit actually take to stick?",
+                        italic: ["stick"],
+                        baseFont: .custom("Fraunces72pt-SemiBold", size: 26),
+                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 26),
+                        alignment: .center
+                    )
+                    .padding(.horizontal, Space.screenPadding)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer().frame(height: Space.lg)
+
+                    VStack(spacing: 10) {
+                        habitQuizOption(index: 0, label: "7 days",  hint: "the “21-day myth” cousin")
+                        habitQuizOption(index: 1, label: "30 days", hint: "the social-media version")
+                        habitQuizOption(index: 2, label: "~12 weeks", hint: "the science")
+                    }
+                    .padding(.horizontal, Space.screenPadding)
+
+                    Spacer().frame(height: Space.lg)
+
+                    // Reveal panel — fades in after any tap. Always
+                    // teaches the right answer + cites research.
+                    if habitQuizRevealed {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("THE SCIENCE")
+                                .font(Typo.eyebrow)
+                                .tracking(2)
+                                .foregroundStyle(Palette.accent)
+
+                            ItalicAccentText(
+                                "habits stabilize around 66 days — give or take.",
+                                italic: ["66 days"],
+                                baseFont: .custom("Fraunces72pt-SemiBold", size: 17),
+                                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 17),
+                                alignment: .leading
+                            )
+                            .fixedSize(horizontal: false, vertical: true)
+
+                            Text("lally et al. 2010 + kaushal & rhodes 2015. that's why we plan in 12-week windows. long enough to land, short enough to feel.")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Palette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(Space.md)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(Palette.accentSubtle.opacity(0.55))
+                        )
+                        .padding(.horizontal, Space.screenPadding)
+                        .transition(.opacity.combined(with: .offset(y: 8)))
+                    }
+
+                    Spacer().frame(height: Space.lg)
+
+                    ctaBtn(habitQuizRevealed ? "continue" : "tap an answer") {
+                        guard habitQuizRevealed else { return }
+                        Haptics.medium()
+                        go(202)
+                    }
+                    .opacity(habitQuizRevealed ? 1.0 : 0.45)
+                    .disabled(!habitQuizRevealed)
+                    .padding(.horizontal, Space.screenPadding)
+
+                    Spacer().frame(height: Space.lg)
+                }
+            }
+        }
+        .onAppear {
+            Analytics.track(.quizViewed,
+                            properties: ["quiz_id": "habit_window"])
+        }
+    }
+
+    /// One quiz option row. Selected state shows correct/incorrect
+    /// styling AFTER tap (the user always learns the right answer
+    /// from the reveal panel below, but visual feedback on the row
+    /// they tapped reinforces the learning).
+    private func habitQuizOption(index: Int, label: String, hint: String) -> some View {
+        let isSelected = habitQuizSelected == index
+        let isCorrect = index == habitQuizCorrectIndex
+        let showCorrect = habitQuizRevealed && isSelected && isCorrect
+        let showWrong   = habitQuizRevealed && isSelected && !isCorrect
+
+        return Button {
+            guard !habitQuizRevealed else { return }
+            Haptics.light()
+            withAnimation(Motion.entranceSoft) {
+                habitQuizSelected = index
+                habitQuizRevealed = true
+            }
+            if isCorrect { Haptics.success() }
+            Analytics.track(.quizAnswered, properties: [
+                "quiz_id": "habit_window",
+                "selected_index": index,
+                "correct": isCorrect
+            ])
+        } label: {
+            HStack(alignment: .center, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .stroke(showCorrect ? Palette.stateGood
+                                : showWrong ? Palette.stateBad
+                                : Palette.divider,
+                                lineWidth: 1.5)
+                        .frame(width: 22, height: 22)
+                    if showCorrect {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Palette.stateGood)
+                    } else if showWrong {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Palette.stateBad)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(hint)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(Space.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Palette.bgElevated)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(showCorrect ? Palette.stateGood
+                                    : showWrong ? Palette.stateBad
+                                    : (isSelected ? Palette.accent : Palette.divider),
+                                    lineWidth: (isSelected || showCorrect || showWrong) ? 2 : 1)
+                    )
+            )
+        }
+        .buttonStyle(PressFeedbackStyle())
+        .disabled(habitQuizRevealed)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// 4-sticker LIGHT scatter for the habit-window quiz.
+    private static let habitQuizPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .sparkleGlossy,
+                         position: CGPoint(x: 0.08, y: 0.06),
+                         size: 28, rotation: -10, phaseDelay: 0.00),
+        StickerPlacement(sticker: .heartsLineart,
+                         position: CGPoint(x: 0.92, y: 0.08),
+                         size: 26, rotation: 12, phaseDelay: 0.30),
+        StickerPlacement(sticker: .flower3D,
+                         position: CGPoint(x: 0.07, y: 0.94),
+                         size: 30, rotation: 10, phaseDelay: 0.60),
+        StickerPlacement(sticker: .bowSatin,
+                         position: CGPoint(x: 0.93, y: 0.94),
+                         size: 28, rotation: -10, phaseDelay: 0.85),
+    ]
+
     // Reshape transition (160). The "stubborn fat will shed" moment
     // reframed for empowerment: no before/after pairing, no shame-coded
     // labels — just the radiant goal-state body and supportive copy.
@@ -3097,8 +4666,8 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             Spacer().frame(height: Space.lg)
 
-            ItalicAccentText("Your plan will reshape your body.",
-                             italic: ["reshape"],
+            ItalicAccentText("your body will reshape. quietly.",
+                             italic: ["quietly"],
                              alignment: .center)
                 .padding(.horizontal, Space.screenPadding)
 
@@ -3120,8 +4689,8 @@ struct OnboardingView: View {
                 // Stacked top-right to leave the body image clear and
                 // avoid covering the face/silhouette outline.
                 VStack(alignment: .leading, spacing: 10) {
-                    callout("Strong core")
-                    callout("Lifted energy")
+                    callout("strong core")
+                    callout("lifted energy")
                 }
                 .padding(.top, Space.lg)
                 .padding(.trailing, Space.sm)
@@ -3129,7 +4698,7 @@ struct OnboardingView: View {
 
             Spacer().frame(height: Space.md)
 
-            Text("Healthy weight loss is steady — not extreme.\nWe'll get you there safely.")
+            Text("steady wins. no crash, no rebound. that's how it sticks.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
@@ -3158,35 +4727,62 @@ struct OnboardingView: View {
         .background(Palette.accentSubtle, in: Capsule())
     }
 
-    // First weight prediction (161). "We predict you'll be [goal] by [date]"
+    // First weight prediction (161). 2026 voice refresh — "you could
+    // be at [X] by [date]" instead of "We predict you'll be …". Drops
+    // the corporate "we predict" voice; "could" frames the chart as a
+    // projection from the user's own inputs, not a promise (post-Ozempic
+    // safe + TikTok-moderation safe per the 2026 audience research).
     private var firstPredictionScreen: some View {
         ZStack {
             StickerScatter(placements: Self.firstPredictionPlacements)
             predictionScreen(
-                headlinePrefix: "We predict you'll be ",
+                eyebrow: "we got the numbers",
+                headlinePrefix: "you could be at ",
                 headlineSuffix: ".",
-                subhead: "We're starting to get a clear picture of you.",
+                subhead: "early estimate from what you've told me so far. it'll get sharper as we go.",
                 badge: nil,
                 target: predictionDate(),
                 next: 203
             )
         }
+        .onAppear {
+            Analytics.track(.projectionChartViewed,
+                            properties: ["placement": "first_prediction"])
+        }
     }
 
-    // Re-prediction (170) — same shape, earlier date, "Still on track!" badge.
+    // Re-prediction (170). 2026 voice refresh — drops the "Still on
+    // track!" corporate badge (reads like a fitness-coach pat-on-the-
+    // back from 2018). New eyebrow "we got more honest" frames the
+    // update as the projection getting *sharper* from the user's
+    // subsequent inputs — the "movement between projections" is the
+    // documented conversion lever (Noom + Cal AI).
+    //
+    // Phase 3: routes to case 260 (tier-ladder identity preview)
+    // instead of jumping straight to Part 5 divider (204). The tier
+    // ladder gives the user a concrete "what each week feels like"
+    // beat right after the projection number, so progression reads
+    // as identity, not just a date.
     private var rePredictionScreen: some View {
         predictionScreen(
-            headlinePrefix: "We predict you'll be ",
+            eyebrow: "we got more honest",
+            headlinePrefix: "updated. you could be at ",
             headlineSuffix: ".",
-            subhead: "We'll incorporate your goal into your personalized plan.",
-            badge: "Still on track!",
+            subhead: "your barriers + your baseline pulled this in. every answer sharpens it.",
+            badge: nil,
             target: rePredictionDate(),
-            next: 204
+            next: 260
         )
+        .onAppear {
+            Analytics.track(.projectionChartViewed,
+                            properties: ["placement": "re_prediction"])
+        }
     }
 
     // Final prediction (181) — runs after the loading carousel, hands off
-    // to the redesigned plan reveal.
+    // to the redesigned plan reveal. 2026 voice refresh: lowercase + italic
+    // accent on "ready" instead of the older capitalized "Based on your
+    // answers, your plan is ready."
     private var finalPredictionScreen: some View {
         ZStack {
             StickerScatter(placements: Self.finalPredictionPlacements)
@@ -3194,11 +4790,14 @@ struct OnboardingView: View {
             VStack(spacing: 0) {
                 Spacer().frame(height: Space.lg)
 
-                Text("Based on your answers, your plan is ready.")
-                    .font(Typo.title)
-                    .foregroundStyle(Palette.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Space.screenPadding)
+                ItalicAccentText(
+                    "based on what you told me, your plan is ready.",
+                    italic: ["ready"],
+                    baseFont: .custom("Fraunces72pt-SemiBold", size: 26),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 26),
+                    alignment: .center
+                )
+                .padding(.horizontal, Space.screenPadding)
 
                 Spacer().frame(height: Space.sm)
 
@@ -3207,9 +4806,22 @@ struct OnboardingView: View {
 
                 Spacer().frame(height: Space.md)
 
+                // Projection chart already animates via .trim — see
+                // WeightCurveView header for choreography (t≈1.55s for
+                // the date pill to land). The two events bracket the
+                // animation so funnel queries can tell whether users
+                // actually watch it or skip past.
                 weightCurve()
                     .frame(height: 180)
                     .padding(.horizontal, Space.screenPadding)
+                    .onAppear {
+                        Analytics.track(.projectionChartViewed,
+                                        properties: ["placement": "final_prediction"])
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+                            Analytics.track(.projectionChartAnimationCompleted,
+                                            properties: ["placement": "final_prediction"])
+                        }
+                    }
 
                 Spacer().frame(height: Space.lg)
 
@@ -3220,7 +4832,7 @@ struct OnboardingView: View {
 
                 Spacer().frame(height: Space.md)
 
-                Text("Designed by trainers, built around your answers.")
+                Text("designed by trainers, built around your answers.")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
@@ -3228,21 +4840,35 @@ struct OnboardingView: View {
 
                 Spacer()
 
-                ctaBtn("Get my plan") { Haptics.heavy(); go(21) }
+                // Routes to E1-e (case 234, plateau pre-frame) →
+                // case 21 plan reveal. Plateau education immediately
+                // before the high-trust reveal reduces week-3 churn.
+                ctaBtn("show me my plan") { Haptics.heavy(); go(234) }
             }
         }
     }
 
     // Shared layout for the first prediction + re-prediction. Both render
     // a curve graph with current → goal weight, surfaced with the
-    // italic-accent date headline.
+    // italic-accent date headline. Phase 2 added the optional `eyebrow`
+    // parameter — small all-caps tracked label above the headline,
+    // matching the brand-voice pattern (paywall + method preview etc.).
     private func predictionScreen(
+        eyebrow: String? = nil,
         headlinePrefix: String, headlineSuffix: String,
         subhead: String, badge: String?,
         target: Date, next: Int
     ) -> some View {
         VStack(spacing: 0) {
             Spacer().frame(height: Space.lg)
+
+            if let eyebrow {
+                Text(eyebrow.uppercased())
+                    .font(Typo.eyebrow)
+                    .tracking(2)
+                    .foregroundStyle(Palette.accent)
+                    .padding(.bottom, Space.sm)
+            }
 
             Group {
                 if let badge {
@@ -3275,13 +4901,15 @@ struct OnboardingView: View {
 
             Spacer()
 
-            ctaBtn("Continue") { Haptics.medium(); go(next) }
+            ctaBtn("continue") { Haptics.medium(); go(next) }
         }
     }
 
-    // Italic-accent prediction headline. "We predict you'll be 130 lbs by Mar 5."
+    // Italic-accent prediction headline. "you could be at 130 lbs by Mar 5."
+    // 2026 voice — lowercase, peer-coded. Capitalized callers should pass
+    // their own prefix; default is lowercase to match the JeniFit voice.
     private func predictionHeadline(
-        prefix: String = "You'll be ",
+        prefix: String = "you could be at ",
         suffix: String = ".",
         target: Date? = nil
     ) -> some View {
@@ -3317,15 +4945,56 @@ struct OnboardingView: View {
     }
 
     // Loading carousel (180). Three rotating frames over 3.5s, then auto-advances.
-    /// 17d-2: rotating proof copy. Cycles alongside the carousel so
-    /// the screen reads as "actively working" instead of staring at
-    /// a single sentence. Short, present-tense, JeniFit voice.
-    private static let carouselProofLines: [String] = [
-        "Calibrating intensity to your level…",
-        "Tuning your routines to your zones…",
-        "Building your weekly cadence…",
-        "Picking your first session…",
-    ]
+    /// Rotating proof copy. Personalized off user inputs (bodyFocus,
+    /// daysPerWeek + sessionLength, plank baseline) when available;
+    /// falls back to generic lines otherwise. Lowercase casual, italic-
+    /// less (loader is small caption type — italic doesn't render
+    /// cleanly at 13pt). 4 lines, cycles at 0.9s intervals.
+    private var carouselProofLines: [String] {
+        // Stage 2 — body focus zone (first selected wins for the line).
+        let focusFragment: String = {
+            let labels: [String: String] = [
+                "flatBelly": "your core",
+                "tonedArms": "your arms",
+                "roundButt": "your glutes",
+                "slimLegs":  "your legs",
+                "fullBody":  "your full body"
+            ]
+            if let first = bodyFocus.first, let label = labels[first] {
+                return label
+            }
+            return "your body focus"
+        }()
+
+        // Stage 3 — frequency. Pulls Q11 days/week + Q25 session length.
+        let cadenceFragment: String = {
+            let days = commitmentDaysCount(commitmentDays)
+            let mins = sessionLength.isEmpty ? 0 : (Int(sessionLength) ?? 0)
+            if days > 0 && mins > 0 { return "\(days) days × \(mins) min" }
+            if days > 0 { return "\(days) days a week" }
+            return "your weekly cadence"
+        }()
+
+        // Stage 4 — plank baseline reference (the signature metric).
+        let baselineFragment: String = {
+            switch baseline {
+            case "under15":   return "your starting baseline"
+            case "fifteen30": return "your 15–30s baseline"
+            case "thirty60":  return "your 30–60s baseline"
+            case "sixtyPlus": return "your 60s+ baseline"
+            default:          return "your starting baseline"
+            }
+        }()
+
+        return [
+            "calibrating intensity to your level…",
+            "tuning your plan for \(focusFragment)…",
+            "building \(cadenceFragment)…",
+            "pulling the right exercises for you…",
+            "balancing rest around \(baselineFragment)…",
+            "making sure it stays kind ♥"
+        ]
+    }
 
     /// 17d-2: LIGHT 4-sticker scatter for the loading carousel.
     /// Edges only so the centered % counter + carousel frame stay
@@ -3381,8 +5050,8 @@ struct OnboardingView: View {
                 // Rotating proof line — small, secondary, ticks every
                 // ~1 second alongside the carousel frame so the page
                 // feels alive without competing with the % counter.
-                Text(Self.carouselProofLines[
-                    carouselProofIndex % Self.carouselProofLines.count
+                Text(carouselProofLines[
+                    carouselProofIndex % carouselProofLines.count
                 ])
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
@@ -3450,50 +5119,64 @@ struct OnboardingView: View {
         }
     }
 
-    // Frame 1 — early-access user count. Number is a placeholder.
-    // TODO(post-launch): replace with real count from analytics.
+    // Phase 4 (2026 research): the 3 carousel frame cards previously
+    // shipped fabricated stats (1,000+ early-access members / 100+
+    // hours / 5.0 ★) as TODO placeholders. The 2026 audience research
+    // identified fabricated user counts as the single worst signal we
+    // could send TikTok-acquired women 22-35 (Sharifzadeh & Brison
+    // 2024 femwashing trap; Airbridge 2026 specific-beats-fabricated).
+    // Replaced with the same research citations the paywall + becoming
+    // tab cite — same authority signal, fully honest.
+    //
+    // Once we cross ~250 paid users, frame 1 can swap to real opt-in
+    // numbers ("joined by 247 women this week") per the paywall memory.
+
+    // Frame 1 — McGill plank research authority signal.
     private var carouselFrameUserCount: some View {
         VStack(spacing: Space.sm) {
             carouselStickerHero(.heartGlossy)
-            Text("1,000+ early-access members")
-                .font(.system(size: 22, weight: .semibold))
+            Text("plank thresholds from mcgill (waterloo)")
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
                 .padding(.top, Space.xs)
+                .padding(.horizontal, Space.sm)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    // Frame 2 — placeholder training hours.
-    // TODO(post-launch): replace with real session count.
+    // Frame 2 — ACSM safe-pace-of-loss band.
     private var carouselFrameTrainingHours: some View {
         VStack(spacing: Space.sm) {
             carouselStickerHero(.ribbonLineart)
-            Text("100+ hours of plank coaching")
-                .font(.system(size: 22, weight: .semibold))
+            Text("calibrated to acsm 0.5-1%/wk loss-rate band")
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
                 .padding(.top, Space.xs)
+                .padding(.horizontal, Space.sm)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    // Frame 3 — early reviews.
-    // TODO(post-launch): replace with real App Store rating + review count.
+    // Frame 3 — Bandura/Annesi self-efficacy + privacy stance.
     private var carouselFrameRating: some View {
         VStack(spacing: Space.sm) {
             carouselStickerHero(.starLineart)
-            Text("5.0 ★ early reviews")
-                .font(.system(size: 22, weight: .semibold))
+            Text("built on bandura self-efficacy research")
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
                 .padding(.top, Space.xs)
-            HStack(spacing: 6) {
-                ForEach(0..<5, id: \.self) { _ in
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 16))
-                        .foregroundStyle(Palette.accent)
-                }
-            }
-            .padding(.top, 2)
+                .padding(.horizontal, Space.sm)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("no third-party trackers · your data stays yours")  // voice-lint:allow — pro-privacy framing, opposite intent of AI-coach "based on your data" tell
+                .font(.system(size: 12))
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.top, 2)
+                .padding(.horizontal, Space.sm)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -3502,20 +5185,39 @@ struct OnboardingView: View {
         carouselFrame = 0
         carouselDone = false
         carouselProofIndex = 0
-        let total = 3.5
-        let steps = 70
+        Analytics.track(.planLoaderStarted)
+
+        // Loader timing — bumped from 3.5s → 6.5s per user feedback.
+        // Displayed percentage uses an ease-IN curve (slow start,
+        // accelerating finish) which is the pattern users associate
+        // with "real work happening" — apps like Noom and BetterMe
+        // both do this. Mathematically: displayed = linear^2.2, so:
+        //   t=2.0s (31% linear) → 7% displayed
+        //   t=4.0s (62% linear) → 35% displayed
+        //   t=5.0s (77% linear) → 56% displayed
+        //   t=6.0s (92% linear) → 83% displayed
+        //   t=6.5s (100%)       → 100% displayed
+        //
+        // Frame transitions stay on LINEAR time so all three frames
+        // get equal screen time (≈2.17s each) — without this, frame 0
+        // would dominate ~57% of the loader because the ease-in
+        // curve compresses early displayed-progress.
+        let total = 6.5
+        let steps = 100  // bumped from 70 for smoother ease curve
         for i in 0...steps {
             DispatchQueue.main.asyncAfter(deadline: .now() + total * Double(i) / Double(steps)) {
-                let p = CGFloat(i) / CGFloat(steps)
-                withAnimation(.easeOut(duration: 0.1)) { carouselProgress = p }
-                let f = min(2, Int(p * 3))
+                let linear = CGFloat(i) / CGFloat(steps)
+                let eased = pow(linear, 2.2)
+                withAnimation(.easeOut(duration: 0.08)) { carouselProgress = eased }
+                let f = min(2, Int(linear * 3))
                 if f != carouselFrame {
-                    withAnimation(.easeInOut(duration: 0.35)) { carouselFrame = f }
+                    withAnimation(.easeInOut(duration: 0.4)) { carouselFrame = f }
                 }
                 if i == steps && !carouselDone {
                     carouselDone = true
                     Haptics.success()
                     showConfetti = true
+                    Analytics.track(.planLoaderCompleted)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                         showConfetti = false
                         go(181)
@@ -3523,11 +5225,13 @@ struct OnboardingView: View {
                 }
             }
         }
-        // 17d-2: rotate the proof line every 0.9s independently of
-        // the % stepper so it stays alive even between frame jumps.
-        let proofTotal = Self.carouselProofLines.count
+        // Rotate the proof line evenly across the loader duration.
+        // With 6 proof lines and 6.5s total, each line gets ~1.08s
+        // of airtime — enough to read without feeling slow.
+        let proofTotal = carouselProofLines.count
+        let proofInterval = total / Double(proofTotal)
         for k in 0..<proofTotal {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9 * Double(k)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + proofInterval * Double(k)) {
                 guard !carouselDone else { return }
                 withAnimation(.easeInOut(duration: 0.3)) {
                     carouselProofIndex = k
@@ -3608,6 +5312,48 @@ struct OnboardingView: View {
     /// "Mar 5" style. Short month + day, no year.
     private func formatGoalDate(_ date: Date) -> String {
         Self.goalDateFormatter.string(from: date)
+    }
+
+    /// Plan-reveal anchor lines. 2–3 dual-anchored capability + outcome
+    /// lines derived from already-collected fields:
+    ///   - Plank-time target = next-tier from Q3 baseline (the signature
+    ///     metric, no competitor can copy).
+    ///   - Weight outcome = lbs delta, only if the user set a loss goal.
+    ///   - Habit identity = session length anchored with "locked in"
+    ///     identity verb (Clear / Atomic Habits framing).
+    /// Falls back gracefully on any missing field so the screen never
+    /// renders empty.
+    private func planRevealAnchors() -> [String] {
+        var lines: [String] = []
+
+        // 1. Plank capability ladder. baseline → next-tier target.
+        let plankTarget: String = {
+            switch baseline {
+            case "under15":   return "a 30-second plank"
+            case "fifteen30": return "a 60-second plank"
+            case "thirty60":  return "a 90-second plank"
+            case "sixtyPlus": return "a 2-minute plank"
+            default:          return "a stronger core"
+            }
+        }()
+        lines.append(plankTarget)
+
+        // 2. Weight outcome — only if the user set a real loss goal.
+        // currentWeightKg > goalWeightKg means they're aiming to lose.
+        // Maintenance / muscle-gain skips this line so the framing
+        // doesn't promise weight loss to someone who didn't ask for it.
+        if currentWeightKg > goalWeightKg + 0.5 {
+            let lbsDelta = Int(((currentWeightKg - goalWeightKg) * Self.lbPerKg).rounded())
+            if lbsDelta >= 1 {
+                lines.append("~\(lbsDelta) lbs lighter")
+            }
+        }
+
+        // 3. Habit identity anchor. Pulls session length when set.
+        let mins = sessionLength.isEmpty ? 5 : (Int(sessionLength) ?? 5)
+        lines.append("\(mins)-minute habit, locked in")
+
+        return lines
     }
 
     /// JeniFit goal phrasing derived from bodyFocus (Phase 4 multi-select).
@@ -3740,7 +5486,14 @@ struct OnboardingView: View {
             VStack(spacing: 0) {
                 Spacer().frame(height: Space.lg)
 
-                (Text("JeniFit is ").font(Typo.title)
+                // 2026 voice — reframes "JeniFit vs generic plans"
+                // (competitor compare, anti-pattern for this audience)
+                // to "past you vs steady you" — loss aversion against
+                // the user's own past attempts, not against a named
+                // competitor. Research-backed: RevenueCat / Noom
+                // teardowns show the past-self comparison converts
+                // for women 22-35 who burned out on bootcamp content.
+                (Text("this time, ").font(Typo.title)
                  + Text("different").font(Typo.titleItalic)
                  + Text(".").font(Typo.title))
                     .foregroundStyle(Palette.textPrimary)
@@ -3749,7 +5502,7 @@ struct OnboardingView: View {
 
                 Spacer().frame(height: Space.sm)
 
-                Text("Real coaching. Real science. Built around you.")
+                Text("you've tried fitness apps before. here's what we both know already happened.")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
@@ -3757,14 +5510,13 @@ struct OnboardingView: View {
 
                 Spacer().frame(height: Space.lg)
 
-                // ── Generic plans card — compact, muted, on top.
-                // Stacked vertically (was side-by-side) so each card
-                // gets full width: 5-bullet rows fit cleanly without
-                // line-wrap, and the JeniFit card below can dominate
-                // visually with a hero sticker + accent shadow.
+                // ── Past-attempts card — what burnt them out on the
+                // previous tries (Pamela Reif intensity, 30-day
+                // challenges, all-or-nothing). Muted card so it reads
+                // as "the old way," visually demoted.
                 VStack(spacing: 0) {
                     HStack {
-                        Text("Generic plans")
+                        Text("past attempts")
                             .font(.system(size: 11, weight: .bold))
                             .tracking(1)
                             .foregroundStyle(Palette.textSecondary)
@@ -3777,11 +5529,11 @@ struct OnboardingView: View {
                     .padding(.bottom, Space.sm)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        comparisonRow(label: "Same plan for everyone", positive: false)
-                        comparisonRow(label: "Videos with timers", positive: false)
-                        comparisonRow(label: "Random exercise list", positive: false)
-                        comparisonRow(label: "Push through the pain", positive: false)
-                        comparisonRow(label: "Plans that never adapt", positive: false)
+                        comparisonRow(label: "did everything at once", positive: false)
+                        comparisonRow(label: "burnt out by week 2", positive: false)
+                        comparisonRow(label: "30-day challenge → quit", positive: false)
+                        comparisonRow(label: "shame when you missed a day", positive: false)
+                        comparisonRow(label: "intensity over consistency", positive: false)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -3811,7 +5563,10 @@ struct OnboardingView: View {
                 }
                 .padding(.vertical, 10)
 
-                // ── Your JeniFit plan card — hero, full-width, vivid.
+                // ── Steady-you card — what 5 min/day with the daily
+                // ritual enables. Hero treatment with sparkle + accent
+                // border + halo shadow. This is the *new* identity the
+                // user is being invited into.
                 VStack(spacing: 0) {
                     HStack(alignment: .center, spacing: Space.sm) {
                         Image(StickerName.sparkleGlossy.assetName)
@@ -3820,10 +5575,9 @@ struct OnboardingView: View {
                             .frame(width: 40, height: 40)
                             .opacity(StickerName.sparkleGlossy.style.opacity)
 
-                        // Italic-accent pill header on accent rose.
-                        (Text("Your JeniFit ")
+                        (Text("steady ")
                             .font(.custom("Fraunces72pt-SemiBold", size: 14))
-                         + Text("plan")
+                         + Text("you")
                             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15)))
                             .foregroundStyle(Palette.textInverse)
                             .padding(.horizontal, 12)
@@ -3835,11 +5589,11 @@ struct OnboardingView: View {
                     .padding(.bottom, Space.md)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        comparisonRow(label: "Built around your goals", positive: true)
-                        comparisonRow(label: "1-on-1 voice coaching, every session", positive: true)
-                        comparisonRow(label: "Science-backed progression", positive: true)
-                        comparisonRow(label: "Kind to your body", positive: true)
-                        comparisonRow(label: "Adapts as you grow", positive: true)
+                        comparisonRow(label: "5 minutes a day, every day", positive: true)
+                        comparisonRow(label: "no streak guilt", positive: true)
+                        comparisonRow(label: "stronger each week, quietly", positive: true)
+                        comparisonRow(label: "fits your real life", positive: true)
+                        comparisonRow(label: "the version that actually sticks", positive: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -3860,7 +5614,15 @@ struct OnboardingView: View {
 
                 Spacer()
 
-                ctaBtn("I want this") { Haptics.medium(); go(204) }
+                // Route to 170 (re-prediction) — was incorrectly skipping
+                // straight to 204, leaving the Phase 2 re-prediction
+                // screen orphaned in the forward path. Fixed as part
+                // of Phase 3.
+                ctaBtn("i want this version") {
+                    Haptics.medium()
+                    Analytics.track(.comparisonChartViewed)
+                    go(170)
+                }
                     .padding(.bottom, Space.lg)
             }
         }
@@ -3901,7 +5663,6 @@ struct OnboardingView: View {
     private var planRevealScreen: some View {
         let coachName = voicePreference == "encouraging" ? "Jeni" : voicePreference == "balanced" ? "Sam" : "Kira"
         let coachPhoto = voicePreference == "encouraging" ? "coach-jeni" : voicePreference == "balanced" ? "coach-matson" : "coach-kira"
-        let goalLabel = jenifitGoalLabel()
 
         return ZStack {
             StickerScatter(placements: Self.planRevealPlacements)
@@ -3924,15 +5685,18 @@ struct OnboardingView: View {
                         .offset(planSparkleBurstActive ? entry.0 : .zero)
                 }
                 // Soft accent halo behind the photo for depth.
+                // Sizes shrunk (110→88, 72→58) to reclaim vertical
+                // space on the plan reveal — user feedback that the
+                // progress bar was being pushed too high.
                 Circle()
                     .fill(Palette.accent.opacity(0.08))
-                    .frame(width: 110, height: 110)
+                    .frame(width: 88, height: 88)
                     .scaleEffect(planCoachVisible ? 1 : 0.5)
                     .opacity(planCoachVisible ? 1 : 0)
 
                 Image(coachPhoto)
                     .resizable().scaledToFill()
-                    .frame(width: 72, height: 72)
+                    .frame(width: 58, height: 58)
                     .clipShape(Circle())
                     .overlay(Circle().stroke(Palette.accent, lineWidth: 2.5))
                     .opacity(planCoachVisible ? 1 : 0)
@@ -3960,58 +5724,81 @@ struct OnboardingView: View {
                 .opacity(planHeadlineVisible ? 1 : 0)
                 .offset(y: planHeadlineVisible ? 0 : 12)
 
-            Spacer().frame(height: Space.xs)
+            Spacer().frame(height: Space.sm)
 
-            Text("Built for \(goalLabel).")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Palette.accent)
-                .opacity(planSubheadVisible ? 1 : 0)
+            // Capability ladder — dual-anchor (capability + outcome)
+            // using already-collected fields. Replaces single-body-part
+            // "Built for X" headline with a 3-month frame that matches
+            // the TikTok creator window + Lally/Kaushal habit research.
+            // Three anchors:
+            //   1. Plank time goal — concrete capability, JeniFit's
+            //      signature metric, no other app can copy this.
+            //   2. Weight outcome — only shown if the user set a goal
+            //      delta (currentWeight > goalWeight).
+            //   3. Habit identity — five-minute frame + "locked in"
+            //      identity verb (Clear / Atomic Habits framing).
+            VStack(alignment: .leading, spacing: 6) {
+                Text("in 3 months ♥")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
+                    .foregroundStyle(Palette.accent)
+                    .padding(.bottom, 2)
 
-            Spacer().frame(height: Space.xs)
-
-            Text("\(coachName) has your first workout ready.")
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-                .opacity(planSubheadVisible ? 1 : 0)
-
-            // First-preset preview — surfaces the actual workout name +
-            // tagline so the abstract "ready" promise lands as something
-            // concrete the user can picture starting.
-            if let firstPreset = WorkoutPreset.presets(
-                for: WorkoutGoal(rawValue: focusArea) ?? .fullCore
-            ).first, let desc = firstPreset.description {
-                Spacer().frame(height: Space.sm)
-                VStack(spacing: 2) {
-                    Text(firstPreset.name)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text(desc)
-                        .font(Typo.caption)
-                        .italic()
-                        .foregroundStyle(Palette.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Space.lg)
-                        .fixedSize(horizontal: false, vertical: true)
+                ForEach(planRevealAnchors(), id: \.self) { line in
+                    HStack(alignment: .top, spacing: 6) {
+                        Text("✦")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.accent)
+                        Text(line)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Palette.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
                 }
-                .opacity(planPresetVisible ? 1 : 0)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Space.screenPadding)
+            .opacity(planSubheadVisible ? 1 : 0)
 
-            Spacer().frame(height: Space.lg + 8)
+            Spacer().frame(height: Space.sm)
 
-            // Plan summary cards. JeniFit copy — no AI language; "live form
-            // check" not "AI form coaching" (per justfit-audit Section 6.K).
+            // "[coachName] has your first session ready." line removed —
+            // redundant after the 3 capability anchors above which
+            // already say "plan is ready." Reclaims ~24pt of vertical
+            // space; combined with the smaller coach halo + dropped
+            // plan card below, restores the progress bar to its
+            // normal top position.
+
+            Spacer().frame(height: Space.md)
+
+            // Plan summary cards — dropped from 4 to 3. "Live form
+            // check / We watch your form weekly" was the most
+            // forward-looking / abstract benefit (user hasn't tried
+            // it yet, harder to picture); the other three are
+            // immediately concrete. JeniFit copy — no AI language.
             VStack(spacing: 10) {
                 planCard(icon: "calendar", title: "Daily routines", detail: "5–10 min sessions designed for you", color: Palette.accent, index: 0)
                 planCard(icon: "waveform", title: "Voice coaching", detail: "\(coachName) guides every move", color: Palette.stateGood, index: 1)
-                planCard(icon: "viewfinder", title: "Live form check", detail: "We watch your form weekly", color: Palette.textSecondary, index: 2)
-                planCard(icon: "sparkles", title: "Adaptive plan", detail: "Gets smarter as you go", color: Palette.stateWarn, index: 3)
+                planCard(icon: "sparkles", title: "Adaptive plan", detail: "Gets smarter as you go", color: Palette.stateWarn, index: 2)
             }
             .padding(.horizontal, Space.screenPadding)
             .opacity(planCardsVisible ? 1 : 0)
 
             Spacer()
 
-            ctaBtn("Almost done") { Haptics.medium(); go(215) }
+            // CTA — "let's go ♥" replaces "Almost done". Lowercase
+            // momentum-coded, heart as terminal voice signature.
+            ctaBtn("let's go ♥") {
+                Haptics.medium()
+                Analytics.track(.planRevealContinueTapped)
+                // Routes to method preview (case 250) — pre-paywall
+                // ritual tease — then on to consent ritual (240), rating
+                // prefilter (215), sign-in, personalStat, finish. The
+                // direct go(240) here previously skipped case 250
+                // entirely (PostHog 2026-05-26: zero step_id=250 events
+                // for 30d post-launch). Fix.
+                go(250)
+            }
                 .opacity(planCtaVisible ? 1 : 0)
             }
             .onAppear { runPlanReveal() }
@@ -4030,6 +5817,13 @@ struct OnboardingView: View {
         planSparkleBurstVisible = false
         planCardsVisible = false
         planCtaVisible = false
+
+        // High-trust moment immediately preceding the paywall. Tracked
+        // on every mount; AnalyticsManager coalesces back-nav re-fires.
+        Analytics.track(.planRevealViewed, properties: [
+            "coach": voicePreference,
+            "body_focus_count": bodyFocus.count
+        ])
 
         Haptics.success()
 
@@ -4158,7 +5952,7 @@ struct OnboardingView: View {
 
             Spacer().frame(height: Space.lg)
 
-            (Text("Turn on ").font(Typo.title)
+            (Text("turn on ").font(Typo.title)
              + Text("reminders").font(Typo.titleItalic)
              + Text("?").font(Typo.title))
                 .foregroundStyle(Palette.textPrimary)
@@ -4166,7 +5960,7 @@ struct OnboardingView: View {
 
             Spacer().frame(height: Space.sm)
 
-            Text("We'll send one notification \(plankTimeLabel). That's it. You can change the time or turn it off in Settings anytime.")
+            Text("one notification \(plankTimeLabel). that's it. change the time or turn it off in settings whenever.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
@@ -4188,11 +5982,12 @@ struct OnboardingView: View {
                         .foregroundStyle(Palette.textSecondary)
                 }
                 // Notification preview — must match what
-                // NotificationPermission.dailyReminderBody() actually
-                // schedules so the user isn't surprised post-grant.
-                // Title is "Time to work" with voice-adaptive body
-                // depending on the coach picked above this screen.
-                Text("Time to work")
+                // NotificationPermission.scheduleDailyReminder actually
+                // sets as content.title ("today's short session."). The
+                // old preview said "Time to work" which mismatched the
+                // shipped notification title since the lowercase voice
+                // refresh in NotificationPermission.swift.
+                Text("today's short session.")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Palette.textPrimary)
                 Text(notificationPreviewBody)
@@ -4208,7 +6003,7 @@ struct OnboardingView: View {
             Spacer()
 
             VStack(spacing: 10) {
-                ctaBtn("Allow notifications") {
+                ctaBtn("allow notifications") {
                     Haptics.medium()
                     Task {
                         let granted = await NotificationPermission.request()
@@ -4230,7 +6025,7 @@ struct OnboardingView: View {
                     notificationsEnabled = false
                     finish()
                 } label: {
-                    Text("Not right now")
+                    Text("not right now")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(Palette.textSecondary)
                         .padding(.vertical, 8)
@@ -4266,15 +6061,15 @@ struct OnboardingView: View {
 
             Spacer().frame(height: Space.lg)
 
-            (Text("Loving ").font(Typo.title)
-             + Text("JeniFit").font(Typo.titleItalic)
+            (Text("loving ").font(Typo.title)
+             + Text("jenifit").font(Typo.titleItalic)
              + Text(" so far?").font(Typo.title))
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
 
             Spacer().frame(height: Space.sm)
 
-            Text("Your plan's ready. A quick rating helps other women find us — and keeps the app independent.")
+            Text("a quick rating helps other women find us, and keeps the app independent.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
@@ -4284,7 +6079,7 @@ struct OnboardingView: View {
             Spacer()
 
             VStack(spacing: 10) {
-                ctaBtn("Loving it") {
+                ctaBtn("loving it") {
                     Haptics.success()
                     requestAppStoreReview()
                     // Brief delay so the system sheet has a beat to appear
@@ -4300,7 +6095,7 @@ struct OnboardingView: View {
                     onboardingReviewPromptShown = true
                     go(26)
                 } label: {
-                    Text("Not yet")
+                    Text("not yet")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(Palette.textSecondary)
                         .padding(.vertical, 8)
@@ -4743,12 +6538,40 @@ struct OnboardingView: View {
         let fromIdx = Self.flowOrder.firstIndex(of: screen) ?? 0
         let toIdx = Self.flowOrder.firstIndex(of: to) ?? 0
         dir = toIdx >= fromIdx ? 1 : -1
+        // Funnel events. `step_completed` fires for the step the user
+        // is leaving (so we know what they finished); `step_viewed`
+        // fires for the step they're arriving at. AnalyticsManager
+        // coalesces dupes within its short window, so SwiftUI remounts
+        // don't double-count.
+        Analytics.track(.onboardingStepCompleted, properties: stepProperties(stepId: screen))
+        Analytics.track(.onboardingStepViewed,    properties: stepProperties(stepId: to))
         // Phase 20b: was 0.3s easeOut — read as rushed on a 26-screen
         // flow where every transition is the user's full attention.
         // Motion.crossFade (0.45s easeInOut) gives the slide more swell
         // without dragging.
         withAnimation(Motion.crossFade) { screen = to }
     }
+
+    /// Standard property bag for onboarding step events. Includes
+    /// position in flowOrder so funnel queries can sort by progression
+    /// without needing the raw step → flow position map. user_goal +
+    /// body_focus are included when set so PostHog can filter the
+    /// funnel by audience segment.
+    private func stepProperties(stepId: Int) -> [String: Any] {
+        var props: [String: Any] = [
+            "step_id": stepId,
+            "step_position": Self.flowOrder.firstIndex(of: stepId) ?? -1,
+            "step_total": Self.flowOrder.count
+        ]
+        if !goal.isEmpty { props["user_goal"] = goal }
+        if !bodyFocus.isEmpty {
+            // Sort for stable cardinality — same multi-select set
+            // always produces the same property value in analytics.
+            props["body_focus"] = bodyFocus.sorted().joined(separator: ",")
+        }
+        return props
+    }
+
     private func goBack() {
         // Walk one step backward in flowOrder. Raw screen index math
         // ("screen - 1") doesn't work because indices jump around (200,
@@ -4761,13 +6584,22 @@ struct OnboardingView: View {
         }
     }
     private func finish() {
-        // Request notification permission if user opted in
-        if notificationsEnabled {
-            Task {
-                let granted = await NotificationPermission.request()
-                if granted { NotificationPermission.scheduleDailyReminder(at: notificationTime) }
-            }
-        }
+        // Funnel close. hasCompletedOnboarding (set by the host in
+        // onComplete) prevents OnboardingView from being mounted again,
+        // so this naturally one-shots without an extra guard.
+        Analytics.track(.onboardingComplete, properties: [
+            "user_goal": goal,
+            "body_focus_count": bodyFocus.count,
+            "coach": voicePreference
+        ])
+
+        // Notification permission is requested ONCE — at case 19's
+        // "Allow notifications" button tap. That button already calls
+        // requestAuthorization and scheduleDailyReminder on success, so
+        // re-requesting here is redundant. Removed because the duplicate
+        // call could surface a second iOS prompt in some install / test
+        // scenarios (iOS normally caches, but reinstall + fast onboarding
+        // can race the cache).
 
         // Derive the legacy focusArea (single String) from the Phase 4
         // bodyFocus multi-select. Downstream code (PlankAIApp →
