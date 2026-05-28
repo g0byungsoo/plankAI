@@ -13,6 +13,9 @@ struct EditProfileView: View {
     @AppStorage("bodyFocus") private var bodyFocus = ""
     @AppStorage("userGoal") private var userGoal = ""
     @AppStorage("sessionLengthPref") private var sessionLengthPref = 7
+    /// Persistent workout-level baseline (-1 gentle · 0 steady · +1 more).
+    /// Local device pref (no DB sync); the home card regenerates on change.
+    @AppStorage("workoutLevel") private var workoutLevel = 0
 
     @Environment(\.modelContext) private var modelContext
     @Query private var userRecords: [UserRecord]
@@ -42,6 +45,11 @@ struct EditProfileView: View {
             return first
         }
         return bodyFocus
+    }
+
+    /// Persistent level options — feeling words, no numbers/RPE/"tier".
+    private var levelOptions: [(label: String, value: Int)] {
+        [("keep it gentle", -1), ("steady", 0), ("a little more", 1)]
     }
 
     var body: some View {
@@ -80,6 +88,17 @@ struct EditProfileView: View {
                     HStack(spacing: Space.sm) {
                         ForEach([5, 10, 15, 20], id: \.self) { mins in
                             lengthChip(mins)
+                        }
+                    }
+                }
+
+                section(title: "my level") {
+                    VStack(spacing: Space.sm) {
+                        ForEach(levelOptions, id: \.value) { option in
+                            optionRow(label: option.label, selected: workoutLevel == option.value) {
+                                Haptics.light()
+                                workoutLevel = option.value
+                            }
                         }
                     }
                 }

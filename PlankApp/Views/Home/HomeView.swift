@@ -37,9 +37,15 @@ struct HomeView: View {
     @AppStorage("dailyRefreshCount") private var dailyRefreshCount = 0
     @AppStorage("dailyRefreshDate") private var dailyRefreshDate = ""
 
-    /// "Today's energy" knob (-1 ease in · 0 steady · +1 push it). Passed to
-    /// the generator as intensityOffset; nudges the effective tier ±1.
-    @AppStorage("workoutEnergy") private var workoutEnergy = 0
+    /// Persistent baseline level (-1 gentle · 0 steady · +1 a little more),
+    /// set in "my plan" and nudged by the post-session feedback loop. The
+    /// source of truth that survives across days.
+    @AppStorage("workoutLevel") private var workoutLevel = 0
+    /// Per-session "today's energy" (-1/0/+1) from the card sheet — resets
+    /// each calendar day so it never silently sticks. Generator effort
+    /// offset = workoutLevel + todaysEnergy.
+    @AppStorage("todaysEnergy") private var todaysEnergy = 0
+    @AppStorage("todaysEnergyDate") private var todaysEnergyDate = ""
 
     // The JeniFit Method (Phase 3). The @AppStorage here observes the
     // same key JeniMethodState writes when a lesson completes — so the
@@ -86,6 +92,9 @@ struct HomeView: View {
     @State private var showBrowse = false
     /// Difficulty-override sheet, opened by the quiet card link.
     @State private var showEnergySheet = false
+    /// Profile/settings hub open state. Drives the menu-mark ☰↔X morph and
+    /// the hub's slide-in over the content (no modal sheet).
+    @State private var hubOpen = false
     /// Phase A: tapped FutureRailRow chip surfaces its explainer sheet.
     /// `nil` = no sheet presented; tap on a card sets it to the rail.
     @State private var presentedFutureRail: FutureRail? = nil
@@ -351,7 +360,7 @@ struct HomeView: View {
                 activityLevel: activityLevel,
                 ageRange: ageRange
             ),
-            intensityOffset: workoutEnergy
+            intensityOffset: workoutLevel + todaysEnergy
         ))
     }
 
@@ -505,8 +514,19 @@ struct HomeView: View {
                     .padding(.top, Space.sm)
                     .padding(.bottom, 100)
                 }
+                .overlay {
+                    // Profile/settings hub slides in over the content; the top
+                    // bar (with the morphed X) stays above it. NavigationStack
+                    // lets the rows push their sub-screens.
+                    if hubOpen {
+                        NavigationStack { ProfileHubView() }
+                            .background(Palette.bgPrimary)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
             }
         }
+        .toolbar(hubOpen ? .hidden : .visible, for: .tabBar)
         .overlay {
             // Phase 9.25 — splash bridge slowed to ~0.9s fade in/out
             // so the visual reads as the ritual's bloom slowly
@@ -523,6 +543,13 @@ struct HomeView: View {
         }
         .animation(.easeInOut(duration: 0.3), value: ritualToWorkoutTransition)
         .task {
+            // Reset per-session "today's energy" at the start of each calendar
+            // day so a one-off "push it / ease in" never silently sticks; the
+            // persistent baseline is `workoutLevel`.
+            if todaysEnergyDate != todayKey {
+                todaysEnergy = 0
+                todaysEnergyDate = todayKey
+            }
             // Generate today's workout once per HomeView lifecycle. Pure
             // (random selection bound by user signals) — re-running on every
             // render would flicker the card; .task fires once on appearance.
@@ -562,8 +589,14 @@ struct HomeView: View {
                 }
             }
         }
-        .onChange(of: workoutEnergy) { _, _ in
-            // Re-roll today's card at the new energy (only when not mid-session).
+        .onChange(of: todaysEnergy) { _, _ in
+            // Re-roll today's card at the new effort (only when not mid-session).
+            guard currentWorkout == nil else { return }
+            withAnimation(Motion.gentleSpring) {
+                dailyWorkout = generateDailyWorkout()
+            }
+        }
+        .onChange(of: workoutLevel) { _, _ in
             guard currentWorkout == nil else { return }
             withAnimation(Motion.gentleSpring) {
                 dailyWorkout = generateDailyWorkout()
@@ -829,22 +862,19 @@ struct HomeView: View {
 
             Spacer()
 
-            // Clean two-line menu mark → the profile/settings hub. Luxury-
-            // minimal register (Chanel / Tiffany & Co): thin cocoa lines, no
-            // chrome, generous tap area. Tabs stay reserved for program surfaces.
+            // Two-line menu mark that morphs to an X when the hub is open
+            // (Chanel / Tiffany clean-luxury). The hub slides in over the
+            // content below — no modal sheet pop. Stays in the bar so the
+            // morph happens in place.
             Button {
                 Haptics.light()
-                activeSheet = .profileHub
-            } label: {
-                VStack(alignment: .trailing, spacing: 5) {
-                    Capsule().frame(width: 24, height: 1.5)
-                    Capsule().frame(width: 24, height: 1.5)
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+                    hubOpen.toggle()
                 }
-                .foregroundStyle(Palette.textPrimary)
-                .frame(width: 44, height: 44, alignment: .trailing)
-                .contentShape(Rectangle())
+            } label: {
+                MenuMorphMark(open: hubOpen)
             }
-            .accessibilityLabel("menu, profile and settings")
+            .accessibilityLabel(hubOpen ? "close" : "menu, profile and settings")
         }
         .padding(.horizontal, Space.screenPadding)
         .padding(.vertical, Space.xs)
@@ -1008,9 +1038,9 @@ struct HomeView: View {
     // Difficulty override lives behind ONE quiet link on the card (Freeletics
     // "adapt session" pattern), not a persistent 3-button segment. Feeling
     // words, never RPE/numbers — beginners can't self-rate exertion. Writes
-    // `workoutEnergy` (-1/0/+1) → generator reads it as intensityOffset
-    // (nudges the effective tier). The post-session "how'd that feel?" loop
-    // remains the primary auto-tuner.
+    // `todaysEnergy` (-1/0/+1, today only) which the generator adds to the
+    // persistent `workoutLevel` baseline. The post-session "how'd that feel?"
+    // loop nudges the baseline; this sheet only changes today.
     @ViewBuilder
     private var energySheet: some View {
         VStack(alignment: .leading, spacing: Space.lg) {
@@ -1043,11 +1073,12 @@ struct HomeView: View {
     }
 
     private func energyPill(_ label: String, value: Int, note: String, italic: Bool = false) -> some View {
-        let selected = workoutEnergy == value
+        let selected = todaysEnergy == value
         return Button {
             Haptics.light()
-            workoutEnergy = value
-            Analytics.track(.workoutEnergyChanged, properties: ["value": value])
+            todaysEnergy = value
+            todaysEnergyDate = todayKey
+            Analytics.track(.workoutEnergyChanged, properties: ["value": value, "scope": "today"])
             showEnergySheet = false
         } label: {
             HStack {
@@ -1485,5 +1516,29 @@ struct StatCard: View {
                     .stroke(Palette.accent, lineWidth: 1.5)
             }
         )
+    }
+}
+
+// MARK: - MenuMorphMark
+//
+// Two thin cocoa lines (Chanel/Tiffany clean-luxury) that morph into an X
+// when `open`. Driven by the caller's withAnimation so the lines rotate +
+// converge as the hub slides in. Right-aligned in a 44pt tap target.
+private struct MenuMorphMark: View {
+    let open: Bool
+    var body: some View {
+        ZStack {
+            Capsule()
+                .frame(width: 24, height: 1.5)
+                .rotationEffect(.degrees(open ? 45 : 0))
+                .offset(y: open ? 0 : -3.5)
+            Capsule()
+                .frame(width: 24, height: 1.5)
+                .rotationEffect(.degrees(open ? -45 : 0))
+                .offset(y: open ? 0 : 3.5)
+        }
+        .foregroundStyle(Palette.textPrimary)
+        .frame(width: 44, height: 44, alignment: .trailing)
+        .contentShape(Rectangle())
     }
 }

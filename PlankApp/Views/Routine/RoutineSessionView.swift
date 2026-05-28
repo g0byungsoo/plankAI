@@ -32,9 +32,10 @@ struct RoutineSessionView: View {
     @State private var isFullScreen = false
 
     /// Adaptive feedback loop: the post-session "how'd that feel?" answer
-    /// nudges the persisted energy knob so the NEXT generated session is
-    /// easier/harder. One source of truth — the same value the home knob sets.
-    @AppStorage("workoutEnergy") private var workoutEnergy = 0
+    /// nudges the persistent baseline `workoutLevel` so the NEXT session is
+    /// easier/harder. (Per-session "today's energy" is a separate value that
+    /// resets daily, so the loop never fights a one-off override.)
+    @AppStorage("workoutLevel") private var workoutLevel = 0
 
     let onDismiss: ([ExerciseResultEntry], TimeInterval) -> Void
 
@@ -70,10 +71,10 @@ struct RoutineSessionView: View {
                     // Relative-effort feedback nudges next session's energy
                     // (clamped to the same -1…+1 range as the home knob).
                     if tags.contains("too_hard") {
-                        workoutEnergy = max(-1, workoutEnergy - 1)
+                        workoutLevel = max(-1, workoutLevel - 1)
                         Analytics.track(.sessionFeedbackGiven, properties: ["feel": "too_hard"])
                     } else if tags.contains("too_easy") {
-                        workoutEnergy = min(1, workoutEnergy + 1)
+                        workoutLevel = min(1, workoutLevel + 1)
                         Analytics.track(.sessionFeedbackGiven, properties: ["feel": "too_easy"])
                     } else if tags.contains("just_right") {
                         Analytics.track(.sessionFeedbackGiven, properties: ["feel": "just_right"])
