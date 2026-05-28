@@ -411,19 +411,24 @@ fullScreenCover). Existing ritual code stays intact.
 heartbeat (`diet_education_beat_viewed`) added to the existing ritual
 view — finally gives us per-beat survival data for the opt-in cohort.
 
-### 8.5 Locked rail stubs — Phase B/C preview
+### 8.5 Coming-soon rails — Phase B/C preview
 
-Two grayed cards at the bottom of Home:
-- "📷 food + jeni" — caption: "jeni's working on this. soon."
-- "📸 weekly check-in photo" — caption: "your time capsule. soon."
+**Updated 2026-05-28:** shipped as ONE quiet "coming soon" line (not two
+dashed stub cards — those read as clutter), with THREE chips: food + jeni,
+steps, weekly check-in photo. Each chip is tappable to a small coach-voice
+explainer and still fires `future_rail_tapped` with `rail_id`, so we learn
+which Phase B/C feature to build first from real demand.
 
-Tappable to a small explainer sheet (one paragraph, coach voice).
-Captures intent signal via `future_rail_tapped` events with `rail_id`
-property — tells us which Phase B/C feature to ship first based on
-actual demand.
+**Food framing reversed (owner decision 2026-05-28):** the food feature now
+EMBRACES photo → calorie counting + tracking as its headline value — the
+Cal AI draw is exactly what this audience is waiting for. This supersedes
+the earlier "no calorie math" stance. Two guardrails stay hard: copy is
+Jeni-voiced and never says "AI" (§5.1 CI rule), and we never apply
+good-or-bad food labels (§10, Kurbo). Steps added as the third rail per the
+multi-data vision (calorie + steps + body scan).
 
-**Files to add:** `PlankApp/Views/Home/FutureRailCard.swift`,
-`PlankApp/Views/Home/FutureRailExplainer.swift`
+**Files:** `PlankApp/Views/Home/FutureRailCard.swift` (FutureRail enum +
+FutureRailRow + FutureRailExplainerSheet).
 
 ### 8.6 Soft-streak replacement + AI-tell audit
 
@@ -446,12 +451,14 @@ voice-rule-compliant but em dashes are everywhere).
 
 ### Phase B (Q3 2026) — Food + Jeni
 
-User feature: photo of a meal, voice-coached log, Jeni "saw" your plate
-and writes a brief note in response.
+User feature: photo of a meal → Jeni counts the calories and tracks them
+for you (no manual logging), and writes a brief note in response.
 
 **Under the hood:** Apple on-device Foundation Models (iOS 26+) for food
 recognition; fall back to Vision + a server-side LLM for older devices.
-**Framed as Jeni, never as "AI" or "calorie scanner."**
+**Calorie counting + tracking is the headline value (the Cal AI draw), but
+always framed as Jeni doing it for you — never the word "AI," and never
+good-or-bad food labels.**
 
 **DB schema additions (gated, opt-in):** `food_logs` table — image URL or
 hash, parsed nutrients, Jeni's response. Sync rules mirror `weight_logs`.
