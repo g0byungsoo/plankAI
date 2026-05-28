@@ -21,11 +21,9 @@ import AVFoundation
 //   - Sparkle burst mirrors PremiumWelcomeScreen visual language — keeps
 //     the welcome→intro pair feeling like one continuous moment.
 //
-// Audio: prefers `coach_intro_<voice>.m4a` (~30s dedicated post-purchase
-// recording — run Scripts/generate_coach_intro_clips.sh to generate);
-// falls back to `method_preview_<voice>.m4a` (the 8s sample) if the
-// dedicated files haven't been produced yet, so the screen always has
-// some audio rather than silent.
+// Music: plays gentle ambient music (lesson_zen_lofi) on a fade-in loop
+// instead of a spoken voice memo — a calmer first moment, and no
+// per-coach voice clip to produce. Fades out on disappear.
 //
 // Voice rules per docs/product_direction_2026.md §4 — no AI signaling,
 // lowercase casual, italic-Fraunces on punch words only, hearts as
@@ -65,8 +63,8 @@ struct CoachIntroView: View {
     @State private var ctaVisible = false
     @State private var didAdvance = false
 
-    // ── Audio ───────────────────────────────────────────────────────
-    @State private var audioPlayer: AVAudioPlayer?
+    // ── Music ───────────────────────────────────────────────────────
+    @State private var music = RitualMusicPlayer()
 
     // ── Sparkle burst placements (mirror PremiumWelcomeScreen) ──────
     // 8 sparkles fanning out from the coach portrait. Scales/offsets
@@ -132,7 +130,7 @@ struct CoachIntroView: View {
         }
         .onAppear {
             Analytics.track(.coachIntroViewed)
-            prepareAndPlayAudio()
+            startMusic()
             if reduceMotion {
                 runReducedMotion()
             } else {
@@ -140,7 +138,7 @@ struct CoachIntroView: View {
             }
         }
         .onDisappear {
-            stopAudio()
+            music.stop()
         }
     }
 
@@ -293,62 +291,25 @@ struct CoachIntroView: View {
         }
     }
 
-    // MARK: - Audio
+    // MARK: - Music
 
-    /// Ordered audio candidates — coach_intro_* is the dedicated
-    /// post-purchase recording (~30s, voice-specific warmth);
-    /// method_preview_* is the 8s sample reused as a fallback so the
-    /// screen still has audio if the dedicated files haven't been
-    /// generated yet (run Scripts/generate_coach_intro_clips.sh).
-    private var audioCandidates: [String] {
-        switch storedVoice {
-        case "balanced":   return ["coach_intro_matson", "method_preview_matson"]
-        case "keepItReal": return ["coach_intro_kira",   "method_preview_kira"]
-        default:           return ["coach_intro_jeni",   "method_preview_jeni"]
-        }
-    }
-
-    private func resolveAudioURL() -> URL? {
-        for name in audioCandidates {
-            if let url = Bundle.main.url(forResource: name, withExtension: "m4a") {
-                return url
-            }
-        }
-        return nil
-    }
-
-    private func prepareAndPlayAudio() {
-        guard let url = resolveAudioURL() else {
-            #if DEBUG
-            print("[CoachIntro] no audio found for voice=\(storedVoice). text-only fallback.")
-            #endif
-            return
-        }
+    /// Set the playback session, then fade the ambient loop in after the
+    /// coach portrait + greeting have landed (~1.1s) so the screen
+    /// settles before the music joins.
+    private func startMusic() {
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
             try AVAudioSession.sharedInstance().setActive(true)
-            let player = try AVAudioPlayer(contentsOf: url)
-            player.prepareToPlay()
-            audioPlayer = player
-            // Start audio after the coach portrait + greeting are
-            // visible (~1.1s after appear). Lets the visual land first
-            // so the voice reads as "jeni materialized and is now
-            // speaking to me" rather than disembodied audio playing
-            // over an empty fading screen.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
-                player.play()
-                Analytics.track(.coachIntroAudioPlayed)
-            }
         } catch {
             #if DEBUG
-            print("[CoachIntro] audio prep FAILED: \(error)")
+            print("[CoachIntro] audio session FAILED: \(error)")
             #endif
         }
-    }
-
-    private func stopAudio() {
-        audioPlayer?.stop()
-        audioPlayer = nil
+        let player = music
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
+            player.play()
+            Analytics.track(.coachIntroAudioPlayed)
+        }
     }
 
     // MARK: - Focal beat picker
@@ -545,7 +506,7 @@ struct CoachIntroView: View {
         didAdvance = true
         Haptics.medium()
         Analytics.track(.coachIntroContinued)
-        stopAudio()
+        music.stop()
         onContinue()
     }
 }
