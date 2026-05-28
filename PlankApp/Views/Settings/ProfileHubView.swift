@@ -3,17 +3,20 @@ import SwiftData
 import PlankSync
 import Auth
 
-/// The profile/settings hub — entry point from the home top-bar avatar,
-/// replacing the old SF-Symbol overflow menu. An emotional identity header
-/// (the winner pattern across Sweat/Noom/Finch/Duolingo) over branded
-/// sticker-icon rows that push the existing on-brand settings sub-screens.
+/// The profile/settings hub — a full-screen layer (no leaked home wordmark)
+/// with its own minimal top bar: a clean "back" when inside a sub-screen and
+/// an X to close. Navigation is state-driven (not a NavigationStack) so the
+/// back/close affordances are centralized + clean, and every transition is a
+/// slow, mindful crossfade (no abrupt slides) per the JeniFit motion rule.
 ///
-/// Every header value traces to a collected field (data-provenance rule):
-/// name (@AppStorage), nurturing "shown up N times" (day_progress count —
-/// same metric as the home momentum strip, NOT a streak/flame), goal
-/// (bodyFocus), coach (voicePreference), and "becoming since" (earliest
+/// Identity header values trace to collected fields (data-provenance):
+/// name, nurturing "shown up N times" (day_progress count, NOT a streak),
+/// goal (bodyFocus), coach (voicePreference), "becoming since" (earliest
 /// session date). Anything with no real data is omitted.
 struct ProfileHubView: View {
+    /// Called by the X to dismiss the whole hub (HomeView animates it out).
+    var onClose: () -> Void = {}
+
     @AppStorage("userName") private var userName = ""
     @AppStorage("bodyFocus") private var bodyFocusValue = ""
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
@@ -21,8 +24,19 @@ struct ProfileHubView: View {
     @AppStorage("jenimethod.feature_enabled") private var jeniMethodFlagEnabled = true
 
     @State private var auth = AuthService.shared
+    @State private var route: HubRoute?
     @Query(sort: \DayProgressRecord.date, order: .reverse) private var allDayProgress: [DayProgressRecord]
     @Query(sort: \SessionLogRecord.completedAt, order: .forward) private var allSessionLogs: [SessionLogRecord]
+
+    enum HubRoute: Hashable {
+        case myPlan, coach, reminders, account, feedback, jeniMethod
+        #if DEBUG
+        case debug
+        #endif
+    }
+
+    /// Slow, mindful crossfade used for every hub transition.
+    private let slow = Animation.easeInOut(duration: 0.5)
 
     private var userId: String? {
         guard let id = auth.currentUser?.id.uuidString, !id.isEmpty else { return nil }
@@ -52,45 +66,109 @@ struct ProfileHubView: View {
     }
 
     var body: some View {
+        VStack(spacing: 0) {
+            hubTopBar
+            ZStack {
+                if let route {
+                    destination(for: route)
+                        .transition(.opacity)
+                } else {
+                    hubList
+                        .transition(.opacity)
+                }
+            }
+            .animation(slow, value: route)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Palette.bgPrimary)
+        .onAppear { Analytics.track(.settingsHubOpened) }
+    }
+
+    // MARK: - Top bar (back + close)
+
+    private var hubTopBar: some View {
+        HStack {
+            if route != nil {
+                Button {
+                    Haptics.light()
+                    withAnimation(slow) { route = nil }
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("back").font(Typo.body)
+                    }
+                    .foregroundStyle(Palette.textSecondary)
+                    .tappableArea()
+                }
+                .transition(.opacity)
+            }
+            Spacer()
+            Button {
+                Haptics.light()
+                onClose()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Palette.textSecondary)
+                    .frame(width: 32, height: 32)
+                    .background(Palette.bgElevated)
+                    .clipShape(Circle())
+                    .tappableArea()
+            }
+            .accessibilityLabel("close")
+        }
+        .padding(.horizontal, Space.screenPadding)
+        .padding(.vertical, Space.sm)
+        .animation(slow, value: route)
+    }
+
+    // MARK: - Hub list
+
+    private var hubList: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: Space.lg) {
                 identityHeader
                     .padding(.horizontal, Space.screenPadding)
 
                 VStack(spacing: Space.sm) {
-                    // "my plan" first — the plan-shaping inputs jeni uses, the
-                    // thing users most need to find ("edit profile" hid it).
-                    hubRow(title: "my plan",
-                           subtitle: "focus area · session length",
-                           sticker: .bowSatin) { EditProfileView() }
+                    hubRow(title: "my plan", subtitle: "focus area · session length",
+                           sticker: .bowSatin, route: .myPlan)
                     coachRow
-                    hubRow(title: "reminders",
-                           subtitle: "when jeni checks in",
-                           sticker: .sparkleGlossy) { NotificationSettingsView() }
-                    hubRow(title: "account",
-                           subtitle: "sign-in & subscription",
-                           sticker: .heartLock) { AccountView() }
-                    hubRow(title: "feedback",
-                           subtitle: "tell us anything ♥",
-                           sticker: .starLineart) { FeedbackView() }
+                    hubRow(title: "reminders", subtitle: "when jeni checks in",
+                           sticker: .sparkleGlossy, route: .reminders)
+                    hubRow(title: "account", subtitle: "sign-in & subscription",
+                           sticker: .heartLock, route: .account)
+                    hubRow(title: "feedback", subtitle: "tell us anything ♥",
+                           sticker: .starLineart, route: .feedback)
                     if jeniMethodFlagEnabled && jeniMethodLastCompletedId >= 14 {
-                        hubRow(title: "the jenifit method",
-                               subtitle: "re-read your lessons",
-                               sticker: .flower3D) { JeniMethodReReadView() }
+                        hubRow(title: "the jenifit method", subtitle: "re-read your lessons",
+                               sticker: .flower3D, route: .jeniMethod)
                     }
                     #if DEBUG
-                    hubRow(title: "debug auth",
-                           subtitle: "dev only",
-                           sticker: .discoBall) { DebugAuthView() }
+                    hubRow(title: "debug auth", subtitle: "dev only",
+                           sticker: .discoBall, route: .debug)
                     #endif
                 }
                 .padding(.horizontal, Space.screenPadding)
             }
-            .padding(.top, Space.sm)
             .padding(.bottom, 40)
         }
-        .background(Palette.bgPrimary)
-        .onAppear { Analytics.track(.settingsHubOpened) }
+    }
+
+    @ViewBuilder
+    private func destination(for route: HubRoute) -> some View {
+        switch route {
+        case .myPlan:     EditProfileView()
+        case .coach:      ChangeTrainerView()
+        case .reminders:  NotificationSettingsView()
+        case .account:    AccountView()
+        case .feedback:   FeedbackView()
+        case .jeniMethod: JeniMethodReReadView()
+        #if DEBUG
+        case .debug:      DebugAuthView()
+        #endif
+        }
     }
 
     // MARK: - Identity header
@@ -158,8 +236,9 @@ struct ProfileHubView: View {
     // MARK: - Rows
 
     private var coachRow: some View {
-        NavigationLink {
-            ChangeTrainerView()
+        Button {
+            Haptics.light()
+            withAnimation(slow) { route = .coach }
         } label: {
             HStack(spacing: Space.md) {
                 Image(CoachAsset.imageName(for: voicePreference))
@@ -178,14 +257,10 @@ struct ProfileHubView: View {
         .buttonStyle(.plain)
     }
 
-    private func hubRow<Destination: View>(
-        title: String,
-        subtitle: String,
-        sticker: StickerName,
-        @ViewBuilder destination: @escaping () -> Destination
-    ) -> some View {
-        NavigationLink {
-            destination()
+    private func hubRow(title: String, subtitle: String, sticker: StickerName, route: HubRoute) -> some View {
+        Button {
+            Haptics.light()
+            withAnimation(slow) { self.route = route }
         } label: {
             HStack(spacing: Space.md) {
                 ZStack {

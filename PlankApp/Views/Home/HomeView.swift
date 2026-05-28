@@ -514,19 +514,20 @@ struct HomeView: View {
                     .padding(.top, Space.sm)
                     .padding(.bottom, 100)
                 }
-                .overlay {
-                    // Profile/settings hub slides in over the content; the top
-                    // bar (with the morphed X) stays above it. NavigationStack
-                    // lets the rows push their sub-screens.
-                    if hubOpen {
-                        NavigationStack { ProfileHubView() }
-                            .background(Palette.bgPrimary)
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                    }
-                }
             }
         }
         .toolbar(hubOpen ? .hidden : .visible, for: .tabBar)
+        // Profile/settings hub — a full-screen layer that covers the home top
+        // bar (so its wordmark never leaks into the menus) and fades in slowly
+        // (mindful motion, no abrupt slide). The hub owns its back + close.
+        .overlay {
+            if hubOpen {
+                ProfileHubView(onClose: { hubOpen = false })
+                    .background(Palette.bgPrimary.ignoresSafeArea())
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.5), value: hubOpen)
         .overlay {
             // Phase 9.25 — splash bridge slowed to ~0.9s fade in/out
             // so the visual reads as the ritual's bloom slowly
@@ -862,23 +863,28 @@ struct HomeView: View {
 
             Spacer()
 
-            // Two-line menu mark that morphs to an X when the hub is open
-            // (Chanel / Tiffany clean-luxury). The hub slides in over the
-            // content below — no modal sheet pop. Stays in the bar so the
-            // morph happens in place.
+            // Clean two thin lines (Chanel / Tiffany minimal-luxury). Opens
+            // the hub, which fades in over the whole screen with its own close.
             Button {
                 Haptics.light()
-                withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
-                    hubOpen.toggle()
-                }
+                hubOpen = true
             } label: {
-                MenuMorphMark(open: hubOpen)
+                VStack(alignment: .trailing, spacing: 6) {
+                    Capsule().frame(width: 20, height: 1.5)
+                    Capsule().frame(width: 20, height: 1.5)
+                }
+                .foregroundStyle(Palette.textPrimary)
+                .frame(width: 44, height: 44, alignment: .trailing)
+                .contentShape(Rectangle())
             }
-            .accessibilityLabel(hubOpen ? "close" : "menu, profile and settings")
+            .accessibilityLabel("menu, profile and settings")
         }
         .padding(.horizontal, Space.screenPadding)
         .padding(.vertical, Space.xs)
         .background(Palette.bgPrimary)
+        // Hidden while the hub is open so the wordmark never leaks into the
+        // menus (the hub has its own top bar with back + close).
+        .opacity(hubOpen ? 0 : 1)
     }
 
     // MARK: - Quick actions (Phase 18b)
@@ -1519,26 +1525,3 @@ struct StatCard: View {
     }
 }
 
-// MARK: - MenuMorphMark
-//
-// Two thin cocoa lines (Chanel/Tiffany clean-luxury) that morph into an X
-// when `open`. Driven by the caller's withAnimation so the lines rotate +
-// converge as the hub slides in. Right-aligned in a 44pt tap target.
-private struct MenuMorphMark: View {
-    let open: Bool
-    var body: some View {
-        ZStack {
-            Capsule()
-                .frame(width: 24, height: 1.5)
-                .rotationEffect(.degrees(open ? 45 : 0))
-                .offset(y: open ? 0 : -3.5)
-            Capsule()
-                .frame(width: 24, height: 1.5)
-                .rotationEffect(.degrees(open ? -45 : 0))
-                .offset(y: open ? 0 : 3.5)
-        }
-        .foregroundStyle(Palette.textPrimary)
-        .frame(width: 44, height: 44, alignment: .trailing)
-        .contentShape(Rectangle())
-    }
-}
