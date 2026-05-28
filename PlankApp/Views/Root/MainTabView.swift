@@ -11,7 +11,6 @@ struct MainTabView: View {
     enum AppTab: Hashable {
         case workout
         case log
-        case you
     }
 
     @State private var selectedTab: AppTab = .workout
@@ -36,15 +35,6 @@ struct MainTabView: View {
                     Label("becoming", systemImage: "book.closed.fill")
                 }
                 .tag(AppTab.log)
-
-            // "you" — the profile/settings hub. A dedicated tab is far more
-            // discoverable than a top-corner avatar (Strava/Apple Fitness
-            // pattern) and gives "my plan" config a findable home.
-            NavigationStack { ProfileHubView() }
-                .tabItem {
-                    Label("you", systemImage: "person.fill")
-                }
-                .tag(AppTab.you)
         }
         .tint(Palette.accent)
         .onAppear {

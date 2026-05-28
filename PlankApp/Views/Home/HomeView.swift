@@ -828,8 +828,29 @@ struct HomeView: View {
             .foregroundStyle(Palette.textPrimary)
 
             Spacer()
-            // Settings now live in the dedicated "you" tab (more discoverable
-            // than a top-corner avatar), so the bar is just the wordmark.
+
+            // "you" chip → the profile/settings hub. A labeled pill (not a
+            // bare icon/avatar) is the most discoverable top-corner settings
+            // entry — a text label beats any glyph (NN/g) — and reads as pure
+            // brand surface. Tabs stay reserved for program surfaces.
+            Button {
+                Haptics.light()
+                activeSheet = .profileHub
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text("you")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
+                }
+                .foregroundStyle(Palette.accent)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(Capsule().fill(Palette.accentSubtle.opacity(0.6)))
+                .overlay(Capsule().stroke(Palette.accent.opacity(0.5), lineWidth: 1))
+                .tappableArea()
+            }
+            .accessibilityLabel("you, profile and settings")
         }
         .padding(.horizontal, Space.screenPadding)
         .padding(.vertical, Space.xs)
