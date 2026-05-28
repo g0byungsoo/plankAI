@@ -118,6 +118,18 @@ enum AnalyticsEvent: String {
     // builds (food log vs body scan).
     case jenisNoteViewed              = "jenis_note_viewed"
     case futureRailTapped             = "future_rail_tapped"
+    case lessonCardTapped             = "lesson_card_tapped"
+
+    // ── Core engagement (recurring — fire on EVERY occurrence) ──
+    // The first_workout_* events above are activation-funnel-specific
+    // (first session only). These fire every time so retention + habit
+    // cohorts are measurable. weight_logged carries no body-data value
+    // (unit only) per the §5.3 no-numeric-body-data contract.
+    case workoutStart                 = "workout_start"
+    case workoutComplete              = "workout_complete"
+    case plankCheckinStarted          = "plank_checkin_started"
+    case weightLogged                 = "weight_logged"
+    case coachChanged                 = "coach_changed"
 
     // ── Post-purchase breathwork (Phase A — first actionable beat) ──
     // Inserted between CoachIntroView and the first workout. Breathwork

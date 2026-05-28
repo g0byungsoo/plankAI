@@ -227,7 +227,11 @@ struct ChangeTrainerView: View {
 
         // Apply change and dismiss
         DispatchQueue.main.asyncAfter(deadline: .now() + totalDuration) {
+            let previousCoach = voicePreference
             voicePreference = selectedId
+            Analytics.track(.coachChanged, properties: [
+                "from": previousCoach, "to": selectedId
+            ])
             if let record = currentUserRecord {
                 record.onboardingVoicePreference = selectedId
                 record.pendingUpsert = true

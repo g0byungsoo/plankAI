@@ -262,6 +262,9 @@ struct LogWeightSheet: View {
         VStack(spacing: Space.sm) {
             Button {
                 Haptics.success()
+                Analytics.track(.weightLogged, properties: [
+                    "unit": unit.rawValue, "is_update": isUpdatingToday
+                ])
                 onSave(weightKg)
             } label: {
                 HStack {
