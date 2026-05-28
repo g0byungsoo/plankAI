@@ -45,10 +45,12 @@ struct BreathworkSessionView: View {
     /// stay clear over it.
     @State private var music = RitualMusicPlayer(targetVolume: 0.28)
 
-    // Breathing config — 4-in / 6-out × 12 ≈ 2 min. Slow-exhale band.
+    // Breathing config — 4-in / 6-out × 6 ≈ 1 min. Slow-exhale band.
+    // Phase 10 — shortened from 12 reps (~2 min): 1 minute is easier for
+    // new users to actually finish, which matters more than total dose.
     private let inhaleSec = 4
     private let exhaleSec = 6
-    private let totalReps = 12
+    private let totalReps = 6
 
     var body: some View {
         ZStack {

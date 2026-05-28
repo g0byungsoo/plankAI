@@ -107,22 +107,12 @@ struct HomeView: View {
         return dayProgress.first { cal.isDate($0.date, inSameDayAs: .now) }
     }
 
-    /// Phase A: the user's 12-week program start date, used by
-    /// `WeekProgressStrip` to render "week N · day M of 7". Priority:
-    ///   1. coach_intro_shown_at  (Phase A — new users who saw CoachIntroView)
-    ///   2. jenimethod.enrolled_at (legacy ritual era)
-    ///   3. earliest session log   (users who never saw either gate)
-    /// Returns nil for fresh installs before any of the above — the
-    /// strip hides itself in that case.
-    private var programStartDate: Date? {
-        let defaults = UserDefaults.standard
-        if let d = defaults.object(forKey: "coach_intro_shown_at") as? Date {
-            return d
-        }
-        if let d = defaults.object(forKey: "jenimethod.enrolled_at") as? Date {
-            return d
-        }
-        return sessionLogs.map(\.completedAt).min()
+    /// Phase 10: whether this user is in the JeniFit Method (goal-gated +
+    /// flag on). Gates the engagement-day strip + the lesson card so
+    /// non-enrolled users (e.g. growGlutes) never see "day N of 14" framing.
+    private var jeniMethodEnrolled: Bool {
+        guard jeniMethodFlagEnabled else { return false }
+        return JeniMethodState.shouldEnroll(for: UserDefaults.standard.string(forKey: "userMotivation"))
     }
 
     /// Phase A: today's "from jeni" note. Composed from observable
@@ -310,7 +300,7 @@ struct HomeView: View {
     /// present race).
     private func launchPostRitualWorkout() {
         pendingPostRitualWorkoutLaunch = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if dailyWorkout == nil {
                 dailyWorkout = generateDailyWorkout()
             }
@@ -322,20 +312,20 @@ struct HomeView: View {
             }
             currentWorkout = workout
             routineFlow = .preRoutine
-            // Phase 9.24 — workout cover appears instantly under the
-            // splash (no upward-slide).
-            var t = Transaction()
-            t.disablesAnimations = true
-            withTransaction(t) {
-                showRoutineSession = true
+            // Present in place with NO slide. Transaction.disablesAnimations
+            // is unreliable for fullScreenCover (the slide-up leaked through);
+            // UIView.setAnimationsEnabled is the pattern that actually kills
+            // it (same as the lesson-cover present). The pink splash is
+            // already opaque on top, so this swap is invisible.
+            UIView.setAnimationsEnabled(false)
+            showRoutineSession = true
+            DispatchQueue.main.async {
+                UIView.setAnimationsEnabled(true)
             }
-            // Phase 9.25 — give the workout cover time to mount, then
-            // fade the splash out slowly (0.9s) so it feels like the
-            // workout is gently revealed rather than the splash
-            // popping off. Total transition: ~1.0s splash-in →
-            // ~0.5s cover-swap-under-splash → ~0.9s splash-fade-out
-            // = ~2.4s slow cinematic handoff.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            // Let the workout cover mount under the splash, then fade the
+            // splash out (0.3s) so the workout is gently revealed. Total
+            // pink bridge: ~0.3s in → swap → ~0.3s out, no bubble, no slide.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 ritualToWorkoutTransition = false
             }
         }
@@ -395,23 +385,18 @@ struct HomeView: View {
 
     /// Lesson ID the card should surface, or nil when the card should be
     /// hidden. Returns nil for: flag off, non-allowlisted goal, not yet
-    /// enrolled, today's lesson already complete, or all 5 done. The
-    /// underlying day-index math is timezone-aware (Calendar.startOfDay,
-    /// same pattern HomeView uses for dailyRefreshDate).
-    ///
-    /// Reads `jeniMethodLastCompletedId` (an @AppStorage observer) so
-    /// the body re-evaluates the instant a lesson completes from the
-    /// covering sheet — no manual refresh trigger needed.
+    /// enrolled or today's session is already done. Engagement-based: the
+    /// lesson follows `currentDay` (derived from the @Query day-progress
+    /// records), so the body re-evaluates the instant a session is saved —
+    /// no manual refresh trigger needed.
     private var jeniMethodCardLessonId: Int? {
-        guard jeniMethodFlagEnabled else { return nil }
-        let goal = UserDefaults.standard.string(forKey: "userMotivation")
-        guard JeniMethodState.shouldEnroll(for: goal) else { return nil }
-        // Forces SwiftUI to re-read this computed property when
-        // jenimethod.last_lesson_completed_id changes — the @AppStorage
-        // binding above is the trigger; this line keeps the compiler
-        // happy that we're actually reading it.
-        _ = jeniMethodLastCompletedId
-        return JeniMethodState.todaysLessonForCard()
+        guard jeniMethodEnrolled else { return nil }
+        // Engagement-based: the lesson follows `currentDay` (the user's Nth
+        // active day, from the @Query day-progress records — so this view
+        // re-derives when a session is saved). Hide once today's session is
+        // done (todayProgress exists) so the card reads "done for today."
+        guard todayProgress == nil else { return nil }
+        return JeniMethodState.lessonForCard(currentDay: currentDay)?.rawValue
     }
 
     var body: some View {
@@ -432,30 +417,38 @@ struct HomeView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: Space.md) {
-                        // Phase A: program-shape signal at top. Renders
-                        // "week N of 12 · day M of 7" + dot row.
-                        // Hides if no program start date can be inferred
-                        // (pre-Phase-A users with no relevant signal).
-                        WeekProgressStrip(startDate: programStartDate)
-                            .padding(.horizontal, Space.screenPadding)
+                        // Phase 10: engagement-day program-shape signal.
+                        // "day N of 14" + dot arc, advancing only when the
+                        // user completes a session (currentDay). Shown only
+                        // to JeniMethod-enrolled users — no calendar, no
+                        // "you're behind."
+                        if jeniMethodEnrolled {
+                            WeekProgressStrip(currentDay: currentDay)
+                                .padding(.horizontal, Space.screenPadding)
+                                .opacity(msgOpacity[0]).offset(y: msgOffset[0])
+                        }
+
+                        // Phase 10 home redesign — single clear daily
+                        // action above the fold (home-UX research: one tap,
+                        // not a dashboard). Order: parasocial check-in →
+                        // HERO session → Jeni's note → (escape-hatch
+                        // workout) → demoted stats/actions → data rails.
+
+                        // Parasocial check-in — Jeni's voice at the top.
+                        jenifitGreeting
                             .opacity(msgOpacity[0]).offset(y: msgOffset[0])
 
-                        // The JeniFit Method card (Phase 3). Top of the
-                        // scroll on Days 2-5 (and re-surfaces Lesson 1 if
-                        // dismissed without completion). Wrapped in
-                        // `if let` so when no lesson is due, nothing is
-                        // rendered — zero layout shift on completed days.
-                        // Shares stagger slot 0 with the greeting so the
-                        // entrance reads as one beat.
+                        // HERO — the single daily action. When a lesson is
+                        // due it IS the hero (one tap → lesson → workout).
+                        // Otherwise today's workout card is the hero.
                         if let lessonId = jeniMethodCardLessonId,
                            let lesson = LessonID(rawValue: lessonId) {
                             JeniMethodTodayCard(
                                 lessonId: lessonId,
                                 teaser: lesson.headline,
                                 onTap: {
-                                    // Phase 9.27 — kill cover slide so
-                                    // RitualView fades in (contentOpacity)
-                                    // instead of popping up.
+                                    // Kill the cover slide so the lesson
+                                    // fades in instead of popping up.
                                     UIView.setAnimationsEnabled(false)
                                     presentedJeniMethodLesson = lesson
                                     DispatchQueue.main.async {
@@ -464,36 +457,40 @@ struct HomeView: View {
                                 }
                             )
                             .padding(.horizontal, Space.screenPadding)
-                            .opacity(msgOpacity[0]).offset(y: msgOffset[0])
+                            .opacity(msgOpacity[1]).offset(y: msgOffset[1])
+                        } else {
+                            jenifitWorkoutCard
+                                .opacity(msgOpacity[1]).offset(y: msgOffset[1])
                         }
 
-                        jenifitGreeting
-                            .opacity(msgOpacity[0]).offset(y: msgOffset[0])
-
-                        statStrip
-                            .opacity(msgOpacity[1]).offset(y: msgOffset[1])
-                            .padding(.horizontal, Space.screenPadding)
-
-                        // Phase A: daily templated coach note above the
-                        // workout card. Hides itself when the template
-                        // returns nil (no meaningful note to render).
+                        // Jeni's daily note — the seed of the AI-coach
+                        // agent surface (vision: agent ingests all data →
+                        // conversations/recommendations). Kept prominent
+                        // right under the hero. Hides itself when nil.
                         JenisNoteCard(note: jenisNoteForToday)
                             .padding(.horizontal, Space.screenPadding)
                             .opacity(msgOpacity[1]).offset(y: msgOffset[1])
 
-                        jenifitWorkoutCard
+                        // Escape hatch — when the lesson is the hero, the
+                        // workout is still one tap away below the fold for
+                        // anyone who'd rather just move today. (When no
+                        // lesson is due the workout already IS the hero.)
+                        if jeniMethodCardLessonId != nil {
+                            jenifitWorkoutCard
+                                .opacity(msgOpacity[2]).offset(y: msgOffset[2])
+                        }
+
+                        statStrip
                             .opacity(msgOpacity[2]).offset(y: msgOffset[2])
+                            .padding(.horizontal, Space.screenPadding)
 
                         quickActions
                             .opacity(msgOpacity[2]).offset(y: msgOffset[2])
                             .padding(.horizontal, Space.screenPadding)
 
-                        // Phase A: locked-rail stubs at the bottom.
-                        // Captures intent signal for Phase B/C feature
-                        // prioritization via `future_rail_tapped` events.
-                        // Framed as "jeni's working on this" (coach
-                        // preparing more for the user) not "AI tracks
-                        // your meals" (surveillance language).
+                        // Future data features (vision: calorie AI, body
+                        // scan, step counter). Framed as "jeni's working on
+                        // this", capturing demand via future_rail_tapped.
                         VStack(spacing: Space.sm) {
                             FutureRailCard(rail: .foodLog) { rail in
                                 presentedFutureRail = rail
@@ -524,7 +521,7 @@ struct HomeView: View {
                     .zIndex(100)
             }
         }
-        .animation(.easeInOut(duration: 0.9), value: ritualToWorkoutTransition)
+        .animation(.easeInOut(duration: 0.3), value: ritualToWorkoutTransition)
         .task {
             // Generate today's workout once per HomeView lifecycle. Pure
             // (random selection bound by user signals) — re-running on every
@@ -553,7 +550,7 @@ struct HomeView: View {
             // ritualForToday returns whatever maps to today's
             // calendar-days-since-enrolled index.
             if presentedJeniMethodLesson == nil,
-               let lesson = JeniMethodState.ritualForToday() {
+               let lesson = JeniMethodState.ritualForToday(currentDay: currentDay) {
                 // Wait a beat so HomeView's appear animation lands
                 // before the cover lifts on top of it.
                 try? await Task.sleep(for: .milliseconds(600))
@@ -816,13 +813,12 @@ struct HomeView: View {
                 Button { activeSheet = .trainer } label: { Label("Coach", systemImage: "person.wave.2") }
                 Button { activeSheet = .notifications } label: { Label("Notifications", systemImage: "bell") }
                 Button { activeSheet = .account } label: { Label("Account", systemImage: "gearshape") }
-                // Phase 7: the JeniFit Method re-read entry appears only
-                // after Lesson 5 completes AND the flag is on. The
-                // @AppStorage("jenimethod.last_lesson_completed_id")
-                // already defined for the Phase 3 card observer drives
-                // the gate — the menu re-evaluates as soon as the user
-                // completes Lesson 5 and reopens the menu.
-                if jeniMethodFlagEnabled && jeniMethodLastCompletedId >= 5 {
+                // Phase 7 (Phase 10: 5→14): the JeniFit Method re-read
+                // entry appears once the user has completed the full 14-day
+                // arc AND the flag is on. lastCompletedLessonId is set on
+                // each lesson finish (markLessonCompleted) and drives the
+                // gate — the menu re-evaluates when the user reopens it.
+                if jeniMethodFlagEnabled && jeniMethodLastCompletedId >= 14 {
                     Divider()
                     Button { activeSheet = .jeniMethod } label: { Label("The JeniFit Method", systemImage: "book") }
                 }
@@ -1355,11 +1351,15 @@ struct HomeView: View {
                     #endif
                     Haptics.vibrate()
                     currentWorkout = workout
-                    // Phase 9.26 — fade-in present instead of slide-up.
-                    var t = Transaction()
-                    t.disablesAnimations = true
-                    withTransaction(t) {
-                        showRoutineSession = true
+                    // Present in place — no slide-up, no black-window flash.
+                    // Transaction.disablesAnimations didn't reliably kill the
+                    // fullScreenCover slide (which revealed black mid-present);
+                    // setAnimationsEnabled does. PreRoutineView fades its own
+                    // content in, so it reads as appearing over the cream bg.
+                    UIView.setAnimationsEnabled(false)
+                    showRoutineSession = true
+                    DispatchQueue.main.async {
+                        UIView.setAnimationsEnabled(true)
                     }
                 } label: {
                     HStack {

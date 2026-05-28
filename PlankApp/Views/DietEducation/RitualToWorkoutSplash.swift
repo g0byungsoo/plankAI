@@ -11,49 +11,22 @@ import SwiftUI
 /// has settled the flag flips false and the splash fades out, revealing
 /// the routine pre-session.
 ///
-/// Visual: same cream→pink gradient as the ritual background + the
-/// breath_bloom asset gently breathing + a quiet loading caption.
-/// Reduce-motion gates the bloom animation (still shown, but static).
+/// Visual: a plain cream→soft-pink gradient, same colors as the lesson and
+/// workout backgrounds, so the cover-swap underneath is invisible and the
+/// workout reads as gently appearing out of the pink. Phase 10 — the
+/// breath_bloom "bubble" was removed: users read it as a stray breathwork
+/// screen flashing between the lesson and the workout. No image, no caption.
 struct RitualToWorkoutSplash: View {
-    @State private var bloomScale: CGFloat = 0.85
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     var body: some View {
-        ZStack {
-            // Cream → soft pink gradient. Same colors as
-            // JeniMethodRitualView.ritualBackground so the visual
-            // continuity from the ritual into the splash is total.
-            LinearGradient(
-                colors: [
-                    Color(hex: "#FDF6F4"),  // bgPrimary (cream)
-                    Color(hex: "#F5D5D8"),  // accentSubtle (soft pink)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-
-            // Phase 9.25 — text removed. The splash is purely a
-            // continuation of the ritual's bloom. No loading copy
-            // means it reads as "ritual still here, slowly settling"
-            // rather than "interstitial screen."
-            Image("breath_bloom")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 280, height: 280)
-                .scaleEffect(bloomScale)
-                .shadow(color: Color(hex: "#C4677A").opacity(0.18),
-                        radius: 14, x: 0, y: 6)
-        }
-        .onAppear {
-            guard !reduceMotion else {
-                bloomScale = 1.0
-                return
-            }
-            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
-                bloomScale = 1.05
-            }
-        }
+        LinearGradient(
+            colors: [
+                Color(hex: "#FDF6F4"),  // bgPrimary (cream)
+                Color(hex: "#F5D5D8"),  // accentSubtle (soft pink)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Getting your session ready")
     }

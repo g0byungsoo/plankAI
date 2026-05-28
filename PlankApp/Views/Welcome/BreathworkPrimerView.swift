@@ -202,7 +202,7 @@ struct BreathworkPrimerView: View {
                 Analytics.track(.breathworkPrimerContinued)
                 onBreathe()
             } label: {
-                Text("two minutes with me")
+                Text("one minute with me")
             }
             .buttonStyle(.ctaPrimary)
 

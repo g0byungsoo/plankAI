@@ -75,12 +75,18 @@ struct DebugAuthView: View {
                         true,
                         forKey: "pendingPostRitualWorkoutLaunch"
                     )
-                    // Phase 9.24 — instant dismiss so the cover
-                    // slide-down doesn't peek through the splash bridge.
-                    var t = Transaction()
-                    t.disablesAnimations = true
-                    withTransaction(t) {
-                        debugRitualToPresent = nil
+                    // Dismiss in place (setAnimationsEnabled is the reliable
+                    // no-slide path; Transaction wasn't). NOTE: this is a
+                    // dev-only test path. The workout cover is owned by
+                    // HomeView and only launches when Home next becomes
+                    // active — so launched from Settings/debug, the workout's
+                    // present happens off-Home where the pink splash can't
+                    // mask it. The real Home flow (daily card / auto lesson)
+                    // is fully slide-free; test the transition from there.
+                    UIView.setAnimationsEnabled(false)
+                    debugRitualToPresent = nil
+                    DispatchQueue.main.async {
+                        UIView.setAnimationsEnabled(true)
                     }
                 }
             )
@@ -214,7 +220,7 @@ struct DebugAuthView: View {
                 row("days_enrolled", JeniMethodState.daysSinceEnrolled().map { "\($0)" } ?? "—")
                 row("last_done",     "\(jeniMethodLastCompleted)")
                 row("skip_count",    "\(JeniMethodState.skipCount)")
-                row("card_lesson",   JeniMethodState.todaysLessonForCard().map { "Day \($0)" } ?? "none")
+                row("enrolled",      JeniMethodState.enrolledAt() != nil ? "yes" : "no")
             }
             .padding(12)
             .background(Palette.bgElevated)
@@ -263,7 +269,7 @@ struct DebugAuthView: View {
                 Button("Enroll now") {
                     JeniMethodState._debugReset()
                     JeniMethodState.markEnrolled()
-                    status = "enrolled at now · card_lesson = \(JeniMethodState.todaysLessonForCard().map(String.init) ?? "none")"
+                    status = "enrolled at now · last_completed = \(JeniMethodState.lastCompletedLessonId)"
                 }
                 .frame(maxWidth: .infinity, minHeight: 40)
                 .background(Palette.stateGood)
@@ -274,7 +280,7 @@ struct DebugAuthView: View {
                 Button("Enroll 2d ago") {
                     JeniMethodState._debugReset()
                     JeniMethodState.markEnrolled(now: Date().addingTimeInterval(-2 * 86_400))
-                    status = "enrolled 2d ago · card_lesson = \(JeniMethodState.todaysLessonForCard().map(String.init) ?? "none")"
+                    status = "enrolled 2d ago · last_completed = \(JeniMethodState.lastCompletedLessonId)"
                 }
                 .frame(maxWidth: .infinity, minHeight: 40)
                 .background(Palette.stateGood)
@@ -285,7 +291,7 @@ struct DebugAuthView: View {
                 Button("Enroll 5d ago") {
                     JeniMethodState._debugReset()
                     JeniMethodState.markEnrolled(now: Date().addingTimeInterval(-5 * 86_400))
-                    status = "enrolled 5d ago · card_lesson = \(JeniMethodState.todaysLessonForCard().map(String.init) ?? "none")"
+                    status = "enrolled 5d ago · last_completed = \(JeniMethodState.lastCompletedLessonId)"
                 }
                 .frame(maxWidth: .infinity, minHeight: 40)
                 .background(Palette.stateGood)
