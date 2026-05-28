@@ -28,20 +28,47 @@ struct JeniMethodTodayCard: View {
                     .font(Typo.heading)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.leading)
-                Text("today's lesson")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .padding(.top, 2)
+
+                // Clear CTA — the card used to read as static info. Cocoa
+                // pill + arrow mirrors the workout card's "start" idiom;
+                // compact (not full-width) so it doesn't compete with the
+                // full-width start CTA on the workout card below it.
+                HStack(spacing: 8) {
+                    Text("today's lesson")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 13, weight: .bold))
+                }
+                .foregroundStyle(Palette.textInverse)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 11)
+                .background(Palette.bgInverse)
+                .clipShape(Capsule())
+                .padding(.top, Space.sm)
             }
             .padding(Space.cardPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Palette.bgElevated)
+            .background(Palette.accentSubtle)
             .overlay(
                 RoundedRectangle(cornerRadius: Radius.lg)
-                    .stroke(Palette.accent.opacity(0.6), lineWidth: 1.5)
+                    .stroke(Palette.accent, lineWidth: 1.5)
             )
             .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
             .shadow(color: Palette.bgInverse.opacity(0.15), radius: 0, x: 3, y: 3)
+            // Scrapbook sticker accent on the empty top-right of the card.
+            // Line-art ribbon balances the painterly stickers elsewhere on
+            // the screen. Applied after clipShape so it bleeds off-corner.
+            .overlay(alignment: .topTrailing) {
+                Image(StickerName.ribbonLineart.assetName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 50, height: 50)
+                    .rotationEffect(.degrees(10))
+                    .offset(x: 10, y: -16)
+                    .opacity(StickerName.ribbonLineart.style.opacity)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)

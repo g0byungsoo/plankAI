@@ -1,118 +1,117 @@
 import SwiftUI
 
-// MARK: - FutureRailCard
+// MARK: - FutureRail
 //
-// Grayed stub cards at the bottom of HomeView that preview Phase B and
-// Phase C features (food logging, weekly check-in photo). Per
-// docs/product_direction_2026.md §8.5, these serve two purposes:
+// Phase B/C feature previews (food logging, weekly check-in photo).
+// Per docs/product_direction_2026.md §8.5 these serve two purposes:
 //
 //   1. Plant program-shape — the user sees Jeni is preparing more for
 //      them, not "today's workout is the whole app."
 //   2. Capture intent signal — taps fire `future_rail_tapped` with
-//      `rail_id`, telling us which Phase B/C feature has more pull
-//      before we commit build cost.
+//      `rail_id`, telling us which feature has more pull before we
+//      commit build cost.
 //
-// Voice rules: framed as "jeni's working on this" (coach preparing
-// more for the user), NOT "AI will track your meals" (surveillance
-// language Gen Z rejects).
+// Surfaced on Home as ONE quiet line (`FutureRailRow`), not two dashed
+// stub cards — the boxed/locked styling read as generic clutter. Voice:
+// "coming soon", framed as Jeni preparing more (never "AI will track
+// your meals" — surveillance language Gen Z rejects).
 
 enum FutureRail: String, Identifiable {
     case foodLog       = "food_log"
+    case stepCounter   = "step_counter"
     case weeklyCheckIn = "weekly_check_in"
 
     var id: String { rawValue }
 
-    var icon: String {
-        switch self {
-        case .foodLog:       return "fork.knife"
-        case .weeklyCheckIn: return "camera"
-        }
-    }
-
+    /// Full title — explainer sheet + accessibility label.
     var title: String {
         switch self {
         case .foodLog:       return "food + jeni"
+        case .stepCounter:   return "steps + jeni"
         case .weeklyCheckIn: return "weekly check-in photo"
         }
     }
 
-    var subtitle: String {
+    /// Short title for the compact home chip.
+    var shortTitle: String {
         switch self {
-        case .foodLog:       return "jeni's working on this. soon."
-        case .weeklyCheckIn: return "your time capsule. soon."
+        case .foodLog:       return "food + jeni"
+        case .stepCounter:   return "steps"
+        case .weeklyCheckIn: return "weekly photo"
+        }
+    }
+
+    /// Brand sticker for the explainer hero (replaces SF Symbols).
+    var sticker: StickerName {
+        switch self {
+        case .foodLog:       return .peach
+        case .stepCounter:   return .sparkleGlossy
+        case .weeklyCheckIn: return .cameraLineart
         }
     }
 
     var explainerEyebrow: String {
         switch self {
         case .foodLog:       return "coming next"
+        case .stepCounter:   return "coming soon"
         case .weeklyCheckIn: return "coming soon"
         }
     }
 
     var explainerBody: String {
         switch self {
+        // Calorie tracking is the core demand (the Cal AI draw) — surfaced
+        // plainly. Stays Jeni-voiced (never "AI", per §5.1 CI rule) and
+        // keeps the ED-safety guardrail (no good-or-bad food labels, §10).
         case .foodLog:
-            return "snap a photo of what you're eating. jeni will see it, log it for you, and write you a note back. no calorie math, no good-or-bad labels. just you sharing your plate."
+            return "snap a photo of your plate and jeni does the rest. she counts the calories and tracks them for you, so there's no manual logging. just the numbers, never good-or-bad labels about what you eat."
+        case .stepCounter:
+            return "jeni keeps an eye on your steps in the background, no extra app to open. the little walks count too, and she'll notice the days you moved more."
         case .weeklyCheckIn:
             return "one photo a week, just for you. stays on your phone. jeni references the cadence so you can see how far you've come, without the before-and-after grid."
         }
     }
 }
 
-struct FutureRailCard: View {
-    let rail: FutureRail
+// MARK: - FutureRailRow
+//
+// One low-emphasis line of "coming soon" chips. Each chip still fires
+// `future_rail_tapped` (preserves the §8.5 demand signal) and opens the
+// explainer. No dashed boxes, no lock icons, no SF Symbols.
+
+struct FutureRailRow: View {
+    let rails: [FutureRail]
     let onTap: (FutureRail) -> Void
 
     var body: some View {
-        Button {
-            Haptics.light()
-            Analytics.track(.futureRailTapped, properties: ["rail_id": rail.rawValue])
-            onTap(rail)
-        } label: {
-            HStack(spacing: Space.md) {
-                ZStack {
-                    Circle()
-                        .fill(Palette.divider)
-                        .frame(width: 36, height: 36)
-                    Image(systemName: rail.icon)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(Palette.textSecondary)
-                }
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Text("coming soon")
+                .font(Typo.eyebrow)
+                .tracking(1.5)
+                .foregroundStyle(Palette.textSecondary.opacity(0.7))
 
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(Palette.textSecondary)
-                        Text(rail.title)
-                            .font(Typo.heading)
-                            .foregroundStyle(Palette.textPrimary)
+            HStack(spacing: Space.sm) {
+                ForEach(rails) { rail in
+                    Button {
+                        Haptics.light()
+                        Analytics.track(.futureRailTapped, properties: ["rail_id": rail.rawValue])
+                        onTap(rail)
+                    } label: {
+                        Text(rail.shortTitle)
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.accent)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(Palette.accentSubtle.opacity(0.5)))
                     }
-                    Text(rail.subtitle)
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(rail.title), coming soon")
+                    .accessibilityHint("tap to learn more")
                 }
 
                 Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Palette.textSecondary.opacity(0.6))
             }
-            .padding(Space.md)
-            .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Palette.bgElevated.opacity(0.7))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .strokeBorder(Palette.divider, style: StrokeStyle(lineWidth: 1.0, dash: [4, 3]))
-            )
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(rail.title), coming soon")
-        .accessibilityHint("tap to learn more")
     }
 }
 
@@ -130,10 +129,13 @@ struct FutureRailExplainerSheet: View {
                 Circle()
                     .fill(Palette.accentSubtle)
                     .frame(width: 72, height: 72)
-                Image(systemName: rail.icon)
-                    .font(.system(size: 26, weight: .medium))
-                    .foregroundStyle(Palette.accent)
+                Image(rail.sticker.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 40, height: 40)
+                    .opacity(rail.sticker.style.opacity)
             }
+            .accessibilityHidden(true)
 
             VStack(spacing: Space.sm) {
                 Text(rail.explainerEyebrow.uppercased())
@@ -171,20 +173,18 @@ struct FutureRailExplainerSheet: View {
 }
 
 #if DEBUG
-#Preview("food rail card") {
-    FutureRailCard(rail: .foodLog, onTap: { _ in })
-        .padding()
-        .background(Palette.bgPrimary)
-}
-
-#Preview("photo rail card") {
-    FutureRailCard(rail: .weeklyCheckIn, onTap: { _ in })
+#Preview("rail row") {
+    FutureRailRow(rails: [.foodLog, .stepCounter, .weeklyCheckIn], onTap: { _ in })
         .padding()
         .background(Palette.bgPrimary)
 }
 
 #Preview("food rail explainer") {
     FutureRailExplainerSheet(rail: .foodLog, onClose: {})
+}
+
+#Preview("steps rail explainer") {
+    FutureRailExplainerSheet(rail: .stepCounter, onClose: {})
 }
 
 #Preview("photo rail explainer") {

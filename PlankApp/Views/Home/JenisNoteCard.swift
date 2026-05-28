@@ -26,6 +26,20 @@ struct JenisNoteCard: View {
     /// archive or trigger a voice memo replay.
     var onTap: (() -> Void)? = nil
 
+    /// Selected coach. Drives the avatar so the welcome message shows
+    /// whichever coach the user picked, not always Jeni.
+    @AppStorage("voicePreference") private var voicePreference = "encouraging"
+
+    /// voicePreference → coach portrait asset. Mirrors the mapping in
+    /// CoachIntroView / BreathworkPrimerView / OnboardingView.
+    private var coachImageName: String {
+        switch voicePreference {
+        case "balanced":   return "coach-matson"
+        case "keepItReal": return "coach-kira"
+        default:           return "coach-jeni"
+        }
+    }
+
     var body: some View {
         if let note = note {
             content(for: note)
@@ -44,14 +58,12 @@ struct JenisNoteCard: View {
         // greeting entirely. This is also the seed of the future coach-
         // agent surface (it grows into Jeni's conversation/recommendations).
         let line = HStack(alignment: .top, spacing: Space.md) {
-            Circle()
-                .fill(Palette.accentSubtle)
+            Image(coachImageName)
+                .resizable()
+                .scaledToFill()
                 .frame(width: 40, height: 40)
-                .overlay(
-                    Text("j")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22, relativeTo: .body))
-                        .foregroundStyle(Palette.accent)
-                )
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Palette.accentSubtle, lineWidth: 1.5))
                 .accessibilityHidden(true)
 
             ItalicAccentText(note.body,

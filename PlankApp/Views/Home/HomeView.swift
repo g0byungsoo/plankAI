@@ -42,7 +42,11 @@ struct HomeView: View {
     // home card auto-hides the moment the user finishes today's lesson
     // from the sheet, without a manual refresh trigger.
     @AppStorage("jenimethod.last_lesson_completed_id") private var jeniMethodLastCompletedId = 0
-    @AppStorage("jenimethod.feature_enabled") private var jeniMethodFlagEnabled = false
+    // Default true to match JeniMethodFeatureFlag.isEnabled (?? true). The
+    // key is never written in the normal flow, so a false default here
+    // silently suppressed the lesson card even though the feature is ON
+    // everywhere else (the onboarding case-250 preview promises it).
+    @AppStorage("jenimethod.feature_enabled") private var jeniMethodFlagEnabled = true
     @State private var presentedJeniMethodLesson: LessonID? = nil
 
     @Environment(\.modelContext) private var modelContext
@@ -76,7 +80,7 @@ struct HomeView: View {
     @State private var showRoutineSession = false
     @State private var currentWorkout: WorkoutPreset?
     @State private var showBrowse = false
-    /// Phase A: tapped FutureRailCard surfaces its explainer sheet.
+    /// Phase A: tapped FutureRailRow chip surfaces its explainer sheet.
     /// `nil` = no sheet presented; tap on a card sets it to the rail.
     @State private var presentedFutureRail: FutureRail? = nil
     /// Two-step routine flow: PreRoutineView (info card) → RoutineSessionView
@@ -149,16 +153,13 @@ struct HomeView: View {
 
     private var streakCount: Int { streakResult.count }
 
-    /// Subline copy under the streak header. When a freeze has saved a
-    /// missed day, surface that — both because it's a "win" moment and so
-    /// the user understands what just happened (otherwise auto-freezes feel
-    /// magical and unexplained).
-    private func streakSubline(weeklyCount: Int, frozen: Int) -> String {
-        if frozen > 0 {
-            let s = frozen == 1 ? "" : "s"
-            return "\(frozen) freeze\(s) saved your streak\u{2009}·\u{2009}\(weeklyCount) this week"
-        }
-        return "\(weeklyCount) session\(weeklyCount == 1 ? "" : "s") this week — keep it up"
+    /// Sessions logged in the current week. Drives the home momentum
+    /// strip's weekly rhythm (was the "this week" stat chip pre-redesign).
+    private var weeklyCount: Int {
+        sessionLogs.filter { log in
+            log.sessionType == "routine" &&
+            Calendar.current.isDate(log.completedAt, equalTo: .now, toGranularity: .weekOfYear)
+        }.count
     }
 
     /// Generated daily workout, cached in state so multiple reads during a
@@ -439,6 +440,9 @@ struct HomeView: View {
                             JeniMethodTodayCard(
                                 teaser: lesson.headline,
                                 onTap: {
+                                    Analytics.track(.lessonCardTapped, properties: [
+                                        "lesson_id": lessonId, "day": currentDay
+                                    ])
                                     // Kill the cover slide so the lesson
                                     // fades in instead of popping up.
                                     UIView.setAnimationsEnabled(false)
@@ -455,15 +459,19 @@ struct HomeView: View {
                                 .opacity(msgOpacity[1]).offset(y: msgOffset[1])
                         }
 
-                        // Momentum — engagement "day N of 14" dots + "shown
-                        // up N times". The single home for the day count;
-                        // the hero cards no longer repeat it. Enrolled only.
-                        if jeniMethodEnrolled {
-                            WeekProgressStrip(currentDay: currentDay,
-                                              sessionsShownUp: dayProgress.count)
-                                .padding(.horizontal, Space.screenPadding)
-                                .opacity(msgOpacity[2]).offset(y: msgOffset[2])
-                        }
+                        // Momentum — one soft, flat signal (no flame, no
+                        // streak: direction §5.3). Enrolled users see the
+                        // "day N of 14" method arc; everyone else sees this
+                        // week's showing-up rhythm. Nurturing "shown up N
+                        // times" tenure only; the single home for the count.
+                        WeekProgressStrip(
+                            mode: jeniMethodEnrolled
+                                ? .method(currentDay: currentDay)
+                                : .weekly(sessionsThisWeek: weeklyCount),
+                            sessionsShownUp: dayProgress.count
+                        )
+                        .padding(.horizontal, Space.screenPadding)
+                        .opacity(msgOpacity[2]).offset(y: msgOffset[2])
 
                         // Escape hatch — when the lesson is the hero, the
                         // workout is still one tap away for anyone who'd
@@ -473,24 +481,16 @@ struct HomeView: View {
                                 .opacity(msgOpacity[2]).offset(y: msgOffset[2])
                         }
 
-                        statStrip
-                            .opacity(msgOpacity[2]).offset(y: msgOffset[2])
-                            .padding(.horizontal, Space.screenPadding)
-
                         quickActions
                             .opacity(msgOpacity[2]).offset(y: msgOffset[2])
                             .padding(.horizontal, Space.screenPadding)
 
-                        // Future data features (vision: calorie AI, body
-                        // scan, step counter). Framed as "jeni's working on
-                        // this", capturing demand via future_rail_tapped.
-                        VStack(spacing: Space.sm) {
-                            FutureRailCard(rail: .foodLog) { rail in
-                                presentedFutureRail = rail
-                            }
-                            FutureRailCard(rail: .weeklyCheckIn) { rail in
-                                presentedFutureRail = rail
-                            }
+                        // Future data features (vision: food log, weekly
+                        // check-in). One quiet line, not two stub cards —
+                        // still fires future_rail_tapped per rail so we keep
+                        // the Phase B/C demand signal (§8.5) without clutter.
+                        FutureRailRow(rails: [.foodLog, .stepCounter, .weeklyCheckIn]) { rail in
+                            presentedFutureRail = rail
                         }
                         .padding(.horizontal, Space.screenPadding)
                         .opacity(msgOpacity[3]).offset(y: msgOffset[3])
@@ -648,7 +648,14 @@ struct HomeView: View {
                 if let workout = currentWorkout {
                     if routineFlow == .preRoutine {
                         PreRoutineView(workout: workout) {
-                            // User tapped Start in pre-session.
+                            // User tapped Start in pre-session. Single
+                            // chokepoint for all start paths (home, browse,
+                            // post-ritual) — fires on every workout, unlike
+                            // the activation-only first_workout_start.
+                            Analytics.track(.workoutStart, properties: [
+                                "workout_name": workout.name,
+                                "duration_min": workout.estimatedDuration
+                            ])
                             withAnimation(Motion.crossFade) {
                                 routineFlow = .session
                             }
@@ -676,6 +683,10 @@ struct HomeView: View {
                                 ])
                             }
                             if didMeet {
+                                Analytics.track(.workoutComplete, properties: [
+                                    "workout_name": workout.name,
+                                    "duration_seconds": Int(duration)
+                                ])
                                 saveRoutineSession(results: results, duration: duration)
                                 hasCompletedFirstSession = true
                             }
@@ -833,100 +844,6 @@ struct HomeView: View {
         .background(Palette.bgPrimary)
     }
 
-    // MARK: - Stat strip (Phase 18b — multi-tone chips)
-    //
-    // Three chips, three different accents so the home actually has color
-    // highlights instead of one cream wash. Streak → cocoa (identity);
-    // this-week → rose (progress); freeze → sage (preservation), only
-    // shown when freezes are actually saving the streak.
-
-    private var statStrip: some View {
-        let result = streakResult
-        let weeklyCount = sessionLogs.filter { log in
-            log.sessionType == "routine" &&
-            Calendar.current.isDate(log.completedAt, equalTo: .now, toGranularity: .weekOfYear)
-        }.count
-
-        return HStack(spacing: Space.sm) {
-            statChip(
-                value: "\(result.count)",
-                label: "day streak",
-                icon: "flame.fill",
-                bg: Palette.bgInverse,
-                fg: Palette.textInverse,
-                iconColor: Palette.accent,
-                shadowColor: Palette.bgInverse.opacity(0.25),
-                rotation: -1.5
-            )
-            statChip(
-                value: "\(weeklyCount)",
-                label: "this week",
-                icon: "figure.run",
-                bg: Palette.accent,
-                fg: Palette.textInverse,
-                iconColor: Palette.textInverse,
-                shadowColor: Palette.accent.opacity(0.30),
-                rotation: 1
-            )
-            if result.frozenDates.count > 0 {
-                statChip(
-                    value: "\(result.frozenDates.count)",
-                    label: "frozen",
-                    icon: "snowflake",
-                    bg: Palette.stateGood.opacity(0.18),
-                    fg: Palette.stateGood,
-                    iconColor: Palette.stateGood,
-                    shadowColor: Palette.stateGood.opacity(0.25),
-                    rotation: -2
-                )
-            }
-        }
-    }
-
-    /// Stat chip — vertical layout so the big Fraunces numeral can carry
-    /// the visual weight per the trend research's "big condensed display
-    /// numerals" recommendation. Hard offset shadow + slight rotation per
-    /// chip = scrapbook idiom; multi-tone fills (cocoa/rose/sage) keep the
-    /// color highlights the previous monochrome layout was missing.
-    private func statChip(
-        value: String,
-        label: String,
-        icon: String,
-        bg: Color,
-        fg: Color,
-        iconColor: Color,
-        shadowColor: Color,
-        rotation: Double
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(iconColor)
-
-            Text(value)
-                .font(.custom("Fraunces72pt-SemiBold", size: 36))
-                .foregroundStyle(fg)
-                .contentTransition(.numericText())
-
-            Text(label)
-                .font(Typo.caption)
-                .foregroundStyle(fg.opacity(0.75))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Space.sm + 4)
-        .padding(.vertical, Space.sm + 2)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(shadowColor)
-                    .offset(x: 4, y: 4)
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(bg)
-            }
-        )
-        .rotationEffect(.degrees(rotation))
-    }
-
     // MARK: - Quick actions (Phase 18b)
     //
     // Two visible tiles for the surfaces the user said don't belong in
@@ -937,8 +854,7 @@ struct HomeView: View {
         HStack(spacing: Space.sm) {
             quickActionTile(
                 title: "plank check-in",
-                subtitle: benchmarkDue ? "due — see your progress" : "how's your hold?",
-                icon: "figure.core.training",
+                subtitle: benchmarkDue ? "it's time" : "how's your hold?",
                 bg: benchmarkDue ? Palette.accentSubtle : Palette.bgElevated,
                 accentColor: benchmarkDue ? Palette.accent : Palette.textSecondary,
                 showDot: benchmarkDue,
@@ -952,6 +868,7 @@ struct HomeView: View {
                     #if DEBUG
                     print("[FUNNEL] plank_checkin_tapped | hasProAccess=\(payment.hasProAccess)")
                     #endif
+                    Analytics.track(.plankCheckinStarted, properties: ["due": benchmarkDue])
                     Haptics.medium()
                     // Phase 9.26 — disable cover-present slide; the
                     // plank-form view fades its content in instead.
@@ -965,7 +882,6 @@ struct HomeView: View {
             quickActionTile(
                 title: "library",
                 subtitle: "browse more workouts",
-                icon: "square.grid.2x2",
                 bg: Palette.bgElevated,
                 accentColor: Palette.textSecondary,
                 showDot: false,
@@ -982,9 +898,8 @@ struct HomeView: View {
             )
         }
         // Sticker accent — heart-glossy hangs off the bottom-right
-        // corner of the quick-action row. Closes the home composition
-        // with a warm beat (matches the warmth of the streak metric
-        // above and the cocoa CTA on the workout card).
+        // corner of the quick-action row. The single sticker punctuation
+        // down here, matching the cocoa CTA on the workout card above.
         .overlay(alignment: .bottomTrailing) {
             Image(StickerName.heartGlossy.assetName)
                 .resizable()
@@ -998,45 +913,37 @@ struct HomeView: View {
         }
     }
 
+    /// Text-led utility tile — no icon-in-box (that chrome read as a
+    /// generic iOS settings row). Title carries the action; the subtitle
+    /// turns rose via `accentColor` (with the dot) when the surface wants
+    /// attention. The row's single heart sticker is the only ornament.
     private func quickActionTile(
         title: String,
         subtitle: String,
-        icon: String,
         bg: Color,
         accentColor: Color,
         showDot: Bool,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: Space.xs) {
-                ZStack(alignment: .topTrailing) {
-                    Image(systemName: icon)
-                        .font(.system(size: 18, weight: .regular))
-                        .foregroundStyle(accentColor)
-                        .frame(width: 36, height: 36)
-                        .background(Palette.bgPrimary.opacity(0.5))
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Text(title)
+                        .font(Typo.body).fontWeight(.semibold)
+                        .foregroundStyle(Palette.textPrimary)
+                        .multilineTextAlignment(.leading)
                     if showDot {
                         Circle()
                             .fill(Palette.accent)
                             .frame(width: 7, height: 7)
-                            .offset(x: 4, y: -4)
                     }
                 }
-
-                Spacer().frame(height: Space.xs)
-
-                Text(title)
-                    .font(Typo.body).fontWeight(.semibold)
-                    .foregroundStyle(Palette.textPrimary)
-                    .multilineTextAlignment(.leading)
                 Text(subtitle)
                     .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
+                    .foregroundStyle(accentColor)
                     .multilineTextAlignment(.leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
             .padding(Space.md)
             .background(bg)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -1311,60 +1218,6 @@ struct HomeView: View {
             .multilineTextAlignment(.center)
             .padding(.horizontal, Space.lg)
         }
-    }
-
-    // MARK: - JeniFit Streak Card (Phase 6)
-
-    private var jenifitStreakCard: some View {
-        let result = streakResult
-        let count = result.count
-        let frozen = result.frozenDates.count
-        let weeklyCount = sessionLogs.filter { log in
-            log.sessionType == "routine" &&
-            Calendar.current.isDate(log.completedAt, equalTo: .now, toGranularity: .weekOfYear)
-        }.count
-
-        return HStack(spacing: Space.md) {
-            ZStack {
-                Circle()
-                    .fill(Palette.accentSubtle)
-                    .frame(width: 44, height: 44)
-                Text("\(count)")
-                    .font(.custom("Fraunces72pt-SemiBold", size: 20))
-                    .foregroundStyle(Palette.accent)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                (
-                    Text("Day ").font(Typo.body) +
-                    Text("\(count)").font(.custom("Fraunces72pt-SemiBoldItalic", size: 16)) +
-                    Text(" · streak going").font(Typo.body)
-                )
-                .foregroundStyle(Palette.textPrimary)
-
-                Text(streakSubline(weeklyCount: weeklyCount, frozen: frozen))
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-
-                // 7-day mini-row — accent for sessions logged this week,
-                // divider for upcoming days.
-                HStack(spacing: 6) {
-                    ForEach(0..<7, id: \.self) { d in
-                        Circle()
-                            .fill(d < weeklyCount ? Palette.accent : Palette.divider)
-                            .frame(width: 6, height: 6)
-                    }
-                }
-                .padding(.top, 2)
-            }
-
-            Spacer()
-        }
-        .padding(Space.md)
-        .background(Palette.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .plankShadow()
-        .padding(.horizontal, Space.screenPadding)
     }
 
     // MARK: - Workout Lottie thumbnail (Phase 18b)
