@@ -6,6 +6,11 @@ struct NotificationSettingsView: View {
     @AppStorage("notificationHour") private var notificationHour = 7
     @AppStorage("notificationMinute") private var notificationMinute = 0
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
+    // Retention extras — independent of the daily reminder. Default ON;
+    // only ever deliver when notifications are authorized (see
+    // RetentionNotifications). Same keys the scheduler reads.
+    @AppStorage("notif.affirmations_enabled") private var affirmationsEnabled = true
+    @AppStorage("notif.winback_enabled") private var winbackEnabled = true
     @State private var pickerTime = Date()
     @State private var permissionGranted = false
     @State private var saved = false
@@ -68,6 +73,27 @@ struct NotificationSettingsView: View {
                         reminderPreviewCard
                     }
                     .transition(.opacity.combined(with: .offset(y: 8)))
+                }
+
+                // Gentle extras — independent retention nudges, each
+                // toggleable + frequency-capped, delivered only when
+                // notifications are authorized. Default on.
+                VStack(alignment: .leading, spacing: Space.sm) {
+                    Text("gentle extras")
+                        .font(Typo.eyebrow).tracking(3)
+                        .foregroundStyle(Palette.textSecondary)
+                        .padding(.bottom, 2)
+
+                    extraToggleRow(
+                        title: "daily affirmations",
+                        subtitle: "little notes from \(coachName), a couple times a week ♥",
+                        isOn: $affirmationsEnabled
+                    )
+                    extraToggleRow(
+                        title: "a nudge if you go quiet",
+                        subtitle: "\(coachName) reaches out if a few days slip by",
+                        isOn: $winbackEnabled
+                    )
                 }
 
                 if !permissionGranted && notificationsEnabled {
@@ -206,6 +232,30 @@ struct NotificationSettingsView: View {
             }
             .padding(Space.md)
             .background(scrapbookChrome())
+        }
+    }
+
+    private func extraToggleRow(title: String, subtitle: String, isOn: Binding<Bool>) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textPrimary)
+                Text(subtitle)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            Toggle("", isOn: isOn)
+                .tint(Palette.accent)
+                .labelsHidden()
+        }
+        .padding(Space.md)
+        .background(scrapbookChrome())
+        .onChange(of: isOn.wrappedValue) { _, enabled in
+            if enabled { requestPermission() }
+            RetentionNotifications.applyTogglesChanged()
         }
     }
 

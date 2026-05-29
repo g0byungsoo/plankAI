@@ -463,6 +463,10 @@ private struct RootView: View {
             await auth.bootstrap()
             PaymentService.shared.configure(appUserID: auth.currentUser?.id.uuidString)
             await AppSync.shared.onLaunch(modelContext: modelContext)
+            // Re-fill the local retention notifications (affirmation drops +
+            // win-back). No-op + never prompts when notifications aren't
+            // authorized; purely additive over the daily + trial reminders.
+            RetentionNotifications.reschedule()
         }
         .onChange(of: auth.currentUser?.id) { _, _ in
             // Fires on sign-in (different user_id) and sign-out (named -> anon).

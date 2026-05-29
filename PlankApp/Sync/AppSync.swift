@@ -334,6 +334,9 @@ final class AppSync {
         }
 
         clearOnboardingUserDefaults()
+        // Cancel pending local retention notifications so a deleted user
+        // never gets a stray affirmation / win-back after wiping.
+        RetentionNotifications.cancelAll()
         #if DEBUG
         print("[AppSync] deleteCurrentAccount: UserDefaults onboarding keys cleared")
         #endif

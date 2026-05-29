@@ -1452,6 +1452,9 @@ struct HomeView: View {
             progressRecord = progress
         }
         try? modelContext.save()
+        // Re-arm the win-back nudge from now — completing a session pushes
+        // the "we miss you" reminder back out, so it only fires on a lapse.
+        RetentionNotifications.markSessionCompleted()
 
         // Fire-and-forget Supabase upserts. SyncService will skip if userId
         // is empty and clear pendingUpsert on success.
@@ -1484,6 +1487,7 @@ struct HomeView: View {
             progressRecord = progress
         }
         try? modelContext.save(); hasCompletedFirstSession = true
+        RetentionNotifications.markSessionCompleted()
 
         Task {
             await AppSync.shared.upsertSessionLog(session)
