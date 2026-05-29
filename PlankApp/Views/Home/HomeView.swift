@@ -420,6 +420,13 @@ struct HomeView: View {
         // re-derives when a session is saved). Hide once today's session is
         // done (todayProgress exists) so the card reads "done for today."
         guard todayProgress == nil else { return nil }
+        // Lazy enroll: anyone who qualifies (flag on + goal in the enrolled
+        // set) but never had `enrolledAt` stamped — testers, users who
+        // upgraded from before the post-purchase Lesson 1 trigger existed,
+        // anyone whose hand-off race skipped the stamp — gets enrolled on
+        // first card-eligible render. Idempotent: re-calls preserve the
+        // original timestamp.
+        if JeniMethodState.enrolledAt() == nil { JeniMethodState.markEnrolled() }
         return JeniMethodState.lessonForCard(currentDay: currentDay)?.rawValue
     }
 
