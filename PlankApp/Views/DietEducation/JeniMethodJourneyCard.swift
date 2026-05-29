@@ -22,8 +22,8 @@ struct JeniMethodJourneyCard: View {
 
     @State private var selection: Int
     private let days = Array(1...14)
-    private let cardHeight: CGFloat = 188
-    private let illustrationSize: CGFloat = 70
+    private let cardHeight: CGFloat = 180
+    private let illustrationSize: CGFloat = 72
 
     init(currentDay: Int, onOpen: @escaping (LessonID, Bool) -> Void) {
         let clamped = min(max(currentDay, 1), 14)
@@ -66,7 +66,7 @@ struct JeniMethodJourneyCard: View {
         // leading-center alignment (vertical) below distributes any extra
         // card space as balanced padding above + below, instead of a
         // single dead gap in the middle.
-        VStack(alignment: .leading, spacing: Space.sm) {
+        VStack(alignment: .leading, spacing: Space.xs) {
             HStack(spacing: 6) {
                 Text("the jenifit method")
                     .font(Typo.eyebrow)

@@ -56,15 +56,21 @@ enum LessonID: Int, CaseIterable {
         .day8, .day9, .day10, .day11, .day12, .day13, .day14,
     ]
 
-    /// Per-lesson card illustration. Currently points at the existing ritual
-    /// paper-craft assets as placeholders — the proper card art (square,
-    /// ~85pt-friendly framing, transparent or cream background) is on the
-    /// to-generate list. Once new card-specific assets land they can be
-    /// imported with these same names (replacing the imageset contents) or
-    /// the switch below can be remapped to e.g. `method_card_d1`, etc.
-    /// Spec for generation: 255×255@3x, subject centered + cropped, paper-
-    /// craft style matching the rest of the Method, semantically tied to
-    /// the lesson's headline.
+    /// Per-lesson card illustration. **Currently points at the existing
+    /// ritual paper-craft assets as placeholders** — these read as "too
+    /// small" on the card because the figure sits inside generous
+    /// whitespace, so the actual subject is ~40% of the frame at the 72pt
+    /// card crop. Generate new card-specific assets and either replace
+    /// these imagesets or remap the switch below to `method_card_d1`…
+    /// `method_card_d14`.
+    ///
+    /// **Spec for new card art (so it reads bigger at 72pt):**
+    /// - 216×216@3x asset (72pt × 3x), square 1:1.
+    /// - **Subject fills the frame edge-to-edge** — no margin, no white
+    ///   background padding. Crop tight to the figure or object.
+    /// - Paper-craft style matching the rest of the Method (consistency).
+    /// - Transparent or cream background (sits cleanly on the pink card).
+    /// - Per-lesson semantic, see comments per case below.
     var coverIllustration: String {
         switch self {
         case .day1:    return "lesson_d1_science"       // muscle changes the math
