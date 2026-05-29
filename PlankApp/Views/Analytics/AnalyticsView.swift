@@ -262,10 +262,11 @@ struct AnalyticsView: View {
 
     // Animation state
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var sectionOpacity: [Double] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    @State private var sectionOffset: [CGFloat] = [20, 20, 20, 20, 20, 20, 20, 20, 20, 20]
+    @State private var sectionOpacity: [Double] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    @State private var sectionOffset: [CGFloat] = [20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20]
     @State private var hasAnimated = false
     @State private var showLogWeight = false
+    @State private var presentedFutureRail: FutureRail? = nil
     @State private var streakPulse = false
     @State private var calendarScale: CGFloat = 0.95
 
@@ -360,12 +361,26 @@ struct AnalyticsView: View {
                     recentSessions
                         .opacity(sectionOpacity[9])
                         .offset(y: sectionOffset[9])
+
+                    // What's coming — scaffolds the weight-loss shift
+                    // (calorie photo, steps, body scan). Quiet "coming soon"
+                    // rails that fire the demand signal; no DB, no new
+                    // surface to maintain (reuses the home idiom).
+                    FutureRailRow(rails: [.foodLog, .stepCounter, .bodyScan]) { rail in
+                        presentedFutureRail = rail
+                    }
+                    .opacity(sectionOpacity[10])
+                    .offset(y: sectionOffset[10])
                 }
                 .padding(.horizontal, Space.screenPadding)
                 .padding(.bottom, 100)
             }
         }
         .onAppear { animateIn() }
+        .sheet(item: $presentedFutureRail) { rail in
+            FutureRailExplainerSheet(rail: rail, onClose: { presentedFutureRail = nil })
+                .presentationDetents([.medium])
+        }
     }
 
     // MARK: - Animation
@@ -1130,7 +1145,7 @@ struct AnalyticsView: View {
                 if hideWeightStats {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text("—")  // voice-lint:allow — visual placeholder for hidden weight value
-                            .font(.custom("Fraunces72pt-SemiBold", size: 36))
+                            .font(.custom("Fraunces72pt-SemiBold", size: 27))
                             .foregroundStyle(Palette.textSecondary)
                         Text("hidden")
                             .font(Typo.caption)
@@ -1138,8 +1153,12 @@ struct AnalyticsView: View {
                     }
                 } else if let latest = latestWeightKg {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        // Demoted from 36pt → 27pt: the smoothed trend chart
+                        // below is the hero now, not the raw daily number
+                        // (research: the number triggers shame; the trend
+                        // gives peace of mind).
                         Text("\(weightUnit.display(fromKg: latest), specifier: "%.1f")")
-                            .font(.custom("Fraunces72pt-SemiBold", size: 36))
+                            .font(.custom("Fraunces72pt-SemiBold", size: 27))
                             .foregroundStyle(Palette.textPrimary)
                             .contentTransition(.numericText())
                         Text(weightUnit.label)

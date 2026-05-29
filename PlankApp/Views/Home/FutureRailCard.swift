@@ -19,6 +19,7 @@ import SwiftUI
 enum FutureRail: String, Identifiable {
     case foodLog       = "food_log"
     case stepCounter   = "step_counter"
+    case bodyScan      = "body_scan"
     case weeklyCheckIn = "weekly_check_in"
 
     var id: String { rawValue }
@@ -28,6 +29,7 @@ enum FutureRail: String, Identifiable {
         switch self {
         case .foodLog:       return "food + jeni"
         case .stepCounter:   return "steps + jeni"
+        case .bodyScan:      return "body scan + jeni"
         case .weeklyCheckIn: return "weekly check-in photo"
         }
     }
@@ -37,6 +39,7 @@ enum FutureRail: String, Identifiable {
         switch self {
         case .foodLog:       return "food + jeni"
         case .stepCounter:   return "steps"
+        case .bodyScan:      return "body scan"
         case .weeklyCheckIn: return "weekly photo"
         }
     }
@@ -46,6 +49,7 @@ enum FutureRail: String, Identifiable {
         switch self {
         case .foodLog:       return .peach
         case .stepCounter:   return .sparkleGlossy
+        case .bodyScan:      return .butterflyRing
         case .weeklyCheckIn: return .cameraLineart
         }
     }
@@ -54,6 +58,7 @@ enum FutureRail: String, Identifiable {
         switch self {
         case .foodLog:       return "coming next"
         case .stepCounter:   return "coming soon"
+        case .bodyScan:      return "coming soon"
         case .weeklyCheckIn: return "coming soon"
         }
     }
@@ -67,6 +72,10 @@ enum FutureRail: String, Identifiable {
             return "snap a photo of your plate and jeni does the rest. she counts the calories and tracks them for you, so there's no manual logging. just the numbers, never good-or-bad labels about what you eat."
         case .stepCounter:
             return "jeni keeps an eye on your steps in the background, no extra app to open. the little walks count too, and she'll notice the days you moved more."
+        // Body scan is body-image sensitive — framed private, on-device, and
+        // NSV ("the progress the scale misses"), never a score or comparison.
+        case .bodyScan:
+            return "a private body read you can take at home, whenever you want. it stays on your phone. jeni uses it to see how your shape is changing — the progress the scale can miss — never a score, never a comparison."
         case .weeklyCheckIn:
             return "one photo a week, just for you. stays on your phone. jeni references the cadence so you can see how far you've come, without the before-and-after grid."
         }
