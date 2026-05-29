@@ -1,4 +1,6 @@
 import SwiftUI
+import SwiftData
+import PlankSync
 import Auth  // MemberImportVisibility: User.id / .email live in Supabase's Auth submodule
 
 struct AccountView: View {
@@ -8,6 +10,10 @@ struct AccountView: View {
     @State private var auth = AuthService.shared
     @State private var payment = PaymentService.shared
     @Environment(\.openURL) private var openURL
+    @Environment(\.modelContext) private var modelContext
+    @Query private var userRecords: [UserRecord]
+    @AppStorage("userName") private var userName = ""
+    @State private var editName = ""
     @State private var showResetConfirm = false
     @State private var showSignInSheet = false
     @State private var showSignOutConfirm = false
@@ -42,6 +48,8 @@ struct AccountView: View {
             VStack(alignment: .leading, spacing: Space.lg) {
                 header
 
+                nameCard
+
                 membershipCard
 
                 if auth.isAnonymous || !auth.isAuthenticated {
@@ -64,6 +72,48 @@ struct AccountView: View {
             .padding(.top, Space.md)
         }
         .background(Palette.bgPrimary)
+        .onAppear { editName = userName }
+        .onDisappear { saveName() }
+    }
+
+    // MARK: - Name (moved here from "my plan" — it's identity, not a workout setting)
+
+    private var currentUserRecord: UserRecord? {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return nil }
+        if let hit = userRecords.first(where: { $0.id == userId }) { return hit }
+        let descriptor = FetchDescriptor<UserRecord>(predicate: #Predicate { $0.id == userId })
+        return try? modelContext.fetch(descriptor).first
+    }
+
+    private var nameCard: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Text("your name")
+                .font(Typo.eyebrow).tracking(3)
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.bottom, 2)
+            TextField("your name", text: $editName)
+                .font(Typo.body)
+                .foregroundStyle(Palette.textPrimary)
+                .submitLabel(.done)
+                .onSubmit { saveName() }
+                .padding(Space.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(scrapbookChrome())
+        }
+    }
+
+    /// Persist to AppStorage + UserRecord + Supabase (saved on submit + on
+    /// leaving the screen, so no save button is needed for one field).
+    private func saveName() {
+        let trimmed = editName.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, trimmed != userName else { return }
+        userName = trimmed
+        if let record = currentUserRecord {
+            record.name = trimmed
+            record.pendingUpsert = true
+            try? modelContext.save()
+            Task { await AppSync.shared.upsertUser(record) }
+        }
     }
 
     // MARK: - Header

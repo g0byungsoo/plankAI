@@ -14,6 +14,9 @@ import Auth
 /// goal (bodyFocus), coach (voicePreference), "becoming since" (earliest
 /// session date). Anything with no real data is omitted.
 struct ProfileHubView: View {
+    /// Closes the whole hub (HomeView animates it out).
+    var onClose: () -> Void = {}
+
     @AppStorage("userName") private var userName = ""
     @AppStorage("bodyFocus") private var bodyFocusValue = ""
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
@@ -64,10 +67,9 @@ struct ProfileHubView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Back bar only inside a sub-screen (close is the floating morph
-            // mark in HomeView). Leaves the top-right clear for that mark.
-            if route != nil {
-                HStack {
+            // Top bar: "back" only inside a sub-screen (left) + a clean close (right).
+            HStack {
+                if route != nil {
                     Button {
                         Haptics.light()
                         withAnimation(slow) { route = nil }
@@ -80,12 +82,24 @@ struct ProfileHubView: View {
                         .foregroundStyle(Palette.textSecondary)
                         .tappableArea()
                     }
-                    Spacer()
+                    .transition(.opacity)
                 }
-                .padding(.horizontal, Space.screenPadding)
-                .padding(.top, Space.sm)
-                .transition(.opacity)
+                Spacer()
+                Button {
+                    Haptics.light()
+                    onClose()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(Palette.textSecondary)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("close")
             }
+            .padding(.horizontal, Space.screenPadding)
+            .padding(.top, Space.sm)
+            .animation(slow, value: route)
 
             ZStack {
                 if let route {
@@ -128,8 +142,7 @@ struct ProfileHubView: View {
                 }
                 .padding(.horizontal, Space.screenPadding)
             }
-            // Top space so the list clears the floating ☰/X mark + safe area.
-            .padding(.top, 56)
+            .padding(.top, Space.sm)
             .padding(.bottom, 40)
         }
     }

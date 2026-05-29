@@ -4,7 +4,6 @@ import PlankSync
 import Auth
 
 struct EditProfileView: View {
-    @AppStorage("userName") private var userName = ""
     // The bodyFocus AppStorage mirror stays as the on-device fast path
     // (PaywallView still reads it). Cross-device truth lives on the
     // UserRecord row pulled from Supabase — when present, it overrides
@@ -20,9 +19,6 @@ struct EditProfileView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var userRecords: [UserRecord]
     @State private var auth = AuthService.shared
-
-    @State private var editName = ""
-    @State private var saved = false
 
     /// Cross-device-synced UserRecord row for the current auth user, if
     /// hydrated. Returns nil for legacy users whose record predates the
@@ -56,15 +52,6 @@ struct EditProfileView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: Space.lg) {
                 header
-
-                section(title: "name") {
-                    scrapbookField {
-                        TextField("your name", text: $editName)
-                            .font(Typo.body)
-                            .foregroundStyle(Palette.textPrimary)
-                            .onSubmit { saveName() }
-                    }
-                }
 
                 section(title: "focus area") {
                     VStack(spacing: Space.sm) {
@@ -103,16 +90,12 @@ struct EditProfileView: View {
                     }
                 }
 
-                saveButton
-                    .padding(.top, Space.sm)
-
                 Spacer().frame(height: Space.xl)
             }
             .padding(.horizontal, Space.screenPadding)
             .padding(.top, Space.md)
         }
         .background(Palette.bgPrimary)
-        .onAppear { editName = userName }
     }
 
     // MARK: - Header
@@ -160,16 +143,7 @@ struct EditProfileView: View {
         }
     }
 
-    // MARK: - Scrapbook input chrome
-
-    private func scrapbookField<Content: View>(
-        @ViewBuilder _ content: () -> Content
-    ) -> some View {
-        content()
-            .padding(Space.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(scrapbookChrome(tint: Palette.accent))
-    }
+    // MARK: - Rows
 
     private func optionRow(label: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -227,36 +201,6 @@ struct EditProfileView: View {
         .buttonStyle(SettingsPressStyle())
     }
 
-    private var saveButton: some View {
-        Button {
-            Haptics.medium()
-            saveName()
-        } label: {
-            HStack {
-                Text(saved ? "saved" : "save changes")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
-                Spacer()
-                Image(systemName: saved ? "checkmark" : "arrow.right")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(saved ? Palette.stateGood : Palette.accent)
-            }
-            .foregroundStyle(Palette.textInverse)
-            .padding(.horizontal, Space.lg)
-            .frame(maxWidth: .infinity)
-            .frame(height: 60)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(Palette.accent.opacity(0.18))
-                        .offset(x: 4, y: 4)
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(Palette.bgInverse)
-                }
-            )
-        }
-        .buttonStyle(SettingsPressStyle())
-    }
-
     private func scrapbookChrome(tint: Color) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -266,22 +210,6 @@ struct EditProfileView: View {
                 .fill(Palette.bgElevated)
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(tint, lineWidth: 1.5)
-        }
-    }
-
-    private func saveName() {
-        let trimmed = editName.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return }
-        userName = trimmed
-        if let record = currentUserRecord {
-            record.name = trimmed
-            record.pendingUpsert = true
-            try? modelContext.save()
-            Task { await AppSync.shared.upsertUser(record) }
-        }
-        withAnimation { saved = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            withAnimation { saved = false }
         }
     }
 
