@@ -22,8 +22,8 @@ struct JeniMethodJourneyCard: View {
 
     @State private var selection: Int
     private let days = Array(1...14)
-    private let cardHeight: CGFloat = 174
-    private let stickerSize: CGFloat = 96
+    private let cardHeight: CGFloat = 200
+    private let illustrationSize: CGFloat = 80
 
     init(currentDay: Int, onOpen: @escaping (LessonID, Bool) -> Void) {
         let clamped = min(max(currentDay, 1), 14)
@@ -62,22 +62,34 @@ struct JeniMethodJourneyCard: View {
     @ViewBuilder
     private func pageCard(day: Int, lesson: LessonID) -> some View {
         let st = state(for: day)
-        HStack(alignment: .top, spacing: Space.md) {
-            stickerBadge(state: st, lesson: lesson)
-            VStack(alignment: .leading, spacing: Space.xs) {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            HStack(spacing: 6) {
+                Text("the jenifit method")
+                    .font(Typo.eyebrow)
+                    .foregroundStyle(Palette.textSecondary)
+                Text("·")
+                    .font(Typo.eyebrow)
+                    .foregroundStyle(Palette.textSecondary.opacity(0.6))
                 Text(st == .past ? "day \(day) · done" : "day \(day) of 14")
-                    .font(Typo.eyebrow).tracking(1.5)
+                    .font(Typo.eyebrow)
                     .foregroundStyle(st == .today ? Palette.accent : Palette.textSecondary)
+            }
 
-                Text(lesson.headline)
-                    .font(Typo.heading)
-                    .foregroundStyle(st == .locked ? Palette.textSecondary : Palette.textPrimary)
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(2)
+            Text(lesson.headline)
+                .font(Typo.heading)
+                .foregroundStyle(st == .locked ? Palette.textSecondary : Palette.textPrimary)
+                .multilineTextAlignment(.leading)
+                .lineLimit(2)
 
-                Spacer(minLength: 0)
+            Spacer(minLength: 0)
 
+            // CTA / lock row on the left, illustration on the right —
+            // baseline-aligned at the bottom of the card. The illustration
+            // sits fully inside the card (no overhang, no edge clipping).
+            HStack(alignment: .bottom) {
                 footer(state: st, lesson: lesson)
+                Spacer(minLength: Space.md)
+                illustrationView(state: st, lesson: lesson)
             }
         }
         .padding(Space.cardPadding)
@@ -93,32 +105,35 @@ struct JeniMethodJourneyCard: View {
         .accessibilityLabel(accessibilityLabel(state: st, day: day, lesson: lesson))
     }
 
-    /// Curated per-lesson sticker (LessonID.coverSticker) sitting top-left
-    /// of the card. Lesson illustrations were too literal for a card crop;
-    /// stickers are JeniFit's native decorative language — transparent,
-    /// coquette, scrapbook — and feel like a stamped page from a journal.
-    /// Locked tiles desaturate the sticker + add a small lock badge.
+    /// Per-lesson illustration anchored bottom-right INSIDE the card (no
+    /// overhang, no edge clipping). Asset comes from
+    /// `LessonID.coverIllustration` — currently the existing ritual art as
+    /// a placeholder; purpose-built card art (square, ~85pt-friendly
+    /// framing) is on the to-generate list and can be swapped in by
+    /// replacing the imageset contents or remapping the switch.
+    /// Locked tiles blur + lock-seal in the Loewenstein info-gap idiom.
     @ViewBuilder
-    private func stickerBadge(state st: PageState, lesson: LessonID) -> some View {
-        let sticker = lesson.coverSticker
-        ZStack(alignment: .bottomTrailing) {
-            Image(sticker.assetName)
+    private func illustrationView(state st: PageState, lesson: LessonID) -> some View {
+        ZStack {
+            Image(lesson.coverIllustration)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: stickerSize, height: stickerSize)
-                .rotationEffect(.degrees(-6))
-                .opacity(sticker.style.opacity * (st == .locked ? 0.35 : 1))
-                .grayscale(st == .locked ? 1.0 : 0)
+                .frame(width: illustrationSize, height: illustrationSize)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .blur(radius: st == .locked ? 6 : 0)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.black.opacity(st == .locked ? 0.10 : 0))
+                )
             if st == .locked {
                 Image(systemName: "lock.fill")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Palette.textPrimary.opacity(0.9))
-                    .padding(6)
+                    .padding(7)
                     .background(Circle().fill(Palette.bgElevated.opacity(0.95)))
-                    .offset(x: 4, y: 4)
             }
         }
-        .frame(width: stickerSize, height: stickerSize)
+        .frame(width: illustrationSize, height: illustrationSize)
         .accessibilityHidden(true)
     }
 
