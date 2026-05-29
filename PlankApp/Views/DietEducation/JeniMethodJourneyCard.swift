@@ -61,25 +61,28 @@ struct JeniMethodJourneyCard: View {
     @ViewBuilder
     private func pageCard(day: Int, lesson: LessonID) -> some View {
         let st = state(for: day)
-        VStack(alignment: .leading, spacing: Space.xs) {
-            HStack {
-                Text("the jenifit method")
-                    .font(Typo.eyebrow)
-                    .foregroundStyle(Palette.textSecondary)
-                Spacer()
-                Text(st == .past ? "day \(day) · done" : "day \(day) of 14")
-                    .font(Typo.eyebrow)
-                    .foregroundStyle(st == .today ? Palette.accent : Palette.textSecondary)
+        HStack(alignment: .top, spacing: Space.md) {
+            illustrationView(state: st, lesson: lesson)
+            VStack(alignment: .leading, spacing: Space.xs) {
+                HStack {
+                    Text("the jenifit method")
+                        .font(Typo.eyebrow)
+                        .foregroundStyle(Palette.textSecondary)
+                    Spacer()
+                    Text(st == .past ? "day \(day) · done" : "day \(day) of 14")
+                        .font(Typo.eyebrow)
+                        .foregroundStyle(st == .today ? Palette.accent : Palette.textSecondary)
+                }
+
+                Text(lesson.headline)
+                    .font(Typo.heading)
+                    .foregroundStyle(st == .locked ? Palette.textSecondary : Palette.textPrimary)
+                    .multilineTextAlignment(.leading)
+
+                Spacer(minLength: 0)
+
+                footer(state: st, lesson: lesson)
             }
-
-            Text(lesson.headline)
-                .font(Typo.heading)
-                .foregroundStyle(st == .locked ? Palette.textSecondary : Palette.textPrimary)
-                .multilineTextAlignment(.leading)
-
-            Spacer(minLength: 0)
-
-            footer(state: st, lesson: lesson)
         }
         .padding(Space.cardPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -90,19 +93,37 @@ struct JeniMethodJourneyCard: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
         .shadow(color: Palette.bgInverse.opacity(st == .locked ? 0.06 : 0.15), radius: 0, x: 3, y: 3)
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.ribbonLineart.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 50, height: 50)
-                .rotationEffect(.degrees(10))
-                .offset(x: 10, y: -16)
-                .opacity((StickerName.ribbonLineart.style.opacity) * (st == .locked ? 0.4 : 1))
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel(state: st, day: day, lesson: lesson))
+    }
+
+    /// Lesson cover — clear for today/past (an inviting glimpse), blurred
+    /// behind a soft lock for future. Loewenstein information-gap idiom:
+    /// visible-but-incomplete drives the "what's behind this?" pull to
+    /// unlock. Asset comes from `LessonID.coverIllustration` and reuses
+    /// existing ritual art (no new assets).
+    @ViewBuilder
+    private func illustrationView(state st: PageState, lesson: LessonID) -> some View {
+        ZStack {
+            Image(lesson.coverIllustration)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 76, height: 76)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .blur(radius: st == .locked ? 6 : 0)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color.black.opacity(st == .locked ? 0.10 : 0))
+                )
+            if st == .locked {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary.opacity(0.9))
+                    .padding(7)
+                    .background(Circle().fill(Palette.bgElevated.opacity(0.92)))
+            }
+        }
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder

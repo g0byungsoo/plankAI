@@ -56,6 +56,32 @@ enum LessonID: Int, CaseIterable {
         .day8, .day9, .day10, .day11, .day12, .day13, .day14,
     ]
 
+    /// Cover illustration asset for the home journey card (Loewenstein
+    /// info-gap idiom: today's card shows it clear, the locked-future tiles
+    /// show it blurred behind a lock — visible-but-incomplete drives the
+    /// "open me" pull). Reuses an existing per-lesson paper-craft asset
+    /// (no new art); choices match the ritual's hero illustration so the
+    /// card preview and the lesson land on the same image.
+    var coverIllustration: String {
+        switch self {
+        case .day1:    return "lesson_d1_science"
+        case .day2:    return "lesson_d2_paradox"
+        case .day3:    return "lesson_d3_neat"
+        case .day4:    return "lesson_d4_plank"
+        case .day5:    return "lesson_d5_walk"
+        case .day6:    return "lesson_d2_consistency"
+        case .day7:    return "lesson_d7_habit"
+        case .day8:    return "lesson_d8_return"
+        case .day9:    return "lesson_d9_kindness"
+        case .day10:   return "lesson_d4_protein"
+        case .day11:   return "lesson_d11_enjoy"
+        case .day12:   return "lesson_d12_snack"
+        case .day13:   return "lesson_d5_sleep"
+        case .day14:   return "lesson_d14_freshstart"
+        case .generic: return "lesson_d14_freshstart"
+        }
+    }
+
     /// Phase 9.22 — short teaser headline per lesson. Used by the
     /// HomeView card + JeniMethodReReadView index so they don't have
     /// to resolve a full ritual just to display one line. Matches the
