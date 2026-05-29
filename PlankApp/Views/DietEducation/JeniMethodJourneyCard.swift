@@ -22,8 +22,8 @@ struct JeniMethodJourneyCard: View {
 
     @State private var selection: Int
     private let days = Array(1...14)
-    private let cardHeight: CGFloat = 200
-    private let illustrationSize: CGFloat = 80
+    private let cardHeight: CGFloat = 188
+    private let illustrationSize: CGFloat = 70
 
     init(currentDay: Int, onOpen: @escaping (LessonID, Bool) -> Void) {
         let clamped = min(max(currentDay, 1), 14)
@@ -62,7 +62,11 @@ struct JeniMethodJourneyCard: View {
     @ViewBuilder
     private func pageCard(day: Int, lesson: LessonID) -> some View {
         let st = state(for: day)
-        VStack(alignment: .leading, spacing: Space.xs) {
+        // No middle Spacer — content stacks as one block and the .frame
+        // leading-center alignment (vertical) below distributes any extra
+        // card space as balanced padding above + below, instead of a
+        // single dead gap in the middle.
+        VStack(alignment: .leading, spacing: Space.sm) {
             HStack(spacing: 6) {
                 Text("the jenifit method")
                     .font(Typo.eyebrow)
@@ -81,11 +85,9 @@ struct JeniMethodJourneyCard: View {
                 .multilineTextAlignment(.leading)
                 .lineLimit(2)
 
-            Spacer(minLength: 0)
-
             // CTA / lock row on the left, illustration on the right —
-            // baseline-aligned at the bottom of the card. The illustration
-            // sits fully inside the card (no overhang, no edge clipping).
+            // baseline-aligned. The illustration sits fully inside the
+            // card (no overhang, no edge clipping).
             HStack(alignment: .bottom) {
                 footer(state: st, lesson: lesson)
                 Spacer(minLength: Space.md)
