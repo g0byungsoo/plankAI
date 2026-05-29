@@ -22,12 +22,14 @@ struct MainTabView: View {
             // as a meditation cue, not a feature menu, which fits the
             // JeniFit voice better than "Workout / Log".
             HomeView()
+                .tabBloom(isActive: selectedTab == .workout)
                 .tabItem {
                     Label("present", systemImage: "sparkles")
                 }
                 .tag(AppTab.workout)
 
             AnalyticsView()
+                .tabBloom(isActive: selectedTab == .log)
                 .tabItem {
                     // "becoming" leans into Dweck/Burnette growth-mindset
                     // research — present-progressive framing accommodates
@@ -43,4 +45,54 @@ struct MainTabView: View {
             #endif
         }
     }
+}
+
+/// Tab-arrival "bloom": when a tab becomes active, its content resolves from
+/// a soft blur + slight scale + dimmed opacity into focus (~0.5s), with a
+/// soft haptic — so switching present ↔ becoming reads smooth and magical
+/// rather than an instant content swap. The native liquid-glass bar stays
+/// crisp (this only affects the tab's content, not the bar).
+///
+/// `appearedOnce` is seeded to the tab's initial active state so each tab's
+/// own first-load entrance (HomeView / AnalyticsView animateIn) owns the
+/// first reveal, and the bloom takes over on every subsequent arrival —
+/// the two never double up. Reduce-motion snaps with no bloom.
+private struct TabBloom: ViewModifier {
+    let isActive: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appearedOnce: Bool
+    @State private var blur: CGFloat = 0
+    @State private var opacity: Double = 1
+    @State private var scale: CGFloat = 1
+
+    init(isActive: Bool) {
+        self.isActive = isActive
+        _appearedOnce = State(initialValue: isActive)
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .blur(radius: blur)
+            .opacity(opacity)
+            .scaleEffect(scale)
+            .onChange(of: isActive) { _, active in
+                guard active else { return }
+                guard appearedOnce else { appearedOnce = true; return }
+                guard !reduceMotion else { return }
+                // Set the bloom-from state this frame, then resolve to clear
+                // next runloop so the blur is actually rendered before it
+                // animates away.
+                blur = 7; opacity = 0.55; scale = 0.985
+                Haptics.soft()
+                DispatchQueue.main.async {
+                    withAnimation(.easeOut(duration: 0.5)) {
+                        blur = 0; opacity = 1; scale = 1
+                    }
+                }
+            }
+    }
+}
+
+private extension View {
+    func tabBloom(isActive: Bool) -> some View { modifier(TabBloom(isActive: isActive)) }
 }

@@ -348,6 +348,9 @@ struct AnalyticsView: View {
     @State private var presentedFutureRail: FutureRail? = nil
     @State private var presentedMetric: BecomingMetric? = nil
     @State private var calendarScale: CGFloat = 0.95
+    /// Header blur-fade — matches the home greeting's "resolve into focus"
+    /// signature so the becoming entrance reads in the same voice.
+    @State private var headerBlur: CGFloat = 6
 
     // Phase 16c — Logs scatter (LIGHT, 3 stickers, line-art-heavy).
     // Data surface should feel like a dashboard with light touches,
@@ -392,6 +395,7 @@ struct AnalyticsView: View {
                         .padding(.top, Space.md)
                         .opacity(sectionOpacity[0])
                         .offset(y: sectionOffset[0])
+                        .blur(radius: headerBlur)
 
                     bentoJourney
                         .opacity(sectionOpacity[1])
@@ -464,8 +468,15 @@ struct AnalyticsView: View {
                 sectionOffset[i] = 0
             }
             calendarScale = 1.0
+            headerBlur = 0
             return
         }
+
+        Haptics.soft()
+        // Header resolves from a soft blur into focus (same signature as the
+        // home greeting), a touch slower than its fade for the "coming into
+        // focus" read.
+        withAnimation(.easeOut(duration: 0.6)) { headerBlur = 0 }
 
         // Phase 20b: cascade now uses Motion.stagger (0.10s) × per-index
         // delay rather than hand-tuned numbers, and Motion.gentleSpring
@@ -789,7 +800,7 @@ struct AnalyticsView: View {
     // Milestone ladder.
     private var milestoneTile: some View {
         VStack(alignment: .leading, spacing: 6) {
-            tileHeader("next marker", .milestone)
+            tileHeader("next win", .milestone)
             if let m = nextMilestone, !hideWeightStats {
                 Text("\(m.remainingDisplay, specifier: "%.1f") \(weightUnit.label) to go")
                     .font(Typo.body).fontWeight(.semibold)
