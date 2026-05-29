@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import PlankSync
 
 struct RoutineSessionView: View {
@@ -181,9 +182,13 @@ struct RoutineSessionView: View {
         .task {
             vm.start()
             sessionBridge.vm = vm
+            // Keep the screen awake for the whole workout — auto-lock
+            // mid-session is frustrating. Re-enabled on disappear.
+            UIApplication.shared.isIdleTimerDisabled = true
         }
         .onDisappear {
             sessionBridge.vm = nil
+            UIApplication.shared.isIdleTimerDisabled = false
             // Always lock back to portrait when leaving the session so
             // the rest of the app honors its portrait-only contract.
             setOrientation(landscape: false)

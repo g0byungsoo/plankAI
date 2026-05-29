@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import AVFoundation
 import PlankEngine
 import PlankVoice
@@ -262,6 +263,9 @@ struct SessionView: View {
             Button("keep going", role: .cancel) {}
         }
         .task {
+            // Keep the screen awake for the whole plank hold — auto-lock
+            // mid-hold is frustrating. Re-enabled on disappear.
+            UIApplication.shared.isIdleTimerDisabled = true
             // Unlock all orientations for session (user planks in landscape)
             OrientationManager.shared.allowedOrientations = .all
             // Defensive: clear any voice-line dedup / cooldown state that
@@ -273,6 +277,7 @@ struct SessionView: View {
             await startSession()
         }
         .onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
             stopTimer()
             camera.stopSession()
             // Lock back to portrait
