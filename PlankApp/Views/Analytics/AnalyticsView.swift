@@ -178,41 +178,8 @@ struct AnalyticsView: View {
         return allRatings.filter { sessionIds.contains($0.sessionLogId) }
     }
 
-    private var routineCount: Int {
-        sessionLogs.filter { $0.sessionType == "routine" }.count
-    }
-
     private var benchmarkCount: Int {
         sessionLogs.filter { $0.sessionType == "plank_benchmark" }.count
-    }
-
-    private var totalMinutes: Int {
-        let totalSeconds = sessionLogs.reduce(0.0) { $0 + ($1.totalDuration ?? $1.holdTime) }
-        return Int(totalSeconds) / 60
-    }
-
-    /// Minutes of activity in the trailing 7-day window (today included).
-    /// Sums `totalDuration` from session_logs scoped to the user. Source
-    /// of truth for the WHO Activity Dose Ring.
-    private var weeklyMinutes: Int {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: .now) ?? .now
-        let totalSeconds = sessionLogs
-            .filter { $0.completedAt >= cutoff }
-            .reduce(0.0) { $0 + ($1.totalDuration ?? $1.holdTime) }
-        return Int(totalSeconds) / 60
-    }
-
-    /// Adaptive WHO target. WHO 2020 + ACSM 2018 set 150 min/wk for
-    /// general health; ACSM progression principle says low-baseline
-    /// users should ramp from a smaller initial. Drops to 90 for users
-    /// who self-reported `commitmentDays ≤ 3` AND `activityLevel ∈
-    /// {sedentary, light}` — both fields stored on UserRecord. Avoids
-    /// the demoralization of showing a 19/150 ring on day one.
-    private var weeklyMinutesTarget: Int {
-        let record = currentUserRecord
-        let lowCommit = (record?.onboardingCommitmentDaysPerWeek ?? 0) <= 3
-        let sedentary = ["sedentary", "light"].contains(record?.onboardingActivityLevel ?? "")
-        return (lowCommit && sedentary) ? 90 : 150
     }
 
     /// Plank baseline from onboarding (the "test your hold" question).
@@ -248,15 +215,6 @@ struct AnalyticsView: View {
               onboardingGoalWeightKg > 0 else { return nil }
         let towardGoal = onboardingGoalWeightKg < current ? -weekly : weekly
         return towardGoal
-    }
-
-    /// ACSM 2009 (Donnelly et al.) position stand: 0.5–1% body weight
-    /// per week is the clinically-significant + sustainable rate. We
-    /// surface this as a guardrail, not a target — users losing faster
-    /// get a "ease back, sustainability wins" cue (Wing & Phelan 2005).
-    private var acsmRecommendedKgPerWeekRange: ClosedRange<Double>? {
-        guard let current = latestWeightKg, current > 0 else { return nil }
-        return (0.005 * current)...(0.01 * current)
     }
 
     // MARK: - Bento metrics (research-led)
@@ -306,22 +264,6 @@ struct AnalyticsView: View {
         let remainingKg = max(0, targetLostKg - lostKg)
         let progress = (lostKg - markersPassed * stepKg) / stepKg
         return (weightUnit.display(fromKg: remainingKg), min(max(progress, 0), 1))
-    }
-
-    /// User's height in metres (from onboardingHeightCm). Returns nil
-    /// when the field is unset or implausible. AnalyticsView reads this
-    /// via UserRecord, not @AppStorage — height has no AppStorage mirror.
-    private var heightMeters: Double? {
-        guard let cm = currentUserRecord?.onboardingHeightCm, cm > 50 else { return nil }
-        return cm / 100.0
-    }
-
-    /// BMI = kg / m^2. AHA 2021 banding is rendered by the consumer view
-    /// (band table is small enough to inline). Returns nil when either
-    /// height or current weight is missing — never fabricate.
-    private var currentBMI: Double? {
-        guard let m = heightMeters, let kg = latestWeightKg else { return nil }
-        return kg / (m * m)
     }
 
     /// Onboarding-stated barriers, parsed from the UserRecord array (not
@@ -405,7 +347,6 @@ struct AnalyticsView: View {
     @State private var showLogWeight = false
     @State private var presentedFutureRail: FutureRail? = nil
     @State private var presentedMetric: BecomingMetric? = nil
-    @State private var streakPulse = false
     @State private var calendarScale: CGFloat = 0.95
 
     // Phase 16c — Logs scatter (LIGHT, 3 stickers, line-art-heavy).
@@ -543,18 +484,6 @@ struct AnalyticsView: View {
         withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.5)) {
             calendarScale = 1.0
         }
-
-        // Streak number pulse
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            withAnimation(.easeInOut(duration: 0.3)) {
-                streakPulse = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    streakPulse = false
-                }
-            }
-        }
     }
 
     // MARK: - Header (Phase A — research-led "becoming" hero)
@@ -652,43 +581,6 @@ struct AnalyticsView: View {
     // shame, every claim traced to collected data (data-provenance): pace
     // toward goal, sessions this week, return-after-gap, else a fresh-start
     // line. Never shames a gain or a quiet week — those fall to support copy.
-    private var adaptiveInsight: some View {
-        HStack(alignment: .top, spacing: Space.md) {
-            Image(CoachAsset.imageName(for: voicePreference))
-                .resizable().scaledToFill()
-                .frame(width: 44, height: 44)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Palette.accentSubtle, lineWidth: 1.5))
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("this week")
-                    .font(Typo.eyebrow).tracking(2)
-                    .foregroundStyle(Palette.accent)
-                Text(insightLine)
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(Space.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Palette.accent.opacity(0.18))
-                    .offset(x: 5, y: 5)
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Palette.accentSubtle)
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Palette.accent, lineWidth: 1.5)
-            }
-        )
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("This week from your coach: \(insightLine)")
-    }
-
     /// The adaptive line. Priority: gentle re-entry after a gap → trend
     /// moving toward goal (only when toward — never shames a gain) → showed
     /// up this week → fresh start.
@@ -987,138 +879,6 @@ struct AnalyticsView: View {
 
     // MARK: - Empty State
 
-    // MARK: - Hero Stats
-
-    private var heroStats: some View {
-        HStack(spacing: 10) {
-            // Streak card with pulse
-            VStack(spacing: 6) {
-                Image(systemName: "flame.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(Palette.accent)
-                Text("\(streak.count)")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(Palette.textPrimary)
-                    .scaleEffect(streakPulse ? 1.15 : 1.0)
-                Text(streak.frozenDates.isEmpty ? "day streak" : "streak")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Palette.textSecondary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(Palette.bgElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .plankShadow()
-
-            heroStat(value: "\(routineCount)", label: "workouts", icon: "checkmark.circle.fill")
-            heroStat(value: "\(totalMinutes)", label: "min total", icon: "clock.fill")
-        }
-    }
-
-    private func heroStat(value: String, label: String, icon: String) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundStyle(Palette.textSecondary)
-            Text(value)
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundStyle(Palette.textPrimary)
-            Text(label)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Palette.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(Palette.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .plankShadow()
-        // Hero stat = single semantic unit. VoiceOver reads "12 workouts"
-        // as one phrase, not "icon, 12, workouts" three steps.
-        .accessibilityElement(children: .combine)
-    }
-
-    // MARK: - WHO Activity Dose Ring (Phase B)
-    //
-    // Shows trailing-7-day session minutes against the WHO 2020 / ACSM
-    // 2018 target of 150 min/wk moderate activity (or an adaptive 90-min
-    // initial target for low-baseline users — see weeklyMinutesTarget).
-    // Donnelly et al. 2009 ACSM position stand: 150-300 min/wk is the
-    // dose-response window for clinically significant weight loss.
-    //
-    // Pulls only from already-collected data:
-    //   - session_logs.totalDuration (in-app)
-    //   - UserRecord.onboardingCommitmentDaysPerWeek (onboarding)
-    //   - UserRecord.onboardingActivityLevel (onboarding)
-
-    private var activityRing: some View {
-        let minutes = weeklyMinutes
-        let target = weeklyMinutesTarget
-        let progress = min(1.0, Double(minutes) / Double(target))
-        let pct = Int((progress * 100).rounded())
-
-        return HStack(alignment: .center, spacing: Space.lg) {
-            ZStack {
-                Circle()
-                    .stroke(Palette.accent.opacity(0.15), lineWidth: 12)
-                    .frame(width: 96, height: 96)
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(Palette.accent, style: StrokeStyle(lineWidth: 12, lineCap: .round))
-                    .frame(width: 96, height: 96)
-                    .rotationEffect(.degrees(-90))
-                    .animation(.easeOut(duration: 0.7), value: progress)
-                VStack(spacing: 0) {
-                    Text("\(pct)%")
-                        .font(.custom("Fraunces72pt-SemiBold", size: 22))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("of target")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Palette.textSecondary)
-                        .tracking(1)
-                }
-            }
-
-            VStack(alignment: .leading, spacing: Space.xs) {
-                Text("this week")
-                    .font(Typo.eyebrow).tracking(2)
-                    .foregroundStyle(Palette.accent)
-                (
-                    Text("\(minutes)").font(.custom("Fraunces72pt-SemiBold", size: 28)) +
-                    Text(" / \(target) min").font(Typo.body).foregroundColor(Palette.textSecondary)
-                )
-                .foregroundStyle(Palette.textPrimary)
-
-                Text(activityRingCaption(minutes: minutes, target: target))
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(Space.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(scrapbookCardChrome())
-    }
-
-    /// Caption under the ring. Three states keyed off progress + the
-    /// user's adaptive target so the copy never moralizes a 0%-week
-    /// (Neff self-compassion). Citation kept short — full source in
-    /// docs/analytics_research.md (Phase B).
-    private func activityRingCaption(minutes: Int, target: Int) -> String {
-        let remaining = max(0, target - minutes)
-        if minutes == 0 {
-            return target == 90
-                ? "WHO sets 150 min/wk for general health. you're starting at 90 — research says ramp, don't sprint."
-                : "WHO sets 150 min/wk for general health. one session puts you on the board."
-        }
-        if remaining == 0 {
-            return target == 150
-                ? "you hit the WHO target. dose-response keeps going up to 300 min/wk."
-                : "you hit your starting target. ready to move it up?"
-        }
-        return "\(remaining) min to your weekly target. one short session usually closes it."
-    }
-
     /// Shared scrapbook chrome for Phase B+ analytics modules — 24pt
     /// corners, 1.5pt accent border, hard offset shadow. Matches the
     /// rest of the app (browse, settings, pre-session) instead of the
@@ -1133,189 +893,6 @@ struct AnalyticsView: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(tint, lineWidth: 1.5)
         }
-    }
-
-    // MARK: - Goal Pace Projection (Phase C, inline in weightCard)
-    //
-    // Surfaces weeks-to-goal at the user's trailing-14-day pace, with an
-    // ACSM 2009 (Donnelly) sustainability check overlaid: the safe rate
-    // is 0.5–1% body weight per week. Faster = soften, encourage easing.
-    // Slower = the realistic-pace literature (Wing 2006) supports it.
-    // No-pace = neutral copy. Returns nil for users without enough data.
-
-    private var goalPaceLine: String? {
-        guard onboardingGoalWeightKg > 0,
-              let pace = paceTowardGoal,
-              let current = latestWeightKg else { return nil }
-
-        // No goal direction OR essentially at goal — quiet return.
-        let remaining = abs(current - onboardingGoalWeightKg)
-        // Threshold is 0.5 kg in storage; surface it in the user's unit
-        // so "within X" reads naturally regardless of preference.
-        let nearThresholdKg = 0.5
-        guard remaining > nearThresholdKg else {
-            let displayThresh = weightUnit.display(fromKg: nearThresholdKg)
-            return "you're within \(String(format: "%.1f", displayThresh)) \(weightUnit.label) of goal."
-        }
-
-        // Pace too small to meaningfully project (under 50g/wk either
-        // direction) — reads as "stable" not "stuck", per Linde 2004.
-        guard abs(pace) >= 0.05 else {
-            return "your weight's been steady this fortnight. consistency is the work."
-        }
-
-        // Moving away from goal — neutral framing, no shame language.
-        if pace <= 0 {
-            return "trend's moved away from goal recently. one week doesn't define the curve."
-        }
-
-        // Moving toward goal. Project weeks remaining at current pace.
-        let weeks = Int((remaining / pace).rounded())
-        let weeksLabel = weeks == 1 ? "1 week" : "\(weeks) weeks"
-
-        // ACSM check — pace too fast (>1% body weight/wk) gets a soften.
-        if let safe = acsmRecommendedKgPerWeekRange, pace > safe.upperBound {
-            return "at this pace, ~\(weeksLabel) to goal. ACSM caps sustainable loss around 1%/wk — easing slightly compounds long-term."
-        }
-
-        return "at your trailing pace, ~\(weeksLabel) to goal."
-    }
-
-    // MARK: - BMI Card (Phase C)
-    //
-    // AHA 2021 BMI banding rendered as a horizontal range bar with a
-    // marker for the user's current BMI. BMI is a screening tool not a
-    // diagnosis — copy never moralizes the band; we just label it.
-    // Renders only when both heightCm (UserRecord) and a current weight
-    // log exist, and respects the hideWeightStats ED-safe toggle (gated
-    // at the body call site).
-
-    private var bmiCard: some View {
-        guard let bmi = currentBMI else {
-            return AnyView(EmptyView())
-        }
-        let band = bmiBand(for: bmi)
-
-        return AnyView(
-            VStack(alignment: .leading, spacing: Space.sm) {
-                HStack {
-                    Text("body mass index")
-                        .font(Typo.eyebrow).tracking(3)
-                        .foregroundStyle(Palette.accent)
-                    Spacer()
-                    Text("AHA 2021")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(String(format: "%.1f", bmi))
-                        .font(.custom("Fraunces72pt-SemiBold", size: 36))
-                        .foregroundStyle(Palette.textPrimary)
-                    // Label de-emphasized — uses textSecondary instead of
-                    // band.color so the word ("overweight"/"obese") doesn't
-                    // shout. Range bar below still color-codes for
-                    // orientation. Anti-shame: keep the screening info,
-                    // remove the visual weight from the verdict.
-                    Text(band.label)
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                        .foregroundStyle(Palette.textSecondary)
-                }
-
-                bmiRangeBar(currentBMI: bmi)
-
-                Text(bmiCaption)
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(Space.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(scrapbookCardChrome())
-            // Compound BMI card — single semantic unit. The range bar
-            // is decorative for VoiceOver users; the number + band
-            // label + caption carry the meaning.
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("BMI \(String(format: "%.1f", bmi)), \(band.label). \(Self.bmiCaptionText)")
-        )
-    }
-
-    /// Static text — kept as a constant so the accessibilityLabel
-    /// composition above doesn't allocate a new string each render.
-    private static let bmiCaptionText =
-        "BMI is a screening tool, not a diagnosis. Your trend matters more than the number."
-
-    /// Caption shown beneath the BMI number. Default is the standard
-    /// screening-tool disclaimer (anti-shame, research-grounded). When
-    /// the user has had ≥4 weight logs and all of them fall in the same
-    /// AHA band, switches to a "steady in [band]" reframe — the trend-
-    /// matters narrative applied to a flat trend, so a long stable run
-    /// reads as success, not failure.
-    private var bmiCaption: String {
-        if let stableBand = stableBMIBand {
-            return "steady in \(stableBand) range these past few logs. the trend matters more than the label."
-        }
-        return "BMI is a screening tool, not a diagnosis. it doesn't account for muscle vs. fat — your trend matters more than the number."
-    }
-
-    /// Returns the AHA band label when the most recent 4 weight logs all
-    /// fall in the same band; nil otherwise (including when there are
-    /// fewer than 4 logs or no heightMeters). Used by `bmiCaption` to
-    /// reframe stable BMI as evidence of consistency, not stagnation.
-    private var stableBMIBand: String? {
-        guard let m = heightMeters, weightLogs.count >= 4 else { return nil }
-        let bands = weightLogs.prefix(4).map { bmiBand(for: $0.weightKg / (m * m)).label }
-        return Set(bands).count == 1 ? bands.first : nil
-    }
-
-    /// AHA 2021 banding. Returns label + color tuple for a given BMI.
-    /// Color choice: stateGood for normal, stateWarn for overweight,
-    /// stateBad for obese, divider for underweight (neutral, not red).
-    private func bmiBand(for bmi: Double) -> (label: String, color: Color) {
-        switch bmi {
-        case ..<18.5: return ("underweight", Palette.textSecondary)
-        case 18.5..<25: return ("normal range", Palette.stateGood)
-        case 25..<30: return ("overweight", Palette.stateWarn)
-        default: return ("obese", Palette.stateBad)
-        }
-    }
-
-    /// Horizontal range bar showing the four AHA bands (proportional
-    /// widths) with a vertical marker at the user's current BMI. Marker
-    /// position is clamped to [15, 40] so extreme outliers still render.
-    private func bmiRangeBar(currentBMI: Double) -> some View {
-        // Bands: 15-18.5-25-30-40 → widths normalized to that 25-unit window
-        let span = 25.0  // 15..40
-        let underWidth = (18.5 - 15.0) / span
-        let normalWidth = (25.0 - 18.5) / span
-        let overWidth = (30.0 - 25.0) / span
-        let obeseWidth = (40.0 - 30.0) / span
-        let clamped = max(15.0, min(40.0, currentBMI))
-        let markerFrac = (clamped - 15.0) / span
-
-        return GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                HStack(spacing: 0) {
-                    Rectangle().fill(Palette.divider.opacity(0.7))
-                        .frame(width: geo.size.width * underWidth)
-                    Rectangle().fill(Palette.stateGood.opacity(0.8))
-                        .frame(width: geo.size.width * normalWidth)
-                    Rectangle().fill(Palette.stateWarn.opacity(0.8))
-                        .frame(width: geo.size.width * overWidth)
-                    Rectangle().fill(Palette.stateBad.opacity(0.8))
-                        .frame(width: geo.size.width * obeseWidth)
-                }
-                .clipShape(Capsule())
-                .frame(height: 8)
-
-                // Marker triangle pointing down, sitting on the bar
-                Triangle()
-                    .fill(Palette.textPrimary)
-                    .frame(width: 10, height: 8)
-                    .offset(x: geo.size.width * markerFrac - 5, y: -10)
-            }
-        }
-        .frame(height: 22)
     }
 
     // MARK: - Barrier-Resolved Card (Phase C)
@@ -1380,10 +957,6 @@ struct AnalyticsView: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// Inverted triangle marker for the BMI range bar. Pointing-down
-    /// glyph reads as "you are here" — small enough that it doesn't
-    /// dominate the band when rendered at 10×8.
-
     /// Maps a barrier key to its title + counter line. Every detail
     /// pulls from already-collected fields; nothing is fabricated. When
     /// the relevant counter is zero we keep the line neutral ("getting
@@ -1438,175 +1011,7 @@ struct AnalyticsView: View {
         }
     }
 
-    // MARK: - Weight Card (Phase 7a/7b)
-    //
-    // Stacked layout:
-    //   - Eyebrow + headline weight + LOG pill (top row)
-    //   - Identity-framed subtitle (Carraça 2018) — softens loss copy on
-    //     normal days, surfaces a pre-written reframe on plateau weeks
-    //     (Linde 2004, Thomas 2014)
-    //   - Swift Charts 7-day EMA trend (Helander 2014) — only when ≥ 2 logs
-    //   - Goal progress bar capped at 10% bodyweight (Wing & Phelan 2005)
-    //
-    // See `docs/weight_loss_analytics_research.md`.
-
-    private var weightCard: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            weightHeader
-
-            Text(weightSubtitle)
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if !hideWeightStats, weightLogs.count >= 2 {
-                WeightTrendChart(
-                    logs: weightLogs,
-                    goalWeightKg: onboardingGoalWeightKg > 0 ? onboardingGoalWeightKg : nil,
-                    unit: weightUnit
-                )
-                .padding(.top, 4)
-                .transition(.opacity)
-            }
-
-            if !hideWeightStats, let progress = weightGoalProgress {
-                goalProgressRow(progress: progress)
-                    .padding(.top, 2)
-                    .transition(.opacity)
-            }
-
-            if !hideWeightStats, let line = goalPaceLine {
-                Text(line)
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 2)
-                    .transition(.opacity)
-            }
-        }
-        .padding(Space.md)
-        .animation(.easeInOut(duration: 0.25), value: hideWeightStats)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        // Phase 19d-2 — scrapbook chrome: 24pt corners, 1.5pt accent
-        // border, hard offset shadow. Drops `plankShadow()` per the
-        // anti-design idiom (drop shadows date the screen).
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Palette.accent.opacity(0.18))
-                    .offset(x: 5, y: 5)
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Palette.bgElevated)
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Palette.accent, lineWidth: 1.5)
-            }
-        )
-        // Sticker corner accent — butterfly ring. Reads as transformation
-        // / progress (the metric we're tracking) without veering into
-        // feminine-vanity territory. Pushed up + out so it overhangs the
-        // top-right edge.
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.butterflyRing.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 56, height: 56)
-                .rotationEffect(.degrees(12))
-                .offset(x: 16, y: -22)
-                .opacity(StickerName.butterflyRing.style.opacity)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
-        .padding(.top, Space.sm)   // breathing room for the overhanging sticker
-        .sheet(isPresented: $showLogWeight) {
-            LogWeightSheet(
-                startingFromKg: latestWeightKg ?? (onboardingCurrentWeightKg > 0 ? onboardingCurrentWeightKg : 65),
-                isUpdatingToday: todaysWeightLog != nil,
-                onSave: { kg in
-                    saveWeightLog(kg: kg, source: "manual")
-                    showLogWeight = false
-                },
-                onCancel: { showLogWeight = false }
-            )
-            .presentationDetents([.medium])
-        }
-        .task {
-            seedFirstWeightLogIfNeeded()
-        }
-    }
-
-    private var weightHeader: some View {
-        HStack(alignment: .top, spacing: Space.md) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("weight")
-                    .font(Typo.eyebrow).tracking(2)
-                    .foregroundStyle(Palette.textSecondary)
-
-                if hideWeightStats {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("—")  // voice-lint:allow — visual placeholder for hidden weight value
-                            .font(.custom("Fraunces72pt-SemiBold", size: 27))
-                            .foregroundStyle(Palette.textSecondary)
-                        Text("hidden")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                } else if let latest = latestWeightKg {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        // Demoted from 36pt → 27pt: the smoothed trend chart
-                        // below is the hero now, not the raw daily number
-                        // (research: the number triggers shame; the trend
-                        // gives peace of mind).
-                        Text("\(weightUnit.display(fromKg: latest), specifier: "%.1f")")
-                            .font(.custom("Fraunces72pt-SemiBold", size: 27))
-                            .foregroundStyle(Palette.textPrimary)
-                            .contentTransition(.numericText())
-                        Text(weightUnit.label)
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                } else {
-                    Text("track to see your trend.")
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-            }
-            Spacer()
-
-            // Eye toggle — hides numeric weight display while preserving
-            // the LOG path (you can still record silently).
-            Button {
-                Haptics.light()
-                hideWeightStats.toggle()
-            } label: {
-                Image(systemName: hideWeightStats ? "eye.slash" : "eye")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Palette.textSecondary)
-                    .frame(width: 32, height: 32)
-                    .background(Palette.bgPrimary)
-                    .clipShape(Circle())
-                    .tappableArea()
-            }
-            .accessibilityLabel(hideWeightStats ? "Show weight stats" : "Hide weight stats")
-
-            Button {
-                Haptics.light()
-                showLogWeight = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 12, weight: .bold))
-                    Text("log")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                }
-                .foregroundStyle(Palette.textInverse)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(Palette.bgInverse)
-                .clipShape(Capsule())
-            }
-            .accessibilityLabel("Log weight")
-        }
-    }
+    // MARK: - Weight helpers (consumed by the bento trend tile)
 
     /// Identity-framed subtitle. Falls back to placeholder until ≥ 2 logs.
     /// Switches to a calm "tracking quietly" message when stats are hidden.
@@ -1637,32 +1042,6 @@ struct AnalyticsView: View {
             currentKg: current,
             declaredGoalKg: onboardingGoalWeightKg
         )
-    }
-
-    private func goalProgressRow(progress: Double) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text("progress to goal")
-                    .font(Typo.eyebrow).tracking(1)
-                    .foregroundStyle(Palette.textSecondary)
-                Spacer()
-                Text("\(Int(progress * 100))%")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
-                    .foregroundStyle(Palette.accent)
-            }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Palette.divider)
-                        .frame(height: 6)
-                    Capsule()
-                        .fill(Palette.accent)
-                        .frame(width: max(6, geo.size.width * progress), height: 6)
-                        .animation(.easeInOut(duration: 0.45), value: progress)
-                }
-            }
-            .frame(height: 6)
-        }
     }
 
     /// On first arrival at analytics, if the user has an onboarding weight
@@ -2007,18 +1386,5 @@ struct AnalyticsView: View {
         let seconds = Int(time) % 60
         if minutes > 0 { return "\(minutes)m \(seconds)s" }
         return "\(seconds)s"
-    }
-}
-
-/// Inverted-triangle "you are here" marker for the BMI range bar.
-/// Inlined here to avoid polluting DesignSystem with a one-shot shape.
-private struct Triangle: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.closeSubpath()
-        return path
     }
 }
