@@ -58,6 +58,9 @@ struct HomeView: View {
     // everywhere else (the onboarding case-250 preview promises it).
     @AppStorage("jenimethod.feature_enabled") private var jeniMethodFlagEnabled = true
     @State private var presentedJeniMethodLesson: LessonID? = nil
+    /// A completed lesson opened from the journey pager — presented as a
+    /// re-read (no progress tracking, no workout handoff).
+    @State private var presentedReReadLesson: LessonID? = nil
 
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \SessionLogRecord.completedAt, order: .reverse) private var allSessionLogs: [SessionLogRecord]
@@ -458,23 +461,42 @@ struct HomeView: View {
                         // otherwise today's workout card is the hero.
                         if let lessonId = jeniMethodCardLessonId,
                            let lesson = LessonID(rawValue: lessonId) {
-                            JeniMethodTodayCard(
-                                teaser: lesson.headline,
-                                onTap: {
+                            if currentDay <= 14 {
+                                // The 14-day arc → swipeable journey: today's
+                                // lesson centered, past re-readable, future a
+                                // locked glimpse. Spans full width so paging
+                                // works (pages inset themselves).
+                                JeniMethodJourneyCard(currentDay: currentDay) { tapped, isReread in
                                     Analytics.track(.lessonCardTapped, properties: [
-                                        "lesson_id": lessonId, "day": currentDay
+                                        "lesson_id": tapped.rawValue, "day": currentDay, "reread": isReread
                                     ])
-                                    // Kill the cover slide so the lesson
-                                    // fades in instead of popping up.
                                     UIView.setAnimationsEnabled(false)
-                                    presentedJeniMethodLesson = lesson
+                                    if isReread { presentedReReadLesson = tapped }
+                                    else { presentedJeniMethodLesson = tapped }
                                     DispatchQueue.main.async {
                                         UIView.setAnimationsEnabled(true)
                                     }
                                 }
-                            )
-                            .padding(.horizontal, Space.screenPadding)
-                            .opacity(msgOpacity[1]).offset(y: msgOffset[1])
+                                .opacity(msgOpacity[1]).offset(y: msgOffset[1])
+                            } else {
+                                // Day 15+ generic check-in — no arc to page,
+                                // so the single card stays.
+                                JeniMethodTodayCard(
+                                    teaser: lesson.headline,
+                                    onTap: {
+                                        Analytics.track(.lessonCardTapped, properties: [
+                                            "lesson_id": lessonId, "day": currentDay
+                                        ])
+                                        UIView.setAnimationsEnabled(false)
+                                        presentedJeniMethodLesson = lesson
+                                        DispatchQueue.main.async {
+                                            UIView.setAnimationsEnabled(true)
+                                        }
+                                    }
+                                )
+                                .padding(.horizontal, Space.screenPadding)
+                                .opacity(msgOpacity[1]).offset(y: msgOffset[1])
+                            }
                         } else {
                             jenifitWorkoutCard
                                 .opacity(msgOpacity[1]).offset(y: msgOffset[1])
@@ -655,6 +677,18 @@ struct HomeView: View {
                 }
             )
             // Phase 9.32 — cream modal bg; no black flash during cover swap.
+            .presentationBackground(Palette.bgPrimary)
+        }
+        // Re-read a completed lesson from the journey pager — no progress
+        // tracking, no workout handoff (mirrors JeniMethodReReadView).
+        .fullScreenCover(item: $presentedReReadLesson) { lesson in
+            JeniMethodRitualView(
+                lesson: lesson,
+                user: .fromAppStorage(),
+                isReread: true,
+                onComplete: { presentedReReadLesson = nil },
+                onSkip:     { _ in presentedReReadLesson = nil }
+            )
             .presentationBackground(Palette.bgPrimary)
         }
         .fullScreenCover(isPresented: $showBrowse) {
