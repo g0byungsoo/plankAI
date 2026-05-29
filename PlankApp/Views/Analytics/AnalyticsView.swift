@@ -3,6 +3,94 @@ import SwiftData
 import PlankSync
 import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
 
+// MARK: - Bento metric explainers (progressive disclosure)
+//
+// Tapping a tile's ⓘ opens one of these — the 2026 health-app pattern:
+// a simple number on the tile, the "what it means" + method on a deliberate
+// tap. Copy is calm + health-literacy-friendly (women report being
+// "overwhelmed by dieting info"), anti-shame, and traces the number to how
+// it's computed (data-provenance).
+enum BecomingMetric: String, Identifiable {
+    case trend, forecast, milestone, goal, cadence
+    var id: String { rawValue }
+
+    var sticker: StickerName {
+        switch self {
+        case .trend:     return .butterflyRing
+        case .forecast:  return .sparkleGlossy
+        case .milestone: return .starLineart
+        case .goal:      return .flower3D
+        case .cadence:   return .heartGlossy
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .trend:     return "your weight trend"
+        case .forecast:  return "your forecast"
+        case .milestone: return "your next marker"
+        case .goal:      return "progress to goal"
+        case .cadence:   return "your weigh-in rhythm"
+        }
+    }
+
+    var explainer: String {
+        switch self {
+        case .trend:
+            return "this line is your smoothed trend — it evens out the daily ups and downs from water, food, and hormones so you see the real direction, not the noise. the number up top is today; the line is the truth ♥"
+        case .forecast:
+            return "at your recent pace, this is about when you'd reach your goal. it moves as your pace moves — a gentle guide, never a promise or a deadline to stress about."
+        case .milestone:
+            return "we break your goal into small markers, about 5 lb each. small wins are easier to feel — and to celebrate — than one big number that's far away."
+        case .goal:
+            return "how far you've come toward your goal weight. we show it in healthy steps because slow and steady is what actually lasts, and stays off."
+        case .cadence:
+            return "how many times you stepped on the scale this week. weighing in a few times a week is the single habit most linked to losing weight — not the number itself, the showing up."
+        }
+    }
+}
+
+// MARK: - MetricExplainerSheet
+
+struct MetricExplainerSheet: View {
+    let metric: BecomingMetric
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(spacing: Space.lg) {
+            Spacer().frame(height: Space.sm)
+            ZStack {
+                Circle().fill(Palette.accentSubtle).frame(width: 72, height: 72)
+                Image(metric.sticker.assetName)
+                    .resizable().scaledToFit().frame(width: 40, height: 40)
+                    .opacity(metric.sticker.style.opacity)
+            }
+            .accessibilityHidden(true)
+
+            Text(metric.title)
+                .font(Typo.titleItalic)
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.center)
+
+            Text(metric.explainer)
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Space.lg)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer()
+
+            Button(action: onClose) { Text("got it") }
+                .buttonStyle(.ctaPrimary)
+                .padding(.horizontal, Space.lg)
+                .padding(.bottom, Space.xl)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Palette.bgPrimary)
+    }
+}
+
 struct AnalyticsView: View {
     @AppStorage("userName") private var userName = ""
     @Query(sort: \SessionLogRecord.completedAt, order: .reverse) private var allSessionLogs: [SessionLogRecord]
@@ -316,6 +404,7 @@ struct AnalyticsView: View {
     @State private var hasAnimated = false
     @State private var showLogWeight = false
     @State private var presentedFutureRail: FutureRail? = nil
+    @State private var presentedMetric: BecomingMetric? = nil
     @State private var streakPulse = false
     @State private var calendarScale: CGFloat = 0.95
 
@@ -411,6 +500,10 @@ struct AnalyticsView: View {
         .task { seedFirstWeightLogIfNeeded() }
         .sheet(item: $presentedFutureRail) { rail in
             FutureRailExplainerSheet(rail: rail, onClose: { presentedFutureRail = nil })
+                .presentationDetents([.medium])
+        }
+        .sheet(item: $presentedMetric) { metric in
+            MetricExplainerSheet(metric: metric, onClose: { presentedMetric = nil })
                 .presentationDetents([.medium])
         }
     }
@@ -657,6 +750,38 @@ struct AnalyticsView: View {
             .foregroundStyle(accent ? Palette.accent : Palette.textSecondary)
     }
 
+    /// Eyebrow + a small ⓘ that opens the metric explainer (progressive
+    /// disclosure — the calm "what does this mean" affordance).
+    private func tileHeader(_ text: String, _ metric: BecomingMetric, accent: Bool = false) -> some View {
+        HStack(spacing: 5) {
+            tileEyebrow(text, accent: accent)
+            Button {
+                Haptics.light()
+                presentedMetric = metric
+            } label: {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Palette.textSecondary.opacity(0.55))
+                    .tappableArea()
+            }
+            .accessibilityLabel("what \(text) means")
+        }
+    }
+
+    /// Subtle coquette sticker accent for a bento tile — small, low-opacity,
+    /// overhanging the top-right corner (scrapbook idiom, clean register).
+    private func tileSticker(_ name: StickerName) -> some View {
+        Image(name.assetName)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 38, height: 38)
+            .rotationEffect(.degrees(10))
+            .offset(x: 8, y: -12)
+            .opacity(name.style.opacity * 0.9)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
     // Coach "this week" read.
     private var coachTile: some View {
         HStack(alignment: .top, spacing: Space.md) {
@@ -678,6 +803,7 @@ struct AnalyticsView: View {
         .padding(Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(bentoChrome(warm: true))
+        .overlay(alignment: .topTrailing) { tileSticker(.bowSatin) }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("This week from your coach: \(insightLine)")
     }
@@ -687,7 +813,7 @@ struct AnalyticsView: View {
         VStack(alignment: .leading, spacing: Space.sm) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
-                    tileEyebrow("your trend")
+                    tileHeader("your trend", .trend)
                     if hideWeightStats {
                         Text("hidden").font(Typo.body).foregroundStyle(Palette.textSecondary)
                     } else if let latest = latestWeightKg {
@@ -742,12 +868,13 @@ struct AnalyticsView: View {
         .padding(Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(bentoChrome())
+        .overlay(alignment: .topTrailing) { tileSticker(.butterflyRing) }
     }
 
     // Forecast ETA.
     private var forecastTile: some View {
         VStack(alignment: .leading, spacing: 4) {
-            tileEyebrow("on track for")
+            tileHeader("on track for", .forecast)
             if let eta = forecastLine, !hideWeightStats {
                 Text(eta)
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
@@ -764,12 +891,13 @@ struct AnalyticsView: View {
         .padding(Space.md)
         .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
         .background(bentoChrome())
+        .overlay(alignment: .topTrailing) { tileSticker(.sparkleGlossy) }
     }
 
     // Milestone ladder.
     private var milestoneTile: some View {
         VStack(alignment: .leading, spacing: 6) {
-            tileEyebrow("next marker")
+            tileHeader("next marker", .milestone)
             if let m = nextMilestone, !hideWeightStats {
                 Text("\(m.remainingDisplay, specifier: "%.1f") \(weightUnit.label) to go")
                     .font(Typo.body).fontWeight(.semibold)
@@ -792,12 +920,13 @@ struct AnalyticsView: View {
         .padding(Space.md)
         .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
         .background(bentoChrome())
+        .overlay(alignment: .topTrailing) { tileSticker(.starLineart) }
     }
 
     // % to goal.
     private var goalTile: some View {
         VStack(alignment: .leading, spacing: 4) {
-            tileEyebrow("to your goal")
+            tileHeader("to your goal", .goal)
             if let progress = weightGoalProgress, !hideWeightStats {
                 Text("\(Int((progress * 100).rounded()))%")
                     .font(.custom("Fraunces72pt-SemiBold", size: 30))
@@ -810,12 +939,13 @@ struct AnalyticsView: View {
         .padding(Space.md)
         .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
         .background(bentoChrome())
+        .overlay(alignment: .topTrailing) { tileSticker(.flower3D) }
     }
 
     // Weigh-in cadence (the behavior that predicts success).
     private var cadenceTile: some View {
         VStack(alignment: .leading, spacing: 4) {
-            tileEyebrow("weigh-ins")
+            tileHeader("weigh-ins", .cadence)
             Text("\(weighInsThisWeek)×")
                 .font(.custom("Fraunces72pt-SemiBold", size: 30))
                 .foregroundStyle(Palette.textPrimary)
@@ -827,6 +957,7 @@ struct AnalyticsView: View {
         .padding(Space.md)
         .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
         .background(bentoChrome())
+        .overlay(alignment: .topTrailing) { tileSticker(.heartGlossy) }
     }
 
     // Non-scale victories — the wins the scale can't see.
@@ -842,6 +973,7 @@ struct AnalyticsView: View {
         .padding(Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(bentoChrome(warm: true))
+        .overlay(alignment: .topTrailing) { tileSticker(.ribbonLineart) }
     }
 
     private func nsvLine(shownUp: Int) -> String {
