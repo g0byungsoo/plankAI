@@ -27,6 +27,9 @@ struct AnalyticsView: View {
     /// Display unit for weight surfaces. Storage stays kg. Default lb.
     @AppStorage("weightUnit") private var weightUnitRaw: String = "lb"
     private var weightUnit: WeightUnit { WeightUnit(rawValue: weightUnitRaw) ?? .lb }
+    /// Drives the coach avatar on the adaptive insight (same mapping the
+    /// home note + reminders use).
+    @AppStorage("voicePreference") private var voicePreference = "encouraging"
 
     /// User-scoped views over the raw @Query results. SessionRatingRecord
     /// has no userId column locally (cloud schema added it later), so we
@@ -259,8 +262,8 @@ struct AnalyticsView: View {
 
     // Animation state
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var sectionOpacity: [Double] = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-    @State private var sectionOffset: [CGFloat] = [20, 20, 20, 20, 20, 20, 20, 20, 20]
+    @State private var sectionOpacity: [Double] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    @State private var sectionOffset: [CGFloat] = [20, 20, 20, 20, 20, 20, 20, 20, 20, 20]
     @State private var hasAnimated = false
     @State private var showLogWeight = false
     @State private var streakPulse = false
@@ -300,55 +303,63 @@ struct AnalyticsView: View {
                 // rows for active users) — eager VStack would render
                 // and animate them all on appear.
                 LazyVStack(alignment: .leading, spacing: 20) {
+                    // Weight-loss-first order (research-led reframe): identity
+                    // hero → adaptive coach read → trend-weight hero → support
+                    // (bmi/stats) → movement → wins → recent. Every module
+                    // self-gates on collected data; a fresh user still sees the
+                    // identity hero, the coach read, the seeded weight card,
+                    // BMI (if height set), and barriers (if picked).
                     header
                         .padding(.top, Space.md)
                         .opacity(sectionOpacity[0])
                         .offset(y: sectionOffset[0])
 
-                    // Every module self-gates on the data it needs. A
-                    // fresh user (no sessions yet) still sees the
-                    // identity hero, activity ring at 0%, weight card
-                    // (seeded from onboarding), BMI (if heightCm set),
-                    // and barrier card (if barriers picked) — only
-                    // session-derived modules go quiet.
-                    heroStats
+                    // The one module that changes week to week — research's
+                    // top retention lever ("deliver new info, not the same
+                    // dashboard"). Coach-voiced, anti-shame, data-traced.
+                    adaptiveInsight
                         .opacity(sectionOpacity[1])
                         .offset(y: sectionOffset[1])
 
-                    activityRing
+                    // Trend-weight hero — the smoothed trajectory leads.
+                    weightCard
                         .opacity(sectionOpacity[2])
                         .offset(y: sectionOffset[2])
 
-                    weightCard
-                        .opacity(sectionOpacity[3])
-                        .offset(y: sectionOffset[3])
-
                     if currentBMI != nil && !hideWeightStats {
                         bmiCard
-                            .opacity(sectionOpacity[4])
-                            .offset(y: sectionOffset[4])
+                            .opacity(sectionOpacity[3])
+                            .offset(y: sectionOffset[3])
                     }
 
-                    activityCalendar
+                    heroStats
+                        .opacity(sectionOpacity[4])
+                        .offset(y: sectionOffset[4])
+
+                    activityRing
                         .opacity(sectionOpacity[5])
                         .offset(y: sectionOffset[5])
+
+                    activityCalendar
+                        .opacity(sectionOpacity[6])
+                        .offset(y: sectionOffset[6])
                         .scaleEffect(calendarScale, anchor: .top)
 
                     if !onboardingBarriers.isEmpty {
                         barrierCard
-                            .opacity(sectionOpacity[6])
-                            .offset(y: sectionOffset[6])
-                    }
-
-                    if benchmarkCount > 0 {
-                        plankCard
                             .opacity(sectionOpacity[7])
                             .offset(y: sectionOffset[7])
                     }
 
+                    if benchmarkCount > 0 {
+                        plankCard
+                            .opacity(sectionOpacity[8])
+                            .offset(y: sectionOffset[8])
+                    }
+
                     recentSessions
-                        .opacity(sectionOpacity[8])
-                        .offset(y: sectionOffset[8])
+                        .opacity(sectionOpacity[9])
+                        .offset(y: sectionOffset[9])
                 }
                 .padding(.horizontal, Space.screenPadding)
                 .padding(.bottom, 100)
@@ -492,6 +503,72 @@ struct AnalyticsView: View {
         case "selfLove":    return "you said making peace with your body. the work is the peace."
         default:            return nil
         }
+    }
+
+    // MARK: - Adaptive "this week" insight (coach voice)
+    //
+    // The single module that changes week to week — the research's top
+    // retention lever (adaptive > static dashboards). Coach-voiced, anti-
+    // shame, every claim traced to collected data (data-provenance): pace
+    // toward goal, sessions this week, return-after-gap, else a fresh-start
+    // line. Never shames a gain or a quiet week — those fall to support copy.
+    private var adaptiveInsight: some View {
+        HStack(alignment: .top, spacing: Space.md) {
+            Image(CoachAsset.imageName(for: voicePreference))
+                .resizable().scaledToFill()
+                .frame(width: 44, height: 44)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Palette.accentSubtle, lineWidth: 1.5))
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("this week")
+                    .font(Typo.eyebrow).tracking(2)
+                    .foregroundStyle(Palette.accent)
+                Text(insightLine)
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Palette.accent.opacity(0.18))
+                    .offset(x: 5, y: 5)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Palette.accentSubtle)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Palette.accent, lineWidth: 1.5)
+            }
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("This week from your coach: \(insightLine)")
+    }
+
+    /// The adaptive line. Priority: gentle re-entry after a gap → trend
+    /// moving toward goal (only when toward — never shames a gain) → showed
+    /// up this week → fresh start.
+    private var insightLine: String {
+        let name = userName.lowercased()
+        let lead = name.isEmpty ? "" : "\(name), "
+        if isReturningAfterInactivity {
+            return "\(lead)no catching up needed. you're here, and that's the whole thing ♥"
+        }
+        if let toward = paceTowardGoal, toward > 0.05 {
+            return "your trend's heading the right way. slow and steady is how it lasts ♥"
+        }
+        let moves = thisWeekSessions.count
+        if moves >= 3 {
+            return "\(lead)you've moved \(moves) times this week. that's not luck — that's you."
+        }
+        if moves >= 1 {
+            return "\(lead)you showed up this week. that's where all of it starts."
+        }
+        return "\(lead)this is your page. one small move today writes the next line."
     }
 
     // MARK: - Empty State
