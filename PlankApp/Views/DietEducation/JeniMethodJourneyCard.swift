@@ -108,19 +108,24 @@ struct JeniMethodJourneyCard: View {
     }
 
     /// Per-lesson illustration anchored bottom-right INSIDE the card (no
-    /// overhang, no edge clipping). Asset comes from
-    /// `LessonID.coverIllustration` — currently the existing ritual art as
-    /// a placeholder; purpose-built card art (square, ~85pt-friendly
-    /// framing) is on the to-generate list and can be swapped in by
-    /// replacing the imageset contents or remapping the switch.
-    /// Locked tiles blur + lock-seal in the Loewenstein info-gap idiom.
+    /// overhang, no edge clipping). Renders the existing ritual art **zoom-
+    /// cropped at 1.5×** so the paper-craft subject fills the frame instead
+    /// of floating inside the asset's whitespace — that's what was making
+    /// the figure look ~40% of the frame (visually small) even though the
+    /// frame itself is 72pt. Purpose-built tight-cropped card art (per the
+    /// spec in LessonID.coverIllustration) won't need the zoom factor and
+    /// the multiplier can drop to 1.0 once it lands.
     @ViewBuilder
     private func illustrationView(state st: PageState, lesson: LessonID) -> some View {
         ZStack {
             Image(lesson.coverIllustration)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: illustrationSize, height: illustrationSize)
+                // Render at 1.5× then constrain layout to the card slot —
+                // the visual overflow gets clipped by the rounded shape
+                // below, effectively cropping the asset's whitespace.
+                .frame(width: illustrationSize * 1.5, height: illustrationSize * 1.5)
+                .frame(width: illustrationSize, height: illustrationSize, alignment: .center)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .blur(radius: st == .locked ? 6 : 0)
                 .overlay(
