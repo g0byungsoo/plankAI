@@ -56,29 +56,30 @@ enum LessonID: Int, CaseIterable {
         .day8, .day9, .day10, .day11, .day12, .day13, .day14,
     ]
 
-    /// Cover illustration asset for the home journey card (Loewenstein
-    /// info-gap idiom: today's card shows it clear, the locked-future tiles
-    /// show it blurred behind a lock — visible-but-incomplete drives the
-    /// "open me" pull). Reuses an existing per-lesson paper-craft asset
-    /// (no new art); choices match the ritual's hero illustration so the
-    /// card preview and the lesson land on the same image.
-    var coverIllustration: String {
+    /// Curated per-lesson sticker for the home journey card. Replaces the
+    /// ritual illustrations here — those paper-craft figures were designed
+    /// for the lesson reading experience and don't fit a small card crop.
+    /// Stickers are JeniFit's native decorative language (y2k coquette
+    /// scrapbook), transparent + airy, and read well against the card
+    /// chrome. Choices match the lesson's dominant idea so the card feels
+    /// like a stamped page from a journal.
+    var coverSticker: StickerName {
         switch self {
-        case .day1:    return "lesson_d1_science"
-        case .day2:    return "lesson_d2_paradox"
-        case .day3:    return "lesson_d3_neat"
-        case .day4:    return "lesson_d4_plank"
-        case .day5:    return "lesson_d5_walk"
-        case .day6:    return "lesson_d2_consistency"
-        case .day7:    return "lesson_d7_habit"
-        case .day8:    return "lesson_d8_return"
-        case .day9:    return "lesson_d9_kindness"
-        case .day10:   return "lesson_d4_protein"
-        case .day11:   return "lesson_d11_enjoy"
-        case .day12:   return "lesson_d12_snack"
-        case .day13:   return "lesson_d5_sleep"
-        case .day14:   return "lesson_d14_freshstart"
-        case .generic: return "lesson_d14_freshstart"
+        case .day1:    return .sparkleGlossy    // "muscle changes the math" — magic of recomp
+        case .day2:    return .discoBall        // "can't out-burn the machine" — body-as-machine
+        case .day3:    return .heartGlossy      // "your day burns more than your workout"
+        case .day4:    return .flower3D         // "the boring hold wins" — gentle steady
+        case .day5:    return .cherries         // "walk right after you eat" — food + move
+        case .day6:    return .starLineart      // "small beats heroic" — small wins
+        case .day7:    return .bowSatin         // "sixty-six days" — commitment ribbon
+        case .day8:    return .heartGlossy      // "one slip doesn't undo you" — kindness
+        case .day9:    return .heartsLineart    // "kindness gets you back on track"
+        case .day10:   return .peach            // "protein at every meal" — food
+        case .day11:   return .butterflyRing    // "the workout you'll repeat" — becoming
+        case .day12:   return .sparkleGlossy    // "one-minute bursts" — quick magic
+        case .day13:   return .bowSatin         // "sleep is the multiplier" — soft rest
+        case .day14:   return .butterflyRing    // "you can always begin again" — rebirth
+        case .generic: return .heartGlossy
         }
     }
 

@@ -22,8 +22,8 @@ struct JeniMethodJourneyCard: View {
 
     @State private var selection: Int
     private let days = Array(1...14)
-    private let cardHeight: CGFloat = 280
-    private let bannerHeight: CGFloat = 130
+    private let cardHeight: CGFloat = 174
+    private let stickerSize: CGFloat = 96
 
     init(currentDay: Int, onOpen: @escaping (LessonID, Bool) -> Void) {
         let clamped = min(max(currentDay, 1), 14)
@@ -62,8 +62,8 @@ struct JeniMethodJourneyCard: View {
     @ViewBuilder
     private func pageCard(day: Int, lesson: LessonID) -> some View {
         let st = state(for: day)
-        VStack(alignment: .leading, spacing: 0) {
-            bannerView(state: st, lesson: lesson)
+        HStack(alignment: .top, spacing: Space.md) {
+            stickerBadge(state: st, lesson: lesson)
             VStack(alignment: .leading, spacing: Space.xs) {
                 Text(st == .past ? "day \(day) · done" : "day \(day) of 14")
                     .font(Typo.eyebrow).tracking(1.5)
@@ -79,9 +79,9 @@ struct JeniMethodJourneyCard: View {
 
                 footer(state: st, lesson: lesson)
             }
-            .padding(Space.md)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .padding(Space.cardPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(st == .locked ? Palette.bgElevated : Palette.accentSubtle)
         .overlay(
             RoundedRectangle(cornerRadius: Radius.lg)
@@ -93,34 +93,32 @@ struct JeniMethodJourneyCard: View {
         .accessibilityLabel(accessibilityLabel(state: st, day: day, lesson: lesson))
     }
 
-    /// Full-width hero banner — the 2026 premium card composition: image as
-    /// the bottom layer with real visual weight (~36% of the card), text
-    /// composed below. Locked tiles get the banner blurred with a centered
-    /// lock seal (Loewenstein information-gap: visible-but-incomplete drives
-    /// the "what's behind this?" pull to unlock). Asset comes from
-    /// `LessonID.coverIllustration` and reuses existing ritual art.
+    /// Curated per-lesson sticker (LessonID.coverSticker) sitting top-left
+    /// of the card. Lesson illustrations were too literal for a card crop;
+    /// stickers are JeniFit's native decorative language — transparent,
+    /// coquette, scrapbook — and feel like a stamped page from a journal.
+    /// Locked tiles desaturate the sticker + add a small lock badge.
     @ViewBuilder
-    private func bannerView(state st: PageState, lesson: LessonID) -> some View {
-        ZStack {
-            Image(lesson.coverIllustration)
+    private func stickerBadge(state st: PageState, lesson: LessonID) -> some View {
+        let sticker = lesson.coverSticker
+        ZStack(alignment: .bottomTrailing) {
+            Image(sticker.assetName)
                 .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(maxWidth: .infinity)
-                .frame(height: bannerHeight)
-                .clipped()
-                .blur(radius: st == .locked ? 8 : 0)
-                .overlay(Color.black.opacity(st == .locked ? 0.12 : 0))
+                .aspectRatio(contentMode: .fit)
+                .frame(width: stickerSize, height: stickerSize)
+                .rotationEffect(.degrees(-6))
+                .opacity(sticker.style.opacity * (st == .locked ? 0.35 : 1))
+                .grayscale(st == .locked ? 1.0 : 0)
             if st == .locked {
                 Image(systemName: "lock.fill")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(Palette.textPrimary.opacity(0.95))
-                    .padding(12)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary.opacity(0.9))
+                    .padding(6)
                     .background(Circle().fill(Palette.bgElevated.opacity(0.95)))
+                    .offset(x: 4, y: 4)
             }
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: bannerHeight)
-        .clipped()
+        .frame(width: stickerSize, height: stickerSize)
         .accessibilityHidden(true)
     }
 
