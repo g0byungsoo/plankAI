@@ -67,9 +67,20 @@ final class TrialEndNotificationService {
             return
         }
 
+        // Value-forward recap at the decision moment (24h before billing):
+        // surface how far she's come, then the honest disclosure + cancel
+        // path. Reads her shown-up count from the stamp RetentionNotifications
+        // keeps fresh on each new engagement day; reconcile re-runs on launch
+        // so the number stays current. Lowercase brand voice; no scale-shame.
         let content = UNMutableNotificationContent()
-        content.title = "Your free trial ends tomorrow"
-        content.body = "Tap to manage your subscription in iOS Settings if you'd like to cancel before billing starts."
+        let shownUp = RetentionNotifications.shownUpCount
+        if shownUp >= 3 {
+            content.title = "look how far you've come."
+            content.body = "you've shown up \(shownUp) times ♥ your free trial becomes a membership tomorrow — manage or cancel anytime in iOS settings."
+        } else {
+            content.title = "your free trial ends tomorrow."
+            content.body = "your trial becomes a membership tomorrow. manage or cancel anytime in iOS settings."
+        }
         content.sound = .default
 
         // Calendar trigger pins to a specific wall-clock moment, not a

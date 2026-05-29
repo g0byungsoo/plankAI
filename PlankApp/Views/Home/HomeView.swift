@@ -1461,6 +1461,8 @@ struct HomeView: View {
                                             primaryQualityScore: 0, primaryHoldTime: 0)
             progress.sessionLogIds = [session.id]; modelContext.insert(progress)
             progressRecord = progress
+            // New engagement day → stamp the shown-up count + maybe celebrate.
+            RetentionNotifications.recordShownUpDay(count: nextDay)
         }
         try? modelContext.save()
         // Re-arm the win-back nudge from now — completing a session pushes
@@ -1496,6 +1498,8 @@ struct HomeView: View {
                                             primaryQualityScore: quality, primaryHoldTime: holdTime)
             progress.sessionLogIds = [session.id]; modelContext.insert(progress)
             progressRecord = progress
+            // New engagement day → stamp the shown-up count + maybe celebrate.
+            RetentionNotifications.recordShownUpDay(count: nextDay)
         }
         try? modelContext.save(); hasCompletedFirstSession = true
         RetentionNotifications.markSessionCompleted()

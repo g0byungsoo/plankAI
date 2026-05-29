@@ -33,7 +33,15 @@ enum RetentionNotifications {
         static let affirmationsEnabled = "notif.affirmations_enabled"
         static let winbackEnabled      = "notif.winback_enabled"
         static let lastSessionAt       = "notif.last_session_at"
+        /// Latest distinct-days-shown-up count, stamped on each new day so
+        /// the trial-end recap can surface it without a SwiftData read.
+        static let shownUpCount        = "stats.shown_up_count"
+        static func milestoneDone(_ n: Int) -> String { "notif.milestone_\(n)_done" }
     }
+
+    /// Read-only count of distinct days shown up (stamped via
+    /// `recordShownUpDay`). Used by TrialEndNotificationService's recap.
+    static var shownUpCount: Int { UserDefaults.standard.integer(forKey: Key.shownUpCount) }
 
     /// Default ON: `object(forKey:) == nil` reads as enabled, so existing
     /// users (who never wrote the key) opt in by default, but only ever
@@ -60,6 +68,12 @@ enum RetentionNotifications {
     /// How many future affirmation occurrences to keep scheduled. Re-filled
     /// each launch so the copy stays fresh and always a step ahead.
     private static let affirmationLookahead = 6
+    /// Distinct-days-shown-up counts that earn a celebration. Each fires
+    /// once (guarded by a done-flag). Celebration only — never loss-framed.
+    private static let milestones = [3, 7, 14, 30, 50, 100]
+    /// Hour (24h) the milestone celebration lands the next morning — a
+    /// surprise the day after, not an interruption mid-workout.
+    private static let milestoneHour = 9
 
     // MARK: - Public API
 
@@ -95,10 +109,15 @@ enum RetentionNotifications {
         reschedule()
     }
 
-    /// Remove every retention notification (account delete / full opt-out).
+    /// Remove every retention notification + clear one-time state (account
+    /// delete / full opt-out), so a fresh user on this device starts clean.
     static func cancelAll() {
         UNUserNotificationCenter.current().removePendingNotificationRequests(
-            withIdentifiers: [winbackIdentifier] + affirmationIdentifiers())
+            withIdentifiers: [winbackIdentifier] + affirmationIdentifiers() + milestoneIdentifiers())
+        let d = UserDefaults.standard
+        milestones.forEach { d.removeObject(forKey: Key.milestoneDone($0)) }
+        d.removeObject(forKey: Key.shownUpCount)
+        d.removeObject(forKey: Key.lastSessionAt)
     }
 
     // MARK: - Win-back
@@ -200,6 +219,61 @@ enum RetentionNotifications {
             lines.append("\(name), today's a good day to be gentle with yourself.")
         }
         return lines
+    }
+
+    // MARK: - Milestones
+
+    private static func milestoneIdentifiers() -> [String] {
+        milestones.map { "milestone_\($0)" }
+    }
+
+    /// Record a newly-reached engagement day (a distinct day shown up).
+    /// Stamps the count for the trial recap and fires a one-time milestone
+    /// celebration when the count crosses a threshold. Call from the
+    /// new-day branch of the session-save paths.
+    static func recordShownUpDay(count: Int) {
+        UserDefaults.standard.set(count, forKey: Key.shownUpCount)
+        scheduleMilestoneIfNeeded(count: count)
+    }
+
+    private static func scheduleMilestoneIfNeeded(count: Int) {
+        // Shares the affirmations toggle — both are gentle "notes from your
+        // coach," so one switch keeps settings clean.
+        guard affirmationsEnabled, milestones.contains(count) else { return }
+        let doneKey = Key.milestoneDone(count)
+        guard !UserDefaults.standard.bool(forKey: doneKey) else { return }
+
+        Task {
+            guard await isAuthorized() else { return }
+            let calendar = Calendar.current
+            guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: .now)) else { return }
+            var comps = calendar.dateComponents([.year, .month, .day], from: tomorrow)
+            comps.hour = milestoneHour
+            comps.minute = 0
+
+            let content = UNMutableNotificationContent()
+            content.title = "a little milestone."
+            content.body = milestoneBody(count: count)
+            content.sound = .default
+            let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+            try? await UNUserNotificationCenter.current().add(
+                UNNotificationRequest(identifier: "milestone_\(count)", content: content, trigger: trigger))
+            UserDefaults.standard.set(true, forKey: doneKey)
+        }
+    }
+
+    private static func milestoneBody(count: Int) -> String {
+        let name = (UserDefaults.standard.string(forKey: "userName") ?? "").lowercased()
+        let tail = name.isEmpty ? "" : " \(name)"
+        switch count {
+        case 3:   return "three days in\(tail). you're building something ♥"
+        case 7:   return "you've shown up seven times. that's who you are now."
+        case 14:  return "two weeks of showing up\(tail). look at you."
+        case 30:  return "thirty days. this isn't a phase anymore — it's you."
+        case 50:  return "fifty times. quietly, you became someone consistent."
+        case 100: return "one hundred\(tail). you're not the same person as day one ♥"
+        default:  return "another day shown up. that's the whole secret ♥"
+        }
     }
 
     // MARK: - Permission
