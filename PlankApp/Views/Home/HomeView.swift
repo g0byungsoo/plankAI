@@ -414,17 +414,15 @@ struct HomeView: View {
     /// records), so the body re-evaluates the instant a session is saved —
     /// no manual refresh trigger needed.
     private var jeniMethodCardLessonId: Int? {
-        guard jeniMethodEnrolled else { return nil }
-        // Engagement-based: the lesson follows `currentDay` (the user's Nth
-        // active day, from the @Query day-progress records — so this view
-        // re-derives when a session is saved). Hide once today's session is
-        // done (todayProgress exists) so the card reads "done for today."
-        guard todayProgress == nil else { return nil }
-        // Lazy enroll: anyone who qualifies (flag on + goal in the enrolled
-        // set) but never had `enrolledAt` stamped — testers, users who
-        // upgraded from before the post-purchase Lesson 1 trigger existed,
-        // anyone whose hand-off race skipped the stamp — gets enrolled on
-        // first card-eligible render. Idempotent: re-calls preserve the
+        // Card shows for any flag-on user — the Method is foundational
+        // content that should always be reachable. Per user direction, no
+        // longer gated on goal (was: shouldEnroll set excluding growGlutes)
+        // or on today's-session-done. The day-N-of-14 momentum strip stays
+        // separately goal-gated via jeniMethodEnrolled.
+        guard jeniMethodFlagEnabled else { return nil }
+        // Lazy enroll: stamp enrolledAt on first card-eligible render so
+        // existing/test users who never went through the post-purchase
+        // Lesson 1 trigger get anchored. Idempotent: re-calls preserve the
         // original timestamp.
         if JeniMethodState.enrolledAt() == nil { JeniMethodState.markEnrolled() }
         return JeniMethodState.lessonForCard(currentDay: currentDay)?.rawValue
