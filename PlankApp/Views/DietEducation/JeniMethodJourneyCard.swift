@@ -22,7 +22,8 @@ struct JeniMethodJourneyCard: View {
 
     @State private var selection: Int
     private let days = Array(1...14)
-    private let cardHeight: CGFloat = 190
+    private let cardHeight: CGFloat = 280
+    private let bannerHeight: CGFloat = 130
 
     init(currentDay: Int, onOpen: @escaping (LessonID, Bool) -> Void) {
         let clamped = min(max(currentDay, 1), 14)
@@ -61,31 +62,26 @@ struct JeniMethodJourneyCard: View {
     @ViewBuilder
     private func pageCard(day: Int, lesson: LessonID) -> some View {
         let st = state(for: day)
-        HStack(alignment: .top, spacing: Space.md) {
-            illustrationView(state: st, lesson: lesson)
+        VStack(alignment: .leading, spacing: 0) {
+            bannerView(state: st, lesson: lesson)
             VStack(alignment: .leading, spacing: Space.xs) {
-                HStack {
-                    Text("the jenifit method")
-                        .font(Typo.eyebrow)
-                        .foregroundStyle(Palette.textSecondary)
-                    Spacer()
-                    Text(st == .past ? "day \(day) · done" : "day \(day) of 14")
-                        .font(Typo.eyebrow)
-                        .foregroundStyle(st == .today ? Palette.accent : Palette.textSecondary)
-                }
+                Text(st == .past ? "day \(day) · done" : "day \(day) of 14")
+                    .font(Typo.eyebrow).tracking(1.5)
+                    .foregroundStyle(st == .today ? Palette.accent : Palette.textSecondary)
 
                 Text(lesson.headline)
                     .font(Typo.heading)
                     .foregroundStyle(st == .locked ? Palette.textSecondary : Palette.textPrimary)
                     .multilineTextAlignment(.leading)
+                    .lineLimit(2)
 
                 Spacer(minLength: 0)
 
                 footer(state: st, lesson: lesson)
             }
+            .padding(Space.md)
         }
-        .padding(Space.cardPadding)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(st == .locked ? Palette.bgElevated : Palette.accentSubtle)
         .overlay(
             RoundedRectangle(cornerRadius: Radius.lg)
@@ -97,32 +93,34 @@ struct JeniMethodJourneyCard: View {
         .accessibilityLabel(accessibilityLabel(state: st, day: day, lesson: lesson))
     }
 
-    /// Lesson cover — clear for today/past (an inviting glimpse), blurred
-    /// behind a soft lock for future. Loewenstein information-gap idiom:
-    /// visible-but-incomplete drives the "what's behind this?" pull to
-    /// unlock. Asset comes from `LessonID.coverIllustration` and reuses
-    /// existing ritual art (no new assets).
+    /// Full-width hero banner — the 2026 premium card composition: image as
+    /// the bottom layer with real visual weight (~36% of the card), text
+    /// composed below. Locked tiles get the banner blurred with a centered
+    /// lock seal (Loewenstein information-gap: visible-but-incomplete drives
+    /// the "what's behind this?" pull to unlock). Asset comes from
+    /// `LessonID.coverIllustration` and reuses existing ritual art.
     @ViewBuilder
-    private func illustrationView(state st: PageState, lesson: LessonID) -> some View {
+    private func bannerView(state st: PageState, lesson: LessonID) -> some View {
         ZStack {
             Image(lesson.coverIllustration)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .frame(width: 76, height: 76)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .blur(radius: st == .locked ? 6 : 0)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color.black.opacity(st == .locked ? 0.10 : 0))
-                )
+                .frame(maxWidth: .infinity)
+                .frame(height: bannerHeight)
+                .clipped()
+                .blur(radius: st == .locked ? 8 : 0)
+                .overlay(Color.black.opacity(st == .locked ? 0.12 : 0))
             if st == .locked {
                 Image(systemName: "lock.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Palette.textPrimary.opacity(0.9))
-                    .padding(7)
-                    .background(Circle().fill(Palette.bgElevated.opacity(0.92)))
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary.opacity(0.95))
+                    .padding(12)
+                    .background(Circle().fill(Palette.bgElevated.opacity(0.95)))
             }
         }
+        .frame(maxWidth: .infinity)
+        .frame(height: bannerHeight)
+        .clipped()
         .accessibilityHidden(true)
     }
 
