@@ -522,12 +522,25 @@ struct HomeView: View {
         // (mindful motion, no abrupt slide). The hub owns its back + close.
         .overlay {
             if hubOpen {
-                ProfileHubView(onClose: { hubOpen = false })
+                ProfileHubView()
                     .background(Palette.bgPrimary.ignoresSafeArea())
                     .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.5), value: hubOpen)
+        // Floating ☰↔X morph mark — sits above the hub so it morphs in place
+        // and doubles as the close. (SF symbols can't morph between ☰ and X,
+        // so it's a clean custom 3-line→X morph.)
+        .overlay(alignment: .topTrailing) {
+            Button {
+                Haptics.light()
+                withAnimation(.easeInOut(duration: 0.5)) { hubOpen.toggle() }
+            } label: {
+                MorphIcon(open: hubOpen)
+            }
+            .padding(.trailing, Space.screenPadding)
+            .padding(.top, Space.xs)
+            .accessibilityLabel(hubOpen ? "close" : "menu, profile and settings")
+        }
         .overlay {
             // Phase 9.25 — splash bridge slowed to ~0.9s fade in/out
             // so the visual reads as the ritual's bloom slowly
@@ -862,22 +875,8 @@ struct HomeView: View {
             .foregroundStyle(Palette.textPrimary)
 
             Spacer()
-
-            // Clean two thin lines (Chanel / Tiffany minimal-luxury). Opens
-            // the hub, which fades in over the whole screen with its own close.
-            Button {
-                Haptics.light()
-                hubOpen = true
-            } label: {
-                VStack(alignment: .trailing, spacing: 6) {
-                    Capsule().frame(width: 20, height: 1.5)
-                    Capsule().frame(width: 20, height: 1.5)
-                }
-                .foregroundStyle(Palette.textPrimary)
-                .frame(width: 44, height: 44, alignment: .trailing)
-                .contentShape(Rectangle())
-            }
-            .accessibilityLabel("menu, profile and settings")
+            // The menu mark is a floating morph (see the body overlay) so it
+            // stays above the hub and morphs ☰↔X in place.
         }
         .padding(.horizontal, Space.screenPadding)
         .padding(.vertical, Space.xs)
@@ -1522,6 +1521,35 @@ struct StatCard: View {
                     .stroke(Palette.accent, lineWidth: 1.5)
             }
         )
+    }
+}
+
+// MARK: - MorphIcon
+//
+// Clean three-line menu mark that morphs into an X: top + bottom lines rotate
+// ±45° and converge while the middle line fades. Thin + modern; the caller
+// animates `open` (withAnimation) so the morph reads as one slow, mindful
+// motion. SF Symbols can't morph between ☰ and X, hence the custom mark.
+private struct MorphIcon: View {
+    let open: Bool
+    var body: some View {
+        ZStack {
+            Capsule()
+                .frame(width: 22, height: 1.5)
+                .rotationEffect(.degrees(open ? 45 : 0))
+                .offset(y: open ? 0 : -6)
+            Capsule()
+                .frame(width: 22, height: 1.5)
+                .opacity(open ? 0 : 1)
+                .scaleEffect(x: open ? 0.2 : 1, anchor: .center)
+            Capsule()
+                .frame(width: 22, height: 1.5)
+                .rotationEffect(.degrees(open ? -45 : 0))
+                .offset(y: open ? 0 : 6)
+        }
+        .foregroundStyle(Palette.textPrimary)
+        .frame(width: 44, height: 44)
+        .contentShape(Rectangle())
     }
 }
 

@@ -3,20 +3,17 @@ import SwiftData
 import PlankSync
 import Auth
 
-/// The profile/settings hub — a full-screen layer (no leaked home wordmark)
-/// with its own minimal top bar: a clean "back" when inside a sub-screen and
-/// an X to close. Navigation is state-driven (not a NavigationStack) so the
-/// back/close affordances are centralized + clean, and every transition is a
-/// slow, mindful crossfade (no abrupt slides) per the JeniFit motion rule.
+/// The profile/settings hub. Closes via the morphing ☰↔X mark that floats in
+/// HomeView's top-right (kept above this layer), so this view has NO close
+/// button — only a clean "back" when inside a sub-screen. The whole thing
+/// fades in and the rows reveal one-by-one (staggered), per the mindful-motion
+/// rule. State-driven navigation (no NavigationStack) keeps back/close clean.
 ///
 /// Identity header values trace to collected fields (data-provenance):
 /// name, nurturing "shown up N times" (day_progress count, NOT a streak),
 /// goal (bodyFocus), coach (voicePreference), "becoming since" (earliest
 /// session date). Anything with no real data is omitted.
 struct ProfileHubView: View {
-    /// Called by the X to dismiss the whole hub (HomeView animates it out).
-    var onClose: () -> Void = {}
-
     @AppStorage("userName") private var userName = ""
     @AppStorage("bodyFocus") private var bodyFocusValue = ""
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
@@ -25,6 +22,7 @@ struct ProfileHubView: View {
 
     @State private var auth = AuthService.shared
     @State private var route: HubRoute?
+    @State private var revealed = false
     @Query(sort: \DayProgressRecord.date, order: .reverse) private var allDayProgress: [DayProgressRecord]
     @Query(sort: \SessionLogRecord.completedAt, order: .forward) private var allSessionLogs: [SessionLogRecord]
 
@@ -35,7 +33,6 @@ struct ProfileHubView: View {
         #endif
     }
 
-    /// Slow, mindful crossfade used for every hub transition.
     private let slow = Animation.easeInOut(duration: 0.5)
 
     private var userId: String? {
@@ -67,91 +64,72 @@ struct ProfileHubView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            hubTopBar
+            // Back bar only inside a sub-screen (close is the floating morph
+            // mark in HomeView). Leaves the top-right clear for that mark.
+            if route != nil {
+                HStack {
+                    Button {
+                        Haptics.light()
+                        withAnimation(slow) { route = nil }
+                    } label: {
+                        HStack(spacing: 2) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 15, weight: .semibold))
+                            Text("back").font(Typo.body)
+                        }
+                        .foregroundStyle(Palette.textSecondary)
+                        .tappableArea()
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, Space.screenPadding)
+                .padding(.top, Space.sm)
+                .transition(.opacity)
+            }
+
             ZStack {
                 if let route {
-                    destination(for: route)
-                        .transition(.opacity)
+                    destination(for: route).transition(.opacity)
                 } else {
-                    hubList
-                        .transition(.opacity)
+                    hubList.transition(.opacity)
                 }
             }
             .animation(slow, value: route)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Palette.bgPrimary)
-        .onAppear { Analytics.track(.settingsHubOpened) }
-    }
-
-    // MARK: - Top bar (back + close)
-
-    private var hubTopBar: some View {
-        HStack {
-            if route != nil {
-                Button {
-                    Haptics.light()
-                    withAnimation(slow) { route = nil }
-                } label: {
-                    HStack(spacing: 3) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text("back").font(Typo.body)
-                    }
-                    .foregroundStyle(Palette.textSecondary)
-                    .tappableArea()
-                }
-                .transition(.opacity)
-            }
-            Spacer()
-            Button {
-                Haptics.light()
-                onClose()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Palette.textSecondary)
-                    .frame(width: 32, height: 32)
-                    .background(Palette.bgElevated)
-                    .clipShape(Circle())
-                    .tappableArea()
-            }
-            .accessibilityLabel("close")
+        .onAppear {
+            Analytics.track(.settingsHubOpened)
+            withAnimation { revealed = true }
         }
-        .padding(.horizontal, Space.screenPadding)
-        .padding(.vertical, Space.sm)
-        .animation(slow, value: route)
     }
 
-    // MARK: - Hub list
+    // MARK: - Hub list (staggered reveal)
 
     private var hubList: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: Space.lg) {
                 identityHeader
                     .padding(.horizontal, Space.screenPadding)
+                    .reveal(0, revealed)
 
                 VStack(spacing: Space.sm) {
-                    hubRow(title: "my plan", subtitle: "focus area · session length",
-                           sticker: .bowSatin, route: .myPlan)
-                    coachRow
-                    hubRow(title: "reminders", subtitle: "when jeni checks in",
-                           sticker: .sparkleGlossy, route: .reminders)
-                    hubRow(title: "account", subtitle: "sign-in & subscription",
-                           sticker: .heartLock, route: .account)
-                    hubRow(title: "feedback", subtitle: "tell us anything ♥",
-                           sticker: .starLineart, route: .feedback)
+                    hubRow("my plan", "focus area · session length", .bowSatin, .myPlan, 1)
+                    coachRow(2)
+                    hubRow("reminders", "when jeni checks in", .sparkleGlossy, .reminders, 3)
+                    hubRow("account", "sign-in & subscription", .heartLock, .account, 4)
+                    hubRow("feedback", "tell us anything ♥", .starLineart, .feedback, 5)
                     if jeniMethodFlagEnabled && jeniMethodLastCompletedId >= 14 {
-                        hubRow(title: "the jenifit method", subtitle: "re-read your lessons",
-                               sticker: .flower3D, route: .jeniMethod)
+                        hubRow("the jenifit method", "re-read your lessons", .flower3D, .jeniMethod, 6)
                     }
                     #if DEBUG
-                    hubRow(title: "debug auth", subtitle: "dev only",
-                           sticker: .discoBall, route: .debug)
+                    hubRow("debug auth", "dev only", .discoBall, .debug, 7)
                     #endif
                 }
                 .padding(.horizontal, Space.screenPadding)
             }
+            // Top space so the list clears the floating ☰/X mark + safe area.
+            .padding(.top, 56)
             .padding(.bottom, 40)
         }
     }
@@ -235,7 +213,7 @@ struct ProfileHubView: View {
 
     // MARK: - Rows
 
-    private var coachRow: some View {
+    private func coachRow(_ index: Int) -> some View {
         Button {
             Haptics.light()
             withAnimation(slow) { route = .coach }
@@ -255,12 +233,13 @@ struct ProfileHubView: View {
             .background(scrapbookChrome())
         }
         .buttonStyle(.plain)
+        .reveal(index, revealed)
     }
 
-    private func hubRow(title: String, subtitle: String, sticker: StickerName, route: HubRoute) -> some View {
+    private func hubRow(_ title: String, _ subtitle: String, _ sticker: StickerName, _ dest: HubRoute, _ index: Int) -> some View {
         Button {
             Haptics.light()
-            withAnimation(slow) { self.route = route }
+            withAnimation(slow) { route = dest }
         } label: {
             HStack(spacing: Space.md) {
                 ZStack {
@@ -279,6 +258,7 @@ struct ProfileHubView: View {
             .background(scrapbookChrome())
         }
         .buttonStyle(.plain)
+        .reveal(index, revealed)
     }
 
     private func rowText(title: String, subtitle: String) -> some View {
@@ -308,5 +288,27 @@ struct ProfileHubView: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(tint, lineWidth: 1.5)
         }
+    }
+}
+
+// MARK: - Staggered reveal
+//
+// Each item fades + lifts in, delayed by its index, so the hub reveals
+// one-by-one (mindful, no abrupt pop). Driven by a `revealed` flag the hub
+// flips true on appear.
+private struct RevealModifier: ViewModifier {
+    let index: Int
+    let revealed: Bool
+    func body(content: Content) -> some View {
+        content
+            .opacity(revealed ? 1 : 0)
+            .offset(y: revealed ? 0 : 16)
+            .animation(.easeOut(duration: 0.5).delay(Double(index) * 0.07), value: revealed)
+    }
+}
+
+private extension View {
+    func reveal(_ index: Int, _ revealed: Bool) -> some View {
+        modifier(RevealModifier(index: index, revealed: revealed))
     }
 }
