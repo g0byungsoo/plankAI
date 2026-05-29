@@ -109,6 +109,10 @@ struct HomeView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var msgOpacity: [Double] = [0, 0, 0, 0]
     @State private var msgOffset: [CGFloat] = [16, 16, 16, 16]
+    // One signature touch: the hero greeting line resolves from a soft blur
+    // into focus as it fades up (editorial blur-fade). Only the greeting
+    // carries it, so the entrance stays calm, not busy.
+    @State private var greetingBlur: CGFloat = 6
     @State private var hasAnimated = false
 
     // Expand exercise list
@@ -447,6 +451,7 @@ struct HomeView: View {
                         JenisNoteCard(note: jenisNoteForToday)
                             .padding(.horizontal, Space.screenPadding)
                             .opacity(msgOpacity[0]).offset(y: msgOffset[0])
+                            .blur(radius: greetingBlur)
 
                         // HERO — the single daily action. When a lesson is
                         // due it IS the hero (one tap → lesson → workout);
@@ -822,6 +827,7 @@ struct HomeView: View {
                 msgOpacity[i] = 1
                 msgOffset[i] = 0
             }
+            greetingBlur = 0
             return
         }
         // Phase 20a: replaces 0.5s-stagger × 0.6s-spring (last element
@@ -837,6 +843,11 @@ struct HomeView: View {
                 withAnimation(Motion.gentleSpring) {
                     msgOpacity[i] = 1
                     msgOffset[i] = 0
+                }
+                // Greeting blur resolves a touch slower than its fade so the
+                // line reads as "coming into focus" — the one signature beat.
+                if i == 0 {
+                    withAnimation(.easeOut(duration: 0.6)) { greetingBlur = 0 }
                 }
             }
         }
