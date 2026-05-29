@@ -218,19 +218,22 @@ struct PostRoutineView: View {
             fireOpacity = 1.0
         }
 
-        // Phase 2: Stats slide in (1.2s)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        // Phase 2: Stats slide in. Calm settle (gentleSpring) rather than a
+        // bouncy pop — the fire above is the one celebratory burst; the
+        // content blocks should resolve smoothly so the sequence reads
+        // cohesive, not clunky.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
             Haptics.medium()
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+            withAnimation(Motion.gentleSpring) {
                 phase = 2
             }
         }
 
-        // Phase 3: Streak (2.0s)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+        // Phase 3: Streak
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
             if isFirstWorkoutToday && streakCount > 0 {
                 Haptics.vibrate()
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                withAnimation(Motion.gentleSpring) {
                     phase = 3
                     streakScale = 1.0
                 }
