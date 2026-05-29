@@ -171,6 +171,55 @@ struct AnalyticsView: View {
         return (0.005 * current)...(0.01 * current)
     }
 
+    // MARK: - Bento metrics (research-led)
+
+    /// Weigh-ins logged in the last 7 days. Self-weighing frequency is the
+    /// strongest behavioral predictor of weight-loss success (3+/wk → more
+    /// loss), so the bento surfaces it as a tracked behavior, not vanity.
+    private var weighInsThisWeek: Int {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+        return weightLogs.filter { $0.loggedAt >= cutoff }.count
+    }
+
+    /// Forecast ETA to the goal at the current toward-goal pace (Happy Scale
+    /// "prediction" idiom — a proven motivator). Returns a lowercase date
+    /// label ("aug 12") or nil when there's no goal, no measurable pace, the
+    /// goal is already met, or the horizon is implausible (>5y).
+    private var forecastLine: String? {
+        guard onboardingGoalWeightKg > 0,
+              let current = latestWeightKg,
+              let toward = paceTowardGoal, toward > 0.02 else { return nil }
+        let remainingKg = abs(current - onboardingGoalWeightKg)
+        guard remainingKg > 0.1 else { return nil }
+        let weeks = remainingKg / toward
+        guard weeks.isFinite, weeks > 0, weeks < 260,
+              let eta = Calendar.current.date(byAdding: .day, value: Int(weeks * 7), to: Date())
+        else { return nil }
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f.string(from: eta).lowercased()
+    }
+
+    /// Milestone ladder toward the goal — markers every ~5 lb (2.27 kg) from
+    /// the starting weight. Returns the next unreached marker's remaining
+    /// distance (in display units) + progress 0…1 from the prior marker.
+    /// Loss-only (nil when the goal is a gain) and capped at the goal.
+    private var nextMilestone: (remainingDisplay: Double, progress: Double)? {
+        guard onboardingGoalWeightKg > 0,
+              let start = startingWeightKg,
+              let current = latestWeightKg,
+              start > onboardingGoalWeightKg else { return nil }
+        let stepKg = 2.27
+        let lostKg = max(0, start - current)
+        let markersPassed = floor(lostKg / stepKg)
+        let nextMarkerLostKg = (markersPassed + 1) * stepKg
+        let goalLostKg = start - onboardingGoalWeightKg
+        let targetLostKg = min(nextMarkerLostKg, goalLostKg)
+        let remainingKg = max(0, targetLostKg - lostKg)
+        let progress = (lostKg - markersPassed * stepKg) / stepKg
+        return (weightUnit.display(fromKg: remainingKg), min(max(progress, 0), 1))
+    }
+
     /// User's height in metres (from onboardingHeightCm). Returns nil
     /// when the field is unset or implausible. AnalyticsView reads this
     /// via UserRecord, not @AppStorage — height has no AppStorage mirror.
@@ -262,8 +311,8 @@ struct AnalyticsView: View {
 
     // Animation state
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var sectionOpacity: [Double] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    @State private var sectionOffset: [CGFloat] = [20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20]
+    @State private var sectionOpacity: [Double] = [0, 0, 0, 0, 0, 0]
+    @State private var sectionOffset: [CGFloat] = [20, 20, 20, 20, 20, 20]
     @State private var hasAnimated = false
     @State private var showLogWeight = false
     @State private var presentedFutureRail: FutureRail? = nil
@@ -304,79 +353,62 @@ struct AnalyticsView: View {
                 // rows for active users) — eager VStack would render
                 // and animate them all on appear.
                 LazyVStack(alignment: .leading, spacing: 20) {
-                    // Weight-loss-first order (research-led reframe): identity
-                    // hero → adaptive coach read → trend-weight hero → support
-                    // (bmi/stats) → movement → wins → recent. Every module
-                    // self-gates on collected data; a fresh user still sees the
-                    // identity hero, the coach read, the seeded weight card,
-                    // BMI (if height set), and barriers (if picked).
+                    // Bento journey redesign: identity hero → bento grid (the
+                    // new weight-loss story: coach read, trend hero, forecast,
+                    // milestone, % goal, weigh-in cadence, NSV wins, future
+                    // tiles) → kept depth (consistency calendar, barriers,
+                    // strength, the log). All from collected data; no DB change.
                     header
                         .padding(.top, Space.md)
                         .opacity(sectionOpacity[0])
                         .offset(y: sectionOffset[0])
 
-                    // The one module that changes week to week — research's
-                    // top retention lever ("deliver new info, not the same
-                    // dashboard"). Coach-voiced, anti-shame, data-traced.
-                    adaptiveInsight
+                    bentoJourney
                         .opacity(sectionOpacity[1])
                         .offset(y: sectionOffset[1])
 
-                    // Trend-weight hero — the smoothed trajectory leads.
-                    weightCard
+                    activityCalendar
                         .opacity(sectionOpacity[2])
                         .offset(y: sectionOffset[2])
-
-                    if currentBMI != nil && !hideWeightStats {
-                        bmiCard
-                            .opacity(sectionOpacity[3])
-                            .offset(y: sectionOffset[3])
-                    }
-
-                    heroStats
-                        .opacity(sectionOpacity[4])
-                        .offset(y: sectionOffset[4])
-
-                    activityRing
-                        .opacity(sectionOpacity[5])
-                        .offset(y: sectionOffset[5])
-
-                    activityCalendar
-                        .opacity(sectionOpacity[6])
-                        .offset(y: sectionOffset[6])
                         .scaleEffect(calendarScale, anchor: .top)
 
                     if !onboardingBarriers.isEmpty {
                         barrierCard
-                            .opacity(sectionOpacity[7])
-                            .offset(y: sectionOffset[7])
+                            .opacity(sectionOpacity[3])
+                            .offset(y: sectionOffset[3])
                     }
 
                     if benchmarkCount > 0 {
                         plankCard
-                            .opacity(sectionOpacity[8])
-                            .offset(y: sectionOffset[8])
+                            .opacity(sectionOpacity[4])
+                            .offset(y: sectionOffset[4])
                     }
 
                     recentSessions
-                        .opacity(sectionOpacity[9])
-                        .offset(y: sectionOffset[9])
-
-                    // What's coming — scaffolds the weight-loss shift
-                    // (calorie photo, steps, body scan). Quiet "coming soon"
-                    // rails that fire the demand signal; no DB, no new
-                    // surface to maintain (reuses the home idiom).
-                    FutureRailRow(rails: [.foodLog, .stepCounter, .bodyScan]) { rail in
-                        presentedFutureRail = rail
-                    }
-                    .opacity(sectionOpacity[10])
-                    .offset(y: sectionOffset[10])
+                        .opacity(sectionOpacity[5])
+                        .offset(y: sectionOffset[5])
                 }
                 .padding(.horizontal, Space.screenPadding)
                 .padding(.bottom, 100)
             }
         }
         .onAppear { animateIn() }
+        // Weight log + first-log seed live at the body level now that the
+        // trend lives inside the bento (the old standalone weightCard carried
+        // these).
+        .sheet(isPresented: $showLogWeight) {
+            LogWeightSheet(
+                startingFromKg: latestWeightKg ?? (onboardingCurrentWeightKg > 0 ? onboardingCurrentWeightKg : 65),
+                isUpdatingToday: todaysWeightLog != nil,
+                onSave: { kg in
+                    saveWeightLog(kg: kg, source: "manual")
+                    showLogWeight = false
+                },
+                onCancel: { showLogWeight = false }
+            )
+            .presentationDetents([.medium])
+        }
+        .task { seedFirstWeightLogIfNeeded() }
         .sheet(item: $presentedFutureRail) { rail in
             FutureRailExplainerSheet(rail: rail, onClose: { presentedFutureRail = nil })
                 .presentationDetents([.medium])
@@ -584,6 +616,241 @@ struct AnalyticsView: View {
             return "\(lead)you showed up this week. that's where all of it starts."
         }
         return "\(lead)this is your page. one small move today writes the next line."
+    }
+
+    // MARK: - Bento journey grid (research-led weight-loss redesign)
+    //
+    // Modular tiles of varying size (2026 bento idiom) telling the weight-
+    // loss story: coach read → trend (hero) → forecast + milestone → % goal
+    // + weigh-in cadence → NSV wins → future features. All from collected
+    // data; calm/low-stimulus per the clean-luxury bar. Animates as one
+    // section, so the body indexing stays simple.
+    private var bentoJourney: some View {
+        VStack(spacing: 12) {
+            coachTile
+            trendTile
+            HStack(spacing: 12) { forecastTile; milestoneTile }
+            HStack(spacing: 12) { goalTile; cadenceTile }
+            nsvTile
+            FutureRailRow(rails: [.foodLog, .stepCounter, .bodyScan]) { presentedFutureRail = $0 }
+                .padding(.top, 2)
+        }
+    }
+
+    // Soft bento chrome — calmer than the full scrapbook hard-shadow so a
+    // grid of tiles doesn't read busy. `warm` = coach/wins voice tiles.
+    private func bentoChrome(warm: Bool = false) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Palette.accent.opacity(0.12))
+                .offset(x: 3, y: 3)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(warm ? Palette.accentSubtle : Palette.bgElevated)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Palette.accent.opacity(warm ? 1 : 0.45), lineWidth: 1.5)
+        }
+    }
+
+    private func tileEyebrow(_ text: String, accent: Bool = false) -> some View {
+        Text(text)
+            .font(Typo.eyebrow).tracking(1.5)
+            .foregroundStyle(accent ? Palette.accent : Palette.textSecondary)
+    }
+
+    // Coach "this week" read.
+    private var coachTile: some View {
+        HStack(alignment: .top, spacing: Space.md) {
+            Image(CoachAsset.imageName(for: voicePreference))
+                .resizable().scaledToFill()
+                .frame(width: 40, height: 40)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Palette.accent.opacity(0.5), lineWidth: 1.5))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                tileEyebrow("this week", accent: true)
+                Text(insightLine)
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(bentoChrome(warm: true))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("This week from your coach: \(insightLine)")
+    }
+
+    // Trend hero — chart leads, number demoted, log + hide inline.
+    private var trendTile: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    tileEyebrow("your trend")
+                    if hideWeightStats {
+                        Text("hidden").font(Typo.body).foregroundStyle(Palette.textSecondary)
+                    } else if let latest = latestWeightKg {
+                        HStack(alignment: .firstTextBaseline, spacing: 5) {
+                            Text("\(weightUnit.display(fromKg: latest), specifier: "%.1f")")
+                                .font(.custom("Fraunces72pt-SemiBold", size: 27))
+                                .foregroundStyle(Palette.textPrimary)
+                                .contentTransition(.numericText())
+                            Text(weightUnit.label).font(Typo.caption).foregroundStyle(Palette.textSecondary)
+                        }
+                    } else {
+                        Text("track to see your trend.").font(Typo.body).foregroundStyle(Palette.textSecondary)
+                    }
+                }
+                Spacer()
+                Button {
+                    Haptics.light(); hideWeightStats.toggle()
+                } label: {
+                    Image(systemName: hideWeightStats ? "eye.slash" : "eye")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Palette.textSecondary)
+                        .frame(width: 32, height: 32).background(Palette.bgPrimary).clipShape(Circle())
+                        .tappableArea()
+                }
+                .accessibilityLabel(hideWeightStats ? "Show weight" : "Hide weight")
+                Button {
+                    Haptics.light(); showLogWeight = true
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "plus").font(.system(size: 11, weight: .bold))
+                        Text("log").font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
+                    }
+                    .foregroundStyle(Palette.textInverse)
+                    .padding(.horizontal, 14).padding(.vertical, 9)
+                    .background(Palette.bgInverse).clipShape(Capsule())
+                }
+                .accessibilityLabel("Log weight")
+            }
+
+            if !hideWeightStats, weightLogs.count >= 2 {
+                WeightTrendChart(
+                    logs: weightLogs,
+                    goalWeightKg: onboardingGoalWeightKg > 0 ? onboardingGoalWeightKg : nil,
+                    unit: weightUnit
+                )
+            } else if !hideWeightStats {
+                Text(weightSubtitle)
+                    .font(Typo.caption).foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(bentoChrome())
+    }
+
+    // Forecast ETA.
+    private var forecastTile: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            tileEyebrow("on track for")
+            if let eta = forecastLine, !hideWeightStats {
+                Text(eta)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                    .foregroundStyle(Palette.textPrimary)
+                Text("at your pace ♥").font(Typo.caption).foregroundStyle(Palette.textSecondary)
+            } else {
+                Text("keep logging")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 20))
+                    .foregroundStyle(Palette.textPrimary)
+                Text("a forecast appears soon").font(Typo.caption).foregroundStyle(Palette.textSecondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
+        .background(bentoChrome())
+    }
+
+    // Milestone ladder.
+    private var milestoneTile: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            tileEyebrow("next marker")
+            if let m = nextMilestone, !hideWeightStats {
+                Text("\(m.remainingDisplay, specifier: "%.1f") \(weightUnit.label) to go")
+                    .font(Typo.body).fontWeight(.semibold)
+                    .foregroundStyle(Palette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Palette.divider).frame(height: 6)
+                        Capsule().fill(Palette.accent).frame(width: max(6, geo.size.width * m.progress), height: 6)
+                    }
+                }
+                .frame(height: 6)
+            } else {
+                Text("set a goal to ladder up")
+                    .font(Typo.caption).foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, minHeight: 96, alignment: .topLeading)
+        .background(bentoChrome())
+    }
+
+    // % to goal.
+    private var goalTile: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            tileEyebrow("to your goal")
+            if let progress = weightGoalProgress, !hideWeightStats {
+                Text("\(Int((progress * 100).rounded()))%")
+                    .font(.custom("Fraunces72pt-SemiBold", size: 30))
+                    .foregroundStyle(Palette.textPrimary)
+            } else {
+                Text("—").font(.custom("Fraunces72pt-SemiBold", size: 30)).foregroundStyle(Palette.textSecondary)  // voice-lint:allow
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
+        .background(bentoChrome())
+    }
+
+    // Weigh-in cadence (the behavior that predicts success).
+    private var cadenceTile: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            tileEyebrow("weigh-ins")
+            Text("\(weighInsThisWeek)×")
+                .font(.custom("Fraunces72pt-SemiBold", size: 30))
+                .foregroundStyle(Palette.textPrimary)
+            Text(weighInsThisWeek >= 3 ? "this week — that's the habit ♥" : "this week · a few more helps")
+                .font(Typo.caption).foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
+        .background(bentoChrome())
+    }
+
+    // Non-scale victories — the wins the scale can't see.
+    private var nsvTile: some View {
+        let shown = dayProgress.count
+        return VStack(alignment: .leading, spacing: 6) {
+            tileEyebrow("wins the scale can't see", accent: true)
+            Text(nsvLine(shownUp: shown))
+                .font(Typo.body)
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(bentoChrome(warm: true))
+    }
+
+    private func nsvLine(shownUp: Int) -> String {
+        var wins: [String] = []
+        if shownUp > 0 { wins.append(shownUp == 1 ? "shown up once" : "shown up \(shownUp)×") }
+        if benchmarkCount > 0 { wins.append("getting stronger") }
+        if !onboardingBarriers.isEmpty { wins.append("facing what got in the way") }
+        if wins.isEmpty { return "every small thing you do here is a win the scale will never show." }
+        return wins.joined(separator: " · ") + " ♥"
     }
 
     // MARK: - Empty State
