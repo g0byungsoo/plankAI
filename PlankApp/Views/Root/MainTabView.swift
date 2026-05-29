@@ -63,7 +63,6 @@ private struct TabBloom: ViewModifier {
     @State private var appearedOnce: Bool
     @State private var blur: CGFloat = 0
     @State private var opacity: Double = 1
-    @State private var scale: CGFloat = 1
 
     init(isActive: Bool) {
         self.isActive = isActive
@@ -71,25 +70,30 @@ private struct TabBloom: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        content
-            .blur(radius: blur)
-            .opacity(opacity)
-            .scaleEffect(scale)
-            .onChange(of: isActive) { _, active in
-                guard active else { return }
-                guard appearedOnce else { appearedOnce = true; return }
-                guard !reduceMotion else { return }
-                // Set the bloom-from state this frame, then resolve to clear
-                // next runloop so the blur is actually rendered before it
-                // animates away.
-                blur = 7; opacity = 0.55; scale = 0.985
-                Haptics.soft()
-                DispatchQueue.main.async {
-                    withAnimation(.easeOut(duration: 0.5)) {
-                        blur = 0; opacity = 1; scale = 1
-                    }
+        // Opaque cream backdrop under the blooming content so the blur + fade
+        // never reveal the black window behind the tab. No scaleEffect — the
+        // earlier scale shrank the content and exposed black gaps at the
+        // top/bottom edges. Just a soft blur resolving into focus.
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            content
+                .blur(radius: blur)
+                .opacity(opacity)
+        }
+        .onChange(of: isActive) { _, active in
+            guard active else { return }
+            guard appearedOnce else { appearedOnce = true; return }
+            guard !reduceMotion else { return }
+            // Set the bloom-from state this frame, then resolve to clear next
+            // runloop so the blur is actually rendered before it animates away.
+            blur = 5; opacity = 0.85
+            Haptics.soft()
+            DispatchQueue.main.async {
+                withAnimation(.easeOut(duration: 0.45)) {
+                    blur = 0; opacity = 1
                 }
             }
+        }
     }
 }
 
