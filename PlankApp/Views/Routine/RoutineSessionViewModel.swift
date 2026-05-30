@@ -434,7 +434,10 @@ final class RoutineSessionViewModel {
         Task {
             try? await clock.sleep(for: .seconds(1))
             audio.onSessionDone()
-            try? await clock.sleep(for: .seconds(2))
+            // Wait long enough for the "proud of you" cue (~3-4s) to finish
+            // before deactivating — the prior 2s deadline cut the line off
+            // mid-word during the transition to PostRoutineView.
+            try? await clock.sleep(for: .seconds(6))
             audio.deactivate()
         }
         onComplete(exerciseResults, totalElapsed)
