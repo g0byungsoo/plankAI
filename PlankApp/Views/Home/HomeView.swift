@@ -806,6 +806,11 @@ struct HomeView: View {
             ) {
                 showPreSession = false; showSession = true
             } onDismiss: { showPreSession = false }
+            // Cream backdrop + blur-into-focus entrance so the plank cover
+            // resolves like the home greeting / tab bloom instead of the
+            // default system fullScreenCover (which flashed black).
+            .presentationBackground(Palette.bgPrimary)
+            .modifier(PlankCoverBlur())
         }
         .fullScreenCover(isPresented: $showSession) {
             SessionView(exerciseType: "Plank Benchmark", dayNumber: currentDay, targetTime: 60) { holdTime, quality, faults in
@@ -821,12 +826,17 @@ struct HomeView: View {
                     showPlankPostSession = true
                 }
             }
+            .presentationBackground(Palette.bgPrimary)
+            .modifier(PlankCoverBlur())
         }
         .fullScreenCover(isPresented: $showPlankPostSession) {
             PostSessionView(holdTime: lastHoldTime, qualityScore: lastQuality, dayNumber: currentDay,
                           streakCount: streakCount, previousScore: nil, playedLines: []) {
                 showPlankPostSession = false
             }
+            // No blur here — the celebration phase animations own the
+            // entrance; just the cream backdrop to kill the black.
+            .presentationBackground(Palette.bgPrimary)
         }
         .sheet(item: $activeSheet) { sheet in
             SettingsView(sheet: sheet)
@@ -1578,6 +1588,24 @@ struct StatCard: View {
                     .stroke(Palette.accent, lineWidth: 1.5)
             }
         )
+    }
+}
+
+/// Blur-into-focus entrance for the plank check-in covers (PreSession +
+/// Session). Matches the home greeting + tab bloom motion voice instead of
+/// the default system fullScreenCover transition which flashed black on
+/// arrival. Reduce-motion snaps clear.
+private struct PlankCoverBlur: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var blur: CGFloat = 7
+
+    func body(content: Content) -> some View {
+        content
+            .blur(radius: blur)
+            .onAppear {
+                guard !reduceMotion else { blur = 0; return }
+                withAnimation(.easeOut(duration: 0.5)) { blur = 0 }
+            }
     }
 }
 
