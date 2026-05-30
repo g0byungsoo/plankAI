@@ -282,14 +282,10 @@ struct SessionView: View {
             camera.stopSession()
             // Lock back to portrait
             OrientationManager.shared.allowedOrientations = .portrait
-            // Defer the audio session release so the end-of-session voice
-            // cue (e.g. "i'm proud of you") finishes before the session
-            // goes silent. The immediate setActive(false) was cutting the
-            // line mid-word during the transition to PostSessionView.
-            Task.detached {
-                try? await Task.sleep(for: .seconds(5))
-                try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-            }
+            // Release audio session so other apps can resume. The closing
+            // cue that used to race the dismiss is dropped above, so no
+            // need to defer this anymore.
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background || newPhase == .inactive {
@@ -394,9 +390,16 @@ struct SessionView: View {
 
         // Listen for events
         for await event in eventStream {
-            // Forward all events to voice feedback.
+            // Forward events to voice feedback — but drop .sessionEnd, whose
+            // closing cue was getting clipped by the cover dismiss to
+            // PostSessionView every time. Silence > chopped.
             if !audioMuted {
-                Task { await audioQueue.handleEvent(event) }
+                switch event {
+                case .sessionEnd:
+                    break  // skip closing cue
+                default:
+                    Task { await audioQueue.handleEvent(event) }
+                }
             }
 
             switch event {

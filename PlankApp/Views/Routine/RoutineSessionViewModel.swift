@@ -431,15 +431,11 @@ final class RoutineSessionViewModel {
     private func finishSession() {
         timerTask?.cancel()
         phase = .done
-        Task {
-            try? await clock.sleep(for: .seconds(1))
-            audio.onSessionDone()
-            // Wait long enough for the "proud of you" cue (~3-4s) to finish
-            // before deactivating — the prior 2s deadline cut the line off
-            // mid-word during the transition to PostRoutineView.
-            try? await clock.sleep(for: .seconds(6))
-            audio.deactivate()
-        }
+        // Drops the "proud of you" closing cue. The cover dismiss to
+        // PostRoutineView raced with the cue every time and clipped it
+        // mid-word; any delay long enough to land it would also block the
+        // audio session for other apps. User chose silence over chopped.
+        audio.deactivate()
         onComplete(exerciseResults, totalElapsed)
     }
 }
