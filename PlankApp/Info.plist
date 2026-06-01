@@ -28,6 +28,8 @@
 	<string>JeniFit uses your camera to watch your form during plank sessions. Frames are processed on-device and never leave your phone.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>JeniFit reads your step count so Jeni can quietly notice the days you moved more. Your step data stays between you and Apple Health — JeniFit never sees the raw samples or sends them anywhere.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>JeniFit does not currently write to Apple Health. This permission is requested only because the HealthKit framework requires it, and may be used in a future update to sync your JeniFit sessions back to Apple Health if you choose to enable it.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>DMSans-Light.ttf</string>
