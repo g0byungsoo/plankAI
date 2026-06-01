@@ -53,6 +53,12 @@ enum StickerName: String, CaseIterable {
     case peach
     case teacup
     case toteBag
+    // v1.0.7 — pink iridescent mary-jane platform. Bound to the steps
+    // rail (StepsPulseTile, StepsBentoTile, BecomingMetric.movement)
+    // so "moving / walking" reads as a single visual signal across
+    // the app. Painterly style, same opacity treatment as the other
+    // iridescent stickers.
+    case shoeIridescent
 
     var assetName: String {
         switch self {
@@ -89,6 +95,7 @@ enum StickerName: String, CaseIterable {
         case .peach:           return "sticker_peach"
         case .teacup:          return "sticker_teacup"
         case .toteBag:         return "sticker_tote_bag"
+        case .shoeIridescent:  return "sticker_shoe_iridescent"
         }
     }
 

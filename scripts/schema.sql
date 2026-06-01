@@ -96,6 +96,13 @@ ALTER TABLE public.users
     ADD COLUMN IF NOT EXISTS onboarding_relatability_2 boolean,
     ADD COLUMN IF NOT EXISTS onboarding_relatability_3 boolean;
 
+-- 2026-05-30 — epic #1 child #7. TikTok/IG/friend attribution. Nullable;
+-- legacy rows get NULL, no migration prompt. The ONE schema exception
+-- in v1.0.7 because attribution is durable signal worth keeping
+-- (vision-injection questions stay session-scope per #6).
+ALTER TABLE public.users
+    ADD COLUMN IF NOT EXISTS onboarding_acquisition_source text;
+
 -- =====================================================================
 -- public.session_logs — append-only session record
 -- =====================================================================

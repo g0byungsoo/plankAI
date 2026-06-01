@@ -262,12 +262,18 @@ struct SessionView: View {
             }
             Button("keep going", role: .cancel) {}
         }
-        .task {
-            // Keep the screen awake for the whole plank hold — auto-lock
-            // mid-hold is frustrating. Re-enabled on disappear.
+        .onAppear {
+            // Keep the screen awake for the whole plank hold. SYNC
+            // `.onAppear` (not `.task`) so the flag flips BEFORE iOS
+            // schedules the next auto-lock countdown — `.task` is
+            // async and could fire a few hundred ms after the view
+            // appears, leaving a window where iOS already started its
+            // dim → lock timer.
             UIApplication.shared.isIdleTimerDisabled = true
-            // Unlock all orientations for session (user planks in landscape)
+            // Unlock all orientations for session (user planks in landscape).
             OrientationManager.shared.allowedOrientations = .all
+        }
+        .task {
             // Defensive: clear any voice-line dedup / cooldown state that
             // could survive across .fullScreenCover presentations.
             await audioQueue.resetSession()
@@ -288,6 +294,15 @@ struct SessionView: View {
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         }
         .onChange(of: scenePhase) { _, newPhase in
+            // Re-assert the idle-timer flag on every .active transition.
+            // iOS can reset it across background → foreground returns; a
+            // user who answers a notification mid-hold should come back
+            // to a session that's still protected from auto-lock.
+            if newPhase == .active {
+                UIApplication.shared.isIdleTimerDisabled = true
+            }
+            // Pause-on-background already handled here (single onChange
+            // site after the merge so we don't double-handle).
             if newPhase == .background || newPhase == .inactive {
                 if sessionActive && !sessionEnded {
                     stopTimer()

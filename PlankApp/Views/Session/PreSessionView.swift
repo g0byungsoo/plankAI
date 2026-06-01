@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import AVFoundation
 
 /// Pre-session instruction screen. Shows the rationale, "what your time
@@ -79,6 +80,19 @@ struct PreSessionView: View {
             withAnimation(.easeInOut(duration: 0.6)) {
                 contentOpacity = 1
             }
+            // Keep the screen awake during setup too — users spend
+            // 20-30+ seconds reading the WHY block + positioning the
+            // phone for the camera frame without touching the screen,
+            // so auto-lock during setup is the same frustration as
+            // auto-lock mid-hold. SYNC `.onAppear` so the flag flips
+            // before iOS schedules its next auto-lock check.
+            UIApplication.shared.isIdleTimerDisabled = true
+        }
+        .onDisappear {
+            // Restore so it doesn't leak past the pre-session screen
+            // when the user cancels. SessionView re-sets it back to
+            // true on its own .onAppear — the two screens don't fight.
+            UIApplication.shared.isIdleTimerDisabled = false
         }
     }
 

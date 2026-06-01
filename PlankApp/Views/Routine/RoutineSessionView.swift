@@ -182,18 +182,35 @@ struct RoutineSessionView: View {
         .task {
             vm.start()
             sessionBridge.vm = vm
-            // Keep the screen awake for the whole workout — auto-lock
-            // mid-session is frustrating. Re-enabled on disappear.
+        }
+        .onAppear {
+            // Keep the screen awake for the whole workout. SYNCHRONOUS
+            // `.onAppear` (not `.task`) so the flag flips BEFORE iOS
+            // schedules the next auto-lock countdown. The earlier
+            // `.task` version was async — on cold session starts iOS
+            // could begin the dim → lock countdown a few hundred ms
+            // before the flag actually flipped, causing the screen to
+            // dim mid-session.
             UIApplication.shared.isIdleTimerDisabled = true
         }
         .onDisappear {
             sessionBridge.vm = nil
+            // Restore the system auto-lock so it doesn't keep the
+            // screen awake forever after the user leaves the session.
             UIApplication.shared.isIdleTimerDisabled = false
             // Always lock back to portrait when leaving the session so
             // the rest of the app honors its portrait-only contract.
             setOrientation(landscape: false)
         }
         .onChange(of: scenePhase) { _, newPhase in
+            // Re-assert the idle-timer flag on every active transition.
+            // iOS can reset the flag across background → foreground
+            // returns; without re-applying, a user who locks then
+            // unlocks mid-rest would re-enter a session that's no
+            // longer protected from auto-lock.
+            if newPhase == .active {
+                UIApplication.shared.isIdleTimerDisabled = true
+            }
             if newPhase == .background || newPhase == .inactive {
                 if !vm.isPaused, case .done = vm.phase {} else if !vm.isPaused {
                     vm.pause()

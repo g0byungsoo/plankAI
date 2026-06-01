@@ -155,7 +155,8 @@ public actor SyncService {
             onboarding_reward_choice: user.onboardingRewardChoice.isEmpty ? nil : user.onboardingRewardChoice,
             onboarding_relatability_1: user.onboardingRelatability1,
             onboarding_relatability_2: user.onboardingRelatability2,
-            onboarding_relatability_3: user.onboardingRelatability3
+            onboarding_relatability_3: user.onboardingRelatability3,
+            onboarding_acquisition_source: user.onboardingAcquisitionSource
         )
 
         let userId = user.id
@@ -331,6 +332,8 @@ public actor SyncService {
             target.onboardingRelatability1 = row.onboardingRelatability1
             target.onboardingRelatability2 = row.onboardingRelatability2
             target.onboardingRelatability3 = row.onboardingRelatability3
+            // 2026-05-30 (epic #1 child #7) — TikTok/IG/friend attribution.
+            target.onboardingAcquisitionSource = row.onboardingAcquisitionSource
 
             do {
                 try context.save()
@@ -697,6 +700,8 @@ private struct SupabaseUserUpsert: Encodable {
     let onboarding_relatability_1: Bool?
     let onboarding_relatability_2: Bool?
     let onboarding_relatability_3: Bool?
+    /// 2026-05-30 (epic #1 child #7) — TikTok/IG/friend attribution.
+    let onboarding_acquisition_source: String?
 }
 
 /// Decodable mirror of SupabaseUserUpsert. Mirrors all 21 columns of
@@ -746,6 +751,8 @@ private struct SupabaseUserRow: Decodable {
     let onboardingRelatability1: Bool?
     let onboardingRelatability2: Bool?
     let onboardingRelatability3: Bool?
+    /// 2026-05-30 (epic #1 child #7) — TikTok/IG/friend attribution.
+    let onboardingAcquisitionSource: String?
 
     enum CodingKeys: String, CodingKey {
         case id, name
@@ -786,6 +793,7 @@ private struct SupabaseUserRow: Decodable {
         case onboardingRelatability1 = "onboarding_relatability_1"
         case onboardingRelatability2 = "onboarding_relatability_2"
         case onboardingRelatability3 = "onboarding_relatability_3"
+        case onboardingAcquisitionSource = "onboarding_acquisition_source"
     }
 }
 

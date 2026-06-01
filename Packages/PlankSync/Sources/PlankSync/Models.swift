@@ -61,6 +61,15 @@ public final class UserRecord {
     public var onboardingRelatability2: Bool?
     public var onboardingRelatability3: Bool?
 
+    /// 2026-05-30 (epic #1 child #7): how the user heard about JeniFit.
+    /// One of "tiktok" | "instagram" | "friend" | "app_store" | "google"
+    /// | "other". Optional so SwiftData lightweight migration covers
+    /// legacy rows + the field can carry a real "not answered" signal.
+    /// Cross-device sync via public.users.onboarding_acquisition_source
+    /// (text, nullable). JeniFit is $0 CAC organic TikTok — this is the
+    /// only signal we'll have for which creator/post is converting.
+    public var onboardingAcquisitionSource: String?
+
     /// Set true by any client-side write (settings edits, onboarding-complete)
     /// and cleared on successful upsert. Drives the retry sweep on app launch
     /// so a force-quit between write + network response never silently loses

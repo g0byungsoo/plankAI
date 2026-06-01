@@ -26,6 +26,14 @@ enum RetentionNotifications {
     /// one-shots (`affirmation_drop_0…N`) so the copy can rotate — a single
     /// repeating trigger can't vary its body.
     private static let affirmationPrefix = "affirmation_drop_"
+    /// v1.0.7 trial-week additions. Day 0 anchor lands ~4h after install
+    /// (clamped to 10am-9pm window, deferred to next-morning 10am if the
+    /// 4h window falls outside that range). Day 2 engagement nudges
+    /// users who haven't done a session yet by mid-day Wednesday-ish.
+    /// Both fire ONCE per install (`*Done` flags) and are cancelled on
+    /// any session save.
+    static let day0AnchorIdentifier = "day0_anchor"
+    static let day2EngagementIdentifier = "day2_engagement"
 
     // MARK: - Toggles (UserDefaults; default ON, gated on system permission)
 
@@ -37,6 +45,16 @@ enum RetentionNotifications {
         /// the trial-end recap can surface it without a SwiftData read.
         static let shownUpCount        = "stats.shown_up_count"
         static func milestoneDone(_ n: Int) -> String { "notif.milestone_\(n)_done" }
+        /// v1.0.7 — first time `reschedule()` ran on this install. Anchors
+        /// the trial-week gating logic (Day 0 anchor, Day 2 engagement
+        /// push, first-week affirmation pause). NOT the same as the
+        /// JeniMethod enrollment timestamp — that's about the program
+        /// arc; this is about retention windows. Idempotent stamp.
+        static let firstSeenAt         = "notif.first_seen_at"
+        /// One-shot flags for the trial-week pushes so a re-launch within
+        /// the same install doesn't re-schedule a duplicate.
+        static let day0AnchorDone      = "notif.day0_anchor_done"
+        static let day2EngagementDone  = "notif.day2_engagement_done"
     }
 
     /// Read-only count of distinct days shown up (stamped via
@@ -78,23 +96,76 @@ enum RetentionNotifications {
     // MARK: - Public API
 
     /// Re-arm everything. Call on app launch. No-op (and never prompts) when
-    /// notifications aren't authorized.
+    /// notifications aren't authorized. v1.0.7 — also stamps firstSeenAt
+    /// + schedules the trial-week anchors (Day 0 + Day 2) on first launch.
     static func reschedule(now: Date = .now) {
+        stampFirstSeenIfNeeded(now: now)
         Task {
             guard await isAuthorized() else { return }
             armWinback(now: now)
             scheduleAffirmations(now: now)
+            scheduleDay0AnchorIfNeeded(now: now)
+            scheduleDay2EngagementIfNeeded(now: now)
         }
     }
 
     /// Stamp last-session and re-arm the win-back from now. Call when a
     /// session is persisted (HomeView.saveRoutineSession / saveBenchmarkSession).
+    /// Also cancels the trial-week pushes — once the user engages, those
+    /// "are you still there?" nudges are no longer needed.
     static func markSessionCompleted(now: Date = .now) {
         UserDefaults.standard.set(now, forKey: Key.lastSessionAt)
+        // Cancel the Day 0 + Day 2 anchors. If they were scheduled for a
+        // future moment, the user just gave us the engagement signal they
+        // were designed to nudge, so firing them later reads as the app
+        // not knowing what's happening.
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [
+            day0AnchorIdentifier,
+            day2EngagementIdentifier,
+        ])
+        // Stamp the *Done flags so the next reschedule() doesn't re-fire
+        // them. Belt-and-suspenders with the removePending above.
+        UserDefaults.standard.set(true, forKey: Key.day0AnchorDone)
+        UserDefaults.standard.set(true, forKey: Key.day2EngagementDone)
+
         Task {
             guard await isAuthorized() else { return }
             armWinback(now: now)
         }
+    }
+
+    // MARK: - First-seen stamp + trial-week gating
+
+    /// Stamp the first time the user's notification scheduler ran on this
+    /// install. Anchors the trial-week math (Day 0 anchor, Day 2 push,
+    /// first-week affirmation pause). Idempotent — re-calls preserve the
+    /// original timestamp.
+    static func stampFirstSeenIfNeeded(now: Date) {
+        let d = UserDefaults.standard
+        if d.object(forKey: Key.firstSeenAt) == nil {
+            d.set(now, forKey: Key.firstSeenAt)
+        }
+    }
+
+    static func firstSeenAt() -> Date? {
+        UserDefaults.standard.object(forKey: Key.firstSeenAt) as? Date
+    }
+
+    /// True if `now` is within 7 calendar days of the user's first scheduling
+    /// pass. Used to pause affirmation drops during the trial week so the
+    /// per-week notification count stays under the research ceiling (5).
+    /// Returns false on legacy installs that never stamped firstSeenAt (they
+    /// are by definition past their first week).
+    static func isWithinFirstWeek(now: Date = .now) -> Bool {
+        guard let first = firstSeenAt() else { return false }
+        let cal = Calendar.current
+        guard let dayDelta = cal.dateComponents(
+            [.day],
+            from: cal.startOfDay(for: first),
+            to: cal.startOfDay(for: now)
+        ).day else { return false }
+        return dayDelta < 7
     }
 
     /// Re-apply after a category toggle changes in settings.
@@ -113,11 +184,22 @@ enum RetentionNotifications {
     /// delete / full opt-out), so a fresh user on this device starts clean.
     static func cancelAll() {
         UNUserNotificationCenter.current().removePendingNotificationRequests(
-            withIdentifiers: [winbackIdentifier] + affirmationIdentifiers() + milestoneIdentifiers())
+            withIdentifiers: [
+                winbackIdentifier,
+                day0AnchorIdentifier,
+                day2EngagementIdentifier,
+            ] + affirmationIdentifiers() + milestoneIdentifiers()
+        )
         let d = UserDefaults.standard
         milestones.forEach { d.removeObject(forKey: Key.milestoneDone($0)) }
         d.removeObject(forKey: Key.shownUpCount)
         d.removeObject(forKey: Key.lastSessionAt)
+        // v1.0.7 — clear the trial-week stamps so a re-create on the same
+        // device (account delete → onboarding again) gets a clean
+        // firstSeenAt + fresh Day 0 / Day 2 anchors.
+        d.removeObject(forKey: Key.firstSeenAt)
+        d.removeObject(forKey: Key.day0AnchorDone)
+        d.removeObject(forKey: Key.day2EngagementDone)
     }
 
     // MARK: - Win-back
@@ -158,6 +240,15 @@ enum RetentionNotifications {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: affirmationIdentifiers())
         guard affirmationsEnabled else { return }
+        // v1.0.7 — pause affirmations during the trial week so the total
+        // push count for Day 0-7 stays under the 5-pushes/week ceiling
+        // (Airbridge 2026: above 5/wk, 40%+ disable push permission).
+        // Daily reminder + milestones + Day 0 anchor + Day 2 engagement
+        // already total 2-4 pushes/week for an engaged trial user;
+        // adding affirmations on top would tip over the line. Returns
+        // the channel after the honeymoon — week 2+ gets the calm Tue/
+        // Sat rhythm as before.
+        guard !isWithinFirstWeek(now: now) else { return }
 
         let calendar = Calendar.current
         let library = affirmationLibrary()
@@ -219,6 +310,115 @@ enum RetentionNotifications {
             lines.append("\(name), today's a good day to be gentle with yourself.")
         }
         return lines
+    }
+
+    // MARK: - Day 0 anchor (trial-week)
+    //
+    // Lands ~4 hours after onboarding completes (RetentionNotifications
+    // .reschedule() stamps firstSeenAt on first call from PlankAIApp).
+    // Single goal: combat the 55% of 3-day-trial cancels that happen on
+    // Day 0 (Airbridge 2026 + RevenueCat State of Subscription Apps 2026).
+    // Cancelled the moment the user saves a session — see markSessionCompleted.
+    //
+    // Timing logic: 4h is the sweet spot per habit-formation research
+    // (Fogg) — long enough that the user has had time to install/forget,
+    // short enough that the day's intention is still warm. Clamped to a
+    // sane 10am-9pm window; pushes outside that range defer to the next
+    // morning's 10am slot.
+
+    private static func scheduleDay0AnchorIfNeeded(now: Date) {
+        let d = UserDefaults.standard
+        guard !d.bool(forKey: Key.day0AnchorDone) else { return }
+        guard let fireDate = computeDay0AnchorDate(from: now) else { return }
+        guard fireDate > now.addingTimeInterval(60) else { return }
+
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [day0AnchorIdentifier])
+
+        let content = UNMutableNotificationContent()
+        let name = (d.string(forKey: "userName") ?? "").lowercased()
+        let opener = name.isEmpty ? "" : "\(name), "
+        content.title = "five minutes today."
+        content.body = "\(opener)your first day matters most. five minutes is enough to feel like you ♥"
+        content.sound = .default
+
+        let comps = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: fireDate
+        )
+        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+        center.add(UNNotificationRequest(
+            identifier: day0AnchorIdentifier,
+            content: content,
+            trigger: trigger
+        ))
+        d.set(true, forKey: Key.day0AnchorDone)
+    }
+
+    /// 4h ahead, clamped to a [10am, 9pm] window. If now+4h is in window,
+    /// fire then. Else defer to next-morning 10am.
+    private static func computeDay0AnchorDate(from now: Date) -> Date? {
+        let cal = Calendar.current
+        guard let candidate = cal.date(byAdding: .hour, value: 4, to: now) else { return nil }
+        let hour = cal.component(.hour, from: candidate)
+        if hour >= 10 && hour < 21 {
+            return candidate
+        }
+        // Defer to next-morning 10am.
+        guard let tomorrow = cal.date(byAdding: .day, value: 1, to: now) else { return nil }
+        var comps = cal.dateComponents([.year, .month, .day], from: tomorrow)
+        comps.hour = 10
+        comps.minute = 0
+        return cal.date(from: comps)
+    }
+
+    // MARK: - Day 2 engagement (trial-week)
+    //
+    // Lands on Day 2 at 10am local time. Designed for users who still
+    // haven't completed a session on Day 1 — Day 2 is where the second
+    // push to engage matters most before the trial honeymoon ends.
+    //
+    // We don't have access to SwiftData session counts from this pure
+    // UserDefaults helper, so the gating happens via cancellation: if
+    // any session saves between scheduling and Day 2 morning, the push
+    // is cancelled (see markSessionCompleted). If it fires, the user is
+    // definitively a no-session-yet Day-2 user.
+
+    private static func scheduleDay2EngagementIfNeeded(now: Date) {
+        let d = UserDefaults.standard
+        guard !d.bool(forKey: Key.day2EngagementDone) else { return }
+        guard let firstSeen = firstSeenAt() else { return }
+
+        let cal = Calendar.current
+        // Day 2 (calendar-day index 2 from firstSeen, so 48h+ later).
+        guard let day2 = cal.date(byAdding: .day, value: 2, to: cal.startOfDay(for: firstSeen)) else { return }
+        var comps = cal.dateComponents([.year, .month, .day], from: day2)
+        comps.hour = 10
+        comps.minute = 0
+        guard let fireDate = cal.date(from: comps), fireDate > now.addingTimeInterval(60) else {
+            // Past the fire window already (e.g. user just opened the app
+            // on Day 3 for the first time). Stamp done so we don't re-try.
+            d.set(true, forKey: Key.day2EngagementDone)
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        let name = (d.string(forKey: "userName") ?? "").lowercased()
+        let opener = name.isEmpty ? "" : "\(name), "
+        content.title = "the easiest start ♥"
+        content.body = "\(opener)haven't tried jeni yet? a five-minute breath card is the gentlest way in."
+        content.sound = .default
+
+        let trigger = UNCalendarNotificationTrigger(
+            dateMatching: cal.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate),
+            repeats: false
+        )
+        UNUserNotificationCenter.current().add(UNNotificationRequest(
+            identifier: day2EngagementIdentifier,
+            content: content,
+            trigger: trigger
+        ))
+        d.set(true, forKey: Key.day2EngagementDone)
     }
 
     // MARK: - Milestones

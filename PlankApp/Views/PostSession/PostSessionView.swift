@@ -12,6 +12,15 @@ struct PostSessionView: View {
 
     @State private var showStats = false
 
+    /// 2026-05-30 (epic #1 child #6): review prompt sentiment sheet.
+    /// Fires once per install for users completing a plank session with
+    /// hold ≥45s. The RatingPromptService.isEligible check handles the
+    /// per-trigger lifetime flag + 30-day soft cooldown. For existing
+    /// v1.0.6 users on update, this captures the next ≥45s PR session
+    /// — a fresh peak-end moment for an honest review.
+    @State private var showReviewSheet = false
+    @Environment(\.openURL) private var openURL
+
     // Phase 16 — celebration scatter (HIGH treatment, 6 stickers,
     // 1 line-art / 5 painterly). Margins only — never on the centered
     // stat cards or score breakdowns.
@@ -180,6 +189,41 @@ struct PostSessionView: View {
                     showStats = true
                 }
             }
+            // After the celebration peak (~2.5s) — Kahneman peak-end:
+            // the review prompt lands at the dopamine apex, not when
+            // the user is reaching to dismiss the screen. Conditional
+            // gates: hold ≥45s (the spec threshold for "real session"),
+            // RatingPromptService eligibility (per-install flag +
+            // 30-day cooldown + legacy onboarding-prompt back-compat).
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                if holdTime >= 45 &&
+                   RatingPromptService.shared.isEligible(for: .sessionThreePR) {
+                    RatingPromptService.shared.markShown(.sessionThreePR)
+                    showReviewSheet = true
+                }
+            }
+        }
+        .sheet(isPresented: $showReviewSheet) {
+            PreReviewSentimentSheet(
+                title: "the workout",
+                message: "a quick rating helps other women find us, and keeps the app independent.",
+                onYes: {
+                    RatingPromptService.shared.trackSentimentResult(
+                        trigger: .sessionThreePR, sentimentYes: true)
+                    RatingPromptService.shared.presentSystemReviewSheet()
+                },
+                onNotYet: {
+                    RatingPromptService.shared.trackSentimentResult(
+                        trigger: .sessionThreePR, sentimentYes: false)
+                    // Slot 2 routes "not yet" users to FeedbackView via
+                    // mailto so the dissatisfied user has somewhere to
+                    // vent without burning a real review slot.
+                    if let url = URL(string: "mailto:support@jenifit.app?subject=jenifit%20feedback") {
+                        openURL(url)
+                    }
+                },
+                onDismiss: { showReviewSheet = false }
+            )
         }
     }
 

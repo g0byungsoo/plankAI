@@ -49,6 +49,25 @@ enum AnalyticsEvent: String {
     case trialStart                 = "trial_start"
     case purchaseCompleted          = "purchase_completed"
 
+    // ── Paywall diagnostic events (issue #2) ─────────────────────
+    // Wired May 2026 after the Day-2 zero-trial bug: 54 paywall views
+    // on May 29 produced 0 trial_start events with no failure visible
+    // anywhere. The three events below close that observability gap by
+    // splitting the intent → StoreKit handoff into discrete steps so a
+    // future regression like that is catchable by funnel diff alone.
+    // Property `plan` is the user-selected tier (yearly / quarterly /
+    // weekly). `time_on_paywall_ms` is the millisecond delta between
+    // PaywallView .onAppear and the event firing.
+    case paywallCtaTapped           = "paywall_cta_tapped"
+    case purchaseSheetShown         = "purchase_sheet_shown"
+    case paywallDismissAttempted    = "paywall_dismiss_attempted"
+
+    /// 2026-05-30 (epic #1 child #4): user tapped Subscribe → Apple
+    /// purchase sheet appeared → user cancelled. The high-intent
+    /// abandon moment that triggers the downsell offer (once per
+    /// install). Property: `plan` (yearly/quarterly/weekly).
+    case paywallTransactionAbandoned = "paywall_transaction_abandoned"
+
     // ── First activation ─────────────────────────────────────────
     case firstWorkoutStart          = "first_workout_start"
     case firstWorkoutComplete       = "first_workout_complete"
@@ -65,10 +84,32 @@ enum AnalyticsEvent: String {
     case ratingPromptResult         = "rating_prompt_result"
 
     // ── Consent ritual (case 240) — pinky-promise long-press ─────
+    // SUPERSEDED 2026-05-30: case 240 reframed to brand-promises flow
+    // (issue #5). Old events kept emitting in parallel for 14 days so
+    // funnel reports during the transition window don't break. Remove
+    // after 2026-06-13.
     case consentRitualViewed        = "consent_ritual_viewed"
     case consentRitualSigned        = "consent_ritual_signed"
     case consentRitualSkipped       = "consent_ritual_skipped"
     case consentRitualAbandoned     = "consent_ritual_abandoned"
+
+    // ── Attribution (epic #1 child #7, 2026-05-30) ────────────────
+    // "How did you hear about jenifit?" answer. Property `source` is
+    // one of "tiktok"|"instagram"|"friend"|"app_store"|"google"|"other".
+    // JeniFit is $0 CAC organic TikTok — this is the only signal we'll
+    // have for which creator/post is converting (no analytics tool
+    // gives this accurately without explicit user attribution).
+    case acquisitionSourceAnswered  = "acquisition_source_answered"
+
+    // ── Brand promises (case 240, post-2026-05-30 reframe) ────────
+    // Replaces consent_ritual_* per epic #1 child #5. Three single-tap
+    // promise screens (no signature, no skip path) immediately after
+    // plan reveal. brand_promises_completed fires on the third tap.
+    // Properties on completed: tap_count (always 3), total_duration_ms.
+    // Properties on abandoned: last_promise_index (0..2), time_to_abandon_ms.
+    case brandPromisesStarted       = "brand_promises_started"
+    case brandPromisesCompleted     = "brand_promises_completed"
+    case brandPromisesAbandoned     = "brand_promises_abandoned"
 
     // ── Method preview (case 250) — pre-paywall ritual tease ─────
     // Phase 1 of the Noom-research-led onboarding conversion pass.
@@ -90,6 +131,14 @@ enum AnalyticsEvent: String {
     // conversion vs. plain edu screens.
     case quizViewed                 = "quiz_viewed"
     case quizAnswered               = "quiz_answered"
+
+    // ── Video demo (case 145, epic #1 child #8, 2026-05-30) ──────
+    // Auto-activated 10-15s loop of the actual plank session. Slot is
+    // post-comparison-chart so the user has just seen the JeniFit-vs-
+    // generic frame, then sees the real product moving. "Nobody reads
+    // features. Everyone watches them." (200+ app teardown research.)
+    // Property: `placement: "post_comparison"`, `video_id: "jeni_session_demo"`.
+    case onboardingVideoDemoViewed  = "onboarding_video_demo_viewed"
 
     // ── The JeniFit Method (post-purchase diet education) ───────
     // Phase 6 of docs/diet_education_plan.md. Properties spec is at
@@ -136,6 +185,31 @@ enum AnalyticsEvent: String {
     case workoutEnergyChanged         = "workout_energy_changed"
     case sessionFeedbackGiven         = "session_feedback_given"
     case feedbackSubmitted            = "feedback_submitted"
+
+    // ── Steps (Apple Health) ──
+    // First connect after the user taps the pulse tile's CTA; "viewed"
+    // beats per surface so we can split read engagement on the daily
+    // anchor vs. the deeper weekly tile. Goal hit fires once per
+    // calendar day the count crosses StepsService.dailyGoal — see the
+    // home pulse tile for the day-key gate.
+    case stepsConnected               = "steps_connected"
+    case stepsViewedHome              = "steps_viewed_home"
+    case stepsViewedBecoming          = "steps_viewed_becoming"
+    case stepsGoalHit                 = "steps_goal_hit"
+
+    // ── Breathwork re-entry (home + becoming) ──
+    // The existing breathwork_session_* events fire from inside the
+    // session view regardless of entry point. This event captures the
+    // *entry* — taps on the home BreathworkHomeCard — so the funnel can
+    // measure home-driven engagement vs. the Day-1 post-purchase path.
+    // Property `mode` = "unfamiliar" / "invitation" / "completed" matches
+    // the card's three states.
+    case breathworkCardTapped         = "breathwork_card_tapped"
+    /// Fired when the user taps "let's begin" on a BreathLibraryView
+    /// protocol card. Property `protocol_id` = calming / coherent /
+    /// energizing. Lets the funnel measure which technique the audience
+    /// gravitates toward + which drives repeat engagement.
+    case breathworkProtocolSelected   = "breathwork_protocol_selected"
 
     // ── Post-purchase breathwork (Phase A — first actionable beat) ──
     // Inserted between CoachIntroView and the first workout. Breathwork

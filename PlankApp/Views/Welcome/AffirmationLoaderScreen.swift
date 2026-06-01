@@ -27,6 +27,17 @@ struct AffirmationLoaderScreen: View {
     @State private var quoteVisible = false
     @State private var stickerRevealCount = 0
     @State private var pulse = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    // Central breathing bloom — three concentric soft pink circles that
+    // pulse 3.5s in/out. v1.0.7: replaces the prior static-center
+    // composition that read as "nothing is happening" on cold-launch
+    // boots where auth bootstrap takes 1-3s. Modern aesthetic apps
+    // (Calm, Headspace) use continuous gentle motion to fill the
+    // loading void; the bloom is JeniFit's version of that, on-brand
+    // with the BreathworkSessionView circle pattern users already see.
+    @State private var bloomScale: CGFloat = 0.92
+    @State private var bloomVisible = false
 
     /// Each quote pairs the line with the word(s) to render in italic
     /// Fraunces — JeniFit voice signal (italic = the punch). All quotes
@@ -67,6 +78,10 @@ struct AffirmationLoaderScreen: View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
 
+            // Central breathing bloom — sits BEHIND the quote, soft pink
+            // pulse that gives the eye a focal point while auth resolves.
+            centralBloom
+
             GeometryReader { geo in
                 ZStack {
                     ForEach(
@@ -97,6 +112,10 @@ struct AffirmationLoaderScreen: View {
                 .padding(.horizontal, Space.lg)
                 .opacity(quoteVisible ? 1 : 0)
                 .scaleEffect(quoteVisible ? 1.0 : 0.95)
+                // .id() ties the transition to the index so each rotated
+                // quote gets a fresh fade-in tree instead of crossfading
+                // text glyphs (which can look jumpy with italics).
+                .id(quoteIndex)
 
                 Spacer()
 
@@ -105,6 +124,37 @@ struct AffirmationLoaderScreen: View {
             }
         }
         .task { await runChoreography() }
+    }
+
+    // MARK: - Central bloom
+
+    /// Three concentric soft pink circles with a continuous breath cycle.
+    /// Sits behind the quote at screen center. Blur on the outer rings
+    /// makes them read as a glow rather than discrete shapes — same
+    /// approach as the BreathworkSessionView's BreathCircle, scaled
+    /// smaller for the loader's quieter register. Reduce-motion holds
+    /// the bloom at its mid scale (still visible, no animation).
+    private var centralBloom: some View {
+        ZStack {
+            Circle()
+                .fill(Palette.accent.opacity(0.07))
+                .frame(width: 220, height: 220)
+                .scaleEffect(bloomScale)
+                .blur(radius: 24)
+            Circle()
+                .fill(Palette.accent.opacity(0.14))
+                .frame(width: 140, height: 140)
+                .scaleEffect(bloomScale)
+                .blur(radius: 10)
+            Circle()
+                .fill(Palette.accent.opacity(0.22))
+                .frame(width: 72, height: 72)
+                .scaleEffect(bloomScale)
+                .blur(radius: 3)
+        }
+        .opacity(bloomVisible ? 1 : 0)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder
@@ -163,6 +213,19 @@ struct AffirmationLoaderScreen: View {
         // ItalicAccentText render always pairs the right italics array.
         quoteIndex = Int.random(in: 0..<Self.quotes.count)
 
+        // Bloom comes up FIRST so the center has visible mass even
+        // before the quote fades in. Soft 0.8s ease so the bloom feels
+        // like it's blooming on, not popping. Then the perpetual
+        // breath cycle starts (reduce-motion holds at mid).
+        withAnimation(.easeOut(duration: 0.8)) { bloomVisible = true }
+        if reduceMotion {
+            bloomScale = 1.0
+        } else {
+            withAnimation(.easeInOut(duration: 3.5).repeatForever(autoreverses: true)) {
+                bloomScale = 1.08
+            }
+        }
+
         withAnimation(Motion.entranceSoft) { quoteVisible = true }
         pulse = true
 
@@ -173,6 +236,31 @@ struct AffirmationLoaderScreen: View {
         for _ in Self.placements.indices {
             stickerRevealCount += 1
             try? await Task.sleep(nanoseconds: 80_000_000)
+        }
+
+        // Quote auto-rotation for long loads. Returning users with
+        // cached sessions unmount this view in 200-500ms; fresh-install
+        // anonymous sign-in or a slow connection can stretch to 2-5s,
+        // and that's exactly the window where "nothing is happening"
+        // shows up. Every 4.5s we cross-fade to the next quote so the
+        // composition keeps evolving. The loop sits inside `.task`'s
+        // structured-concurrency scope — `.task` cancels on view
+        // unmount, which cascades to `Task.sleep`'s cancellation, so
+        // no manual cleanup is needed. Reduce-motion skips rotation
+        // (the central bloom holds, the quote stays steady).
+        guard !reduceMotion else { return }
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(4.5))
+            if Task.isCancelled { break }
+            withAnimation(.easeIn(duration: 0.4)) {
+                quoteVisible = false
+            }
+            try? await Task.sleep(for: .milliseconds(450))
+            if Task.isCancelled { break }
+            quoteIndex = (quoteIndex + 1) % Self.quotes.count
+            withAnimation(.easeOut(duration: 0.5)) {
+                quoteVisible = true
+            }
         }
     }
 }

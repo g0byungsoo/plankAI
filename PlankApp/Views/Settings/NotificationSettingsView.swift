@@ -61,12 +61,44 @@ struct NotificationSettingsView: View {
                             .foregroundStyle(Palette.textSecondary)
                             .padding(.bottom, 2)
 
-                        DatePicker("Time", selection: $pickerTime, displayedComponents: .hourAndMinute)
+                        // Two fixes layered:
+                        //
+                        // 1. iOS 17+ regression: `.datePickerStyle(.wheel)`
+                        //    inside a styled-background container without
+                        //    an explicit height mis-measures its intrinsic
+                        //    height and the wheel collapses (digits hidden,
+                        //    only the selection bar shows). Pinning to a
+                        //    200pt frame restores the digits.
+                        //
+                        // 2. Color scheme override: the wheel is UIKit-
+                        //    backed and resolves digit text from
+                        //    UIColor.label, which goes WHITE under system
+                        //    dark mode. JeniFit's palette is hardcoded
+                        //    (cream chrome regardless of mode), so white
+                        //    digits land on cream chrome and read as
+                        //    invisible. Forcing the subtree's environment
+                        //    color scheme to .light makes UIColor.label
+                        //    resolve dark, matching the brand palette.
+                        //    `.tint(Palette.accent)` keeps the selection
+                        //    bar dusty-rose either way.
+                        VStack(spacing: 0) {
+                            DatePicker(
+                                "Time",
+                                selection: $pickerTime,
+                                displayedComponents: .hourAndMinute
+                            )
                             .datePickerStyle(.wheel)
                             .labelsHidden()
+                            .tint(Palette.accent)
                             .frame(maxWidth: .infinity)
-                            .padding(Space.sm)
-                            .background(scrapbookChrome())
+                            .frame(height: 200)
+                            .clipped()
+                        }
+                        .environment(\.colorScheme, .light)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Space.xs)
+                        .padding(.horizontal, Space.sm)
+                        .background(scrapbookChrome())
 
                         saveButton
 
