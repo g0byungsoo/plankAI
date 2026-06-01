@@ -73,6 +73,91 @@ extension ButtonStyle where Self == CTAButtonStyle {
     static var ctaTertiary: CTAButtonStyle { .init(variant: .tertiary, fullWidth: false) }
 }
 
+// MARK: - WeAskBecauseRow
+//
+// Inline trust-anchor block for onboarding v2 sensitive questions
+// (sleep, stress, hormonal stage, GLP-1, eating). Two pieces of
+// content stacked vertically:
+//
+//   • A small lowercase citation chip — the credibility license
+//     ("stanford 2023", "lancet 2022", "who 2020"). Per the data-
+//     provenance rule, every citation must be real; never fabricate.
+//   • A one-line "we ask because *<reason>*" body — italic-Fraunces
+//     on the punch word(s) per JeniFit voice signal.
+//
+// Slots between the screen header and the option list. Visually
+// quiet: muted gray, small type, ample whitespace. Existence is the
+// trust signal; volume is not. ZOE uses citation chips heavily, but
+// JeniFit makes them work via restraint (one chip per screen, max).
+//
+// Usage:
+//   WeAskBecauseRow(
+//       citation: "stanford 2023",
+//       reason: "cortisol regulation shapes recovery.",
+//       italicWords: ["cortisol", "recovery"]
+//   )
+
+struct WeAskBecauseRow: View {
+    let citation: String?
+    let reason: String
+    let italicWords: [String]
+
+    init(citation: String? = nil, reason: String, italicWords: [String] = []) {
+        self.citation = citation
+        self.reason = reason
+        self.italicWords = italicWords
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let citation {
+                Text(citation)
+                    .font(.system(size: 10, weight: .medium))
+                    .textCase(.lowercase)
+                    .tracking(0.6)
+                    .foregroundStyle(Palette.textSecondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(
+                        Capsule()
+                            .stroke(Palette.divider, lineWidth: 1)
+                    )
+            }
+            ItalicAccentText(
+                "we ask because " + reason,
+                italic: italicWords,
+                baseFont: .custom("Fraunces72pt-Regular", size: 13),
+                italicFont: .custom("Fraunces72pt-RegularItalic", size: 13),
+                color: Palette.textSecondary,
+                alignment: .leading
+            )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Space.screenPadding)
+    }
+}
+
+#Preview("WeAskBecauseRow — with citation") {
+    VStack(alignment: .leading, spacing: Space.md) {
+        WeAskBecauseRow(
+            citation: "stanford 2023",
+            reason: "cortisol regulation shapes recovery, sleep, and how your body holds weight.",
+            italicWords: ["cortisol", "recovery", "weight"]
+        )
+        WeAskBecauseRow(
+            citation: "endocrine society 2025",
+            reason: "GLP-1s shift roughly 40% of loss to lean mass — your program protects what matters.",
+            italicWords: ["lean mass", "protects"]
+        )
+        WeAskBecauseRow(
+            reason: "cycle stage shifts hunger, energy, and recovery week to week.",
+            italicWords: ["cycle", "hunger", "energy"]
+        )
+    }
+    .padding()
+    .background(Palette.bgPrimary)
+}
+
 // MARK: - ItalicAccentText
 //
 // Renders a base string with selected substrings rendered in Fraunces italic
@@ -302,6 +387,136 @@ struct PricingCard: View {
             }
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - PricingCardCompact
+//
+// Vertical-stack compact variant of PricingCard for the v2 single-screen
+// paywall (2026-05-31). Built to fit 3-across on iPhone 14 (~110pt wide ×
+// 150pt tall each). Layout: title → price → subtitle → optional badge.
+//
+// 2026 luxury chrome lock: 1pt border (textSecondary @ 20%), 16pt corners,
+// NO shadow, NO gradient, near-black border on selected (textPrimary @ 90%)
+// plus subtle accent-tint fill. Selected state pulls the eye via border
+// weight + fill warmth, not scale or glow. Matches Hims/Hers, Glossier,
+// Cal AI April 2026 convention.
+//
+// Badge ("3-day free" / "best value") sits as a floating pill at the top
+// edge, half-clipping out of the card so it reads as label-on-content not
+// chrome-inside-chrome.
+
+struct PricingCardCompact: View {
+    let title: String
+    let price: String
+    var subtitle: String? = nil
+    var anchor: String? = nil   // strikethrough above price (e.g. "$95.88")
+    var badge: String? = nil
+    var badgeKind: BadgeKind = .neutral
+    let isSelected: Bool
+    var isDefault: Bool = false
+    let action: () -> Void
+
+    enum BadgeKind {
+        case neutral   // accent-subtle tint — "most popular"
+        case trial     // near-black fill — "3-day free"
+    }
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .tracking(0.3)
+                    .foregroundStyle(Palette.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+
+                if let anchor {
+                    Text(anchor)
+                        .font(.system(size: 11))
+                        .strikethrough(true, color: Palette.textSecondary.opacity(0.75))
+                        .foregroundStyle(Palette.textSecondary.opacity(0.75))
+                        .lineLimit(1)
+                }
+
+                Text(price)
+                    .font(.custom("Fraunces72pt-SemiBold", size: 22))
+                    .foregroundStyle(Palette.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
+
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.textSecondary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 14)
+            .padding(.bottom, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: 142)
+            .background(cardFill)
+            .overlay(cardBorder)
+            .overlay(alignment: .top) { badgePill }
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Card fill — warmer cream on default (4% accent tint) so the
+    /// recommended tier carries quiet visual weight even before tap.
+    /// Selected adds another 2% accent tint on top.
+    private var cardFill: some View {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(fillColor)
+    }
+
+    private var fillColor: Color {
+        if isSelected && isDefault { return Palette.accent.opacity(0.08) }
+        if isSelected              { return Palette.accent.opacity(0.06) }
+        if isDefault               { return Palette.accent.opacity(0.04) }
+        return Palette.bgElevated
+    }
+
+    /// Border weight stack (research Q3): default = 2pt warm-red even
+    /// when not selected (anchors the recommendation visually). Selected
+    /// non-default = 1.5pt textPrimary near-black. Untouched = hairline.
+    private var cardBorder: some View {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .stroke(borderColor, lineWidth: borderWidth)
+    }
+
+    private var borderColor: Color {
+        if isDefault            { return Palette.accent }
+        if isSelected           { return Palette.textPrimary.opacity(0.85) }
+        return Palette.textSecondary.opacity(0.18)
+    }
+
+    private var borderWidth: CGFloat {
+        if isDefault  { return 2 }
+        if isSelected { return 1.5 }
+        return 1
+    }
+
+    @ViewBuilder
+    private var badgePill: some View {
+        if let badge {
+            Text(badge)
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(0.7)
+                .foregroundStyle(badgeKind == .trial ? Palette.textInverse : Palette.textInverse)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule().fill(badgeKind == .trial ? Palette.textPrimary : Palette.accent)
+                )
+                .offset(y: -8)
+        }
     }
 }
 

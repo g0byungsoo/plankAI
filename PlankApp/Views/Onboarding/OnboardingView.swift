@@ -1,7 +1,8 @@
 import SwiftUI
 import AVFoundation
 import AVKit
-import StoreKit
+// StoreKit moved to RatingPromptService (2026-05-30 epic #1 child #6) —
+// onboarding no longer talks to SKStoreReviewController directly.
 
 // MARK: - Onboarding Flow
 // Interleaved: 2-3 questions → education/celebration → repeat
@@ -85,10 +86,35 @@ struct OnboardingView: View {
     // nav into onboarding or a fresh launch mid-flow doesn't double-prompt; iOS
     // also caps requestReview() to 3 per 365 days regardless.
     @AppStorage("onboardingReviewPromptShown") private var onboardingReviewPromptShown = false
+    // Onboarding v2 — promoted to production default 2026-06-01 for the
+    // 1.0.6 build 11 release. All new users see the v2 flow (D1 welcome
+    // with creator photos, 9 credibility-grade questions, reveal sequence).
+    // Existing users who completed onboarding pre-1.0.6 are unaffected.
+    // To force v1 for QA, flip to false via DebugAuthView or simctl
+    // defaults write com.bk.plankAI onboarding_v2_enabled -bool false.
+    @AppStorage("onboarding_v2_enabled") private var onboardingV2Enabled = true
+    @State private var showRevealSequence = false
+    @State private var pendingRevealData: OnboardingData? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // Data — legacy
     @State private var goal = ""
+    /// 2026-05-30 (epic #1 child #7): TikTok/IG/friend attribution. Asked
+    /// once right after Q1 (becoming goal). Persisted to UserRecord +
+    /// Supabase. Empty string = not yet answered. One of: "tiktok",
+    /// "instagram", "friend", "app_store", "google", "other".
+    @State private var acquisitionSource = ""
+
+    /// 2026-05-30 (epic #1 child #6): vision-injection questions for
+    /// future food + scan rails. Session-scope ONLY — NOT persisted to
+    /// UserRecord, NOT a Supabase column, NOT consumed by
+    /// WorkoutGenerator. The sole purpose in v1.0.7 is (a) sunk-cost
+    /// lift and (b) plan-reveal echo personalization (IKEA effect).
+    /// When food + scan ship in v2/v3 they'll re-collect their own
+    /// inputs in their own onboarding/setup flows.
+    @State private var eatingContext: Set<String> = []      // Q237
+    @State private var dailyActivityLevel = ""              // Q238
+    @State private var bodyPhotoReadiness = ""              // Q239
     @State private var experience = ""
     @State private var baseline = ""
     @State private var barriers: Set<String> = []
@@ -136,6 +162,57 @@ struct OnboardingView: View {
     @State private var relatability1: Bool? = nil
     @State private var relatability2: Bool? = nil
     @State private var relatability3: Bool? = nil
+    // v2 consolidates the 3 yes/no relatability screens into one multi-
+    // select (case 153). Source of truth in v2; synced back to the three
+    // legacy Bool? fields on advance so finish() / derivedBarriers /
+    // PostHog funnel events all keep working unchanged.
+    @State private var relatabilityMulti: Set<String> = []
+
+    // v2-A2 credibility-grade fields. @AppStorage directly so any future
+    // consumer (paywall headline variants, Becoming-tab future-rail tiles,
+    // notification timing logic, food rail) can read them without schema
+    // changes. Default empty string = unanswered; case-level Continue
+    // requires a selection so empty only persists if the user closes the
+    // app mid-flow.
+    @AppStorage("onboardingSleepHours")    private var sleepHours: String = ""
+    @AppStorage("onboardingStressLevel")   private var stressLevel: String = ""
+    @AppStorage("onboardingEatingCadence") private var eatingCadence: String = ""
+    @AppStorage("onboardingEatingWindow")  private var eatingWindow: String = ""
+
+    // v2-A3 identity + previous-attempt block. Same AppStorage pattern.
+    @AppStorage("onboardingPriorAttempts")    private var priorAttempts: String = ""
+    @AppStorage("onboardingPriorWin")         private var priorWin: String = ""
+    @AppStorage("onboardingFoodRelationship") private var foodRelationship: String = ""
+
+    // v2-A4 cohort signal. GLP-1 status uses the AppStorage key reserved
+    // in the prior v2 plan (onboarding_glp1_status, value space:
+    // none/considering/past/current). Hormonal stage covers the 22-35
+    // women audience straddle (cycling regularly / peri / postmenopausal /
+    // postpartum / private). Both skip-friendly via a "prefer not to say"
+    // option — vulnerability questions need the explicit-skip escape.
+    @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
+    @AppStorage("onboarding_glp1_status")  private var glp1Status: String = ""
+
+    /// Wipes every single-select v2 field back to "" so no option renders
+    /// pre-highlighted on the first visit to each question. Called once
+    /// per onboarding session from the welcome choreography (welcomeAppeared
+    /// gate). Production users on a fresh install hit this with already-
+    /// empty values (no-op); the call shows its value on dev re-runs and
+    /// account-delete-then-re-onboard paths where stale AppStorage from a
+    /// prior run would otherwise leak through as pre-selected answers.
+    /// Don't add multi-select / numeric fields here — those are answered
+    /// elsewhere with different defaults that aren't visually misleading.
+    private func resetSingleSelectOnboardingFields() {
+        sleepHours = ""
+        stressLevel = ""
+        eatingCadence = ""
+        eatingWindow = ""
+        priorAttempts = ""
+        priorWin = ""
+        foodRelationship = ""
+        hormonalStage = ""
+        glp1Status = ""
+    }
 
     // Confirmation badge state — fired only at strategic commits
     // (5–7 across the full flow), not after every question. Goal is
@@ -173,12 +250,14 @@ struct OnboardingView: View {
     @State private var carouselFrame: Int = 0
     @State private var carouselDone = false
 
-    // ── Consent ritual (case 240) state ────────────────────────
-    @State private var consentHoldProgress: CGFloat = 0
-    @State private var consentHoldActive: Bool = false
-    @State private var consentHoldCompleted: Bool = false
-    @State private var consentHoldTimer: Timer?
-    @State private var consentHapticHalfwayFired: Bool = false
+    // ── Brand promises (case 240, post-2026-05-30 reframe) ────────
+    // Replaces the press-and-hold consent signature ritual. Three
+    // single-tap promise screens that fire immediately after plan
+    // reveal (case 21). brandPromiseIndex is the current screen
+    // (0..<brandPromises.count); brandPromisesStartTime tracks the
+    // first appear so .onDisappear can attribute abandons accurately.
+    @State private var brandPromiseIndex: Int = 0
+    @State private var brandPromisesStartTime: Date?
 
     // ── Method preview (case 250) state ────────────────────────
     // AVAudioPlayer is held as State so it survives view updates while
@@ -271,6 +350,25 @@ struct OnboardingView: View {
             }
 
         }
+        .fullScreenCover(isPresented: $showRevealSequence) {
+            OnboardingRevealView(
+                bodyFocus: bodyFocus,
+                sessionLengthKey: sessionLength,
+                voicePreference: voicePreference,
+                commitmentDaysKey: commitmentDays,
+                currentWeightKg: currentWeightKg,
+                goalWeightKg: goalWeightKg,
+                onRevealComplete: {
+                    if let data = pendingRevealData {
+                        pendingRevealData = nil
+                        showRevealSequence = false
+                        onComplete(data)
+                    } else {
+                        showRevealSequence = false
+                    }
+                }
+            )
+        }
         .sheet(isPresented: $showWelcomeSignInSheet) {
             NavigationStack {
                 SignInPromptView(onContinue:  {
@@ -343,9 +441,15 @@ struct OnboardingView: View {
         case 0: welcome
 
         // ─── Section dividers ───────────────────────────────────
+        // D2 (2026-06-01): brand-voice pass on all 6 section dividers
+        // — lowercase + tighter copy. Case 200 specifically threads the
+        // D1 wedge ("less noise, more her") into the supporting line so
+        // the opening reel reads as one system. Other dividers get
+        // lowercase + slightly more direct copy that matches the
+        // founder voice from case 230's "real person, not chatbot."
         case 200: SectionDividerScreen(
-            partNumber: 1, title: "Your story",
-            supporting: "Three quick reads on what brought you here.",
+            partNumber: 1, title: "your story",
+            supporting: "a few reads. less noise, more you.",
             dwellSeconds: 1.6,
             // Routes to the anti-shame educational anchor (E1-a, case
             // 230) before the first question. Sets brand promise.
@@ -353,15 +457,15 @@ struct OnboardingView: View {
             stickerPlacements: Self.sectionDividerPlacements
         )
         case 201: SectionDividerScreen(
-            partNumber: 2, title: "How you move now",
-            supporting: "We'll match your plan to where you are today.",
+            partNumber: 2, title: "how you move now",
+            supporting: "your plan starts where you are.",
             dwellSeconds: 1.6,
             onAdvance: { go(2) },
             stickerPlacements: Self.sectionDividerPlacements
         )
         case 202: SectionDividerScreen(
-            partNumber: 3, title: "About you",
-            supporting: "A few numbers so the math behind your plan is honest.",
+            partNumber: 3, title: "about you",
+            supporting: "a few numbers so the math is honest.",
             dwellSeconds: 1.6,
             // Routes to body-question primer (E1-b, case 231) before
             // the gender Q — Noom "why we ask" pattern reduces drop.
@@ -369,22 +473,22 @@ struct OnboardingView: View {
             stickerPlacements: Self.sectionDividerPlacements
         )
         case 203: SectionDividerScreen(
-            partNumber: 4, title: "How you want to feel",
-            supporting: "The version of you that's waiting on the other side.",
+            partNumber: 4, title: "how you want to feel",
+            supporting: "the version of you that's waiting.",
             dwellSeconds: 1.6,
             onAdvance: { go(140) },
             stickerPlacements: Self.sectionDividerPlacements
         )
         case 204: SectionDividerScreen(
-            partNumber: 5, title: "What stops you",
-            supporting: "Three honest questions. Tap whichever lands.",
+            partNumber: 5, title: "what stops you",
+            supporting: "honest answers. tap whichever lands.",
             dwellSeconds: 1.6,
             onAdvance: { go(150) },
             stickerPlacements: Self.sectionDividerPlacements
         )
         case 205: SectionDividerScreen(
-            partNumber: 6, title: "Ready to start",
-            supporting: "Last few. Then your plan goes live.",
+            partNumber: 6, title: "ready to start",
+            supporting: "last few. then your plan goes live.",
             dwellSeconds: 1.6,
             onAdvance: { go(3) },
             stickerPlacements: Self.sectionDividerPlacements
@@ -426,7 +530,48 @@ struct OnboardingView: View {
                 ("greatDay",  "feeling great",      nil, "sparkles"),
                 ("noneNow",   "none of those",      nil, "checkmark"),
             ],
-            sel: $monthSignals, next: 141
+            sel: $monthSignals, next: 237
+        )
+
+        // ─── Vision injection (Q237/238/239, epic #1 child #6) ─────
+        // Three @State-only questions seeding future food + scan +
+        // movement rails. Sole v1.0.7 purpose: lift sunk cost + power
+        // plan-reveal echo lines (IKEA effect). NOT persisted, NOT
+        // consumed by WorkoutGenerator. Future features re-collect.
+        case 237: jfMulti(
+            "what does eating feel like for most days?",
+            sub: "no judgement. multi-pick.",
+            opts: [
+                ("steady",       "steady",          nil, "leaf"),
+                ("stress_eaten", "stress-eaten",    nil, "cloud.rain"),
+                ("skipped",      "skipped meals",   nil, "circle.dashed"),
+                ("forgot",       "forgot to eat",   nil, "moon.zzz"),
+                ("mostly_ok",    "mostly mindful",  nil, "sparkles"),
+            ],
+            sel: $eatingContext, next: 238
+        )
+
+        case 238: jfQuestion(
+            "outside of workouts, how much do you move?",
+            sub: "rough sense is fine.",
+            opts: [
+                ("mostly_seated",   "mostly seated",        nil, "chair.lounge"),
+                ("errands",         "errands here and there", nil, "figure.walk"),
+                ("on_my_feet",      "i'm on my feet a lot",  nil, "shoe.2"),
+            ],
+            sel: $dailyActivityLevel, next: 239
+        )
+
+        case 239: jfQuestion(
+            "how do you feel about photos of yourself right now?",
+            sub: "no wrong answer. we'll never ask you to share one.",
+            opts: [
+                ("avoid",       "i avoid them",       nil, "eye.slash"),
+                ("working_on",  "i'm working on it",  nil, "arrow.up.heart"),
+                ("okay",        "i'm okay",           nil, "checkmark.circle"),
+                ("like_them",   "i like them",        nil, "heart.fill"),
+            ],
+            sel: $bodyPhotoReadiness, next: 141
         )
 
         // ─── N2 — "what's worked before — and what hasn't?" ──────
@@ -448,55 +593,112 @@ struct OnboardingView: View {
         )
 
         // ─── Part 1 — Your story ────────────────────────────────
-        case 1: jfQuestion(
-            "what are we becoming?",
-            sub: "we'll build the entire plan around this answer.",
+        case 1: onboardingV2Enabled
+            ? AnyView(jfQuestion(
+                // v2 soft "why" — rewritten 2026-06-01 per
+                // feedback_copy_succinct_genz memory: 2-4 word labels,
+                // concrete > abstract. Prior "to feel lighter, calmer
+                // / soft pull" was too literary for Gen-Z attention
+                // span. Same enum values preserved.
+                "what's your why?",
+                sub: "pick the closest.",
+                opts: [
+                    ("loseWeight",  "lose weight",       nil, "leaf"),
+                    ("fullBody",    "tone all over",     nil, "sparkles"),
+                    ("toneCore",    "stronger core",     nil, "circle.hexagongrid"),
+                    ("growGlutes",  "build glutes",      nil, "flame"),
+                    ("slimLegs",    "lean legs",         nil, "wind"),
+                ],
+                sel: $goal, next: 100
+            ))
+            : AnyView(jfQuestion(
+                "what are we becoming?",
+                sub: "we'll build the entire plan around this answer.",
+                opts: [
+                    ("loseWeight",  "Lose weight",              "Lean down, feel lighter",      "arrow.down.circle"),
+                    ("fullBody",    "Full body transformation", "Tone all over, head to toe",   "sparkle"),
+                    ("toneCore",    "Tone my core",             "Define abs and obliques",      "figure.core.training"),
+                    ("growGlutes",  "Grow glutes",              "Sculpt and lift",              "figure.strengthtraining.functional"),
+                    ("slimLegs",    "Slim and define legs",     "Lean, long lines",             "figure.walk"),
+                ],
+                sel: $goal, next: 100
+            ))
+
+        // ─── Attribution (epic #1 child #7, 2026-05-30) ──────────
+        // "how did you hear about jenifit?" — single-select, slot
+        // right after Q1 per the 200+ app teardown research. JeniFit
+        // is $0 CAC organic TikTok — this is the ONE signal we have
+        // for which creator/post is actually converting. Persisted to
+        // UserRecord + Supabase (durable cross-device signal).
+        // D5 (2026-06-01): brand-voice pass on attribution screen.
+        // TitleCase labels ("TikTok", "Instagram", "App Store search")
+        // dropped to lowercase per brand voice lock. Sub-copy tightened
+        // to "the one we want to thank" — singular, intimate, matches
+        // the founder voice from case 230. Same pill register as Q1
+        // (consistency compounds trust per first-screen research).
+        case 100: jfQuestion(
+            "how did you hear about jenifit?",
+            sub: "helps us thank the right person.",
             opts: [
-                ("loseWeight",  "Lose weight",              "Lean down, feel lighter",      "arrow.down.circle"),
-                ("fullBody",    "Full body transformation", "Tone all over, head to toe",   "sparkle"),
-                ("toneCore",    "Tone my core",             "Define abs and obliques",      "figure.core.training"),
-                ("growGlutes",  "Grow glutes",              "Sculpt and lift",              "figure.strengthtraining.functional"),
-                ("slimLegs",    "Slim and define legs",     "Lean, long lines",             "figure.walk"),
+                ("tiktok",     "tiktok",              nil, "play.rectangle.fill"),
+                ("instagram",  "instagram",           nil, "camera.fill"),
+                ("friend",     "a friend told me",    nil, "person.2.fill"),
+                ("app_store",  "app store search",    nil, "magnifyingglass"),
+                ("google",     "google search",       nil, "globe"),
+                ("other",      "somewhere else",      nil, "ellipsis.circle"),
             ],
-            sel: $goal, next: 110
+            sel: $acquisitionSource, next: 110
         )
 
         case 110: jfMulti(
-            "tap where you want to feel it.",
-            sub: "pick as many as you want.",
+            // C4 (2026-06-01): brand-voice fix on option labels +
+            // "full body slimming" → "all of it, softer" per anti-
+            // femvertising memory ("slimming" is 2018-coded). "round
+            // butt" → "round glutes" reads less crass without dropping
+            // the cohort signal. Enum values unchanged.
+            "where do you most want to feel it?",
+            sub: "pick as many as resonate.",
             opts: [
-                ("flatBelly", "Flat belly",          nil, "figure.core.training"),
-                ("tonedArms", "Toned arms",          nil, "dumbbell.fill"),
-                ("roundButt", "Round butt",          nil, "figure.strengthtraining.functional"),
-                ("slimLegs",  "Slim legs",           nil, "figure.walk"),
-                ("fullBody",  "Full body slimming",  nil, "figure.mixed.cardio"),
+                ("flatBelly", "flat belly",          nil, "figure.core.training"),
+                ("tonedArms", "toned arms",          nil, "dumbbell.fill"),
+                ("roundButt", "round glutes",        nil, "figure.strengthtraining.functional"),
+                ("slimLegs",  "slim legs",           nil, "figure.walk"),
+                ("fullBody",  "all of it, softer",   nil, "figure.mixed.cardio"),
             ],
             sel: $bodyFocus, next: 111,
-            confirmation: "Locked in. Your routines target these zones."
+            confirmation: "noted. your plan leans here."
         )
 
         case 111: jfQuestion(
-            "what's the real reason — be honest.",
-            sub: "no judgment. it helps us pick the right tone.",
+            // C4 redo (2026-06-01) per feedback_copy_succinct_genz —
+            // labels are now 2-4 words, no subtitles. Prior shipped
+            // copy ("to make peace with my body. / the war's been
+            // long enough.") was too literary for Gen-Z attention
+            // span. Same enum values preserved.
+            "what's the real reason?",
+            sub: "no judgment.",
             opts: [
-                ("getShaped",  "Get shaped",          "Build the body I want",     "figure.strengthtraining.traditional"),
-                ("lookBetter", "Look better",         "Confidence in any outfit",  "sparkle"),
-                ("summer",     "Prepare for summer",  "Beach-ready, glow-ready",   "sun.max"),
-                ("confidence", "Feel more confident", "Stronger inside and out",   "heart.circle"),
-                ("selfLove",   "Find self-love",      "Make peace with my body",   "heart.fill"),
+                ("getShaped",  "look like myself",  nil, "sparkles"),
+                ("lookBetter", "be in my photos",   nil, "camera"),
+                ("summer",     "fit a moment",      nil, "calendar"),
+                ("confidence", "stop obsessing",    nil, "infinity"),
+                ("selfLove",   "love my body",      nil, "heart"),
             ],
             sel: $motivation, next: 201
         )
 
         // ─── Part 2 — How you move now ──────────────────────────
         case 2: jfQuestion(
-            "honestly, how's it going right now?",
-            sub: "no shame on any answer. the plan calibrates from this.",
+            // C4 redo (2026-06-01) per feedback_copy_succinct_genz —
+            // dropped em-dash + subtitle + clause-heavy phrasing.
+            // Each option now 2-4 words, no punctuation drama.
+            "where are you with this?",
+            sub: "no shame, any answer works.",
             opts: [
-                ("never",     "I don't really train",               nil,                         "moon.zzz"),
-                ("gaveUp",    "I've tried, couldn't stick with it", nil,                         "arrow.uturn.backward"),
-                ("sometimes", "Here and there",                     nil,                         "calendar"),
-                ("regular",   "Regularly",                          "Multiple times a week",     "checkmark.circle.fill"),
+                ("never",     "starting from zero",  nil, "moon.zzz"),
+                ("gaveUp",    "tried, didn't stick", nil, "arrow.uturn.backward"),
+                ("sometimes", "on and off",          nil, "calendar"),
+                ("regular",   "stuck despite trying",nil, "lock.rotation"),
             ],
             // Routes to N2 (case 236, "what's worked before") so the
             // experience context lands before activity level.
@@ -581,8 +783,8 @@ struct OnboardingView: View {
         case 7: ageWheelScreen()
 
         case 131: jfSliderScreen(
-            "How tall are you?",
-            sub: "We use this to calibrate intensity.",
+            "how tall are you?",
+            sub: "calibrates your plan.",
             valueMetric: $heightCm,
             metric: Self.heightMetricRuler,
             imperial: Self.heightImperialRuler,
@@ -610,8 +812,8 @@ struct OnboardingView: View {
         )
 
         case 133: jfHorizontalSliderScreen(
-            "And your goal weight?",
-            sub: "Sets your target. You can change this later.",
+            "and your goal weight?",
+            sub: "you can change this later.",
             valueMetric: $goalWeightKg,
             metric: Self.weightMetricRuler,
             imperial: Self.weightImperialRuler,
@@ -629,7 +831,7 @@ struct OnboardingView: View {
             // of the older "honest pace" pace-coded line. RevenueCat
             // teardown finding: immediate emotional reciprocity after
             // sensitive disclosures lifts conversion materially.
-            confirmation: "thank you for sharing. that's the hardest field on this form.",
+            confirmation: "thank you. that's the hard one. ♥",
             annotation: {
                 goalWeightAnnotation(currentKg: currentWeightKg, goalKg: goalWeightKg)
             }
@@ -749,6 +951,17 @@ struct OnboardingView: View {
         // after they name their reward.
         case 142: comparisonScreen
 
+        // ─── Video demo (145, epic #1 child #8) ─────────────────
+        // 10-15s silent loop of an actual plank session. Slot is
+        // post-comparison so the "JeniFit vs generic" frame lands
+        // immediately followed by "and here's what it actually
+        // looks like." Article research: "Nobody reads features.
+        // Everyone watches them." Auto-skips when the asset file
+        // is missing (founder ships `jeni_session_demo.mp4`
+        // separately) and when reduce-motion is on (still frame
+        // not yet shipped — falls through to next case).
+        case 145: videoDemoScreen
+
         // ─── Part 5 — What stops you ────────────────────────────
         case 150: jfYesNo(
             prefix: "Workout apps make me feel further from my body, not ",
@@ -779,6 +992,234 @@ struct OnboardingView: View {
             // Underlying Rhodes & de Bruijn 2013 still applies (naming
             // the barrier closes ~50% of intention-behavior gap).
             confirmation: "reading you. these aren't excuses."
+        )
+
+        // v2 consolidates Q150/151/152 into one multi-select. Same
+        // research basis (Rhodes & de Bruijn 2013 — naming the barrier
+        // closes ~50% of intention-behavior gap) but the long flow does
+        // not need 3 separate yes/no screens to land it. Selected keys
+        // sync back to relatability1/2/3 on advance so the legacy
+        // downstream consumers (finish() derivedBarriers, PostHog
+        // funnel events, UserRecord) all keep working unchanged.
+        // Empty selection = "none of these resonate" — that's a valid
+        // answer, so minSelection: 0.
+        case 153: jfMulti(
+            // Tightened 2026-06-01 per feedback_copy_succinct_genz.
+            // Original sentence-length barrier statements compressed
+            // to single short phrases each.
+            "which of these feel true?",
+            sub: "tap any. skip the rest.",
+            opts: [
+                ("r1", "apps make me feel worse",   nil, "heart"),
+                ("r2", "i don't know what's right", nil, "questionmark.circle"),
+                ("r3", "i quit when it gets hard",  nil, "xmark.circle"),
+            ],
+            sel: $relatabilityMulti, next: 206,
+            confirmation: "reading you.",
+            minSelection: 0
+        )
+
+        // ─── v2-A2: Credibility-grade vulnerability block ───────────
+        // Sleep + stress + eating cadence + eating window. Placed in
+        // Act 4 of v2FlowOrder (between month-signals and comparison)
+        // so they land after the user has already invested in identity
+        // + biometrics — vulnerability last, per the placement research.
+        // Each wraps WeAskBecauseRow with a real citation. AppStorage
+        // backs each field for cross-feature consumers.
+
+        case 154: jfQuestion(
+            "how much sleep do you usually get?",
+            sub: nil,
+            opts: [
+                ("under5",  "under 5 hours",  nil, "moon.zzz"),
+                ("five6",   "5 to 6",         nil, "moon"),
+                ("six7",    "6 to 7",         nil, "moon.stars"),
+                ("seven8",  "7 to 8",         nil, "sparkles"),
+                ("eightPlus","8 or more",     nil, "leaf"),
+            ],
+            sel: $sleepHours, next: 155,
+            // C5 (2026-06-01): affirmation beat after sleep input.
+            // Per succinctness rule — 3-5 words max.
+            confirmation: "noted. sleep matters here.",
+            trustAnchor: WeAskBecauseRow(
+                citation: "nhanes 2024",
+                reason: "sleep under 6 hours roughly doubles weight-loss resistance.",
+                italicWords: ["sleep", "weight-loss"]
+            )
+        )
+
+        case 155: jfQuestion(
+            "what's stress like for you right now?",
+            sub: nil,
+            opts: [
+                ("low",          "low",         nil, "leaf"),
+                ("manageable",   "manageable",  nil, "wind"),
+                ("heavy",        "heavy",       nil, "cloud.rain"),
+                ("overwhelmed",  "overwhelmed", nil, "cloud.bolt"),
+            ],
+            sel: $stressLevel, next: 156,
+            // C5: affirmation beat after stress disclosure.
+            confirmation: "we got you.",
+            trustAnchor: WeAskBecauseRow(
+                citation: "epel yale 2023",
+                reason: "stress hormones make the body hold weight, especially around the middle.",
+                italicWords: ["hold weight", "the middle"]
+            )
+        )
+
+        case 156: jfQuestion(
+            "how do you usually eat?",
+            sub: nil,
+            opts: [
+                ("one_meal",    "one meal",        nil, "fork.knife"),
+                ("two_meals",   "2 + snacks",      nil, "cup.and.saucer"),
+                ("three_meals", "3 steady meals",  nil, "carrot"),
+                ("grazing",     "grazing all day", nil, "leaf"),
+                ("chaotic",     "chaos",           nil, "wind.snow"),
+            ],
+            sel: $eatingCadence, next: 157,
+            trustAnchor: WeAskBecauseRow(
+                citation: nil,
+                reason: "we plan around how you actually eat.",
+                italicWords: ["actually eat"]
+            )
+        )
+
+        case 157: jfQuestion(
+            "when do you stop eating?",
+            sub: nil,
+            opts: [
+                ("before_7", "before 7pm",  nil, "sunrise"),
+                ("by_8",     "7 to 8pm",    nil, "sun.horizon"),
+                ("by_10",    "8 to 10pm",   nil, "moon"),
+                ("late",     "after 10pm",  nil, "moon.zzz"),
+                ("varies",   "varies",      nil, "cloud"),
+            ],
+            sel: $eatingWindow, next: 142,
+            trustAnchor: WeAskBecauseRow(
+                citation: "bmj 2024",
+                reason: "late-night eating is the top weight-loss stall pattern.",
+                italicWords: ["late-night", "stall"]
+            )
+        )
+
+        // ─── v2-A3: Identity + previous-attempt anchor block ────────
+        // Placed BEFORE A2's vulnerability block in v2FlowOrder so the
+        // softer identity inputs land first (Prochaska stages-of-change
+        // logic + Bandura self-efficacy anchor). "Previous attempts" is
+        // the reciprocity beat ("we've been there"); "what worked"
+        // surfaces her own evidence; "food relationship" calibrates
+        // tone (mechanical vs affective).
+
+        case 158: jfQuestion(
+            "how many serious attempts in the last few years?",
+            sub: "no shame either way.",
+            opts: [
+                ("none",       "first time",   nil, "leaf"),
+                ("one_two",    "1 or 2",       nil, "1.circle"),
+                ("three_five", "3 to 5",       nil, "3.circle"),
+                ("many",       "lost count",   nil, "infinity"),
+            ],
+            sel: $priorAttempts, next: 159,
+            // C5: affirmation beat after a skeptic-aware prior-attempts
+            // disclosure. The user just admitted she's tried before;
+            // brand voice acknowledges without overpromising.
+            confirmation: "reading you. you're not alone here.",
+            trustAnchor: WeAskBecauseRow(
+                citation: "frontiers 2015",
+                reason: "naming what didn't work last time is how the next attempt sticks.",
+                italicWords: ["didn't work", "sticks"]
+            )
+        )
+
+        case 159: jfQuestion(
+            // 2026-06-01: dropped "more walks" — overlapped "daily
+            // movement" semantically, and the 6th option pushed the
+            // pill stack off-screen on smaller iPhones. walking_more
+            // enum value kept in the data model but unused in the UI.
+            "what's worked, even briefly?",
+            sub: "any progress counts.",
+            opts: [
+                ("moving_daily",  "daily movement",  nil, "figure.walk"),
+                ("eating_window", "eating window",   nil, "clock"),
+                ("cutting_sugar", "less sugar",      nil, "drop"),
+                ("logging_food",  "tracking food",   nil, "list.clipboard"),
+                ("nothing_yet",   "nothing yet",     nil, "questionmark.circle"),
+            ],
+            sel: $priorWin, next: 162,
+            trustAnchor: WeAskBecauseRow(
+                citation: "bandura 1997",
+                reason: "we anchor your plan to what already works.",
+                italicWords: ["anchor", "what already works"]
+            )
+        )
+
+        case 162: jfQuestion(
+            "what is food, mostly?",
+            sub: "we match the tone to this.",
+            opts: [
+                ("fuel",         "fuel",        nil, "bolt"),
+                ("comfort",      "comfort",     nil, "heart"),
+                ("love",         "love",        nil, "heart.text.square"),
+                ("control",      "control",     nil, "slider.horizontal.3"),
+                ("complicated",  "complicated", nil, "circle.dashed"),
+            ],
+            sel: $foodRelationship, next: 154,
+            trustAnchor: WeAskBecauseRow(
+                citation: nil,
+                reason: "we calibrate the voice to how you relate to food.",
+                italicWords: ["calibrate"]
+            )
+        )
+
+        // ─── v2-A4: Cohort signal — hormonal stage + GLP-1 status ────
+        // The deepest vulnerability tier. Land LAST in Act 4 (right
+        // before the comparison frame at 142) so the user has already
+        // invested ~50 screens and trusts the container. Both include
+        // an explicit "prefer not to say" — sensitive questions need
+        // the skip escape per the placement research.
+
+        case 163: jfQuestion(
+            "what stage are you in?",
+            sub: "we adjust to where your body is.",
+            opts: [
+                ("cycling",         "cycling regularly",   nil, "calendar"),
+                ("irregular",       "irregular cycle",     nil, "calendar.badge.exclamationmark"),
+                ("postpartum",      "postpartum",          nil, "figure.and.child.holdinghands"),
+                ("perimenopause",   "perimenopause",       nil, "thermometer"),
+                ("postmenopause",   "postmenopause",       nil, "leaf"),
+                ("prefer_not_say",  "prefer not to say",   nil, "lock"),
+            ],
+            sel: $hormonalStage, next: 164,
+            // C5: affirmation beat after hormonal disclosure.
+            confirmation: "we adjust for this.",
+            trustAnchor: WeAskBecauseRow(
+                citation: nil,
+                reason: "hormonal stage shifts hunger, energy, and recovery.",
+                italicWords: ["hunger", "energy", "recovery"]
+            )
+        )
+
+        case 164: jfQuestion(
+            "any weight-related medication right now?",
+            sub: "honest either way.",
+            opts: [
+                ("none",         "no",                nil, "leaf"),
+                ("considering",  "considering it",    nil, "questionmark.circle"),
+                ("past",         "in the past",       nil, "clock.arrow.circlepath"),
+                ("current",      "on a GLP-1 now",    nil, "cross.case"),
+                ("prefer_not_say","prefer not to say",nil, "lock"),
+            ],
+            sel: $glp1Status, next: 142,
+            // C5: affirmation beat — deepest vulnerability question
+            // in the flow. Anti-shame line lands here as the cohort-
+            // safety signal.
+            confirmation: "no judgment, ever.",
+            trustAnchor: WeAskBecauseRow(
+                citation: "endocrine society 2025",
+                reason: "GLP-1s shift ~40% of weight loss to lean mass — your program protects what matters.",
+                italicWords: ["lean mass", "protects"]
+            )
         )
 
         // ─── Part 6 — Ready to start ────────────────────────────
@@ -822,7 +1263,12 @@ struct OnboardingView: View {
         case 161: firstPredictionScreen
         case 170: rePredictionScreen
         case 180: loadingCarouselScreen
-        case 181: finalPredictionScreen
+        // case 181 finalPredictionScreen dropped 2026-06-01 (C1).
+        // Was the 5th projection-chart appearance in onboarding and
+        // duplicated the reveal sequence's ProjectionPresentation.
+        // Loading carousel (180) now routes directly to 234 (plateau
+        // pre-frame). Definition kept below for reference / quick
+        // restore if needed.
 
         // ─── Post-question pipeline ─────
         case 20: EmptyView() // legacy analyzing overlay marker — superseded by 180
@@ -832,10 +1278,12 @@ struct OnboardingView: View {
         case 215: reviewPromptScreen
 
         // ─── Method preview (250) — "what you get with me" ──────────
-        // Sits between plan reveal (21) and consent (240). Previews the
-        // daily 5-min ritual (the only post-purchase feature). Honest
-        // teaser of the 5-day arc + Jeni audio sample so the consent
-        // ritual signs against something concrete, not abstract.
+        // Post-2026-05-30 flow: sits between brand promises (240) and
+        // review prefilter (215). Previews the daily 5-min ritual (the
+        // only post-purchase feature). Honest teaser of the 5-day arc +
+        // Jeni audio sample so the user sees what they're about to be
+        // asked to pay for — promises already extracted at 240, so the
+        // method preview is purely product-forward.
         case 250: methodPreviewScreen
 
         // ─── Tier-ladder identity preview (260) ─────────────────────
@@ -855,13 +1303,14 @@ struct OnboardingView: View {
         // wellness app conversion in 2026.
         case 270: habitWindowQuizScreen
 
-        // ─── Consent ritual (240) — playful pinky-promise pledge ────
-        // Press-and-hold 2.8s long-press signature. Cialdini commitment
-        // & consistency principle in app form — small voluntary
-        // commitment lifts follow-through. Placed between method preview
-        // (250) and rating prefilter (215) — IKEA-effect maximum: user
-        // has just received a personalized plan + seen the daily ritual.
-        case 240: consentRitualScreen
+        // ─── Brand promises (240) — Jeni-promises-to-her reframe ────
+        // Three single-tap promise screens (heart/bow/sparkle) replacing
+        // the press-and-hold consent signature ritual as of 2026-05-30
+        // (epic #1 child #5). Now fires IMMEDIATELY after plan reveal
+        // (21 → 240 → 250 → 215 → 26 → 22 → 23 → finish), not after
+        // method preview. Reciprocity > forced commitment for TikTok-
+        // acquired Gen Z; IKEA effect freshest right after plan reveal.
+        case 240: brandPromisesScreen
         case 26: SignInPromptView { Haptics.medium(); go(22) }
 
         // Legacy showcase screens (kept for Phase 5 reuse, not in flow)
@@ -902,10 +1351,15 @@ struct OnboardingView: View {
     /// followed by the existing analysis / plan reveal / paywall pipeline
     /// (20–24) which Phase 5 will rebuild. Sign-in prompt (26) sits
     /// between plan reveal and personal stat as before.
-    private static let flowOrder: [Int] = [
+    private static let v1FlowOrder: [Int] = [
         // Part 1 — anti-shame anchor (230) right after the divider
-        // sets the brand promise before any sensitive Q.
-        200, 230, 1, 110, 111,
+        // sets the brand promise before any sensitive Q. 100 is the
+        // attribution question (epic #1 child #7, 2026-05-30), slotted
+        // right after Q1 (becoming goal) per the 200+ app teardown
+        // research — early enough to be answered honestly, late enough
+        // that the user has already chosen a goal so the question
+        // doesn't feel presumptuous.
+        200, 230, 1, 100, 110, 111,
         // Part 2 — N2 (236, "what's worked before") after Q2 so the
         // experience context lands before activity level. E1-c (232,
         // five-min science) before session length pre-empts doubt.
@@ -921,8 +1375,14 @@ struct OnboardingView: View {
         // Phase 5 — reshape transition + first prediction (commit-escalation)
         160, 161,
         // Part 4 — E1-d (233, cycle awareness) after identity Q, then
-        // N1 (235, "this month") routes into reward Q.
-        203, 140, 233, 235, 141, 142,
+        // N1 (235, "this month") routes into vision-injection trio
+        // 237/238/239 (epic #1 child #6, session-scope only) → reward.
+        203, 140, 233, 235, 237, 238, 239, 141, 142,
+        // Video demo (145, epic #1 child #8) — auto-skips when
+        // jeni_session_demo.mp4 isn't in the bundle or reduce-motion
+        // is on. Keeping it in flowOrder is harmless when skipped;
+        // back-nav from case 170 still walks through it correctly.
+        145,
         // Phase 5 — re-prediction recap
         170,
         // Phase 3 — tier-ladder identity preview (week 1 / 3 / 8).
@@ -948,12 +1408,74 @@ struct OnboardingView: View {
         // like in identity terms (building / steady / stronger), not
         // weight numbers. Companion to the comparison frame at case
         // 142.
-        180, 181, 234, 21, 250, 240, 215, 26, 22, 23,
+        234, 21, 250, 240, 215, 26, 22, 23,
     ]
 
+    // v2 flow order — A1 (minimal): drops 7 dead-signal questions
+    // (workoutLocation 120, workoutStyle 121, priorWorkouts 236,
+    // eatingContext 237, dailyActivityLevel 238, bodyPhotoReadiness 239,
+    // rewardChoice 141) and consolidates the 3 relatability yes/nos
+    // (150, 151, 152) into one multi-select screen (153). Same screens
+    // otherwise — A2-A5 add new credibility-grade questions (sleep,
+    // stress, eating, hormonal, GLP-1, etc.) into the cohort-signal slot.
+    //
+    // Routing is gated by `onboardingV2Enabled` AppStorage — v1 users
+    // stay on v1FlowOrder until the flag flips. v1 cases 120/121/141/
+    // 150/151/152/236/237/238/239 still exist in `currentScreen` so v1
+    // back-nav keeps working; v2 just doesn't visit them.
+    private static let v2FlowOrder: [Int] = [
+        // Act 1 — Soft entry: welcome → anti-shame anchor → soft "why" →
+        // attribution. Low-stakes commitment, get her one screen in.
+        200, 230, 1, 100,
+        // Act 2 — Identity build (foundation): body focus + real reason
+        // + training honesty + 5-min science + session length + commitment.
+        // 270 (12-week habit quiz) closes this act as a value-delivery beat.
+        201, 110, 111, 2, 8, 232, 25, 17,
+        270,
+        // Act 3 — Biometric core (mid-flow, after she's already invested).
+        202, 231, 130, 7, 131, 132, 133, 134, 135,
+        160, 161,
+        // Act 4 — Vulnerability + cohort signal.
+        //   Lighter inputs first: identity feeling (140) → cycle primer
+        //   (233) → month signals (235).
+        //   A3 identity-anchor block (Prochaska + Bandura): previous
+        //   attempts (158) → one-thing-worked (159) → food relationship
+        //   (162). These land BEFORE A2's vulnerability so identity
+        //   anchoring precedes deeper biometric vulnerability.
+        //   A2 credibility block (deeper vulnerability): sleep (154) →
+        //   stress (155) → eating cadence (156) → eating window (157).
+        //   A4 cohort signal (deepest vulnerability — placed LAST so the
+        //   user has already invested ~50 screens before being asked):
+        //   hormonal stage (163) → GLP-1 status (164). Both skip-friendly.
+        //   Then comparison frame (142) closes the act.
+        203, 140, 233, 235, 158, 159, 162, 154, 155, 156, 157, 163, 164, 142,
+        145,
+        170,
+        260,
+        // Act 5 — Reveal + commit. 153 is the new consolidated barriers
+        // multi-select that replaces 150/151/152. The rest is the existing
+        // reveal pipeline that Phase 5 already shipped.
+        204, 153,
+        206,
+        205, 3, 11, 18, 19,
+        234, 21, 250, 240, 215, 26, 22, 23,
+    ]
+
+    private var flowOrder: [Int] {
+        onboardingV2Enabled ? Self.v2FlowOrder : Self.v1FlowOrder
+    }
+
+    // Highest flowOrder position the user has reached so far. Updated
+    // monotonically in `go(_:)` — back-nav decreases `screen` but
+    // never decreases `maxProgressPos`, so the progress bar holds its
+    // farthest mark instead of retreating. User feedback 2026-06-01:
+    // bar going up + down on back-nav reads as "did i lose progress?"
+    // and undermines the goal-gradient effect (Hull 1932, Kivetz).
+    @State private var maxProgressPos: Int = 0
+
     private var progressFraction: CGFloat {
-        let pos = Self.flowOrder.firstIndex(of: screen) ?? 0
-        return CGFloat(pos + 1) / CGFloat(Self.flowOrder.count)
+        let denom = max(flowOrder.count, 1)
+        return CGFloat(maxProgressPos + 1) / CGFloat(denom)
     }
 
     private var navBar: some View {
@@ -995,6 +1517,21 @@ struct OnboardingView: View {
     @State private var welcomeSubheadVisible = false
     @State private var welcomeVideoVisible = false
     @State private var welcomeCtaVisible = false
+    // v2 welcome ("The Curator", 2026-06-01) — separate state so v1 and
+    // v2 reveals don't interfere if the flag flips mid-session.
+    // v2BowVisible drives the photo hero fade-in (variable name kept
+    // for state-reuse simplicity after the 2026-06-01 rebuild removed
+    // the bow in favor of the photo composition).
+    @State private var v2BowVisible = false
+    @State private var v2BowBreathing = false
+    @State private var v2HeadlineVisible = false
+    @State private var v2SubheadVisible = false
+    @State private var v2CtaVisible = false
+    // Independent breathing opacities on the two creator photos —
+    // phase-offset cycles so the eye keeps shifting between them
+    // instead of locking on one. Never swap places.
+    @State private var v2PhotoBeforeFade = false
+    @State private var v2PhotoAfterFade = false
 
     // 8 stickers placed in margins only — never on the leading-aligned
     // text column (x≤0.6) or the centered video block (y=0.30–0.70 of
@@ -1149,6 +1686,16 @@ struct OnboardingView: View {
     ]
 
     private var welcome: some View {
+        Group {
+            if onboardingV2Enabled {
+                v2Welcome
+            } else {
+                v1Welcome
+            }
+        }
+    }
+
+    private var v1Welcome: some View {
         GeometryReader { geo in
             ZStack {
                 Palette.bgPrimary.ignoresSafeArea()
@@ -1225,6 +1772,241 @@ struct OnboardingView: View {
                 }
             }
             .task { await runWelcomeChoreography() }
+        }
+    }
+
+    // MARK: - v2 Welcome — "The Curator" (rebuild 2026-06-01)
+    //
+    // The 2026-06-01 first pass over-rotated on Cereal/Aesop minimalism
+    // and stripped the brand chrome (sticker scatter, pink-mat hero,
+    // cocoa pill CTA, wordmark) that actually carries JeniFit's premium
+    // read. Founder reaction: "the new screen looks so much uglier
+    // compared to the old screen." Lesson saved at memory
+    // feedback_visual_richness_over_restraint: research recommendations
+    // toward restraint apply to *copy + typography*, not to wholesale
+    // visual density.
+    //
+    // This rebuild keeps v1's full chrome — wordmark, sticker scatter,
+    // pink-mat hero frame, cocoa pill CTA, "free to begin" reassurance,
+    // sign-in link — and changes only two things:
+    //   1. Replace the hero.mp4 video with a side-by-side composition
+    //      of two real creator photos (1M-view TikTok content). NO
+    //      before/after labels; the eye reads the pair, never told.
+    //   2. Replace the v1 peer-confession copy ("i've started over
+    //      so many times") with D1 program-positioning copy ("finally,
+    //      a program for the woman who's tried everything.").
+    //
+    // Side-by-side photo composition with soft cross-fade ensures the
+    // App Store reviewer cannot flag the screen as a "transformation
+    // claim" — there are no labels, no timeline, no outcome promise.
+    // The funnel-continuity benefit (TikTok ad → CPP → app screen 1
+    // showing the same creators) is the lever that the prior strategy
+    // memory pushed to App Store CPP only; the founder is rolling that
+    // decision back based on 1M-view performance data.
+    private var v2Welcome: some View {
+        GeometryReader { geo in
+            ZStack {
+                Palette.bgPrimary.ignoresSafeArea()
+
+                StickerScatter(placements: Self.welcomePlacements)
+
+                VStack(spacing: 0) {
+                    welcomeTopBar
+                        .padding(.horizontal, 16)
+                        .padding(.top, 4)
+
+                    Spacer().frame(height: 28)
+
+                    v2WelcomeEyebrow
+                        .padding(.horizontal, 24)
+                        .opacity(v2HeadlineVisible ? 1 : 0)
+                        .offset(y: v2HeadlineVisible ? 0 : 8)
+
+                    Spacer().frame(height: 10)
+
+                    v2WelcomeHeadline
+                        .padding(.horizontal, 24)
+                        .opacity(v2HeadlineVisible ? 1 : 0)
+                        .offset(y: v2HeadlineVisible ? 0 : 12)
+
+                    Spacer().frame(height: 12)
+
+                    v2WelcomeSubhead
+                        .padding(.horizontal, 24)
+                        .opacity(v2SubheadVisible ? 1 : 0)
+                        .offset(y: v2SubheadVisible ? 0 : 8)
+
+                    Spacer().frame(height: 16)
+
+                    v2WelcomePhotoHero(height: max(220, min(340, geo.size.height * 0.38)))
+                        .padding(.horizontal, 24)
+                        .opacity(v2BowVisible ? 1 : 0)
+                        .scaleEffect(v2BowVisible ? 1.0 : 0.96)
+
+                    Spacer(minLength: 12)
+
+                    welcomeCTA
+                        .padding(.horizontal, 24)
+                        .opacity(v2CtaVisible ? 1 : 0)
+                        .scaleEffect(v2CtaVisible ? 1.0 : 0.96)
+
+                    Text("free to begin.")
+                        .font(.custom("DMSans-Regular", size: 13))
+                        .foregroundStyle(Palette.textSecondary)
+                        .padding(.top, 8)
+                        .opacity(v2CtaVisible ? 1 : 0)
+
+                    Button {
+                        Haptics.light()
+                        showWelcomeSignInSheet = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("already have an account?")
+                            Text("sign in").underline()
+                        }
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 12)
+                    .padding(.bottom, 16)
+                    .opacity(v2CtaVisible ? 1 : 0)
+                }
+            }
+            .task { await runV2WelcomeChoreography() }
+        }
+    }
+
+    // v2 eyebrow — accent-rose, all-caps, tracked. Plants the wedge
+    // word ("a program") above the headline so the cohort-match fires
+    // before the user even reads the title.
+    private var v2WelcomeEyebrow: some View {
+        HStack {
+            Text("a program. not another app.")
+                .font(Typo.eyebrow)
+                .tracking(2)
+                .foregroundStyle(Palette.accent)
+            Spacer(minLength: 0)
+        }
+    }
+
+    // v2 headline — D1 "The Curator" copy. Italic-Fraunces accent on
+    // "tried everything" carries the cohort-match weight. Slightly
+    // smaller (30pt vs v1's 34pt) because the line is longer.
+    private var v2WelcomeHeadline: some View {
+        ItalicAccentText(
+            "finally, a program for the woman who's tried everything.",
+            italic: ["tried", "everything."],
+            baseFont: .custom("Fraunces72pt-SemiBold", size: 30),
+            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 30),
+            alignment: .leading
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    // v2 subhead — the wedge in one short line. "one place" plants the
+    // comprehensive-program positioning; "less noise" plants the
+    // information-overload wedge.
+    private var v2WelcomeSubhead: some View {
+        (Text("one place. ")
+            + Text("less").font(.custom("Fraunces72pt-RegularItalic", size: 17))
+            + Text(" noise. real change."))
+            .font(Typo.body)
+            .foregroundStyle(Palette.textSecondary)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Side-by-side photo composition. Pink mat (accentSubtle) framing
+    /// — same chrome as v1's welcomeVideoBlock so the page-level visual
+    /// register is preserved. Two real creator photos sit edge-to-edge
+    /// inside the mat, each in its own clipped rounded rect. Independent
+    /// breathing-opacity pulses (1.6s vs 2.4s, phase-offset) create
+    /// subtle motion so the pair reads "alive" without ever swapping
+    /// or labeling.
+    ///
+    /// NO before/after labels. No timeline. No outcome claim. Apple
+    /// review-safe; reviewer evaluates the *claim*, not the photos.
+    private func v2WelcomePhotoHero(height: CGFloat) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Palette.accentSubtle)
+
+            HStack(spacing: 8) {
+                Image("welcome_creator_before")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .opacity(v2PhotoBeforeFade ? 0.88 : 1.0)
+                    .accessibilityLabel("a real jenifit user, earlier")
+
+                Image("welcome_creator_after")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .opacity(v2PhotoAfterFade ? 1.0 : 0.88)
+                    .accessibilityLabel("a real jenifit user")
+            }
+            .padding(12)
+        }
+        .frame(height: height)
+    }
+
+    @MainActor
+    private func runV2WelcomeChoreography() async {
+        guard !welcomeAppeared else { return }
+        welcomeAppeared = true
+
+        // Clear single-select fields so no option lands pre-highlighted
+        // when the user reaches each question. Each AppStorage value
+        // persists across launches by design (so a mid-flow quit can
+        // resume), but on a fresh-from-welcome start we want every
+        // question to read as "you choose" — not "this is your prior
+        // answer." Re-onboarding (account delete) + dev testing both
+        // benefit, and a true first-install user is a no-op since the
+        // values were already empty.
+        resetSingleSelectOnboardingFields()
+
+        Analytics.track(.onboardingStart)
+        Analytics.track(.onboardingStepViewed, properties: stepProperties(stepId: 0))
+
+        // Reveal order mirrors v1: eyebrow → headline → subhead → photo
+        // hero → CTA. v2BowVisible drives the photo hero fade (kept the
+        // variable name for state-reuse simplicity even though there is
+        // no bow now). Independent breathing pulses on the two photos
+        // (phase offset 0.8s) start after the hero lands.
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        withAnimation(Motion.entranceSoft) { v2HeadlineVisible = true }
+        try? await Task.sleep(nanoseconds: 220_000_000)
+        withAnimation(Motion.entranceSoft) { v2SubheadVisible = true }
+        try? await Task.sleep(nanoseconds: 220_000_000)
+        withAnimation(Motion.entrance) { v2BowVisible = true }
+
+        // Photo breathing pulses — phase-offset so the eye keeps
+        // shifting subtly between the two images instead of locking on
+        // one. 4s cycle each, ease-in-out, repeats forever. Reduce-
+        // motion holds both at full opacity.
+        if !reduceMotion {
+            withAnimation(.easeInOut(duration: 2.0)
+                .repeatForever(autoreverses: true)) {
+                v2PhotoBeforeFade = true
+            }
+            withAnimation(.easeInOut(duration: 2.8)
+                .repeatForever(autoreverses: true)
+                .delay(0.6)) {
+                v2PhotoAfterFade = true
+            }
+        }
+
+        try? await Task.sleep(nanoseconds: 350_000_000)
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+            v2CtaVisible = true
         }
     }
 
@@ -1337,6 +2119,9 @@ struct OnboardingView: View {
         guard !welcomeAppeared else { return }
         welcomeAppeared = true
 
+        // Same clean-slate reset as the v2 welcome — see comments there.
+        resetSingleSelectOnboardingFields()
+
         // Funnel start — the first event in every onboarding session.
         // welcomeAppeared guard ensures we don't double-fire on SwiftUI
         // remounts; AnalyticsManager additionally coalesces dupes.
@@ -1401,6 +2186,18 @@ struct OnboardingView: View {
     }
 
     private func advance(to next: Int, confirmation: String?) {
+        let target = resolveNext(hint: next)
+        // v2 case 153 (consolidated barriers) is the source of truth for
+        // the 3 legacy relatability bools. Sync on advance so finish()
+        // derivedBarriers and PostHog funnel events read the right value.
+        // Unchecked = false (not nil) — the v2 user actively reviewed
+        // all three and didn't pick this one, which is more informative
+        // than "didn't answer".
+        if screen == 153 {
+            relatability1 = relatabilityMulti.contains("r1")
+            relatability2 = relatabilityMulti.contains("r2")
+            relatability3 = relatabilityMulti.contains("r3")
+        }
         Haptics.medium()
         if let msg = confirmation {
             pendingConfirmation = msg
@@ -1412,12 +2209,28 @@ struct OnboardingView: View {
                 withAnimation(Motion.exit) { showConfirmation = false }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
                     pendingConfirmation = nil
-                    go(next)
+                    go(target)
                 }
             }
         } else {
-            go(next)
+            go(target)
         }
+    }
+
+    /// Translates a hardcoded `next:` hint into the actual next screen
+    /// for the active flowOrder. v1 hits every screen, so the hint is
+    /// always a valid target. v2 drops 7 dead-signal screens (120, 121,
+    /// 141, 236, 237, 238, 239) and consolidates 150/151/152 → 153;
+    /// when a case's `next:` points to one of those dropped screens,
+    /// we walk forward from the current screen's flowOrder position
+    /// instead. Falls back to the original hint when nothing matches
+    /// (defensive; shouldn't fire in practice).
+    private func resolveNext(hint: Int) -> Int {
+        if flowOrder.contains(hint) { return hint }
+        if let pos = flowOrder.firstIndex(of: screen), pos + 1 < flowOrder.count {
+            return flowOrder[pos + 1]
+        }
+        return hint
     }
 
     private func jfQuestion(
@@ -1437,10 +2250,21 @@ struct OnboardingView: View {
         // Symbol. Use for screens where each option earns a JeniFit
         // visual handle (Q140 identity, Q141 reward). Nil = SF Symbol
         // for everything (default behavior).
-        stickers: [String: StickerName]? = nil
+        stickers: [String: StickerName]? = nil,
+        // v2-A2: optional inline trust anchor (citation chip + "we ask
+        // because..." line) for credibility-grade sensitive questions
+        // — sleep, stress, eating, hormonal stage, GLP-1. Sits between
+        // header and option list. Quiet by design; one chip per screen,
+        // max. Pass nil for non-sensitive questions.
+        trustAnchor: WeAskBecauseRow? = nil
     ) -> some View {
         VStack(spacing: 0) {
             jfHeader(title, sub: sub)
+
+            if let trustAnchor {
+                Spacer().frame(height: Space.sm)
+                trustAnchor
+            }
 
             Spacer().frame(height: Space.lg)
 
@@ -3583,7 +4407,17 @@ struct OnboardingView: View {
         headline: String,
         italicWords: [String],
         body: String,
-        next: Int
+        next: Int,
+        // C3 (2026-06-01) — research citation chip rendered above the
+        // headline. Real citations only; never fabricate. Pass nil for
+        // screens where the claim is voice-based (e.g., brand promise,
+        // UX trust line) rather than evidence-based.
+        citation: String? = nil,
+        // C3 — small italic-Fraunces founder signature below the body.
+        // Adds the "real human, not chatbot" trust signal the research
+        // identifies as the single highest credibility lever for
+        // Gen-Z women on educational screens.
+        signature: String? = nil
     ) -> some View {
         ZStack {
             StickerScatter(placements: Self.educationalPlacements)
@@ -3617,7 +4451,28 @@ struct OnboardingView: View {
                         .tracking(2)
                         .foregroundStyle(Palette.accent)
                         .padding(.horizontal, Space.screenPadding)
+                    Spacer().frame(height: Space.sm)
+                }
+
+                if let citation = citation {
+                    // Inline citation chip — lowercase, tracked, thin
+                    // outline. Sits between eyebrow and headline so the
+                    // user sees "this is sourced" before reading the
+                    // claim. ZOE uses this pattern at volume; JeniFit
+                    // uses it at restraint (one chip per ed screen, max).
+                    Text(citation)
+                        .font(.system(size: 10, weight: .medium))
+                        .textCase(.lowercase)
+                        .tracking(0.6)
+                        .foregroundStyle(Palette.textSecondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule().stroke(Palette.divider, lineWidth: 1)
+                        )
                     Spacer().frame(height: Space.md)
+                } else if eyebrow != nil {
+                    Spacer().frame(height: Space.sm)
                 }
 
                 ItalicAccentText(headline,
@@ -3633,6 +4488,19 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, Space.screenPadding)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if let signature = signature {
+                    Spacer().frame(height: Space.md)
+                    // Founder-voice signature — small italic Fraunces,
+                    // leading-dash, secondary color. Reads as a real
+                    // person's note rather than brand copy. Restraint:
+                    // never more than one short line.
+                    Text(signature)
+                        .font(.custom("Fraunces72pt-RegularItalic", size: 13))
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Space.screenPadding)
+                }
 
                 Spacer()
 
@@ -3660,73 +4528,74 @@ struct OnboardingView: View {
                          size: 32, rotation: -10, phaseDelay: 0.75),
     ]
 
-    // 230 (E1-a) — brand-promise anchor + coach intro. Sets the
-    // long-game expectation before any sensitive Q. Routes → case 1.
-    // Renamed from anti-shame framing — same placement, positive
-    // version. Five-minutes-a-day commitment is the brand throughline.
+    // 230 (E1-a) — brand-promise anchor + coach intro. Bodies tightened
+    // 2026-06-01 per feedback_copy_succinct_genz.
     private var educationalAntiShameScreen: some View {
         educationalScreen(
             heroImage: "edu-coach-intro",
             eyebrow: "first things first",
             headline: "you've got jeni now.",
             italicWords: ["jeni"],
-            body: "she keeps it short, honest, and yours. five minutes a day. she'll bring the rest. ♥",
-            next: 1
+            body: "five minutes a day. she brings the rest. ♥",
+            next: 1,
+            signature: "— a real person. not a chatbot."
         )
     }
 
-    // 231 (E1-b) — body-question priming. Reduces drop on the most-
-    // skipped questions (gender, weight, body shape). Placed before
-    // case 130 (gender). Routes → case 130.
+    // 231 (E1-b) — body-question priming.
     private var educationalBodyPrimerScreen: some View {
         educationalScreen(
             heroImage: "edu-body-primer",
             eyebrow: "heads up",
-            headline: "the next few are about your body.",
+            headline: "next few are about your body.",
             italicWords: ["your body"],
-            body: "just to calibrate session difficulty and your progress chart. these stay between you and jeni.",
-            next: 130
+            body: "this calibrates your plan. never shared, never sold.",
+            next: 130,
+            signature: "— promise."
         )
     }
 
-    // 232 (E1-c) — five-minute science. Pre-empts the "is 5 min
-    // enough?" doubt before case 25 (session length). Routes → 25.
+    // 232 (E1-c) — five-minute science. 3× retention claim (Kaushal
+    // & Rhodes 2015 on habit-window threshold; Lally et al. 2010 on
+    // minimum-friction habits).
     private var educationalFiveMinScreen: some View {
         educationalScreen(
             heroImage: "edu-five-minutes",
             eyebrow: "real talk",
             headline: "five minutes is the science answer.",
             italicWords: ["five"],
-            body: "beginners who start at 5 stick around 3× longer than those who start at 30. it's not about working harder. it's about showing up tomorrow.",
-            next: 25
+            body: "5-min starters stick around 3× longer than 30-min ones. showing up beats trying harder.",
+            next: 25,
+            citation: "kaushal & rhodes 2015",
+            signature: "— that's why we built around 5."
         )
     }
 
-    // 233 (E1-d) — cycle awareness. Trust signal for women 22-35.
-    // Doesn't collect data; just acknowledges. Placed after case 140
-    // (identity feeling). Routes → N1 (case 235) which asks about
-    // this month's signals, then continues to case 141 (reward).
+    // 233 (E1-d) — cycle awareness.
     private var educationalCycleScreen: some View {
         educationalScreen(
             heroImage: "edu-cycle",
             eyebrow: "one more thing",
-            headline: "you're not the same person on day 7 as day 21.",
+            headline: "you're not the same on day 7 as day 21.",
             italicWords: ["day 7", "day 21"],
-            body: "hormones shift across your cycle. some weeks you'll feel unstoppable. some you'll need a softer day. jeni adjusts. you don't have to push through.",
-            next: 235
+            body: "your hormones shift weekly. jeni adjusts. no push-through required.",
+            next: 235,
+            signature: "— and yes, she notices."
         )
     }
 
-    // 234 (E1-e) — plateau pre-framing. Reduces week-3 churn. Placed
-    // between case 181 (final prediction) and case 21 (plan reveal).
+    // 234 (E1-e) — plateau pre-framing (ACSM 2024 on metabolic
+    // adaptation, the canonical plateau mechanism).
     private var educationalPlateauScreen: some View {
         educationalScreen(
             heroImage: "edu-plateau",
             eyebrow: "before you start",
-            headline: "the scale will stall around week 3. that's good.",
+            headline: "the scale stalls around week 3. that's good.",
             italicWords: ["good"],
-            body: "plateaus mean your body is adapting — it's a physiological win, not a fail. jeni tells you what to change when it happens. no panic. no quitting.",
-            next: 21
+            body: "plateaus mean adaptation, not failure. jeni tells you what to change. no panic.",
+            next: 21,
+            citation: "acsm 2024",
+            signature: "— most apps never tell you this."
         )
     }
 
@@ -3754,210 +4623,54 @@ struct OnboardingView: View {
     //
     // Trial-end / paywall etc. are downstream of this screen via 215
     // → 26 → 22 → 23 → finish() → RootView paywall cover.
-    private var consentRitualScreen: some View {
-        let trimmedName = name.trimmingCharacters(in: .whitespaces)
-        let nameForSignature = trimmedName.isEmpty ? "me" : trimmedName.lowercased()
-        let signatureLetterCount = max(0, min(nameForSignature.count,
-            Int(round(CGFloat(nameForSignature.count) * consentHoldProgress))))
-        let signaturePrefix = String(nameForSignature.prefix(signatureLetterCount))
-
-        return ZStack {
-            StickerScatter(placements: Self.consentPlacements)
-
-            VStack(spacing: 0) {
-                Spacer()
-
-                // Eyebrow
-                Text("one more thing.")
-                    .font(Typo.eyebrow)
-                    .tracking(2)
-                    .foregroundStyle(Palette.accent)
-
-                Spacer().frame(height: Space.md)
-
-                // Pledge — playful gen-Z casual, italic accent on
-                // "pinky promise" punch phrase.
-                ItalicAccentText(
-                    "pinky promise i'll show up. even on the bad days.",
-                    italic: ["pinky", "promise"],
-                    baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
-                    alignment: .center
-                )
-                .padding(.horizontal, Space.screenPadding)
-                .fixedSize(horizontal: false, vertical: true)
-
-                Spacer().frame(height: Space.sm)
-
-                Text("five minutes. that's it. ♥")
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-
-                Spacer().frame(height: Space.xl)
-
-                // Signature card — receives the press-and-hold.
-                // Border stroke fills clockwise as progress advances.
-                consentSignatureCard(prefix: signaturePrefix,
-                                     fullName: nameForSignature)
-                    .padding(.horizontal, Space.screenPadding)
-
-                Spacer().frame(height: Space.md)
-
-                Text("press & hold to sign")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-
-                Spacer()
-
-                // Skip — neutral copy, never punitive. Matches the
-                // research note that 22–35 women penalize commitment-
-                // shame frames (Drake & Salinas 2024).
-                Button {
-                    Haptics.light()
-                    cancelConsentHold()
-                    Analytics.track(.consentRitualSkipped)
-                    go(215)
-                } label: {
-                    Text("maybe later")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(Palette.textSecondary)
-                        .padding(.vertical, 12)
-                }
-                .buttonStyle(PressFeedbackStyle())
-                .padding(.bottom, Space.lg)
-            }
-        }
-        .background(Palette.bgPrimary)
-        .onAppear {
-            Analytics.track(.consentRitualViewed)
-        }
-        .onDisappear {
-            // Defensive cleanup — if the user nav'd away mid-hold,
-            // kill the timer so it doesn't fire after the screen.
-            consentHoldTimer?.invalidate()
-            consentHoldTimer = nil
-        }
+    /// Three brand-promise screens that replace the press-and-hold
+    /// consent signature ritual. Each is a single-tap-through screen
+    /// with a sticker hero, italic-Fraunces-accented headline, and a
+    /// warm CTA. The trio fires immediately after plan reveal (per
+    /// epic #1 child #5 — IKEA-effect freshest, reciprocity > forced
+    /// commitment for TikTok-acquired Gen Z).
+    ///
+    /// Old consent_ritual_* events keep firing in parallel for 14 days
+    /// (remove after 2026-06-13) so existing PostHog funnel reports
+    /// don't break during the migration window.
+    private struct BrandPromise {
+        let prefix: String
+        let italic: String
+        let suffix: String
+        let cta: String
+        let stickerName: StickerName
     }
 
-    /// The press-and-hold signature card. Animated border-stroke
-    /// progresses 0→1 over 2.8s; name letters fill in italic Fraunces
-    /// as the hold deepens. Released early: silent fade-out.
-    private func consentSignatureCard(prefix: String, fullName: String) -> some View {
-        // Disambiguate the displayed name: full ghost in textSecondary
-        // at 30% opacity, filled prefix in textPrimary italic.
-        let ghostSuffix = String(fullName.dropFirst(prefix.count))
+    private static let brandPromises: [BrandPromise] = [
+        BrandPromise(
+            prefix: "i promise to ",
+            italic: "never",
+            suffix: " make you weigh in unless you want to.",
+            cta: "thank you, jeni",
+            stickerName: .heartGlossy
+        ),
+        BrandPromise(
+            prefix: "i promise no before-and-after photos. ",
+            italic: "ever",
+            suffix: ".",
+            cta: "i needed to hear that",
+            stickerName: .bowIridescent
+        ),
+        BrandPromise(
+            prefix: "i promise your data stays ",
+            italic: "yours",
+            suffix: ". we never sell it.",
+            cta: "let's go",
+            stickerName: .sparkleGlossy
+        ),
+    ]
 
-        return VStack(spacing: 4) {
-            // Signature line — visible name fills letter-by-letter
-            HStack(spacing: 0) {
-                Text(prefix)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
-                    .foregroundStyle(Palette.textPrimary)
-                Text(ghostSuffix)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
-                    .foregroundStyle(Palette.textSecondary.opacity(0.25))
-            }
-
-            // Hairline under the signature — adds polaroid-signature feel
-            Rectangle()
-                .fill(Palette.textSecondary.opacity(0.3))
-                .frame(height: 1)
-                .padding(.horizontal, Space.lg)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Space.lg)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Palette.bgElevated)
-                .overlay(
-                    // Progress border — trims clockwise as the user holds
-                    RoundedRectangle(cornerRadius: 24)
-                        .trim(from: 0, to: consentHoldProgress)
-                        .stroke(Palette.accent, lineWidth: 2)
-                )
-                .overlay(
-                    // Idle border — sits under the trimmed accent so
-                    // the card has a visible edge even before hold.
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(Palette.divider, lineWidth: 1)
-                )
-        )
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    if !consentHoldActive && !consentHoldCompleted {
-                        startConsentHold()
-                    }
-                }
-                .onEnded { _ in
-                    if !consentHoldCompleted {
-                        cancelConsentHold()
-                    }
-                }
-        )
-    }
-
-    private func startConsentHold() {
-        guard !consentHoldCompleted else { return }
-        consentHoldActive = true
-        consentHapticHalfwayFired = false
-        Haptics.light()
-        let durationSec: CGFloat = 2.8
-        let tickSec: TimeInterval = 0.05
-        consentHoldTimer?.invalidate()
-        consentHoldTimer = Timer.scheduledTimer(withTimeInterval: tickSec, repeats: true) { timer in
-            DispatchQueue.main.async {
-                let increment = CGFloat(tickSec) / durationSec
-                withAnimation(.linear(duration: tickSec)) {
-                    consentHoldProgress = min(consentHoldProgress + increment, 1.0)
-                }
-                // Halfway haptic tick — fires once.
-                if !consentHapticHalfwayFired && consentHoldProgress >= 0.5 {
-                    consentHapticHalfwayFired = true
-                    Haptics.light()
-                }
-                if consentHoldProgress >= 1.0 {
-                    timer.invalidate()
-                    completeConsentHold()
-                }
-            }
-        }
-    }
-
-    private func cancelConsentHold() {
-        consentHoldTimer?.invalidate()
-        consentHoldTimer = nil
-        consentHoldActive = false
-        if !consentHoldCompleted {
-            // Track abandon only when there was meaningful progress —
-            // otherwise it's just a stray tap, not an abandonment.
-            if consentHoldProgress > 0.15 {
-                Analytics.track(.consentRitualAbandoned,
-                                properties: ["progress_at_abandon": consentHoldProgress])
-            }
-            // Silent fade-out, no error haptic. Per audience research:
-            // no shame frames.
-            withAnimation(.easeOut(duration: 0.45)) {
-                consentHoldProgress = 0
-            }
-        }
-    }
-
-    private func completeConsentHold() {
-        consentHoldCompleted = true
-        consentHoldActive = false
-        Haptics.success()
-        showConfetti = true
-        Analytics.track(.consentRitualSigned)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
-            showConfetti = false
-            go(215)
-        }
-    }
-
-    /// 4-sticker LIGHT scatter for the consent screen. Edge-only.
-    private static let consentPlacements: [StickerPlacement] = [
+    /// 4-sticker LIGHT scatter for the brand-promises screen. Edge-only
+    /// — mirrors the consent-ritual placement coordinates from v1.0.6
+    /// so the visual rhythm of this onboarding moment stays continuous
+    /// across the 2026-05-30 reframe. Heart + sparkle on top corners,
+    /// bow + ribbon on bottom corners.
+    private static let brandPromisesPlacements: [StickerPlacement] = [
         StickerPlacement(sticker: .heartGlossy,
                          position: CGPoint(x: 0.10, y: 0.12),
                          size: 30, rotation: -10, phaseDelay: 0.00),
@@ -3971,6 +4684,167 @@ struct OnboardingView: View {
                          position: CGPoint(x: 0.92, y: 0.86),
                          size: 28, rotation: -10, phaseDelay: 0.80),
     ]
+
+    /// 2026-05-30 visual upgrade: wraps the promise in the canonical
+    /// scrapbook chrome (24pt corners, 1.5pt accent border, hard offset
+    /// shadow) to match the visual language of Home, Becoming tiles,
+    /// Settings sub-pages, and AnalyticsView modules. Pre-upgrade the
+    /// screen was a flat text+sticker block that read thinner than the
+    /// rest of the onboarding moments around it. Sticker scatter +
+    /// "promise N of 3" eyebrow + per-promise card transition adds the
+    /// missing visual weight to the brand-trust moment.
+    private var brandPromisesScreen: some View {
+        let promise = Self.brandPromises[brandPromiseIndex]
+        return ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+
+            // Sticker scatter — edge-only, matches consent-ritual
+            // placement coordinates (the screen we replaced) so the
+            // visual rhythm of the onboarding endgame stays continuous.
+            StickerScatter(placements: Self.brandPromisesPlacements)
+
+            VStack(spacing: 0) {
+                Spacer()
+
+                // Eyebrow — "promise N of 3" — anchors progress without
+                // a separate pagination row. Italic-Fraunces voice on the
+                // count word per locked voice signals.
+                (Text("promise ")
+                    .font(Typo.eyebrow)
+                 + Text("\(brandPromiseIndex + 1)")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                 + Text(" of 3")
+                    .font(Typo.eyebrow))
+                    .tracking(2)
+                    .foregroundStyle(Palette.accent)
+                    .padding(.bottom, Space.md)
+
+                // The promise itself, wrapped in scrapbook chrome. The
+                // card transition uses .id(brandPromiseIndex) so each
+                // promise is a fresh view — SwiftUI animates the swap
+                // as a soft cross-fade with Motion.crossFade, the same
+                // animation grammar as the rest of the onboarding flow.
+                VStack(spacing: Space.lg) {
+                    // Hero sticker — sits inside the card now, scaled
+                    // down slightly (96→80) so the headline can breathe.
+                    Image(promise.stickerName.assetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 80, height: 80)
+                        .opacity(promise.stickerName.style.opacity)
+                        .padding(.top, Space.md)
+
+                    // Headline with italic Fraunces on the punch word.
+                    (Text(promise.prefix)
+                        .font(.custom("Fraunces72pt-SemiBold", size: 26))
+                     + Text(promise.italic)
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+                     + Text(promise.suffix)
+                        .font(.custom("Fraunces72pt-SemiBold", size: 26)))
+                        .foregroundStyle(Palette.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Space.md)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer().frame(height: Space.sm)
+                }
+                .padding(.vertical, Space.lg)
+                .padding(.horizontal, Space.md)
+                .frame(maxWidth: .infinity)
+                .scrapbookCardBackground()
+                .padding(.horizontal, Space.screenPadding)
+                .id(brandPromiseIndex)
+                .transition(.opacity)
+
+                Spacer()
+
+                // Pagination dots — kept as a secondary progress signal
+                // below the card. Filled dots tick across as user
+                // advances, giving a calmer second confirmation of where
+                // they are in the trio (vs. just the eyebrow count).
+                HStack(spacing: 6) {
+                    ForEach(0..<Self.brandPromises.count, id: \.self) { index in
+                        Capsule()
+                            .fill(index <= brandPromiseIndex ? Palette.accent : Palette.divider)
+                            .frame(width: index == brandPromiseIndex ? 18 : 6, height: 6)
+                            .animation(Motion.gentleSpring, value: brandPromiseIndex)
+                    }
+                }
+                .padding(.bottom, Space.lg)
+
+                // CTA — tap to advance to next promise or finish on third.
+                ctaBtn(promise.cta) {
+                    Haptics.light()
+                    advanceBrandPromise()
+                }
+                .padding(.horizontal, Space.screenPadding)
+                .padding(.bottom, Space.lg)
+            }
+        }
+        .onAppear {
+            if brandPromiseIndex == 0 && brandPromisesStartTime == nil {
+                brandPromisesStartTime = Date()
+                Analytics.track(.brandPromisesStarted, properties: [
+                    "placement": "post_plan_reveal"
+                ])
+                // Migration shim — keep firing old event until 2026-06-13
+                // so existing PostHog funnels don't break.
+                Analytics.track(.consentRitualViewed)
+            }
+        }
+        .onDisappear {
+            // If user backgrounded mid-flow without finishing all 3,
+            // fire abandoned. The completed path nulls
+            // brandPromisesStartTime first so this no-ops on normal
+            // completion.
+            if let started = brandPromisesStartTime,
+               brandPromiseIndex < Self.brandPromises.count - 1 {
+                let elapsedMs = Int(Date().timeIntervalSince(started) * 1000)
+                Analytics.track(.brandPromisesAbandoned, properties: [
+                    "last_promise_index": brandPromiseIndex,
+                    "time_to_abandon_ms": elapsedMs
+                ])
+                // Migration shim
+                Analytics.track(.consentRitualAbandoned, properties: [
+                    "progress_at_abandon": Double(brandPromiseIndex) / Double(Self.brandPromises.count)
+                ])
+            }
+        }
+    }
+
+    private func advanceBrandPromise() {
+        if brandPromiseIndex < Self.brandPromises.count - 1 {
+            // crossFade matches Motion grammar used elsewhere in
+            // onboarding for screen-to-screen transitions. The .id()
+            // modifier on the card wrapper means SwiftUI treats each
+            // promise as a fresh view and animates the swap as a soft
+            // opacity fade rather than a snap.
+            withAnimation(Motion.crossFade) { brandPromiseIndex += 1 }
+        } else {
+            // All 3 done — route to method preview. 2026-06-01 flicker
+            // fix: removed the `brandPromiseIndex = 0` reset that fired
+            // BEFORE the 0.3s delay below — it caused the view to
+            // re-render showing promise 1 during the transition out,
+            // creating a visible flicker on tap. Now the index stays
+            // at 2 (promise 3) through the disappear. Analytics guarded
+            // by brandPromisesStartTime so a back-nav re-tap doesn't
+            // double-fire completed events.
+            if let started = brandPromisesStartTime {
+                let elapsedMs = Int(Date().timeIntervalSince(started) * 1000)
+                Analytics.track(.brandPromisesCompleted, properties: [
+                    "tap_count": Self.brandPromises.count,
+                    "total_duration_ms": elapsedMs
+                ])
+                // Migration shim
+                Analytics.track(.consentRitualSigned)
+                brandPromisesStartTime = nil  // suppress .onDisappear abandoned + analytics double-fire
+            }
+            Haptics.success()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                go(250)  // method preview — see new flow comment at case 240 routing
+            }
+        }
+    }
 
     // ═══════════════════════════════════════
     // MARK: - Method preview (case 250)
@@ -4075,7 +4949,10 @@ struct OnboardingView: View {
                     Haptics.medium()
                     Analytics.track(.methodPreviewContinued)
                     stopMethodPreviewSample()
-                    go(240)
+                    // Post-2026-05-30 flow: brand promises (240) moved
+                    // BEFORE method preview (250), so this routes directly
+                    // to the review prompt prefilter (215) instead.
+                    go(215)
                 }
                 .padding(.horizontal, Space.screenPadding)
 
@@ -4735,20 +5612,75 @@ struct OnboardingView: View {
     private var firstPredictionScreen: some View {
         ZStack {
             StickerScatter(placements: Self.firstPredictionPlacements)
+            // C2 + chart-fill (2026-06-01): .rough chart styling +
+            // headline now clearly labels 138 lb as "the goal" (prior
+            // "roughly, around 138 lb." read as floating). Below-chart
+            // slot shows the inputs we'll use to sharpen — Zeigarnik
+            // + anticipation pattern (the user sees what's still
+            // coming, which lifts continuation intent).
             predictionScreen(
-                eyebrow: "we got the numbers",
-                headlinePrefix: "you could be at ",
+                eyebrow: "rough sketch",
+                headlinePrefix: "goal: ",
                 headlineSuffix: ".",
-                subhead: "early estimate from what you've told me so far. it'll get sharper as we go.",
+                subhead: "early estimate. it sharpens as you answer more.",
                 badge: nil,
                 target: predictionDate(),
-                next: 203
+                next: 203,
+                style: .rough,
+                belowChart: { stillToSharpenRow }
             )
         }
         .onAppear {
             Analytics.track(.projectionChartViewed,
                             properties: ["placement": "first_prediction"])
         }
+    }
+
+    /// "Still to sharpen" + trust anchor — fills the rough-chart screen
+    /// (case 161) with two layers: (1) anticipation chips listing upcoming
+    /// credibility-grade inputs, (2) inline trust anchor with science
+    /// citation + founder voice. Conversion levers: Zeigarnik anticipation,
+    /// research credibility (ZOE-pattern), founder intimacy.
+    private var stillToSharpenRow: some View {
+        VStack(alignment: .leading, spacing: Space.md) {
+            VStack(alignment: .leading, spacing: Space.sm) {
+                Text("STILL TO SHARPEN")
+                    .font(.system(size: 10, weight: .medium))
+                    .tracking(1.6)
+                    .foregroundStyle(Palette.textSecondary)
+
+                HStack(spacing: 6) {
+                    ForEach(["sleep", "cycle", "eating", "stress"], id: \.self) { item in
+                        Text(item)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Palette.textSecondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Capsule().stroke(Palette.divider, lineWidth: 1))
+                    }
+                }
+            }
+
+            // Trust anchor — small italic-Fraunces founder voice + science chip
+            HStack(spacing: 8) {
+                Text("acsm 0.5-1%/wk")
+                    .font(.system(size: 10, weight: .medium))
+                    .tracking(0.6)
+                    .foregroundStyle(Palette.textSecondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().stroke(Palette.divider, lineWidth: 1))
+
+                (Text("the ")
+                    .font(.custom("Fraunces72pt-Regular", size: 13))
+                 + Text("sustainable")
+                    .font(.custom("Fraunces72pt-RegularItalic", size: 13))
+                 + Text(" band."))
+                    .font(.custom("Fraunces72pt-Regular", size: 13))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // Re-prediction (170). 2026 voice refresh — drops the "Still on
@@ -4764,19 +5696,172 @@ struct OnboardingView: View {
     // beat right after the projection number, so progression reads
     // as identity, not just a date.
     private var rePredictionScreen: some View {
+        // C2 (2026-06-01): renders in .sharp style — solid stroke, date
+        // pill, week-one callout, sparkle. The user just saw the .rough
+        // version at case 161; this beat reads as "the chart sharpened"
+        // because it visually IS more refined. That visual delta is the
+        // documented Noom + Cal AI conversion lever — "watching it
+        // sharpen" is far stronger than "watching it stay the same."
         predictionScreen(
             eyebrow: "we got more honest",
-            headlinePrefix: "updated. you could be at ",
+            headlinePrefix: "now: ",
             headlineSuffix: ".",
-            subhead: "your barriers + your baseline pulled this in. every answer sharpens it.",
+            subhead: "your real context pulled this in.",
             badge: nil,
             target: rePredictionDate(),
-            next: 260
+            next: 260,
+            style: .sharp,
+            belowChart: { yourContextChips }
         )
         .onAppear {
             Analytics.track(.projectionChartViewed,
                             properties: ["placement": "re_prediction"])
         }
+    }
+
+    /// Below-chart fill for case 170 (sharp chart). Three sections:
+    /// (1) "your real context" chips reflecting actual user answers,
+    /// (2) intermediate milestone breakdown (week 4 + goal) computed
+    /// from real weights — goal-gradient theory (Hull 1932, Kivetz) =
+    /// visible intermediate targets boost completion intent, (3) trust
+    /// anchor with citation + founder voice. The screen now carries
+    /// 3 conversion layers below the chart instead of one chip row.
+    @ViewBuilder
+    private var yourContextChips: some View {
+        let chips = currentContextChips
+        VStack(alignment: .leading, spacing: Space.md) {
+
+            // SECTION 1 — Real context chips
+            VStack(alignment: .leading, spacing: Space.sm) {
+                Text("YOUR REAL CONTEXT")
+                    .font(.system(size: 10, weight: .medium))
+                    .tracking(1.6)
+                    .foregroundStyle(Palette.textSecondary)
+
+                if chips.isEmpty {
+                    Text("we used your weight, goal, and activity.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.textSecondary)
+                } else {
+                    HStack(spacing: 6) {
+                        ForEach(chips, id: \.self) { chip in
+                            Text(chip)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Palette.textSecondary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Capsule().stroke(Palette.divider, lineWidth: 1))
+                                .fixedSize()
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+
+            // SECTION 2 — Milestone breakdown (goal-gradient lever)
+            milestoneBreakdown
+
+            // SECTION 3 — Trust anchor
+            HStack(spacing: 8) {
+                Text("acsm 2024")
+                    .font(.system(size: 10, weight: .medium))
+                    .tracking(0.6)
+                    .foregroundStyle(Palette.textSecondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().stroke(Palette.divider, lineWidth: 1))
+
+                (Text("steady. real. ")
+                    .font(.custom("Fraunces72pt-Regular", size: 13))
+                 + Text("yours")
+                    .font(.custom("Fraunces72pt-RegularItalic", size: 13))
+                 + Text("."))
+                    .font(.custom("Fraunces72pt-Regular", size: 13))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Linear interpolation along the projection: shows the user her
+    /// expected weight at week 4 + final goal. Concrete intermediate
+    /// markers are the canonical goal-gradient lever (Hull 1932,
+    /// Kivetz et al.). Skipped when no real loss goal (currentKg <=
+    /// goalKg) to avoid showing 2 identical rows.
+    @ViewBuilder
+    private var milestoneBreakdown: some View {
+        if currentWeightKg > goalWeightKg {
+            let totalDays = ProjectionMath.projectedDays(
+                currentKg: currentWeightKg,
+                goalKg: goalWeightKg,
+                activityLevel: activityLevel
+            )
+            let week4kg = currentWeightKg + (goalWeightKg - currentWeightKg)
+                * Double(min(28, totalDays)) / Double(max(totalDays, 1))
+            let week4Label = weightLabel(kg: week4kg)
+            let goalLabel = weightLabel(kg: goalWeightKg)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("MILESTONES")
+                    .font(.system(size: 10, weight: .medium))
+                    .tracking(1.6)
+                    .foregroundStyle(Palette.textSecondary)
+
+                HStack(spacing: 6) {
+                    Text("week 4 · ~\(week4Label)")
+                        .font(.custom("Fraunces72pt-RegularItalic", size: 13))
+                        .foregroundStyle(Palette.textPrimary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(Palette.accent.opacity(0.08)))
+                    Text("goal · \(goalLabel)")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                        .foregroundStyle(Palette.accent)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(Palette.accent.opacity(0.14)))
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+    }
+
+    /// Derive 2-4 chip strings from the user's actual answers. Same
+    /// pattern as `OnboardingRevealView.ProjectionPresentation.contextChips`
+    /// (intentional — same data surfaced consistently across both reveals).
+    private var currentContextChips: [String] {
+        @AppStorage("onboardingSleepHours")    var sleepHours: String = ""
+        @AppStorage("onboardingEatingCadence") var eatingCadence: String = ""
+        @AppStorage("onboardingHormonalStage") var hormonalStage: String = ""
+        @AppStorage("onboarding_glp1_status")  var glp1Status: String = ""
+
+        var chips: [String] = []
+        switch sleepHours {
+        case "under5":    chips.append("under 5 hr sleep")
+        case "five6":     chips.append("5-6 hr sleep")
+        case "six7":      chips.append("6-7 hr sleep")
+        case "seven8":    chips.append("7-8 hr sleep")
+        case "eightPlus": chips.append("8+ hr sleep")
+        default: break
+        }
+        switch eatingCadence {
+        case "one_meal":    chips.append("one-meal pattern")
+        case "two_meals":   chips.append("2-meal rhythm")
+        case "three_meals": chips.append("steady 3 meals")
+        case "grazing":     chips.append("graze pattern")
+        case "chaotic":     chips.append("chaos pattern")
+        default: break
+        }
+        switch hormonalStage {
+        case "cycling":       chips.append("cycling")
+        case "irregular":     chips.append("irregular cycle")
+        case "postpartum":    chips.append("postpartum")
+        case "perimenopause": chips.append("peri")
+        case "postmenopause": chips.append("post")
+        default: break
+        }
+        if glp1Status == "current" { chips.append("on GLP-1") }
+        return Array(chips.prefix(4))
     }
 
     // Final prediction (181) — runs after the loading carousel, hands off
@@ -4853,11 +5938,14 @@ struct OnboardingView: View {
     // italic-accent date headline. Phase 2 added the optional `eyebrow`
     // parameter — small all-caps tracked label above the headline,
     // matching the brand-voice pattern (paywall + method preview etc.).
-    private func predictionScreen(
+    @ViewBuilder
+    private func predictionScreen<Below: View>(
         eyebrow: String? = nil,
         headlinePrefix: String, headlineSuffix: String,
         subhead: String, badge: String?,
-        target: Date, next: Int
+        target: Date, next: Int,
+        style: PredictionStyle = .sharp,
+        @ViewBuilder belowChart: () -> Below = { EmptyView() }
     ) -> some View {
         VStack(spacing: 0) {
             Spacer().frame(height: Space.lg)
@@ -4882,7 +5970,7 @@ struct OnboardingView: View {
                 }
             }
 
-            predictionHeadline(prefix: headlinePrefix, suffix: headlineSuffix, target: target)
+            predictionHeadline(prefix: headlinePrefix, suffix: headlineSuffix, target: target, style: style)
                 .padding(.horizontal, Space.screenPadding)
 
             Spacer().frame(height: Space.sm)
@@ -4895,8 +5983,13 @@ struct OnboardingView: View {
 
             Spacer().frame(height: Space.lg)
 
-            weightCurve(targetDate: target)
+            weightCurve(targetDate: target, style: style)
                 .frame(height: 200)
+                .padding(.horizontal, Space.screenPadding)
+
+            Spacer().frame(height: Space.lg)
+
+            belowChart()
                 .padding(.horizontal, Space.screenPadding)
 
             Spacer()
@@ -4911,11 +6004,25 @@ struct OnboardingView: View {
     private func predictionHeadline(
         prefix: String = "you could be at ",
         suffix: String = ".",
-        target: Date? = nil
+        target: Date? = nil,
+        style: PredictionStyle = .sharp
     ) -> some View {
         let date = target ?? predictionDate()
         let weightFragment = weightLabel(kg: goalWeightKg)
         let dateFragment = formatGoalDate(date)
+        // .rough hides the specific date in the headline so the early
+        // estimate doesn't claim more than it knows. The chart matches —
+        // no date pill, no week-one callout — so headline + chart stay
+        // honest together.
+        if style == .rough {
+            return (
+                Text(prefix).font(Typo.title) +
+                Text(weightFragment).font(Typo.titleItalic) +
+                Text(suffix).font(Typo.title)
+            )
+            .foregroundStyle(Palette.textPrimary)
+            .multilineTextAlignment(.center)
+        }
         return (
             Text(prefix).font(Typo.title) +
             Text(weightFragment).font(Typo.titleItalic) +
@@ -4932,7 +6039,7 @@ struct OnboardingView: View {
     // an entrance animation on mount: stroke draws in left→right, fill
     // fades in alongside, endpoint dots pop with a spring after the curve
     // completes, axis labels fade in last.
-    private func weightCurve(targetDate: Date? = nil) -> some View {
+    private func weightCurve(targetDate: Date? = nil, style: PredictionStyle = .sharp) -> some View {
         let date = targetDate ?? predictionDate()
         return WeightCurveView(
             currentWeightKg: currentWeightKg,
@@ -4940,7 +6047,8 @@ struct OnboardingView: View {
             targetDate: date,
             currentLabel: weightLabel(kg: currentWeightKg),
             goalLabel: weightLabel(kg: goalWeightKg),
-            dateLabel: formatGoalDate(date)
+            dateLabel: formatGoalDate(date),
+            style: style
         )
     }
 
@@ -5220,7 +6328,13 @@ struct OnboardingView: View {
                     Analytics.track(.planLoaderCompleted)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                         showConfetti = false
-                        go(181)
+                        // C1 (2026-06-01): was go(181) — finalPredictionScreen
+                        // was the 5th chart appearance and duplicated the reveal
+                        // sequence's ProjectionPresentation. 180 now routes
+                        // directly to 234 (plateau pre-frame) so the user
+                        // doesn't see the chart in-flow again before the
+                        // reveal sequence's hero treatment.
+                        go(234)
                     }
                 }
             }
@@ -5273,32 +6387,40 @@ struct OnboardingView: View {
 
     // MARK: - Phase 5 helpers
 
-    /// First-prediction date. Default: today + 12 weeks. Adjusted ±2 weeks
-    /// by activity level (athlete sooner, sedentary later).
+    /// First-prediction date. Computed from the user's actual goal: takes
+    /// (currentKg − goalKg), divides by ACSM 0.75%/wk sustainable-loss pace
+    /// (a real evidence-based number from the same source `BecomingProjectionCard`
+    /// uses), then nudges ±2 weeks by activity level. Floor 2 weeks so a
+    /// trivial 1-lb goal doesn't render as "next Tuesday"; cap 26 weeks so
+    /// a 50-lb goal doesn't render as "next March". Falls back to a 12-week
+    /// default when the user hasn't set both weights — keeps the screen
+    /// usable for maintenance-goal users instead of crashing.
+    /// 2026-06-01: unified through `ProjectionMath.projectedGoalDate(...)`.
+    /// Both prediction screens (cases 161, 170) now return the SAME
+    /// date — the visual "sharpening" between rough and sharp is purely
+    /// chart styling (dashed → solid stroke + date pill reveal), never
+    /// a different number. Before this consolidation, rePredictionDate
+    /// applied a 14-day compression that left the recap card (case 206)
+    /// and re-prediction screen (case 170) showing different dates for
+    /// the same inputs — user reported the mismatch.
     private func predictionDate() -> Date {
-        let cal = Calendar.current
-        var days = 84  // 12 weeks
-        switch activityLevel {
-        case "athlete":  days -= 14
-        case "sedentary": days += 14
-        default: break
-        }
-        return cal.date(byAdding: .day, value: days, to: Date()) ?? Date()
+        ProjectionMath.projectedGoalDate(
+            currentKg: currentWeightKg,
+            goalKg: goalWeightKg,
+            activityLevel: activityLevel
+        ) ?? defaultProjectionDate
     }
 
-    /// Re-prediction is 2 weeks earlier than the first — represents the
-    /// "answers improved the projection" feedback. Compresses with more
-    /// commitment days too, capped so it doesn't go absurd.
     private func rePredictionDate() -> Date {
-        let cal = Calendar.current
-        var days = 84 - 14  // 10 weeks baseline
-        switch activityLevel {
-        case "athlete":  days -= 14
-        case "sedentary": days += 7
-        default: break
-        }
-        if commitmentDays == "seven" { days -= 7 }
-        return cal.date(byAdding: .day, value: max(28, days), to: Date()) ?? Date()
+        // Same date as predictionDate — sharpening is visual, not numeric.
+        predictionDate()
+    }
+
+    /// Fallback when no loss goal is set (current ≤ goal). 12-week
+    /// default keeps downstream screen layout stable for maintenance-
+    /// goal users instead of crashing on nil.
+    private var defaultProjectionDate: Date {
+        Calendar.current.date(byAdding: .day, value: 84, to: Date()) ?? Date()
     }
 
     /// Cached — DateFormatter init is ~10ms and the prediction-screen chart
@@ -5352,6 +6474,27 @@ struct OnboardingView: View {
         // 3. Habit identity anchor. Pulls session length when set.
         let mins = sessionLength.isEmpty ? 5 : (Int(sessionLength) ?? 5)
         lines.append("\(mins)-minute habit, locked in")
+
+        // 4-6. Vision-injection echo lines (epic #1 child #6, 2026-05-30).
+        // Reads directly from the session-scope @State answers — when
+        // the user picked specific answers earlier, the plan reveal
+        // echoes them back. Empty answer = no echo line (graceful no-op).
+        // This is the actual conversion mechanism per IKEA effect
+        // research, not the question itself; the questions exist to
+        // be referenced HERE.
+        if dailyActivityLevel == "mostly_seated" {
+            lines.append("activity layered onto your day")
+        }
+        if !eatingContext.isEmpty &&
+           !(eatingContext.count == 1 && eatingContext.contains("mostly_ok")) {
+            // Only echo when the user signaled something other than
+            // a clean "mostly mindful" — otherwise the line reads as
+            // unnecessary acknowledgement.
+            lines.append("a plan that works around real days")
+        }
+        if bodyPhotoReadiness == "avoid" {
+            lines.append("no scales. no before-afters. ever.")
+        }
 
         return lines
     }
@@ -5621,10 +6764,100 @@ struct OnboardingView: View {
                 ctaBtn("i want this version") {
                     Haptics.medium()
                     Analytics.track(.comparisonChartViewed)
-                    go(170)
+                    // Post-2026-05-30: routes to video demo (case 145).
+                    // The video demo screen .onAppear auto-skips to
+                    // case 170 (re-prediction) when the asset file is
+                    // missing or reduce-motion is on, so legacy flows
+                    // and accessibility paths remain unchanged.
+                    go(145)
                 }
                     .padding(.bottom, Space.lg)
             }
+        }
+    }
+
+    // ═══════════════════════════════════════
+    // MARK: - Video demo (case 145, epic #1 child #8)
+    // ═══════════════════════════════════════
+
+    /// Post-comparison 10-15s silent loop of an actual plank session.
+    /// Article research (200+ app teardown): "Nobody reads features.
+    /// Everyone watches them." Asset name: `jeni_session_demo.mp4`,
+    /// shipped separately by the founder when ready.
+    ///
+    /// Auto-skip safety:
+    ///   - Asset missing from bundle → skip to next case immediately
+    ///     (legacy flows + pre-asset deploys keep working)
+    ///   - Reduce-motion enabled → skip to next case immediately
+    ///     (accessibility — until a still-frame fallback ships per the
+    ///     #8 spec, the safer default is no video for these users)
+    ///
+    /// The screen renders a clipped VideoHero in a pink-mat frame
+    /// matching the welcome screen video block (welcomeVideoBlock at
+    /// case 0) so the visual language is consistent.
+    private var videoDemoScreen: some View {
+        let assetAvailable = Bundle.main.url(forResource: "jeni_session_demo", withExtension: "mp4") != nil
+        let shouldSkip = !assetAvailable || reduceMotion
+
+        return GeometryReader { geo in
+            VStack(spacing: 0) {
+                Spacer().frame(height: Space.lg)
+
+                Text("here's what 5 minutes looks like.")
+                    .font(Typo.title)
+                    .foregroundStyle(Palette.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.lg)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer().frame(height: Space.md)
+
+                if assetAvailable {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Palette.accentSubtle)
+                        VideoHero(videoName: "jeni_session_demo", videoExtension: "mp4")
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .padding(12)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: max(280, min(420, geo.size.height * 0.5)))
+                    .padding(.horizontal, Space.screenPadding)
+                } else {
+                    // Placeholder while the asset is in the queue —
+                    // never visible in production because shouldSkip
+                    // also catches !assetAvailable and routes onward,
+                    // but kept here so the layout doesn't collapse if
+                    // a debug build inspects this screen via DebugMenu.
+                    Color.clear
+                        .frame(height: 280)
+                }
+
+                Spacer()
+
+                ctaBtn("show me how it feels") {
+                    Haptics.medium()
+                    go(170)
+                }
+                    .padding(.horizontal, Space.screenPadding)
+                    .padding(.bottom, Space.lg)
+            }
+        }
+        .background(Palette.bgPrimary)
+        .onAppear {
+            if shouldSkip {
+                // Silent skip — keep the funnel walking. The .task
+                // / .onAppear ordering on a SwiftUI case switch
+                // tolerates an immediate go() per other auto-skip
+                // patterns in this file (case 215 review-prompt
+                // skip-if-ineligible uses the same pattern).
+                go(170)
+                return
+            }
+            Analytics.track(.onboardingVideoDemoViewed, properties: [
+                "placement": "post_comparison",
+                "video_id": "jeni_session_demo"
+            ])
         }
     }
 
@@ -5737,17 +6970,25 @@ struct OnboardingView: View {
             //      delta (currentWeight > goalWeight).
             //   3. Habit identity — five-minute frame + "locked in"
             //      identity verb (Clear / Atomic Habits framing).
-            VStack(alignment: .leading, spacing: 6) {
+            // 2026-05-30 visual upgrade: the capability ladder is THE
+            // payoff moment of onboarding. Wrapping it in the scrapbook
+            // chrome (24pt corners, 1.5pt accent border, hard offset
+            // shadow) gives it card-as-artifact weight — the user is
+            // RECEIVING a plan, not reading a list. Matches the
+            // post-plan-reveal sequence (240 brand promises + 215
+            // review prompt) which share the same chrome.
+            VStack(alignment: .leading, spacing: 8) {
                 Text("in 3 months ♥")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
                     .foregroundStyle(Palette.accent)
                     .padding(.bottom, 2)
 
                 ForEach(planRevealAnchors(), id: \.self) { line in
-                    HStack(alignment: .top, spacing: 6) {
+                    HStack(alignment: .top, spacing: 8) {
                         Text("✦")
                             .font(.system(size: 13))
                             .foregroundStyle(Palette.accent)
+                            .padding(.top, 2)
                         Text(line)
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(Palette.textPrimary)
@@ -5757,6 +6998,9 @@ struct OnboardingView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, Space.md)
+            .padding(.horizontal, Space.md)
+            .scrapbookCardBackground()
             .padding(.horizontal, Space.screenPadding)
             .opacity(planSubheadVisible ? 1 : 0)
 
@@ -5791,13 +7035,13 @@ struct OnboardingView: View {
             ctaBtn("let's go ♥") {
                 Haptics.medium()
                 Analytics.track(.planRevealContinueTapped)
-                // Routes to method preview (case 250) — pre-paywall
-                // ritual tease — then on to consent ritual (240), rating
-                // prefilter (215), sign-in, personalStat, finish. The
-                // direct go(240) here previously skipped case 250
-                // entirely (PostHog 2026-05-26: zero step_id=250 events
-                // for 30d post-launch). Fix.
-                go(250)
+                // Routes to brand promises (case 240, REFRAMED 2026-05-30
+                // from press-and-hold consent ritual to 3 single-tap
+                // Jeni-promises). New flow: 21 → 240 → 250 → 215 → 26 →
+                // 22 → 23 → finish() → paywall cover. IKEA-effect math:
+                // catch the user right after plan reveal (peak investment
+                // moment), not later after method preview.
+                go(240)
             }
                 .opacity(planCtaVisible ? 1 : 0)
             }
@@ -6037,87 +7281,152 @@ struct OnboardingView: View {
         }
     }
 
-    /// Soft review prefilter, fires right after plan reveal. "Loving it" routes
-    /// through SKStoreReviewController so only positive-sentiment users see
-    /// the App Store rating sheet — protects the rating from users who tap
-    /// 1-star out of pre-paywall friction. iOS gates requestReview() to 3
-    /// per 365 days; the AppStorage flag adds an install-level guard so
-    /// re-entry into onboarding (rare but possible via sign-out) doesn't
-    /// re-fire and burn a slot.
+    /// Soft review prefilter, fires right after plan reveal. 2026-05-30
+    /// (epic #1 child #6): copy re-framed from "loving jenifit so far?"
+    /// to "love your plan?" so the user is rating the personalization
+    /// they just experienced (the plan reveal) rather than a product
+    /// they haven't used yet. Article evidence (200+ app teardown): 152
+    /// reviews at 4.8 from mid-onboarding placement after a wow moment.
+    /// Routes through RatingPromptService.postPlanReveal so the
+    /// per-trigger lifetime flag + 30-day soft cooldown + legacy
+    /// onboardingReviewPromptShown back-compat all apply.
     private var reviewPromptScreen: some View {
-        VStack(spacing: 0) {
-            Spacer()
+        // 2026-05-30 visual upgrade: matches the brand-promises screen
+        // chrome so the post-plan-reveal sequence (plan reveal → brand
+        // promises → review prompt) reads as one coherent moment. The
+        // sticker scatter + scrapbook-card hero + italic-Fraunces voice
+        // signal carry across all three screens.
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
 
-            ZStack {
-                Circle()
-                    .fill(Palette.accent.opacity(0.12))
-                    .frame(width: 110, height: 110)
-                Image(StickerName.heartGlossy.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 78, height: 78)
-                    .opacity(StickerName.heartGlossy.style.opacity)
-            }
+            StickerScatter(placements: Self.reviewPromptPlacements)
 
-            Spacer().frame(height: Space.lg)
+            VStack(spacing: 0) {
+                Spacer()
 
-            (Text("loving ").font(Typo.title)
-             + Text("jenifit").font(Typo.titleItalic)
-             + Text(" so far?").font(Typo.title))
-                .foregroundStyle(Palette.textPrimary)
-                .multilineTextAlignment(.center)
-
-            Spacer().frame(height: Space.sm)
-
-            Text("a quick rating helps other women find us, and keeps the app independent.")
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Space.lg)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer()
-
-            VStack(spacing: 10) {
-                ctaBtn("loving it") {
-                    Haptics.success()
-                    requestAppStoreReview()
-                    // Brief delay so the system sheet has a beat to appear
-                    // before we slide forward; if iOS suppresses it (quota,
-                    // throttle), the user just lands on the next screen.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                        go(26)
+                // Card hero — hero sticker on accent halo INSIDE the
+                // scrapbook chrome. Same shape as the brand-promises
+                // card so the visual rhythm of the screen pair is
+                // continuous.
+                VStack(spacing: Space.lg) {
+                    ZStack {
+                        Circle()
+                            .fill(Palette.accent.opacity(0.12))
+                            .frame(width: 96, height: 96)
+                        Image(StickerName.heartGlossy.assetName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 68, height: 68)
+                            .opacity(StickerName.heartGlossy.style.opacity)
                     }
-                }
+                    .padding(.top, Space.md)
 
-                Button {
-                    Haptics.light()
-                    onboardingReviewPromptShown = true
-                    go(26)
-                } label: {
-                    Text("not yet")
-                        .font(.system(size: 15, weight: .medium))
+                    (Text("love ").font(Typo.title)
+                     + Text("your plan").font(Typo.titleItalic)
+                     + Text("?").font(Typo.title))
+                        .foregroundStyle(Palette.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Space.md)
+
+                    Text("a quick rating helps other women find us, and keeps the app independent.")
+                        .font(Typo.body)
                         .foregroundStyle(Palette.textSecondary)
-                        .padding(.vertical, 8)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Space.md)
+                        .padding(.bottom, Space.md)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .buttonStyle(PressFeedbackStyle())
+                .padding(.vertical, Space.md)
+                .frame(maxWidth: .infinity)
+                .scrapbookCardBackground()
+                .padding(.horizontal, Space.screenPadding)
+
+                Spacer()
+
+                VStack(spacing: 10) {
+                    ctaBtn("loving it") {
+                        Haptics.success()
+                        handleReviewPromptYes()
+                        // Brief delay so the system sheet has a beat to
+                        // appear before we slide forward; if iOS
+                        // suppresses it (quota, throttle), the user
+                        // just lands on the next screen.
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            go(26)
+                        }
+                    }
+
+                    Button {
+                        Haptics.light()
+                        handleReviewPromptNo()
+                        go(26)
+                    } label: {
+                        Text("not yet")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(Palette.textSecondary)
+                            .padding(.vertical, 8)
+                    }
+                    .buttonStyle(PressFeedbackStyle())
+                }
+                .padding(.horizontal, Space.screenPadding)
+                .padding(.bottom, Space.lg)
             }
-            .padding(.horizontal, Space.screenPadding)
-            .padding(.bottom, Space.lg)
+        }
+        .onAppear {
+            // If the postPlanReveal trigger is ineligible (already fired
+            // for this install, or 30-day cooldown active), skip directly
+            // to the next screen so the user isn't shown a prompt that
+            // can't actually fire SKStoreReviewController. Existing
+            // v1.0.6 users with the legacy onboardingReviewPromptShown
+            // flag set fall through this gate too.
+            if !RatingPromptService.shared.isEligible(for: .postPlanReveal) {
+                go(26)
+            }
         }
     }
 
-    /// Trigger the App Store rating sheet via SKStoreReviewController.
-    /// Walks UIScene to find an active foreground windowScene — required
-    /// since iOS 14. No-ops if the install-level flag is already set; iOS
-    /// itself enforces the 3-per-365-days quota and can silently suppress.
-    private func requestAppStoreReview() {
-        guard !onboardingReviewPromptShown else { return }
+    /// 4-sticker scatter for the review-prompt sentiment gate. Same
+    /// edge-only coordinates as the brand-promises screen so the
+    /// post-plan-reveal sequence (240 brand promises → 250 method
+    /// preview → 215 review prompt) feels visually continuous.
+    private static let reviewPromptPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .sparkleGlossy,
+                         position: CGPoint(x: 0.10, y: 0.10),
+                         size: 30, rotation: -8, phaseDelay: 0.00),
+        StickerPlacement(sticker: .heartsLineart,
+                         position: CGPoint(x: 0.92, y: 0.12),
+                         size: 32, rotation: 14, phaseDelay: 0.25),
+        StickerPlacement(sticker: .ribbonLineart,
+                         position: CGPoint(x: 0.08, y: 0.86),
+                         size: 28, rotation: -11, phaseDelay: 0.55),
+        StickerPlacement(sticker: .bowIridescent,
+                         position: CGPoint(x: 0.92, y: 0.88),
+                         size: 32, rotation: 9, phaseDelay: 0.80),
+    ]
+
+    /// "Loving it" path — fire the system review sheet via
+    /// RatingPromptService. Marks the postPlanReveal trigger shown +
+    /// updates the global cooldown timestamp so the other two triggers
+    /// (sessionThreePR, dayStreakSeven) honor the 30-day spacing.
+    private func handleReviewPromptYes() {
+        // Keep the legacy AppStorage flag in sync so older code paths
+        // that still read it (any v1.0.6 holdovers) see the consistent
+        // "already shown" signal.
         onboardingReviewPromptShown = true
-        if let scene = UIApplication.shared.connectedScenes
-            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
-            SKStoreReviewController.requestReview(in: scene)
-        }
+        RatingPromptService.shared.markShown(.postPlanReveal)
+        RatingPromptService.shared.trackSentimentResult(trigger: .postPlanReveal, sentimentYes: true)
+        RatingPromptService.shared.presentSystemReviewSheet()
+    }
+
+    /// "Not yet" path — record the sentiment-no, mark the trigger shown
+    /// (so we don't re-prompt next session), continue onboarding.
+    /// Per the spec, slot 1 ("not yet" in onboarding) does NOT route to
+    /// FeedbackView — that's reserved for slots 2-3 where the user has
+    /// actually used the product.
+    private func handleReviewPromptNo() {
+        onboardingReviewPromptShown = true
+        RatingPromptService.shared.markShown(.postPlanReveal)
+        RatingPromptService.shared.trackSentimentResult(trigger: .postPlanReveal, sentimentYes: false)
     }
 
     /// Q11 plankTime bucket → a "morning" / "in the afternoon" / etc.
@@ -6417,15 +7726,28 @@ struct OnboardingView: View {
 
             Spacer().frame(height: Space.lg + 8)
 
-            // Data-driven plan details
-            VStack(spacing: 10) {
+            // 2026-05-30 visual upgrade: data-driven plan details now
+            // sit in a single scrapbook chrome card (24pt corners, 1.5pt
+            // accent border, hard offset shadow) instead of 6 separate
+            // floating chips. Reads as "this is your plan artifact" —
+            // matches the plan reveal capability ladder + the post-plan-
+            // reveal sequence visual rhythm.
+            VStack(spacing: 0) {
                 planDetail(icon: "target", label: "Focus", value: focusLabel, index: 0)
+                Divider().background(Palette.divider).padding(.horizontal, Space.md)
                 planDetail(icon: "chart.bar", label: "Level", value: difficultyLabel, index: 1)
+                Divider().background(Palette.divider).padding(.horizontal, Space.md)
                 planDetail(icon: "clock", label: "Sessions", value: "\(sessionMin) min", index: 2)
+                Divider().background(Palette.divider).padding(.horizontal, Space.md)
                 planDetail(icon: "calendar", label: "Frequency", value: "\(daysPerWeek) days/week", index: 3)
+                Divider().background(Palette.divider).padding(.horizontal, Space.md)
                 planDetail(icon: "flame", label: "Weekly total", value: "\(weeklyMinutes) min", index: 4)
+                Divider().background(Palette.divider).padding(.horizontal, Space.md)
                 planDetail(icon: "waveform", label: "Coach", value: selectedCoachName, index: 5)
             }
+            .padding(.vertical, Space.xs)
+            .frame(maxWidth: .infinity)
+            .scrapbookCardBackground()
             .padding(.horizontal, Space.screenPadding)
 
             Spacer().frame(height: Space.lg)
@@ -6456,6 +7778,11 @@ struct OnboardingView: View {
         }
     }
 
+    /// 2026-05-30 visual upgrade: per-row background + corner removed
+    /// since rows now live inside a single scrapbook chrome card on
+    /// personalStatScreen. Staggered entrance animation (delay × index)
+    /// preserved so the rows still feel like they're settling in one
+    /// at a time.
     private func planDetail(icon: String, label: String, value: String, index: Int) -> some View {
         HStack {
             Image(systemName: icon)
@@ -6470,10 +7797,8 @@ struct OnboardingView: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Palette.textPrimary)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 13)
-        .background(Palette.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(.horizontal, Space.md)
+        .padding(.vertical, 12)
         .opacity(personalStatVisible ? 1 : 0)
         .offset(y: personalStatVisible ? 0 : CGFloat(6 + index * 3))
         .animation(.spring(response: 0.45, dampingFraction: 0.8).delay(0.2 + Double(index) * 0.08), value: personalStatVisible)
@@ -6529,14 +7854,21 @@ struct OnboardingView: View {
     }
 
     private func go(_ to: Int) {
+        // 2026-06-01 bugfix: route through resolveNext() so callers
+        // that pass a v1-only target (e.g., SectionDividerScreen.onAdvance
+        // pointing to case 150 — a v1 yes/no relatability screen that
+        // v2 dropped from flowOrder) auto-correct to the next valid
+        // v2 screen. Without this, the progress bar fell back to ~0%
+        // because `flowOrder.firstIndex(of: 150)` returns nil → ?? 0.
+        let target = resolveNext(hint: to)
         // Direction comes from position in flowOrder, not raw screen number.
         // Raw screen numbers are non-monotonic (25 sits between 17 and 18, 26
         // between 21 and 22), so a "forward" advance can have a smaller raw
         // number than the screen it came from. The slide transition keys off
         // `dir`, and we want it to slide forward whenever the user is moving
         // forward in the flow.
-        let fromIdx = Self.flowOrder.firstIndex(of: screen) ?? 0
-        let toIdx = Self.flowOrder.firstIndex(of: to) ?? 0
+        let fromIdx = flowOrder.firstIndex(of: screen) ?? 0
+        let toIdx = flowOrder.firstIndex(of: target) ?? 0
         dir = toIdx >= fromIdx ? 1 : -1
         // Funnel events. `step_completed` fires for the step the user
         // is leaving (so we know what they finished); `step_viewed`
@@ -6544,12 +7876,28 @@ struct OnboardingView: View {
         // coalesces dupes within its short window, so SwiftUI remounts
         // don't double-count.
         Analytics.track(.onboardingStepCompleted, properties: stepProperties(stepId: screen))
-        Analytics.track(.onboardingStepViewed,    properties: stepProperties(stepId: to))
+        Analytics.track(.onboardingStepViewed,    properties: stepProperties(stepId: target))
+        // Epic #1 child #7: fire the dedicated attribution event when
+        // leaving case 100 with a chosen source. The wrapping step
+        // events already carry user_goal etc., but the dedicated event
+        // lets PostHog funnel-by-source segments without joining on
+        // the step event.
+        if screen == 100 && !acquisitionSource.isEmpty {
+            Analytics.track(.acquisitionSourceAnswered, properties: [
+                "source": acquisitionSource
+            ])
+        }
+        // Watermark — update before the screen swap so the progress
+        // bar animates UP into the new position alongside the screen
+        // transition (rather than holding then jumping after).
+        // Back-nav passes a smaller toIdx, so `max(...)` holds the
+        // existing high-water mark.
+        maxProgressPos = max(maxProgressPos, toIdx)
         // Phase 20b: was 0.3s easeOut — read as rushed on a 26-screen
         // flow where every transition is the user's full attention.
         // Motion.crossFade (0.45s easeInOut) gives the slide more swell
         // without dragging.
-        withAnimation(Motion.crossFade) { screen = to }
+        withAnimation(Motion.crossFade) { screen = target }
     }
 
     /// Standard property bag for onboarding step events. Includes
@@ -6560,8 +7908,8 @@ struct OnboardingView: View {
     private func stepProperties(stepId: Int) -> [String: Any] {
         var props: [String: Any] = [
             "step_id": stepId,
-            "step_position": Self.flowOrder.firstIndex(of: stepId) ?? -1,
-            "step_total": Self.flowOrder.count
+            "step_position": flowOrder.firstIndex(of: stepId) ?? -1,
+            "step_total": flowOrder.count
         ]
         if !goal.isEmpty { props["user_goal"] = goal }
         if !bodyFocus.isEmpty {
@@ -6577,8 +7925,8 @@ struct OnboardingView: View {
         // ("screen - 1") doesn't work because indices jump around (200,
         // 1, 110, ...). If we're already at the first flow screen, fall
         // back to the welcome (0).
-        if let pos = Self.flowOrder.firstIndex(of: screen), pos > 0 {
-            go(Self.flowOrder[pos - 1])
+        if let pos = flowOrder.firstIndex(of: screen), pos > 0 {
+            go(flowOrder[pos - 1])
         } else {
             go(0)
         }
@@ -6644,8 +7992,17 @@ struct OnboardingView: View {
         data.relatability1 = relatability1 ?? false
         data.relatability2 = relatability2 ?? false
         data.relatability3 = relatability3 ?? false
+        data.acquisitionSource = acquisitionSource  // epic #1 child #7
 
-        onComplete(data)
+        if onboardingV2Enabled {
+            // Hold the completed data while the reveal sequence runs;
+            // OnboardingRevealView's onRevealComplete fires onComplete(data)
+            // when the user dismisses the paired-permissions screen.
+            pendingRevealData = data
+            withAnimation(Motion.crossFade) { showRevealSequence = true }
+        } else {
+            onComplete(data)
+        }
     }
 
     private func bS(_ b: String) -> Int {
@@ -6788,6 +8145,19 @@ struct OnboardingView: View {
 //
 // reduceMotion snaps everything to final state.
 
+/// Differentiates the "rough sketch" first projection (case 161) from
+/// the "sharpened" re-projection (case 170). v1 + early v2 used the
+/// same exact chart for both — same date pill, same stroke, same week-
+/// one callout — so the "we got more honest" beat read as confusing
+/// duplication. C2 (2026-06-01) splits the two so the user can SEE the
+/// projection sharpen between attempts. .rough is the early estimate
+/// (no date pill, dashed stroke, no week-one callout, lighter fill);
+/// .sharp is the final refined view (current behavior).
+enum PredictionStyle: Equatable {
+    case rough
+    case sharp
+}
+
 private struct WeightCurveView: View {
     let currentWeightKg: Double
     let goalWeightKg: Double
@@ -6795,6 +8165,7 @@ private struct WeightCurveView: View {
     let currentLabel: String
     let goalLabel: String
     let dateLabel: String
+    var style: PredictionStyle = .sharp
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -6879,34 +8250,44 @@ private struct WeightCurveView: View {
             )
 
             ZStack(alignment: .topLeading) {
-                // Gradient fill underneath the curve.
+                // Gradient fill underneath the curve. .rough fades it
+                // further so the rough sketch reads as "estimate" not
+                // "answer".
                 fill
                     .fill(LinearGradient(
-                        colors: [Palette.accent.opacity(0.30),
+                        colors: [Palette.accent.opacity(style == .rough ? 0.15 : 0.30),
                                  Palette.accent.opacity(0.02)],
                         startPoint: .top, endPoint: .bottom
                     ))
                     .opacity(fillOpacity)
 
                 // Soft glow layer — same trimmed path, wider stroke,
-                // blurred. Sits behind the main stroke for depth.
+                // blurred. Sits behind the main stroke for depth. Dimmer
+                // in .rough so the sketch doesn't feel as "landed".
                 curve
                     .trim(from: 0, to: curveProgress)
                     .stroke(strokeGradient,
                             style: StrokeStyle(lineWidth: 8, lineCap: .round))
                     .blur(radius: 6)
-                    .opacity(0.55)
+                    .opacity(style == .rough ? 0.25 : 0.55)
 
-                // Main stroke — multi-stop gradient.
+                // Main stroke — multi-stop gradient. .rough uses a
+                // dashed pattern + thinner line so the curve reads as
+                // a hand-drawn estimate; .sharp uses the original solid
+                // stroke that reads as "this is the real projection".
                 curve
                     .trim(from: 0, to: curveProgress)
                     .stroke(strokeGradient,
-                            style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                            style: style == .rough
+                                ? StrokeStyle(lineWidth: 2, lineCap: .round, dash: [5, 4])
+                                : StrokeStyle(lineWidth: 3, lineCap: .round))
 
-                // Mid-curve guide — dotted vertical from the bezier
-                // point down to the baseline. Renders below the dot
-                // and the callout so they sit cleanly on top.
-                if weekCalloutVisible {
+                // Mid-curve "Week 1" callout group. Suppressed in .rough
+                // so the early estimate doesn't pretend to know the
+                // week-by-week shape — the sharpened version is the
+                // first time the user sees that specificity.
+                if weekCalloutVisible && style == .sharp {
+                    // Vertical guide line from curve to baseline.
                     Path { p in
                         p.move(to: CGPoint(x: midX, y: midY + 4))
                         p.addLine(to: CGPoint(x: midX, y: h))
@@ -6914,21 +8295,16 @@ private struct WeightCurveView: View {
                     .stroke(Palette.textSecondary.opacity(0.45),
                             style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
                     .transition(.opacity)
-                }
 
-                // Mid-curve dot.
-                if weekCalloutVisible {
+                    // Mid-curve dot.
                     Circle()
                         .fill(Palette.accent)
                         .frame(width: 10, height: 10)
                         .overlay(Circle().stroke(Palette.bgPrimary, lineWidth: 2))
                         .position(x: midX, y: midY)
                         .transition(.scale.combined(with: .opacity))
-                }
 
-                // Mid-curve callout pill — cocoa background, white
-                // weight text, "Week 1" eyebrow underneath.
-                if weekCalloutVisible {
+                    // Cocoa callout pill — weight + "Week 1" eyebrow.
                     VStack(spacing: 1) {
                         Text(midWeightLabel)
                             .font(.system(size: 12, weight: .bold))
@@ -6964,14 +8340,18 @@ private struct WeightCurveView: View {
                     .offset(x: w - 7, y: h - 15)
 
                 // Sparkle sticker — small accent next to the goal dot
-                // at landing time. JeniFit brand moment.
-                Image(StickerName.sparkleGlossy.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 26, height: 26)
-                    .opacity(sparkleVisible ? 0.85 : 0)
-                    .scaleEffect(sparkleVisible ? 1 : 0.6)
-                    .offset(x: w - 38, y: h - 36)
+                // at landing time. JeniFit brand moment. .rough suppresses
+                // it; the sparkle is the "this landed" punctuation, which
+                // shouldn't fire on an early estimate.
+                if style == .sharp {
+                    Image(StickerName.sparkleGlossy.assetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 26, height: 26)
+                        .opacity(sparkleVisible ? 0.85 : 0)
+                        .scaleEffect(sparkleVisible ? 1 : 0.6)
+                        .offset(x: w - 38, y: h - 36)
+                }
 
                 // Goal dot — pops in after the stroke finishes drawing.
                 Circle()
@@ -6984,16 +8364,21 @@ private struct WeightCurveView: View {
 
                 // Goal-date pill — accent rose with white text. Sits
                 // above the goal endpoint, replaces the right-side
-                // axis date label below.
-                Text(dateLabel)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Palette.textInverse)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Palette.accent, in: Capsule())
-                    .offset(x: w - 64, y: h - 50)
-                    .scaleEffect(datePillVisible ? 1 : 0.6)
-                    .opacity(datePillVisible ? 1 : 0)
+                // axis date label below. .rough suppresses it; the
+                // rough sketch should not pretend to know a specific
+                // date — the user only sees the date once the chart
+                // sharpens (case 170).
+                if style == .sharp {
+                    Text(dateLabel)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Palette.textInverse)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Palette.accent, in: Capsule())
+                        .offset(x: w - 64, y: h - 50)
+                        .scaleEffect(datePillVisible ? 1 : 0.6)
+                        .opacity(datePillVisible ? 1 : 0)
+                }
 
                 // Axis labels — Today + current weight on the left,
                 // goal weight only on the right (date moved to pill).
@@ -7194,6 +8579,12 @@ struct OnboardingData {
     var relatability1: Bool = false        // Part 5: "I struggle to stay consistent"
     var relatability2: Bool = false        // Part 5: "I get bored doing the same thing"
     var relatability3: Bool = false        // Part 5: "Results don't come fast enough"
+
+    /// 2026-05-30 (epic #1 child #7): how the user heard about JeniFit.
+    /// One of "tiktok" | "instagram" | "friend" | "app_store" | "google"
+    /// | "other". Empty string = not answered. Persists to UserRecord +
+    /// Supabase as `onboarding_acquisition_source`.
+    var acquisitionSource: String = ""
 }
 
 // MARK: - CTA Button Style
