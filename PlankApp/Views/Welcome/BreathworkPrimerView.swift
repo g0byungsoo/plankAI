@@ -179,6 +179,27 @@ struct BreathworkPrimerView: View {
                     .multilineTextAlignment(.center)
             }
 
+            // One more piece of evidence — narrower than Balban but
+            // directly relevant: a small Japanese trial on premenopausal
+            // women whose nervous systems were "blunted" (the same
+            // adrenergic dysfunction tied to stubborn weight in 2010
+            // obesity reviews). One minute of slow stretch-breath before
+            // meals brought their sympathetic activity back up — and the
+            // group repeating it for a month lost body fat. Small study,
+            // limited generalizability, but it's the closest thing
+            // breathwork-for-women has to a weight-loss endpoint.
+            VStack(spacing: Space.xs) {
+                Text("in a smaller japanese trial, one minute of slow breath before meals helped women whose nervous systems had gone quiet — and the ones who kept it up for a month lost body fat.")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textPrimary)
+                    .multilineTextAlignment(.center)
+
+                Text("sato et al., biomedical research (2010) · senobi breathing · n=40 women")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.textSecondary.opacity(0.8))
+                    .multilineTextAlignment(.center)
+            }
+
             ItalicAccentText("breath won't melt fat. it clears the cortisol quietly working against you.",
                              italic: ["working against you"],
                              baseFont: bodyEmphasisFont,

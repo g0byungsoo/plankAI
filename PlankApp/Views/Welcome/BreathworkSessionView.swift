@@ -28,6 +28,12 @@ struct BreathworkSessionView: View {
     let onLater: () -> Void
     let onDismiss: () -> Void
 
+    /// Which technique to run. Default is `.calming` so Day-1
+    /// PostPurchaseFlowView's existing call site stays a one-line
+    /// `BreathworkSessionView(onReadyToMove:..., onLater:..., onDismiss:...)`
+    /// without changes. Home re-entry passes a value from BreathLibraryView.
+    var techProtocol: BreathworkProtocol = .calming
+
     @AppStorage("voicePreference") private var storedVoice: String = "encouraging"
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -45,12 +51,12 @@ struct BreathworkSessionView: View {
     /// stay clear over it.
     @State private var music = RitualMusicPlayer(targetVolume: 0.28)
 
-    // Breathing config — 4-in / 6-out × 6 ≈ 1 min. Slow-exhale band.
-    // Phase 10 — shortened from 12 reps (~2 min): 1 minute is easier for
-    // new users to actually finish, which matters more than total dose.
-    private let inhaleSec = 4
-    private let exhaleSec = 6
-    private let totalReps = 6
+    /// Breathing config sourced from `techProtocol`. The old fixed-4/6/6
+    /// constants are gone — protocol drives everything so changing the
+    /// technique changes the session shape end-to-end.
+    private var inhaleSec: Int { techProtocol.inhaleSec }
+    private var exhaleSec: Int { techProtocol.exhaleSec }
+    private var totalReps: Int { techProtocol.repeats }
 
     var body: some View {
         ZStack {
@@ -233,7 +239,9 @@ struct BreathworkSessionView: View {
     // MARK: - Phase drivers
 
     private func startIntro() {
-        Analytics.track(.breathworkSessionStarted)
+        Analytics.track(.breathworkSessionStarted, properties: [
+            "protocol_id": techProtocol.rawValue
+        ])
         breathState = .holding(scale: 0.6)
         withAnimation(.easeInOut(duration: 0.6).delay(0.2)) { introLineVisible = true }
 
@@ -277,6 +285,11 @@ struct BreathworkSessionView: View {
             completeVisible = true
         }
         Haptics.success()
+        // Stamp the completion so the home BreathworkHomeCard + Becoming
+        // BreathworkBentoTile reflect the new count immediately. Idempotent
+        // (~60s coalesce) so any race with a fast user double-tap on
+        // "ready to move" doesn't double-count.
+        BreathworkState.shared.recordCompletion()
     }
 
     private var phaseName: String {
