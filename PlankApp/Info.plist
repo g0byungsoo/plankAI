@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>JeniFit uses your camera to watch your form during plank sessions. Frames are processed on-device and never leave your phone.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>JeniFit reads your step count so Jeni can quietly notice the days you moved more. Your step data stays between you and Apple Health — JeniFit never sees the raw samples or sends them anywhere.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>DMSans-Light.ttf</string>
@@ -68,7 +70,10 @@
 		<integer>1</integer>
 	</array>
 	<key>UILaunchScreen</key>
-	<dict/>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+	</dict>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arm64</string>
