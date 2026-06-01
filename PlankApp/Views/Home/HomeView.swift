@@ -95,23 +95,62 @@ struct HomeView: View {
     @State private var showBrowse = false
     /// Difficulty-override sheet, opened by the quiet card link.
     @State private var showEnergySheet = false
+    /// Breathwork re-entry from the BreathworkHomeCard. Surfaces the
+    /// PrimerView → SessionView flow as a fullScreenCover. `breathworkPhase`
+    /// switches the cover's content; both completion paths just dismiss
+    /// (no workout handoff here — that's the post-purchase Day-1 flow).
+    @State private var showBreathwork = false
+    @State private var breathworkPhase: BreathworkCoverPhase = .library
+    /// Protocol the user picked in BreathLibraryView. Drives the session
+    /// view's inhale/exhale/repeats config. Defaults to `.calming` so a
+    /// session that opens without a library tap still has a valid config.
+    @State private var selectedBreath: BreathworkProtocol = .calming
     /// Profile/settings hub open state. Drives the menu-mark ☰↔X morph and
     /// the hub's slide-in over the content (no modal sheet).
     @State private var hubOpen = false
     /// Phase A: tapped FutureRailRow chip surfaces its explainer sheet.
     /// `nil` = no sheet presented; tap on a card sets it to the rail.
     @State private var presentedFutureRail: FutureRail? = nil
+
+    /// 2026-05-30 (epic #1 child #6): Day-7 streak review prompt
+    /// sentiment sheet. Fires once per install when `streakCount == 7`
+    /// — transition detection, NOT `>= 7`, so existing v1.0.6 users
+    /// with streaks already past 7 days never retroactively trigger
+    /// (they're already retained — the prompt's marginal value is low).
+    @State private var showStreakReviewSheet = false
+    @Environment(\.openURL) private var openURLForReview
     /// Two-step routine flow: PreRoutineView (info card) → RoutineSessionView
     /// (live session). Both share `showRoutineSession` so we use a single
     /// fullScreenCover; switching `routineFlow` swaps the content.
     @State private var routineFlow: RoutineFlowStep = .preRoutine
 
     enum RoutineFlowStep { case preRoutine, session }
+    /// Phases for the home breathwork cover. v1.0.6 had primer→session;
+    /// v1.0.7 inserts the BreathLibraryView between the card tap and the
+    /// session so the user can pick a technique (calming/coherent/
+    /// energizing). Day-1 PostPurchaseFlowView still routes primer→session
+    /// directly with `.calming` default.
+    enum BreathworkCoverPhase { case library, session }
 
     // Animation
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var msgOpacity: [Double] = [0, 0, 0, 0]
-    @State private var msgOffset: [CGFloat] = [16, 16, 16, 16]
+    // Six entrance slots — order locked v1.0.7 per the tiny-habits +
+    // parasocial-coach research for the JeniFit audience:
+    //   [0] JenisNoteCard           (coach voice, daily greeting)
+    //   [1] JeniMethodJourneyCard   (HERO — the daily lesson beat)
+    //   [2] jenifitWorkoutCard      (the daily action, second)
+    //   [3] WeekProgressStrip       (momentum)
+    //   [4] StepsPulseTile + BreathworkHomeCard (anchor row)
+    //   [5] quickActions + FutureRailRow         (utility row)
+    //
+    // Why method first, not workout: the lesson is lower-friction
+    // (~90s swipeable beat) and carries the parasocial Jeni reward
+    // that anchors retention. The workout is the higher-effort daily
+    // commitment. BJ Fogg's tiny-habits ladder says the easier action
+    // with stronger emotional reward goes first — the action that's
+    // most likely to actually happen, even when motivation is low.
+    @State private var msgOpacity: [Double] = [0, 0, 0, 0, 0, 0]
+    @State private var msgOffset: [CGFloat] = [16, 16, 16, 16, 16, 16]
     // One signature touch: the hero greeting line resolves from a soft blur
     // into focus as it fades up (editorial blur-fade). Only the greeting
     // carries it, so the entrance stays calm, not busy.
@@ -163,9 +202,17 @@ struct HomeView: View {
     /// returns today's `programDay` (so additional same-day sessions
     /// stay on the same number). Otherwise returns the next-day-to-do
     /// (highest existing programDay + 1).
+    /// Engagement day — count of distinct calendar days the user has
+    /// completed a qualifying session, on or before today. DERIVED from
+    /// the immutable SessionLogRecord set; no longer a stored counter.
+    /// This kills the prior "+1 per session" bug class — running the
+    /// same calc twice gives the same number, and multiple sessions on
+    /// the same day collapse to one day. Existing users whose stored
+    /// `programDay` had drifted (e.g. "day 8" after 3 actual days) see
+    /// the correct value on the very next render — no migration step.
+    /// See `EngagementDayCalculator` for the full rationale.
     private var currentDay: Int {
-        if let today = todayProgress { return today.programDay }
-        return (dayProgress.first?.programDay ?? 0) + 1
+        EngagementDayCalculator.currentDay(sessionLogs: sessionLogs)
     }
 
     private var streakResult: StreakCalculator.Result {
@@ -265,6 +312,17 @@ struct HomeView: View {
         "today's your day.\nlet's go again.\nbalancing the set…",
         "consistency, not perfection.\nshe gets it.\ncrafting fresh moves…",
     ]
+
+    /// Sister pool for the energy-pill change. Same overlay UI as the
+    /// shuffle refresh; the copy frames the regeneration as "tuning
+    /// to your energy" rather than "shuffling moves" so the user's
+    /// intent (I told you how I feel today) is what reads on screen.
+    private static let energyAffirmations: [String] = [
+        "today's energy: noted.\nyour body knows.\ntuning your moves ♥",
+        "shifting with you.\nsmaller can be smarter.\nadjusting your plan…",
+        "you said how you feel.\njeni's got you.\nrecalibrating ♥",
+        "this is the rhythm.\nyou + jeni.\ndialing in the set…",
+    ]
     @State private var currentAffirmation: String = ""
 
     private static let refreshTotalDurationSec: Double = 2.4
@@ -272,24 +330,48 @@ struct HomeView: View {
     /// Re-roll today's daily workout. Penalizes the current workout's
     /// exercise IDs so the new workout actually feels different
     /// (otherwise the engine often reselects the same exercises from a
-    /// tight focus pool). The 1.6s artificial beat is what makes the
-    /// regenerate feel like a real "crafting" moment, not a slot-machine
-    /// re-roll. Unlimited refreshes — the magic is in the wait, not the
-    /// scarcity.
+    /// tight focus pool). Unlimited refreshes — the magic is in the
+    /// wait, not the scarcity. Wraps `runWorkoutRegenSequence` with the
+    /// shuffle affirmation pool + avoid-current-exercises behavior.
     private func refreshDailyWorkout() {
+        let previousIds = dailyWorkout?.exercises.map { $0.exerciseId } ?? []
+        runWorkoutRegenSequence(
+            affirmationPool: Self.refreshAffirmations,
+            avoidingIds: previousIds
+        )
+    }
+
+    /// Same overlay UX as a refresh, but tuned for the energy-pill tap:
+    /// no exercise penalization (the user adjusted INTENSITY, not asked
+    /// for different moves), and an energy-flavored affirmation pool so
+    /// the overlay copy reflects what just happened. The generator picks
+    /// up the new `intensityOffset` from `todaysEnergy + workoutLevel`
+    /// via `generateDailyWorkout`, so the new workout actually reflects
+    /// the chosen energy.
+    private func regenerateForEnergyChange() {
+        runWorkoutRegenSequence(
+            affirmationPool: Self.energyAffirmations,
+            avoidingIds: []
+        )
+    }
+
+    /// Shared loading-overlay sequence used by refresh button + energy
+    /// pill. The 2.4s artificial beat is what makes the regenerate feel
+    /// like a real "crafting" moment, not a slot-machine re-roll. Pure
+    /// timing + state orchestration — the actual workout generation
+    /// happens at the end via `generateDailyWorkout(avoiding:)`.
+    private func runWorkoutRegenSequence(
+        affirmationPool: [String],
+        avoidingIds: [String]
+    ) {
         guard canRefreshWorkout else { return }
 
         Haptics.light()
-        let previousIds = dailyWorkout?.exercises.map { $0.exerciseId } ?? []
-        // Pick a fresh affirmation per refresh — substituting the user's
-        // name into any line that supports it isn't done here; the pool
-        // is generic so the typewriter doesn't have to re-resolve mid-type.
-        currentAffirmation = Self.refreshAffirmations.randomElement()
-            ?? Self.refreshAffirmations[0]
+        currentAffirmation = affirmationPool.randomElement() ?? affirmationPool[0]
         isRefreshing = true
         refreshStage = 0
 
-        // Cycle stage copy every ~400ms so the overlay text reads like
+        // Cycle stage copy every ~600ms so the overlay text reads like
         // the engine is moving through steps, not stuck.
         let stageInterval: Double = Self.refreshTotalDurationSec / Double(Self.refreshStages.count)
         for i in 1..<Self.refreshStages.count {
@@ -302,7 +384,7 @@ struct HomeView: View {
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.refreshTotalDurationSec) {
-            let newWorkout = generateDailyWorkout(avoiding: previousIds)
+            let newWorkout = generateDailyWorkout(avoiding: avoidingIds)
             withAnimation(Motion.gentleSpring) {
                 dailyWorkout = newWorkout
                 isRefreshing = false
@@ -407,25 +489,27 @@ struct HomeView: View {
         return days >= 7
     }
 
-    /// Lesson ID the card should surface, or nil when the card should be
-    /// hidden. Returns nil for: flag off, non-allowlisted goal, not yet
-    /// enrolled or today's session is already done. Engagement-based: the
-    /// lesson follows `currentDay` (derived from the @Query day-progress
-    /// records), so the body re-evaluates the instant a session is saved —
-    /// no manual refresh trigger needed.
-    private var jeniMethodCardLessonId: Int? {
-        // Card shows for any flag-on user — the Method is foundational
-        // content that should always be reachable. Per user direction, no
-        // longer gated on goal (was: shouldEnroll set excluding growGlutes)
-        // or on today's-session-done. The day-N-of-14 momentum strip stays
-        // separately goal-gated via jeniMethodEnrolled.
-        guard jeniMethodFlagEnabled else { return nil }
-        // Lazy enroll: stamp enrolledAt on first card-eligible render so
-        // existing/test users who never went through the post-purchase
-        // Lesson 1 trigger get anchored. Idempotent: re-calls preserve the
-        // original timestamp.
-        if JeniMethodState.enrolledAt() == nil { JeniMethodState.markEnrolled() }
-        return JeniMethodState.lessonForCard(currentDay: currentDay)?.rawValue
+    /// Lesson ID the card should surface. NEVER returns nil — the Method
+    /// card is foundational content shown to every user, on every day,
+    /// regardless of flag / enrollment / goal / session state.
+    ///
+    /// Why the absolute "always non-nil" guarantee: prior versions tied
+    /// visibility to several gates (flag, enrollment timestamp, goal
+    /// allowlist), and any one going stale silently hid the card. Users
+    /// kept reporting they couldn't see it. The IF gate at the call site
+    /// is also gone — see the body for the unconditional render slot.
+    ///
+    /// Engagement-based: lesson follows `currentDay` (derived from
+    /// EngagementDayCalculator), so the body re-evaluates the instant a
+    /// session is saved. `max(currentDay, 1)` clamps day 0 (fresh user)
+    /// to Lesson 1 so they see real content, not an empty state.
+    private var jeniMethodLessonForToday: LessonID {
+        let day = max(currentDay, 1)
+        let lessonId = day <= 14 ? day : LessonID.generic.rawValue
+        // LessonID(rawValue:) is total on 1...15 — the math above stays
+        // in that band by construction, so the fallback to .day1 only
+        // ever fires if the enum is restructured and forgets a case.
+        return LessonID(rawValue: lessonId) ?? .day1
     }
 
     var body: some View {
@@ -461,19 +545,25 @@ struct HomeView: View {
                             .opacity(msgOpacity[0]).offset(y: msgOffset[0])
                             .blur(radius: greetingBlur)
 
-                        // HERO — the single daily action. When a lesson is
-                        // due it IS the hero (one tap → lesson → workout);
-                        // otherwise today's workout card is the hero.
-                        if let lessonId = jeniMethodCardLessonId,
-                           let lesson = LessonID(rawValue: lessonId) {
-                            if currentDay <= 14 {
-                                // The 14-day arc → swipeable journey: today's
-                                // lesson centered, past re-readable, future a
-                                // locked glimpse. Spans full width so paging
-                                // works (pages inset themselves).
-                                JeniMethodJourneyCard(currentDay: currentDay) { tapped, isReread in
+                        // HERO — the JeniMethod card. Parasocial Jeni beat
+                        // sits FIRST per the BJ Fogg tiny-habits ladder:
+                        // lower-friction action (90s swipeable lesson)
+                        // ahead of higher-effort commitment (workout
+                        // below). The lesson is also the parasocial
+                        // anchor — Jeni's voice lands before the user is
+                        // asked to commit to movement. UNCONDITIONAL
+                        // render — no flag/enrollment/goal gates that
+                        // could silently hide it. Internal fork:
+                        // day 1-14 → swipeable JourneyCard, day 15+ →
+                        // generic TodayCard. `jeniMethodLessonForToday`
+                        // is total (always returns a valid LessonID).
+                        Group {
+                            let lesson = jeniMethodLessonForToday
+                            let clampedDay = max(currentDay, 1)
+                            if clampedDay <= 14 {
+                                JeniMethodJourneyCard(currentDay: clampedDay) { tapped, isReread in
                                     Analytics.track(.lessonCardTapped, properties: [
-                                        "lesson_id": tapped.rawValue, "day": currentDay, "reread": isReread
+                                        "lesson_id": tapped.rawValue, "day": clampedDay, "reread": isReread
                                     ])
                                     UIView.setAnimationsEnabled(false)
                                     if isReread { presentedReReadLesson = tapped }
@@ -482,15 +572,12 @@ struct HomeView: View {
                                         UIView.setAnimationsEnabled(true)
                                     }
                                 }
-                                .opacity(msgOpacity[1]).offset(y: msgOffset[1])
                             } else {
-                                // Day 15+ generic check-in — no arc to page,
-                                // so the single card stays.
                                 JeniMethodTodayCard(
                                     teaser: lesson.headline,
                                     onTap: {
                                         Analytics.track(.lessonCardTapped, properties: [
-                                            "lesson_id": lessonId, "day": currentDay
+                                            "lesson_id": lesson.rawValue, "day": clampedDay
                                         ])
                                         UIView.setAnimationsEnabled(false)
                                         presentedJeniMethodLesson = lesson
@@ -500,12 +587,17 @@ struct HomeView: View {
                                     }
                                 )
                                 .padding(.horizontal, Space.screenPadding)
-                                .opacity(msgOpacity[1]).offset(y: msgOffset[1])
                             }
-                        } else {
-                            jenifitWorkoutCard
-                                .opacity(msgOpacity[1]).offset(y: msgOffset[1])
                         }
+                        .opacity(msgOpacity[1]).offset(y: msgOffset[1])
+
+                        // Daily action — sits BELOW the lesson hero so
+                        // Jeni's voice has landed before the user is
+                        // asked to commit to the workout. Same workout
+                        // card chrome + functionality; just demoted from
+                        // "hero" to "second hero" in the cascade.
+                        jenifitWorkoutCard
+                            .opacity(msgOpacity[2]).offset(y: msgOffset[2])
 
                         // Momentum — one soft, flat signal (no flame, no
                         // streak: direction §5.3). Enrolled users see the
@@ -516,32 +608,80 @@ struct HomeView: View {
                             mode: jeniMethodEnrolled
                                 ? .method(currentDay: currentDay)
                                 : .weekly(sessionsThisWeek: weeklyCount),
-                            sessionsShownUp: dayProgress.count
+                            // Derived count, not dayProgress.count — the
+                            // latter is row-count which inflated under the
+                            // prior buggy writer. EngagementDayCalculator
+                            // dedups by calendar day so "shown up Nx"
+                            // reads honestly for existing users.
+                            sessionsShownUp: EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs)
                         )
                         .padding(.horizontal, Space.screenPadding)
-                        .opacity(msgOpacity[2]).offset(y: msgOffset[2])
+                        .opacity(msgOpacity[3]).offset(y: msgOffset[3])
 
-                        // Escape hatch — when the lesson is the hero, the
-                        // workout is still one tap away for anyone who'd
-                        // rather just move today.
-                        if jeniMethodCardLessonId != nil {
-                            jenifitWorkoutCard
-                                .opacity(msgOpacity[2]).offset(y: msgOffset[2])
+                        // Movement anchor — HealthKit-backed steps pulse,
+                        // positioned RIGHT BELOW the action cluster (hero +
+                        // momentum + escape-hatch). 2026 weight-loss app
+                        // research (MyFitnessPal Today, Noom, Mealo): the
+                        // pattern is daily-action HERO → today's health
+                        // anchor(s) → utility nav, NOT the reverse. Steps
+                        // is data the user wants glanceable; quickActions
+                        // are secondary nav. Also: it's an anchor, not a
+                        // CTA, so it shouldn't compete with the workout
+                        // start button above. Today's read here; 7-day
+                        // trend lives in Becoming (StepsBentoTile). One
+                        // source (StepsService.shared), two surfaces.
+                        //
+                        // When food + body scan land, this single card
+                        // becomes a 2–3 ring TodayHealthStrip (see memory
+                        // project_steps_feature + the home-architecture
+                        // note). Keep the slot; swap the component.
+                        StepsPulseTile(service: StepsService.shared)
+                            .padding(.horizontal, Space.screenPadding)
+                            .opacity(msgOpacity[4]).offset(y: msgOffset[4])
+
+                        // Breathwork re-entry — actionable peer to the
+                        // passive steps anchor above. Day 1 introduces it
+                        // post-purchase (PostPurchaseFlowView); from then
+                        // on, this card is how it's discovered again.
+                        // Sized smaller than the workout hero so the
+                        // workout still wins the eye, but real estate is
+                        // enough to carry the science-honest copy in the
+                        // .unfamiliar state.
+                        BreathworkHomeCard(state: BreathworkState.shared) {
+                            Analytics.track(.breathworkCardTapped, properties: [
+                                "mode": BreathworkState.shared.breathedToday
+                                        ? "completed"
+                                        : BreathworkState.shared.totalCompleted == 0
+                                            ? "unfamiliar" : "invitation"
+                            ])
+                            breathworkPhase = .library
+                            // Kill cover slide so the primer fades in on
+                            // the cream backdrop — matches the post-
+                            // purchase flow's transition idiom.
+                            UIView.setAnimationsEnabled(false)
+                            showBreathwork = true
+                            DispatchQueue.main.async {
+                                UIView.setAnimationsEnabled(true)
+                            }
                         }
+                        .padding(.horizontal, Space.screenPadding)
+                        .opacity(msgOpacity[4]).offset(y: msgOffset[4])
 
                         quickActions
-                            .opacity(msgOpacity[2]).offset(y: msgOffset[2])
+                            .opacity(msgOpacity[5]).offset(y: msgOffset[5])
                             .padding(.horizontal, Space.screenPadding)
 
                         // Future data features (vision: food log, weekly
                         // check-in). One quiet line, not two stub cards —
                         // still fires future_rail_tapped per rail so we keep
                         // the Phase B/C demand signal (§8.5) without clutter.
-                        FutureRailRow(rails: [.foodLog, .stepCounter, .weeklyCheckIn]) { rail in
+                        // .stepCounter dropped from this row — steps shipped
+                        // as a real card above, no longer "coming soon".
+                        FutureRailRow(rails: [.foodLog, .weeklyCheckIn]) { rail in
                             presentedFutureRail = rail
                         }
                         .padding(.horizontal, Space.screenPadding)
-                        .opacity(msgOpacity[3]).offset(y: msgOffset[3])
+                        .opacity(msgOpacity[5]).offset(y: msgOffset[5])
                     }
                     .padding(.top, Space.sm)
                     .padding(.bottom, 100)
@@ -575,6 +715,16 @@ struct HomeView: View {
         }
         .animation(.easeInOut(duration: 0.3), value: ritualToWorkoutTransition)
         .task {
+            // JeniMethod enrollment stamp — moved out of the prior
+            // computed-property side effect. Idempotent: re-calls keep
+            // the original timestamp. Now the day-N-of-14 strip and any
+            // surface that reads `JeniMethodState.enrolledAt()` is
+            // populated on the first home appearance, regardless of
+            // whether the user ever went through the post-purchase
+            // Lesson 1 trigger.
+            if JeniMethodState.enrolledAt() == nil {
+                JeniMethodState.markEnrolled()
+            }
             // Reset per-session "today's energy" at the start of each calendar
             // day so a one-off "push it / ease in" never silently sticks; the
             // persistent baseline is `workoutLevel`.
@@ -622,17 +772,22 @@ struct HomeView: View {
             }
         }
         .onChange(of: todaysEnergy) { _, _ in
-            // Re-roll today's card at the new effort (only when not mid-session).
+            // v1.0.7 — energy pill change now triggers the same magical
+            // loading overlay as the refresh button (different copy
+            // pool — "tuning your moves" instead of "shuffling moves").
+            // The silent regenerate was confusing — users picked a new
+            // energy, the sheet closed, and the card silently updated
+            // underneath, so it wasn't obvious the choice did anything.
             guard currentWorkout == nil else { return }
-            withAnimation(Motion.gentleSpring) {
-                dailyWorkout = generateDailyWorkout()
-            }
+            regenerateForEnergyChange()
         }
         .onChange(of: workoutLevel) { _, _ in
+            // Same loading UX for the persistent baseline change (set
+            // from EditProfile, not the energy sheet). Avoids two
+            // different update behaviors for "today's intensity" vs
+            // "ongoing intensity" — both feel like a deliberate beat.
             guard currentWorkout == nil else { return }
-            withAnimation(Motion.gentleSpring) {
-                dailyWorkout = generateDailyWorkout()
-            }
+            regenerateForEnergyChange()
         }
         .onChange(of: pendingPostRitualWorkoutLaunch) { _, newValue in
             if newValue {
@@ -694,6 +849,46 @@ struct HomeView: View {
                 onComplete: { presentedReReadLesson = nil },
                 onSkip:     { _ in presentedReReadLesson = nil }
             )
+            .presentationBackground(Palette.bgPrimary)
+        }
+        // Breathwork re-entry cover — library → session, both completion
+        // paths just dismiss to home (no workout handoff like Day-1
+        // PostPurchaseFlowView, since this is a quiet "settle for a
+        // minute" beat, not a gateway to the workout). Phase switches
+        // are cross-faded inside the ZStack below.
+        //
+        // v1.0.7: replaced the long Day-1 primer with BreathLibraryView so
+        // repeat users land on the technique picker, not the edu screen
+        // they've already seen. The session adapts to the picked protocol
+        // (.calming / .coherent / .energizing) via `techProtocol`.
+        .fullScreenCover(isPresented: $showBreathwork) {
+            ZStack {
+                Palette.bgPrimary.ignoresSafeArea()
+                switch breathworkPhase {
+                case .library:
+                    BreathLibraryView(
+                        onBegin: { proto in
+                            selectedBreath = proto
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                breathworkPhase = .session
+                            }
+                        },
+                        onClose: { showBreathwork = false }
+                    )
+                    .transition(.opacity)
+                case .session:
+                    BreathworkSessionView(
+                        // Both completion paths land on home — no workout
+                        // handoff here (Day-1 flow owns that beat).
+                        onReadyToMove: { showBreathwork = false },
+                        onLater:       { showBreathwork = false },
+                        onDismiss:     { showBreathwork = false },
+                        techProtocol:  selectedBreath
+                    )
+                    .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.5), value: breathworkPhase)
             .presentationBackground(Palette.bgPrimary)
         }
         .fullScreenCover(isPresented: $showBrowse) {
@@ -860,6 +1055,39 @@ struct HomeView: View {
             #if DEBUG
             print("[FUNNEL] home_appeared | hasProAccess=\(payment.hasProAccess) | effectiveHasProAccess=\(payment.effectiveHasProAccess) | isEntitlementReady=\(payment.isEntitlementReady) | isInAuthTransition=\(payment.isInAuthTransition)")
             #endif
+            // Day-7 streak review prompt (epic #1 child #6). Transition
+            // detection via `streakCount == 7` so existing users with
+            // longer streaks don't retroactively trigger. Eligibility +
+            // 30-day cooldown + per-install lifetime flag come from
+            // RatingPromptService.isEligible.
+            if streakCount == 7 &&
+               RatingPromptService.shared.isEligible(for: .dayStreakSeven) {
+                RatingPromptService.shared.markShown(.dayStreakSeven)
+                // Delay so the home animation lands first; user is
+                // looking at the streak number when the sheet appears.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    showStreakReviewSheet = true
+                }
+            }
+        }
+        .sheet(isPresented: $showStreakReviewSheet) {
+            PreReviewSentimentSheet(
+                title: "showing up",
+                message: "7 days in a row. a quick rating helps other women find us.",
+                onYes: {
+                    RatingPromptService.shared.trackSentimentResult(
+                        trigger: .dayStreakSeven, sentimentYes: true)
+                    RatingPromptService.shared.presentSystemReviewSheet()
+                },
+                onNotYet: {
+                    RatingPromptService.shared.trackSentimentResult(
+                        trigger: .dayStreakSeven, sentimentYes: false)
+                    if let url = URL(string: "mailto:support@jenifit.app?subject=jenifit%20feedback") {
+                        openURLForReview(url)
+                    }
+                },
+                onDismiss: { showStreakReviewSheet = false }
+            )
         }
     }
 
@@ -872,32 +1100,51 @@ struct HomeView: View {
         // the stagger + spring entirely — content is identical, just
         // no movement. Honors `accessibilityReduceMotion` per HIG.
         if reduceMotion {
-            for i in 0..<4 {
+            for i in 0..<msgOpacity.count {
                 msgOpacity[i] = 1
                 msgOffset[i] = 0
             }
             greetingBlur = 0
             return
         }
-        // Phase 20a: replaces 0.5s-stagger × 0.6s-spring (last element
-        // landed at ~2.0s — read as laggy on cold launch). Motion.stagger
-        // (0.10s between elements) + Motion.gentleSpring keeps the
-        // cascade calm without dragging. Last element now lands ~0.85s
-        // after appear, which preserves the editorial feel without the
-        // wait.
-        for i in 0..<4 {
-            let delay = Double(i) * Motion.stagger
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                Haptics.soft()
-                withAnimation(Motion.gentleSpring) {
-                    msgOpacity[i] = 1
-                    msgOffset[i] = 0
-                }
-                // Greeting blur resolves a touch slower than its fade so the
-                // line reads as "coming into focus" — the one signature beat.
-                if i == 0 {
-                    withAnimation(.easeOut(duration: 0.6)) { greetingBlur = 0 }
-                }
+
+        // v1.0.7 — matched to AnalyticsView's cascade pattern so the
+        // Home + Becoming tabs read as the same animation language. Two
+        // things changed from the prior asyncAfter-per-slot approach:
+        //
+        //  1. Single render commit per slot via `withAnimation(...delay)`
+        //     instead of `DispatchQueue.main.asyncAfter` scheduling a
+        //     separate withAnimation. Letting SwiftUI batch the cascade
+        //     into one animation tree is what makes the slots ripple in
+        //     as a continuous wave rather than discrete jumps.
+        //
+        //  2. One soft haptic upfront, no per-slot haptics. The earlier
+        //     "first three slots tap" pattern read as buzzy on cold
+        //     launch; one breath-in tap (matching the Becoming tab)
+        //     reads as the cascade being announced, then the slots
+        //     resolve silently.
+        //
+        // A 0.10s lead delay before slot 0 gives the user's eye a beat
+        // to register that the entrance is starting — without it, the
+        // first slot fires immediately on appear and the cascade feels
+        // less deliberate.
+
+        Haptics.soft()
+
+        // Greeting blur resolves a touch slower than its fade so the
+        // line reads as "coming into focus" — the one signature beat
+        // of the entrance, kept on the greeting only so the rest of
+        // the cascade stays calm.
+        withAnimation(.easeOut(duration: 0.6).delay(0.10)) { greetingBlur = 0 }
+
+        // Six-slot ripple. 0.10s lead + 0.10s stagger × 5 = ~0.60s for
+        // the last slot to start, + spring resolution ~0.6s → ~1.2s
+        // total. Same total feel as the Becoming cascade.
+        for i in 0..<msgOpacity.count {
+            let delay = 0.10 + Double(i) * Motion.stagger
+            withAnimation(Motion.gentleSpring.delay(delay)) {
+                msgOpacity[i] = 1
+                msgOffset[i] = 0
             }
         }
     }
@@ -919,6 +1166,17 @@ struct HomeView: View {
                 Text("fit").font(.custom("Fraunces72pt-SemiBoldItalic", size: 20))
             )
             .foregroundStyle(Palette.textPrimary)
+            #if DEBUG
+            // 2026-06-01: DEBUG-only long-press shortcut to force the
+            // paywall on sim/dev without navigating Settings → Debug.
+            // Useful for verifying the hard-paywall cover when RC
+            // sandbox returns Pro=true for the test account. Not
+            // compiled into Release builds.
+            .onLongPressGesture(minimumDuration: 1.0) {
+                PaymentService.shared.debugForcePaywall.toggle()
+                Haptics.success()
+            }
+            #endif
 
             Spacer()
             // Clean three-line mark → opens the hub. Lives in the HStack so it
@@ -1493,25 +1751,35 @@ struct HomeView: View {
             totalDuration: duration
         )
         modelContext.insert(session)
-        // Look up today's progress record by calendar date — NOT by
-        // composite key. `currentDay` advances after each save, so a
-        // composite-key lookup would miss the same-day record and
-        // create a duplicate programDay slot. Date-based lookup keeps
-        // multiple same-day sessions on the same programDay number.
+        // programDay is now DERIVED from the SessionLogRecord set, not
+        // incremented from a stored counter. The calculator collapses
+        // multiple sessions on the same calendar day to a single day —
+        // so the "+1 per session" race that produced "day 8 after 3
+        // actual days" can't happen anymore. DayProgressRecord stays
+        // for the per-day aggregates (sessionLogIds, primary stats) +
+        // cross-device sync; programDay is stamped as a cache so the
+        // Supabase column stays consistent for queries that need it.
+        let derivedDay = EngagementDayCalculator.programDayForNewSession(
+            existingLogs: sessionLogs,
+            newSessionCompletedAt: session.completedAt
+        )
         let progressRecord: DayProgressRecord
         if let existing = todayProgress {
             existing.primarySessionId = session.id
             var ids = existing.sessionLogIds ?? []; ids.append(session.id); existing.sessionLogIds = ids
+            // Self-heal stamp: if the existing row carried a stale
+            // programDay (from the old buggy writer), overwrite with
+            // the derived value. Idempotent.
+            existing.programDay = derivedDay
             existing.updatedAt = .now
             progressRecord = existing
         } else {
-            let nextDay = (dayProgress.first?.programDay ?? 0) + 1
-            let progress = DayProgressRecord(userId: userId, programDay: nextDay, primarySessionId: session.id,
+            let progress = DayProgressRecord(userId: userId, programDay: derivedDay, primarySessionId: session.id,
                                             primaryQualityScore: 0, primaryHoldTime: 0)
             progress.sessionLogIds = [session.id]; modelContext.insert(progress)
             progressRecord = progress
             // New engagement day → stamp the shown-up count + maybe celebrate.
-            RetentionNotifications.recordShownUpDay(count: nextDay)
+            RetentionNotifications.recordShownUpDay(count: derivedDay)
         }
         try? modelContext.save()
         // Re-arm the win-back nudge from now — completing a session pushes
@@ -1534,21 +1802,25 @@ struct HomeView: View {
             plankHoldTime: holdTime, plankFormScore: quality
         )
         modelContext.insert(session)
-        // Date-based lookup (see saveSession comment): keeps multiple
-        // same-day sessions on the same programDay number.
+        // Same derived-day write path as `saveSession`. See that method's
+        // comment for the rationale.
+        let derivedDay = EngagementDayCalculator.programDayForNewSession(
+            existingLogs: sessionLogs,
+            newSessionCompletedAt: session.completedAt
+        )
         let progressRecord: DayProgressRecord
         if let existing = todayProgress {
             var ids = existing.sessionLogIds ?? []; ids.append(session.id); existing.sessionLogIds = ids
+            existing.programDay = derivedDay
             existing.updatedAt = .now
             progressRecord = existing
         } else {
-            let nextDay = (dayProgress.first?.programDay ?? 0) + 1
-            let progress = DayProgressRecord(userId: userId, programDay: nextDay, primarySessionId: session.id,
+            let progress = DayProgressRecord(userId: userId, programDay: derivedDay, primarySessionId: session.id,
                                             primaryQualityScore: quality, primaryHoldTime: holdTime)
             progress.sessionLogIds = [session.id]; modelContext.insert(progress)
             progressRecord = progress
             // New engagement day → stamp the shown-up count + maybe celebrate.
-            RetentionNotifications.recordShownUpDay(count: nextDay)
+            RetentionNotifications.recordShownUpDay(count: derivedDay)
         }
         try? modelContext.save(); hasCompletedFirstSession = true
         RetentionNotifications.markSessionCompleted()

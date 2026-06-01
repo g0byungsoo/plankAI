@@ -11,7 +11,7 @@ import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodu
 // "overwhelmed by dieting info"), anti-shame, and traces the number to how
 // it's computed (data-provenance).
 enum BecomingMetric: String, Identifiable {
-    case trend, forecast, milestone, goal, cadence
+    case trend, forecast, milestone, goal, cadence, movement, breath
     var id: String { rawValue }
 
     var sticker: StickerName {
@@ -21,6 +21,8 @@ enum BecomingMetric: String, Identifiable {
         case .milestone: return .starLineart
         case .goal:      return .flower3D
         case .cadence:   return .heartGlossy
+        case .movement:  return .shoeIridescent
+        case .breath:    return .heartGlossy
         }
     }
 
@@ -31,6 +33,8 @@ enum BecomingMetric: String, Identifiable {
         case .milestone: return "your next marker"
         case .goal:      return "progress to goal"
         case .cadence:   return "your weigh-in rhythm"
+        case .movement:  return "your moving"
+        case .breath:    return "your breath"
         }
     }
 
@@ -46,6 +50,10 @@ enum BecomingMetric: String, Identifiable {
             return "how far you've come toward your goal weight. we show it in healthy steps because slow and steady is what actually lasts, and stays off."
         case .cadence:
             return "how many times you stepped on the scale this week. weighing in a few times a week is the single habit most linked to losing weight — not the number itself, the showing up."
+        case .movement:
+            return "your steps from apple health, for the last 7 days. the soft line at 7,500 is research-backed — that's where weight tends to stay off, not the old 10k myth. brisk walks count more than slow ones, but every walk counts ♥"
+        case .breath:
+            return "one slow minute of breath flips on your parasympathetic system — the rest-and-digest mode that brings cortisol down. lower cortisol means fewer cravings that aren't really hunger, and a body less locked into holding on. the dots are the days you breathed this week. balban (stanford 2023, n=111), epel (yale, cortisol & abdominal fat), sato (senobi, biomed res 2010, n=40) ♥"
         }
     }
 }
@@ -58,7 +66,14 @@ struct MetricExplainerSheet: View {
 
     var body: some View {
         VStack(spacing: Space.lg) {
-            Spacer().frame(height: Space.sm)
+            // Sticker hero. The earlier `Spacer().frame(height: Space.xl)`
+            // got compressed by long-content explainers (.breath has the
+            // longest body — 4 citations), AND the system drag indicator
+            // overlay was eating into whatever pad the spacer did hold,
+            // landing the sticker right against the sheet chrome. Moved
+            // the inset to an explicit `.padding(.top, 56)` on the VStack
+            // — non-compressible, and sits BELOW the drag-indicator area
+            // so the sticker always has a real breathing margin.
             ZStack {
                 Circle().fill(Palette.accentSubtle).frame(width: 72, height: 72)
                 Image(metric.sticker.assetName)
@@ -72,20 +87,26 @@ struct MetricExplainerSheet: View {
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Text(metric.explainer)
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Space.lg)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer()
+            // Long-content safety net: ScrollView around the explainer
+            // text so .breath's longer paragraph never crashes the layout
+            // when the sheet is at .medium. ScrollIndicator hidden for the
+            // clean register. Short explainers don't trigger a scroll —
+            // ScrollView only scrolls when content exceeds its frame.
+            ScrollView(showsIndicators: false) {
+                Text(metric.explainer)
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.lg)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             Button(action: onClose) { Text("got it") }
                 .buttonStyle(.ctaPrimary)
                 .padding(.horizontal, Space.lg)
                 .padding(.bottom, Space.xl)
         }
+        .padding(.top, 56)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Palette.bgPrimary)
     }
@@ -348,6 +369,17 @@ struct AnalyticsView: View {
     @State private var presentedFutureRail: FutureRail? = nil
     @State private var presentedMetric: BecomingMetric? = nil
     @State private var calendarScale: CGFloat = 0.95
+    /// Index of the calendar cell currently being scrubbed (0…totalDays-1),
+    /// `nil` = default. Tap or drag on a cell sets this; release schedules
+    /// a ~1.0s revert. Matches the steps-bento header-morph pattern.
+    @State private var scrubbedCalendarIndex: Int? = nil
+    @State private var calendarRevertTask: Task<Void, Never>? = nil
+    /// Live grid width captured via a background GeometryReader on the
+    /// LazyVGrid. Read by the drag gesture to map touch X → cell column
+    /// without fighting LazyVGrid's intrinsic sizing (the previous
+    /// GeometryReader-wraps-LazyVGrid + fixed-height pattern clamped the
+    /// grid to 180pt and let cells overflow).
+    @State private var calendarGridWidth: CGFloat = 0
     /// Header blur-fade — matches the home greeting's "resolve into focus"
     /// signature so the becoming entrance reads in the same voice.
     @State private var headerBlur: CGFloat = 6
@@ -448,8 +480,17 @@ struct AnalyticsView: View {
                 .presentationDetents([.medium])
         }
         .sheet(item: $presentedMetric) { metric in
+            // `.large` detent added so the breath explainer (longer than
+            // the other metrics — 4 citations + 4-sentence mechanism) can
+            // be dragged up to show all content without compressing the
+            // top inset. Drag indicator visible so the sheet's draggability
+            // is obvious AND it puts a uniform ~16pt of visual top
+            // padding above the sticker on every metric (was missing on
+            // .breath specifically, since the long content was pulling
+            // the top spacer's compression).
             MetricExplainerSheet(metric: metric, onClose: { presentedMetric = nil })
-                .presentationDetents([.medium])
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
     }
 
@@ -627,8 +668,23 @@ struct AnalyticsView: View {
             trendTile
             HStack(spacing: 12) { forecastTile; milestoneTile }
             HStack(spacing: 12) { goalTile; cadenceTile }
+            // Movement — HealthKit-backed 7-day read. Home pulse is the
+            // daily anchor; this is the trend depth. Same source
+            // (StepsService.shared); the ⓘ opens the .movement explainer.
+            StepsBentoTile(service: StepsService.shared) {
+                presentedMetric = .movement
+            }
+            // Breath — passive read of the practice. Home BreathworkHomeCard
+            // owns the CTA; this is the identity-forward "you breathed N
+            // days this week" read. ⓘ opens the .breath explainer (cortisol
+            // mechanism + Stanford + Yale + Senobi citations).
+            BreathworkBentoTile(state: BreathworkState.shared) {
+                presentedMetric = .breath
+            }
             nsvTile
-            FutureRailRow(rails: [.foodLog, .stepCounter, .bodyScan]) { presentedFutureRail = $0 }
+            // .stepCounter dropped from this row — steps shipped as a real
+            // tile above, no longer a "coming soon" chip.
+            FutureRailRow(rails: [.foodLog, .bodyScan]) { presentedFutureRail = $0 }
                 .padding(.top, 2)
         }
     }
@@ -865,7 +921,11 @@ struct AnalyticsView: View {
 
     // Non-scale victories — the wins the scale can't see.
     private var nsvTile: some View {
-        let shown = dayProgress.count
+        // Use the derived engagement-day count, not raw dayProgress.count.
+        // The latter is row-count, which inflated under the prior buggy
+        // writer (one user could carry duplicate DayProgressRecord rows
+        // for the same calendar day). The calculator dedups by date.
+        let shown = EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs)
         return VStack(alignment: .leading, spacing: 6) {
             tileEyebrow("wins the scale can't see", accent: true)
             Text(nsvLine(shownUp: shown))
@@ -1102,7 +1162,14 @@ struct AnalyticsView: View {
         Task { await AppSync.shared.upsertWeightLog(log) }
     }
 
-    // MARK: - Activity Calendar (with freeze icons)
+    // MARK: - Activity Calendar (bento chrome + scrubbable)
+    //
+    // Upgraded to the bento tile design language + the chart-scrub pattern
+    // we shipped on the steps bento. Tap or drag any cell → the header
+    // morphs in place to show that day's read (day label + warm status
+    // line). 1.0s linger after release, then easeOut back to default.
+    // Future cells aren't tappable. Reduce-motion snaps revert + skips
+    // the cell-stroke pop on selection.
 
     private var activityCalendar: some View {
         let cal = Calendar.current
@@ -1113,14 +1180,52 @@ struct AnalyticsView: View {
         let totalDays = 28 + todayOffset
 
         return VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                // "your repeats" reframes the grid from a completion board
-                // (failure-coded when sparse) to show-up proof (identity-
-                // coded). Same data, calmer reading — one square is enough
-                // to start.
+            calendarHeader(totalDays: totalDays, today: today, cal: cal, frozenDates: frozenDates)
+
+            // Day labels
+            HStack(spacing: 0) {
+                ForEach(["M", "T", "W", "T", "F", "S", "S"], id: \.self) { day in
+                    Text(day)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Palette.textSecondary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.bottom, 2)
+
+            calendarGrid(totalDays: totalDays, today: today, cal: cal, frozenDates: frozenDates)
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(bentoChrome())
+    }
+
+    /// Calendar header that morphs between default (label + legend) and
+    /// scrub mode (day label + status line). Same Apple Health pattern as
+    /// the steps bento — primary read transforms in place; no floating
+    /// tooltip.
+    private func calendarHeader(totalDays: Int, today: Date, cal: Calendar, frozenDates: Set<Date>) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            if let i = scrubbedCalendarIndex,
+               let date = dateForCalendarIndex(i, totalDays: totalDays, today: today, cal: cal) {
+                Text(scrubbedDayLabel(date, today: today, cal: cal))
+                    .font(Typo.eyebrow).tracking(2)
+                    .foregroundStyle(Palette.accent)
+                    .id("scrub-cal-\(i)")
+                    .transition(.opacity)
+                Spacer()
+                Text(scrubbedDayStatus(date,
+                                       today: today,
+                                       activeDates: activeDates,
+                                       frozenDates: frozenDates))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                    .foregroundStyle(Palette.textSecondary)
+                    .transition(.opacity)
+            } else {
                 Text("your repeats")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Palette.textPrimary)
+                    .transition(.opacity)
                 Spacer()
                 // Legend
                 HStack(spacing: 10) {
@@ -1135,60 +1240,179 @@ struct AnalyticsView: View {
                         Text("frozen").font(.system(size: 10)).foregroundStyle(Palette.textSecondary)
                     }
                 }
-            }
-
-            // Day labels
-            HStack(spacing: 0) {
-                ForEach(["M", "T", "W", "T", "F", "S", "S"], id: \.self) { day in
-                    Text(day)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(Palette.textSecondary)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .padding(.bottom, 2)
-
-            // Grid
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 7), spacing: 5) {
-                ForEach(0..<totalDays, id: \.self) { i in
-                    let daysAgo = totalDays - 1 - i
-                    let date = cal.date(byAdding: .day, value: -daysAgo, to: today)!
-                    let isActive = activeDates.contains(date)
-                    let isFrozen = frozenDates.contains(date)
-                    let isToday = date == today
-                    let isFuture = date > today
-
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(
-                                isFuture ? Color.clear :
-                                isActive ? Palette.accent :
-                                isFrozen ? Palette.frozenDay :
-                                Palette.divider.opacity(0.4)
-                            )
-                            .aspectRatio(1, contentMode: .fit)
-
-                        // Ice icon for frozen days
-                        if isFrozen {
-                            Image(systemName: "snowflake")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(Color(hex: "#7BBBE5"))
-                        }
-
-                        // Today outline
-                        if isToday {
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .stroke(Palette.accent, lineWidth: 1.5)
-                                .aspectRatio(1, contentMode: .fit)
-                        }
-                    }
-                }
+                .transition(.opacity)
             }
         }
-        .padding(16)
-        .background(Palette.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .plankShadow()
+        .animation(.easeOut(duration: 0.18), value: scrubbedCalendarIndex)
+    }
+
+    /// LazyVGrid sized naturally by SwiftUI (one row = one cellW square +
+    /// 5pt gap, rows stack). Width captured via a background-GeometryReader
+    /// → calendarGridWidth, which the drag gesture reads at fire time to
+    /// map (x, y) → cell index. No outer height clamp: the grid expands to
+    /// fit `totalDays` so cells never overflow the bento card.
+    private func calendarGrid(totalDays: Int, today: Date, cal: Calendar, frozenDates: Set<Date>) -> some View {
+        let spacing: CGFloat = 5
+        let columns = 7
+        return LazyVGrid(
+            columns: Array(repeating: GridItem(.flexible(), spacing: spacing), count: columns),
+            spacing: spacing
+        ) {
+            ForEach(0..<totalDays, id: \.self) { i in
+                calendarCell(index: i,
+                             totalDays: totalDays,
+                             today: today,
+                             cal: cal,
+                             frozenDates: frozenDates)
+            }
+        }
+        .background(
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { calendarGridWidth = proxy.size.width }
+                    .onChange(of: proxy.size.width) { _, newW in calendarGridWidth = newW }
+            }
+        )
+        .contentShape(Rectangle())
+        .gesture(calendarScrubGesture(spacing: spacing,
+                                      totalDays: totalDays,
+                                      today: today,
+                                      cal: cal))
+    }
+
+    private func calendarCell(index i: Int,
+                              totalDays: Int,
+                              today: Date,
+                              cal: Calendar,
+                              frozenDates: Set<Date>) -> some View {
+        let daysAgo = totalDays - 1 - i
+        let date = cal.date(byAdding: .day, value: -daysAgo, to: today) ?? today
+        let isActive = activeDates.contains(date)
+        let isFrozen = frozenDates.contains(date)
+        let isToday = date == today
+        let isFuture = date > today
+        let isSelected = scrubbedCalendarIndex == i && !isFuture
+
+        return ZStack {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(
+                    isFuture ? Color.clear :
+                    isActive ? Palette.accent :
+                    isFrozen ? Palette.frozenDay :
+                    Palette.divider.opacity(0.4)
+                )
+                .aspectRatio(1, contentMode: .fit)
+
+            if isFrozen {
+                Image(systemName: "snowflake")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Color(hex: "#7BBBE5"))
+            }
+
+            if isToday {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(Palette.accent, lineWidth: 1.5)
+                    .aspectRatio(1, contentMode: .fit)
+            }
+
+            // Selection ring — sits OUTSIDE the cell fill so it reads
+            // against active/frozen/inactive alike. 1.5pt accent at full
+            // opacity for the scrubbed cell. Skipped on future cells
+            // (those don't carry meaning to surface).
+            if isSelected {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .stroke(Palette.accent, lineWidth: 1.5)
+                    .aspectRatio(1, contentMode: .fit)
+                    .padding(-2)
+            }
+        }
+        .scaleEffect(isSelected && !reduceMotion ? 1.06 : 1.0)
+        .animation(.easeOut(duration: 0.16), value: isSelected)
+        .opacity(scrubbedCalendarIndex == nil || isSelected || isFuture ? 1.0 : 0.55)
+        .animation(.easeOut(duration: 0.16), value: scrubbedCalendarIndex)
+    }
+
+    /// DragGesture(minimumDistance: 0) so tap + drag both scrub. Reads
+    /// `calendarGridWidth` AT FIRE TIME (not at gesture-construction time)
+    /// so a width that lands after the first paint still produces the
+    /// correct mapping. Future cells are skipped.
+    private func calendarScrubGesture(spacing: CGFloat,
+                                      totalDays: Int,
+                                      today: Date,
+                                      cal: Calendar) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                let columns: CGFloat = 7
+                let cellW = max(1, (calendarGridWidth - spacing * (columns - 1)) / columns)
+                let col = min(6, max(0, Int(value.location.x / max(1, cellW + spacing))))
+                let row = max(0, Int(value.location.y / max(1, cellW + spacing)))
+                let index = row * 7 + col
+                guard (0..<totalDays).contains(index) else { return }
+                // Skip future cells.
+                let daysAgo = totalDays - 1 - index
+                if let date = cal.date(byAdding: .day, value: -daysAgo, to: today), date > today {
+                    return
+                }
+                if scrubbedCalendarIndex != index {
+                    scrubbedCalendarIndex = index
+                    Haptics.tick()
+                }
+                calendarRevertTask?.cancel()
+                calendarRevertTask = nil
+            }
+            .onEnded { _ in
+                scheduleCalendarRevert()
+            }
+    }
+
+    private func scheduleCalendarRevert() {
+        calendarRevertTask?.cancel()
+        if reduceMotion {
+            scrubbedCalendarIndex = nil
+            return
+        }
+        calendarRevertTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1000))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.25)) {
+                scrubbedCalendarIndex = nil
+            }
+        }
+    }
+
+    // MARK: - Calendar scrub copy
+
+    private func dateForCalendarIndex(_ i: Int, totalDays: Int, today: Date, cal: Calendar) -> Date? {
+        let daysAgo = totalDays - 1 - i
+        return cal.date(byAdding: .day, value: -daysAgo, to: today)
+    }
+
+    /// Eyebrow label for the scrubbed day: today / yesterday / "fri may 23".
+    /// Lowercase, no comma — matches the existing voice signal.
+    private func scrubbedDayLabel(_ date: Date, today: Date, cal: Calendar) -> String {
+        if date == today { return "TODAY" }
+        let yesterday = cal.date(byAdding: .day, value: -1, to: today) ?? today
+        if date == yesterday { return "YESTERDAY" }
+        let f = DateFormatter()
+        f.dateFormat = "EEE MMM d"
+        return f.string(from: date).uppercased()
+    }
+
+    /// Status line for the scrubbed cell. Five branches, all anti-shame —
+    /// the inactive past day is "a quiet day ♥" (never "missed"); frozen
+    /// is framed as the system holding the streak open, not a free pass.
+    private func scrubbedDayStatus(_ date: Date,
+                                   today: Date,
+                                   activeDates: Set<Date>,
+                                   frozenDates: Set<Date>) -> String {
+        let isActive = activeDates.contains(date)
+        let isFrozen = frozenDates.contains(date)
+        if date == today {
+            return isActive ? "already moving ♥" : "still open ♥"
+        }
+        if isActive { return "you showed up ♥" }
+        if isFrozen { return "jeni held it ♥" }
+        return "a quiet day ♥"
     }
 
     // MARK: - Plank Progress
