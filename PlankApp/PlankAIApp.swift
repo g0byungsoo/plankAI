@@ -89,6 +89,7 @@ struct PlankAIApp: App {
             _ = WorkoutGeneratorSelfCheck.runAll()
             _ = StreakCalculatorSelfCheck.runAll()
             _ = WeightSelfCheck.runAll()
+            _ = EngagementDayCalculatorSelfCheck.runAll()
         }
         #endif
     }
@@ -182,7 +183,21 @@ struct PlankAIApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            // Wrap the window root in cream so the system window background
+            // never bleeds through during the brief moment iOS spends
+            // swapping snapshot → launch screen → real UI on cold launch
+            // and on background→foreground returns. Combined with the
+            // LaunchBackground colorset (Info.plist UILaunchScreen.UIColorName)
+            // there is no grey/white flash at any transition point — the
+            // user sees cream from the moment they tap the icon. The
+            // ResumeBloom modifier layers a soft blur fade-in on top so
+            // the foreground transition reads as a deliberate breath-in
+            // rather than a hard cut.
+            ZStack {
+                Palette.bgPrimary.ignoresSafeArea()
+                RootView()
+                    .modifier(ResumeBloom())
+            }
         }
         .modelContainer(for: [
             UserRecord.self,
@@ -193,6 +208,58 @@ struct PlankAIApp: App {
             SessionRatingRecord.self,
             WeightLogRecord.self,
         ])
+    }
+}
+
+// MARK: - ResumeBloom
+//
+// Soft blur fade-in on background→foreground transitions. The system
+// already cross-fades from snapshot → launch screen → real UI; this
+// modifier layers a 0.4s easeOut blur dissolve on top so the moment the
+// user is back in JeniFit reads as a deliberate breath-in rather than a
+// hard cut. The Calm / Headspace / Apple Fitness pattern adapted for the
+// scrapbook register.
+//
+// Cold-launch behavior: scenePhase starts at .active, so the first
+// .onChange fires when going .active → .background → .active. The cold
+// launch itself doesn't trigger a bloom (the HomeView's own animateIn
+// owns that beat); only resumes from background do.
+//
+// Reduce-motion: snaps with no bloom (the cream backdrop + launch screen
+// still kill the grey flash; only the polish is dropped).
+private struct ResumeBloom: ViewModifier {
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var blur: CGFloat = 0
+    @State private var opacity: Double = 1
+    @State private var wasBackgrounded = false
+
+    func body(content: Content) -> some View {
+        content
+            .blur(radius: blur)
+            .opacity(opacity)
+            .onChange(of: scenePhase) { _, newPhase in
+                switch newPhase {
+                case .background:
+                    wasBackgrounded = true
+                case .active where wasBackgrounded:
+                    wasBackgrounded = false
+                    guard !reduceMotion else { return }
+                    // Set the bloom-from state THIS frame, then resolve
+                    // next runloop so the blur actually renders before
+                    // it animates away — same trick TabBloom uses.
+                    blur = 6
+                    opacity = 0.92
+                    DispatchQueue.main.async {
+                        withAnimation(.easeOut(duration: 0.4)) {
+                            blur = 0
+                            opacity = 1
+                        }
+                    }
+                default:
+                    break
+                }
+            }
     }
 }
 
@@ -223,7 +290,8 @@ private struct RootView: View {
     // purchase flows as the discount sheet appearing right as the cover
     // dismissed, creating an awkward "did I get the discount or the
     // standard?" moment for the user.
-    @State private var showingDownsell = false
+    // v1.0.7 removed @State private var showingDownsell = false
+    // (downsell flow unwired; founder chose premium positioning).
 
     // Celebration screen state. Set true by PaywallView/DownsellPaywallView
     // `onSubscribed` callbacks — so it fires ONLY on a fresh-from-paywall
@@ -289,7 +357,14 @@ private struct RootView: View {
                             // on X tap. Sheet dismiss returns here without
                             // letting the user out of the cover.
                             PaywallView(
-                                dismissable: true,
+                                // 2026-06-01: dismissable flipped to
+                                // false. X button was always decorative
+                                // (onDismiss didn't actually dismiss the
+                                // hard-paywall cover, only fired analytics)
+                                // so its visual presence was misleading.
+                                // Hard paywall is now visually honest:
+                                // the only way out is to subscribe.
+                                dismissable: false,
                                 onSubscribed: {
                                     #if DEBUG
                                     print("[Paywall.main] onSubscribed fired (debugForcePaywall was \(payment.debugForcePaywall))")
@@ -322,10 +397,31 @@ private struct RootView: View {
                                     }
                                 },
                                 onDismiss: {
-                                    showingDownsell = true
+                                    // 2026-05-30 (epic #1 child #4): X tap
+                                    // no longer opens the downsell. The
+                                    // paywall stays hard-bound to
+                                    // effectiveHasProAccess, so the X is a
+                                    // visual escape hatch only — the
+                                    // paywall_dismiss_attempted event fires
+                                    // for the analytics signal. Downsell
+                                    // fires ONLY on transaction-abandon
+                                    // (Apple sheet cancel) per the spec.
                                 },
                                 onPurchaseCancelled: {
-                                    showingDownsell = true
+                                    // v1.0.7: discount-free premium positioning
+                                    // (founder decision 2026-05-31 after
+                                    // April-2026 Apple Cal AI 5.6 enforcement
+                                    // + research-validated brand cost of
+                                    // discount-training the cohort).
+                                    //
+                                    // Transaction-abandon now tracks the event
+                                    // for funnel analysis but does NOT present
+                                    // a discount paywall. Premium positioning
+                                    // is the lever — Calm/Headspace/Mejuri
+                                    // pattern. DownsellPaywallView.swift stays
+                                    // dormant on disk for potential v1.2
+                                    // reactivation if conversion data demands.
+                                    Analytics.track(.paywallTransactionAbandoned)
                                 }
                             )
                             .onAppear {
@@ -342,51 +438,21 @@ private struct RootView: View {
                                     "trial_days": 3
                                 ])
                             }
-                            .sheet(isPresented: $showingDownsell) {
-                                DownsellPaywallView(
-                                    onSubscribed: {
-                                        #if DEBUG
-                                        print("[Paywall.downsell] onSubscribed fired (debugForcePaywall was \(payment.debugForcePaywall))")
-                                        // Phase 9.31 — auto-clear the
-                                        // force-paywall debug flag on
-                                        // successful purchase (same as
-                                        // main path).
-                                        payment.debugForcePaywall = false
-                                        #endif
-                                        showingDownsell = false
-                                        presentPostPurchaseFlowIfEligible()
-                                    },
-                                    onDismiss: {
-                                        showingDownsell = false
-                                    }
-                                )
-                                .interactiveDismissDisabled(false)
-                                .onAppear {
-                                    Analytics.track(.paywallView, properties: [
-                                        "paywall_id": "downsell",
-                                        "placement": "onboarding_final_downsell",
-                                        "variant_id": "control",
-                                        "default_plan": "annual_50pct",
-                                        "has_trial": false,
-                                        "discount_shown": true
-                                    ])
-                                }
-                            }
+                            // v1.0.7 (2026-05-31): downsell sheet removed.
+                            // Discount-free premium positioning. The
+                            // DownsellPaywallView.swift file stays on disk
+                            // for potential v1.2 reactivation, but is
+                            // unwired here. Apple-5.6 risk eliminated;
+                            // brand-discount-training risk eliminated.
                         }
                         .onChange(of: payment.effectiveHasProAccess) { oldValue, newValue in
                             #if DEBUG
                             print("[FUNNEL] paywall_cover_state_change | effectiveHasProAccess: \(oldValue) → \(newValue) | cover will \(newValue ? "DISMISS" : "PRESENT")")
                             #endif
-                            // Reset downsell state on entitlement flip so a
-                            // future expiration → re-present cycle starts
-                            // fresh with no stale sheet state.
-                            if newValue {
-                                showingDownsell = false
-                                // Purchase / trial start events fire from
-                                // PaymentService.startCustomerInfoStream
-                                // where product_id and trial-period info
-                                // are first-class — don't double-emit here.
-                            }
+                            // Purchase / trial start events fire from
+                            // PaymentService.startCustomerInfoStream where
+                            // product_id and trial-period info are
+                            // first-class — don't double-emit here.
                         }
                         .fullScreenCover(isPresented: $showingCoachIntro) {
                             // Phase A: the post-purchase sequence — Jeni
@@ -651,6 +717,10 @@ private struct RootView: View {
         record.onboardingRelatability1 = data.relatability1
         record.onboardingRelatability2 = data.relatability2
         record.onboardingRelatability3 = data.relatability3
+        // Epic #1 child #7 (2026-05-30): TikTok/IG/friend attribution.
+        // Empty string from never-answered users persists as nil so the
+        // Supabase column reflects "no answer" instead of an empty string.
+        record.onboardingAcquisitionSource = data.acquisitionSource.isEmpty ? nil : data.acquisitionSource
         record.pendingUpsert = true
         try? modelContext.save()
         return record

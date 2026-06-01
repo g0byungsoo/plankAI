@@ -188,7 +188,33 @@ final class PaymentService {
         entitlementReadyTimeoutTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             guard !Task.isCancelled else { return }
-            self?.markEntitlementReady(reason: "safety timeout")
+            guard let self else { return }
+            // Soft-spot fix #3 (2026-06-01): the safety timeout used
+            // to flip isEntitlementReady true purely based on the
+            // cached hasProAccess. If a user with a previously-Pro
+            // cache cold-launches offline + RC stream hangs, they
+            // could see MainTabView without the paywall presenting.
+            // Now: before flipping the gate, force a one-shot
+            // Purchases.shared.customerInfo() refresh. If it
+            // resolves quickly, the truth lands first; if it hangs
+            // too, we proceed with the cached value but at least we
+            // tried to validate.
+            Task { @MainActor [weak self] in
+                do {
+                    let info = try await Purchases.shared.customerInfo()
+                    let isActive = info.entitlements[RevenueCatConfig.entitlementID]?.isActive ?? false
+                    self?.hasProAccess = isActive
+                    UserDefaults.standard.set(isActive, forKey: Self.lastKnownEntitlementKey)
+                    #if DEBUG
+                    print("[PaymentService] safety-timeout refresh: hasProAccess=\(isActive)")
+                    #endif
+                } catch {
+                    #if DEBUG
+                    print("[PaymentService] safety-timeout refresh failed: \(error)")
+                    #endif
+                }
+                self?.markEntitlementReady(reason: "safety timeout")
+            }
         }
     }
 
@@ -284,7 +310,13 @@ final class PaymentService {
         #endif
         authTransitionSafetyTask?.cancel()
         authTransitionSafetyTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            // Soft-spot fix #2 (2026-06-01): tightened 1s → 500ms.
+            // The narrower window reduces the bypass surface where
+            // !isInAuthTransition is false during user-driven auth
+            // changes (sign-in / sign-up) and the cover doesn't
+            // present. customerInfoStream emits in <500ms typically;
+            // safety timeout only fires on rare hangs.
+            try? await Task.sleep(nanoseconds: 500_000_000)
             guard !Task.isCancelled else { return }
             self?.clearAuthTransition(reason: "safety timeout")
         }
@@ -297,8 +329,17 @@ final class PaymentService {
                 #endif
             } else {
                 _ = try await Purchases.shared.logOut()
+                // Soft-spot fix #1 (2026-06-01): wipe the cached
+                // entitlement on sign-out so a previously-Pro user who
+                // signs out (e.g., cancelled + switching accounts)
+                // doesn't carry stale hasProAccess=true through the
+                // PaymentService init() cache-read. RC stream re-emits
+                // the truth for the new (anonymous) user shortly after,
+                // but the cache window is the soft-spot.
+                UserDefaults.standard.removeObject(forKey: Self.lastKnownEntitlementKey)
+                hasProAccess = false
                 #if DEBUG
-                print("[PaymentService] logOut succeeded")
+                print("[PaymentService] logOut succeeded — cached entitlement cleared")
                 #endif
             }
         } catch {
