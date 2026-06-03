@@ -1706,3 +1706,448 @@ Per v1 plan: Nutritionix Pro past $50k MRR. Cycle-aware target adjustment (math,
 ---
 
 *End delta v3. v3 wins over v2 wins over v1 where they conflict. Ticketing starts after founder gate on D19–D27 + 1.0.6 archive lands.*
+
+---
+
+# Delta v4 — Smooth Integration Spec 2026-06-03 (evening)
+
+Status: DRAFT. Operational supplement to v3 — defines how the food rail integrates smoothly into JeniFit across user journeys, JeniMethod expansion, and surface-by-surface polish. v3 architectural decisions all stand. v4 adds **D28–D32** for journey + content + rollout calls.
+
+Scope: **how the food rail lands smoothly as the major feature.** Out of scope: external marketing positioning, anti-75-Hard hashtag play, App Store metadata reframe (held for v1.1+).
+
+Three findings absorbed from 75-day research:
+- **No restart-from-Day-1.** Missed JeniMethod days become "catch up" tiles, never a reset (75 Hard's ~97% failure mechanic, do the opposite).
+- **Day 7 / 25 / 50 / 75 milestone beats.** Natural attention moments from fitness-app retention research.
+- **Day 76 = soft loop into lighter rhythm.** Never forced re-enrollment.
+
+---
+
+## 1. New user journey — install through Day 7
+
+Day-by-day walkthrough of what a fresh install sees post-v1.0.7 launch. Assumes user installs, completes v2 onboarding (now 57 + 1 cuisine question = 58 screens), hits paywall, subscribes.
+
+### Install → Onboarding → Paywall
+
+Unchanged from v1.0.6 except:
+- Onboarding case 165 (cuisine multi-select) adds ~5 seconds
+- Reveal sequence at end gains 1 line referencing food: *"we'll meet you at your plate too, when you're ready."*
+- Plan reveal echoes cuisine selection back: *"korean home-cooked + matcha lattes — we'll learn your patterns from day one."* (Personalization deepens IKEA effect.)
+- Paywall food-variant hero fires (per v3): *"see your weight-loss story unfold. what you eat, how you move, how it's working."*
+
+### Day 0 (immediately post-paywall) — the welcoming, NOT the food prompt
+
+Critical UX call: **do NOT push food scanning immediately after paywall.** Audience research showed friction post-purchase is the #1 activation killer (per `20260602-180612-posthog-3-day-audit--action-list.md`: 62% of payers never started a workout — pushing food would compound the activation gap).
+
+Instead:
+- Land on Home with the food card visible but **dimmed/empty-state** (*"ready when you are"* copy)
+- JeniMethod Day 1 lesson card is the **hero** post-paywall (existing pattern)
+- Food card sits at Slot 4 — visible, not pushed
+- No popup, no "scan your first meal!" CTA. The visibility teases without pressure.
+
+### Day 1 — JeniMethod Day 1 (existing lesson, unchanged)
+
+User opens app, sees Day 1 lesson card prominently. Existing lesson covers identity/why-now per `JeniMethodContent.swift:12–117`. Food card visible below but not centered.
+
+JeniMethod Day 1's last page gains **one new line**: *"tomorrow we'll talk about your plate."* Foreshadows Day 2 food intro without forcing today's scan.
+
+### Day 2 — JeniMethod Day 2 NEW (food rail intro lesson)
+
+**New lesson inserted as Day 2** (existing Day 2 "muscle math" shifts to Day 3). This is the **only existing-arc revision** v4 makes — needed to align food intro with cohort attention curve.
+
+Day 2 lesson: *"your plate is the other half"*
+- 2-page primer matching existing format
+- Page 1: weight loss is energy intake + body's energy use. food is half the math. (No "calorie deficit" language.)
+- Page 2: how JeniFit reads your plate. tap → camera. *"try one scan today — anything."*
+- Tap-through: AI consent modal fires (Apple 5.1.2(i) baked into UX per v3)
+- Camera opens with pre-eat toggle visible. User can scan anything or close.
+
+Whether or not user scans on Day 2, lesson is marked complete. **No failure state.**
+
+### Day 3–6 — JeniMethod existing arc (Days 2→3, 3→4, etc., all shift by 1)
+
+Day 3 (was Day 2) = muscle math. Day 4 (was Day 3) = protein basics. Etc. through Day 14.
+
+Food card on Home remains visible. After the first scan ever (whenever it happens), the food card displays **today's logged count** + caption referencing the week.
+
+### Day 7 — FIRST MILESTONE (existing in app via `EngagementDayCalculator`)
+
+Per 75-day retention research: Day 7 is a natural attention beat. Add a soft "your first week" moment:
+- JeniMethod Day 7 lesson gains an opening line: *"you showed up for a week. that's the rhythm."*
+- Becoming Story Card hero gets a small *"week one ✓"* badge for 7 days
+- NO push notification celebrating it — let user discover. (Notification budget reserved for higher-leverage moments.)
+
+If user hasn't scanned food yet by Day 7: a single passive Home banner appears below the food card: *"the camera's still waiting. anytime."* No urgency. Dismisses on first scan or after 7 days.
+
+---
+
+## 2. Existing user journey — what flag-flip day looks like
+
+For a user who installed pre-v1.0.7 (i.e. existing 1.0.6 user), already past onboarding, already engaging with JeniMethod / weight log / workouts. They open the app on the day `food_rail_enabled` flips to true for their cohort.
+
+### Silent changes (no notification, no announcement)
+
+- Home Slot 4 component swap: `StepsPulseTile + BreathworkHomeCard` → `TodayHealthStrip` (food card hero + steps/breath pills below). Visually different but layout grid identical, so it doesn't feel jarring.
+- Becoming bento grid → Story Card stack restructure (per v3 §Becoming redesign). This is the biggest visual change.
+- Settings menu adds "food" sub-screen at bottom of list.
+
+### One-time tile pattern (no modal, no popup)
+
+Single soft tile on Home above the food card, dismissable, persists 7 days:
+
+```
+┌──────────────────────────────────────┐
+│  ✿  jenifit now reads your plate     │
+│      tap to try → first scan's free   │  ← (it's free because they're paid)
+│      dismiss                          │
+└──────────────────────────────────────┘
+```
+
+Tap → camera opens (AI consent fires first if not yet accepted). Dismiss → tile removed permanently for this user.
+
+**No popup. No modal. No forced flow.** Per `feedback_onboarding_insights_2026` + audience research: over-explanation reads patronizing.
+
+### JeniMethod handoff for existing users
+
+Existing user's `programDay` (derived from session logs per `project_engagement_day`) is wherever they are. Options:
+
+**Option A (recommended): users continue where they are; new food lessons inject naturally.**
+- User at Day 23 stays at Day 23. Next time they open JeniMethod, they see whichever lesson Day 23 corresponds to in the new 75-day arc (likely a food-related lesson per the expansion below).
+- Existing users essentially "skip ahead" to food content faster than new users.
+- No forced replay of food intro lessons they missed (Days 2, 15-20).
+
+**Option B: existing users get a brief "catch up" sheet at flag-flip.**
+- One-time interstitial offering: *"new food lessons just dropped. start with the basics, or jump ahead?"*
+- Adds friction. Likely off-brand.
+
+**Recommend A.** Existing users are engaged enough that they don't need re-onboarding; the food card on Home + the next JeniMethod lesson are enough discovery.
+
+### Becoming Story Card transition for existing users
+
+The bento → Story Card restructure is significant. Existing users have weight data; the trend card lights up immediately. Existing users may not have food data on flag-flip day → "what you ate" card shows empty state: *"your week's plate shows up here once you log a few meals."*
+
+This empty card is **load-bearing** — research showed seeing the slot before it has data is better than late-inserting it after first log. Sets expectation.
+
+---
+
+## 3. JeniMethod 75-day arc — content expansion
+
+Goal: extend from 14 lessons → 75 lessons. Existing 14 days stay (with one minor reorder: new Day 2 = food intro, original Day 2 → Day 3, all subsequent existing days shift +1 so Day 14 becomes Day 15). Add 60 new lessons (Days 16–75).
+
+Per user descope: **content volume, not structural reframe.** No external marketing arc, no "75 days of becoming" branding, no cohort launch dates. Just more lessons.
+
+### Existing 14 → renumbered 15 days (Days 1–15)
+
+- **Day 1**: identity / why-now *(existing Day 1, unchanged)*
+- **Day 2**: *your plate is the other half* **(NEW — food rail intro)**
+- **Day 3**: muscle math *(was Day 2)*
+- **Day 4**: protein basics *(was Day 3)*
+- **Day 5**: protein continued *(was Day 4)*
+- **Day 6**: habit formation *(was Day 5)*
+- **Day 7**: habit deepening *(was Day 6)*
+- **Day 8**: sleep basics *(was Day 7)*
+- **Day 9**: sleep + recovery *(was Day 8)*
+- **Day 10**: barrier-lowering *(was Day 9)*
+- **Day 11**: barrier-resolved follow-up *(was Day 10)*
+- **Day 12**: hot girl walk *(was Day 11)*
+- **Day 13**: movement variety *(was Day 12)*
+- **Day 14**: plank mastery intro *(was Day 13)*
+- **Day 15**: first 2-week reflection *(was Day 14 "completion" — repurposed as Act 1 close)*
+
+### Days 16–35 — food rail depth (20 NEW lessons)
+
+Theme: building food literacy and the eating-+-movement-together story. Each lesson includes a "today's prompt" that connects to a food rail action.
+
+- **Day 16**: food noise vs real hunger *(GLP-1-era vocab for all)*. Prompt: try the pre-eat mode once today.
+- **Day 17**: the trend, not the day. Prompt: open Becoming, look at your week's pattern.
+- **Day 18**: portion truth — why estimates are estimates. Prompt: try the corrections sheet once.
+- **Day 19**: protein-priority math. Prompt: scan a high-protein meal, see Jeni's note.
+- **Day 20**: the matcha latte question (cohort beverages). Prompt: use the quick-add rail.
+- **Day 21**: girl dinner is a meal too. Prompt: log a girl dinner via quick-add.
+- **Day 22**: 3-week reflection. (Day 21 = end of week 3, soft check-in.)
+- **Day 23**: restaurant strategy intro. Prompt: try "i'm out tonight" mode.
+- **Day 24**: comfort food permission. Prompt: log a comfort meal without changing the rating.
+- **Day 25**: **MILESTONE — quarter-complete moment.** Identity check-in re-asks Q140 ("who are you becoming"). Lesson reflects on what the user collected so far (plank Mastery curve + weight EMA + food logs count).
+- **Day 26**: the cycle question intro *(awareness only, no per-phase math)*.
+- **Day 27**: PMS comfort, soft frame. Prompt: log without judgment this week.
+- **Day 28**: hot girl walk + plate together. Prompt: log a meal + take a walk after.
+- **Day 29**: water + satiety. Prompt: water log on Home (existing).
+- **Day 30**: 4-week reflection. (End of month 1.)
+- **Day 31**: sleep + cravings. Prompt: notice tomorrow's hunger after tonight's sleep.
+- **Day 32**: stress eating, gently. Prompt: log a stress-eating moment if it happens, without renaming it.
+- **Day 33**: the bloat truth (cycle + sodium + water vs scale weight). Prompt: weigh, then look at the trend curve.
+- **Day 34**: the snack truth. Prompt: log a snack as a snack (not a "treat").
+- **Day 35**: the dessert frame. Prompt: log a dessert as a meal component, not a sin.
+
+### Days 36–55 — depth + cycle + plateau (20 NEW lessons)
+
+Theme: the body changes, the math gets nuanced, the program deepens.
+
+- **Day 36**: 5-week reflection. The first plateau possibility.
+- **Day 37**: weight trend literacy (EMA explained simply). Prompt: trust the line, not the dot.
+- **Day 38**: plateau prep — what to expect around Day 45.
+- **Day 39**: the energy curve over the cycle. Awareness only, no math.
+- **Day 40**: protein density swaps. Prompt: scan a meal, see if Jeni flags the swap.
+- **Day 41**: hunger types — physical vs emotional vs habit.
+- **Day 42**: 6-week reflection. Halfway-but-not-halfway moment.
+- **Day 43**: fullness types — comfortable vs stuffed.
+- **Day 44**: hydration depth. Prompt: water count this week.
+- **Day 45**: the "second mountain" — when the easy gains taper.
+- **Day 46**: NSV (non-scale victories) literacy. Prompt: log one NSV.
+- **Day 47**: the comparison killer (social media + body image).
+- **Day 48**: photo evidence (not progress photos — clothing-fit, energy, mood).
+- **Day 49**: the rest day. Prompt: take one.
+- **Day 50**: **MILESTONE — halftime mirror.** Data-grounded reflection from EMA + Mastery curve + food log count. *"this is what 50 days of showing up looks like."*
+- **Day 51**: maintenance mindset preview.
+- **Day 52**: the want vs the should — eating from desire vs obligation.
+- **Day 53**: reverse-diet intro (gentle).
+- **Day 54**: the cheat-day myth. Prompt: log every day this week, no "off."
+- **Day 55**: cycle phase awareness deep dive (still no math, just understanding).
+
+### Days 56–75 — identity completion + maintenance (20 NEW lessons)
+
+Theme: the woman you're becoming is becoming permanent.
+
+- **Day 56**: 8-week reflection. The data tells a story.
+- **Day 57**: social pressure handling — when others notice.
+- **Day 58**: the identity-anchored frame ("I am someone who…").
+- **Day 59**: GLP-1 vocabulary recap *(if user flagged glp1Status active, this lesson personalizes)*.
+- **Day 60**: protein-priority recap with new depth.
+- **Day 61**: the long-term-trend literacy — months, not weeks.
+- **Day 62**: 9-week reflection. The taper question.
+- **Day 63**: maintenance kcal — what changes when goal is reached.
+- **Day 64**: ongoing trend reading — how to weigh without anxiety.
+- **Day 65**: plank mastery — your time vs Day 14's time.
+- **Day 66**: identity verbs ("I move, I eat, I track").
+- **Day 67**: the next-75-days question.
+- **Day 68**: friends + accountability (no leaderboards — soft cohort frame).
+- **Day 69**: 10-week reflection. The body's new normal.
+- **Day 70**: the maintenance ritual — what daily looks like at goal.
+- **Day 71**: food noise revisited — has it quieted?
+- **Day 72**: the eating window question (if user flagged eatingWindow restricted).
+- **Day 73**: the becoming card — a data-grounded reflection (NO before/after photo). *(In-app only. NOT a share asset per descope.)*
+- **Day 74**: the celebration day — what you collected.
+- **Day 75**: **COMPLETION RITUAL.** Identity statement re-asked. Mastery curve, EMA, food log count, NSVs, barrier-resolved count all shown as evidence. *"you became someone who…"*
+
+### Day 76+ — soft loop into lighter rhythm
+
+Per 75-day research: **never force re-enrollment.** At Day 76:
+- JeniMethod card on Home keeps surfacing daily lessons but from a lighter "maintenance" pool (existing `.generic` loop infrastructure, expanded with new maintenance-themed lessons).
+- Becoming Story Card hero gets a soft "completed program ✓" badge.
+- No popup, no forced "start again" CTA. User can tap the badge for a quiet option to start a new 75 if they want.
+
+Day 76 maintenance pool: a smaller set (~15 lessons) cycling weekly, focused on long-term identity reinforcement, plateau navigation at maintenance, and seasonal eating themes.
+
+### Missed-day handling — "catch up" tiles, NEVER restart
+
+If user opens app and missed a day (programDay advanced without lesson tap):
+- JeniMethod card on Home shows the missed lesson as a **catch-up tile** with copy: *"day 12 is here when you're ready"*
+- Lesson is tappable; advancing through it marks it complete; programDay continues to advance daily regardless
+- Maximum 3 catch-up tiles visible at once (oldest gets dismissed/archived)
+- **Day-counter advances every calendar day. Never resets. Never penalizes.**
+
+This is the explicit anti-75-Hard mechanic — research showed restart-from-Day-1 has ~97% failure rate. JeniMethod is the inverse.
+
+### Illustration / content cost estimate
+
+- 61 new lessons × 1 illustration each (216×216@3x, paper-craft style, Grok pipeline per existing pattern) = 61 illustrations
+- At ~$2–5 per illustration via Grok = $120–$305 in generation cost
+- Curation + Photoshop touch-up: ~3–4 weeks of part-time work for one curator
+- Lesson copy writing: ~2 weeks for 61 lessons at 200–300 words each (founder + Jeni voice)
+- TOTAL: ~6–8 weeks of content work, parallelizable with dev work on v1.0.7
+
+**Recommendation:** ship v1.0.7 with **Days 1–30 only** (16 new lessons beyond existing 14). Days 31–75 land in v1.0.8 content-only update (no code ship needed; just data + assets via Supabase content table or static bundle update). This gives content team time without blocking dev.
+
+### Content-data delivery shape
+
+Move JeniMethod lessons from hardcoded `JeniMethodContent.swift` enum cases to a **Supabase content table** (`jenimethod_lessons` with day_number, title, pages JSONB, illustration_asset_name). App fetches + caches locally. New lessons land via content update, no app submission needed.
+
+This is a small additional architecture commitment but pays back massively when adding the back-half of the 75-day arc post-launch.
+
+---
+
+## 4. Surface-by-surface integration polish
+
+### Notifications — food cadence within 5/wk research ceiling
+
+Per `feedback_notification_voice` + `project_trial_week_notifications`: the 5/wk ceiling is the research-backed limit before reactance kicks in. v1.0.7 already uses 4 categories (daily_reminder, trial_end, weekly_milestone, post_session_followup). Food adds:
+
+- **`food_first_log_nudge`** — fires ONCE on Day 3 if user hasn't scanned by then. Copy: *"the camera's still waiting. anytime."* Soft, single fire, never repeats.
+- **`food_evening_check_in`** — fires opt-in only (Settings toggle, default OFF). For users who opted in, fires at user-configured time (default 8pm) IF they've scanned at least 1 meal today: *"3 meals logged. your week's averaging 1,750 — easy tracking."* Skips if no meals logged (anti-shame).
+- **NO "you forgot to log lunch" notifications.** Logging guilt is the cohort-killer per research.
+- **NO daily food summary notifications.** Becoming surface holds that data.
+
+Total food notifications: 1 mandatory + 1 opt-in = max 2/week. Adds to the 5/wk ceiling: well within budget.
+
+### Food Settings sub-screen
+
+Settings menu adds "food" entry at bottom. Sub-screen contents:
+
+```
+┌──────────────────────────────────────┐
+│  ← food                              │
+│                                      │
+│  CALORIE TARGET                      │
+│  1,650 kcal/day                      │
+│  [edit] — recalculate from weight    │
+│                                      │
+│  DIETARY PATTERN                     │
+│  omnivore                            │
+│  [edit]                              │
+│                                      │
+│  EXCLUSIONS                          │
+│  none                                │
+│  [edit]                              │
+│                                      │
+│  CUISINE PROFILE                     │
+│  korean, mediterranean, girl dinner  │
+│  [edit] — affects how Jeni reads     │
+│  your plate                          │
+│                                      │
+│  ─────────────────────────────       │
+│                                      │
+│  HEALTHKIT                           │
+│  share with Apple Health   [○ off]  │  ← default off
+│                                      │
+│  EVENING CHECK-IN                    │
+│  remind me at 8pm        [○ off]    │  ← default off, opt-in
+│                                      │
+│  ─────────────────────────────       │
+│                                      │
+│  PRIVACY                             │
+│  photo retention: discarded after    │
+│  scan (default)                      │
+│  [keep for 30 days when I correct]   │
+│                                      │
+│  ai disclosure                       │
+│  vision models from OpenAI and       │
+│  Anthropic. they don't train on      │
+│  your data. [learn more]             │
+│                                      │
+│  ─────────────────────────────       │
+│                                      │
+│  EXPORT MY DATA                      │
+│  request all my food logs as CSV     │
+│  [request]                           │
+└──────────────────────────────────────┘
+```
+
+Standard scrapbook chrome. Slots into existing `SettingsSheet` enum as `.foodSettings` per code-map.
+
+### Paywall sequencing — when does food gate fire
+
+Three paywall moments in JeniFit currently:
+1. **Hard paywall post-onboarding** — gates the entire app (per `project_pricing_locked_v1_0_7`)
+2. **Transaction-abandon downsell** — 25% off, fires when user declines initial paywall
+3. **In-app upsells** — currently NONE (clean architecture)
+
+Food rail integration:
+- **NO new paywall.** Food rail is gated by existing `pro` entitlement. Non-paying users see `FoodRailComingSoonCard` (per v3) → tap routes to existing hard paywall.
+- Paywall hero variant for v1.0.7: food-led copy per v3 (*"see your weight-loss story unfold. what you eat, how you move…"*).
+- No spin-wheel, no second-chance flow. Already locked clean per `project_trial_downsell_locked`.
+
+### Home integration — sequencing & priority
+
+Slot order on Home after food rail flips (per v3 redesign + journey alignment):
+
+1. JenisNoteCard (greeting) — unchanged
+2. **JeniMethod card (HERO)** — daily lesson with food prompt when applicable
+3. jenifitWorkoutCard — today's workout
+4. WeekProgressStrip — momentum
+5. **TodayHealthStrip** — food card hero + steps/breath pills (v3)
+6. quickActions + (FutureRailRow shrunk to weeklyCheckIn + bodyScan)
+
+Key principle: **JeniMethod stays the hero** because the daily ritual frame is what the cohort retains around. Food card is the second draw, anchor slot. **Do NOT promote food card above JeniMethod.** The lesson tells the user what to do; the food card lets them do it.
+
+### Becoming integration — Story Card holds it together
+
+Per v3: bento grid → Story Card stack. Food data integrates into 2 of 5 cards:
+- **"What you ate"** card (food primary)
+- **"How you moved"** card (steps + sessions + breath count, NEVER kcal-burned)
+- **"Your week"** hero card (weight trend EMA + soft directional indicator)
+- **"What's changing"** card (barrier-resolved + mastery curve + identity affirmation — existing nsvTile content)
+- **"What's worked"** card (existing nsvTile expanded)
+
+Cards reorder by signal density (empty food = collapses to empty state). Trend always renders.
+
+---
+
+## 5. v1.0.7 launch-week sequencing
+
+Phased rollout to catch problems before scale-out. PostHog feature flag `food_rail_v1` drives cohort logic.
+
+### Day 0 — submit + flag off
+
+- Archive submits to Apple. Flag OFF for all users.
+- 1.0.7 build behind flag = invisible. App ships visually identical to 1.0.6 until flag flips.
+
+### Day 1–3 — internal QA (5–10 users, internal team + founder family)
+
+- Flag ON for specific PostHog user IDs (internal list).
+- Test full flow: AI consent → first scan → log → JeniMethod Day 2 → Becoming Story Card → Food Settings.
+- Watch for: crash rate, scan latency, USDA hit rate, correction rate, cost per scan, edge function error rate.
+- Fix any P0 issues. If none, ramp Day 4.
+
+### Day 4–7 — 10% paid users
+
+- Flag ON for 10% of paid users (PostHog random rollout).
+- Monitor: scan rate per user, correction rate, paywall conversion delta (does food rail being visible to non-paid affect download→paid?), JeniMethod Day 2 completion rate.
+- Cost telemetry watch: daily budget consumption vs $50/day cap. Per-user scan distribution (any rate-limit hits?).
+
+### Day 8–14 — 50% paid users
+
+- If Day 4–7 metrics are clean (no spike in crash rate, correction rate ≤25%, cost within budget), ramp to 50%.
+- Watch for cohort-specific issues: TikTok-acquired users vs IG vs friend acquisition different behaviors?
+- Continue measuring: does food rail visible-but-not-engaged change Day 7 retention?
+
+### Day 15+ — 100% paid + open to new users
+
+- Flag ON for all paid users.
+- New downloads land on v1.0.7 with food rail enabled by default.
+- New user journey from §1 of this delta becomes the default first-week experience.
+
+### Rollback plan
+
+- PostHog dashboard flip to 0% reverts everyone to flag-off in minutes.
+- Becoming Story Card redesign also gated by `food_rail_enabled` flag — rollback reverts bento grid too.
+- JeniMethod content delivered via Supabase content table → can revert Day 2 reorder server-side without app push.
+
+---
+
+## 6. New founder decisions D28–D32
+
+| # | Question | Recommendation |
+|---|---|---|
+| D28 | JeniMethod Day 2 reorder — slot new food intro at Day 2 (shifting existing Day 2–14 to Day 3–15)? | **YES.** Aligns food intro with cohort attention curve. One-time minor restructure of existing arc; no other days touched. |
+| D29 | JeniMethod 75-day expansion phasing — ship Days 1–30 in v1.0.7, Days 31–75 in v1.0.8 content-only update? | **YES.** Content team needs 6–8 weeks; don't block v1.0.7 dev. v1.0.8 content update via Supabase content table = no app submission. |
+| D30 | Move JeniMethod content from hardcoded enum cases to Supabase content table? | **YES.** Unblocks back-half delivery without app submissions. Small architectural commitment, large content ops payback. |
+| D31 | Missed-day "catch up" tile pattern (NEVER restart from Day 1)? | **YES, LOCKED.** Anti-75-Hard mechanic, research-backed. Day-counter always advances; missed lessons surface as catch-up tiles, never penalize. |
+| D32 | Launch-week ramp 10% → 50% → 100% over 14 days? | **YES.** Standard pattern. Cost kill-switch + correction rate are the gates. If either spikes, freeze ramp. |
+
+All v3 decisions D13–D27 stand unchanged.
+
+---
+
+## 7. What v4 does NOT decide (intentional)
+
+- **External marketing positioning** (75-day hashtag, anti-75-Hard reframe, January cohort drop, Becoming Card share asset) — descoped per founder direction
+- **App Store metadata reframe** (category, subtitle, keywords) — held for v1.1+ SKU rename window
+- **App name / Bundle ID rename** — v1.1+ per `project_app_name`
+- **Cycle-aware target math** (per-phase kcal adjustment) — Phase 2 / v1.0.8 per v1 plan, unchanged
+- **GLP-1 injection-day toggle** — v2+ per v1 plan, unchanged
+- **Sweat/Centr-style cohort launch dates** — not needed for solo continuous-enrollment model
+
+---
+
+## 8. Open items / founder gate before v1.0.7 ticketing
+
+In priority order:
+1. **Sign off on D28–D32** (above). D29 (content phasing) and D30 (Supabase content table) are the load-bearing calls.
+2. **Walk the new user journey mock end-to-end** once Camera + Result Card v1 are built. Tap-by-tap on a real device.
+3. **Approve Day 2 lesson copy + first 16 new lesson titles** (Days 16–30 needed for v1.0.7 ship).
+4. **Confirm Food Settings sub-screen layout** (sketch above) before dev.
+5. **Confirm the "one-time soft tile" pattern** for existing users (no popup, dismissable banner above food card).
+6. **Held release dependency unchanged** — 1.0.6 build 11 must archive + Apple-approve before v1.0.7 ticketing starts.
+
+---
+
+*End delta v4. v4 layers on v3 (operational supplement, not replacement). All v3 architectural decisions stand. Ticketing starts after founder gate on D28–D32 + 1.0.6 archive lands.*
