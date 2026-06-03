@@ -2,7 +2,7 @@
 
 Status: DRAFT for founder review. Decisions flagged `[FOUNDER Q#]` need explicit sign-off before Phase 1 starts.
 Date: 2026-06-01
-Target ship: v1.0.8 (after 1.0.6 build 11 archive lands and is approved)
+Target ship: v1.0.7 (after 1.0.6 build 11 archive lands and is approved)
 
 ---
 
@@ -24,12 +24,12 @@ Cal AI's accuracy is commodity (vision is a saturated arms race). Their *moat* i
 
 ## Phase sequence
 
-### Phase 1 — v1.0.8 — MVP behind premium gate
+### Phase 1 — v1.0.7 — MVP behind premium gate
 **Goal:** prove the loop works. Photo→identification→portion→USDA join→Jeni interpretation→logged. 3 meal slots. Manual correction. Daily ring on Home. Weekly bento on Becoming.
 **Time:** 4–6 weeks after 1.0.6 archive approval.
 **Decision gate to Phase 2:** ≥40% of paid users scan ≥3×/week in month 1, AND month-2 retention of scanners > non-scanners by ≥5pp.
 
-### Phase 2 — v1.0.9 — accuracy + cohort depth
+### Phase 2 — v1.0.8 — accuracy + cohort depth
 - Two-photo workflow (triggered by LLM-declared `needs_second_photo`, not blanket)
 - HealthKit `menstrualFlow` read → passive luteal-week +60kcal bump for non-HC, non-GLP-1 users
 - Voice + text input as photo alternatives
@@ -300,7 +300,7 @@ Block scans until explicit accept. Store consent in Supabase profile field `food
 
 Note: per locked voice rule, we don't say "AI" in marketing copy. But Apple's 5.1.2(i) requires plain-language disclosure of what's happening — "vision models from OpenAI, Anthropic, and Google" is the legally-safe phrasing that respects both. Found er to review final wording.
 
-### App Privacy Label additions (v1.0.8 submission)
+### App Privacy Label additions (v1.0.7 submission)
 
 - **Photos** — linked to user, app functionality + analytics (corrections-as-moat opt-in tier)
 - **Health & Fitness > Nutrition** — linked, app functionality + analytics
@@ -588,7 +588,7 @@ Add to `JeniMethodContent.swift` after the day14 case:
 
 ### When these ship
 
-Lessons ship in the same release as the food rail (v1.0.8). Earlier-ship would teach a feature that doesn't exist. Triggered from the `.generic` Day-15+ pool, weighted to surface these three lessons preferentially in the first 14 days after food-rail flag flips for a user.
+Lessons ship in the same release as the food rail (v1.0.7). Earlier-ship would teach a feature that doesn't exist. Triggered from the `.generic` Day-15+ pool, weighted to surface these three lessons preferentially in the first 14 days after food-rail flag flips for a user.
 
 ### Illustration pipeline
 
@@ -609,7 +609,7 @@ Per code-map (HomeView.swift lines 138–690), the 6-slot cascade is:
 4. **Anchor: StepsPulseTile + BreathworkHomeCard**
 5. Utility: quickActions + FutureRailRow (food + body-scan teases)
 
-### After v1.0.8 food rail (component swap at Slot 4 + Slot 5)
+### After v1.0.7 food rail (component swap at Slot 4 + Slot 5)
 
 **Slot 4 becomes `TodayHealthStrip`** — a single horizontal composition tile:
 
@@ -665,7 +665,7 @@ Per code-map (AnalyticsView.swift lines 665–690), the bento order is:
 7. nsvTile
 8. FutureRailRow (food + body-scan teases)
 
-### After v1.0.8 (insertion + reordering)
+### After v1.0.7 (insertion + reordering)
 
 Insert **`FoodWeekBentoTile`** after BreathworkBentoTile (line 681 site). Same `bentoChrome()` helper, same 12pt grid spacing. **Pair it visually with `trendTile` (weight)** — they tell the same story (energy in + energy out → weight trend).
 
@@ -826,12 +826,12 @@ Already covered in sections 3 + 4 above. Key principles:
 
 ### Feature flag architecture
 
-`@AppStorage("food_rail_enabled")` default `false`. Lands shipped behind the flag in v1.0.8 — flag off means zero new code paths execute.
+`@AppStorage("food_rail_enabled")` default `false`. Lands shipped behind the flag in v1.0.7 — flag off means zero new code paths execute.
 
 **Flip mechanism (in order of rollout maturity):**
 1. **DebugAuthView toggle** — internal QA only, day 0
 2. **PostHog remote config** keyed off user ID + paid status — gradual rollout days 1–14
-3. **AppStorage default flip to true** in v1.0.9 — full release after telemetry confirms no regressions
+3. **AppStorage default flip to true** in v1.0.8 — full release after telemetry confirms no regressions
 
 ### What current users see when flag flips
 
@@ -897,7 +897,7 @@ Hard locked. Apply across all surfaces:
 - **Permission, not restriction.** Pre-eat mode is the brand statement: *"decide before you eat, not suffer after."* Restaurant mode is the same statement: *"social eating is part of life, not a logging failure."*
 - **GLP-1 vocabulary is for everyone.** "Food noise" + "satiety" + "protein-priority" are 2026 mainstream RD talk. Use them across the rail, not gated to GLP-1 flag.
 
-### Paywall hero variant for v1.0.8 launch
+### Paywall hero variant for v1.0.7 launch
 
 Current paywall hero is bodyFocus-personalized. Add a food-variant headline when `food_rail_enabled == true` AND user hasn't yet engaged with the food rail. Sample copy:
 
@@ -973,7 +973,7 @@ These were in v1 plan; v2 defers to reduce surface area:
 
 - **Gemini 2.5 Flash food/not-food pre-filter** — at $500 MRR (~80 paid users, ~1000 scans/mo), the $0.0011/scan saved is negligible AND adds 200–400ms latency. Add when scale > 10k scans/mo.
 - **Claude Opus 4.7 always-on fallback** — start GPT-5-only for v1. Wire Opus fallback as **config-flagged** (Supabase Edge Function env var). Turn on if PostHog `food_scan_correction_rate` > 25% in week 1.
-- **Two-photo workflow UI** — schema field `needs_second_photo` ships, UI deferred to v1.0.9 per v1 plan. (Reverses my earlier v2 suggestion to pull forward — research showed pre-eat mode + restaurant mode are higher-impact wedges for this cohort than +11pp portion accuracy on solid foods.)
+- **Two-photo workflow UI** — schema field `needs_second_photo` ships, UI deferred to v1.0.8 per v1 plan. (Reverses my earlier v2 suggestion to pull forward — research showed pre-eat mode + restaurant mode are higher-impact wedges for this cohort than +11pp portion accuracy on solid foods.)
 - **HealthKit menstrualFlow read** — Phase 2 per v1 plan, unchanged.
 
 ### Keep from v1 plan (essential)
@@ -982,7 +982,7 @@ These were in v1 plan; v2 defers to reduce surface area:
 - **App-side calorie math from USDA join** — never trust LLM for numbers
 - **Supabase Edge Function as the LLM proxy** — keys server-side, caching, budget cap
 - **Corrections-as-moat data from day 1** — image hash + LLM output always; raw photo opt-in 30 days
-- **Recent-foods cache (pull from v1.0.9 → v1.0.8)** — cohort eats same boba/matcha/oat-latte daily; 0-API-call repeat scans are free accuracy
+- **Recent-foods cache (pull from v1.0.8 → v1.0.7)** — cohort eats same boba/matcha/oat-latte daily; 0-API-call repeat scans are free accuracy
 
 ### Add to Phase 1 (new in v2)
 
@@ -1035,7 +1035,7 @@ Reconciles v1's 12-question table with v2 research findings. Bold = changed in v
 
 ## Updated phase sequence
 
-### Phase 1 — v1.0.8 — MVP behind premium gate (4–6 weeks)
+### Phase 1 — v1.0.7 — MVP behind premium gate (4–6 weeks)
 
 **Hero:** pre-eat mode + restaurant mode + today's plate visual timeline. The wedges no competitor will copy.
 
@@ -1065,7 +1065,7 @@ Reconciles v1's 12-question table with v2 research findings. Bold = changed in v
 - HealthKit menstrualFlow read (Phase 2)
 - Yuka-style ingredient peek (Phase 1.5)
 
-### Phase 1.5 — v1.0.9 — depth + accuracy (4 weeks after Phase 1)
+### Phase 1.5 — v1.0.8 — depth + accuracy (4 weeks after Phase 1)
 
 - Two-photo workflow UI triggered by LLM `needs_second_photo`
 - HealthKit menstrualFlow read → passive luteal-week +60kcal Jeni note (no math, just copy)
@@ -1132,3 +1132,577 @@ Internal:
 ---
 
 *End delta v2. Founder review gate before Phase 1 ticketing.*
+
+---
+
+# Delta v3 — Stem-first re-architecture 2026-06-03 (afternoon)
+
+Status: DRAFT. Supersedes v2 where they conflict. v2 founder decisions D13 + D14 stand (cheap toggles, fit "easy plug-in" criterion). D15–D18 rescoped — micro-features become plug-in slots, not v1.0.7 ship-list items. Source-of-truth for v1.0.7 ticketing.
+
+This delta replaces v2's micro-feature emphasis with a **stem-first** philosophy: build the core scan + log loop ruthlessly well, architect for plug-ins so future inputs/modes/tiles drop in cleanly, redesign Becoming around an energy-balance Story Card pattern, and reframe JeniFit's identity as a **weight-loss program** (with food as the primary surface) rather than "plank app + food feature."
+
+Three parallel research investigations 2026-06-03 (afternoon) forced this rewrite:
+1. Energy-balance UX patterns for weight-loss apps targeting young women
+2. Calorie-burn attribution science + how leading apps surface it ethically
+3. Extensible plug-in architecture for iOS food-tracking apps
+
+---
+
+## The reframe — JeniFit IS a weight-loss program
+
+Workout-feature usage is low. TikTok comments on workout posts overwhelmingly ask *"how about food?"* The cohort downloads JeniFit to **lose weight** (per `project_target_audience`). Calorie tracking will be the **most-used surface in the app**, full stop.
+
+This isn't "add a food feature." It's a **product re-positioning**:
+
+| Old frame (workout app + food rail) | New frame (weight-loss program) |
+|---|---|
+| Home = today's plank session | Home = today's eating + today's movement together |
+| Becoming = weight + activity history | Becoming = the weight-loss story across food, movement, weight |
+| Food rail = "another feature" | Food rail = the primary surface |
+| Plank session = the daily ritual | Plank session = one of several movement inputs (steps, plank, breath) |
+| Paywall hero = becoming-ritual workout focus | Paywall hero = "see your weight-loss story unfold" with food at center |
+| App Store category = Health & Fitness > Workouts | App Store category = Health & Fitness > Nutrition (or stays HF but copy reframes) |
+| Marketing on TikTok = workout demos | Marketing on TikTok = food logging + Becoming reveal moments |
+
+Implications across surfaces:
+- **Home Slot 4** (the anchor) becomes **food-first**, not steps-first. Steps + breathwork demote to lateral pills below the food card.
+- **Becoming** restructures around the weight-loss story (trend + food + movement + identity), with food data weighted as much as weight data.
+- **Paywall hero variant** for v1.0.7 launch makes food the headline value-prop, not a feature add.
+- **Onboarding v2** value-prop screens (170 plan reveal, 260 identity projection, 145 celebration) get a copy pass to lead with food + weight-loss program identity.
+- **Notification voice** adds food-cadence affirmations as a co-equal pillar with workout cadence.
+
+This reframe is **not undoing** the workout/plank brand — it's promoting food to first-class. Plank stays the brand's signature ritual (the only thing JeniFit owns vs MFP/Cal AI/Noom). But the daily-use surface becomes food.
+
+---
+
+## The Honesty Doctrine
+
+Hard rules for any surface that touches energy-balance math. Backed by:
+
+- **Wallen et al. 2024** (PMC11678767): Apple Watch Series 9 EE estimates "inconsistent across all skin pigmentation groups"
+- **Pugh et al. 2025** (npj Digital Medicine living meta-analysis): margins of error for EE "often large, both during exercise and at rest"
+- **Bunn et al. 2019** (JMPB 2(3):166): Apple Watch over-estimates calorie burn in females
+- **Falter et al. 2019** (PMC6444219): Apple Watch systematically over-estimates EE
+- **Pontzer 2024** (Current Biology): no metabolic adaptation during exercise compensation = users eat back inflated burn estimates and gain weight
+- **2024 Adult Compendium of Physical Activities** (Herrmann et al., PMC10818145): plank not explicitly listed; light calisthenics 3.5 MET; isometric work is anaerobic + EPOC-dominant
+- **A 15-min JeniFit session ≈ 40–80 kcal** for a 65kg woman (light calisthenics extrapolation)
+
+### Rules
+
+1. **Never display "calories burned" as a single daily number on a default surface.** It's the least trustworthy primary number in the entire weight-loss UX stack, and Apple Watch is over-represented in published validation literature while our cohort is overwhelmingly iPhone-only (no peer-reviewed validation exists for iPhone-only `HKQuantityTypeIdentifier.activeEnergyBurned`).
+2. **Never auto-credit Apple Health active calories back into a food goal.** Default eat-back = 0% (Lose It! pattern, NOT MFP). Optional opt-in 50% credit toggle in settings (Noom pattern), with copy explaining why.
+3. **When burn IS shown, show ranges, not single numbers, and label as estimates.** "this week your movement added roughly 200–350 kcal/day on top of baseline" — never "you burned 287 kcal today."
+4. **Per-session JeniFit workouts: surface time and effort, never just kcal.** If kcal must appear, show a conservative range ("≈40–70 kcal") with reframe copy ("the strength gains here outlast the calorie number").
+5. **TDEE-from-weight is the only honest signal.** Every 2–3 weeks, reconcile predicted vs actual weight trend (we already have `weight_logs` EMA infrastructure). Surface as **the calibration moment**, not as daily burn. This is MacroFactor's pattern in JeniFit voice.
+6. **No "calorie deficit" / "you burned X today" / "need to burn more" copy anywhere.** Voice rule, hard. Adds to the avoid-list in `feedback_post_ozempic_vocabulary`.
+
+---
+
+## v1.0.7 STEM — what ships ruthlessly well
+
+Everything below ships in v1.0.7. Nothing else ships in v1.0.7 from the food rail surface area. Period.
+
+### The core loop (camera → log → trend)
+
+```
+Home food card tap
+  → CameraView (3-mode toggle visible)
+  → User picks photo / quick-add / i'm out
+  → Capture → Edge Function /food-vision → GPT-5 with cuisine prompt
+  → App-side USDA + canonical pantry join → kcal/macros computed
+  → ResultCardView (1 of 2 plate layouts) → Jeni interpretation line
+  → "looks good — log it" → FoodLog written → Home updates
+```
+
+That's the stem. Five inputs, one pipeline, two render layouts, one log. No additional modes, no timeline, no Yuka-peek, no two-photo, no analytics calendar.
+
+### 3 capture modes (locked, all in v1.0.7)
+
+1. **Photo** (primary) — single shutter, scrapbook frame around viewfinder, cocoa CTA. Mode toggle at top: `[just ate | deciding]` (D13 pre-eat mode).
+2. **Quick-add** — horizontal rail of 6 cohort beverages (matcha latte, oat milk latte, iced coffee, brown sugar boba, protein shake, smoothie). NOT 12 as v2 specified — 6 covers 90% of cohort beverage volume; the rest go through photo. Each opens a 3-tap sheet (size/milk/sweetness).
+3. **I'm out tonight** (D14) — single tap logs "ate out, ~700 kcal" placeholder with time-of-day-appropriate default. Optional inline cuisine chip ("mexican? korean? italian?") refines the estimate. No hunger sliders.
+
+Voice/text "describe" mode: **NOT in v1.0.7.** Research showed Cal AI doesn't have it, MacroFactor's data-nerd users do but our Gen-Z cohort is laziness-averse not effort-averse. Designed-for in enum (slot ready) but not implemented.
+
+### 2 result-card layouts (locked, all in v1.0.7)
+
+Built from **6 atoms**, composed differently per plate type:
+
+| Atom | Purpose |
+|---|---|
+| `ItemRow` | One food item: name (italic Fraunces on punch word), portion grams, confidence cue |
+| `MacroRow` | cal · P · C · F as a single row |
+| `JeniLine` | One-sentence interpretation (cycle/GLP-1/cohort-aware) |
+| `ConfidencePill` | "around 480, give or take a slice" — copy, not % |
+| `PortionStepper` | Tap an item → slider with low/high anchors + haptic stops |
+| `RestaurantRangeBar` | "~700–900 kcal" range visualization for "i'm out" mode |
+
+**2 plate layouts** ship in v1.0.7:
+- `SingleDishCard` — for `plate_type: single | bowl`
+- `MixedPlateCard` — for `plate_type: mixed | charcuterie | shared`
+
+Restaurant range from "i'm out" mode uses `MixedPlateCard` + `RestaurantRangeBar`.
+
+Plate types `shared`, `charcuterie` ship in schema but render via `MixedPlateCard` until correction telemetry shows the data justifies a dedicated layout.
+
+### Onboarding v2 — 1 new question (not 3)
+
+Reduced from v2's 3-question proposal. Research showed only cuisine is **load-bearing for the wedge** (cuisine-aware system prompt closes the "When Tom Eats Kimchi" 58% gap). Dietary pattern + exclusions can come from first-scan onboarding without losing the wedge.
+
+**Case 165 — cuisine multi-select** (NEW `@AppStorage("onboardingCuisinePreference")`):
+- Question: *"what does your week of food usually look like?"*
+- Chips (multi-select): korean / chinese / japanese / vietnamese / thai / mexican / latin / mediterranean / italian / indian / middle eastern / american home-cooked / girl dinner / mostly takeout / mostly home-cooked
+- Skippable. Defaults to "american home-cooked" if skipped.
+- ~5 seconds added to onboarding (one screen, multi-select).
+
+**First-scan onboarding sheet** (collapses from v2's 4 → 1 screen):
+- **Goal calories** (Mifflin-St Jeor result + ±300 slider + MacroFactor-style honesty: *"we'll adjust as we learn together"*)
+- Optional calibration scan: dropped (low-friction-aversion principle).
+- Dietary pattern + exclusions: dropped from onboarding. Added to Food Settings as default-omnivore-with-no-exclusions; user edits later if needed.
+
+### Premium gate
+
+Food rail is paid-only at v1.0.7 launch. Flag: `food_rail_enabled` (PostHog) gated behind RevenueCat `pro` entitlement. Non-paying users see `FoodRailComingSoonCard` (already proven: 12/13 tappers convert per `project_food_rail_v2_locked`).
+
+### Cost telemetry + daily kill-switch (locked, all in v1.0.7)
+
+- Supabase Edge Function `/food-vision` daily budget cap at $50/day (~600 scans = 30× current scan volume). Exceeded → "give us a few hours" copy. Logs to PostHog as `food_budget_cap_hit`.
+- Per-user daily rate limit at 30 scans/day. Prevents one user eating the global budget.
+- Per-scan PostHog telemetry: model used + token counts + USDA hit-rate + correction status. Forecasts cost before scaling.
+
+---
+
+## Plug-in slots — designed for, NOT built
+
+These are explicitly **architected to drop in cleanly** but **NOT shipped in v1.0.7**. Each becomes a single PR worth of work post-launch once user feedback validates demand:
+
+| Slot | Where it plugs | Rough cost when we ship it |
+|---|---|---|
+| **Barcode capture** | `FoodCapture.barcode(String)` case in enum + `BarcodeCaptureView` (one new file) | ~2 days |
+| **Voice/text describe** | `FoodCapture.voice(URL)` / `.text(String)` cases + view | ~2 days |
+| **Recognized routine** ("you usually log matcha now — log it?") | New `RoutineSuggestion` model + 1 Home card variant | ~3 days |
+| **Today's Plate visual timeline** (D15 deferred) | New tile in Slot 5 below food card; uses existing FoodLog rows | ~2 days |
+| **Yuka-style ingredient peek** | Tap on packaged-food result → ingredient sheet; uses Open Food Facts data already in pipeline | ~1 day |
+| **Two-photo workflow** | UI for `needs_second_photo` schema field (already in v1 plan) | ~2 days |
+| **Restaurant menu OCR** | New `FoodCapture.menu(Data)` case + Edge Function variant | ~3–4 days |
+| **Recent-foods cache** ("had this before — log again") | New table + 1-tap log row at top of camera screen | ~2 days |
+| **HealthKit Dietary Energy write opt-in** | New Settings toggle + HKHealthStore write call | ~1 day |
+| **Shared-plate portion slider** (charcuterie/group) | New atom `PortionShareSlider` + add to `MixedPlateCard` | ~2 days |
+| **Cycle-aware target +60kcal luteal week** | HealthKit menstrualFlow read + CalorieTargetCalculator branch | ~2 days |
+
+Each of these is **easy** because the architecture below guarantees a fixed-cost plug-in surface. The discipline is: **we don't write any of them until the v1.0.7 telemetry tells us which one to write first.**
+
+---
+
+## Becoming redesign — energy-balance Story Card
+
+Per UX research (Pattern E recommended): replace the current bento-grid Becoming with a **scrapbook card stack** that tells the weight-loss story. Hero stays EMA weight trend (only honest weight-loss signal). Below it, three story cards layered like Polaroid stacks.
+
+### New Becoming layout
+
+```
+┌──────────────────────────────────────────────┐
+│  ☁️  your week                                │
+│      [trend curve, EMA smoothed]              │
+│              -1.2 lb 🌷                       │
+│      moving toward your goal                  │
+└──────────────────────────────────────────────┘
+          ↓
+┌──────────────────────────────────────────────┐
+│  ☕  what you ate                             │
+│                                              │
+│      ▆▆▅▆█▅▆   ← 7-day intake bars           │
+│      ─ ─ ─      ← 7-day rolling avg          │
+│                                              │
+│      averaging 1,750                         │
+│      tracking your goal pace                 │
+└──────────────────────────────────────────────┘
+          ↓
+┌──────────────────────────────────────────────┐
+│  🌸  how you moved                            │
+│                                              │
+│      ▌  ▌  █  ▌  █  █  ▌                     │
+│      ─ ─ ─ ─ ─ ─ ─                           │
+│                                              │
+│      8,200 steps · 4 sessions · 3 breaths    │
+│      your body's been showing up             │
+└──────────────────────────────────────────────┘
+          ↓
+┌──────────────────────────────────────────────┐
+│  🦋  what's changing                          │
+│      [barrier-resolved card / mastery curve /│
+│       identity affirmation — exists today]   │
+└──────────────────────────────────────────────┘
+```
+
+### Critical design rules (research-backed)
+
+1. **NO kcal-deficit math anywhere visible by default.** No "net negative this week." No center-of-ring "net" number. The cards are **parallel rails**, not arithmetic. User infers relationship from seeing both alongside the trend.
+2. **Movement card never shows "calories burned" as a single number.** Shows steps + sessions + breath count instead. If burn is calculated at all, it's tucked behind a tap into a "your week" expanded view, shown as a range with explainer copy.
+3. **Weekly framing, not daily.** Smooths the HealthKit noise. Matches MacroFactor's "wait 2–4 weeks" honesty principle.
+4. **Italic Fraunces on identity verbs only** (*becoming*, *moving*, *tracking*, *showing up*) — never on numbers.
+5. **Cards reorder by signal density.** Empty food data = "what you ate" card collapses to "log your first meal" empty state. Empty movement = collapses similarly. Trend card always renders.
+
+### What gets cut from current Becoming
+
+| Currently in Becoming | v1.0.7 fate |
+|---|---|
+| coachTile ("this week" + coach avatar) | KEEP — absorbs into the "your week" hero card |
+| trendTile (weight chart) | KEEP — hero of "your week" card |
+| forecastTile + milestoneTile (HStack) | DEMOTE — moves into tap-through detail from hero card |
+| goalTile + cadenceTile (HStack) | DEMOTE — moves into tap-through detail |
+| StepsBentoTile | ABSORB into "how you moved" card |
+| BreathworkBentoTile | ABSORB into "how you moved" card |
+| nsvTile (non-scale victories) | KEEP — becomes 5th card "what's worked" |
+| FutureRailRow | REMOVE — food no longer "coming soon" |
+
+This is a **major Becoming restructure**, not just a tile addition. Bento grid → vertical scrapbook stack. Estimated dev: ~5 days (new `BecomingStackView` + 4 new card Views + data plumbing for "how you moved" aggregate).
+
+### Becoming behind food-rail flag too
+
+The redesign **only ships when food_rail_enabled = true** for a given user. Flag-off users see current bento Becoming unchanged. Flag-on users see Story Card stack. This isolates the redesign risk from the food rail rollout cohort.
+
+---
+
+## Home redesign — food-first Slot 4
+
+Per the program-identity reframe, Slot 4 becomes food-first. Current Slot 4 (`StepsPulseTile + BreathworkHomeCard`) restructures.
+
+### New Slot 4 design (NOT a 3-ring concentric)
+
+Research explicitly **rejected** the v2 concentric ring with center "net" number (precision claim we can't honor). New shape:
+
+```
+┌──────────────────────────────────────────────┐
+│  🍓  today's plate                            │
+│                                              │
+│   ╭───────╮                                  │
+│   │ 1,420 │  ← soft ring fills as she logs   │
+│   │  cal  │  ← cocoa, never red, never %    │
+│   ╰───────╯                                  │
+│                                              │
+│   tracking your week (1,680 avg)             │  ← WEEKLY context, not daily over/under
+│   tap to log →                                │
+└──────────────────────────────────────────────┘
+              ↓
+┌─────────────┐ ┌─────────────┐
+│ 🚶 5,420    │ │ 🌬 3 breaths │  ← steps + breath as lateral pills
+│ steps       │ │ this week    │  ← no calorie attribution
+└─────────────┘ └─────────────┘
+```
+
+- Food ring shows **today's logged calories**, fills as she logs. No "remaining" or "over by X" copy — that's deficit framing. Just the count.
+- Caption is the **weekly average context** + a soft directional indicator ("tracking" / "trending up" / "settling lower").
+- Steps + breath demoted to lateral pills below. **No "calories burned" attribution shown anywhere on Home.** Pills show units appropriate to the data (steps as count, breath as session count).
+- Tap food card → opens CameraView.
+
+### What NOT to ship on Home in v1.0.7
+
+- **Today's Plate visual timeline** (D15) → plug-in slot, not v1.0.7
+- **3-ring concentric (calories/protein/fiber)** → rejected entirely (precision-implying when our data isn't)
+- **"Calories burned today" number anywhere** → Honesty Doctrine rule #1
+- **Energy-balance summary on Home** → lives in Becoming weekly view, not Home daily
+
+---
+
+## Architecture spec — Packages/PlankFood
+
+New SPM package: **`Packages/PlankFood/`**. Mirrors existing `PlankEngine`, `PlankSync`, `PlankVoice` SPM packages. Enforces import boundary (no UIKit from engine code), parallel compile, can `#if FOOD_RAIL_ENABLED` exclude from a TestFlight build.
+
+### Module layout
+
+```
+Packages/PlankFood/
+├── Package.swift                     ← mirrors PlankEngine
+└── Sources/PlankFood/
+    ├── Capture/
+    │   ├── FoodCapture.swift         ← enum with associated values
+    │   ├── PhotoCaptureView.swift
+    │   ├── QuickAddView.swift
+    │   └── ImOutTonightView.swift
+    ├── Pipeline/
+    │   ├── FoodVisionService.swift   ← Edge Function call orchestration
+    │   ├── NutritionLookupService.swift ← USDA + OFF + canonical pantry
+    │   ├── CalorieMathService.swift  ← THE LOAD-BEARING ALGORITHM (pure fn, fixture-tested)
+    │   └── FoodCorrectionsLogger.swift
+    ├── Model/
+    │   ├── FoodLog.swift             ← SwiftData @Model, VersionedSchema v1
+    │   ├── FoodLogItem.swift
+    │   └── FoodLogSchemaV1.swift     ← VersionedSchema wrapper
+    ├── Result/
+    │   ├── Atoms/
+    │   │   ├── ItemRow.swift
+    │   │   ├── MacroRow.swift
+    │   │   ├── JeniLine.swift
+    │   │   ├── ConfidencePill.swift
+    │   │   ├── PortionStepper.swift
+    │   │   └── RestaurantRangeBar.swift
+    │   └── PlateLayouts/
+    │       ├── SingleDishCard.swift
+    │       └── MixedPlateCard.swift
+    ├── Tiles/
+    │   └── HomeFoodTile.swift        ← Slot 4 card
+    └── Flags/
+        └── FoodFlags.swift           ← 3-layer flag stack
+Tests/PlankFoodTests/
+└── Fixtures/                          ← golden LLM responses for snapshot tests
+```
+
+`BecomingStackView` and its 4 new card Views live in the main app (not PlankFood) because they touch existing AnalyticsView state.
+
+### Input mode plug-in pattern — enum + associated values
+
+```swift
+public enum FoodCapture {
+    case photo(Data, mode: PhotoMode)     // PhotoMode = .justAte | .deciding (D13)
+    case quickAdd(PantryItemID)
+    case imOutTonight(cuisine: CuisineChip?)  // D14, cuisine optional
+    // Future plug-ins — slots reserved, NOT implemented in v1.0.7:
+    // case barcode(String)
+    // case voice(URL)
+    // case text(String)
+    // case menu(Data)
+}
+```
+
+One coordinator owns the `switch`. New mode = compiler errors at every switch site = built-in TODO list when we plug in barcode/voice later. No `FoodInputProvider` protocol — **per architecture research: no abstraction until input mode #3 ships**.
+
+### Result rendering — atoms + per-plate layout
+
+6 atoms in `Result/Atoms/`. 2 plate layouts in `Result/PlateLayouts/`. Parent uses `switch` on `plate_type`:
+
+```swift
+switch result.plateType {
+case .single, .bowl:                      SingleDishCard(result: result)
+case .mixed, .charcuterie, .shared:       MixedPlateCard(result: result)
+case .restaurantRange:                    MixedPlateCard(result: result, range: ...)
+}
+```
+
+**No generic `ResultCardRenderer<PlateType>` until plate type #4 lands as a distinct layout.**
+
+### Schema — hybrid Postgres + VersionedSchema SwiftData
+
+**Supabase `food_logs` table:**
+
+```sql
+CREATE TABLE food_logs (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES auth.users,
+  logged_at TIMESTAMPTZ NOT NULL,
+  meal_slot TEXT CHECK (meal_slot IN ('breakfast','lunch','dinner','snack')),
+  kcal_total NUMERIC NOT NULL,
+  protein_g NUMERIC NOT NULL,
+  carbs_g NUMERIC NOT NULL,
+  fat_g NUMERIC NOT NULL,
+  fiber_g NUMERIC,
+  plate_type TEXT NOT NULL,
+  source TEXT CHECK (source IN ('photo','quick_add','im_out')),
+  confidence NUMERIC,
+  payload JSONB,                   -- cuisine_hint, needs_second_photo, restaurant_metadata, glp1_context — EVOLVING fields
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE food_log_items (     -- separate table for items array
+  id UUID PRIMARY KEY,
+  food_log_id UUID REFERENCES food_logs(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  portion_g NUMERIC NOT NULL,
+  kcal NUMERIC NOT NULL,
+  usda_fdc_id INT,
+  canonical_pantry_id UUID,
+  position INT NOT NULL
+);
+
+-- Validate payload shape so a Swift client typo doesn't corrupt silently:
+ALTER TABLE food_logs ADD CONSTRAINT payload_schema_check
+  CHECK (jsonb_matches_schema(payload, '{"type": "object", "properties": {...}}'));
+```
+
+Use `pg_jsonschema` extension. RLS on `food_logs` + `food_log_items` matches existing pattern (user_id = auth.uid()). Migrations in `supabase/migrations/`, one per change, never edit prior ones.
+
+**SwiftData on-device cache:**
+
+```swift
+enum FoodSchemaV1: VersionedSchema {
+    static var versionIdentifier = Schema.Version(1, 0, 0)
+    static var models: [any PersistentModel.Type] = [FoodLog.self, FoodLogItem.self]
+}
+
+@Model final class FoodLog {
+    @Attribute(.unique) var id: UUID
+    var userId: String
+    var loggedAt: Date
+    var kcalTotal: Double
+    var proteinG: Double
+    var carbsG: Double
+    var fatG: Double
+    var plateType: String
+    var source: String
+    var confidence: Double?
+    var payloadJSON: Data?         // decoded into [String: AnyCodable] when read
+    var createdAt: Date
+    var updatedAt: Date
+    @Relationship(deleteRule: .cascade) var items: [FoodLogItem] = []
+}
+```
+
+`VersionedSchema` wrapper from day one even though we won't migrate yet — Apple's own forum guidance is "do this first." Future field additions = lightweight migration, no code. Adapt via `@Attribute(originalName:)` for renames.
+
+### Feature flag — 3-layer stack
+
+```swift
+@MainActor public enum FoodFlags {
+    public static var isEnabled: Bool {
+        #if DEBUG
+        if UserDefaults.standard.bool(forKey: "food_rail_dev_override") { return true }
+        #endif
+        guard PaymentService.shared.hasProAccess else { return false }
+        return PostHogSDK.shared.isFeatureEnabled("food_rail_v1")
+    }
+}
+```
+
+- **RevenueCat `pro` entitlement** = paid gate (existing pattern, no new infra)
+- **PostHog `food_rail_v1` flag** = rollout ramp (0% → 10% → 100% over weeks 1–3 via PostHog dashboard, no app update)
+- **`@AppStorage("food_rail_dev_override")`** = DEBUG-only force-on via DebugAuthView
+
+Flag-off paid users see `FoodRailComingSoonCard` (already proving demand). Flag-off non-paid users see no food UI at all.
+
+### Three "no abstraction until 3+ examples" boundaries (locked)
+
+1. **No `FoodInputProvider` protocol** until input mode #3 ships. Photo + quickAdd + imOutTonight are mode 1, 2, 3 — but they're so different (camera vs picker vs single tap) that protocol abstraction would be Wrong from the start. Revisit when barcode + voice land in v1.0.8.
+2. **No generic `ResultCardRenderer<PlateType>`** until plate type #4 lands as a distinct layout. SingleDishCard + MixedPlateCard hand-written; copying when needed is cheaper than abstracting wrong.
+3. **No `LLMRouter` abstraction** until model #3 lands. GPT-5 + Opus 4.7 fallback are 2; `Pipeline.run()` is a 40-line function with two explicit calls + confidence branch. Hardcode it.
+
+### The load-bearing algorithm: protect it
+
+`CalorieMathService.swift` is the equivalent of Things 3's conflict-resolution math from v1 (the part they protected during their 2025 sync rewrite). Pure functions, zero UIKit, zero network, 100% fixture-tested. Everything else churns around it. Code review gate: any PR touching `CalorieMathService` requires explicit founder review.
+
+---
+
+## Updated phase sequence
+
+### Phase 1 — v1.0.7 — STEM behind premium gate (4–5 weeks after 1.0.6 archive)
+
+Ships exactly the stem above. No more, no less.
+
+- 3 capture modes (photo + quick-add + i'm out)
+- 6 atoms + 2 plate layouts
+- Pre-eat toggle (D13)
+- Cuisine question in onboarding v2 (case 165 only — not 165+166+167)
+- 1-screen first-scan onboarding (goal calories + honesty caption)
+- Home Slot 4 redesign (food-first card + steps/breath pills)
+- Becoming Story Card stack redesign
+- Paywall food-variant hero
+- Food Settings sub-screen (dietary pattern + exclusions + HealthKit Dietary Energy toggle + photo retention toggle + AI disclosure status)
+- Edge Function cost kill-switch + per-user rate limit + cost telemetry
+- 15 PostHog events (food rail funnel + cost)
+- Canonical pantry seeded with 100 cohort priority entries (reduced from 200 — ship faster, expand via corrections data)
+- Apple 5.1.2(i) disclosure modal (one-time, first scan)
+- Plug-in slots **architected but not implemented** for all v1.0.8 features
+
+### Phase 2 — v1.0.8 — listen + plug in (4 weeks after v1.0.7 launch)
+
+Driven by PostHog telemetry from v1.0.7. Ship the 2–3 plug-in slots with highest measured demand. Likely candidates based on prior research:
+- Barcode capture (packaged foods are ~30% of cohort intake)
+- Recent-foods cache ("had this before — log again")
+- Today's Plate visual timeline (if Slot 5 engagement signals demand)
+- Restaurant menu OCR (if i'm out adoption is high but corrections-rate signals users want more precision)
+- Yuka-style ingredient peek
+- HealthKit menstrualFlow read for cycle-aware copy
+
+Each plug-in is ~1–3 days because architecture pre-built the slot. **Don't decide which yet — let telemetry decide.**
+
+### Phase 3 — v1.1 — own model fine-tune (trigger: 50k corrections accumulated)
+
+Per v2 plan. Unchanged.
+
+### Phase 4 — v1.2+ — premium-tier scale
+
+Per v1 plan: Nutritionix Pro past $50k MRR. Cycle-aware target adjustment (math, not just copy). GLP-1 injection-day toggle. Body scan absorbed if telemetry justifies.
+
+---
+
+## Updated founder decisions — D13–D18 reconciled with v3
+
+| # | v2 question | v3 answer |
+|---|---|---|
+| D13 | Pre-eat mode in v1? | ✓ LOCKED — ships in v1.0.7 as camera toggle |
+| D14 | Restaurant "i'm out" mode in v1? | ✓ LOCKED — ships as tap-once placeholder with optional cuisine chip (no hunger sliders per laziness principle) |
+| D15 | Today's Plate visual timeline on Home in v1? | **RESCOPED → plug-in slot.** Not in v1.0.7. Architected for; ship in v1.0.8 if telemetry shows Home engagement demands it. |
+| D16 | Trend-as-hero on Home ring? | **REPLACED.** v3 redesigns Home Slot 4 entirely (food-first card, no concentric ring with center number). Trend context lives in food card caption + Becoming Story Card hero. Research-validated by all 3 streams. |
+| D17 | Cuisine in onboarding v2? | ✓ LOCKED — case 165 only (1 new question, not 3). Dietary pattern + exclusions move to Food Settings defaults, no first-scan onboarding sheet. |
+| D18 | Drop Gemini + Opus from v1? | ✓ LOCKED — GPT-5 only in v1.0.7. Opus fallback config-flagged (off by default). |
+| **D19 (NEW)** | Becoming stack redesign in v1.0.7? | **YES** — restructure from bento grid to scrapbook Story Card stack. Gated behind food_rail flag (flag-off users see current bento). Estimated 5 dev-days. |
+| **D20 (NEW)** | Quick-add rail count: 6 or 12? | **6** — research showed laziness-averse cohort needs simple choice surface. Top 6 cover ~90% of beverage volume. Expand via correction data. |
+| **D21 (NEW)** | "Describe" voice/text mode in v1? | **NO** — designed-for in enum, not implemented. Cal AI doesn't have it; cohort is laziness-averse not effort-averse. Revisit in v1.0.8 if telemetry shows users want it. |
+| **D22 (NEW)** | First-scan onboarding sheet screens? | **1 screen** (goal calories only). Dietary pattern + exclusions move to Food Settings. Lowest friction path. |
+| **D23 (NEW)** | Honesty Doctrine — never show "calories burned" as single number on default surface? | **LOCKED** — research-backed across Wallen 2024, Pugh 2025, Pontzer 2024, Stanford 2017, MFP community failure pattern. Default eat-back 0% (not Noom's 50%). Optional opt-in toggle in Settings only. |
+| **D24 (NEW)** | TDEE-from-weight reconciliation in v1.0.7? | **DEFER to v1.0.8** — needs 2–4 weeks of food data to even calibrate. Ship v1.0.7 with static Mifflin-St Jeor target; introduce TDEE-from-weight in v1.0.8 once cohort has data history. |
+| **D25 (NEW)** | Program-identity reframe (JeniFit as weight-loss program, not workout app + food)? | **LOCKED** — Home/Becoming/paywall/onboarding all reframe. Plank brand stays as the signature ritual but cedes daily-use surface to food. |
+| **D26 (NEW)** | New SPM package `Packages/PlankFood`? | **LOCKED** — mirrors existing PlankEngine/PlankSync/PlankVoice pattern. Enforces import boundary + parallel compile + future TestFlight excludability. |
+| **D27 (NEW)** | Three "no abstraction until 3+" rules in code review? | **LOCKED** — no `FoodInputProvider` protocol, no generic `ResultCardRenderer<PlateType>`, no `LLMRouter`. PRs adding any of these without 3 concrete examples are rejected. |
+
+---
+
+## Open items / founder gate before v1.0.7 ticketing
+
+1. **Sign off on D19–D27** above. The most counter-intuitive: D19 (Becoming stack redesign — significant scope but research-validated) and D25 (program-identity reframe — affects marketing copy + App Store positioning).
+2. **Decide the Home Slot 4 mock layout in detail** — sketch the food ring + steps/breath pills before dev starts. Quick paper-prototype is fine.
+3. **Decide Becoming card stack order** — research recommended Trend → What you ate → How you moved → What's changing. Confirm or revise.
+4. **Approve canonical pantry first 100 entries** — cohort-curated, founder + Jeni voice. Order: 25 beverages, 15 girl-dinner staples, 15 Korean home-cooked, 10 Mediterranean, 20 restaurant chains (Sweetgreen/Cava/Chipotle/Starbucks), 15 Mexican.
+5. **Confirm paywall food-variant copy** — sample: *"see your weight-loss story unfold. what you eat, how you move, how it's working — drawn against your weekly trend."*
+6. **Confirm App Store metadata reframe** — keep Health & Fitness category, update subtitle/keywords/screenshots to lead with food + weight-loss program (not plank).
+7. **Held release dependency unchanged** — 1.0.6 build 11 must archive + Apple-approve before v1.0.7 ticketing starts.
+
+---
+
+## What v3 explicitly cuts from v2 (and why)
+
+| v2 wanted | v3 cuts | Reason |
+|---|---|---|
+| 3 onboarding screens (cuisine + dietary + exclusions) | 1 onboarding screen (cuisine only) | Only cuisine is load-bearing for wedge; others move to Settings defaults |
+| 4-screen first-scan onboarding sheet | 1-screen (goal calories only) | Laziness principle; less is more for Gen-Z |
+| 12 quick-add beverages | 6 | 6 covers 90% of cohort volume; expand via corrections data |
+| Today's Plate visual timeline on Home | Plug-in slot for v1.0.8 | Architected for, ship after telemetry validates demand |
+| Restaurant mode with cuisine + hunger sliders | Tap-once placeholder with optional cuisine chip | Laziness principle (D14 founder revision) |
+| Voice/text "describe" mode in v1 | Plug-in slot for v1.0.8 | Cal AI doesn't have it; cohort effort-averse |
+| 3-ring concentric (cal/protein/fiber) on Home | Single food ring + lateral steps/breath pills | UX research rejected concentric with center "net" number (precision claim) |
+| Bento-grid Becoming with food tile added | Full Story Card stack redesign | Program-identity reframe demands restructure, not addition |
+| "Calories burned" attribution anywhere | NOWHERE on default surface | Honesty Doctrine, science-backed |
+| Two-photo workflow UI in v1 (my earlier flip-flop) | Plug-in slot for v1.0.8 | Pre-eat + Becoming redesign are higher-value v1 wedges |
+
+---
+
+## Related research sources — v3 additions
+
+**Energy-balance UX:**
+- MacroFactor Energy Balance Widget (Mobbin teardown + help center)
+- MFP Today tab redesign (late 2025)
+- Lifesum Life Score (weekly 0–150 qualitative score)
+- Noom Weight Loss Zone with half-credit burn (documented methodology)
+- WHOOP / Garmin / Oura — composite-score pattern from athlete apps
+
+**Calorie burn science:**
+- Wallen et al. 2024 (PMC11678767) — Apple Watch Series 9 EE accuracy
+- Pugh et al. 2025 (npj Digital Medicine) — living meta-analysis
+- Pontzer 2024 (Current Biology) — exercise compensation literature
+- 2024 Adult Compendium of Physical Activities (PMC10818145)
+- ACSM EPOC characterization (LaForgia, Withers & Gore 2006)
+- Apple HealthKit documentation (no peer-reviewed iPhone-only validation)
+
+**Architecture:**
+- WWDC22 #10056 — Compose custom layouts with SwiftUI
+- WWDC23 #10195 — Model your schema with SwiftData (VersionedSchema)
+- Sandi Metz — The Wrong Abstraction (prefer duplication)
+- Rule of Three — don't abstract until the third instance
+- PostHog Swift SDK + feature flags docs
+- RevenueCat entitlements-as-feature-flags pattern
+- Things 3 / Cultured Code 2025 sync rewrite (protect load-bearing algorithm)
+- Supabase pg_jsonschema extension for evolving JSONB validation
+
+---
+
+*End delta v3. v3 wins over v2 wins over v1 where they conflict. Ticketing starts after founder gate on D19–D27 + 1.0.6 archive lands.*
