@@ -291,6 +291,47 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.weight_logs TO authenticated;
 -- skipped entirely (cohort year-2 retention risk per
 -- feedback_food_ux_antishame). "Showing up" stays as language in Jeni
 -- greeting copy, never as a metric.
+--
+-- Order matters: canonical_pantry MUST be created before food_log_items
+-- because food_log_items.canonical_pantry_id has an FK reference. Other
+-- FK chains: food_log_items + food_corrections both reference food_logs.
+
+-- ---------- canonical_pantry ----------
+-- Hand-curated cohort-specific entries. ~100 at launch per v3 pantry
+-- ordering (25 beverages / 15 girl-dinner / 15 Korean / 20 restaurant
+-- chains / 10 Mediterranean / 15 Mexican); expand via correction-rate
+-- analysis after launch. Public-content table: authenticated users read;
+-- writes service_role only via curator workflow.
+
+CREATE TABLE IF NOT EXISTS public.canonical_pantry (
+    id text PRIMARY KEY,
+    name text NOT NULL,
+    search_terms text[] NOT NULL,
+    cuisine_hint text,
+    category text,                    -- 'beverage' | 'girl_dinner' | 'korean' | ...
+    default_serving_g double precision NOT NULL,
+    kcal_per_100g double precision NOT NULL,
+    protein_per_100g double precision NOT NULL DEFAULT 0,
+    carbs_per_100g double precision NOT NULL DEFAULT 0,
+    fat_per_100g double precision NOT NULL DEFAULT 0,
+    fiber_per_100g double precision,
+    source text,                       -- 'manual_curator' | 'starbucks_official' | ...
+    reviewed_by text,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS canonical_pantry_search_idx
+    ON public.canonical_pantry USING GIN (search_terms);
+
+CREATE INDEX IF NOT EXISTS canonical_pantry_category_idx
+    ON public.canonical_pantry (category, cuisine_hint);
+
+-- Read-only for authenticated users. No INSERT/UPDATE/DELETE grant —
+-- writes happen via service_role (curator workflow / migrations only).
+GRANT SELECT ON public.canonical_pantry TO authenticated;
+
+-- ---------- food_logs ----------
 
 CREATE TABLE IF NOT EXISTS public.food_logs (
     id text PRIMARY KEY,
@@ -400,41 +441,6 @@ CREATE INDEX IF NOT EXISTS food_corrections_retention_idx
     WHERE photo_retention_expires_at IS NOT NULL;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.food_corrections TO authenticated;
-
--- ---------- canonical_pantry ----------
--- Hand-curated cohort-specific entries. ~100 at launch per v3 pantry
--- ordering (25 beverages / 15 girl-dinner / 15 Korean / 20 restaurant
--- chains / 10 Mediterranean / 15 Mexican); expand via correction-rate
--- analysis after launch. Public-content table: authenticated users read;
--- writes service_role only via curator workflow.
-
-CREATE TABLE IF NOT EXISTS public.canonical_pantry (
-    id text PRIMARY KEY,
-    name text NOT NULL,
-    search_terms text[] NOT NULL,
-    cuisine_hint text,
-    category text,                    -- 'beverage' | 'girl_dinner' | 'korean' | ...
-    default_serving_g double precision NOT NULL,
-    kcal_per_100g double precision NOT NULL,
-    protein_per_100g double precision NOT NULL DEFAULT 0,
-    carbs_per_100g double precision NOT NULL DEFAULT 0,
-    fat_per_100g double precision NOT NULL DEFAULT 0,
-    fiber_per_100g double precision,
-    source text,                       -- 'manual_curator' | 'starbucks_official' | ...
-    reviewed_by text,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS canonical_pantry_search_idx
-    ON public.canonical_pantry USING GIN (search_terms);
-
-CREATE INDEX IF NOT EXISTS canonical_pantry_category_idx
-    ON public.canonical_pantry (category, cuisine_hint);
-
--- Read-only for authenticated users. No INSERT/UPDATE/DELETE grant —
--- writes happen via service_role (curator workflow / migrations only).
-GRANT SELECT ON public.canonical_pantry TO authenticated;
 
 -- ---------- jenimethod_lessons ----------
 -- D30 — JeniMethod content moves from hardcoded JeniMethodContent.swift
