@@ -34,19 +34,40 @@ public final class FoodCaptureDispatcher {
     /// - `.notImplemented` while W2-T3/T4 wire pipelines in
     /// - upstream service errors (network, rate limit, budget cap,
     ///   USDA miss, etc.) once pipelines exist
+    /// Optional cuisine profile injected into the LLM system prompt
+    /// for `.photo` scans. Comes from the user's
+    /// onboarding_cuisine_preference column (Q302 per v5 D40). nil =
+    /// fall back to neutral priors per FOOD_VISION_SCHEMA.
+    public var cuisineProfile: String?
+
     public func dispatch(_ capture: FoodCapture) async throws -> CapturedFood {
         switch capture {
 
         case .photo(let imageData, let mode):
-            // W2-T3 — wire FoodVisionService.scan(imageData, mode,
-            //         cuisineProfile) → returns CapturedFood with
-            //         items[].usdaSearchTerms populated; USDA join
-            //         happens in a follow-on step (W2-T4).
-            throw FoodCaptureError.notImplemented(
-                ticket: "W2-T3",
-                message: "FoodVisionService not yet wired",
-                context: .photo(byteCount: imageData.count, mode: mode)
-            )
+            // W2-T3 ✓ — route to FoodVisionService (POSTs to the
+            // food-vision Edge Function, decodes the strict JSON
+            // response, maps to CapturedFood). USDA join lands in
+            // W2-T4 (NutritionLookupService); items[].kcal stays nil
+            // until then and the result card shows a loading state.
+            guard let visionService = FoodModule.visionService else {
+                throw FoodCaptureError.notImplemented(
+                    ticket: "W2-T3",
+                    message: "FoodModule.configure(visionService:) never ran",
+                    context: .photo(byteCount: imageData.count, mode: mode)
+                )
+            }
+            do {
+                return try await visionService.scan(
+                    imageData: imageData,
+                    cuisineProfile: cuisineProfile,
+                    mode: mode
+                )
+            } catch let visionError as VisionError {
+                // Wrap so call sites can pattern-match on either
+                // FoodCaptureError or unwrap to VisionError for the
+                // user-facing copy.
+                throw FoodCaptureError.pipeline(underlying: visionError)
+            }
 
         case .quickAdd(let pantryItemID):
             // W2-T4 — wire NutritionLookupService.lookupPantry(id)

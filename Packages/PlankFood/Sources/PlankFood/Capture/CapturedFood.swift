@@ -126,13 +126,17 @@ public struct CapturedItem: Sendable, Identifiable {
 
 // MARK: - PlateType
 
+/// Raw values match the strings the Edge Function returns (per
+/// `FOOD_VISION_SCHEMA.properties.plate_type.enum` in
+/// supabase/functions/food-vision/index.ts). Renaming a case here
+/// requires a matching enum update in the schema + a release migration.
 public enum PlateType: String, Sendable, CaseIterable {
     case single
     case mixed
     case bowl
     case charcuterie
     case shared
-    case restaurantRange
+    case restaurantRange = "restaurant_range"
 }
 
 // MARK: - CaptureSource
