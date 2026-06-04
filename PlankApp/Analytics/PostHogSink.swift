@@ -21,4 +21,14 @@ struct PostHogSink: AnalyticsSink {
         // wrapper, so we pass `properties` through untouched.
         PostHogSDK.shared.capture(event, properties: properties)
     }
+
+    /// Override the default sink behavior — PostHog's native `screen(_:)`
+    /// registers the screen name as a session-current value, so
+    /// subsequent implicit events ($rageclick, $autocapture) get auto-
+    /// tagged with the current screen. This is the whole reason we have
+    /// a separate screen transition path instead of routing through
+    /// `capture("$screen", ...)`.
+    func sendScreen(name: String) {
+        PostHogSDK.shared.screen(name)
+    }
 }

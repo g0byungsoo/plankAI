@@ -307,6 +307,10 @@ struct OnboardingView: View {
                     // straight opacity fade reads premium and avoids
                     // the visual whiplash on rapid forward/back nav.
                     .transition(.opacity)
+                    .onAppear { Analytics.captureScreen("Onboarding/case-\(screen)") }
+                    .onChange(of: screen) { _, newCase in
+                        Analytics.captureScreen("Onboarding/case-\(newCase)")
+                    }
             }
 
             if analyzing { analyzingScreen.transition(.opacity).zIndex(10) }

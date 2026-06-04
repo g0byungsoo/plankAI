@@ -182,6 +182,7 @@ struct PostSessionView: View {
             }
         }
         .onAppear {
+            Analytics.captureScreen("PostSession")
             Haptics.success()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                 Haptics.heavy()

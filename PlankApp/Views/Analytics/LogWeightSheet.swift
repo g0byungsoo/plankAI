@@ -255,7 +255,10 @@ struct LogWeightSheet: View {
         }
         .padding(.horizontal, Space.screenPadding)
         .background(Palette.bgPrimary)
-        .onAppear { keypadFocused = true }
+        .onAppear {
+            Analytics.captureScreen("LogWeight")
+            keypadFocused = true
+        }
     }
 
     private var saveButton: some View {

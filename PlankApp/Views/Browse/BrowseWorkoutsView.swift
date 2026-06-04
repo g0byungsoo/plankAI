@@ -95,6 +95,7 @@ struct BrowseWorkoutsView: View {
                 .padding(.top, Space.sm)
         }
         .onAppear {
+            Analytics.captureScreen("BrowseWorkouts")
             if reduceMotion {
                 didAppear = true   // snap, skip the swell
             } else {

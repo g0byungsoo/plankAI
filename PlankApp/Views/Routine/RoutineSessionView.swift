@@ -184,6 +184,7 @@ struct RoutineSessionView: View {
             sessionBridge.vm = vm
         }
         .onAppear {
+            Analytics.captureScreen("RoutineSession")
             // Keep the screen awake for the whole workout. SYNCHRONOUS
             // `.onAppear` (not `.task`) so the flag flips BEFORE iOS
             // schedules the next auto-lock countdown. The earlier

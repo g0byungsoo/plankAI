@@ -575,6 +575,7 @@ struct PaywallView: View {
                   dismissButton: .default(Text("OK")))
         }
         .task {
+            Analytics.captureScreen("Paywall")
             viewOpenTime = Date()
             await loadOfferings()
             // 2026-05-30 (epic #1 child #6): goal-aware default plan.
@@ -1104,12 +1105,18 @@ struct PaywallView: View {
             offering = offerings.current
             #endif
             if offering == nil {
+                Analytics.trackException(
+                    NSError(domain: "Paywall", code: 1, userInfo: [NSLocalizedDescriptionKey: "offerings.current is nil"]),
+                    context: "paywall.offerings_nil",
+                    properties: ["expected_offering_id": RevenueCatConfig.offeringID]
+                )
                 #if DEBUG
                 print("[Paywall] offerings returned nil current — check RC dashboard offering '\(RevenueCatConfig.offeringID)' is marked current")
                 #endif
                 offeringsLoadFailed = true
             }
         } catch {
+            Analytics.trackException(error, context: "paywall.offerings_load")
             #if DEBUG
             print("[Paywall] offerings load FAILED: \(error)")
             #endif
@@ -1174,6 +1181,8 @@ struct PaywallView: View {
                 errorMessage = "Purchase didn't activate Pro. Try again or contact support@jenifit.app."
             }
         } catch {
+            Analytics.trackException(error, context: "paywall.purchase",
+                                     properties: ["plan": selectedPlan.rawValue])
             #if DEBUG
             print("[Paywall] purchase FAILED: \(error)")
             #endif
@@ -1205,6 +1214,7 @@ struct PaywallView: View {
                 )
             }
         } catch {
+            Analytics.trackException(error, context: "paywall.restore")
             #if DEBUG
             print("[Paywall] restore FAILED: \(error)")
             #endif

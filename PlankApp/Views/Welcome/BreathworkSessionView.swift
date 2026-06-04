@@ -111,6 +111,7 @@ struct BreathworkSessionView: View {
             }
         }
         .onAppear {
+            Analytics.captureScreen("BreathworkSession")
             music.play()
             startIntro()
         }

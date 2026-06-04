@@ -218,6 +218,7 @@ final class PaymentService {
                     print("[PaymentService] safety-timeout refresh: hasProAccess=\(isActive)")
                     #endif
                 } catch {
+                    Analytics.trackException(error, context: "payment.safety_timeout_refresh")
                     #if DEBUG
                     print("[PaymentService] safety-timeout refresh failed: \(error)")
                     #endif
@@ -352,6 +353,8 @@ final class PaymentService {
                 #endif
             }
         } catch {
+            Analytics.trackException(error, context: "payment.auth_sync",
+                                     properties: ["new_user_id_present": normalized != nil])
             #if DEBUG
             print("[PaymentService] auth sync FAILED: \(error)")
             #endif

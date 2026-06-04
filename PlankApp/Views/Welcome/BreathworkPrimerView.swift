@@ -93,6 +93,7 @@ struct BreathworkPrimerView: View {
             }
         }
         .onAppear {
+            Analytics.captureScreen("BreathworkPrimer")
             Analytics.track(.breathworkPrimerViewed)
             if reduceMotion { runReducedMotion() } else { runChoreography() }
         }

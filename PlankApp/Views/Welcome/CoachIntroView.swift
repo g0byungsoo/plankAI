@@ -129,6 +129,7 @@ struct CoachIntroView: View {
             }
         }
         .onAppear {
+            Analytics.captureScreen("CoachIntro")
             Analytics.track(.coachIntroViewed)
             startMusic()
             if reduceMotion {

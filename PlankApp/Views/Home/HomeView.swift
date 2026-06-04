@@ -1052,6 +1052,7 @@ struct HomeView: View {
             energySheet
         }
         .onAppear {
+            Analytics.captureScreen("Home")
             #if DEBUG
             print("[FUNNEL] home_appeared | hasProAccess=\(payment.hasProAccess) | effectiveHasProAccess=\(payment.effectiveHasProAccess) | isEntitlementReady=\(payment.isEntitlementReady) | isInAuthTransition=\(payment.isInAuthTransition)")
             #endif

@@ -200,7 +200,10 @@ struct PostRoutineView: View {
                 }
             }
         }
-        .onAppear { runCelebrationSequence() }
+        .onAppear {
+            Analytics.captureScreen("PostRoutine")
+            runCelebrationSequence()
+        }
     }
 
     // MARK: - Celebration Sequence

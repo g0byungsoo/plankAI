@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - AnalyticsManager
 //
@@ -229,8 +230,15 @@ enum AnalyticsEvent: String {
 
 /// Sink protocol for pluggable backends. Add an implementation and
 /// append it to `Analytics.sinks` to start sending events somewhere.
+///
+/// `sendScreen` is required so dispatch goes through the witness table
+/// (not protocol-extension static dispatch) — the concrete sink's
+/// override must actually fire when called via the `[AnalyticsSink]`
+/// array. Conforming types that don't have a richer screen concept can
+/// rely on the default extension implementation.
 protocol AnalyticsSink {
     func send(event: String, properties: [String: Any])
+    func sendScreen(name: String)
 }
 
 /// Console sink — DEBUG only. Logs every event as `[ANALYTICS] event { … }`
@@ -307,6 +315,94 @@ enum Analytics {
     /// via the window check.
     static func _resetForTests() {
         lastFired.removeAll()
+    }
+
+    /// Capture a handled Swift error to PostHog Error Tracking. Fires the
+    /// `$exception` event so it groups alongside the SDK's native crash
+    /// auto-capture. `context` is a short string identifying the call site
+    /// (e.g. "payment.offerings_load") so the same error type from
+    /// different code paths stays distinguishable. Additional properties
+    /// (user id, product id, etc.) flow through `properties`.
+    static func trackException(_ error: Error, context: String, properties: [String: Any] = [:]) {
+        var merged = properties
+        merged["$exception_message"] = String(describing: error)
+        merged["$exception_type"]    = String(reflecting: type(of: error))
+        merged["error_context"]      = context
+        track("$exception", properties: merged)
+    }
+
+    private static func makeCoalesceKey(event: String, properties: [String: Any]) -> String {
+        // Step-level events de-dupe by step_id so the same step doesn't
+        // fire twice from a back-nav remount within the window. Other
+        // events de-dupe by name only.
+        if let stepId = properties["step_id"] {
+            return "\(event):\(stepId)"
+        }
+        if let stage = properties["stage_index"] {
+            return "\(event):\(stage)"
+        }
+        return event
+    }
+}
+
+// MARK: - Screen attribution
+
+/// SwiftUI modifier that emits a PostHog `$screen` event on appear so
+/// rageclicks, paths, and other implicit events get attributed to a
+/// named surface instead of the generic UIHostingController.
+private struct PostHogScreenModifier: ViewModifier {
+    let name: String
+    func body(content: Content) -> some View {
+        content.onAppear {
+            Analytics.captureScreen(name)
+        }
+    }
+}
+
+extension View {
+    /// Tag the receiver as a named screen for analytics. Apply to the
+    /// top-level view of each major surface (Home, Paywall, individual
+    /// onboarding steps, workout session, settings hub, etc).
+    func posthogScreen(_ name: String) -> some View {
+        modifier(PostHogScreenModifier(name: name))
+    }
+}
+
+extension Analytics {
+    /// Notify analytics sinks of a screen transition. PostHog's native
+    /// `screen(_:)` API registers the screen as a session-current value,
+    /// so subsequent `$rageclick` / `$autocapture` / custom events get
+    /// auto-tagged with the screen name — the whole point of this
+    /// attribution pass. Sinks that don't have a screen concept fall
+    /// back to a regular `$screen` event so DEBUG console transitions
+    /// stay visible in Xcode.
+    static func captureScreen(_ name: String) {
+        // Coalesce within 0.5s so SwiftUI onAppear double-fires on a single
+        // navigation don't surface twice. Implemented at the sink-routing
+        // layer here since `track(...)`'s coalesce keys on event+stepId.
+        let key = "$screen:\(name)"
+        let now = Date()
+        if let last = screenLastFired[key], now.timeIntervalSince(last) < coalesceWindow {
+            return
+        }
+        screenLastFired[key] = now
+        queue.async {
+            for sink in sinks {
+                sink.sendScreen(name: name)
+            }
+        }
+    }
+
+    nonisolated(unsafe) private static var screenLastFired: [String: Date] = [:]
+}
+
+/// Default screen-transition handling for sinks. Override in a sink
+/// that has a richer screen concept (PostHog's `screen(_:)` API
+/// registers the value as a session-current property so subsequent
+/// implicit events get tagged with it).
+extension AnalyticsSink {
+    func sendScreen(name: String) {
+        send(event: "$screen", properties: ["$screen_name": name])
     }
 
     private static func makeCoalesceKey(event: String, properties: [String: Any]) -> String {

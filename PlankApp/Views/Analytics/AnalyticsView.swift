@@ -458,7 +458,10 @@ struct AnalyticsView: View {
                 .padding(.bottom, 100)
             }
         }
-        .onAppear { animateIn() }
+        .onAppear {
+            Analytics.captureScreen("Becoming")
+            animateIn()
+        }
         // Weight log + first-log seed live at the body level now that the
         // trend lives inside the bento (the old standalone weightCard carried
         // these).
