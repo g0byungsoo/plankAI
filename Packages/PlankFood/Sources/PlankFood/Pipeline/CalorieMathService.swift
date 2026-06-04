@@ -36,7 +36,7 @@ public enum CalorieMathService {
     /// canonical pantry row). Macro fields default to 0 if unknown —
     /// preferable to nil because aggregation with nils requires
     /// special-casing and 0g is the honest "no data" reading.
-    public struct NutritionDensity: Sendable, Equatable {
+    public struct NutritionDensity: Sendable, Equatable, Codable {
         public let kcalPer100g: Double
         public let proteinPer100g: Double
         public let carbsPer100g: Double

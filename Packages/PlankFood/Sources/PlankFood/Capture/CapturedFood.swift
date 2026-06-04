@@ -159,8 +159,9 @@ public enum CaptureSource: String, Sendable, CaseIterable {
 // MARK: - NutritionSource
 
 /// Which database answered the per-item USDA join. Tracked for
-/// telemetry and future fine-tune-data assembly.
-public enum NutritionSource: String, Sendable, CaseIterable {
+/// telemetry and future fine-tune-data assembly. Codable so it can
+/// round-trip through NutritionLookupResult (cache + telemetry).
+public enum NutritionSource: String, Sendable, Codable, Hashable, CaseIterable {
     case usdaFDC = "usda_fdc"
     case openFoodFacts = "open_food_facts"
     case canonicalPantry = "canonical_pantry"

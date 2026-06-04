@@ -28,20 +28,29 @@ public enum FoodModule {
     /// throws notImplemented while nil (safe default).
     public static var visionService: FoodVisionService?
 
+    /// NutritionLookupService instance for the per-item density join
+    /// after FoodVisionService identifies items. nil = dispatcher
+    /// returns items with kcal-nil and the result card shows
+    /// "couldn't ID this" per item (safe default).
+    public static var nutritionLookup: NutritionLookupService?
+
     /// One-shot setup at app launch. Idempotent — calling again
-    /// replaces the service (useful for DEBUG re-configure / hot
-    /// reload during dev).
-    public static func configure(visionService: FoodVisionService) {
-        Self.visionService = visionService
+    /// replaces services (useful for DEBUG re-configure / hot reload).
+    public static func configure(
+        visionService: FoodVisionService? = nil,
+        nutritionLookup: NutritionLookupService? = nil
+    ) {
+        if let visionService { Self.visionService = visionService }
+        if let nutritionLookup { Self.nutritionLookup = nutritionLookup }
     }
 
     /// Resets all configured services. Used by tests + by Settings
     /// "sign out" handling if the food rail needs to detach from the
     /// previous user's auth context. Production sign-out doesn't have
-    /// to call this — the tokenProvider closure inside FoodVisionService
-    /// will simply return nil on the next scan and the user sees the
-    /// notAuthenticated copy.
+    /// to call this — the tokenProvider closures will simply return
+    /// nil on the next scan/lookup.
     public static func reset() {
         Self.visionService = nil
+        Self.nutritionLookup = nil
     }
 }

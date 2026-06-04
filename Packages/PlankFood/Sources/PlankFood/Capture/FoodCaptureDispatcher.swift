@@ -56,8 +56,9 @@ public final class FoodCaptureDispatcher {
                     context: .photo(byteCount: imageData.count, mode: mode)
                 )
             }
+            let identified: CapturedFood
             do {
-                return try await visionService.scan(
+                identified = try await visionService.scan(
                     imageData: imageData,
                     cuisineProfile: cuisineProfile,
                     mode: mode
@@ -68,6 +69,18 @@ public final class FoodCaptureDispatcher {
                 // user-facing copy.
                 throw FoodCaptureError.pipeline(underlying: visionError)
             }
+
+            // W2-T4 ✓ — join LLM-identified items with per-100g
+            // nutrition density from USDA / Open Food Facts /
+            // canonical_pantry (parallel resolver), then compute
+            // per-item + plate totals via CalorieMathService.
+            //
+            // No NutritionLookupService configured = items stay
+            // kcal-nil and result card shows "couldn't ID this"
+            // placeholder per item. Lookup failures per item are
+            // isolated (fail-soft) so one missing density doesn't
+            // sink the whole plate.
+            return await Self.enrich(identified, using: FoodModule.nutritionLookup)
 
         case .quickAdd(let pantryItemID):
             // W2-T4 — wire NutritionLookupService.lookupPantry(id)
@@ -91,6 +104,71 @@ public final class FoodCaptureDispatcher {
                 context: .imOutTonight(cuisine: cuisine)
             )
         }
+    }
+}
+
+// MARK: - Enrich
+
+extension FoodCaptureDispatcher {
+    /// Join LLM-identified items with nutrition density from the
+    /// configured lookup service (Option A: AppSideNutritionLookup
+    /// hitting pantry > USDA > OFF in parallel). Items where lookup
+    /// returns nil keep their existing nil kcal/macros — UI shows
+    /// "couldn't ID this" placeholder.
+    static func enrich(
+        _ identified: CapturedFood,
+        using lookup: NutritionLookupService?
+    ) async -> CapturedFood {
+        guard let lookup else { return identified }
+        guard !identified.items.isEmpty else { return identified }
+
+        let queries = identified.items.map { item in
+            NutritionQuery(
+                itemName: item.name,
+                usdaSearchTerms: item.usdaSearchTerms,
+                cuisineHint: item.cuisineHint
+            )
+        }
+        let densities = await lookup.lookup(queries)
+
+        let enriched: [CapturedItem] = zip(identified.items, densities).map { item, lookup in
+            guard let lookup else { return item }
+            let nutrition = CalorieMathService.compute(
+                portionGrams: item.portionGrams,
+                portionGramsLow: item.portionGramsLow,
+                portionGramsHigh: item.portionGramsHigh,
+                density: lookup.density
+            )
+            return CapturedItem(
+                id: item.id,
+                name: item.name,
+                portionGrams: item.portionGrams,
+                portionGramsLow: item.portionGramsLow,
+                portionGramsHigh: item.portionGramsHigh,
+                usdaSearchTerms: item.usdaSearchTerms,
+                preparation: item.preparation,
+                cuisineHint: item.cuisineHint,
+                confidence: item.confidence,
+                notes: item.notes,
+                kcal: nutrition.kcal,
+                proteinG: nutrition.proteinG,
+                carbsG: nutrition.carbsG,
+                fatG: nutrition.fatG,
+                fiberG: nutrition.fiberG,
+                nutritionSource: lookup.source
+            )
+        }
+
+        return CapturedFood(
+            items: enriched,
+            plateType: identified.plateType,
+            source: identified.source,
+            confidence: identified.confidence,
+            needsSecondPhoto: identified.needsSecondPhoto,
+            secondPhotoHint: identified.secondPhotoHint,
+            kcalLow: identified.kcalLow,
+            kcalHigh: identified.kcalHigh
+        )
     }
 }
 
