@@ -1,0 +1,3 @@
+{
+  "_comment": "Placeholder so .copy(\"Fixtures\") resource directive resolves. Real golden LLM responses land in W2-T5 (CalorieMathService snapshot tests)."
+}
