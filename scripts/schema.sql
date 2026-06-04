@@ -535,10 +535,12 @@ CREATE TABLE IF NOT EXISTS public.food_vision_telemetry (
     status text NOT NULL CHECK (status IN ('success','rate_limit','budget_cap','error'))
 );
 
--- Daily aggregation queries (budget cap + per-user cap) hit a btree on
--- requested_at; expression index keeps the DATE() trunc fast.
-CREATE INDEX IF NOT EXISTS food_vision_telemetry_day_idx
-    ON public.food_vision_telemetry ((date_trunc('day', requested_at)));
+-- Budget cap queries filter `WHERE requested_at >= start_of_day_iso`,
+-- which is a range scan satisfied by a plain btree on requested_at.
+-- (Avoid date_trunc here — it's STABLE not IMMUTABLE so Postgres
+-- rejects it in index expressions with error 42P17.)
+CREATE INDEX IF NOT EXISTS food_vision_telemetry_requested_idx
+    ON public.food_vision_telemetry (requested_at DESC);
 
 CREATE INDEX IF NOT EXISTS food_vision_telemetry_user_day_idx
     ON public.food_vision_telemetry (user_id, requested_at DESC);
