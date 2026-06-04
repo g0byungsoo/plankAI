@@ -144,25 +144,22 @@ Includes:
 
 ---
 
-### W1-T5 — JeniMethod content table migration script (1 day)
+### W1-T5 — JeniMethod content table migration script — **DEFERRED to v1.0.8 prep (2026-06-04)**
 
-**Files created:**
+**Status:** Deferred out of v1.0.7 scope. JeniMethod stays hardcoded for v1.0.7 ship; Days 16–30 land as new enum cases in `JeniMethodContent.swift` per existing pattern. The `jenimethod_lessons` Supabase table from W1-T2 stays in place (no harm; empty until refactor lands).
+
+**Why deferred:** v1.0.7 already ships a major feature (calorie tracking). Refactoring a shipped feature (JeniMethod) in the same release concentrates risk on a hot ship. The benefit (content-only update for Days 31–75 in v1.0.8) can still be achieved by completing this refactor *during* v1.0.8 prep before the content rolls out.
+
+**v1.0.8 prep blocker:** decide whether Days 31–75 ship as (a) a v1.0.8 code update — refactor not strictly required, or (b) a server-side content update — this refactor IS required. The decision is independent of v1.0.7's success.
+
+**Original spec preserved below for the eventual implementation:**
+
 - `scripts/migrate_jenimethod_to_supabase.py` — reads existing `JeniMethodContent.swift` enum cases, transforms into `jenimethod_lessons` rows, uploads to Supabase
+- Modify `JeniMethodContent.swift` — replace hardcoded enum with Supabase fetch + local cache (CoreData or SwiftData persistent cache)
+- Modify `JeniMethodState.swift` — adapt to async lesson loading
+- Behind `jenimethod_supabase_enabled` flag (default false). Hardcoded enum stays as fallback.
 
-**Files modified:**
-- `PlankApp/Views/DietEducation/JeniMethodContent.swift` — replace hardcoded enum with Supabase fetch + local cache (CoreData or SwiftData persistent cache)
-- `PlankApp/Views/DietEducation/JeniMethodState.swift` — adapt to async lesson loading
-
-This is the D30 architecture change. Lessons fetch on app launch (cached for offline). New lessons land via Supabase content update without app submission.
-
-**Acceptance:**
-- All 14 existing lessons render identically from Supabase source
-- Offline mode still renders cached lessons
-- New lesson added via Supabase appears in app within 1 minute of fetch
-
-**Dependencies:** W1-T2 (schema must exist), W1-T1 (package), 0.1 (don't break existing JeniMethod for 1.0.6 users)
-
-**Risk:** This is a refactor of existing shipped feature. Test heavily before merging. Suggest a feature flag (`jenimethod_supabase_enabled`, default false) to allow rollback.
+**Risk** (when implemented): refactor of existing shipped feature. Test heavily before merging.
 
 ---
 
