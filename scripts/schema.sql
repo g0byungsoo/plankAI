@@ -508,6 +508,46 @@ ALTER TABLE public.users
 ALTER TABLE public.users
     ADD COLUMN IF NOT EXISTS food_ai_consent_at timestamptz;
 
+-- ---------- food_vision_telemetry ----------
+-- Append-only log of every food-vision Edge Function invocation. Powers
+-- the daily budget kill-switch ($50/day cap) and per-user rate limit
+-- (30 scans/day) per v3 D26 + v5 §Sprint W1-T3.
+--
+-- Service-role-only access: RLS is enabled with NO policies, so
+-- authenticated users cannot read/write. The Edge Function uses the
+-- service_role key (bypasses RLS by design). Keeps per-user scan
+-- patterns and cost data invisible from the client.
+--
+-- One row per Edge Function call, regardless of outcome. status='success'
+-- = LLM responded; status='rate_limit'|'budget_cap' = rejected before
+-- LLM; status='error' = LLM call failed. cost_usd is 0 for the rejected
+-- variants (no LLM call made).
+
+CREATE TABLE IF NOT EXISTS public.food_vision_telemetry (
+    id text PRIMARY KEY,
+    user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+    requested_at timestamptz NOT NULL DEFAULT now(),
+    model text NOT NULL,
+    cost_usd numeric(10, 6) NOT NULL DEFAULT 0,
+    tokens_in integer,
+    tokens_out integer,
+    duration_ms integer,
+    status text NOT NULL CHECK (status IN ('success','rate_limit','budget_cap','error'))
+);
+
+-- Daily aggregation queries (budget cap + per-user cap) hit a btree on
+-- requested_at; expression index keeps the DATE() trunc fast.
+CREATE INDEX IF NOT EXISTS food_vision_telemetry_day_idx
+    ON public.food_vision_telemetry ((date_trunc('day', requested_at)));
+
+CREATE INDEX IF NOT EXISTS food_vision_telemetry_user_day_idx
+    ON public.food_vision_telemetry (user_id, requested_at DESC);
+
+-- Service-role-only (no SELECT/INSERT/UPDATE/DELETE for authenticated).
+-- The Edge Function uses SUPABASE_SERVICE_ROLE_KEY which bypasses RLS.
+ALTER TABLE public.food_vision_telemetry ENABLE ROW LEVEL SECURITY;
+-- No policies defined = no authenticated access. service_role still works.
+
 -- =====================================================================
 -- Next step
 -- =====================================================================
