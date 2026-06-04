@@ -509,6 +509,7 @@
 		7841FC189509B6CDE6986A4D /* matson_prep_short_vertical_leg_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AE438DB0F212554621A83EB5 /* matson_prep_short_vertical_leg_crunch.m4a */; };
 		78519A3173DA2C272D30DFE2 /* jeni_prep_short_side_leg_jack.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BC7BC938B64F5C3450F63D14 /* jeni_prep_short_side_leg_jack.m4a */; };
 		785C1E38E46C268F4FE0ACBF /* jeni_prep_full_lying_glute_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 3D391E9C2376B4B278122BBD /* jeni_prep_full_lying_glute_stretch.m4a */; };
+		78A275D42FD17A8700E8A4BF /* PlankFood in Frameworks */ = {isa = PBXBuildFile; productRef = 78A275D32FD17A8700E8A4BF /* PlankFood */; };
 		78FDCD412FA9CFC70017F2CA /* hero.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 78FDCD402FA9CFC70017F2CA /* hero.mp4 */; };
 		7910EF26A6102B38EB3AF6AE /* jeni_prep_full_stiff_leg_deadlift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 020CAD751FFBC1C7E1ACF11E /* jeni_prep_full_stiff_leg_deadlift.m4a */; };
 		7982E6F6CF6455505BB6F8B5 /* jeni_prep_short_standing_side_bend.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D870229D5523CD5603CF8A65 /* jeni_prep_short_standing_side_bend.m4a */; };
@@ -2519,6 +2520,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				783186732F99E7590096138F /* PlankSync in Frameworks */,
+				78A275D42FD17A8700E8A4BF /* PlankFood in Frameworks */,
 				783186702F99E73A0096138F /* PlankVoice in Frameworks */,
 				7831866C2F99E5C60096138F /* PlankEngine in Frameworks */,
 				BAD000000000000000000003 /* RevenueCat in Frameworks */,
@@ -4082,6 +4084,7 @@
 				BAD000000000000000000002 /* RevenueCat */,
 				BAD000000000000000000081 /* Lottie */,
 				C1234A51095631DC061286BA /* PostHog */,
+				78A275D32FD17A8700E8A4BF /* PlankFood */,
 			);
 			productName = plankAI;
 			productReference = 783186412F99E3110096138F /* plankAI.app */;
@@ -5724,6 +5727,11 @@
 		783186722F99E7590096138F /* PlankSync */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = PlankSync;
+		};
+		78A275D32FD17A8700E8A4BF /* PlankFood */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "Packages/PlankFood" */;
+			productName = PlankFood;
 		};
 		BAD000000000000000000002 /* RevenueCat */ = {
 			isa = XCSwiftPackageProductDependency;
