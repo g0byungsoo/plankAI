@@ -1,6 +1,15 @@
 import Foundation
 import Observation
+import PlankFood
 import RevenueCat
+
+// MARK: - FoodFlagsEntitlementProvider conformance
+//
+// Lets `FoodFlags` (in PlankFood) read `hasProAccess` without PlankFood
+// importing the main app target (would cycle). PaymentService already
+// exposes the matching property; this is just the protocol bridge.
+// Wired up in PlankAIApp.swift via FoodFlags.configure(entitlement:).
+extension PaymentService: FoodFlagsEntitlementProvider {}
 
 // MARK: - PaymentService
 //

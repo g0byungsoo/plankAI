@@ -1,6 +1,7 @@
 #if DEBUG
 import SwiftUI
 import Auth  // MemberImportVisibility: User.id / .email are defined in Supabase's Auth submodule
+import PlankFood  // FoodFlags constants for the food rail debug toggle
 
 /// Temporary scaffolding for testing Phase B (email/password upgrade) and
 /// Phase C (Apple Sign-In) before the real onboarding/settings UI lands.
@@ -30,6 +31,12 @@ struct DebugAuthView: View {
     // mutates UserDefaults.
     @AppStorage("jenimethod.last_lesson_completed_id") private var jeniMethodLastCompleted = 0
 
+    // W1-T4 — food rail dev override. Drives FoodFlags layer #1
+    // (short-circuit to true even without paid entitlement). Compiled
+    // out of Release via the file-level #if DEBUG. Key MUST match
+    // FoodFlags.devOverrideKey — the FoodFlagsTests pin this constant.
+    @AppStorage("food_rail_dev_override") private var foodRailDevOverride = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.lg) {
@@ -44,6 +51,8 @@ struct DebugAuthView: View {
                 actionButtons
 
                 jeniMethodSection
+
+                foodRailSection
 
                 if !status.isEmpty {
                     Text(status)
@@ -321,6 +330,41 @@ struct DebugAuthView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
+        }
+    }
+
+    // MARK: - Food rail (W1-T4)
+    //
+    // Single toggle that drives FoodFlags.isEnabled layer #1
+    // (force-on, bypasses paid + PostHog checks). Compiled out of
+    // Release via the file-level #if DEBUG. UserDefaults key MUST
+    // match FoodFlags.devOverrideKey — FoodFlagsTests pins the value.
+    private var foodRailSection: some View {
+        VStack(alignment: .leading, spacing: Space.md) {
+            Text("FOOD RAIL")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Palette.textSecondary)
+                .tracking(2)
+
+            Toggle("Force food_rail_dev_override (DEBUG only)",
+                   isOn: $foodRailDevOverride)
+                .tint(Palette.accent)
+                .padding(.vertical, 4)
+
+            VStack(alignment: .leading, spacing: 4) {
+                row("dev_override",   "\(foodRailDevOverride)")
+                row("pro_access",     "\(PaymentService.shared.hasProAccess)")
+                row("isEnabled",      "\(FoodFlags.isEnabled)")
+                row("flag_name",      FoodFlags.postHogFlagName)
+            }
+            .padding(12)
+            .background(Palette.bgElevated)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            Text("when override is OFF, isEnabled requires Pro entitlement + PostHog \(FoodFlags.postHogFlagName) flag on")
+                .font(.system(size: 11))
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.top, 2)
         }
     }
 

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import PlankFood
 import PlankSync
 import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
 import RevenueCat
@@ -528,6 +529,11 @@ private struct RootView: View {
             AppSync.shared.configure(modelContainer: modelContext.container)
             await auth.bootstrap()
             PaymentService.shared.configure(appUserID: auth.currentUser?.id.uuidString)
+            // W1-T4 — wire the food rail flag stack now that PaymentService
+            // is configured. FoodFlags.isEnabled gates every food UI render.
+            // The provider closure reads hasProAccess reactively, so flag
+            // state tracks customerInfoStream emits without re-configure.
+            FoodFlags.configure(entitlement: PaymentService.shared)
             await AppSync.shared.onLaunch(modelContext: modelContext)
             // Re-fill the local retention notifications (affirmation drops +
             // win-back). No-op + never prompts when notifications aren't
