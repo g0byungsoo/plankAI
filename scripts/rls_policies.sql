@@ -192,6 +192,83 @@ BEGIN
 END $$;
 
 -- =====================================================================
+-- FOOD RAIL (v1.0.7) — RLS policies
+-- =====================================================================
+--
+-- 2026-06-04. food_logs / food_log_items / food_corrections follow the
+-- standard user-data pattern (auth.uid() = user_id). canonical_pantry +
+-- jenimethod_lessons follow the content-table pattern (read for all
+-- authenticated users; writes service_role only).
+
+-- ---------- food_logs ----------
+DO $$
+BEGIN
+    IF to_regclass('public.food_logs') IS NOT NULL THEN
+        EXECUTE 'ALTER TABLE public.food_logs ENABLE ROW LEVEL SECURITY';
+        EXECUTE 'DROP POLICY IF EXISTS "food_logs_select_own" ON public.food_logs';
+        EXECUTE 'DROP POLICY IF EXISTS "food_logs_insert_own" ON public.food_logs';
+        EXECUTE 'DROP POLICY IF EXISTS "food_logs_update_own" ON public.food_logs';
+        EXECUTE 'DROP POLICY IF EXISTS "food_logs_delete_own" ON public.food_logs';
+        EXECUTE 'CREATE POLICY "food_logs_select_own" ON public.food_logs FOR SELECT TO authenticated USING (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "food_logs_insert_own" ON public.food_logs FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "food_logs_update_own" ON public.food_logs FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "food_logs_delete_own" ON public.food_logs FOR DELETE TO authenticated USING (auth.uid() = user_id)';
+    END IF;
+END $$;
+
+-- ---------- food_log_items ----------
+DO $$
+BEGIN
+    IF to_regclass('public.food_log_items') IS NOT NULL THEN
+        EXECUTE 'ALTER TABLE public.food_log_items ENABLE ROW LEVEL SECURITY';
+        EXECUTE 'DROP POLICY IF EXISTS "food_log_items_select_own" ON public.food_log_items';
+        EXECUTE 'DROP POLICY IF EXISTS "food_log_items_insert_own" ON public.food_log_items';
+        EXECUTE 'DROP POLICY IF EXISTS "food_log_items_update_own" ON public.food_log_items';
+        EXECUTE 'DROP POLICY IF EXISTS "food_log_items_delete_own" ON public.food_log_items';
+        EXECUTE 'CREATE POLICY "food_log_items_select_own" ON public.food_log_items FOR SELECT TO authenticated USING (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "food_log_items_insert_own" ON public.food_log_items FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "food_log_items_update_own" ON public.food_log_items FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "food_log_items_delete_own" ON public.food_log_items FOR DELETE TO authenticated USING (auth.uid() = user_id)';
+    END IF;
+END $$;
+
+-- ---------- food_corrections ----------
+DO $$
+BEGIN
+    IF to_regclass('public.food_corrections') IS NOT NULL THEN
+        EXECUTE 'ALTER TABLE public.food_corrections ENABLE ROW LEVEL SECURITY';
+        EXECUTE 'DROP POLICY IF EXISTS "food_corrections_select_own" ON public.food_corrections';
+        EXECUTE 'DROP POLICY IF EXISTS "food_corrections_insert_own" ON public.food_corrections';
+        EXECUTE 'DROP POLICY IF EXISTS "food_corrections_update_own" ON public.food_corrections';
+        EXECUTE 'DROP POLICY IF EXISTS "food_corrections_delete_own" ON public.food_corrections';
+        EXECUTE 'CREATE POLICY "food_corrections_select_own" ON public.food_corrections FOR SELECT TO authenticated USING (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "food_corrections_insert_own" ON public.food_corrections FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "food_corrections_update_own" ON public.food_corrections FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)';
+        EXECUTE 'CREATE POLICY "food_corrections_delete_own" ON public.food_corrections FOR DELETE TO authenticated USING (auth.uid() = user_id)';
+    END IF;
+END $$;
+
+-- ---------- canonical_pantry (content) ----------
+DO $$
+BEGIN
+    IF to_regclass('public.canonical_pantry') IS NOT NULL THEN
+        EXECUTE 'ALTER TABLE public.canonical_pantry ENABLE ROW LEVEL SECURITY';
+        EXECUTE 'DROP POLICY IF EXISTS "canonical_pantry_read_all" ON public.canonical_pantry';
+        EXECUTE 'CREATE POLICY "canonical_pantry_read_all" ON public.canonical_pantry FOR SELECT TO authenticated USING (true)';
+    END IF;
+END $$;
+
+-- ---------- jenimethod_lessons (content) ----------
+DO $$
+BEGIN
+    IF to_regclass('public.jenimethod_lessons') IS NOT NULL THEN
+        EXECUTE 'ALTER TABLE public.jenimethod_lessons ENABLE ROW LEVEL SECURITY';
+        EXECUTE 'DROP POLICY IF EXISTS "jenimethod_lessons_read_all" ON public.jenimethod_lessons';
+        EXECUTE 'CREATE POLICY "jenimethod_lessons_read_all" ON public.jenimethod_lessons FOR SELECT TO authenticated USING (true)';
+    END IF;
+END $$;
+
+-- =====================================================================
 -- VERIFICATION
 -- =====================================================================
 --
@@ -219,6 +296,8 @@ END $$;
 --          ('users'), ('session_logs'), ('day_progress'),
 --          ('onboarding_profiles'), ('session_ratings'),
 --          ('exercise_results'), ('performance_metrics'),
---          ('exercise_calibrations'), ('exercise_bank'), ('workout_presets')
+--          ('exercise_calibrations'), ('exercise_bank'), ('workout_presets'),
+--          ('food_logs'), ('food_log_items'), ('food_corrections'),
+--          ('canonical_pantry'), ('jenimethod_lessons')
 --      ) AS t(expected)
 --      WHERE to_regclass('public.' || t.expected) IS NULL;
