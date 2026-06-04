@@ -1,24 +1,72 @@
-# JeniFit Food Rail — Implementation Plan v1
+# JeniFit Food Rail — Implementation Plan
 
-Status: DRAFT for founder review. Decisions flagged `[FOUNDER Q#]` need explicit sign-off before Phase 1 starts.
-Date: 2026-06-01
-Target ship: v1.0.7 (after 1.0.6 build 11 archive lands and is approved)
+Status: **APPROVED for v1.0.7 ticketing (2026-06-04)**. All founder gates closed per delta v5 (search below for "ALL CLOSED 2026-06-04"). Sprint Week 1 can start; execution tickets live in `food_rail_sprint_v1_0_7.md`. Deltas v2–v5 below supersede the original v1 spec section in any conflict — read top-down chronologically for the full decision trail.
+Originally drafted 2026-06-01. Last delta 2026-06-04.
+Target ship: v1.0.7 (after 1.0.6 build 11 archive lands and is approved — ✓ DONE 2026-06-03)
 
 ---
 
 ## TL;DR
 
 - **Build the photo→calorie feature that beats Cal AI on cohort fit** (Gen-Z women 22–35, TikTok-acquired, weight-loss-motivated, anti-shame). Validated demand: PostHog shows 12 of 13 food-rail-tappers converted to paid (~92% correlation), 5× more taps than other "coming soon" rails.
-- **Model stack locked:** GPT-5 base primary + Claude Opus 4.7 confidence-gated fallback + Gemini 2.5 Flash food-or-not pre-filter. Cuisine profile from onboarding fed into system prompt as anti-cultural-bias lift Cal AI lacks. Blended cost ≈$443/mo at 10k paid users = 0.09% of $480k ARR — non-binding.
+- **The wedge (v2 update): the camera is bidirectional.** Phase 1 ships with a `before / after` toggle on the camera. Pre-eat mode reframes the scan as a *decision aide* ("this is around 480, you've got room"), not a verdict. No competitor positions this way — every calorie app on App Store assumes you already ate it. For an anti-shame cohort, this is the strongest positioning lever and costs almost nothing to add (same pipeline, copy variants, one toggle).
+- **Model stack locked:** GPT-5 base primary + Claude Opus 4.7 confidence-gated fallback + Gemini 2.5 Flash food-or-not pre-filter. Cuisine profile from onboarding fed into system prompt as anti-cultural-bias lift Cal AI lacks. Cost at current scale (~80 paid users, $500 MRR): ≈$15/mo. At 1,000 paid: ≈$195/mo. At 10k paid: ≈$443/mo (the original anchor). Model quality is not compromised for cost — Gemini Flash pre-filter ($0.0011/image) and confidence-gated Opus (~20% trigger rate) do the cost work.
 - **Nutrition DB:** USDA FoodData Central + Open Food Facts + JeniFit canonical pantry (~2k hand-curated entries covering boba, açaí, protein shakes, oat-milk lattes — the cohort-specific gaps). LLM returns identity + grams only; calorie math happens app-side from the DB join. Never trust the LLM for nutrition numbers.
 - **Cohort wedge:** GLP-1-aware protein floor + Jeni interpretation layer + 3 meal slots default + "showing up" streak (not "under-target" streak) + camera→result in one tap. No "AI" word, no red bars, no good/bad food labels. Cycle-aware target adjustment **deferred** — evidence is small and noisy, and we'd need cycle-date infra we don't have.
-- **Phase 1 ships in 4–6 weeks** behind premium gate. Phase 2 adds two-photo workflow + cycle integration via HealthKit. Phase 3 fine-tunes own model on corrections dataset at ~100k labeled scans — Cal AI's exact playbook.
+- **Phase 1 ships in 4–6 weeks** behind premium gate, with pre-eat mode as the differentiation wedge. **Phase 1.5 (week 7–8)** adds restaurant mode + today's-plate timeline. Phase 2 adds two-photo workflow + cycle integration via HealthKit. Phase 3 fine-tunes own model on corrections dataset at ~100k labeled scans — Cal AI's exact playbook.
 
 ---
 
 ## The wedge
 
-Cal AI's accuracy is commodity (vision is a saturated arms race). Their *moat* is the conversion machine — 123 paywall experiments, 46 trigger points, ~$50M ARR. JeniFit's moat is **the layer above the calorie number**: cuisine profile from onboarding feeds the prompt (anti-bias accuracy lift), Coach Jeni voice interprets ("luteal-phase wednesday, eat the snack" / "GLP-1 days the protein matters more than the deficit"), anti-shame visualizations replace MFP's red bars. **Two wedges stack: better accuracy on cohort food + better interpretation of the number.** Cal AI was just acquired by MyFitnessPal (Mar 2026); their pull from the App Store in April 2026 for deceptive billing signals Apple is actively policing the category. Our existing v1.0.7 pricing compliance work already inoculates us.
+Cal AI's accuracy is commodity (vision is a saturated arms race). Their *moat* is the conversion machine — 123 paywall experiments, 46 trigger points, ~$50M ARR. JeniFit's moat is **the layer above the calorie number**: cuisine profile from onboarding feeds the prompt (anti-bias accuracy lift), Coach Jeni voice interprets ("luteal-phase wednesday, eat the snack" / "GLP-1 days the protein matters more than the deficit"), anti-shame visualizations replace MFP's red bars. **Three wedges stack:** better accuracy on cohort food + better interpretation of the number + **bidirectional camera (pre-eat decision aide, not just retrospective shame)**. Cal AI was just acquired by MyFitnessPal (Mar 2026); their pull from the App Store in April 2026 for deceptive billing signals Apple is actively policing the category. Our existing v1.0.7 pricing compliance work already inoculates us.
+
+---
+
+## Differentiation wedges (v2 additions)
+
+Three positioning levers no competitor in the calorie-tracker category executes for Gen-Z women. All three are designed to make the app feel less like "MyFitnessPal with vision" and more like "the kind app that happens to count calories."
+
+### Wedge 1 — Pre-eat mode (Phase 1)
+
+**The flip:** every calorie tracker on the App Store assumes you already ate it. Snap → log → guilt. JeniFit's camera screen has a **`before / after` toggle** (large, segmented, two states). The vision pipeline is identical; the result card copy changes:
+
+- **After (default — retrospective log):** "*creamy carbonara*, around 520. logged."
+- **Before (pre-eat decision aide):** "*creamy carbonara*, around 520. you're at 1,100 today — you've got room. go enjoy it."
+
+This is genuine differentiation. The cohort lives with food anxiety; flipping the question from *"how bad was that"* to *"can I have this"* is permission, not surveillance. Marketing tagline candidate: "*decide* before you eat, not *suffer* after."
+
+**Implementation cost:** ~0.5 day. Camera screen toggle (two states), result-card copy variants (one extra system-prompt branch), one PostHog event `food_scan_mode` with value `before|after`. Same model stack, same schema, same nutrition join. Default = `after` (don't change the mental model of users who expect retrospective logging); `before` is a deliberate flip the user picks.
+
+**Voice rules:**
+- Pre-eat copy is encouraging, not warning. Never "watch out for…" or "be careful…"
+- Numerical headroom shown matter-of-factly: "you're at 1,100 today — you've got room."
+- If pre-eat scan would put the user over target by >300 kcal, Jeni says: "this is around 520 — would put you a bit over. only you know if it's worth it." **Permission, not prohibition.**
+
+### Wedge 2 — Restaurant mode (Phase 1.5)
+
+**The gap:** going out with friends breaks every calorie app. You can't snap 4 dishes at the table without looking obsessive. Restaurant mode is a quick non-camera flow:
+
+1. Cuisine type chips (italian / chinese / japanese / korean / mexican / thai / indian / mediterranean / american / other)
+2. How hungry going in (1–5 dots)
+3. How full afterwards (1–5 dots)
+4. Optional: 1–3 dish names (free text)
+
+Output: a **range** (e.g. "Thai dinner, felt 7/10 full → ~650–900 kcal range"). Logged as a single `food_logs` entry with `source = 'restaurant_estimate'` and `total_kcal_low` + `total_kcal_high` fields. The honest uncertainty is the feature — every other app fakes precision.
+
+**Implementation cost:** ~1.5 days. New `RestaurantEstimateSheet.swift`, two new schema columns (`total_kcal_low`, `total_kcal_high`), one new `source` enum value, one new prompt template (text-only, very cheap call).
+
+**Why this matters:** restaurants are *the* social context where calorie-tracking adherence dies for young women. Cal AI / MFP have nothing for this. The honest range is anti-shame in the most stressful eating moment.
+
+### Wedge 3 — Today's plate timeline (Phase 1.5)
+
+**The gap:** at 10pm, "what did I have today?" should not require scrolling a database. The Home tile gets a secondary state: **photo timeline along a time axis**, each plate as a small rounded thumbnail. No calorie numbers unless tapped — visual memory aide first, math second.
+
+This is also the most theme-native UX in the app: the scrapbook aesthetic (`THEME.md` §3) finally has a literal scrapbook surface. Stickers can land between plates. The italic-Fraunces punch word on the header reads "your *today*" or "today's *plate*."
+
+**Implementation cost:** ~2 days. New `TodayPlateTimelineView.swift` (horizontal scroll, thumbnails from `food_logs.items[].thumbnail_url`, time markers), gated on photo retention opt-in (else show meal-name pills with same layout). Thumbnails are 96×96px, generated app-side at log time from the original scan (never re-fetched from LLM).
+
+**Phase 1.5 grouping rationale:** restaurant mode + plate timeline are both UX additions that need real user feedback from Phase 1 to tune. Ship Phase 1 first (4–6 weeks), let early scanners use the basic flow for 2–3 weeks, then ship Phase 1.5 (1–2 weeks) tuned by what we learn.
 
 ---
 
