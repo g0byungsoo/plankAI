@@ -534,6 +534,37 @@ private struct RootView: View {
             // The provider closure reads hasProAccess reactively, so flag
             // state tracks customerInfoStream emits without re-configure.
             FoodFlags.configure(entitlement: PaymentService.shared)
+            // W2-T3 + W2-T4 — wire the food rail pipeline. Once configured,
+            // FoodCaptureDispatcher.dispatch(.photo(...)) runs the full chain:
+            // FoodVisionService -> NutritionLookupService (pantry > USDA > OFF
+            // parallel) -> CalorieMathService -> CapturedFood with kcal+macros.
+            // tokenProvider closures are called fresh per request so JWT
+            // expiration is handled automatically by the underlying session.
+            FoodModule.configure(
+                visionService: FoodVisionService(
+                    config: FoodVisionService.Config(
+                        supabaseURL: SupabaseConfig.url,
+                        anonKey: SupabaseConfig.anonKey,
+                        tokenProvider: { @Sendable in
+                            await AuthService.shared.currentSession?.accessToken
+                        }
+                    )
+                ),
+                nutritionLookup: AppSideNutritionLookup(
+                    usda: USDAClient(
+                        config: USDAClient.Config(apiKey: USDAConfig.apiKey)
+                    ),
+                    pantry: CanonicalPantryClient(
+                        config: CanonicalPantryClient.Config(
+                            supabaseURL: SupabaseConfig.url,
+                            anonKey: SupabaseConfig.anonKey,
+                            tokenProvider: { @Sendable in
+                                await AuthService.shared.currentSession?.accessToken
+                            }
+                        )
+                    )
+                )
+            )
             await AppSync.shared.onLaunch(modelContext: modelContext)
             // Re-fill the local retention notifications (affirmation drops +
             // win-back). No-op + never prompts when notifications aren't
