@@ -2280,17 +2280,15 @@ Existing-user soft tile: dismissable 7-day banner above food card on flag-flip d
 
 Catch-up tiles for missed JeniMethod days: smaller than today's hero, max 3 visible, never resets day counter.
 
-### Becoming screen (Story Card stack — proposed, awaiting final sign-off)
-
-**Status: PROPOSED, NOT YET LOCKED** — founder hasn't reacted to the 5 Becoming-specific decisions from the previous mock pass. Specs below are best draft awaiting your final calls.
+### Becoming screen (Story Card stack — LOCKED 2026-06-04)
 
 4-card vertical stack replaces bento grid:
-1. **"your week"** (trend hero) — EMA curve, soft directional copy. Empty state ≥7 days: "give it a week or two ↓ the curve takes time" (MacroFactor honesty pattern).
+1. **"your week"** (trend hero) — EMA curve + soft directional copy. **Empty state copy locked:** *"give it a week or two ↓ the curve takes time"* (MacroFactor radical-honesty pattern; D48). Builds trust early; reduces "where's my data?" churn.
 2. **"what you ate"** — 7-day bars (cocoa, never red) + rolling avg overlay. Captions: "tracking your goal pace" / "a higher week. tomorrow resets ♥" / "your body needs more — let's aim higher tomorrow" depending on data.
-3. **"how you moved"** — steps + sessions + breath count as raw units. **NEVER kcal** (Honesty Doctrine hard rule). Copy: "your body's been here" or alternates (open decision).
-4. **"what's changing"** — absorbs NSV + barrier-resolved + mastery curve + JeniMethod milestones. Catch-up tiles for missed lessons live here. (Open decision: split back into separate cards if too dense.)
+3. **"how you moved"** — steps + sessions + breath count as raw units. **NEVER kcal** (Honesty Doctrine hard rule). **Copy locked: *"your body's been here"*** (D47). Anti-labor framing; doesn't moralize movement; doesn't overuse "showing up."
+4. **"what's changing"** — **combined dense card (D46)**. Absorbs all four signals: NSV + barrier-resolved + mastery curve + JeniMethod milestones. **Catch-up tiles for missed lessons live INSIDE this card (D49)** — keeps Becoming stack tidy at 4 cards; missed lessons are part of the "what's changing" story narratively.
 
-Tab name "becoming" — designer B flagged as part of overuse but founder hasn't confirmed change yet. Open decision.
+**Tab name: "becoming" KEPT (D50)** — founder override of designer B's reduce-tab-name suggestion. Brand continuity from 1.0.6 wins. "Becoming" reduction (D36) still applies to greeting copy, notification copy, paywall body copy — just NOT the tab label.
 
 ---
 
@@ -2339,6 +2337,14 @@ Tab name "becoming" — designer B flagged as part of overuse but founder hasn't
 | D43 | Macros default-visible on result card (designer B's tap-to-reveal REJECTED) | ✓ LOCKED (override) |
 | D44 | Single hand in welcome video (designer B's racially-ambiguous/rotating REJECTED) | ✓ LOCKED (override) |
 | D45 | Force First Action copy stays "pick one to do right now" (designer B's softer version REJECTED) | ✓ LOCKED (override) |
+| D46 | "What's changing" card combines all four signals (NSV + barrier + mastery + milestones) | ✓ LOCKED |
+| D47 | "How you moved" copy: "your body's been here" | ✓ LOCKED |
+| D48 | Trend hero empty state copy: "give it a week or two ↓ the curve takes time" | ✓ LOCKED |
+| D49 | Catch-up tiles live INSIDE "what's changing" card (not dedicated card) | ✓ LOCKED |
+| D50 | Tab name "becoming" KEPT (founder override of designer B) | ✓ LOCKED (override) |
+| D51 | Force First Action plank option = existing JeniFit plank session (no custom starter content; wires to existing workout flow) | ✓ LOCKED |
+| D52 | Cohort chip language additions approved: "the streak guilt" (Q301), "vibes-based" + "forgot to eat lunch again" (Q302) | ✓ LOCKED |
+| D53 | Welcome video generated via AI tools (Runway / Pika / Veo3) — see quality bar below | ✓ LOCKED with safety gate |
 
 ---
 
@@ -2364,18 +2370,32 @@ Net sprint impact: ~+2-3 days total. v1.0.7 timeline 5-week estimate holds; the 
 
 ---
 
+## D53 quality bar — AI-generated welcome video
+
+**Tension:** brand voice locks ban "AI" in user-facing copy. We're choosing AI tools for the welcome video asset. The cohort has been told repeatedly that the app uses "vision models" not "AI" — if the video reads as AI-generated slop, that's a brand-trust failure.
+
+**Hard quality gate before shipping:**
+- Asset must be indistinguishable from professional motion design to a non-technical cohort viewer
+- Test against 3–5 cohort users (informal — friends, sister, TikTok DMs) before locking. If any single viewer says "this looks AI-generated," fall back to Pattern B for v1.0.7.
+- Production approach: Runway Gen-3 or Veo3 with curated input frames (real bowl, real hand, real iPhone). Avoid pure text-to-video; use image-to-video with controlled inputs.
+- Audio: NONE (silent loop). Removes one major AI-tell vector.
+- Length: 4 seconds. Shorter = less surface for AI artifacts.
+- Cocoa-pill calorie chip overlay = SwiftUI/Lottie native animation, NOT AI-generated. The animated chip is the "humanized" moment that disambiguates.
+
+**Fallback if quality gate fails:** Pattern B (type-only with brand mark + headline + CTA) ships in v1.0.7. Pattern C revisits in v1.0.8 with budget for a freelance motion designer.
+
+**Budget:** ~$50-200 in API credits + ~4-6 hours of curation. Cheap enough to fail-and-fall-back without project impact.
+
+---
+
 ## Open items (founder gate before v1.0.7 ticketing starts)
 
-1. **Becoming-specific decisions** (5 from previous turn) — not yet locked. Critical for W4-T3 ticket clarity:
-   - "What's changing" card density (combine or split)
-   - "How you moved" copy choice ("your body's been here" vs alternatives)
-   - Trend empty state copy ("give it a week or two")
-   - Catch-up tile placement (inside "what's changing" vs dedicated card)
-   - Tab name "becoming" stays or changes
-2. **Confirm Force First Action plank option content** — what's the 4-min starter set? Single plank hold? Plank + 3 bodyweight moves? Affects W4-T2.
-3. **Confirm welcome video production plan** — designer + animator engagement, timeline, asset delivery before Week 4.
-4. **Confirm copy pass owner** for "becoming" reduction across surfaces (founder or curator).
-5. **Approve cohort chips additions** in Q301 ("the streak guilt") and Q302 ("vibes-based", "forgot to eat lunch again") — minor but lock the language.
+**ALL CLOSED 2026-06-04.** Remaining open items:
+
+1. **Confirm copy pass owner** for "becoming" reduction across non-tab surfaces (greeting / notification / paywall body / streak language). Founder or curator. (Light operational confirmation.)
+2. **Held release dependency** unchanged in v5 — 1.0.6 build 11 must be Apple-approved + released ✓ DONE 2026-06-03.
+
+Sprint Week 1 can start.
 
 ---
 
@@ -2389,4 +2409,4 @@ Net sprint impact: ~+2-3 days total. v1.0.7 timeline 5-week estimate holds; the 
 
 ---
 
-*End delta v5. v5 wins over v4 wins over v3 wins over v2 wins over v1 where they conflict. Becoming-specific decisions still open; everything else locked. Sprint breakdown updates needed before Week 1 ticketing.*
+*End delta v5. v5 wins over v4 wins over v3 wins over v2 wins over v1 where they conflict. **All design decisions locked 2026-06-04** (D33–D53). Sprint Week 1 can begin.*
