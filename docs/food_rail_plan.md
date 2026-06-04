@@ -2151,3 +2151,242 @@ In priority order:
 ---
 
 *End delta v4. v4 layers on v3 (operational supplement, not replacement). All v3 architectural decisions stand. Ticketing starts after founder gate on D28–D32 + 1.0.6 archive lands.*
+
+---
+
+# Delta v5 — Design review locks 2026-06-03 (late evening)
+
+Status: DRAFT. Captures ~40 design decisions locked via two parallel UX designer reviews (conversion-funnel + Gen-Z cohort-fluency specialists) + first-screen pattern research. Supersedes v4 where they conflict. **1.0.6 build 11 has SHIPPED.** Hard gate for v1.0.7 cleared.
+
+## Why v5 exists
+
+After v1.0.6 shipped, a full design review pass on the v1.0.7 surfaces produced (welcome / onboarding question reorder / calorie scan flow / Home / Becoming) was run via two UX designer agents:
+
+- **Designer A** — senior subscription-funnel designer with women's-weight-loss app experience. Critique focused on conversion mechanics, paywall placement, progress bars, skip buttons, peak-end rule, structural choices vs design churn.
+- **Designer B** — Gen-Z cohort cultural specialist with app experience in cohort rotation (Yuka, BeReal, Pinterest, Lemon8, Flo, Co-Star, intuitive-eating apps). Critique focused on cultural fluency, voice landing, anti-shame sensitivity, identity authenticity, app-rotation texture, privacy/Big-Tech-distrust signals.
+
+Their critiques mostly didn't conflict — designer B caught cohort-specific traps designer A wasn't briefed to see (Apple Watch ring closure-debt trauma, /75 ↔ 75 Hard adjacency, streak-loss as #1 cohort churn driver, "becoming" overuse, etc.). Founder ratified the bulk of both designers' calls.
+
+Also a parallel research stream on first-screen patterns for weight-loss apps in 2026 confirmed the existing `feedback_first_screen_strategy` memory stance (no body imagery, no creator credit on screen 1) is even MORE defensible post-TikTok-ad-policy + #SkinnyTok ban + Apple body-classification conservatism.
+
+---
+
+## Major locks summary (the load-bearing ones)
+
+1. **Ring → Bar on food card** — Apple Watch closure-debt trauma is a real cohort risk. Cocoa not red wasn't sufficient; the *shape* itself triggers. Bars on Home food card + result card + Becoming food card.
+2. **Drop "/75" display in UI** — keep arc length internal but UI never shows the denominator. 75 Hard adjacency too negative.
+3. **SKIP STREAKS ENTIRELY** — no streak counter, no streak-loss notification, no broken-streak UI. Largest year-2 retention risk in the category for this cohort. "Showing up" stays as LANGUAGE in copy ("3 days of showing up this week") but never as a metric.
+4. **"Becoming" reduce ~60% across surfaces** — brand-issued not cohort-issued. Treat like saffron not salt. Strategic uses: paywall hero + JeniMethod arc framing. Replace elsewhere with "showing up" or "your [X] era" or concrete language.
+5. **Pattern C welcome screen** — 4-sec product-act video loop (hand snapping overnight oats, cocoa-pill calorie chip animating in). NO creator photos. NO body imagery. NO before/after.
+6. **Force First Action sheet** post-paywall — "want to start with food or movement?" lands between paywall and Home, presents 2 equal options (food photo OR 4-min starter plank). Soft "not right now" skip preserved.
+7. **Remove "skip walkthrough" CTA** on welcome screen — conversion suicide per category leaders.
+8. **3 onboarding questions ADD + 3 CUT + 1 REORDER** (details in §Onboarding below).
+9. **Continuous progress bar** across all onboarding screens (not per-act dots).
+10. **Cuisine question moves to Act 3** (after body + goal) — not Act 2 as v3 proposed. Reason per designer A: user needs to feel measured before investing in 8 food questions.
+11. **Honesty Doctrine extends to copy** — "around 480, give or take a slice" uncertainty IN copy not %, "(this takes about 3 sec)" disclosure on processing screen, "we delete the photo after" baked into AI consent modal.
+
+---
+
+## Per-screen locked specs
+
+### Screen 1 — Welcome (Pattern C)
+
+Asset: 4-second silent video loop (NOT a person, NOT a body). Real hand photographing a bowl of overnight oats; cocoa-pill calorie chip animates in with flower3D sticker accent.
+
+Copy locked:
+- Headline: **weight loss that *holds*** (italic Fraunces on "holds")
+- Subhead: *"calories, plank, steps — one calm program for the long version."* (NOT "the long version of you" — designer B cut "of you")
+- Primary CTA: **i'm in** (cocoa pill) — replaces "start becoming." TikTok-comment-section register.
+- Social proof line: omitted at launch (data provenance rule — only ships when true)
+- "Skip walkthrough" CTA: REMOVED
+
+Production cost: ~1-2 days designer + animator. Single asset reused across CPP + App Store screenshot frame 1.
+
+### Onboarding redesigned act structure (~47 screens, down from 57)
+
+| Act | Theme | Screens | Food signal? |
+|---|---|---|---|
+| **Act 1: hook + competitor-killer** | Welcome, why-you're-here, identity anchor, prior-apps questions | ~8 | YES via welcome copy |
+| **Act 2: body data** | Weight, goal, height, body type | ~6 | — |
+| **Act 3: food-first reveal** | Cuisine, eating cadence, dining frequency, photo comfort, food relationship | ~5 trimmed | YES (the wedge questions) |
+| **Act 4: cohort credibility** | Sleep, stress, hormonal, GLP-1, prior attempts, prior win | ~10 | LTV-strong |
+| **Act 5: plan reveal + paywall** | Reveal, projection, paywall (food-variant hero) | ~8 | YES (food-led hero) |
+| Plus dividers/affirmations/reveal-sequence | | ~10 | |
+
+#### Questions ADDED (3)
+
+- **Q300** (Act 1 close): *"have you tried other apps for this?"* Multi-select chips: MyFitnessPal · Cal AI · Noom · LoseIt · Lifesum · Cronometer · MacroFactor · WW · none yet · other. New AppStorage: `priorAppsUsed`.
+
+- **Q301** (Act 1 close, conditional on Q300 ≠ "none yet"): *"what didn't work about it?"* Multi-select chips: made me feel guilty · too much typing · inaccurate calories · too many notifications · paywall too aggressive · couldn't keep up · forgot to log · expensive · **the streak guilt** (cohort-issued language) · just lost interest. Show ALL chips, NO "show more" hide. New AppStorage: `priorAppsFailureModes`.
+
+- **Q303** (Act 3): *"how often do you eat out?"* Single-select, **4 options** (designer A refinement from my original 5): often · weekly · occasionally · rarely. New AppStorage: `diningFrequency`.
+
+- **Q302** (Act 3): cuisine multi-select [moved from v3 D17 location; locked at Act 3 not Act 2]. Add cohort-issued chips per designer B: **"vibes-based"** and **"forgot to eat lunch again"** alongside cuisine options.
+
+- **Q304** (Act 3): *"how do you usually capture food memories?"* Single-select: I snap everything · sometimes · rarely · I don't take food photos. New AppStorage: `photoComfort`.
+
+#### Questions CUT (3)
+
+- **Q260** (tier-ladder identity projection) — Noom-style projection theater before user has data. Designer A + B both flagged.
+- **Q3 + Q11** (legacy relatability) — replaced by Q153 multi-select but never deleted. Dead code.
+
+#### Question REWRITTEN (1)
+
+- **Q145** (pre-paywall celebration screen) — DON'T DROP per designer A's peak-end rule pushback. Rewrite as data-grounded plan reveal: *"your plan is ready"* with echoed user inputs (cuisine, prior-app failure modes, GLP-1 status if applicable) reflected as plan personalization. Critical: must reflect Q301 failure modes back as positives ("your plan: no guilt, less typing, fewer notifications").
+
+#### Continuous progress bar
+
+Thin top bar fills monotonically across all ~47 screens. Replaces per-act dots. Doesn't show "X of N" number — just fills. Per Noom + Cal AI pattern.
+
+### Force First Action sheet (post-paywall, pre-Home)
+
+```
+welcome 🌸
+let's *start*.
+
+want to start with food or movement?
+
+[ 📷 log what you're eating ]
+[ 💪 do a 4-min starter set ]
+
+not right now →
+```
+
+- Two equal-weight CTA pills
+- "Pick one" copy KEPT (designer B's softer "want to start with food or movement?" REJECTED by founder — keeps assertiveness)
+- "Not right now" soft skip — routes to Home with empty state + first-log nudge active for 7 days
+
+### Calorie scan flow (7 sub-screens, locked)
+
+Specs locked (no changes from previous mock):
+1. **Camera screen** — scrapbook frame around viewfinder (NOT black camera UI, +2 days dev). Cocoa pill shutter with "tap to scan" label. Pre-eat mode toggle `[just ate | deciding]` visible at top. 3-mode chip row at bottom (photo / quick-add / i'm out).
+2. **Processing screen** — 3 streaming copy lines + "(this takes about 3 sec)" honest disclosure. Bloom sticker pulse, NO spinner/progress-bar.
+3. **Result card (just ate)** — italic Fraunces on food name, **"around 480, give or take a slice"** uncertainty IN copy not %, macros default-visible (P22 C50 F18 — designer B's tap-to-reveal REJECTED by founder), Jeni interpretation line, "looks good — log it" primary + "fix something" secondary.
+4. **Result card (deciding/pre-eat)** — "you have room. easy yes." permission frame. **"have it / save for later"** (NOT "skip this one" — designer B polish accepted). Macros demoted below Jeni line.
+5. **Quick-add picker** — 6 tiles (matcha latte / oat milk latte / iced coffee / brown sugar boba / protein shake / smoothie). 3-tap edit sheet (size/milk/sweetness).
+6. **"I'm out tonight" placeholder** — single tap logs ~700 default. Optional cuisine chip refines (mexican ~600, italian ~850, asian ~750). "or just log it →" escape for ultra-lazy path.
+7. **Correction sheet** — portion slider 3 stops (S/M/L) with haptic, food search, "describe instead" re-runs LLM.
+
+### Home screen (Slot 4 redesign locked)
+
+- Slot 0: JenisNoteCard with day-count reference ("3 days in — that's a rhythm forming") — KEEPS, designer A + B both ratified
+- Slot 1: JeniMethod card hero — UNCHANGED
+- Slot 2: today's workout card
+- Slot 3: WeekProgressStrip with **"Day N"** badge (NO "/75" — locked)
+- Slot 4: TodayHealthStrip — food card hero **with BAR not ring** (locked change), cocoa color, weekly avg caption, "tracking your week" copy. Steps + breath as lateral pills below (smaller).
+- Slot 5: shrunken utility row
+
+Existing-user soft tile: dismissable 7-day banner above food card on flag-flip day. No popup, no modal.
+
+Catch-up tiles for missed JeniMethod days: smaller than today's hero, max 3 visible, never resets day counter.
+
+### Becoming screen (Story Card stack — proposed, awaiting final sign-off)
+
+**Status: PROPOSED, NOT YET LOCKED** — founder hasn't reacted to the 5 Becoming-specific decisions from the previous mock pass. Specs below are best draft awaiting your final calls.
+
+4-card vertical stack replaces bento grid:
+1. **"your week"** (trend hero) — EMA curve, soft directional copy. Empty state ≥7 days: "give it a week or two ↓ the curve takes time" (MacroFactor honesty pattern).
+2. **"what you ate"** — 7-day bars (cocoa, never red) + rolling avg overlay. Captions: "tracking your goal pace" / "a higher week. tomorrow resets ♥" / "your body needs more — let's aim higher tomorrow" depending on data.
+3. **"how you moved"** — steps + sessions + breath count as raw units. **NEVER kcal** (Honesty Doctrine hard rule). Copy: "your body's been here" or alternates (open decision).
+4. **"what's changing"** — absorbs NSV + barrier-resolved + mastery curve + JeniMethod milestones. Catch-up tiles for missed lessons live here. (Open decision: split back into separate cards if too dense.)
+
+Tab name "becoming" — designer B flagged as part of overuse but founder hasn't confirmed change yet. Open decision.
+
+---
+
+## Vocabulary lock-ins (cohort-fluency layer)
+
+| Pattern | Lock |
+|---|---|
+| "becoming" frequency | Reduce ~60%. Strategic uses ONLY: paywall hero + JeniMethod 75-day-arc framing. Replace elsewhere. |
+| "Day N of 75" | **NEVER displayed.** "Day N" alone. Arc length internal only. |
+| Streak counter | **NEVER displayed.** No metric, no notification, no UI element. "Showing up" stays as language in greeting copy ("3 days of showing up"), not as counter. |
+| "luteal-phase" | Replaced by **"second-half-of-cycle"** (creator-safe phrasing per @hormone.health.dietitian / @thecycledoctor TikTok register) |
+| "the long version of you" | Cut "of you" → **"the long version"** |
+| "have it / skip this one" | Cut "skip this one" → **"have it / save for later"** |
+| Cycle-specific voice | **Gated behind logged-cycle data.** If user has logged a cycle, Jeni references it. If not, Jeni uses non-cycle copy. Single deepest moat (Flo × food intersection). |
+| "bloat truth" lesson title | Renamed to **"why your body looks different at 4pm than 9am"** — moderation safety + cohort fluency. |
+| AI disclosure copy | Compressed: *"we send your photo to read the plate. openai + anthropic see it. they don't train on it. photo's gone after."* "Photo's gone after" is the most important sentence; previously buried. |
+
+---
+
+## v4 conflicts resolved by v5
+
+| v4 said | v5 supersedes |
+|---|---|
+| "No food prompt immediately post-paywall — food card visible but dimmed" | **REVERSED.** Force First Action sheet between paywall and Home presents food option as one of two equal choices. |
+| Tab name kept as "becoming" | **OPEN.** Designer B flagged for change; founder not yet confirmed. |
+| "Showing up streak" notification on milestone | **REMOVED.** Streak metric gone; milestone notifications still fire but reference JeniMethod day milestones (Day 7/25/50/75), not streak. |
+| "Day N of 75" in JeniMethod card | **DISPLAY ONLY "Day N".** Internal 75-day arc unchanged. |
+| Food card 3-ring concentric tile | Already rejected in v3. v5 also rejects single-ring food tile in favor of BAR. |
+
+---
+
+## New founder decisions D33–D45
+
+| # | Decision | Lock |
+|---|---|---|
+| D33 | Ring → Bar on food card across Home + result card + Becoming | ✓ LOCKED |
+| D34 | Drop "/75" denominator in all UI displays | ✓ LOCKED |
+| D35 | Skip streak metric entirely (no counter, no UI, no notification) | ✓ LOCKED |
+| D36 | Reduce "becoming" surface count ~60% (strategic uses only) | ✓ LOCKED principle, copy pass needed across surfaces |
+| D37 | Pattern C welcome (video loop, no creator/body imagery) | ✓ LOCKED |
+| D38 | Force First Action sheet post-paywall with 2 equal options + soft skip | ✓ LOCKED |
+| D39 | Onboarding act reorder (food Act 3 not Act 2) | ✓ LOCKED |
+| D40 | Add Q300/Q301/Q303/Q304 to onboarding; cut Q260/Q3/Q11; rewrite Q145 | ✓ LOCKED |
+| D41 | Continuous progress bar across all onboarding screens | ✓ LOCKED |
+| D42 | Honesty Doctrine extends to copy (uncertainty IN copy, "photo's gone after", "(takes about 3 sec)") | ✓ LOCKED |
+| D43 | Macros default-visible on result card (designer B's tap-to-reveal REJECTED) | ✓ LOCKED (override) |
+| D44 | Single hand in welcome video (designer B's racially-ambiguous/rotating REJECTED) | ✓ LOCKED (override) |
+| D45 | Force First Action copy stays "pick one to do right now" (designer B's softer version REJECTED) | ✓ LOCKED (override) |
+
+---
+
+## Sprint breakdown impacts (`food_rail_sprint_v1_0_7.md`)
+
+These tickets need updating to reflect v5 decisions:
+
+| Sprint ticket | v5 impact |
+|---|---|
+| W2-T2 PhotoCaptureView | Add scrapbook frame + pre-eat toggle (was implied; now hard-spec'd) |
+| W3-T1 6 atomic Views | **Add "WeeklyAvgBar" atom** to replace ring on food card. **Remove streak-counter atom from scope.** |
+| W3-T6 FoodLog SwiftData model | Schema unchanged but no streak-count field needed |
+| W4-T1 TodayHealthStrip on Home | **Bar not ring** for food card. Day badge no "/75" suffix. |
+| W4-T2 Force First Action sheet (NEW TICKET) | Need to add: sheet between paywall and Home with 2-option food/plank + skip. Estimated 1.5 days. |
+| W4-T3 Becoming Story Card | Trend card empty state honesty copy. "How you moved" never shows kcal. "What's changing" absorbs NSV + barrier + mastery curve + JeniMethod milestones. |
+| W4-T4 Food Settings | No streak settings needed (skipped). Cycle voice gate option added. |
+| W5-T1 JeniMethod content | Day 28 lesson renamed "why your body looks different at 4pm than 9am" (was "bloat truth") |
+| W5-T3 PostHog instrumentation | **REMOVE `food_streak_milestone`** event. Keep `jenimethod_milestone_d7/25/50/75`. |
+| W5-T5 Notification cadence | **Remove streak-loss notification entirely.** Day-3 first-log nudge + opt-in evening check-in only. |
+| W5-T6 Onboarding case 165 | **Expand to add Q300/Q301/Q303/Q304** (and Q302 cuisine moves to Act 3). Estimated +1 day. |
+
+Net sprint impact: ~+2-3 days total. v1.0.7 timeline 5-week estimate holds; the new Force First Action sheet ticket compresses other Week-4 slack.
+
+---
+
+## Open items (founder gate before v1.0.7 ticketing starts)
+
+1. **Becoming-specific decisions** (5 from previous turn) — not yet locked. Critical for W4-T3 ticket clarity:
+   - "What's changing" card density (combine or split)
+   - "How you moved" copy choice ("your body's been here" vs alternatives)
+   - Trend empty state copy ("give it a week or two")
+   - Catch-up tile placement (inside "what's changing" vs dedicated card)
+   - Tab name "becoming" stays or changes
+2. **Confirm Force First Action plank option content** — what's the 4-min starter set? Single plank hold? Plank + 3 bodyweight moves? Affects W4-T2.
+3. **Confirm welcome video production plan** — designer + animator engagement, timeline, asset delivery before Week 4.
+4. **Confirm copy pass owner** for "becoming" reduction across surfaces (founder or curator).
+5. **Approve cohort chips additions** in Q301 ("the streak guilt") and Q302 ("vibes-based", "forgot to eat lunch again") — minor but lock the language.
+
+---
+
+## Related research sources added in v5
+
+- UX designer A (subscription funnel): conversion mechanics, paywall placement, peak-end rule
+- UX designer B (Gen-Z cohort cultural specialist): cultural fluency, voice landing, anti-shame sensitivity, identity authenticity, app-rotation texture
+- First-screen pattern research 2026: TikTok ad policy + #SkinnyTok ban + Apple body-classification + category-leader convergence on no-body-imagery screen 1
+- r/loseit, r/xxfitness, r/EatingDisorders thread analysis on streak-guilt churn pattern
+- TikTok creator handles referenced: @hormone.health.dietitian, @thecycledoctor, @abbeyskitchen, @sampreviteRD, @colleenchristensennutrition, @karaglucksman, @thebirdspapaya
+
+---
+
+*End delta v5. v5 wins over v4 wins over v3 wins over v2 wins over v1 where they conflict. Becoming-specific decisions still open; everything else locked. Sprint breakdown updates needed before Week 1 ticketing.*
