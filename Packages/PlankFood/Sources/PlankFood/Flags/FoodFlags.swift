@@ -42,6 +42,14 @@ public enum FoodFlags {
 
     public static let postHogFlagName = "food_rail_v1"
 
+    /// Delta v7 D72 — US-specific paywall headline variant. PostHog
+    /// targets via geoip country code (set rollout cohort to US-only
+    /// in the dashboard). Expected lift +30-50% US trial conversion
+    /// per Adapty 2026 camera-promise headline data (Brief #3 §1).
+    /// Test gated independently from the food rail rollout flag so
+    /// we can vary geo without recoupling rollout %.
+    public static let paywallFoodFirstFlagName = "paywall_food_first_us"
+
     /// UserDefaults key for the DEBUG-only force-on toggle. Surfaced in
     /// DebugAuthView. Compiled out of Release via `#if DEBUG`.
     public static let devOverrideKey = "food_rail_dev_override"
@@ -91,5 +99,19 @@ public enum FoodFlags {
         }
         #endif
         return PostHogSDK.shared.isFeatureEnabled(postHogFlagName)
+    }
+
+    /// D72 — US-specific paywall headline variant active for this user.
+    /// PostHog dashboard targets US via geoip; iOS code doesn't read
+    /// locale — let PostHog handle geo to keep targeting iterable
+    /// without app deploy. Returns false when PostHog isn't configured
+    /// (safe default — existing headline copy used).
+    public static var isPaywallFoodFirstEnabled: Bool {
+        #if DEBUG
+        if UserDefaults.standard.bool(forKey: devOverrideKey) {
+            return true
+        }
+        #endif
+        return PostHogSDK.shared.isFeatureEnabled(paywallFoodFirstFlagName)
     }
 }

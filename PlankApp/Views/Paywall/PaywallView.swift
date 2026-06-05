@@ -184,6 +184,22 @@ struct PaywallView: View {
         let first = displayFirstName
         let namePrefix = first.isEmpty ? "" : "\(first), "
 
+        // Delta v7 D72 — US-specific food-first headline variant.
+        // Replaces brand-promise framing ("becoming starts here") with
+        // a camera-promise wedge ("snap your plate. see if it fits.").
+        // Adapty 2026 cross-app diet data: camera-promise headlines
+        // outperform brand-promise 1.3-1.5× in US 18-29F segment
+        // (Brief #3 §1 — expected US trial-to-paid lift +30-50%).
+        // PostHog dashboard targets US via geoip + caps rollout %.
+        // Most-specific gate first: requires both the US PostHog
+        // variant AND food rail being advertised (so users not in the
+        // food rollout don't see camera promises).
+        if FoodFlags.isAdvertised && FoodFlags.isPaywallFoodFirstEnabled {
+            let punch = "fits"
+            let base = "snap your plate. see if it \(punch). before you eat."
+            return (base, [punch])
+        }
+
         // W4-T5 — food-variant hero when food rail is the v1.0.7
         // headline feature. Frames the value-prop around the full
         // weight-loss story (what you eat + how you move + the trend)
