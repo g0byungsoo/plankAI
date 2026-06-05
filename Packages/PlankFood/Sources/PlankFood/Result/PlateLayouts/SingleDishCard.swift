@@ -69,12 +69,15 @@ public struct SingleDishCard: View {
                 )
 
                 if item.kcal != nil {
-                    MacroRow(
+                    NutrientGrid(
                         kcal: item.kcal,
                         proteinG: item.proteinG,
                         carbsG: item.carbsG,
                         fatG: item.fatG,
-                        emphasized: true
+                        fiberG: item.fiberG,
+                        sugarG: item.sugarG,
+                        sodiumMg: item.sodiumMg,
+                        saturatedFatG: item.saturatedFatG
                     )
                 }
             }
@@ -94,11 +97,27 @@ public struct SingleDishCard: View {
         }
         .padding(FoodTheme.Space.lg)
         .background(FoodTheme.bgElevated)
+        // Scrapbook chrome per v5 D37 + feedback_visual_richness_over_restraint:
+        // 1.5pt accent border + hard offset shadow (radius:0, x/y:3)
+        // gives the y2k-coquette weight WITHOUT relying on bitmap
+        // stickers. Subtle by itself; loud when combined with the
+        // sticker overlay below.
+        .clipShape(RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous)
-                .stroke(FoodTheme.textPrimary.opacity(0.08), lineWidth: 0.5)
+                .stroke(FoodTheme.accent.opacity(0.5), lineWidth: FoodTheme.Stroke.scrapbook)
         )
-        .clipShape(RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous))
+        .shadow(color: FoodTheme.textPrimary.opacity(0.2), radius: 0, x: 3, y: 3)
+        // Sticker scatter — flower3D emoji rotated and offset to read
+        // as a hand-placed scrapbook accent. Decorative only, hidden
+        // from VoiceOver.
+        .overlay(alignment: .topTrailing) {
+            Text("🌸")
+                .font(.system(size: 32))
+                .rotationEffect(.degrees(15))
+                .offset(x: 8, y: -12)
+                .accessibilityHidden(true)
+        }
     }
 
     // MARK: - Action buttons

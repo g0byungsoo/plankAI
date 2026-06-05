@@ -155,7 +155,10 @@ extension FoodCaptureDispatcher {
                 carbsG: nutrition.carbsG,
                 fatG: nutrition.fatG,
                 fiberG: nutrition.fiberG,
-                nutritionSource: lookup.source
+                nutritionSource: lookup.source,
+                sugarG: nutrition.sugarG,
+                sodiumMg: nutrition.sodiumMg,
+                saturatedFatG: nutrition.saturatedFatG
             )
         }
 

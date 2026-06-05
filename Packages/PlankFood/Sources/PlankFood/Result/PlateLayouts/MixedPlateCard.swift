@@ -69,13 +69,16 @@ public struct MixedPlateCard: View {
                 }
             }
 
-            // Plate-aggregated macros.
-            MacroRow(
+            // Plate-aggregated nutrients across all items.
+            NutrientGrid(
                 kcal: food.totalKcal,
                 proteinG: food.items.compactMap(\.proteinG).reduce(0, +).optionalNonZero,
                 carbsG: food.items.compactMap(\.carbsG).reduce(0, +).optionalNonZero,
                 fatG: food.items.compactMap(\.fatG).reduce(0, +).optionalNonZero,
-                emphasized: true
+                fiberG: food.items.compactMap(\.fiberG).reduce(0, +).optionalNonZero,
+                sugarG: food.items.compactMap(\.sugarG).reduce(0, +).optionalNonZero,
+                sodiumMg: food.items.compactMap(\.sodiumMg).reduce(0, +).optionalNonZero,
+                saturatedFatG: food.items.compactMap(\.saturatedFatG).reduce(0, +).optionalNonZero
             )
 
             // Jeni interpretation.
@@ -97,11 +100,22 @@ public struct MixedPlateCard: View {
         }
         .padding(FoodTheme.Space.lg)
         .background(FoodTheme.bgElevated)
+        // Scrapbook chrome per v5 D37 — see SingleDishCard for rationale.
+        .clipShape(RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous)
-                .stroke(FoodTheme.textPrimary.opacity(0.08), lineWidth: 0.5)
+                .stroke(FoodTheme.accent.opacity(0.5), lineWidth: FoodTheme.Stroke.scrapbook)
         )
-        .clipShape(RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous))
+        .shadow(color: FoodTheme.textPrimary.opacity(0.2), radius: 0, x: 3, y: 3)
+        // Sticker overlay — different emoji from SingleDishCard so
+        // result-card variants visually differ at a glance.
+        .overlay(alignment: .topTrailing) {
+            Text("✨")
+                .font(.system(size: 28))
+                .rotationEffect(.degrees(-12))
+                .offset(x: 6, y: -10)
+                .accessibilityHidden(true)
+        }
     }
 
     // MARK: - Subviews

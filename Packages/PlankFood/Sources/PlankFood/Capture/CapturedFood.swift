@@ -82,6 +82,11 @@ public struct CapturedItem: Sendable, Identifiable {
     public let carbsG: Double?
     public let fatG: Double?
     public let fiberG: Double?
+    /// 2026-06-05 — extra nutrients the cohort cares about (per
+    /// founder on-device feedback: P/C/F alone reads MFP-era).
+    public let sugarG: Double?
+    public let sodiumMg: Double?
+    public let saturatedFatG: Double?
 
     /// Lookup source attribution — which DB answered when the join
     /// completes. nil until then.
@@ -103,7 +108,10 @@ public struct CapturedItem: Sendable, Identifiable {
         carbsG: Double?,
         fatG: Double?,
         fiberG: Double?,
-        nutritionSource: NutritionSource?
+        nutritionSource: NutritionSource?,
+        sugarG: Double? = nil,
+        sodiumMg: Double? = nil,
+        saturatedFatG: Double? = nil
     ) {
         self.id = id
         self.name = name
@@ -121,6 +129,9 @@ public struct CapturedItem: Sendable, Identifiable {
         self.fatG = fatG
         self.fiberG = fiberG
         self.nutritionSource = nutritionSource
+        self.sugarG = sugarG
+        self.sodiumMg = sodiumMg
+        self.saturatedFatG = saturatedFatG
     }
 }
 

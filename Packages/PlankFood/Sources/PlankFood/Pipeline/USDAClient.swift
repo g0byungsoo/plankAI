@@ -75,17 +75,23 @@ public struct USDAClient: Sendable {
 
     private static func map(_ food: SearchResponse.Food) -> NutritionLookupResult {
         // USDA returns nutrients per 100g for most foods. The nutrient
-        // IDs we care about:
+        // IDs we care about (per USDA's FDC nutrient ID catalog):
         //   1008 = Energy (kcal)
         //   1003 = Protein (g)
         //   1005 = Carbohydrates (g)
         //   1004 = Total lipid (fat) (g)
         //   1079 = Fiber, total dietary (g)
+        //   2000 = Sugars, total (g)               ← 2026-06-05 added
+        //   1093 = Sodium, Na (mg)                  ← 2026-06-05 added
+        //   1258 = Fatty acids, total saturated (g) ← 2026-06-05 added
         var kcal: Double = 0
         var protein: Double = 0
         var carbs: Double = 0
         var fat: Double = 0
         var fiber: Double = 0
+        var sugar: Double = 0
+        var sodiumMg: Double = 0
+        var saturatedFat: Double = 0
 
         for nutrient in food.foodNutrients {
             switch nutrient.nutrientId {
@@ -94,6 +100,9 @@ public struct USDAClient: Sendable {
             case 1005: carbs = nutrient.value ?? 0
             case 1004: fat = nutrient.value ?? 0
             case 1079: fiber = nutrient.value ?? 0
+            case 2000: sugar = nutrient.value ?? 0
+            case 1093: sodiumMg = nutrient.value ?? 0
+            case 1258: saturatedFat = nutrient.value ?? 0
             default: break
             }
         }
@@ -103,7 +112,10 @@ public struct USDAClient: Sendable {
             proteinPer100g: protein,
             carbsPer100g: carbs,
             fatPer100g: fat,
-            fiberPer100g: fiber
+            fiberPer100g: fiber,
+            sugarPer100g: sugar,
+            sodiumMgPer100g: sodiumMg,
+            saturatedFatPer100g: saturatedFat
         )
 
         return NutritionLookupResult(

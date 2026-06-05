@@ -82,6 +82,12 @@ public struct OpenFoodFactsClient: Sendable {
         let carbs = Self.doubleValue(nutriments["carbohydrates_100g"])
         let fat = Self.doubleValue(nutriments["fat_100g"])
         let fiber = Self.doubleValue(nutriments["fiber_100g"])
+        // 2026-06-05 — extra nutrients per founder feedback.
+        // OFF's `sodium_100g` is in grams; convert to mg for unit
+        // consistency with USDA + the canonical_pantry column shape.
+        let sugar = Self.doubleValue(nutriments["sugars_100g"])
+        let sodiumMg = Self.doubleValue(nutriments["sodium_100g"]) * 1000
+        let saturatedFat = Self.doubleValue(nutriments["saturated-fat_100g"])
 
         // If we don't have kcal, the entry is useless. Bail.
         guard kcal > 0 else { return nil }
@@ -91,7 +97,10 @@ public struct OpenFoodFactsClient: Sendable {
             proteinPer100g: protein,
             carbsPer100g: carbs,
             fatPer100g: fat,
-            fiberPer100g: fiber
+            fiberPer100g: fiber,
+            sugarPer100g: sugar,
+            sodiumMgPer100g: sodiumMg,
+            saturatedFatPer100g: saturatedFat
         )
 
         let code = (first["code"] as? String) ?? (first["_id"] as? String) ?? "off-\(query.hashValue)"

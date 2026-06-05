@@ -321,6 +321,17 @@ CREATE TABLE IF NOT EXISTS public.canonical_pantry (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- 2026-06-05 — extra nutrient columns per founder on-device feedback.
+-- Cohort cares about sugar (blood-sugar awareness), sodium (bloat
+-- awareness), and saturated fat (heart-health framing). Additive
+-- migration — existing curated rows carry NULL for these and the
+-- iOS reader treats NULL as "unknown" → hides the field. Backfill
+-- per-row via curator workflow as new rows get audited.
+ALTER TABLE public.canonical_pantry
+    ADD COLUMN IF NOT EXISTS sugar_per_100g double precision,
+    ADD COLUMN IF NOT EXISTS sodium_mg_per_100g double precision,
+    ADD COLUMN IF NOT EXISTS saturated_fat_per_100g double precision;
+
 CREATE INDEX IF NOT EXISTS canonical_pantry_search_idx
     ON public.canonical_pantry USING GIN (search_terms);
 

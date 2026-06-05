@@ -38,7 +38,7 @@ public struct JeniLine: View {
             parsed.base,
             italic: parsed.italic,
             baseFont: .custom("Fraunces72pt-Regular", size: 16),
-            italicFont: .custom("Fraunces72pt-RegularItalic", size: 16),
+            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
             color: FoodTheme.textPrimary,
             alignment: alignment
         )

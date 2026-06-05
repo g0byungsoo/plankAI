@@ -42,19 +42,35 @@ public enum CalorieMathService {
         public let carbsPer100g: Double
         public let fatPer100g: Double
         public let fiberPer100g: Double
+        /// Sugars, total (g per 100g). Added 2026-06-05 — cohort
+        /// research said sugar awareness > saturated-fat awareness.
+        public let sugarPer100g: Double
+        /// Sodium per 100g, expressed in MILLIGRAMS (not grams) — sodium
+        /// values are always quoted in mg in nutrition labels + USDA,
+        /// keeps the unit consistent end-to-end. 100g of bacon ≈ 1000mg.
+        public let sodiumMgPer100g: Double
+        /// Saturated fat, g per 100g. Secondary surface (only shown
+        /// in expanded view in NutrientGrid).
+        public let saturatedFatPer100g: Double
 
         public init(
             kcalPer100g: Double,
             proteinPer100g: Double = 0,
             carbsPer100g: Double = 0,
             fatPer100g: Double = 0,
-            fiberPer100g: Double = 0
+            fiberPer100g: Double = 0,
+            sugarPer100g: Double = 0,
+            sodiumMgPer100g: Double = 0,
+            saturatedFatPer100g: Double = 0
         ) {
             self.kcalPer100g = kcalPer100g
             self.proteinPer100g = proteinPer100g
             self.carbsPer100g = carbsPer100g
             self.fatPer100g = fatPer100g
             self.fiberPer100g = fiberPer100g
+            self.sugarPer100g = sugarPer100g
+            self.sodiumMgPer100g = sodiumMgPer100g
+            self.saturatedFatPer100g = saturatedFatPer100g
         }
     }
 
@@ -72,6 +88,9 @@ public enum CalorieMathService {
         public let carbsG: Double
         public let fatG: Double
         public let fiberG: Double
+        public let sugarG: Double
+        public let sodiumMg: Double
+        public let saturatedFatG: Double
     }
 
     // MARK: - Per-item compute
@@ -105,13 +124,16 @@ public enum CalorieMathService {
         }
 
         return ItemNutrition(
-            kcal:      g * density.kcalPer100g / 100,
-            kcalLow:   gLow * density.kcalPer100g / 100,
-            kcalHigh:  gHigh * density.kcalPer100g / 100,
-            proteinG:  g * density.proteinPer100g / 100,
-            carbsG:    g * density.carbsPer100g / 100,
-            fatG:      g * density.fatPer100g / 100,
-            fiberG:    g * density.fiberPer100g / 100
+            kcal:          g * density.kcalPer100g / 100,
+            kcalLow:       gLow * density.kcalPer100g / 100,
+            kcalHigh:      gHigh * density.kcalPer100g / 100,
+            proteinG:      g * density.proteinPer100g / 100,
+            carbsG:        g * density.carbsPer100g / 100,
+            fatG:          g * density.fatPer100g / 100,
+            fiberG:        g * density.fiberPer100g / 100,
+            sugarG:        g * density.sugarPer100g / 100,
+            sodiumMg:      g * density.sodiumMgPer100g / 100,
+            saturatedFatG: g * density.saturatedFatPer100g / 100
         )
     }
 
@@ -129,6 +151,9 @@ public enum CalorieMathService {
         public let totalCarbsG: Double
         public let totalFatG: Double
         public let totalFiberG: Double
+        public let totalSugarG: Double
+        public let totalSodiumMg: Double
+        public let totalSaturatedFatG: Double
 
         public static let zero = PlateNutrition(
             totalKcal: 0,
@@ -137,7 +162,10 @@ public enum CalorieMathService {
             totalProteinG: 0,
             totalCarbsG: 0,
             totalFatG: 0,
-            totalFiberG: 0
+            totalFiberG: 0,
+            totalSugarG: 0,
+            totalSodiumMg: 0,
+            totalSaturatedFatG: 0
         )
     }
 
@@ -150,13 +178,16 @@ public enum CalorieMathService {
         guard !items.isEmpty else { return .zero }
 
         return PlateNutrition(
-            totalKcal:      items.reduce(0) { $0 + $1.kcal },
-            totalKcalLow:   items.reduce(0) { $0 + $1.kcalLow },
-            totalKcalHigh:  items.reduce(0) { $0 + $1.kcalHigh },
-            totalProteinG:  items.reduce(0) { $0 + $1.proteinG },
-            totalCarbsG:    items.reduce(0) { $0 + $1.carbsG },
-            totalFatG:      items.reduce(0) { $0 + $1.fatG },
-            totalFiberG:    items.reduce(0) { $0 + $1.fiberG }
+            totalKcal:           items.reduce(0) { $0 + $1.kcal },
+            totalKcalLow:        items.reduce(0) { $0 + $1.kcalLow },
+            totalKcalHigh:       items.reduce(0) { $0 + $1.kcalHigh },
+            totalProteinG:       items.reduce(0) { $0 + $1.proteinG },
+            totalCarbsG:         items.reduce(0) { $0 + $1.carbsG },
+            totalFatG:           items.reduce(0) { $0 + $1.fatG },
+            totalFiberG:         items.reduce(0) { $0 + $1.fiberG },
+            totalSugarG:         items.reduce(0) { $0 + $1.sugarG },
+            totalSodiumMg:       items.reduce(0) { $0 + $1.sodiumMg },
+            totalSaturatedFatG:  items.reduce(0) { $0 + $1.saturatedFatG }
         )
     }
 }

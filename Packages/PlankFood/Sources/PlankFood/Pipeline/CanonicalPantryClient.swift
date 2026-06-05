@@ -128,7 +128,10 @@ public struct CanonicalPantryClient: Sendable {
             proteinPer100g: row.protein_per_100g,
             carbsPer100g: row.carbs_per_100g,
             fatPer100g: row.fat_per_100g,
-            fiberPer100g: row.fiber_per_100g ?? 0
+            fiberPer100g: row.fiber_per_100g ?? 0,
+            sugarPer100g: row.sugar_per_100g ?? 0,
+            sodiumMgPer100g: row.sodium_mg_per_100g ?? 0,
+            saturatedFatPer100g: row.saturated_fat_per_100g ?? 0
         )
 
         return NutritionLookupResult(
@@ -151,4 +154,9 @@ private struct PantryRow: Decodable {
     let carbs_per_100g: Double
     let fat_per_100g: Double
     let fiber_per_100g: Double?
+    // 2026-06-05 additive columns (nullable for backward compat with
+    // existing pantry rows curated before these landed).
+    let sugar_per_100g: Double?
+    let sodium_mg_per_100g: Double?
+    let saturated_fat_per_100g: Double?
 }

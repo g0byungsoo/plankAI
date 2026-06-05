@@ -32,7 +32,7 @@ public struct ItalicAccentText: View {
         _ base: String,
         italic: [String],
         baseFont: Font = .custom("Fraunces72pt-Regular", size: 16),
-        italicFont: Font = .custom("Fraunces72pt-RegularItalic", size: 16),
+        italicFont: Font = .custom("Fraunces72pt-SemiBoldItalic", size: 16),
         color: Color = FoodTheme.textPrimary,
         alignment: TextAlignment = .leading
     ) {

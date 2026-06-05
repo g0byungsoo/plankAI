@@ -41,7 +41,7 @@ public struct ItemRow: View {
                         parsed.base,
                         italic: parsed.italic,
                         baseFont: .custom("Fraunces72pt-Regular", size: 17),
-                        italicFont: .custom("Fraunces72pt-RegularItalic", size: 17),
+                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 17),
                         color: FoodTheme.textPrimary
                     )
 
