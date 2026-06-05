@@ -1,6 +1,5 @@
 #if canImport(UIKit)
 import SwiftUI
-import SwiftData
 
 // MARK: - HomeFoodCard
 //
@@ -10,9 +9,12 @@ import SwiftData
 // with steps + breath pills demoted to lateral siblings (rendered
 // by the parent TodayHealthStrip composite).
 //
-// Reads today's food logs + last-7-days for the weekly average via
-// @Query on FoodLogRecord. Fully reactive — adds a new log = bar
-// fills automatically, no manual refresh.
+// V1.0.7 STOP-GAP (2026-06-04): originally used SwiftData @Query
+// over FoodLogRecord but cross-package @Model integration caused
+// the app to hang on launch. Reads from FoodLogPersister's in-
+// memory store instead. Data lost across app restart in v1.0.7;
+// v1.0.8 ships proper SwiftData integration with explicit migration
+// plan.
 
 public struct HomeFoodCard: View {
 
@@ -20,7 +22,8 @@ public struct HomeFoodCard: View {
     public let dailyTarget: Double
     public let onTap: () -> Void
 
-    @Query private var logs: [FoodLogRecord]
+    @State private var todayKcal: Double = 0
+    @State private var weeklyAvg: Double? = nil
 
     public init(
         userId: String,
@@ -30,18 +33,6 @@ public struct HomeFoodCard: View {
         self.userId = userId
         self.dailyTarget = dailyTarget
         self.onTap = onTap
-
-        // Query for the last 7 days of this user's logs. Older logs
-        // exist but aren't needed for the bar or weekly-avg caption.
-        let now = Date.now
-        let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: now)!
-        let predicate = #Predicate<FoodLogRecord> { log in
-            log.userId == userId && log.loggedAt >= sevenDaysAgo
-        }
-        self._logs = Query(
-            filter: predicate,
-            sort: [SortDescriptor(\.loggedAt, order: .reverse)]
-        )
     }
 
     public var body: some View {
@@ -77,6 +68,8 @@ public struct HomeFoodCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint("tap to log a meal")
+        .onAppear { refresh() }
+        .onReceive(FoodLogPersister.changeNotifier) { _ in refresh() }
     }
 
     // MARK: - Subviews
@@ -113,35 +106,12 @@ public struct HomeFoodCard: View {
         }
     }
 
-    // MARK: - Aggregations
+    // MARK: - Refresh
 
-    /// Today's logged kcal, summed across all FoodLogRecords with
-    /// loggedAt in the current calendar day.
-    private var todayKcal: Double {
-        let start = Calendar.current.startOfDay(for: Date.now)
-        return logs
-            .filter { $0.loggedAt >= start }
-            .reduce(0) { $0 + $1.kcalTotal }
-    }
-
-    /// Average daily kcal across the 7-day window, but ONLY counts
-    /// days that actually have logs. Days with zero logs don't drag
-    /// the average down (matches the "weekly trend" semantics of v5).
-    /// Returns nil for first-day users.
-    private var weeklyAvg: Double? {
-        guard !logs.isEmpty else { return nil }
-
-        // Group by day.
-        let cal = Calendar.current
-        var byDay: [Date: Double] = [:]
-        for log in logs {
-            let day = cal.startOfDay(for: log.loggedAt)
-            byDay[day, default: 0] += log.kcalTotal
-        }
-
-        guard !byDay.isEmpty else { return nil }
-        let total = byDay.values.reduce(0, +)
-        return total / Double(byDay.count)
+    private func refresh() {
+        let (today, weekly) = FoodLogPersister.todayAndWeekly(userId: userId)
+        todayKcal = today
+        weeklyAvg = weekly
     }
 
     private var accessibilityLabel: String {

@@ -1,27 +1,44 @@
 import Foundation
 import SwiftData
+import Combine
 
 // MARK: - FoodLogPersister
 //
-// Saves CapturedFood (the in-memory result from FoodCaptureDispatcher)
-// as SwiftData FoodLogRecord + FoodLogItemRecord rows. Called from
-// the result card's "log it" CTA after the user confirms.
+// V1.0.7 STOP-GAP (2026-06-04): SwiftData @Model integration caused
+// the app to hang on launch (suspect cross-package @Model
+// registration on iOS 17). Until v1.0.8 lands a proper integration
+// with VersionedSchema + MigrationPlan, FoodLogPersister keeps
+// logs in an in-memory store. Data is lost across app restart.
+// HomeFoodCard reads via `todayAndWeekly(userId:)` + observes
+// `changeNotifier` for live updates after a scan.
 //
-// SwiftData inserts run synchronously on the ModelContext's actor;
-// we wrap in MainActor since the call site is UI-driven. Persistence
-// is local-first — Supabase upsert happens on the AppSync sweep
-// (existing pattern via pendingUpsert flag).
-//
-// W3-T6 scope: local persistence only. Supabase upsertFoodLog
-// method on PlankApp/Sync/AppSync.swift is a follow-on in this
-// same ticket — see the bottom of the file.
+// The `persist(_:userId:photoMode:into:)` signature is preserved so
+// CaptureFlowView's call site doesn't change — the ModelContext
+// argument is ignored, swap is invisible to call sites.
 
 @MainActor
 public enum FoodLogPersister {
 
-    /// Insert a CapturedFood into the given ModelContext. Returns
-    /// the inserted FoodLogRecord (caller may use its id for
-    /// telemetry or navigation). Throws on context errors.
+    // MARK: - In-memory store
+
+    private static var inMemoryEntries: [Entry] = []
+
+    /// Combine publisher fires when a new entry is added. HomeFoodCard
+    /// subscribes via .onReceive to refresh its bar on every log.
+    public static let changeNotifier = PassthroughSubject<Void, Never>()
+
+    private struct Entry {
+        let userId: String
+        let loggedAt: Date
+        let kcal: Double
+    }
+
+    // MARK: - Public API
+
+    /// Insert a CapturedFood. Returns a placeholder FoodLogRecord
+    /// (caller may use the returned id for telemetry). The
+    /// ModelContext argument is IGNORED in the stop-gap — kept in
+    /// the signature so CaptureFlowView doesn't change.
     @discardableResult
     public static func persist(
         _ food: CapturedFood,
@@ -30,69 +47,63 @@ public enum FoodLogPersister {
         into context: ModelContext
     ) throws -> FoodLogRecord {
 
-        // Aggregate plate-level totals via the load-bearing math
-        // service (v3 D26: same path for any kcal display).
-        let itemNutrition = food.items.map { item in
-            CalorieMathService.ItemNutrition(
-                kcal: item.kcal ?? 0,
-                kcalLow: item.kcal ?? 0,
-                kcalHigh: item.kcal ?? 0,
-                proteinG: item.proteinG ?? 0,
-                carbsG: item.carbsG ?? 0,
-                fatG: item.fatG ?? 0,
-                fiberG: item.fiberG ?? 0
-            )
+        let plateKcal: Double
+        if let low = food.kcalLow, let high = food.kcalHigh {
+            plateKcal = (low + high) / 2
+        } else {
+            plateKcal = food.items
+                .compactMap { $0.kcal }
+                .reduce(0, +)
         }
-        let plate = CalorieMathService.aggregate(itemNutrition)
 
-        let record = FoodLogRecord(
+        inMemoryEntries.append(Entry(
             userId: userId,
-            kcalTotal: food.kcalLow != nil ? (food.kcalLow! + food.kcalHigh!) / 2 : plate.totalKcal,
-            kcalTotalLow: food.kcalLow,
-            kcalTotalHigh: food.kcalHigh,
-            proteinG: plate.totalProteinG.optionalNonZero,
-            carbsG: plate.totalCarbsG.optionalNonZero,
-            fatG: plate.totalFatG.optionalNonZero,
-            fiberG: plate.totalFiberG.optionalNonZero,
+            loggedAt: .now,
+            kcal: plateKcal
+        ))
+
+        changeNotifier.send(())
+
+        // Return a placeholder FoodLogRecord so the call-site signature
+        // is preserved (the @Model class still exists; it's just not in
+        // the app's ModelContainer until v1.0.8).
+        return FoodLogRecord(
+            userId: userId,
+            kcalTotal: plateKcal,
             plateType: food.plateType.rawValue,
             source: food.source.rawValue,
-            photoMode: photoMode?.rawValue,
-            confidence: food.confidence
+            photoMode: photoMode?.rawValue
         )
+    }
 
-        // Insert parent first, then items (FK reference satisfied).
-        context.insert(record)
+    /// Aggregate today's kcal + weekly average from the in-memory
+    /// store. Called by HomeFoodCard on appear + every changeNotifier
+    /// emission.
+    public static func todayAndWeekly(userId: String) -> (today: Double, weekly: Double?) {
+        let cal = Calendar.current
+        let now = Date.now
+        let startOfToday = cal.startOfDay(for: now)
+        let sevenDaysAgo = cal.date(byAdding: .day, value: -7, to: now)!
 
-        for (index, item) in food.items.enumerated() {
-            let itemRecord = FoodLogItemRecord(
-                userId: userId,
-                name: item.name,
-                portionG: item.portionGrams,
-                kcal: item.kcal ?? 0,
-                proteinG: item.proteinG,
-                carbsG: item.carbsG,
-                fatG: item.fatG,
-                usdaFdcId: item.nutritionSource == .usdaFDC ? Int(item.usdaSearchTerms.first ?? "") : nil,
-                canonicalPantryId: item.nutritionSource == .canonicalPantry ? item.id : nil,
-                openFoodFactsCode: item.nutritionSource == .openFoodFacts ? item.id : nil,
-                llmName: item.name,
-                llmPortionG: item.portionGrams,
-                llmConfidence: item.confidence,
-                position: index
-            )
-            itemRecord.foodLog = record
-            context.insert(itemRecord)
+        let userEntries = inMemoryEntries.filter { $0.userId == userId }
+
+        let today = userEntries
+            .filter { $0.loggedAt >= startOfToday }
+            .reduce(0) { $0 + $1.kcal }
+
+        // Group last-7-days entries by day for the weekly average.
+        var byDay: [Date: Double] = [:]
+        for entry in userEntries where entry.loggedAt >= sevenDaysAgo {
+            let day = cal.startOfDay(for: entry.loggedAt)
+            byDay[day, default: 0] += entry.kcal
+        }
+        let weekly: Double?
+        if byDay.isEmpty {
+            weekly = nil
+        } else {
+            weekly = byDay.values.reduce(0, +) / Double(byDay.count)
         }
 
-        try context.save()
-        return record
-    }
-}
-
-// MARK: - Helpers
-
-private extension Double {
-    var optionalNonZero: Double? {
-        self > 0 ? self : nil
+        return (today, weekly)
     }
 }

@@ -208,11 +208,13 @@ struct PlankAIApp: App {
             ExerciseCalibrationRecord.self,
             SessionRatingRecord.self,
             WeightLogRecord.self,
-            // W3-T6 — food rail SwiftData models. Per v3 D26 schema is
-            // wrapped in FoodLogSchemaV1: VersionedSchema (defined in
-            // PlankFood) so future migrations drop in cleanly.
-            FoodLogRecord.self,
-            FoodLogItemRecord.self,
+            // W3-T6 food rail SwiftData @Models removed from the
+            // container 2026-06-04 — caused the app to hang on launch
+            // (black/white screen, main thread blocked, persists across
+            // delete+reinstall). Suspect cross-package @Model
+            // registration on iOS 17. v1.0.8 ships a proper SwiftData
+            // integration; v1.0.7 persists food logs via the in-memory
+            // stop-gap inside FoodLogPersister.
         ])
     }
 }
