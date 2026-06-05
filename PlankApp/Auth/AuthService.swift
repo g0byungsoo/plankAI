@@ -77,6 +77,14 @@ final class AuthService {
 
     /// Idempotent. Safe to call multiple times — only runs once.
     /// Restores an existing session if present, otherwise signs in anonymously.
+    ///
+    /// Each Supabase call is wrapped in a 10s timeout. Without it, a
+    /// degraded network or a session stuck in refresh-loop state (see
+    /// supabase-swift PR 822, the "Initial session emitted after
+    /// attempting to refresh" warning) hangs the await forever and
+    /// the entire app sits on the splash. The timeout converts that
+    /// hang into the existing `.failed` state which RootView already
+    /// renders as a retry prompt.
     func bootstrap() async {
         guard !didStartBootstrap else { return }
         didStartBootstrap = true
@@ -90,35 +98,60 @@ final class AuthService {
         //    "User from sub claim in JWT does not exist". We catch that
         //    here, sign the stale session out, and fall through to a
         //    fresh anonymous sign-in.
-        if let restored = try? await supabase.auth.session {
-            do {
-                let user = try await supabase.auth.user()
+        let restoredSession: Session? = await Self.withTimeout(seconds: 10) {
+            try? await supabase.auth.session
+        }
+        if let restored = restoredSession {
+            let verifiedUser: User? = await Self.withTimeout(seconds: 10) {
+                try? await supabase.auth.user()
+            }
+            if let user = verifiedUser {
                 currentSession = restored
                 currentUser = user
                 bootstrapState = .ready
                 return
-            } catch {
-                // Stale session. Drop it locally and fall through.
-                try? await supabase.auth.signOut()
             }
+            // Stale session OR verify timed out. Drop it locally and
+            // fall through to anonymous sign-in.
+            try? await supabase.auth.signOut()
         }
 
         // 2. No session — sign in anonymously.
-        do {
-            let session = try await supabase.auth.signInAnonymously()
+        let signInResult: Session? = await Self.withTimeout(seconds: 10) {
+            try? await supabase.auth.signInAnonymously()
+        }
+        if let session = signInResult {
             currentSession = session
             currentUser = session.user
             bootstrapState = .ready
-        } catch {
-            // Bootstrap fails almost exclusively due to network — log raw
-            // error for diagnostics, surface a friendly retry prompt to
-            // the user. AffirmationLoaderScreen already supplies the
-            // "Couldn't connect" headline; this is the body line.
+        } else {
+            // Either a real network failure or a Supabase hang that the
+            // timeout caught. Either way, surface the retry prompt.
             #if DEBUG
-            print("[AuthService] bootstrap FAILED: \(error)")
+            print("[AuthService] bootstrap FAILED: timeout or network error")
             #endif
+            Analytics.trackException(
+                NSError(domain: "AuthService", code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "bootstrap timed out or failed"]),
+                context: "auth.bootstrap_failed"
+            )
             bootstrapState = .failed("Make sure you're connected to the internet, then try again.")
             didStartBootstrap = false  // allow retry
+        }
+    }
+
+    /// Race an async operation against a timeout. Returns the operation's
+    /// result on success, nil on timeout. Cancels the loser so dangling
+    /// network tasks don't leak. Static so it doesn't capture self.
+    private static func withTimeout<T: Sendable>(seconds: TimeInterval, _ op: @escaping @Sendable () async -> T?) async -> T? {
+        return await withTaskGroup(of: T?.self) { group -> T? in
+            group.addTask { await op() }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                return nil
+            }
+            defer { group.cancelAll() }
+            return await group.next() ?? nil
         }
     }
 
