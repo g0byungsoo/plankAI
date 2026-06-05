@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import RevenueCat
+import PlankFood
 import PlankSync
 import Auth
 
@@ -182,6 +183,19 @@ struct PaywallView: View {
     private var headlineParts: (base: String, italic: [String]) {
         let first = displayFirstName
         let namePrefix = first.isEmpty ? "" : "\(first), "
+
+        // W4-T5 — food-variant hero when food rail is the v1.0.7
+        // headline feature. Frames the value-prop around the full
+        // weight-loss story (what you eat + how you move + the trend)
+        // instead of the weight projection number alone. Per v5
+        // §Paywall hero variant + voice locks. Gated on
+        // FoodFlags.isAdvertised (PostHog-only check, skips the paid
+        // entitlement gate — user hasn't paid yet at paywall time).
+        if FoodFlags.isAdvertised {
+            let punch = "weight-loss story"
+            let base = "\(namePrefix)your \(punch) starts today."
+            return (base, [punch])
+        }
 
         // v5 weight-loss-direct hero (research Q1/Q3 winning pattern —
         // Cal AI + Noom both ship "lose X by Y" projection-framed copy).

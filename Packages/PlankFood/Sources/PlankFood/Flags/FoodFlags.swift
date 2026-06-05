@@ -77,4 +77,19 @@ public enum FoodFlags {
             }
         }
     }
+
+    /// True if PostHog says food rail should be visible to this user,
+    /// IGNORING the paid entitlement check. Used for surfaces that
+    /// advertise food rail to non-paid users (paywall hero variant +
+    /// any other pre-purchase preview). Paid users get full UI via
+    /// `isEnabled`; this exists for the narrower "is the rollout
+    /// cohort even seeing food rail copy?" question.
+    public static var isAdvertised: Bool {
+        #if DEBUG
+        if UserDefaults.standard.bool(forKey: devOverrideKey) {
+            return true
+        }
+        #endif
+        return PostHogSDK.shared.isFeatureEnabled(postHogFlagName)
+    }
 }
