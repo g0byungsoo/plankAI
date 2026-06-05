@@ -206,6 +206,15 @@ enum AnalyticsEvent: String {
     // Property `mode` = "unfamiliar" / "invitation" / "completed" matches
     // the card's three states.
     case breathworkCardTapped         = "breathwork_card_tapped"
+
+    // ── Food rail home engagement (delta v7 D56 rollback guardrail) ──
+    // Fires on tap of any entry point that opens CaptureFlowView from
+    // Home or tab bar. Property `source` = "home_food_card" /
+    // "home_food_intro_tile" / "tab_bar_fab" / "force_first_action" so
+    // we can attribute entries by surface. Load-bearing for the diet-
+    // first pivot's rollback rule: if lesson engagement drops >15%
+    // within 14 days of D56 ship AND food_card_tapped < 1.5/user, revert.
+    case foodCardTapped               = "food_card_tapped"
     /// Fired when the user taps "let's begin" on a BreathLibraryView
     /// protocol card. Property `protocol_id` = calming / coherent /
     /// energizing. Lets the funnel measure which technique the audience

@@ -75,6 +75,7 @@ struct MainTabView: View {
     @ViewBuilder private var cameraFAB: some View {
         Button {
             Haptics.light()
+            Analytics.track(.foodCardTapped, properties: ["source": "tab_bar_fab"])
             showCaptureFlow = true
         } label: {
             Image(systemName: "camera.fill")

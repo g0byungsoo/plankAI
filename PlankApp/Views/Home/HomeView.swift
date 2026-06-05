@@ -1261,7 +1261,10 @@ struct HomeView: View {
             HomeFoodCard(
                 userId: AuthService.shared.currentUser?.id.uuidString ?? "",
                 dailyTarget: foodDailyTarget,
-                onTap: { showCaptureFlow = true }
+                onTap: {
+                    Analytics.track(.foodCardTapped, properties: ["source": "home_food_card"])
+                    showCaptureFlow = true
+                }
             )
         }
     }
