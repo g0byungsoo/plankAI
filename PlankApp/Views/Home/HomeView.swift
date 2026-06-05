@@ -1578,6 +1578,35 @@ struct HomeView: View {
         .buttonStyle(.plain)
     }
 
+    /// Workout card chrome — branches on whether food rail is hero.
+    /// Pre-pivot (FoodFlags off): hero scrapbook chrome (offset shadow
+    /// + 1.5pt accent border + flower3D sticker overlay). Post-pivot
+    /// (FoodFlags on, delta v7 D59): demoted chrome — subtle border,
+    /// no offset shadow, no sticker. Same functionality, less weight,
+    /// visually defers to the food hero above.
+    @ViewBuilder private var workoutCardChrome: some View {
+        if FoodFlags.isEnabled {
+            // Demoted: flat card with subtle border, no shadow, no sticker.
+            ZStack {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Palette.bgElevated)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(Palette.textPrimary.opacity(0.08), lineWidth: 0.5)
+            }
+        } else {
+            // Hero: hard offset shadow + accent border (original chrome).
+            ZStack {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Palette.accent.opacity(0.18))
+                    .offset(x: 5, y: 5)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Palette.bgElevated)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Palette.accent, lineWidth: 1.5)
+            }
+        }
+    }
+
     private var jenifitWorkoutCard: some View {
         let workout = todaysWorkout
         let visibleCount = showAllExercises ? workout.exercises.count : min(3, workout.exercises.count)
@@ -1727,35 +1756,25 @@ struct HomeView: View {
                     .clipShape(Capsule())
                 }
             }
-            .padding(20)   // hero card breathes more than the default card padding
+            .padding(FoodFlags.isEnabled ? 16 : 20)   // demoted: tighter padding when food rail is hero
         }
-        .background(
-            // Hard offset shadow first (sits behind the card body), then
-            // the cream card surface with accent-rose 1.5pt border.
-            ZStack {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Palette.accent.opacity(0.18))
-                    .offset(x: 5, y: 5)
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Palette.bgElevated)
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Palette.accent, lineWidth: 1.5)
-            }
-        )
-        // Sticker accent — top-LEFT corner so it never covers the refresh
-        // button (which is anchored top-right of the card content). Pushed
-        // far enough up + out that it's mostly past the card edge —
-        // scrapbook idiom, doesn't compete with content for space.
+        .background(workoutCardChrome)
+        // Sticker accent only when workout is still the hero (food rail
+        // off). With food rail on, workout demotes per delta v7 D59 —
+        // chrome simplifies, sticker drops. Workout still present + fully
+        // functional; just no longer the visual hero.
         .overlay(alignment: .topLeading) {
-            Image(StickerName.flower3D.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 64, height: 64)
-                .rotationEffect(.degrees(-12))
-                .offset(x: -18, y: -28)
-                .opacity(StickerName.flower3D.style.opacity)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+            if !FoodFlags.isEnabled {
+                Image(StickerName.flower3D.assetName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 64, height: 64)
+                    .rotationEffect(.degrees(-12))
+                    .offset(x: -18, y: -28)
+                    .opacity(StickerName.flower3D.style.opacity)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
         }
         .padding(.horizontal, Space.screenPadding)
         .padding(.top, Space.sm)        // breathing room for the overhanging sticker
