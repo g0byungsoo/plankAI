@@ -1,4 +1,6 @@
 import SwiftUI
+import PlankFood
+import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
 
 /// iOS 26 native TabView. Picking native over the prior custom HStack
 /// pill so we get liquid glass styling for free — and so future tabs
@@ -6,6 +8,11 @@ import SwiftUI
 ///
 /// `Tab` (iOS 18+) gets us the cleanest declaration; on iOS 26 the bar
 /// renders as liquid glass automatically.
+///
+/// 2026-06-05 — delta v7 D57: central cocoa camera FAB sits above the
+/// 2-tab bar when FoodFlags.isEnabled. Cal AI pattern adapted to
+/// JeniFit chrome — primary action (snap food) reachable from any
+/// tab, not just Home.
 struct MainTabView: View {
 
     enum AppTab: Hashable {
@@ -14,36 +21,78 @@ struct MainTabView: View {
     }
 
     @State private var selectedTab: AppTab = .workout
+    @State private var showCaptureFlow = false
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            // Mindful naming: "present" for today's plan + active state,
-            // "past" for the log of what's already happened. The pair reads
-            // as a meditation cue, not a feature menu, which fits the
-            // JeniFit voice better than "Workout / Log".
-            HomeView()
-                .tabBloom(isActive: selectedTab == .workout)
-                .tabItem {
-                    Label("present", systemImage: "sparkles")
-                }
-                .tag(AppTab.workout)
+        ZStack(alignment: .bottom) {
+            TabView(selection: $selectedTab) {
+                // Mindful naming: "present" for today's plan + active state,
+                // "past" for the log of what's already happened. The pair reads
+                // as a meditation cue, not a feature menu, which fits the
+                // JeniFit voice better than "Workout / Log".
+                HomeView()
+                    .tabBloom(isActive: selectedTab == .workout)
+                    .tabItem {
+                        Label("present", systemImage: "sparkles")
+                    }
+                    .tag(AppTab.workout)
 
-            AnalyticsView()
-                .tabBloom(isActive: selectedTab == .log)
-                .tabItem {
-                    // "becoming" leans into Dweck/Burnette growth-mindset
-                    // research — present-progressive framing accommodates
-                    // plateaus better than the static "past" frame did.
-                    Label("becoming", systemImage: "book.closed.fill")
-                }
-                .tag(AppTab.log)
+                AnalyticsView()
+                    .tabBloom(isActive: selectedTab == .log)
+                    .tabItem {
+                        // "becoming" leans into Dweck/Burnette growth-mindset
+                        // research — present-progressive framing accommodates
+                        // plateaus better than the static "past" frame did.
+                        Label("becoming", systemImage: "book.closed.fill")
+                    }
+                    .tag(AppTab.log)
+            }
+            .tint(Palette.accent)
+            .onAppear {
+                #if DEBUG
+                print("[FUNNEL] main_tab_appeared | paywall cover dismissed, user is now in the app")
+                #endif
+            }
+
+            // Central camera FAB per delta v7 D57. Visible only when
+            // food rail is enabled. Cocoa circle with cream camera glyph
+            // and the brand's signature hard-offset shadow + 1.5pt
+            // accent border. Positioned above the native tab bar.
+            if FoodFlags.isEnabled {
+                cameraFAB
+                    .padding(.bottom, 30)
+                    .accessibilityIdentifier("home_camera_fab")
+            }
         }
-        .tint(Palette.accent)
-        .onAppear {
-            #if DEBUG
-            print("[FUNNEL] main_tab_appeared | paywall cover dismissed, user is now in the app")
-            #endif
+        .fullScreenCover(isPresented: $showCaptureFlow) {
+            CaptureFlowView(
+                userId: AuthService.shared.currentUser?.id.uuidString ?? "",
+                onDismiss: { showCaptureFlow = false }
+            )
         }
+    }
+
+    @ViewBuilder private var cameraFAB: some View {
+        Button {
+            Haptics.light()
+            showCaptureFlow = true
+        } label: {
+            Image(systemName: "camera.fill")
+                .font(.system(size: 22, weight: .medium))
+                .foregroundStyle(Palette.bgPrimary)
+                .frame(width: 60, height: 60)
+                .background(
+                    Circle()
+                        .fill(Palette.textPrimary)
+                )
+                .overlay(
+                    Circle()
+                        .stroke(Palette.accent.opacity(0.5), lineWidth: 1.5)
+                )
+                .shadow(color: Palette.textPrimary.opacity(0.25), radius: 0, x: 3, y: 3)
+        }
+        .accessibilityLabel("snap food")
+        .accessibilityHint("opens the camera to log a meal")
     }
 }
 
