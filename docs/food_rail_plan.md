@@ -2562,3 +2562,153 @@ ticket scope.
 *End delta v6. v6 supersedes v2's D13 mode-toggle expression where
 they conflict. The pre-eat WEDGE survives; the pre-eat TOGGLE doesn't.
 All other design decisions stand.*
+
+---
+
+# Delta v7 — Diet-first strategic pivot 2026-06-05 (evening)
+
+## What changed
+
+Founder questioned whether JeniFit is "a workout app with food added"
+or "a weight-loss program with workout as additional." Seven expert
+research briefs commissioned across orthogonal lenses: WL domain (#1),
+UX/UI for Gen-Z women (#2), conversion engineering (#3), brand +
+cultural fluency (#4), behavioral science + retention (#5),
+monetization + LTV (#6), tactical viral iOS engineering (#7).
+
+**All 7 briefs saved at `docs/pivot_research_*.md`. Load-bearing
+reading — single source of truth for the pivot direction.**
+
+## The consensus
+
+**JeniFit pivots from "workout app + food rail" to "weight-loss
+program with food as the daily-decision hero."** Scope = Option B
+(medium pivot, ~18-25 dev-days on top of remaining food rail sprint).
+
+### Why (all 7 briefs converged)
+- **Behavioral science:** diet > exercise for WL is settled
+  (Pontzer constrained energy, CALERIE, Wing & Phelan)
+- **Cohort signal:** Cal AI 8.3M downloads + $34-50M ARR in 18mo;
+  GLP-1 normalization (30% of Gen-Z women intend); SWEAT down YoY
+- **Category retention math:** diet 45% Day-30 vs fitness 10-12%
+- **Your own launch data:** lesson 75% vs workout 23% completion;
+  food rail signal 92% conversion-correlation in pre-rail tappers
+- **Competitive moat:** workout-first puts JeniFit against SWEAT/
+  Future/Apple Fitness+ ($B incumbents). Diet-first has three
+  white-space wedges (pre-eat, restaurant social, trend-as-hero)
+  no competitor will take.
+
+### What stays unchanged
+- Brand chrome (italic-Fraunces, scrapbook, cocoa, lowercase,
+  coquette stickers, hearts as terminal punctuation, "becoming"
+  motif)
+- Pricing structure (Annual $47.99 / Quarterly $24.99 / Weekly $5.99)
+- Grandfather ladder (with one revision — D60 below)
+- Workout / plank / breath as **Tier 2** features (demoted, not killed)
+- "JeniFit" app name through v1.x
+
+---
+
+## New founder decisions D54–D72
+
+D54 already locked in delta v6 (PhotoMode toggle collapse). D55+ new.
+
+| # | Question | Lock |
+|---|---|---|
+| **D55** | Pivot scope — soft / medium / hard? | **MEDIUM (Option B).** ~18-25 dev-days. Keep brand chrome + name; restructure home + onboarding + becoming + JeniMethod curriculum + paywall + App Store. |
+| **D56** | Home hero — JeniMethod stays or food becomes hero? | **FOOD HERO, JeniMethod paired at slot 3 with FULL scrapbook chrome (not flat-demoted).** Ship with instrumented rollback — if lesson engagement drops >15% within 14 days, revert. 6 of 7 expert briefs converged on this. |
+| **D57** | Tab bar structure? | **2 tabs (Present + Becoming) + central cocoa camera FAB.** Persistent floating FAB above tab bar, Cal AI pattern adapted to JeniFit chrome. Recommended by Briefs #2 + #4. |
+| **D58** | App name — keep JeniFit through v1.x or rename to "Jeni" at v1.1? | **KEEP "JeniFit" through v1.x. Rename to "Jeni" at v2.0** when food + scan + agent earn it. Subtitle for ASO: "JeniFit: Food + Body" or similar. |
+| **D59** | Workout/plank/breath demotion shape? | **Tier 2 — present but demoted.** Per Brief #2 D recommendation: smaller cards, no scrapbook chrome on workout card (demoted visual weight). Plank ritual stays in JeniMethod curriculum. |
+| **D60** | Grandfather ladder v3.0 price? | **REVISED: v3.0 → $119.99/yr** (was $99.99). Feature stack by v3 (food rail + corrections-as-moat + Jeni AI agent + body scan + GLP-1 module + Apple Watch glance) justifies premium tier per Brief #6. |
+| **D61** | GLP-1 monetization shape? | **GLP-1 module inside Annual** at v1.5 ($54.99 ladder step). NO separate GLP-1 SKU. Module = GLP-1 onboarding fork + GLP-1-aware Jeni voice notes + digestive-symptom log + injection reminder. Per Brief #6 — $15-25/yr ARPU lift opportunity. |
+| **D62** | Day-0 first action? | **Forced first-snap with manual entry fallback.** Post-paywall → "welcome ritual" sheet (<30s) → "snap your first meal" CTA → result card → home. Never zero-artifact Day-0. Manual fallback if camera fails. Per Briefs #3 + #5 + #7. 71% Day-1 retention pattern (Cal AI). |
+| **D63** | Day-3 conversion moment design? | **Day-2 evening hook + Day-3 morning visual proof.** Day-3 morning: 2-day EMA arrow + plate timeline strip + Jeni's interpretation pulled from real data. CTA opens paywall (not settings); button: `continue your becoming`. Per Briefs #3 + #5 + #7. |
+| **D64** | Evening Plate Review at 8:30pm? | **YES, SHIP IN v1.0.7.** Single highest-leverage retention move (1.6-1.9× Day-30 multiplier). 8:30pm local push *"today's plate ♥"* → in-app card with plate thumbnails + Jeni's interpretive line + soft "tomorrow looks like…" preview. Per Brief #5. |
+| **D65** | Week-1 push cadence? | **6/wk Week 1, 4/wk Week 2-3, 3/wk Week 4+** (revising existing `project_trial_week_notifications.md` cap upward for Week 1 only). Diet apps tolerate higher cadence due to task-relevance per meal (RevenueCat 2026: 41% lower unsubscribe at 6/wk for diet). Per Brief #3. |
+| **D66** | Onboarding screen 1 — change to food-led? | **NO. Screen 1 stays brand-aligned per `feedback_first_screen_strategy`** (no body imagery, no creator). **Screen 2 becomes the food-relationship question** ("what's the hardest part of eating right now?"). |
+| **D67** | Onboarding commitment screen at ~screen 38? | **YES, ADD.** "Soft-commitment" beat at screen 38: *"we're building your plan — agree to give it 3 days?"* with single Continue CTA before heavy investment battery. 1.7× trial-to-paid lift per Cal AI pattern (Brief #3). |
+| **D68** | Plan reveal hero order? | **Calorie target first (hero card), weight curve second, workout third.** Animated reveal sequence: calorie ring (1.5s) → protein floor pill (0.5s) → weight curve overlay (2s) → milestone hearts (1s). 5s total. Per Briefs #2 + #3. |
+| **D69** | Becoming tab restructure? | **Reorder modules around food-first.** Module priority: (1) Today's Plate Timeline expanded, (2) Weight trend × intake dual-axis chart, (3) Jeni's this-week note, (4) Movement summary rolled into one tile, (5) NSV wins expanded with food NSVs, (6) Forecast + milestones. Per Brief #1. |
+| **D70** | JeniMethod curriculum reframe? | **YES.** Re-spine around food relationship + body literacy + permission. Week 1 = food noise + permission (Days 1-7). Week 2 = body cues + cycles (Days 8-14). Week 3 = restaurant social + GLP-1 (Days 15-21). Week 4 = movement re-enters as maintenance (Days 22-30). Day 30-60 = habit maintenance. Day 60-90 = identity transition. Per Briefs #1 + #5. |
+| **D71** | App Store screenshot order? | **(1) Pre-eat permission card "matcha latte + you have *room* ♥", (2) plate timeline, (3) Jeni voice interpretation, (4) Becoming dual-axis chart, (5) restaurant social card, (6) JeniMethod lesson, (7) workout demoted.** Screenshots 1, 3, 5 = brand-cultural moat; 2, 4 = category claim. Per Briefs #2 + #4 + #7. |
+| **D72** | US-specific paywall variant via remote config? | **YES, TEST IN v1.0.7.** Headline variant: "snap your plate. see if it fits. before you eat." US-only via PostHog flag. Expected lift: +30-50% US trial conversion (Adapty 2026 camera-promise headlines outperform brand-promise 1.3-1.5× in 18-29F). Per Briefs #3 + #6. |
+
+---
+
+## Sprint scope changes (`food_rail_sprint_v1_0_7.md`)
+
+The v1.0.7 sprint was scoped pre-pivot. Adjustments:
+
+### W3-T2 plate layout views — EXTENDED
+Result card must be **letter-form prose, not tabular columns** (Brief #4 brand-cultural moat). Add: running-prose layout for SingleDishCard + MixedPlateCard. Brief #4 spatial mockup applies.
+
+### W3-T3 QuickAddView — UNCHANGED
+Beverage rail per existing scope.
+
+### W3-T5 FoodCorrectionSheet — UNCHANGED
+
+### W4-T1 Home Slot 4 — REPLACED with full Home restructure
+Was: Slot 4 swap for `todayHealthStrip` when food rail enabled. Now: full Home restructure per D56 (food hero at slot 2, JeniMethod at slot 3 with chrome retained, workout demoted at slot 4, breath/steps strip at slot 5). Estimated +3 dev-days.
+
+### NEW W4-T6 — Camera FAB + tab bar
+Per D57. Floating cocoa camera FAB above 2-tab tab bar. Persistent across Present + Becoming tabs. Tap → CaptureFlowView. Estimated 1.5 dev-days.
+
+### NEW W4-T7 — Evening Plate Review
+Per D64. 8:30pm local push + in-app card surface on Home. Estimated 1 dev-day.
+
+### NEW W4-T8 — Day-0 first-snap flow
+Per D62. Post-paywall welcome ritual sheet + auto-route to camera + manual entry fallback. Estimated 1.5 dev-days.
+
+### NEW W4-T9 — Day-3 conversion moment
+Per D63. Day-2 evening hook + Day-3 morning visual proof modal. Estimated 1.5 dev-days.
+
+### W4-T3 Becoming restructure — UNCHANGED but scope reaffirmed per D69
+The biggest single ticket. Module reorder per D69.
+
+### W4-T5 Paywall food-variant hero — EXTENDED
+Add US-specific headline variant per D72. Remote config gated via PostHog flag.
+
+### NEW W5-T8 — Push cadence config
+Per D65. 6/wk Week 1, 4/wk Week 2-3, 3/wk Week 4+. Update `TrialWeekNotificationService`.
+
+### NEW W5-T9 — Onboarding screen 38 commitment
+Per D67. Insert "agree to give it 3 days?" screen with confidence slider. Update `OnboardingState`.
+
+### NEW W5-T10 — JeniMethod curriculum re-spine
+Per D70. Day 1-30 content rewrite around food-first spine. Estimated 5-7 dev-days (content + code).
+
+**Net sprint impact:** +12-15 dev-days on top of existing v1.0.7 scope. Original 5-week estimate becomes 7-8 weeks.
+
+---
+
+## Implementation order (recommended)
+
+Phase A (in-flight, this week): finish food rail (vision + USDA join + result card + Home food card)
+
+Phase B (Week 1 of pivot): Home restructure per D56 + Camera FAB per D57 + plate timeline + Evening Plate Review per D64
+
+Phase C (Week 2-3): Onboarding screen-2 food-relationship + plan-reveal reorder + screen-38 commitment + Day-0 first-snap flow + Day-3 conversion moment
+
+Phase D (Week 3-4): Becoming restructure per D69 + paywall food-variant headline US-only
+
+Phase E (Week 4-6): JeniMethod curriculum re-spine + push cadence + App Store screenshot reshoot
+
+Phase F (Week 7-8): instrumentation + QA + soft launch
+
+---
+
+## Open items (founder-handled, not Claude-actionable)
+
+1. **App Store screenshot reshoot.** Brief #2 + #4 + #7 all recommend full reshoot. Concept and brief approved per D71; execution = founder + designer.
+2. **App Preview video.** 15s silent loop per Brief #7 §6. Concept = camera tap → matcha latte snap → calorie result with cocoa pill → Jeni voice note. Execution = founder.
+3. **TikTok creator outreach pivot.** Per Brief #6 §7. Acquire GLP-1 honest-experience creators (~50-200k followers). Founder responsibility.
+4. **Apple Search Ads keyword test.** Per Brief #6 §7. New keyword set: "food tracker for women" / "calorie counter for women" priority. Founder responsibility.
+
+---
+
+*End delta v7. v7 supersedes the workout-first positioning baked into
+v1-v6 where they conflict. The diet-first POSITIONING is locked.
+v1.0.7 food rail ships as the Tier-1 hero, not Tier-3 plug-in slot.
+Sprint extended 7-8 weeks. App Store launch with new positioning
+matches v1.0.7 ship.*
