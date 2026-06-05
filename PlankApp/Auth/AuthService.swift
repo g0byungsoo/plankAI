@@ -141,17 +141,42 @@ final class AuthService {
     }
 
     /// Race an async operation against a timeout. Returns the operation's
-    /// result on success, nil on timeout. Cancels the loser so dangling
-    /// network tasks don't leak. Static so it doesn't capture self.
+    /// result on success, nil on timeout. Static so it doesn't capture self.
+    ///
+    /// Uses a continuation + actor guard instead of `withTaskGroup` because
+    /// TaskGroup waits for ALL child tasks to complete before returning,
+    /// even after `cancelAll()`. If Supabase's network call doesn't honor
+    /// cancellation (URLSession cancellation may not propagate through
+    /// every Supabase code path), the TaskGroup deadlocks waiting for the
+    /// hung task. With this pattern, whichever Task resumes the
+    /// continuation first wins; the loser's eventual resume is a no-op
+    /// (guard.tryFire returns false) and the loser keeps running in the
+    /// background until it naturally completes — but the function caller
+    /// has already moved on.
     private static func withTimeout<T: Sendable>(seconds: TimeInterval, _ op: @escaping @Sendable () async -> T?) async -> T? {
-        return await withTaskGroup(of: T?.self) { group -> T? in
-            group.addTask { await op() }
-            group.addTask {
-                try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-                return nil
+        actor ResumeGuard {
+            private var fired = false
+            func tryFire() -> Bool {
+                if fired { return false }
+                fired = true
+                return true
             }
-            defer { group.cancelAll() }
-            return await group.next() ?? nil
+        }
+        let guardian = ResumeGuard()
+
+        return await withCheckedContinuation { (continuation: CheckedContinuation<T?, Never>) in
+            Task {
+                let result = await op()
+                if await guardian.tryFire() {
+                    continuation.resume(returning: result)
+                }
+            }
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                if await guardian.tryFire() {
+                    continuation.resume(returning: nil)
+                }
+            }
         }
     }
 
