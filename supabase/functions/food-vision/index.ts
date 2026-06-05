@@ -31,13 +31,27 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const DAILY_BUDGET_USD = 50;        // global cap per v3 D26
 const PER_USER_DAILY_LIMIT = 30;    // per v3 D26
-const MODEL_NAME = "gpt-5";         // v5 D18: GPT-5 only in v1.0.7
 
-// GPT-5 pricing as of 2026-06 (USD per 1M tokens). Update when OpenAI
-// shifts prices; bias-conservative so the kill-switch fires early on
-// under-counted cost rather than over-counted.
-const INPUT_PRICE_PER_1M = 2.50;
-const OUTPUT_PRICE_PER_1M = 10.00;
+// Model name. Reads from Supabase secret FOOD_VISION_MODEL so we can
+// swap (gpt-4o ↔ gpt-5 ↔ gpt-5-mini) without a code deploy. Defaults
+// to gpt-4o — widely available, vision-capable, proven for food per
+// our domain-specific benchmark research. gpt-5 requires Tier 5 OpenAI
+// access which many accounts don't have; selecting it via secret lets
+// us upgrade once tier is granted.
+const MODEL_NAME = Deno.env.get("FOOD_VISION_MODEL") ?? "gpt-4o";
+
+// Per-model pricing (USD per 1M tokens). Bias-conservative so the
+// kill-switch fires early on under-counted cost rather than over.
+// Defaults to gpt-4o rates; gpt-5 is more expensive but worth the
+// accuracy when available.
+const PRICING: Record<string, { input: number; output: number }> = {
+  "gpt-4o":      { input: 2.50, output: 10.00 },
+  "gpt-4o-mini": { input: 0.15, output: 0.60 },
+  "gpt-5":       { input: 2.50, output: 10.00 },
+  "gpt-5-mini":  { input: 0.25, output: 2.00 },
+};
+const INPUT_PRICE_PER_1M  = PRICING[MODEL_NAME]?.input  ?? 2.50;
+const OUTPUT_PRICE_PER_1M = PRICING[MODEL_NAME]?.output ?? 10.00;
 
 // ---------- Strict JSON schema for LLM response ----------
 //
@@ -404,6 +418,11 @@ Deno.serve(async (req: Request) => {
 
   if (!openaiResponse.ok) {
     const errorBody = await openaiResponse.text();
+    // Log the OpenAI error to Edge Function console so it shows up in
+    // Supabase logs — easier to debug than only seeing the 502 in iOS.
+    console.error(
+      `[food-vision] OpenAI ${openaiResponse.status} for model=${MODEL_NAME}: ${errorBody}`,
+    );
     await logTelemetry(supabaseAdmin, {
       id: crypto.randomUUID(),
       user_id: userId,
@@ -414,8 +433,25 @@ Deno.serve(async (req: Request) => {
       duration_ms: Math.round(performance.now() - t0),
       status: "error",
     });
+    // Pull the OpenAI error message out of its envelope so the iOS
+    // banner can surface it directly. Falls back to the raw body when
+    // not JSON. The user sees "insufficient_quota" / "model_not_found"
+    // / etc. instead of just "502".
+    let userFacing = errorBody;
+    try {
+      const parsed = JSON.parse(errorBody);
+      userFacing = parsed?.error?.message
+        ?? parsed?.error?.code
+        ?? errorBody;
+    } catch (_e) { /* leave as raw text */ }
     return new Response(
-      JSON.stringify({ error: "upstream_error", status: openaiResponse.status, detail: errorBody }),
+      JSON.stringify({
+        error: "upstream_error",
+        status: openaiResponse.status,
+        code: openaiResponse.status === 429 ? "openai_quota" : "openai_error",
+        detail: userFacing,
+        model: MODEL_NAME,
+      }),
       { status: 502, headers: { "Content-Type": "application/json" } },
     );
   }

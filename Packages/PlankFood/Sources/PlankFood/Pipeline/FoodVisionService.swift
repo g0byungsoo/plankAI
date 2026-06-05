@@ -106,7 +106,16 @@ public final class FoodVisionService: Sendable {
                 throw VisionError.rateLimited(copy: copy)
             }
         default:
-            throw VisionError.upstreamFailure(status: http.statusCode)
+            // Pull the upstream detail out of the Edge Function's
+            // error envelope so the iOS banner shows the real OpenAI
+            // message (e.g. "insufficient_quota", "model_not_found")
+            // instead of a generic 502.
+            let err = Self.decodeErrorBody(data)
+            throw VisionError.upstreamFailure(
+                status: http.statusCode,
+                detail: err.detail ?? err.message,
+                code: err.code
+            )
         }
 
         do {
@@ -228,10 +237,10 @@ private struct ErrorBody: Decodable {
 
 public enum VisionError: Error, Sendable {
     case notAuthenticated
-    case rateLimited(copy: String)         // 429 PER_USER_LIMIT
-    case budgetCapped(copy: String)         // 429 DAILY_BUDGET
-    case invalidRequest(reason: String)    // 400
-    case upstreamFailure(status: Int)      // 5xx or unexpected
+    case rateLimited(copy: String)                                    // 429 PER_USER_LIMIT
+    case budgetCapped(copy: String)                                    // 429 DAILY_BUDGET
+    case invalidRequest(reason: String)                                // 400
+    case upstreamFailure(status: Int, detail: String?, code: String?) // 5xx or unexpected
     case parseError(detail: String)
     case networkError(underlying: Error)
 
@@ -248,7 +257,10 @@ public enum VisionError: Error, Sendable {
             return copy
         case .invalidRequest:
             return "something looked off with the photo. try once more?"
-        case .upstreamFailure:
+        case .upstreamFailure(_, _, let code):
+            if code == "openai_quota" {
+                return "we've hit our scan limit for now. try again in a few."
+            }
             return "couldn't reach us just now. try again in a moment."
         case .parseError:
             return "got a weird answer back. try again?"
