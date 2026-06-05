@@ -100,22 +100,6 @@ struct PaywallView: View {
     @State private var offeringsLoadFailed = false
     @State private var restoreAlert: RestoreAlert?
 
-    /// Set of product IDs that StoreKit actually returned from a fetch
-    /// during `loadOfferings`. Empty until the precheck completes. The
-    /// package computed properties gate on `precheckCompleted` so they
-    /// don't return nil for every tier during the in-flight load.
-    ///
-    /// Why this exists: at v1.0.6-b11 launch (2026-06-03), the v1.0.7
-    /// `v1_0_7` RC offering resolved jenifit_weekly_v2 + jenifit_quarterly
-    /// at the RC layer but StoreKit was returning `userCancelled=true`
-    /// immediately on `purchase(package:)` — users mashed retry, 22 of
-    /// 27 sheets abandoned. The precheck simulates StoreKit's real fetch
-    /// and hides any tier whose product can't actually be transacted,
-    /// so users don't hammer broken CTAs while we diagnose the root
-    /// cause (see [[launch-v106b11-findings]]).
-    @State private var storeKitResolvedProductIds: Set<String> = []
-    @State private var precheckCompleted = false
-
     /// Captures the moment PaywallView first appears so the issue #2
     /// diagnostic events can report `time_on_paywall_ms` (a deceptively
     /// useful signal — long times correlate with hesitation and short
@@ -225,10 +209,8 @@ struct PaywallView: View {
 
     private var yearlyPackage: Package? {
         offering?.availablePackages.first {
-            let id = $0.storeProduct.productIdentifier
-            let matches = id == RevenueCatConfig.ProductID.yearly
-                || id == RevenueCatConfig.ProductID.V2.yearly
-            return matches && isStoreKitTransactable(id)
+            $0.storeProduct.productIdentifier == RevenueCatConfig.ProductID.yearly
+                || $0.storeProduct.productIdentifier == RevenueCatConfig.ProductID.V2.yearly
         }
     }
 
@@ -239,30 +221,15 @@ struct PaywallView: View {
     /// 3-tier code ships safely BEFORE Apple approves the new SKU.
     private var quarterlyPackage: Package? {
         offering?.availablePackages.first {
-            let id = $0.storeProduct.productIdentifier
-            return id == RevenueCatConfig.ProductID.quarterly
-                && isStoreKitTransactable(id)
+            $0.storeProduct.productIdentifier == RevenueCatConfig.ProductID.quarterly
         }
     }
 
     private var weeklyPackage: Package? {
         offering?.availablePackages.first {
-            let id = $0.storeProduct.productIdentifier
-            let matches = id == RevenueCatConfig.ProductID.weekly
-                || id == RevenueCatConfig.ProductID.V2.weekly
-            return matches && isStoreKitTransactable(id)
+            $0.storeProduct.productIdentifier == RevenueCatConfig.ProductID.weekly
+                || $0.storeProduct.productIdentifier == RevenueCatConfig.ProductID.V2.weekly
         }
-    }
-
-    /// Allow a product to render only when StoreKit confirmed it can
-    /// fetch the product (precheck completed and the id is in the
-    /// resolved set), OR when the precheck hasn't run yet (cards stay
-    /// trusted during the initial load). In DEBUG mock pricing, bypass
-    /// entirely so the founder can iterate on the UI without RC + ASC.
-    private func isStoreKitTransactable(_ productId: String) -> Bool {
-        if debugMockPricing { return true }
-        if !precheckCompleted { return true }
-        return storeKitResolvedProductIds.contains(productId)
     }
 
     private var selectedPackage: Package? {
@@ -1147,43 +1114,6 @@ struct PaywallView: View {
                 print("[Paywall] offerings returned nil current — check RC dashboard offering '\(RevenueCatConfig.offeringID)' is marked current")
                 #endif
                 offeringsLoadFailed = true
-            } else if let offering {
-                // StoreKit transactability precheck. RC resolves packages
-                // from its server-side offering config; StoreKit independently
-                // fetches the actual products from Apple's StoreKit catalog.
-                // If Apple can't return a product (storefront propagation
-                // lag, region restriction, SKU in a weird state), the RC
-                // package still looks valid but `purchase(package:)` fails
-                // silently with userCancelled=true — the launch-day Weekly +
-                // Quarterly bug. Fetch the products via StoreKit here so the
-                // package-lookup vars can hide unfetched tiers before users
-                // tap broken CTAs. Empty array on fetch failure is fine —
-                // `precheckCompleted` flips true either way and the tiers
-                // gate on the resolved set.
-                let expectedIds = offering.availablePackages
-                    .map { $0.storeProduct.productIdentifier }
-                let resolved = await Purchases.shared.products(expectedIds)
-                let resolvedIds = Set(resolved.map { $0.productIdentifier })
-                storeKitResolvedProductIds = resolvedIds
-                precheckCompleted = true
-
-                let missing = expectedIds.filter { !resolvedIds.contains($0) }
-                if !missing.isEmpty {
-                    Analytics.trackException(
-                        NSError(domain: "Paywall", code: 3,
-                                userInfo: [NSLocalizedDescriptionKey: "StoreKit could not resolve products: \(missing.joined(separator: ","))"]),
-                        context: "paywall.storekit_product_unfetchable",
-                        properties: [
-                            "missing_product_ids": missing,
-                            "resolved_product_ids": Array(resolvedIds),
-                            "expected_count": expectedIds.count,
-                            "resolved_count": resolved.count
-                        ]
-                    )
-                    #if DEBUG
-                    print("[Paywall] StoreKit precheck — products MISSING: \(missing) | resolved: \(resolvedIds)")
-                    #endif
-                }
             }
         } catch {
             Analytics.trackException(error, context: "paywall.offerings_load")
