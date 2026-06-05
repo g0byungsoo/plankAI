@@ -565,18 +565,29 @@ struct HomeView: View {
                             .opacity(msgOpacity[0]).offset(y: msgOffset[0])
                             .blur(radius: greetingBlur)
 
-                        // HERO — the JeniMethod card. Parasocial Jeni beat
-                        // sits FIRST per the BJ Fogg tiny-habits ladder:
-                        // lower-friction action (90s swipeable lesson)
-                        // ahead of higher-effort commitment (workout
-                        // below). The lesson is also the parasocial
-                        // anchor — Jeni's voice lands before the user is
-                        // asked to commit to movement. UNCONDITIONAL
-                        // render — no flag/enrollment/goal gates that
-                        // could silently hide it. Internal fork:
-                        // day 1-14 → swipeable JourneyCard, day 15+ →
-                        // generic TodayCard. `jeniMethodLessonForToday`
-                        // is total (always returns a valid LessonID).
+                        // HERO — food card per delta v7 D56 (2026-06-05).
+                        // Diet-first pivot moves the daily-decision surface
+                        // (food camera) to slot 1, demoting JeniMethod to
+                        // slot 2 with full chrome retained. Gated on
+                        // FoodFlags.isEnabled so flag-off cohort keeps the
+                        // existing JeniMethod-hero layout. Instrumented
+                        // rollback per D56: if lesson engagement drops
+                        // >15% within 14 days post-flip, revert.
+                        if FoodFlags.isEnabled {
+                            foodHeroSection
+                                .padding(.horizontal, Space.screenPadding)
+                                .opacity(msgOpacity[1]).offset(y: msgOffset[1])
+                        }
+
+                        // JeniMethod card — was slot 1 hero pre-pivot,
+                        // now slot 2 peer when food rail enabled. Full
+                        // scrapbook chrome retained (NOT flat-demoted)
+                        // per delta v7 D56 + Brief #4 + Brief #5
+                        // recommendation — JeniMethod is the brand
+                        // differentiator and must stay first-class.
+                        // Order: "decide what to eat" → "learn something
+                        // about food today" is the brand-cultural
+                        // sequence Cal AI cannot copy.
                         Group {
                             let lesson = jeniMethodLessonForToday
                             let clampedDay = max(currentDay, 1)
@@ -1229,21 +1240,13 @@ struct HomeView: View {
 
     // MARK: - Food rail (W4-T1)
     //
-    // Slot 4 composite when FoodFlags.isEnabled is true. Food card hero
-    // (bar not ring per v5 D33) + lateral steps + breath pills. Tap
-    // food card opens the CaptureFlowView (camera → result → log).
+    // Tier-1 HERO when FoodFlags.isEnabled per delta v7 D56 (2026-06-05
+    // diet-first pivot). Hoisted out of todayHealthStrip to its own
+    // slot right under the coach note, ABOVE the JeniMethod card.
     // Existing-user intro tile appears on flag-flip day above the
     // food card, dismissible, auto-hides after 7 days.
 
-    @ViewBuilder private var todayHealthStrip: some View {
-        // 2026-06-05 fix: previously this was a VStack with HomeFoodCard
-        // + HStack[Steps, Breath] at 50/50. Both Steps and Breath cards
-        // are designed for full-width — squeezed to 50% they collapsed
-        // to per-character text wrap on real devices. The true 3-ring
-        // strip vision (project_home_architecture) needs compact card
-        // variants which is a v1.0.8 effort. Until then, stack all
-        // three full-width. Each card already targets the right
-        // attention budget at full width.
+    @ViewBuilder private var foodHeroSection: some View {
         VStack(spacing: Space.sm) {
             if shouldShowFoodIntroTile {
                 HomeFoodIntroTile(
@@ -1260,7 +1263,15 @@ struct HomeView: View {
                 dailyTarget: foodDailyTarget,
                 onTap: { showCaptureFlow = true }
             )
+        }
+    }
 
+    // Tier-2 health anchor. Steps + (future) weight trend + (future)
+    // body scan. Per delta v7 D56: food hoisted out; this strip is now
+    // just the passive health-data tile. BreathworkHomeCard remains a
+    // peer below, not inside the strip.
+    @ViewBuilder private var todayHealthStrip: some View {
+        VStack(spacing: Space.sm) {
             StepsPulseTile(service: StepsService.shared)
         }
     }
