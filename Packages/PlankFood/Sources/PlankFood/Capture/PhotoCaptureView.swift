@@ -248,6 +248,20 @@ public struct PhotoCaptureView: View {
         do {
             let jpeg = try await camera.captureStill()
             let result = try await dispatcher.dispatch(.photo(jpeg))
+
+            // Empty-identification guard: LLM returned 200 but with no
+            // items AND no restaurant-range fallback. Common causes: no
+            // food in frame, severe blur, dark scene. Stay on camera
+            // with a friendly retry banner rather than advancing to a
+            // phantom result card (founder bug 2026-06-05 — user saw
+            // a card with only "log it" + "actually skip" because every
+            // content branch was `if let item = food.items.first` and
+            // items was empty).
+            if result.items.isEmpty && result.kcalLow == nil {
+                errorMessage = "couldn't see any food. try a brighter or closer angle?"
+                return
+            }
+
             capturedResult = result
             onCaptured(result)
         } catch FoodCaptureError.notImplemented(let ticket, let message, _) {

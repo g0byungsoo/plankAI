@@ -35,6 +35,14 @@ public struct SingleDishCard: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FoodTheme.Space.lg) {
+            // Defensive empty-state: if items is empty, the camera-layer
+            // guard should have caught this — but if it slips through,
+            // render a clean "couldn't identify" panel instead of a card
+            // with only CTAs (founder bug 2026-06-05).
+            if food.items.isEmpty {
+                emptyStatePanel
+            }
+
             // Hero: kcal + uncertainty copy.
             if let item = food.items.first, let kcal = item.kcal {
                 ConfidencePill(
@@ -88,8 +96,14 @@ public struct SingleDishCard: View {
             Divider()
                 .overlay(FoodTheme.accentSubtle)
 
-            // CTAs.
-            actionButtons
+            // CTAs. When items is empty, only the secondary (back to
+            // camera) makes sense — primary "log it" would log a 0-cal
+            // phantom entry.
+            if food.items.isEmpty {
+                emptyStateActions
+            } else {
+                actionButtons
+            }
         }
         .padding(FoodTheme.Space.lg)
         .background(FoodTheme.bgElevated)
@@ -117,6 +131,32 @@ public struct SingleDishCard: View {
     }
 
     // MARK: - Action buttons
+
+    // MARK: - Empty state
+
+    @ViewBuilder private var emptyStatePanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("couldn't read this one")
+                .font(.custom("Fraunces72pt-SemiBold", size: 22))
+                .foregroundStyle(FoodTheme.textPrimary)
+            Text("no food made it through — too dark, too blurry, or maybe nothing on the plate yet. let's try again.")
+                .font(.system(size: 14))
+                .foregroundStyle(FoodTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.bottom, FoodTheme.Space.sm)
+    }
+
+    @ViewBuilder private var emptyStateActions: some View {
+        Button(action: secondaryAction) {
+            Text("retake →")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(FoodTheme.bgPrimary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Capsule().fill(FoodTheme.textPrimary))
+        }
+    }
 
     @ViewBuilder private var actionButtons: some View {
         VStack(spacing: FoodTheme.Space.sm) {

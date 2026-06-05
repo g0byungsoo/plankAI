@@ -37,6 +37,14 @@ public struct MixedPlateCard: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: FoodTheme.Space.lg) {
 
+            // Defensive empty-state — see SingleDishCard for rationale.
+            // Restaurant-range source can produce items=[] legitimately
+            // (kcalLow/High carry the data), so empty-items is only the
+            // fail mode when ALSO kcalLow == nil.
+            if food.items.isEmpty && food.kcalLow == nil {
+                emptyStatePanel
+            }
+
             // Hero — restaurant range bar when the source produced a range
             // (.imOut / .restaurantEstimate), otherwise plate-total ConfidencePill.
             if let low = food.kcalLow, let high = food.kcalHigh {
@@ -96,7 +104,11 @@ public struct MixedPlateCard: View {
             Divider()
                 .overlay(FoodTheme.accentSubtle)
 
-            actionButtons
+            if food.items.isEmpty && food.kcalLow == nil {
+                emptyStateActions
+            } else {
+                actionButtons
+            }
         }
         .padding(FoodTheme.Space.lg)
         .background(FoodTheme.bgElevated)
@@ -119,6 +131,32 @@ public struct MixedPlateCard: View {
     }
 
     // MARK: - Subviews
+
+    // MARK: - Empty state
+
+    @ViewBuilder private var emptyStatePanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("couldn't read this one")
+                .font(.custom("Fraunces72pt-SemiBold", size: 22))
+                .foregroundStyle(FoodTheme.textPrimary)
+            Text("no food made it through — too dark, too blurry, or maybe nothing on the plate yet. let's try again.")
+                .font(.system(size: 14))
+                .foregroundStyle(FoodTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.bottom, FoodTheme.Space.sm)
+    }
+
+    @ViewBuilder private var emptyStateActions: some View {
+        Button(action: secondaryAction) {
+            Text("retake →")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(FoodTheme.bgPrimary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Capsule().fill(FoodTheme.textPrimary))
+        }
+    }
 
     @ViewBuilder private var actionButtons: some View {
         VStack(spacing: FoodTheme.Space.sm) {

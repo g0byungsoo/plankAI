@@ -109,7 +109,13 @@ public struct CaptureFlowView: View {
                 ResultCard(
                     food: food,
                     primaryAction: { logTapped(food) },
-                    secondaryAction: { /* secondary is "actually skip" inline */ },
+                    // "actually skip" on a populated card OR "retake →"
+                    // on an empty-items defensive fallback — both bounce
+                    // back to camera so the user can correct course.
+                    secondaryAction: {
+                        capturedFood = nil
+                        phase = .camera
+                    },
                     onItemTap: { item in editingItem = item }
                 )
                 .padding(FoodTheme.Space.screenPadding)
