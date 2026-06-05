@@ -54,6 +54,8 @@ struct DebugAuthView: View {
 
                 foodRailSection
 
+                onboardingResetSection
+
                 if !status.isEmpty {
                     Text(status)
                         .font(.system(size: 13, design: .monospaced))
@@ -362,6 +364,50 @@ struct DebugAuthView: View {
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
             Text("when override is OFF, isEnabled requires Pro entitlement + PostHog \(FoodFlags.postHogFlagName) flag on")
+                .font(.system(size: 11))
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.top, 2)
+        }
+    }
+
+    // MARK: - Onboarding reset (delta v7 validation aid)
+    //
+    // Flips hasCompletedOnboarding back to false so the next app
+    // launch routes to OnboardingView again. Lets us validate
+    // onboarding-only features (plan reveal calorie hero D68,
+    // commitment confidence screen D67) without delete + reinstall.
+    // DEBUG-only via file-level guard.
+    private var onboardingResetSection: some View {
+        VStack(alignment: .leading, spacing: Space.md) {
+            Text("ONBOARDING")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Palette.textSecondary)
+                .tracking(2)
+
+            let d = UserDefaults.standard
+            VStack(alignment: .leading, spacing: 4) {
+                row("hasCompleted", "\(d.bool(forKey: "hasCompletedOnboarding"))")
+                row("v2_enabled",   "\(d.bool(forKey: "onboarding_v2_enabled"))")
+            }
+            .padding(12)
+            .background(Palette.bgElevated)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            Button {
+                UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+                UserDefaults.standard.removeObject(forKey: "onboardingCompletedAt")
+                status = "onboarding reset — relaunch app to re-run."
+            } label: {
+                Text("Reset onboarding (DEBUG only)")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Palette.textInverse)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(Palette.bgInverse)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+
+            Text("flips hasCompletedOnboarding → false. force-quit + relaunch to see the onboarding flow again.")
                 .font(.system(size: 11))
                 .foregroundStyle(Palette.textSecondary)
                 .padding(.top, 2)
