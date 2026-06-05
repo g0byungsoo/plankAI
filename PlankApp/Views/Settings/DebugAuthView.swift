@@ -396,6 +396,9 @@ struct DebugAuthView: View {
             Button {
                 UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
                 UserDefaults.standard.removeObject(forKey: "onboardingCompletedAt")
+                // Force v2 on every reset so testing always exercises the
+                // delta v7 flow (commitment screen D67, calorie hero D68).
+                UserDefaults.standard.set(true, forKey: "onboarding_v2_enabled")
                 status = "onboarding reset — relaunch app to re-run."
             } label: {
                 Text("Reset onboarding (DEBUG only)")

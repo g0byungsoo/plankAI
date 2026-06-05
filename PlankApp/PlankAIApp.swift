@@ -72,6 +72,17 @@ struct PlankAIApp: App {
             UserDefaults.standard.set("encouraging", forKey: "voicePreference")
         }
 
+        // Delta v7 — force v2 onboarding for everyone. v1 path predates
+        // the diet-first pivot's Act-4 food vulnerability questions, the
+        // commitment screen at case 165 (D67), and the credibility-grade
+        // sleep/stress/eating cadence/eating window questions the plan
+        // reveal calorie hero (D68) consumes downstream. Anyone still on
+        // v1 from prior testing toggles gets upgraded here. Safe migration:
+        // OnboardingView's `screen` is @State (resets on mount), so this
+        // can't strand a user mid-flow with a mismatched flow order —
+        // they just restart with v2 on next mount. Idempotent.
+        UserDefaults.standard.set(true, forKey: "onboarding_v2_enabled")
+
         // Register every .ttf file bundled with the app. INFOPLIST_KEY_UIAppFonts
         // as a space-separated string doesn't actually populate UIAppFonts in
         // the generated Info.plist (Xcode interprets the whole value as one
