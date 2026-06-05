@@ -41,7 +41,11 @@ struct ForceFirstActionView: View {
                 Text("welcome 🌸")
                     .font(.system(size: 18))
                     .foregroundStyle(Palette.textSecondary)
-                ItalicAccentText("let's *start*.",
+                // Pass the CLEAN string (no asterisks) to
+                // ItalicAccentText — the asterisks were a parser hint
+                // in early drafts but get rendered literally if you
+                // pass them through.
+                ItalicAccentText("let's start.",
                                  italic: ["start"],
                                  baseFont: .custom("Fraunces72pt-Regular", size: 32),
                                  italicFont: .custom("Fraunces72pt-RegularItalic", size: 32),
