@@ -34,12 +34,21 @@ enum RetentionNotifications {
     /// any session save.
     static let day0AnchorIdentifier = "day0_anchor"
     static let day2EngagementIdentifier = "day2_engagement"
+    /// v1.5 / delta v7 D64 — daily Evening Plate Review at 8:30pm local.
+    /// Per Brief #5 behavioral-science research, the single highest-
+    /// leverage retention move for a diet-first WL app: converts food
+    /// logging (control behavior) into food reflection (self-regulation).
+    /// Reflection-based interventions outperform tracking-only 2-3×
+    /// (Burke et al. 2011). Cal AI / MFP / Noom / MacroFactor all have
+    /// silent evenings; this is JeniFit's evening wedge.
+    static let eveningPlateReviewIdentifier = "evening_plate_review"
 
     // MARK: - Toggles (UserDefaults; default ON, gated on system permission)
 
     private enum Key {
         static let affirmationsEnabled = "notif.affirmations_enabled"
         static let winbackEnabled      = "notif.winback_enabled"
+        static let eveningPlateReviewEnabled = "notif.evening_plate_review_enabled"
         static let lastSessionAt       = "notif.last_session_at"
         /// Latest distinct-days-shown-up count, stamped on each new day so
         /// the trial-end recap can surface it without a SwiftData read.
@@ -71,6 +80,10 @@ enum RetentionNotifications {
     static var winbackEnabled: Bool {
         get { UserDefaults.standard.object(forKey: Key.winbackEnabled) as? Bool ?? true }
         set { UserDefaults.standard.set(newValue, forKey: Key.winbackEnabled) }
+    }
+    static var eveningPlateReviewEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: Key.eveningPlateReviewEnabled) as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: Key.eveningPlateReviewEnabled) }
     }
 
     // MARK: - Tunables
@@ -106,7 +119,34 @@ enum RetentionNotifications {
             scheduleAffirmations(now: now)
             scheduleDay0AnchorIfNeeded(now: now)
             scheduleDay2EngagementIfNeeded(now: now)
+            scheduleEveningPlateReview()
         }
+    }
+
+    /// Daily 8:30pm local Evening Plate Review push (D64). Single
+    /// repeating UNCalendarNotificationTrigger — fires every day at
+    /// 8:30pm local time once authorized. Idempotent — repeated calls
+    /// replace the existing scheduled request rather than stacking.
+    private static func scheduleEveningPlateReview() {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [eveningPlateReviewIdentifier])
+        guard eveningPlateReviewEnabled else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "today's plate ♥"
+        content.body = "a soft look back. tap in when you're ready."
+        content.sound = .default
+
+        var components = DateComponents()
+        components.hour = 20
+        components.minute = 30
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+
+        center.add(UNNotificationRequest(
+            identifier: eveningPlateReviewIdentifier,
+            content: content,
+            trigger: trigger
+        ))
     }
 
     /// Stamp last-session and re-arm the win-back from now. Call when a
@@ -177,6 +217,9 @@ enum RetentionNotifications {
         if !winbackEnabled {
             center.removePendingNotificationRequests(withIdentifiers: [winbackIdentifier])
         }
+        if !eveningPlateReviewEnabled {
+            center.removePendingNotificationRequests(withIdentifiers: [eveningPlateReviewIdentifier])
+        }
         reschedule()
     }
 
@@ -188,6 +231,7 @@ enum RetentionNotifications {
                 winbackIdentifier,
                 day0AnchorIdentifier,
                 day2EngagementIdentifier,
+                eveningPlateReviewIdentifier,
             ] + affirmationIdentifiers() + milestoneIdentifiers()
         )
         let d = UserDefaults.standard
