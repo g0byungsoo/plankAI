@@ -52,6 +52,12 @@ public struct CapturedFood: Sendable {
     /// USDA join hasn't completed for at least one). Caller can show
     /// a loading state until non-nil.
     public var totalKcal: Double? {
+        // Empty items means "no plate identified" — return nil so
+        // consumers can distinguish from "plate identified, totals
+        // zero." Without this guard the reduce(0, +) returned 0 for
+        // both cases, which can mask the empty-capture failure path
+        // downstream (caught by EmptyCaptureGuardTests 2026-06-05).
+        guard !items.isEmpty else { return nil }
         let kcalValues = items.compactMap { $0.kcal }
         guard kcalValues.count == items.count else { return nil }
         return kcalValues.reduce(0, +)
