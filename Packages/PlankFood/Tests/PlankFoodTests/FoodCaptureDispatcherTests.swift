@@ -54,40 +54,35 @@ final class FoodCaptureDispatcherTests: XCTestCase {
         }
     }
 
-    func testImOutTonightDispatchReturnsTBDNotImplemented() async {
-        let dispatcher = FoodCaptureDispatcher()
-        let capture = FoodCapture.imOutTonight(cuisine: .italian)
+    // MARK: - I'm Out Tonight (D14 locked rule-based estimator)
 
-        do {
-            _ = try await dispatcher.dispatch(capture)
-            XCTFail("expected notImplemented; got result instead")
-        } catch let FoodCaptureError.notImplemented(ticket, _, context) {
-            XCTAssertEqual(ticket, "W2-TBD")
-            if case .imOutTonight(let cuisine) = context {
-                XCTAssertEqual(cuisine, .italian)
-            } else {
-                XCTFail("expected .imOutTonight context, got \(context)")
-            }
-        } catch {
-            XCTFail("expected FoodCaptureError.notImplemented, got \(error)")
-        }
+    func testImOutTonightItalianReturnsRange() async throws {
+        let dispatcher = FoodCaptureDispatcher()
+        let food = try await dispatcher.dispatch(.imOutTonight(cuisine: .italian))
+
+        XCTAssertEqual(food.plateType, .restaurantRange)
+        XCTAssertEqual(food.source, .restaurantEstimate)
+        XCTAssertTrue(food.items.isEmpty, "restaurant estimates have no per-item rows")
+        XCTAssertEqual(food.kcalLow, 700)   // italian center 850 − 150
+        XCTAssertEqual(food.kcalHigh, 1000) // italian center 850 + 150
     }
 
-    func testImOutTonightNilCuisinePassesThrough() async {
+    func testImOutTonightNilCuisineUsesGenericCenter() async throws {
         let dispatcher = FoodCaptureDispatcher()
-        let capture = FoodCapture.imOutTonight(cuisine: nil)
+        let food = try await dispatcher.dispatch(.imOutTonight(cuisine: nil))
 
-        do {
-            _ = try await dispatcher.dispatch(capture)
-            XCTFail("expected notImplemented")
-        } catch let FoodCaptureError.notImplemented(_, _, context) {
-            if case .imOutTonight(let cuisine) = context {
-                XCTAssertNil(cuisine, "nil cuisine should propagate to context")
-            } else {
-                XCTFail("expected .imOutTonight context")
-            }
-        } catch {
-            XCTFail("unexpected error: \(error)")
+        XCTAssertEqual(food.kcalLow, 550)   // generic center 700 − 150
+        XCTAssertEqual(food.kcalHigh, 850)  // generic center 700 + 150
+    }
+
+    func testImOutTonightAllCuisinesProduceValidRange() async throws {
+        let dispatcher = FoodCaptureDispatcher()
+        for cuisine in CuisineChip.allCases {
+            let food = try await dispatcher.dispatch(.imOutTonight(cuisine: cuisine))
+            XCTAssertNotNil(food.kcalLow, "kcalLow nil for \(cuisine)")
+            XCTAssertNotNil(food.kcalHigh, "kcalHigh nil for \(cuisine)")
+            XCTAssertGreaterThan(food.kcalHigh ?? 0, food.kcalLow ?? 0,
+                                 "range degenerate for \(cuisine)")
         }
     }
 

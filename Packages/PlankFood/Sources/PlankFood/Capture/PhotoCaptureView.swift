@@ -46,15 +46,21 @@ public struct PhotoCaptureView: View {
 
     public let onDismiss: () -> Void
     public let onCaptured: (CapturedFood) -> Void
+    public let onQuickAddTapped: () -> Void
+    public let onImOutTapped: () -> Void
 
     // MARK: - Init
 
     public init(
         onDismiss: @escaping () -> Void,
-        onCaptured: @escaping (CapturedFood) -> Void
+        onCaptured: @escaping (CapturedFood) -> Void,
+        onQuickAddTapped: @escaping () -> Void = {},
+        onImOutTapped: @escaping () -> Void = {}
     ) {
         self.onDismiss = onDismiss
         self.onCaptured = onCaptured
+        self.onQuickAddTapped = onQuickAddTapped
+        self.onImOutTapped = onImOutTapped
     }
 
     // MARK: - Body
@@ -195,9 +201,14 @@ public struct PhotoCaptureView: View {
     private func modeChip(_ icon: String, _ label: String, _ tab: CaptureTab) -> some View {
         Button {
             captureTab = tab
-            // W3-T3 / W3-T4 — QuickAdd + ImOut surfaces replace photo
-            // content when their tab is selected. For W2-T2 the chips
-            // just record state; no navigation yet.
+            // 2026-06-05: chips now route to peer phases via callbacks.
+            // CaptureFlowView swaps the active view; photo remains the
+            // default (this view) and re-selecting it is a no-op.
+            switch tab {
+            case .photo:    break
+            case .quickAdd: onQuickAddTapped()
+            case .imOut:    onImOutTapped()
+            }
         } label: {
             HStack(spacing: 6) {
                 Text(icon)

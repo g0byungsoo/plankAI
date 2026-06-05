@@ -98,16 +98,45 @@ public final class FoodCaptureDispatcher {
             )
 
         case .imOutTonight(let cuisine):
-            // W2 TBD — wire RestaurantEstimateService.estimate(cuisine)
-            //          → rule-based map of cuisine → (kcalLow, kcalHigh,
-            //          centerEstimate). NO LLM call (cost saver; v3
-            //          §architecture-simplification).
-            throw FoodCaptureError.notImplemented(
-                ticket: "W2-TBD",
-                message: "RestaurantEstimateService not yet wired",
-                context: .imOutTonight(cuisine: cuisine)
-            )
+            // D14 LOCKED — rule-based cuisine → (kcalLow, kcalHigh)
+            // map. NO LLM call (cost saver per v3 §architecture-
+            // simplification + D14 laziness principle). The narrow
+            // range (±150 kcal around the cuisine center) is wide
+            // enough to acknowledge "rough estimate" honestly without
+            // making the bar feel uselessly broad.
+            //
+            // Centers are from ImOutTonightView's documented map:
+            //   mexican 600 · italian 850 · asian 750 · american 700
+            //   · pizza 900 · other 700 · (no cuisine) 700
+            return Self.restaurantEstimate(cuisine: cuisine)
         }
+    }
+
+    /// Build a CapturedFood for the .imOutTonight path. Range
+    /// fields drive RestaurantRangeBar in the result card; items is
+    /// intentionally empty (no per-item rows — restaurants don't
+    /// have a per-ingredient story).
+    static func restaurantEstimate(cuisine: CuisineChip?) -> CapturedFood {
+        let center: Double
+        switch cuisine {
+        case .mexican:  center = 600
+        case .italian:  center = 850
+        case .asian:    center = 750
+        case .american: center = 700
+        case .pizza:    center = 900
+        case .other, .none: center = 700
+        }
+        let halfRange: Double = 150
+        return CapturedFood(
+            items: [],
+            plateType: .restaurantRange,
+            source: .restaurantEstimate,
+            confidence: nil,
+            needsSecondPhoto: false,
+            secondPhotoHint: nil,
+            kcalLow: center - halfRange,
+            kcalHigh: center + halfRange
+        )
     }
 }
 

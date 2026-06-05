@@ -4,13 +4,15 @@ import SwiftData
 
 // MARK: - CaptureFlowView
 //
-// End-to-end capture orchestrator. Wraps PhotoCaptureView → ResultCard
-// → log persistence into a single fullScreenCover-presentable flow.
+// End-to-end capture orchestrator. Wraps the three capture entry
+// modes (camera / quick-add / i'm out) → ResultCard → log persistence
+// into a single fullScreenCover-presentable flow.
 //
 // Phases:
-//   1. .camera     — PhotoCaptureView (shutter, mode chips)
-//   2. .result     — ResultCard (review + edit + log)
-//   3. .corrected  — FoodCorrectionSheet (per-item edit; returns to .result)
+//   1. .camera     — PhotoCaptureView (shutter)
+//   2. .quickAdd   — QuickAddView (6-tile beverage rail, D20)
+//   3. .imOut      — ImOutTonightView (cuisine chips, D14)
+//   4. .result     — ResultCard (review + edit + log) — common to all 3
 //
 // On "log it" tap from ResultCard, persists the (possibly edited)
 // CapturedFood via FoodLogPersister into the ModelContext, then
@@ -50,7 +52,28 @@ public struct CaptureFlowView: View {
                     onCaptured: { food in
                         capturedFood = food
                         phase = .result
-                    }
+                    },
+                    onQuickAddTapped: { phase = .quickAdd },
+                    onImOutTapped: { phase = .imOut }
+                )
+
+            case .quickAdd:
+                QuickAddView(
+                    onLogged: { food in
+                        capturedFood = food
+                        phase = .result
+                    },
+                    onScanInstead: { phase = .camera },
+                    onDismiss: { phase = .camera }
+                )
+
+            case .imOut:
+                ImOutTonightView(
+                    onLogged: { food in
+                        capturedFood = food
+                        phase = .result
+                    },
+                    onDismiss: { phase = .camera }
                 )
 
             case .result:
@@ -149,6 +172,8 @@ public struct CaptureFlowView: View {
 
 private enum Phase {
     case camera
+    case quickAdd
+    case imOut
     case result
 }
 
