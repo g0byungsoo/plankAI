@@ -44,6 +44,11 @@ struct HomeView: View {
     // for the food card bar.
     @AppStorage("hasShownFoodRailIntro") private var hasShownFoodRailIntro = false
     @AppStorage("foodRailFlipTimestamp") private var foodRailFlipTimestamp: Double = 0
+    /// W4-T2 — set by PostPurchaseFlow's ForceFirstAction picker when
+    /// the user picks "log what you're eating." Mirrors the
+    /// pendingPostRitualWorkoutLaunch pattern: HomeView reads on
+    /// appear, opens CaptureFlowView, clears the flag.
+    @AppStorage("pendingFoodScan") private var pendingFoodScan = false
     /// Daily calorie target. Defaults to Mifflin-St Jeor result from
     /// onboarding (W4-T4 Food Settings will expose an editor). 1650
     /// is the cohort median for a 65kg woman with light activity at
@@ -819,6 +824,25 @@ struct HomeView: View {
         .onChange(of: pendingPostRitualWorkoutLaunch) { _, newValue in
             if newValue {
                 launchPostRitualWorkout()
+            }
+        }
+        // W4-T2 — ForceFirstAction picker → "log what you're eating"
+        // sets pendingFoodScan via AppStorage. HomeView opens the
+        // capture flow + clears the flag so a re-render doesn't
+        // re-trigger.
+        .onChange(of: pendingFoodScan) { _, newValue in
+            if newValue {
+                showCaptureFlow = true
+                pendingFoodScan = false
+            }
+        }
+        .onAppear {
+            // Also handle the case where PostPurchaseFlow set the flag
+            // before HomeView mounted (cover dismissal + HomeView
+            // appear race condition).
+            if pendingFoodScan {
+                showCaptureFlow = true
+                pendingFoodScan = false
             }
         }
         // Regenerate when the user changes a signal that affects what the

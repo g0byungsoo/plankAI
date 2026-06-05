@@ -1,4 +1,5 @@
 import SwiftUI
+import PlankFood
 
 // MARK: - PostPurchaseFlowView
 //
@@ -30,9 +31,15 @@ struct PostPurchaseFlowView: View {
         case coachIntro
         case breathworkPrimer
         case breathworkSession
+        case forceFirstAction      // W4-T2 — D38 post-paywall picker
     }
 
     @State private var phase: Phase = .coachIntro
+
+    /// Mirror of the AppStorage key HomeView watches to launch the
+    /// food capture flow on appear. PostPurchaseFlow sets it true on
+    /// the food choice; HomeView reads + clears on next render.
+    @AppStorage("pendingFoodScan") private var pendingFoodScan = false
 
     var body: some View {
         ZStack {
@@ -50,20 +57,51 @@ struct PostPurchaseFlowView: View {
             case .breathworkPrimer:
                 BreathworkPrimerView(
                     onBreathe: { transition(to: .breathworkSession) },
-                    onSkip: { onFinish(true) }   // skip breath → straight to workout
+                    // Skip breath → still surface food/plank picker for
+                    // the food-rail rollout cohort; existing cohort goes
+                    // straight to workout (current behavior preserved).
+                    onSkip: { afterBreath(routeToWorkout: true) }
                 )
                 .transition(.opacity)
 
             case .breathworkSession:
                 BreathworkSessionView(
-                    onReadyToMove: { onFinish(true) },
-                    onLater: { onFinish(false) },
-                    onDismiss: { onFinish(false) }
+                    onReadyToMove: { afterBreath(routeToWorkout: true) },
+                    onLater: { afterBreath(routeToWorkout: false) },
+                    onDismiss: { afterBreath(routeToWorkout: false) }
+                )
+                .transition(.opacity)
+
+            case .forceFirstAction:
+                // W4-T2 — D38 picker. Food sets the pendingFoodScan
+                // AppStorage flag; HomeView reads it on appear and
+                // presents CaptureFlowView. Plank reuses the existing
+                // pendingPostRitualWorkoutLaunch flag via launchWorkout=true.
+                ForceFirstActionView(
+                    onFood: {
+                        pendingFoodScan = true
+                        onFinish(false)  // land on Home; Home opens camera
+                    },
+                    onPlank: { onFinish(true) },
+                    onSkip: { onFinish(false) }
                 )
                 .transition(.opacity)
             }
         }
         .animation(.easeInOut(duration: 0.5), value: phase)
+    }
+
+    /// Decision gate after the breath phase finishes. If food rail is
+    /// enabled for this user, show the picker so they explicitly
+    /// choose food OR plank. Otherwise preserve the existing
+    /// breath → workout-or-home routing (no behavior change for
+    /// flag-off cohort).
+    private func afterBreath(routeToWorkout: Bool) {
+        if FoodFlags.isEnabled {
+            transition(to: .forceFirstAction)
+        } else {
+            onFinish(routeToWorkout)
+        }
     }
 
     private func transition(to next: Phase) {
