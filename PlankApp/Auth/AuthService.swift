@@ -154,15 +154,7 @@ final class AuthService {
     /// background until it naturally completes — but the function caller
     /// has already moved on.
     private static func withTimeout<T: Sendable>(seconds: TimeInterval, _ op: @escaping @Sendable () async -> T?) async -> T? {
-        actor ResumeGuard {
-            private var fired = false
-            func tryFire() -> Bool {
-                if fired { return false }
-                fired = true
-                return true
-            }
-        }
-        let guardian = ResumeGuard()
+        let guardian = AuthBootstrapResumeGuard()
 
         return await withCheckedContinuation { (continuation: CheckedContinuation<T?, Never>) in
             Task {
@@ -331,5 +323,19 @@ final class AuthService {
                 UserDefaults.standard.set(formatted, forKey: "userName")
             }
         }
+    }
+}
+
+/// File-scoped because Swift doesn't allow nested actor types inside
+/// generic functions (the natural place for it, inside withTimeout,
+/// produces "Type 'ResumeGuard' cannot be nested in generic function").
+/// Used by AuthService.withTimeout to atomically pick a winner between
+/// the racing operation and the timeout sleep.
+fileprivate actor AuthBootstrapResumeGuard {
+    private var fired = false
+    func tryFire() -> Bool {
+        if fired { return false }
+        fired = true
+        return true
     }
 }
