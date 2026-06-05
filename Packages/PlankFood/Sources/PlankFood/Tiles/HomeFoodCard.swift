@@ -48,6 +48,16 @@ public struct HomeFoodCard: View {
                         dailyTarget: dailyTarget,
                         weeklyAvgKcal: weeklyAvg
                     )
+
+                    // D64 evening review surface — when the 8:30pm push
+                    // lands the user back on Home and she has logs today,
+                    // show a soft Jeni line that turns logging into
+                    // reflection (Carver & Scheier self-regulation,
+                    // Brief #5 §10). The push title is "today's plate ♥";
+                    // this is the in-app payoff.
+                    if isEveningReviewWindow {
+                        eveningReviewLine
+                    }
                 }
 
                 Spacer(minLength: 0)
@@ -70,6 +80,44 @@ public struct HomeFoodCard: View {
         .accessibilityHint("tap to log a meal")
         .onAppear { refresh() }
         .onReceive(FoodLogPersister.changeNotifier) { _ in refresh() }
+    }
+
+    // MARK: - Evening review
+
+    /// 7pm-11pm local. The 8:30pm push lands in this window; the home
+    /// card stays in evening-review state for ~4h around it so a user
+    /// who opens late still sees the review surface.
+    private var isEveningReviewWindow: Bool {
+        let hour = Calendar.current.component(.hour, from: Date.now)
+        return (19...22).contains(hour)
+    }
+
+    @ViewBuilder private var eveningReviewLine: some View {
+        Text(eveningReviewCopy)
+            .font(.system(size: 13))
+            .foregroundStyle(FoodTheme.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, 2)
+    }
+
+    /// Voice-locked reflection line. Branches on today vs target so the
+    /// register matches the day. No shame anywhere — over-target reads
+    /// as "happens" not "you failed" (anti-shame food UX lock per
+    /// feedback_food_ux_antishame).
+    private var eveningReviewCopy: String {
+        guard dailyTarget > 0 else {
+            return "today, logged. tomorrow opens fresh ♥"
+        }
+        let ratio = todayKcal / dailyTarget
+        if ratio < 0.7 {
+            return "easy today. listen to hunger tomorrow ♥"
+        } else if ratio < 1.05 {
+            return "today's gentle. tomorrow opens fresh ♥"
+        } else if ratio < 1.25 {
+            return "a bit more today — happens. tomorrow resets ♥"
+        } else {
+            return "today was a higher one. tomorrow resets ♥"
+        }
     }
 
     // MARK: - Subviews
