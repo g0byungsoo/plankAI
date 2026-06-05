@@ -208,6 +208,11 @@ struct PlankAIApp: App {
             ExerciseCalibrationRecord.self,
             SessionRatingRecord.self,
             WeightLogRecord.self,
+            // W3-T6 — food rail SwiftData models. Per v3 D26 schema is
+            // wrapped in FoodLogSchemaV1: VersionedSchema (defined in
+            // PlankFood) so future migrations drop in cleanly.
+            FoodLogRecord.self,
+            FoodLogItemRecord.self,
         ])
     }
 }

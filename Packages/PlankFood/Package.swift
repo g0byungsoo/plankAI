@@ -3,10 +3,11 @@ import PackageDescription
 
 let package = Package(
     name: "PlankFood",
-    // macOS pinned to satisfy posthog-ios's minimum (10.15+). PlankFood
-    // ships iOS-only; the macOS pin is purely to keep SwiftPM resolution
-    // happy when posthog-ios is part of the dep graph.
-    platforms: [.iOS(.v17), .macOS(.v10_15)],
+    // macOS pinned to 14 for SwiftData @Model availability (introduced
+    // macOS 14 / iOS 17). Higher than posthog-ios's 10.15 minimum.
+    // PlankFood ships iOS-only; the macOS pin is purely to keep
+    // SwiftPM resolution + macOS test runs happy.
+    platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "PlankFood", targets: ["PlankFood"]),
     ],
