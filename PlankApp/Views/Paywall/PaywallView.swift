@@ -1157,31 +1157,68 @@ struct PaywallView: View {
                 // silently with userCancelled=true — the launch-day Weekly +
                 // Quarterly bug. Fetch the products via StoreKit here so the
                 // package-lookup vars can hide unfetched tiers before users
-                // tap broken CTAs. Empty array on fetch failure is fine —
-                // `precheckCompleted` flips true either way and the tiers
-                // gate on the resolved set.
+                // tap broken CTAs.
+                //
+                // Wrapped in a 2.5s timeout because `Purchases.shared.products(_:)`
+                // can hang indefinitely in simulators without a sandbox tester
+                // configured (StoreKit has no Apple ID to fetch on behalf of,
+                // so the request never resolves vs returning empty). When the
+                // timeout fires, `precheckCompleted` stays false and the
+                // package vars fall back to trusting RC — current pre-precheck
+                // behavior, no user-visible change. Production devices return
+                // in <500ms; the timeout is a simulator/edge-case safety valve.
                 let expectedIds = offering.availablePackages
                     .map { $0.storeProduct.productIdentifier }
-                let resolved = await Purchases.shared.products(expectedIds)
-                let resolvedIds = Set(resolved.map { $0.productIdentifier })
-                storeKitResolvedProductIds = resolvedIds
-                precheckCompleted = true
+                let resolved: [StoreProduct]? = await withTaskGroup(of: [StoreProduct]?.self) { group -> [StoreProduct]? in
+                    group.addTask {
+                        await Purchases.shared.products(expectedIds)
+                    }
+                    group.addTask {
+                        try? await Task.sleep(nanoseconds: 2_500_000_000)
+                        return nil
+                    }
+                    defer { group.cancelAll() }
+                    return (await group.next()) ?? nil
+                }
 
-                let missing = expectedIds.filter { !resolvedIds.contains($0) }
-                if !missing.isEmpty {
+                if let resolved {
+                    let resolvedIds = Set(resolved.map { $0.productIdentifier })
+                    storeKitResolvedProductIds = resolvedIds
+                    precheckCompleted = true
+
+                    let missing = expectedIds.filter { !resolvedIds.contains($0) }
+                    if !missing.isEmpty {
+                        Analytics.trackException(
+                            NSError(domain: "Paywall", code: 3,
+                                    userInfo: [NSLocalizedDescriptionKey: "StoreKit could not resolve products: \(missing.joined(separator: ","))"]),
+                            context: "paywall.storekit_product_unfetchable",
+                            properties: [
+                                "missing_product_ids": missing,
+                                "resolved_product_ids": Array(resolvedIds),
+                                "expected_count": expectedIds.count,
+                                "resolved_count": resolved.count
+                            ]
+                        )
+                        #if DEBUG
+                        print("[Paywall] StoreKit precheck — products MISSING: \(missing) | resolved: \(resolvedIds)")
+                        #endif
+                    } else {
+                        #if DEBUG
+                        print("[Paywall] StoreKit precheck — all \(resolved.count) products resolved")
+                        #endif
+                    }
+                } else {
+                    // Timeout — precheckCompleted stays false, cards fall back
+                    // to trusting RC. Log so we can see in PostHog how often
+                    // this fires in production (signals a real StoreKit issue).
                     Analytics.trackException(
-                        NSError(domain: "Paywall", code: 3,
-                                userInfo: [NSLocalizedDescriptionKey: "StoreKit could not resolve products: \(missing.joined(separator: ","))"]),
-                        context: "paywall.storekit_product_unfetchable",
-                        properties: [
-                            "missing_product_ids": missing,
-                            "resolved_product_ids": Array(resolvedIds),
-                            "expected_count": expectedIds.count,
-                            "resolved_count": resolved.count
-                        ]
+                        NSError(domain: "Paywall", code: 4,
+                                userInfo: [NSLocalizedDescriptionKey: "StoreKit precheck timed out after 2.5s"]),
+                        context: "paywall.storekit_precheck_timeout",
+                        properties: ["expected_product_ids": expectedIds]
                     )
                     #if DEBUG
-                    print("[Paywall] StoreKit precheck — products MISSING: \(missing) | resolved: \(resolvedIds)")
+                    print("[Paywall] StoreKit precheck TIMED OUT — falling back to RC trust")
                     #endif
                 }
             }
