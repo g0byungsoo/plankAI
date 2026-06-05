@@ -48,7 +48,7 @@ struct ForceFirstActionView: View {
                 ItalicAccentText("let's start.",
                                  italic: ["start"],
                                  baseFont: .custom("Fraunces72pt-Regular", size: 32),
-                                 italicFont: .custom("Fraunces72pt-RegularItalic", size: 32),
+                                 italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 32),
                                  alignment: .center)
             }
             .multilineTextAlignment(.center)
@@ -94,7 +94,7 @@ struct ForceFirstActionView: View {
         }
         .padding(.horizontal, Space.screenPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Palette.bgPrimary.ignoresSafeArea())
+        // Background lifted to PostPurchaseFlowView for stable cross-fade.
     }
 
     @ViewBuilder

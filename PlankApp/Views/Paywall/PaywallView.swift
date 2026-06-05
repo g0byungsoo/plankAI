@@ -630,7 +630,7 @@ struct PaywallView: View {
             ItalicAccentText(parts.base,
                              italic: parts.italic,
                              baseFont: .custom("Fraunces72pt-Regular", size: 26),
-                             italicFont: .custom("Fraunces72pt-RegularItalic", size: 26),
+                             italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 26),
                              alignment: .center)
                 .tracking(-0.4)
                 .padding(.horizontal, 8)
@@ -741,7 +741,7 @@ struct PaywallView: View {
                 .frame(width: 6, height: 6)
                 .offset(y: 1)
             Text(label)
-                .font(.custom("Fraunces72pt-RegularItalic", size: 12))
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
                 .foregroundStyle(Palette.textSecondary)
                 .frame(width: 42, alignment: .leading)
             Text(text)

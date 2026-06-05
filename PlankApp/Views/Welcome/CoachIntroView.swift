@@ -52,7 +52,6 @@ struct CoachIntroView: View {
     @AppStorage("onboardingGoalDate") private var goalDateInterval: Double = 0
 
     // ── Animation reveal state ──────────────────────────────────────
-    @State private var bgVisible = false
     @State private var coachVisible = false
     @State private var sparkleBurstActive = false
     @State private var sparkleBurstVisible = false
@@ -84,18 +83,9 @@ struct CoachIntroView: View {
     // MARK: - Body
 
     var body: some View {
+        // Background + sticker scatter lifted to PostPurchaseFlowView so
+        // they stay stable across phase swaps (was the flicker cause).
         ZStack {
-            Palette.bgPrimary
-                .ignoresSafeArea()
-                .opacity(bgVisible ? 1 : 0)
-
-            // y2k coquette corner scatter behind the content. Hit-test
-            // transparent + reduce-motion safe (StickerScatter handles
-            // both). Fades with the background so it joins the cross-fade.
-            StickerScatter(placements: StickerScatter.coachIntroDefault())
-                .opacity(bgVisible ? 1 : 0)
-                .allowsHitTesting(false)
-
             VStack(spacing: 0) {
                 Spacer(minLength: Space.lg)
 
@@ -453,11 +443,6 @@ struct CoachIntroView: View {
     private func runChoreography() {
         Haptics.success()
 
-        // Background cream cross-fades in over a full beat — this is
-        // what the user perceives as the cover transition (the iOS
-        // slide is suppressed at the caller via Transaction).
-        withAnimation(.easeInOut(duration: 0.7)) { bgVisible = true }
-
         // Coach portrait springs in next, slower curve so it feels
         // grounded rather than bouncy.
         withAnimation(.spring(response: 0.70, dampingFraction: 0.80).delay(0.15)) {
@@ -491,7 +476,6 @@ struct CoachIntroView: View {
     }
 
     private func runReducedMotion() {
-        bgVisible = true
         coachVisible = true
         sparkleBurstActive = true
         sparkleBurstVisible = true

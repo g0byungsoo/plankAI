@@ -59,15 +59,9 @@ struct BreathworkSessionView: View {
     private var totalReps: Int { techProtocol.repeats }
 
     var body: some View {
+        // Background + sticker scatter lifted to PostPurchaseFlowView so
+        // they stay stable across phase swaps (was the flicker cause).
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
-
-            // Minimal calming scatter — two soft accents in the top
-            // corners only, so the centered breath bloom + bottom choice
-            // stay clear. Gentle idle drift reads as calm, not busy.
-            StickerScatter(placements: StickerScatter.breathworkSessionDefault())
-                .allowsHitTesting(false)
-
             // Close affordance — always available (asymmetric care: Jeni
             // offers, never traps). X → home, never auto-launches workout.
             VStack {

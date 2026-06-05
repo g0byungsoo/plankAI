@@ -43,9 +43,16 @@ struct PostPurchaseFlowView: View {
 
     var body: some View {
         ZStack {
-            // Shared cream canvas so phase swaps cross-fade over a stable
-            // background rather than flashing.
+            // Shared cream canvas + shared sticker scatter so phase swaps
+            // cross-fade over a stable background — subviews no longer
+            // own their own background/scatter layers (was the source of
+            // the inter-phase flicker — each subview's `bgVisible` faded
+            // in from 0 on appear, creating a flash between phases).
+            // Single canonical scatter (coachIntroDefault) reads as the
+            // welcome flow's visual constant across all 4 phases.
             Palette.bgPrimary.ignoresSafeArea()
+            StickerScatter(placements: StickerScatter.coachIntroDefault())
+                .allowsHitTesting(false)
 
             switch phase {
             case .coachIntro:

@@ -96,7 +96,7 @@ struct BecomingProjectionCard: View {
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(dateText ?? "")
-                            .font(.custom("Fraunces72pt-RegularItalic", size: 12))
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
                             .foregroundStyle(Palette.accent)
                         Text("~\(formatWeight(perWeek)) \(unit.label)/wk · \(paceLabel)")
                             .font(.system(size: 9))

@@ -127,7 +127,7 @@ struct WeAskBecauseRow: View {
                 "we ask because " + reason,
                 italic: italicWords,
                 baseFont: .custom("Fraunces72pt-Regular", size: 13),
-                italicFont: .custom("Fraunces72pt-RegularItalic", size: 13),
+                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13),
                 color: Palette.textSecondary,
                 alignment: .leading
             )

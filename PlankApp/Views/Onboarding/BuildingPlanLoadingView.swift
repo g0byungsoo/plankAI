@@ -220,7 +220,7 @@ struct BuildingPlanLoadingView: View {
                 "your becoming, ready",
                 italic: ["becoming"],
                 baseFont: .custom("Fraunces72pt-Regular", size: 14),
-                italicFont: .custom("Fraunces72pt-RegularItalic", size: 14),
+                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 14),
                 color: Palette.textSecondary,
                 alignment: .center
             )

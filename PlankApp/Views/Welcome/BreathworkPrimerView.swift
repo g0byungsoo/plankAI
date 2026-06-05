@@ -25,7 +25,6 @@ struct BreathworkPrimerView: View {
     @AppStorage("voicePreference") private var storedVoice: String = "encouraging"
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var bgVisible = false
     @State private var coachVisible = false
     @State private var eyebrowVisible = false
     @State private var headlineVisible = false
@@ -33,17 +32,9 @@ struct BreathworkPrimerView: View {
     @State private var ctaVisible = false
 
     var body: some View {
+        // Background + sticker scatter lifted to PostPurchaseFlowView so
+        // they stay stable across phase swaps (was the flicker cause).
         ZStack {
-            Palette.bgPrimary
-                .ignoresSafeArea()
-                .opacity(bgVisible ? 1 : 0)
-
-            // y2k coquette scatter — teacup (morning ritual), sparkle,
-            // soft heart hugging the margins behind the content.
-            StickerScatter(placements: StickerScatter.breathworkPrimerDefault())
-                .opacity(bgVisible ? 1 : 0)
-                .allowsHitTesting(false)
-
             // Scrollable content above a pinned CTA. The educational copy
             // is longer than CoachIntroView's (it's explaining a
             // mechanism), so the scroll guarantees nothing hides behind
@@ -263,7 +254,6 @@ struct BreathworkPrimerView: View {
     // MARK: - Choreography
 
     private func runChoreography() {
-        withAnimation(.easeInOut(duration: 0.7)) { bgVisible = true }
         withAnimation(.spring(response: 0.6, dampingFraction: 0.78).delay(0.15)) { coachVisible = true }
         withAnimation(.easeInOut(duration: 0.5).delay(0.45)) { eyebrowVisible = true }
         withAnimation(.easeInOut(duration: 0.5).delay(0.70)) { headlineVisible = true }
@@ -272,7 +262,6 @@ struct BreathworkPrimerView: View {
     }
 
     private func runReducedMotion() {
-        bgVisible = true
         coachVisible = true
         eyebrowVisible = true
         headlineVisible = true

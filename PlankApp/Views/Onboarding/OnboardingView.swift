@@ -1914,7 +1914,7 @@ struct OnboardingView: View {
     // information-overload wedge.
     private var v2WelcomeSubhead: some View {
         (Text("one place. ")
-            + Text("less").font(.custom("Fraunces72pt-RegularItalic", size: 17))
+            + Text("less").font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
             + Text(" noise. real change."))
             .font(Typo.body)
             .foregroundStyle(Palette.textSecondary)
@@ -2073,7 +2073,7 @@ struct OnboardingView: View {
         // ask the next 50 onboarding questions by naming what they're
         // for upfront.
         (Text("i'll share everything i learned. answer a few questions so we can build this around ")
-            + Text("you").font(.custom("Fraunces72pt-RegularItalic", size: 17))
+            + Text("you").font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
             + Text("."))
             .font(Typo.body)
             .foregroundStyle(Palette.textSecondary)
@@ -4500,7 +4500,7 @@ struct OnboardingView: View {
                     // person's note rather than brand copy. Restraint:
                     // never more than one short line.
                     Text(signature)
-                        .font(.custom("Fraunces72pt-RegularItalic", size: 13))
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                         .foregroundStyle(Palette.textSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, Space.screenPadding)
@@ -5678,7 +5678,7 @@ struct OnboardingView: View {
                 (Text("the ")
                     .font(.custom("Fraunces72pt-Regular", size: 13))
                  + Text("sustainable")
-                    .font(.custom("Fraunces72pt-RegularItalic", size: 13))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                  + Text(" band."))
                     .font(.custom("Fraunces72pt-Regular", size: 13))
                     .foregroundStyle(Palette.textSecondary)
@@ -5778,7 +5778,7 @@ struct OnboardingView: View {
                 (Text("steady. real. ")
                     .font(.custom("Fraunces72pt-Regular", size: 13))
                  + Text("yours")
-                    .font(.custom("Fraunces72pt-RegularItalic", size: 13))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                  + Text("."))
                     .font(.custom("Fraunces72pt-Regular", size: 13))
                     .foregroundStyle(Palette.textSecondary)
@@ -5813,7 +5813,7 @@ struct OnboardingView: View {
 
                 HStack(spacing: 6) {
                     Text("week 4 · ~\(week4Label)")
-                        .font(.custom("Fraunces72pt-RegularItalic", size: 13))
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                         .foregroundStyle(Palette.textPrimary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
