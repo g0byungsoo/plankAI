@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import PlankFood
 import PlankSync
 import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
 
@@ -36,6 +37,20 @@ struct HomeView: View {
     /// no longer matches today.
     @AppStorage("dailyRefreshCount") private var dailyRefreshCount = 0
     @AppStorage("dailyRefreshDate") private var dailyRefreshDate = ""
+
+    // W4-T1 — food rail integration. AppStorage flags drive (a) the
+    // soft intro tile that appears for existing users on flag-flip
+    // day (per v5 §Existing user journey) and (b) the daily target
+    // for the food card bar.
+    @AppStorage("hasShownFoodRailIntro") private var hasShownFoodRailIntro = false
+    @AppStorage("foodRailFlipTimestamp") private var foodRailFlipTimestamp: Double = 0
+    /// Daily calorie target. Defaults to Mifflin-St Jeor result from
+    /// onboarding (W4-T4 Food Settings will expose an editor). 1650
+    /// is the cohort median for a 65kg woman with light activity at
+    /// a 15% deficit — placeholder until Food Settings ships.
+    @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 1650
+
+    @State private var showCaptureFlow = false
 
     /// Persistent baseline level (-1 gentle · 0 steady · +1 a little more),
     /// set in "my plan" and nudged by the post-session feedback loop. The
@@ -635,9 +650,21 @@ struct HomeView: View {
                         // becomes a 2–3 ring TodayHealthStrip (see memory
                         // project_steps_feature + the home-architecture
                         // note). Keep the slot; swap the component.
-                        StepsPulseTile(service: StepsService.shared)
-                            .padding(.horizontal, Space.screenPadding)
-                            .opacity(msgOpacity[4]).offset(y: msgOffset[4])
+                        //
+                        // W4-T1 ✓ — food rail is now the primary anchor when
+                        // FoodFlags.isEnabled. Bar not ring per v5 D33.
+                        // Steps demotes to a lateral pill below. Per v5
+                        // §Home redesign: trend caption, never daily
+                        // over/under language.
+                        if FoodFlags.isEnabled {
+                            todayHealthStrip
+                                .padding(.horizontal, Space.screenPadding)
+                                .opacity(msgOpacity[4]).offset(y: msgOffset[4])
+                        } else {
+                            StepsPulseTile(service: StepsService.shared)
+                                .padding(.horizontal, Space.screenPadding)
+                                .opacity(msgOpacity[4]).offset(y: msgOffset[4])
+                        }
 
                         // Breathwork re-entry — actionable peer to the
                         // passive steps anchor above. Day 1 introduces it
@@ -1071,6 +1098,18 @@ struct HomeView: View {
                 }
             }
         }
+        // W4-T1 — food capture flow. Camera → result → log persistence
+        // via FoodLogPersister. Cream backdrop matches the rest of the
+        // food rail chrome (avoids default fullScreenCover black flash).
+        .fullScreenCover(isPresented: $showCaptureFlow) {
+            CaptureFlowView(
+                userId: AuthService.shared.currentUser?.id.uuidString ?? "",
+                cuisineProfile: UserDefaults.standard
+                    .string(forKey: "onboardingCuisinePreference"),
+                onDismiss: { showCaptureFlow = false }
+            )
+            .presentationBackground(Palette.bgPrimary)
+        }
         .sheet(isPresented: $showStreakReviewSheet) {
             PreReviewSentimentSheet(
                 title: "showing up",
@@ -1157,6 +1196,70 @@ struct HomeView: View {
     // Wordmark left, single profile/settings icon right. The benchmark
     // dot indicator moved to the dedicated quick-action tile below — no
     // need for it here.
+
+    // MARK: - Food rail (W4-T1)
+    //
+    // Slot 4 composite when FoodFlags.isEnabled is true. Food card hero
+    // (bar not ring per v5 D33) + lateral steps + breath pills. Tap
+    // food card opens the CaptureFlowView (camera → result → log).
+    // Existing-user intro tile appears on flag-flip day above the
+    // food card, dismissible, auto-hides after 7 days.
+
+    @ViewBuilder private var todayHealthStrip: some View {
+        VStack(spacing: Space.sm) {
+            if shouldShowFoodIntroTile {
+                HomeFoodIntroTile(
+                    onTap: {
+                        markFoodIntroSeen()
+                        showCaptureFlow = true
+                    },
+                    onDismiss: { markFoodIntroSeen() }
+                )
+            }
+
+            HomeFoodCard(
+                userId: AuthService.shared.currentUser?.id.uuidString ?? "",
+                dailyTarget: foodDailyTarget,
+                onTap: { showCaptureFlow = true }
+            )
+
+            HStack(spacing: Space.sm) {
+                StepsPulseTile(service: StepsService.shared)
+                BreathworkHomeCard(state: BreathworkState.shared) {
+                    Analytics.track(.breathworkCardTapped, properties: [
+                        "mode": BreathworkState.shared.breathedToday
+                                ? "completed"
+                                : BreathworkState.shared.totalCompleted == 0
+                                    ? "unfamiliar" : "invitation"
+                    ])
+                    breathworkPhase = .library
+                    UIView.setAnimationsEnabled(false)
+                    showBreathwork = true
+                    DispatchQueue.main.async { UIView.setAnimationsEnabled(true) }
+                }
+            }
+        }
+    }
+
+    /// Gate for the soft intro tile. Show ONCE for existing pre-1.0.7
+    /// users on flag-flip day. Untouched dismiss-or-tap = auto-hide
+    /// after 7 days.
+    private var shouldShowFoodIntroTile: Bool {
+        guard FoodFlags.isEnabled else { return false }
+        guard !hasShownFoodRailIntro else { return false }
+        // Stamp the flip timestamp lazily so we can compute the 7-day
+        // window. First read writes the current epoch as flip time.
+        if foodRailFlipTimestamp == 0 {
+            foodRailFlipTimestamp = Date.now.timeIntervalSince1970
+        }
+        let flipDate = Date(timeIntervalSince1970: foodRailFlipTimestamp)
+        let daysSinceFlip = Date.now.timeIntervalSince(flipDate) / 86_400
+        return daysSinceFlip < 7
+    }
+
+    private func markFoodIntroSeen() {
+        hasShownFoodRailIntro = true
+    }
 
     private var homeTopBar: some View {
         HStack(alignment: .center) {
