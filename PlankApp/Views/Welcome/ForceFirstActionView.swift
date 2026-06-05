@@ -26,6 +26,13 @@ struct ForceFirstActionView: View {
     let onPlank: () -> Void
     let onSkip: () -> Void
 
+    /// User's daily session-length preference from onboarding (5/7/10
+    /// min). The plank row copy reads from this so the duration the
+    /// user is promised matches what actually opens. Defaults to 7 to
+    /// match the HomeView default; in practice almost every user has
+    /// set this during onboarding so the default is rarely hit.
+    @AppStorage("sessionLengthPref") private var sessionLengthPref = 7
+
     var body: some View {
         VStack(spacing: Space.lg) {
             Spacer()
@@ -58,12 +65,16 @@ struct ForceFirstActionView: View {
             }
             .buttonStyle(.plain)
 
-            // Plank option — existing 4-min starter session
+            // Plank option — opens today's existing JeniFit workout
+            // session via the pendingPostRitualWorkoutLaunch flag.
+            // Copy reflects the user's actual sessionLengthPref so the
+            // promise matches what opens (was misleadingly hardcoded
+            // "4-min / one plank" — would surprise the 10-min cohort).
             Button(action: onPlank) {
                 actionRow(
                     icon: "💪",
-                    title: "do a 4-min starter set",
-                    subtitle: "(one plank, that's it)"
+                    title: "do today's \(sessionLengthPref)-min workout",
+                    subtitle: "(today's session)"
                 )
             }
             .buttonStyle(.plain)
