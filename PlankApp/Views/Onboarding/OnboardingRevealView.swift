@@ -99,9 +99,18 @@ private struct ProjectionPresentation: View {
     let onContinue: () -> Void
 
     @State private var heroVisible = false
+    @State private var calorieVisible = false
     @State private var cardVisible = false
     @State private var contextVisible = false
     @State private var ctaVisible = false
+
+    // Delta v7 D68 — diet-first reveal: calorie target hero, weight
+    // curve secondary, workout tertiary. Calorie estimate is a rough
+    // starting number (Helms-style 22 kcal/kg w/ 1300-2000 clamp); the
+    // MacroFactor honesty caption ("we'll learn your real number…")
+    // is the trust signal that lets us ship without a full TDEE
+    // computation in v1.0.7. Real adaptive TDEE lands in v1.0.8.
+    @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 0
 
     // v2-A5: surface the credibility-grade inputs back to the user
     // below the projection card so she sees her vulnerable answers
@@ -137,6 +146,19 @@ private struct ProjectionPresentation: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, Space.lg)
                     .opacity(heroVisible ? 1 : 0)
+
+                // Calorie target HERO (delta v7 D68) — diet-first
+                // signal lands before the weight curve. "starting
+                // estimate" copy is the MacroFactor radical-honesty
+                // borrow (Brief #1 §4): users trust an app that
+                // admits it'll learn over 2-4 weeks more than one
+                // that promises a perfect number day one.
+                if let kcal = estimatedCalorieTarget {
+                    calorieTargetHero(kcal: kcal)
+                        .padding(.horizontal, Space.lg)
+                        .opacity(calorieVisible ? 1 : 0)
+                        .scaleEffect(calorieVisible ? 1.0 : 0.97)
+                }
 
                 BecomingProjectionCard(
                     currentWeightKg: currentWeightKg,
@@ -178,14 +200,98 @@ private struct ProjectionPresentation: View {
             }
         }
         .task {
+            // Reveal cascade per D68: headline → CALORIE HERO → weight
+            // curve → context chips → continue. Calorie lands first
+            // because that's the diet-first signal.
             withAnimation(Motion.entrance) { heroVisible = true }
-            try? await Task.sleep(nanoseconds: 350_000_000)
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            withAnimation(Motion.entrance) { calorieVisible = true }
+            // Stamp foodDailyTarget so Home reads the same number she
+            // saw at reveal (avoids the "where did 1650 come from?"
+            // moment on first Home open).
+            if let kcal = estimatedCalorieTarget, foodDailyTarget == 0 {
+                foodDailyTarget = Double(kcal)
+            }
+            try? await Task.sleep(nanoseconds: 450_000_000)
             withAnimation(Motion.entrance) { cardVisible = true }
             try? await Task.sleep(nanoseconds: 450_000_000)
             withAnimation(Motion.entranceSoft) { contextVisible = true }
             try? await Task.sleep(nanoseconds: 350_000_000)
             withAnimation(Motion.entranceSoft) { ctaVisible = true }
         }
+    }
+
+    // MARK: - Calorie target hero (D68)
+
+    /// Compute a starting calorie estimate from current weight using
+    /// the Helms-derived rule of thumb for women weight-loss:
+    /// ~22 kcal/kg with 1300-2000 clamp. The number is intentionally
+    /// rough — the reveal copy + MacroFactor-borrow caption set the
+    /// honesty expectation that the app will learn the real number
+    /// over the first 2-4 weeks of logged food data. Returns nil if
+    /// we don't have a current weight (skip the card entirely).
+    private var estimatedCalorieTarget: Int? {
+        guard let kg = currentWeightKg, kg > 0 else { return nil }
+        let raw = Int(kg * 22)
+        return min(max(raw, 1300), 2000)
+    }
+
+    /// Protein floor — 1.6g/kg current weight (Helms 2014 satiety +
+    /// muscle preservation evidence base). Clamps 70-130g.
+    private var estimatedProteinFloor: Int? {
+        guard let kg = currentWeightKg, kg > 0 else { return nil }
+        let raw = Int(kg * 1.6)
+        return min(max(raw, 70), 130)
+    }
+
+    @ViewBuilder
+    private func calorieTargetHero(kcal: Int) -> some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("\(kcal)")
+                    .font(.custom("Fraunces72pt-SemiBold", size: 44))
+                    .foregroundStyle(Palette.textPrimary)
+                    .monospacedDigit()
+                ItalicAccentText(
+                    "calories",
+                    italic: ["calories"],
+                    baseFont: .custom("Fraunces72pt-SemiBoldItalic", size: 18),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 18),
+                    color: Palette.textSecondary
+                )
+                Spacer(minLength: 0)
+            }
+
+            if let protein = estimatedProteinFloor {
+                HStack(spacing: 6) {
+                    Text("\(protein)g")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("protein floor")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            }
+
+            Text("a starting number — we'll learn yours over the first few weeks ♥")
+                .font(.system(size: 12))
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Palette.accent.opacity(0.18))
+                    .offset(x: 5, y: 5)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Palette.bgElevated)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Palette.accent, lineWidth: 1.5)
+            }
+        )
     }
 
     /// Compose the 2-3 muted context chips from the user's filled
