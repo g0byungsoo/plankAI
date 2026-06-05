@@ -183,6 +183,12 @@ struct OnboardingView: View {
     @AppStorage("onboardingPriorAttempts")    private var priorAttempts: String = ""
     @AppStorage("onboardingPriorWin")         private var priorWin: String = ""
     @AppStorage("onboardingFoodRelationship") private var foodRelationship: String = ""
+    /// Delta v7 D67 — commitment confidence (case 165). Pure investment
+    /// question per Cal AI's +1.7× trial-to-paid pattern (Brief #3 §1.2).
+    /// The answer never gates anything; the act of putting a stake in
+    /// is the commitment. Read in paywall + Day-21 win-back copy
+    /// ("you said you'd give it 3 days...").
+    @AppStorage("onboardingCommitConfidence") private var commitConfidence: String = ""
 
     // v2-A4 cohort signal. GLP-1 status uses the AppStorage key reserved
     // in the prior v2 plan (onboarding_glp1_status, value space:
@@ -1204,6 +1210,29 @@ struct OnboardingView: View {
             )
         )
 
+        // ─── v2 / Delta v7 D67 — Commitment confidence ───────────
+        // Single screen, single-select. Pure investment question per
+        // Cal AI's 2025 onboarding teardown (Superwall public data —
+        // +1.7× trial-to-paid for users who pass through the
+        // commitment beat). The answer never gates anything; the act
+        // of putting a stake in is the value. Voice-locked: lowercase
+        // chips, italic-Fraunces on punch word, no shame.
+        // Inserted between 142 (comparison frame) and 145 (video
+        // demo) — right before the heavy investment battery + reveal.
+        // Only routed in v2 flow; v1 users skip past via resolveNext.
+        case 165: jfQuestion(
+            "how confident are you you'll show up for 3 days?",
+            sub: "honest. there's no wrong answer.",
+            opts: [
+                ("very",    "very — i'm in",      nil, "sparkles"),
+                ("fairly",  "i think so",         nil, "checkmark.circle"),
+                ("trying",  "trying my best",     nil, "heart"),
+                ("unsure",  "honestly unsure",    nil, "questionmark.circle"),
+            ],
+            sel: $commitConfidence, next: 145,
+            confirmation: "stake's in. ♥"
+        )
+
         case 164: jfQuestion(
             "any weight-related medication right now?",
             sub: "honest either way.",
@@ -1453,6 +1482,10 @@ struct OnboardingView: View {
         //   hormonal stage (163) → GLP-1 status (164). Both skip-friendly.
         //   Then comparison frame (142) closes the act.
         203, 140, 233, 235, 158, 159, 162, 154, 155, 156, 157, 163, 164, 142,
+        // Delta v7 D67 — commitment confidence (165) lands right
+        // before the video demo. Cal AI's +1.7× trial-to-paid lever:
+        // pure investment screen, no answer gates anything.
+        165,
         145,
         170,
         260,
@@ -6769,11 +6802,11 @@ struct OnboardingView: View {
                     Haptics.medium()
                     Analytics.track(.comparisonChartViewed)
                     // Post-2026-05-30: routes to video demo (case 145).
-                    // The video demo screen .onAppear auto-skips to
-                    // case 170 (re-prediction) when the asset file is
-                    // missing or reduce-motion is on, so legacy flows
-                    // and accessibility paths remain unchanged.
-                    go(145)
+                    // Delta v7 D67: in v2 flow, commitment confidence
+                    // (case 165) sits between here and 145. Use
+                    // advance(to:) so resolveNext does the right thing
+                    // per flow version — v2 goes to 165, v1 skips past.
+                    advance(to: 165, confirmation: nil)
                 }
                     .padding(.bottom, Space.lg)
             }
