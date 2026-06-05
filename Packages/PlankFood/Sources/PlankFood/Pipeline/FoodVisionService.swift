@@ -54,8 +54,7 @@ public final class FoodVisionService: Sendable {
     /// JSON response, map to CapturedFood.
     public func scan(
         imageData: Data,
-        cuisineProfile: String?,
-        mode: PhotoMode
+        cuisineProfile: String?
     ) async throws -> CapturedFood {
         guard let token = await config.tokenProvider() else {
             throw VisionError.notAuthenticated
@@ -120,7 +119,7 @@ public final class FoodVisionService: Sendable {
 
         do {
             let decoded = try JSONDecoder().decode(VisionResponse.self, from: data)
-            return Self.map(decoded, mode: mode)
+            return Self.map(decoded)
         } catch {
             throw VisionError.parseError(detail: "decode failed: \(error)")
         }
@@ -129,8 +128,7 @@ public final class FoodVisionService: Sendable {
     // MARK: - Mapping
 
     private static func map(
-        _ response: VisionResponse,
-        mode: PhotoMode
+        _ response: VisionResponse
     ) -> CapturedFood {
         let items = response.items.map { item in
             CapturedItem(

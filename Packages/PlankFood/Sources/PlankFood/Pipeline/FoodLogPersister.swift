@@ -43,7 +43,6 @@ public enum FoodLogPersister {
     public static func persist(
         _ food: CapturedFood,
         userId: String,
-        photoMode: PhotoMode? = nil,
         into context: ModelContext
     ) throws -> FoodLogRecord {
 
@@ -72,7 +71,8 @@ public enum FoodLogPersister {
             kcalTotal: plateKcal,
             plateType: food.plateType.rawValue,
             source: food.source.rawValue,
-            photoMode: photoMode?.rawValue
+            photoMode: nil  // D54 — column kept for v1.0.8 SwiftData
+                            // migration safety; always nil now.
         )
     }
 

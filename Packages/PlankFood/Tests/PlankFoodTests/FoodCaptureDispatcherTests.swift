@@ -12,17 +12,20 @@ final class FoodCaptureDispatcherTests: XCTestCase {
     // dispatcher gets caught.
 
     func testPhotoDispatchReturnsW2T3NotImplemented() async {
+        // D54: PhotoMode collapsed — .photo no longer carries a mode.
+        // Module guard test: without FoodModule.visionService configured,
+        // dispatch throws notImplemented with W2-T3 ticket.
         let dispatcher = FoodCaptureDispatcher()
-        let capture = FoodCapture.photo(Data([0xFF, 0xD8, 0xFF]), mode: .justAte)
+        FoodModule.visionService = nil  // force the guard path
+        let capture = FoodCapture.photo(Data([0xFF, 0xD8, 0xFF]))
 
         do {
             _ = try await dispatcher.dispatch(capture)
             XCTFail("expected notImplemented; got result instead")
         } catch let FoodCaptureError.notImplemented(ticket, _, context) {
             XCTAssertEqual(ticket, "W2-T3")
-            if case .photo(let bytes, let mode) = context {
+            if case .photo(let bytes) = context {
                 XCTAssertEqual(bytes, 3)
-                XCTAssertEqual(mode, .justAte)
             } else {
                 XCTFail("expected .photo context, got \(context)")
             }

@@ -11,14 +11,19 @@ import AVFoundation
 //     corners + 1.5pt cocoa border + cocoa shadow.
 //   - Top: cancel (top-left X) + flash toggle (top-right, stubbed
 //     for W2-T2; wires in a later polish ticket).
-//   - Pre-eat mode toggle pill `[just ate | deciding]` (D13).
 //   - Cocoa pill shutter with "tap to scan" label (large, ≈80pt).
 //   - 3-mode chip row at bottom: photo / quick add / i'm out.
+//
+// D54 (2026-06-05): pre-eat / just-ate mode toggle removed.
+// Founder feedback: "after you eat food there is no food left to take
+// a photo" — the pre-eat distinction makes no sense at the camera
+// moment. Result card now has one unified layout; permission framing
+// lives in Jeni's copy line instead of UI chrome.
 //
 // Capture flow on shutter tap:
 //   1. Disable shutter (debounce)
 //   2. FoodCameraManager.captureStill() → JPEG Data (1024px, q0.8, no EXIF)
-//   3. FoodCaptureDispatcher.dispatch(.photo(data, mode: photoMode))
+//   3. FoodCaptureDispatcher.dispatch(.photo(data))
 //   4. Until W2-T3 lands, dispatch throws .notImplemented — DEBUG
 //      surfaces the ticket reference, Release shows generic copy
 //
@@ -34,7 +39,6 @@ public struct PhotoCaptureView: View {
     @State private var camera = FoodCameraManager()
     @State private var dispatcher = FoodCaptureDispatcher()
 
-    @State private var photoMode: PhotoMode = .justAte
     @State private var captureTab: CaptureTab = .photo
     @State private var isCapturing: Bool = false
     @State private var capturedResult: CapturedFood?
@@ -65,8 +69,6 @@ public struct PhotoCaptureView: View {
                 Spacer(minLength: FoodTheme.Space.md)
                 viewfinder
                 Spacer(minLength: FoodTheme.Space.md)
-                preEatToggle
-                    .padding(.bottom, FoodTheme.Space.md)
                 shutter
                     .padding(.bottom, FoodTheme.Space.lg)
                 modeChips
@@ -152,35 +154,6 @@ public struct PhotoCaptureView: View {
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(FoodTheme.bgElevated)
-    }
-
-    @ViewBuilder private var preEatToggle: some View {
-        HStack(spacing: 0) {
-            preEatPill(label: "just ate", mode: .justAte)
-            preEatPill(label: "deciding", mode: .deciding)
-        }
-        .padding(2)
-        .background(
-            Capsule().fill(FoodTheme.accentSubtle.opacity(0.5))
-        )
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("scan mode: \(photoMode == .justAte ? "just ate" : "deciding")")
-    }
-
-    @ViewBuilder
-    private func preEatPill(label: String, mode: PhotoMode) -> some View {
-        Button {
-            photoMode = mode
-        } label: {
-            Text(label)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(photoMode == mode ? FoodTheme.bgPrimary : FoodTheme.textPrimary)
-                .padding(.horizontal, FoodTheme.Space.md)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule().fill(photoMode == mode ? FoodTheme.textPrimary : Color.clear)
-                )
-        }
     }
 
     @ViewBuilder private var shutter: some View {
@@ -274,7 +247,7 @@ public struct PhotoCaptureView: View {
 
         do {
             let jpeg = try await camera.captureStill()
-            let result = try await dispatcher.dispatch(.photo(jpeg, mode: photoMode))
+            let result = try await dispatcher.dispatch(.photo(jpeg))
             capturedResult = result
             onCaptured(result)
         } catch FoodCaptureError.notImplemented(let ticket, let message, _) {

@@ -1,6 +1,6 @@
 # JeniFit Food Rail — Implementation Plan
 
-Status: **APPROVED for v1.0.7 ticketing (2026-06-04)**. All founder gates closed per delta v5 (search below for "ALL CLOSED 2026-06-04"). Sprint Week 1 can start; execution tickets live in `food_rail_sprint_v1_0_7.md`. Deltas v2–v5 below supersede the original v1 spec section in any conflict — read top-down chronologically for the full decision trail.
+Status: **APPROVED for v1.0.7 ticketing (2026-06-04)**. All founder gates closed per delta v5 (search below for "ALL CLOSED 2026-06-04"). Sprint Week 1 can start; execution tickets live in `food_rail_sprint_v1_0_7.md`. Deltas v2–v6 below supersede the original v1 spec section in any conflict — read top-down chronologically for the full decision trail.
 Originally drafted 2026-06-01. Last delta 2026-06-04.
 Target ship: v1.0.7 (after 1.0.6 build 11 archive lands and is approved — ✓ DONE 2026-06-03)
 
@@ -1677,7 +1677,7 @@ Per v1 plan: Nutritionix Pro past $50k MRR. Cycle-aware target adjustment (math,
 
 | # | v2 question | v3 answer |
 |---|---|---|
-| D13 | Pre-eat mode in v1? | ✓ LOCKED — ships in v1.0.7 as camera toggle |
+| D13 | Pre-eat mode in v1? | ~~LOCKED as camera toggle~~ — **SUPERSEDED by D54 (delta v6).** Pre-eat *intent* preserved via Jeni copy on the unified result card; the explicit `[just ate / deciding]` mode toggle is removed. |
 | D14 | Restaurant "i'm out" mode in v1? | ✓ LOCKED — ships as tap-once placeholder with optional cuisine chip (no hunger sliders per laziness principle) |
 | D15 | Today's Plate visual timeline on Home in v1? | **RESCOPED → plug-in slot.** Not in v1.0.7. Architected for; ship in v1.0.8 if telemetry shows Home engagement demands it. |
 | D16 | Trend-as-hero on Home ring? | **REPLACED.** v3 redesigns Home Slot 4 entirely (food-first card, no concentric ring with center number). Trend context lives in food card caption + Becoming Story Card hero. Research-validated by all 3 streams. |
@@ -2458,3 +2458,107 @@ Sprint Week 1 can start.
 ---
 
 *End delta v5. v5 wins over v4 wins over v3 wins over v2 wins over v1 where they conflict. **All design decisions locked 2026-06-04** (D33–D53). Sprint Week 1 can begin.*
+
+---
+
+# Delta v6 — Camera mode collapse 2026-06-05 (in-build founder feedback)
+
+## What changed
+
+Founder hit the live build, tried the camera, and surfaced a clean
+mental-model break:
+
+> "just ate / deciding tag is quite confusing when i actually try it.
+> because after you eat food, there is no food left to take a photo."
+
+The pre-eat / post-eat distinction *as expressed via an explicit mode
+toggle* makes no sense in the camera moment. By the time the user has
+a phone aimed at food, the food is in front of them — that's the only
+state the camera can serve. "just ate" implies food is gone, which
+breaks the prerequisite for taking a photo at all.
+
+## D54 — collapse PhotoMode to a single unified scan
+
+**LOCKED.** Remove the `[just ate | deciding]` mode pill from
+`PhotoCaptureView`. Delete the `PhotoMode` enum. `FoodCapture.photo`
+no longer carries a mode parameter. Result card has ONE consistent
+layout for all scans.
+
+The pre-eat *intent* (D13's original wedge) is preserved — but moved
+from a structural mode toggle to **Jeni copy** on the unified card
+and a clearer **secondary CTA**:
+
+- **Primary CTA:** `log it` (always — adds to today's plate)
+- **Secondary CTA:** `actually skip →` (back out, never logged)
+- **Jeni copy line:** carries the warmth/permission regardless of
+  pre-eat or mid-eat context. E.g. "this fits — easy yes if you
+  want it. ♥" works in both moments without the user declaring
+  intent upfront.
+
+The user makes the "am I going to eat this?" decision **after** seeing
+the result, not before taking the photo. The choice surfaces as a CTA
+choice, not as a pre-photo mode declaration.
+
+## Why this doesn't kill the pre-eat wedge
+
+The pre-eat / permission framing remains JeniFit's anti-Cal-AI brand
+moat per `feedback_food_ux_antishame` + `project_food_rail_v2_locked`.
+What changes is *how that wedge is expressed*:
+
+| Layer | Old expression | New expression |
+|---|---|---|
+| Mode toggle | Explicit `[just ate / deciding]` pill | **Removed.** |
+| CTA copy | Mode-branched (`have it` vs `log it`) | Single unified `log it` + `actually skip →` |
+| Jeni copy | Mode-branched permission vs verdict | Single copy that lands as permission OR verdict depending on context the user brings |
+| Today's Plate timeline | Future surface for retro logging | Same — unchanged |
+| "I'm out tonight" restaurant mode (D14) | Separate entry point | Unchanged — still ships as its own tap-once flow |
+
+The differentiating frame moves from UI chrome to copy. Less friction,
+same brand position.
+
+## Cascading deletions
+
+Approximate file delta in `Packages/PlankFood`:
+
+- `Capture/FoodCapture.swift` — delete `PhotoMode` enum + simplify
+  `.photo(Data, mode:)` to `.photo(Data)`
+- `Capture/PhotoCaptureView.swift` — delete `photoMode` state, the
+  `preEatPill()` helper, the mode-pill VStack (~25 lines)
+- `Capture/CaptureFlowView.swift` — delete `photoMode` state pass-through
+- `Capture/FoodCaptureDispatcher.swift` — drop the `mode` param from
+  `.photo` case + from `NotImplementedContext.photo`
+- `Pipeline/FoodVisionService.swift` — drop `mode` param from `scan()`
+  (no behavioral effect — mode never actually changed the LLM prompt)
+- `Pipeline/FoodLogPersister.swift` — drop the optional `photoMode`
+  param from the persistence call
+- `Result/ResultCard.swift` — delete `mode` param; result card has
+  one path
+- `Result/PlateLayouts/SingleDishCard.swift` + `MixedPlateCard.swift`:
+  - Delete `mode` param
+  - Delete the `if mode == .deciding` branches
+  - Replace mode-branched CTA copy with unified `log it` + `actually skip →`
+  - Replace mode-branched `decidingCopy` / `synthesizeJeniLine` with a
+    single Jeni line that lands in both contexts
+- All preview helpers (`.previewMixed()`, `.preview()`, etc.) — drop
+  `mode:` argument
+
+## Analytics impact
+
+The `photo_mode` event property gets dropped from `food_capture_scan`
+and `food_log_created`. PostHog dashboards filtering on `photo_mode`
+will return all-events (degrades gracefully). The retrospective
+question "what % of scans were pre-eat vs post-eat?" is no longer
+answerable — and per this decision, no longer relevant.
+
+## Sprint impact
+
+Net: ~30 minutes of refactor work + builds. Affects 8 files in
+`PlankFood`, no app-side surface changes beyond removing the pill from
+the camera screen. No schema impact. Done in the W3-T4 result-card
+ticket scope.
+
+---
+
+*End delta v6. v6 supersedes v2's D13 mode-toggle expression where
+they conflict. The pre-eat WEDGE survives; the pre-eat TOGGLE doesn't.
+All other design decisions stand.*

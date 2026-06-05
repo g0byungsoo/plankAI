@@ -9,7 +9,7 @@ import Foundation
 // then only if the modes share enough surface to justify it).
 //
 // Three cases ship in v1.0.7:
-//   - .photo with PhotoMode (D13 pre-eat toggle)
+//   - .photo (D54 — mode toggle collapsed, single unified scan)
 //   - .quickAdd via PantryItemID (cohort beverages rail, 6 tiles in v1.0.7)
 //   - .imOutTonight with optional CuisineChip (D14 single-tap placeholder)
 //
@@ -17,7 +17,7 @@ import Foundation
 // .barcode, .voice, .text, .menu (per v3 §Plug-in slots).
 
 public enum FoodCapture: Sendable {
-    case photo(Data, mode: PhotoMode)
+    case photo(Data)
     case quickAdd(PantryItemID)
     case imOutTonight(cuisine: CuisineChip?)
 
@@ -29,16 +29,6 @@ public enum FoodCapture: Sendable {
     // case voice(URL)
     // case text(String)
     // case menu(Data)
-}
-
-// MARK: - PhotoMode
-
-/// D13 pre-eat toggle. Default is `.justAte` (retrospective log);
-/// `.deciding` shows the result card with permission framing ("you
-/// have room. easy yes.") instead of verdict framing.
-public enum PhotoMode: String, Sendable, CaseIterable {
-    case justAte
-    case deciding
 }
 
 // MARK: - PantryItemID

@@ -100,8 +100,7 @@ final class FoodVisionServiceTests: XCTestCase {
         let service = makeService()
         let result = try await service.scan(
             imageData: Data([0xFF, 0xD8, 0xFF]),
-            cuisineProfile: "japanese, mediterranean",
-            mode: .justAte
+            cuisineProfile: "japanese, mediterranean"
         )
 
         XCTAssertEqual(result.items.count, 1)
@@ -138,8 +137,7 @@ final class FoodVisionServiceTests: XCTestCase {
 
         let result = try await makeService().scan(
             imageData: Data([0xFF]),
-            cuisineProfile: nil,
-            mode: .justAte
+            cuisineProfile: nil
         )
 
         XCTAssertEqual(result.plateType, .restaurantRange)
@@ -158,8 +156,7 @@ final class FoodVisionServiceTests: XCTestCase {
 
         let result = try await makeService().scan(
             imageData: Data([0xFF]),
-            cuisineProfile: nil,
-            mode: .justAte
+            cuisineProfile: nil
         )
 
         XCTAssertTrue(result.needsSecondPhoto)
@@ -182,8 +179,7 @@ final class FoodVisionServiceTests: XCTestCase {
         let imageBytes = Data([0xFF, 0xD8, 0xFF, 0xE0])
         _ = try await makeService().scan(
             imageData: imageBytes,
-            cuisineProfile: "korean home-cooked",
-            mode: .justAte
+            cuisineProfile: "korean home-cooked"
         )
 
         let request = MockURLProtocol.lastRequest!
@@ -210,8 +206,7 @@ final class FoodVisionServiceTests: XCTestCase {
         do {
             _ = try await service.scan(
                 imageData: Data([0xFF]),
-                cuisineProfile: nil,
-                mode: .justAte
+                cuisineProfile: nil
             )
             XCTFail("expected notAuthenticated")
         } catch VisionError.notAuthenticated {
@@ -230,8 +225,7 @@ final class FoodVisionServiceTests: XCTestCase {
         do {
             _ = try await makeService().scan(
                 imageData: Data([0xFF]),
-                cuisineProfile: nil,
-                mode: .justAte
+                cuisineProfile: nil
             )
             XCTFail("expected rateLimited")
         } catch VisionError.rateLimited(let copy) {
@@ -250,8 +244,7 @@ final class FoodVisionServiceTests: XCTestCase {
         do {
             _ = try await makeService().scan(
                 imageData: Data([0xFF]),
-                cuisineProfile: nil,
-                mode: .justAte
+                cuisineProfile: nil
             )
             XCTFail("expected budgetCapped")
         } catch VisionError.budgetCapped(let copy) {
@@ -270,8 +263,7 @@ final class FoodVisionServiceTests: XCTestCase {
         do {
             _ = try await makeService().scan(
                 imageData: Data([0xFF]),
-                cuisineProfile: nil,
-                mode: .justAte
+                cuisineProfile: nil
             )
             XCTFail("expected invalidRequest")
         } catch VisionError.invalidRequest {
@@ -287,8 +279,7 @@ final class FoodVisionServiceTests: XCTestCase {
         do {
             _ = try await makeService().scan(
                 imageData: Data([0xFF]),
-                cuisineProfile: nil,
-                mode: .justAte
+                cuisineProfile: nil
             )
             XCTFail("expected networkError")
         } catch VisionError.networkError {

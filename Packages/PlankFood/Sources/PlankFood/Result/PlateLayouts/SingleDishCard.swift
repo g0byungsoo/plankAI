@@ -5,34 +5,29 @@ import SwiftUI
 //
 // Result card layout for `plate_type: single | bowl` — when the LLM
 // identifies one dominant food (e.g. "creamy carbonara" or "açaí
-// bowl"). Composes ItemRow + ConfidencePill + MacroRow + JeniLine
+// bowl"). Composes ItemRow + ConfidencePill + NutrientGrid + JeniLine
 // per v5 §Calorie scan Screen 3.
 //
-// Two visual modes driven by `mode`:
-//   .justAte    → verdict frame: "looks good — log it" primary CTA
-//                 + "fix something" secondary. Macros emphasized.
-//   .deciding   → permission frame: "you have *room* today" Jeni
-//                 line + "have it" primary + "save for later"
-//                 secondary (per v5 D8 — "skip this one" removed
-//                 because it moralized the binary).
+// D54 (2026-06-05): pre-eat / just-ate mode collapsed. The card has
+// one unified layout. Jeni's copy line carries permission framing
+// regardless of whether the user took the photo pre-eat or mid-meal.
+// Primary CTA "log it" + secondary "actually skip →" let the user
+// decide intent AFTER seeing the result, not before the photo.
 
 public struct SingleDishCard: View {
 
     public let food: CapturedFood
-    public let mode: PhotoMode
     public let primaryAction: () -> Void
     public let secondaryAction: () -> Void
     public let onItemTap: (CapturedItem) -> Void
 
     public init(
         food: CapturedFood,
-        mode: PhotoMode,
         primaryAction: @escaping () -> Void,
         secondaryAction: @escaping () -> Void,
         onItemTap: @escaping (CapturedItem) -> Void
     ) {
         self.food = food
-        self.mode = mode
         self.primaryAction = primaryAction
         self.secondaryAction = secondaryAction
         self.onItemTap = onItemTap
@@ -82,10 +77,11 @@ public struct SingleDishCard: View {
                 }
             }
 
-            // Jeni interpretation line.
-            if mode == .deciding {
-                JeniLine(decidingCopy)
-            } else if let jeniCopy = Self.synthesizeJeniLine(for: food) {
+            // Jeni interpretation line. D54: single unified copy that
+            // lands as permission OR verdict depending on the context
+            // the user brings (pre-eat or mid-meal — only the user
+            // knows which).
+            if let jeniCopy = Self.synthesizeJeniLine(for: food) {
                 JeniLine(jeniCopy)
             }
 
@@ -125,7 +121,7 @@ public struct SingleDishCard: View {
     @ViewBuilder private var actionButtons: some View {
         VStack(spacing: FoodTheme.Space.sm) {
             Button(action: primaryAction) {
-                Text(mode == .deciding ? "have it" : "looks good — log it")
+                Text("log it")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(FoodTheme.bgPrimary)
                     .frame(maxWidth: .infinity)
@@ -134,7 +130,7 @@ public struct SingleDishCard: View {
             }
 
             Button(action: secondaryAction) {
-                Text(mode == .deciding ? "save for later →" : "fix something →")
+                Text("actually skip →")
                     .font(.system(size: 14))
                     .foregroundStyle(FoodTheme.textSecondary)
             }
@@ -143,50 +139,30 @@ public struct SingleDishCard: View {
 
     // MARK: - Copy
 
-    /// Pre-eat mode permission frame. Eventually personalized with
-    /// the user's day total ("you're at 1,100 today — you have room").
-    /// For W3-T2 we show the canonical voice-locked line; W4-T1 wires
-    /// real day-total data.
-    private var decidingCopy: String {
-        if let kcal = food.items.first?.kcal {
-            return "this is around \(Int(kcal.rounded())). you have *room*. easy yes. ♥"
-        }
-        return "you have *room*. easy yes. ♥"
-    }
-
-    /// Fallback Jeni line when the upstream pipeline hasn't injected
-    /// one. Real interpretation lands from the GPT-5 system prompt
-    /// in W2-T3 (when it includes per-item Jeni copy in the response
-    /// — TBD whether that lives in the LLM call or a separate model
-    /// step). For now: gentle filler that matches voice locks.
+    /// Unified Jeni copy — lands as permission OR verdict depending
+    /// on the user's context (only they know if they ate it or are
+    /// deciding). Real per-item interpretation will come from the
+    /// GPT-5 system prompt later; this is the voice-locked fallback
+    /// when the upstream pipeline doesn't inject anything custom.
+    ///
+    /// Voice locked: no banned vocabulary, italic on punch word,
+    /// heart as terminal punctuation.
     static func synthesizeJeniLine(for food: CapturedFood) -> String? {
         guard food.items.first != nil else { return nil }
-        // Voice locked: no banned vocabulary, italic on punch word,
-        // heart as terminal punctuation.
-        return "logged. *tomorrow* resets. ♥"
+        if let kcal = food.items.first?.kcal {
+            return "this is around \(Int(kcal.rounded())) — *fits*. easy yes if you want it. ♥"
+        }
+        return "this *fits*. easy yes if you want it. ♥"
     }
 }
 
 // MARK: - Preview
 
-#Preview("SingleDishCard — just ate") {
+#Preview("SingleDishCard — logged data") {
     SingleDishCard(
         food: .preview(),
-        mode: .justAte,
         primaryAction: { print("log it") },
-        secondaryAction: { print("fix it") },
-        onItemTap: { _ in print("tap item") }
-    )
-    .padding()
-    .background(FoodTheme.bgPrimary)
-}
-
-#Preview("SingleDishCard — deciding") {
-    SingleDishCard(
-        food: .preview(),
-        mode: .deciding,
-        primaryAction: { print("have it") },
-        secondaryAction: { print("save for later") },
+        secondaryAction: { print("actually skip") },
         onItemTap: { _ in print("tap item") }
     )
     .padding()
@@ -196,7 +172,6 @@ public struct SingleDishCard: View {
 #Preview("SingleDishCard — USDA pending") {
     SingleDishCard(
         food: .previewPending(),
-        mode: .justAte,
         primaryAction: { },
         secondaryAction: { },
         onItemTap: { _ in }

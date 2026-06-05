@@ -6,8 +6,11 @@ import SwiftUI
 // Result card for `plate_type: mixed | charcuterie | shared |
 // restaurant_range` — anything with multiple items or a restaurant-
 // scale range estimate. Composes ItemRow per item + plate-level
-// MacroRow + JeniLine + RestaurantRangeBar (when range data present)
-// per v5 §Calorie scan Screen 3.
+// NutrientGrid + JeniLine + RestaurantRangeBar (when range data
+// present) per v5 §Calorie scan Screen 3.
+//
+// D54 (2026-06-05): pre-eat / just-ate mode collapsed (see
+// SingleDishCard for rationale). One unified layout.
 //
 // Renders gracefully when items are kcal-nil (USDA join pending) —
 // per-item rows show with portion only; aggregate macros show "—".
@@ -15,20 +18,17 @@ import SwiftUI
 public struct MixedPlateCard: View {
 
     public let food: CapturedFood
-    public let mode: PhotoMode
     public let primaryAction: () -> Void
     public let secondaryAction: () -> Void
     public let onItemTap: (CapturedItem) -> Void
 
     public init(
         food: CapturedFood,
-        mode: PhotoMode,
         primaryAction: @escaping () -> Void,
         secondaryAction: @escaping () -> Void,
         onItemTap: @escaping (CapturedItem) -> Void
     ) {
         self.food = food
-        self.mode = mode
         self.primaryAction = primaryAction
         self.secondaryAction = secondaryAction
         self.onItemTap = onItemTap
@@ -81,10 +81,10 @@ public struct MixedPlateCard: View {
                 saturatedFatG: food.items.compactMap(\.saturatedFatG).reduce(0, +).optionalNonZero
             )
 
-            // Jeni interpretation.
-            if mode == .deciding {
-                JeniLine(decidingCopy)
-            } else if let copy = SingleDishCard.synthesizeJeniLine(for: food) {
+            // Jeni interpretation. D54: single unified copy via
+            // SingleDishCard.synthesizeJeniLine (shared between
+            // single + mixed plate layouts).
+            if let copy = SingleDishCard.synthesizeJeniLine(for: food) {
                 JeniLine(copy)
             }
 
@@ -123,7 +123,7 @@ public struct MixedPlateCard: View {
     @ViewBuilder private var actionButtons: some View {
         VStack(spacing: FoodTheme.Space.sm) {
             Button(action: primaryAction) {
-                Text(mode == .deciding ? "have it" : "looks good — log it")
+                Text("log it")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(FoodTheme.bgPrimary)
                     .frame(maxWidth: .infinity)
@@ -132,7 +132,7 @@ public struct MixedPlateCard: View {
             }
 
             Button(action: secondaryAction) {
-                Text(mode == .deciding ? "save for later →" : "fix something →")
+                Text("actually skip →")
                     .font(.system(size: 14))
                     .foregroundStyle(FoodTheme.textSecondary)
             }
@@ -155,14 +155,6 @@ public struct MixedPlateCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    // MARK: - Copy
-
-    private var decidingCopy: String {
-        if let total = food.totalKcal {
-            return "this is around \(Int(total.rounded())). you have *room*. easy yes. ♥"
-        }
-        return "you have *room*. easy yes. ♥"
-    }
 }
 
 // MARK: - Helpers
@@ -182,9 +174,8 @@ private extension Double {
 #Preview("MixedPlateCard — multiple items") {
     MixedPlateCard(
         food: .previewMixed(),
-        mode: .justAte,
         primaryAction: { print("log") },
-        secondaryAction: { print("fix") },
+        secondaryAction: { print("skip") },
         onItemTap: { _ in print("tap") }
     )
     .padding()
@@ -194,19 +185,6 @@ private extension Double {
 #Preview("MixedPlateCard — restaurant range") {
     MixedPlateCard(
         food: .previewRestaurantRange(),
-        mode: .justAte,
-        primaryAction: { },
-        secondaryAction: { },
-        onItemTap: { _ in }
-    )
-    .padding()
-    .background(FoodTheme.bgPrimary)
-}
-
-#Preview("MixedPlateCard — deciding") {
-    MixedPlateCard(
-        food: .previewMixed(),
-        mode: .deciding,
         primaryAction: { },
         secondaryAction: { },
         onItemTap: { _ in }
@@ -218,7 +196,6 @@ private extension Double {
 #Preview("MixedPlateCard — needs second photo") {
     MixedPlateCard(
         food: .previewNeedsSecondPhoto(),
-        mode: .justAte,
         primaryAction: { },
         secondaryAction: { },
         onItemTap: { _ in }

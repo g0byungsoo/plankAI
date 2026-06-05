@@ -16,20 +16,17 @@ import SwiftUI
 public struct ResultCard: View {
 
     public let food: CapturedFood
-    public let mode: PhotoMode
     public let primaryAction: () -> Void
     public let secondaryAction: () -> Void
     public let onItemTap: (CapturedItem) -> Void
 
     public init(
         food: CapturedFood,
-        mode: PhotoMode,
         primaryAction: @escaping () -> Void,
         secondaryAction: @escaping () -> Void,
         onItemTap: @escaping (CapturedItem) -> Void
     ) {
         self.food = food
-        self.mode = mode
         self.primaryAction = primaryAction
         self.secondaryAction = secondaryAction
         self.onItemTap = onItemTap
@@ -40,7 +37,6 @@ public struct ResultCard: View {
         case .single, .bowl:
             SingleDishCard(
                 food: food,
-                mode: mode,
                 primaryAction: primaryAction,
                 secondaryAction: secondaryAction,
                 onItemTap: onItemTap
@@ -49,7 +45,6 @@ public struct ResultCard: View {
         case .mixed, .charcuterie, .shared, .restaurantRange:
             MixedPlateCard(
                 food: food,
-                mode: mode,
                 primaryAction: primaryAction,
                 secondaryAction: secondaryAction,
                 onItemTap: onItemTap

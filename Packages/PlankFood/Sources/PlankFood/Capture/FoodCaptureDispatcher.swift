@@ -43,25 +43,29 @@ public final class FoodCaptureDispatcher {
     public func dispatch(_ capture: FoodCapture) async throws -> CapturedFood {
         switch capture {
 
-        case .photo(let imageData, let mode):
+        case .photo(let imageData):
             // W2-T3 ✓ — route to FoodVisionService (POSTs to the
             // food-vision Edge Function, decodes the strict JSON
             // response, maps to CapturedFood). USDA join lands in
             // W2-T4 (NutritionLookupService); items[].kcal stays nil
             // until then and the result card shows a loading state.
+            //
+            // D54 (2026-06-05): the pre-eat / just-ate mode parameter
+            // was removed — see docs/food_rail_plan.md §Delta v6.
+            // The unified result card carries permission framing via
+            // Jeni's copy line instead of UI chrome.
             guard let visionService = FoodModule.visionService else {
                 throw FoodCaptureError.notImplemented(
                     ticket: "W2-T3",
                     message: "FoodModule.configure(visionService:) never ran",
-                    context: .photo(byteCount: imageData.count, mode: mode)
+                    context: .photo(byteCount: imageData.count)
                 )
             }
             let identified: CapturedFood
             do {
                 identified = try await visionService.scan(
                     imageData: imageData,
-                    cuisineProfile: cuisineProfile,
-                    mode: mode
+                    cuisineProfile: cuisineProfile
                 )
             } catch let visionError as VisionError {
                 // Wrap so call sites can pattern-match on either
@@ -196,7 +200,7 @@ public enum FoodCaptureError: Error, Sendable {
 /// telemetry can distinguish which capture path tried to fire before
 /// its pipeline landed.
 public enum NotImplementedContext: Sendable {
-    case photo(byteCount: Int, mode: PhotoMode)
+    case photo(byteCount: Int)
     case quickAdd(pantryItemID: PantryItemID)
     case imOutTonight(cuisine: CuisineChip?)
 }

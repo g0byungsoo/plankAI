@@ -12,26 +12,21 @@ final class PlankFoodTests: XCTestCase {
     // without realizing every switch site needs touching.
     func testFoodCaptureExhaustive() {
         let cases: [FoodCapture] = [
-            .photo(Data(), mode: .justAte),
+            .photo(Data()),
             .quickAdd(PantryItemID("matcha_latte_oat_m")),
             .imOutTonight(cuisine: .mexican),
         ]
 
         for capture in cases {
             switch capture {
-            case .photo(let data, let mode):
+            case .photo(let data):
                 XCTAssertEqual(data, Data())
-                XCTAssertEqual(mode, .justAte)
             case .quickAdd(let id):
                 XCTAssertEqual(id.value, "matcha_latte_oat_m")
             case .imOutTonight(let cuisine):
                 XCTAssertEqual(cuisine, .mexican)
             }
         }
-    }
-
-    func testPhotoModeCases() {
-        XCTAssertEqual(PhotoMode.allCases.count, 2)
     }
 
     func testCuisineChipCases() {

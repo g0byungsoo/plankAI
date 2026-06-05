@@ -8,7 +8,7 @@ import SwiftData
 // → log persistence into a single fullScreenCover-presentable flow.
 //
 // Phases:
-//   1. .camera     — PhotoCaptureView (shutter, modes, pre-eat toggle)
+//   1. .camera     — PhotoCaptureView (shutter, mode chips)
 //   2. .result     — ResultCard (review + edit + log)
 //   3. .corrected  — FoodCorrectionSheet (per-item edit; returns to .result)
 //
@@ -27,7 +27,6 @@ public struct CaptureFlowView: View {
 
     @State private var phase: Phase = .camera
     @State private var capturedFood: CapturedFood?
-    @State private var photoMode: PhotoMode = .justAte
     @State private var editingItem: CapturedItem?
 
     public init(
@@ -109,9 +108,8 @@ public struct CaptureFlowView: View {
             ScrollView {
                 ResultCard(
                     food: food,
-                    mode: photoMode,
                     primaryAction: { logTapped(food) },
-                    secondaryAction: { /* secondary is "fix something" inline */ },
+                    secondaryAction: { /* secondary is "actually skip" inline */ },
                     onItemTap: { item in editingItem = item }
                 )
                 .padding(FoodTheme.Space.screenPadding)
@@ -126,7 +124,6 @@ public struct CaptureFlowView: View {
             try FoodLogPersister.persist(
                 food,
                 userId: userId,
-                photoMode: photoMode,
                 into: modelContext
             )
             onDismiss()
