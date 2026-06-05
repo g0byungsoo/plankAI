@@ -679,6 +679,12 @@ struct HomeView: View {
                         // workout still wins the eye, but real estate is
                         // enough to carry the science-honest copy in the
                         // .unfamiliar state.
+                        //
+                        // 2026-06-05: now lives BELOW the food strip
+                        // (previously also embedded in todayHealthStrip
+                        // as a 50/50 HStack peer — caused per-char text
+                        // wrap on real devices). Single render site
+                        // either way; consistent across food-flag states.
                         BreathworkHomeCard(state: BreathworkState.shared) {
                             Analytics.track(.breathworkCardTapped, properties: [
                                 "mode": BreathworkState.shared.breathedToday
@@ -1230,6 +1236,14 @@ struct HomeView: View {
     // food card, dismissible, auto-hides after 7 days.
 
     @ViewBuilder private var todayHealthStrip: some View {
+        // 2026-06-05 fix: previously this was a VStack with HomeFoodCard
+        // + HStack[Steps, Breath] at 50/50. Both Steps and Breath cards
+        // are designed for full-width — squeezed to 50% they collapsed
+        // to per-character text wrap on real devices. The true 3-ring
+        // strip vision (project_home_architecture) needs compact card
+        // variants which is a v1.0.8 effort. Until then, stack all
+        // three full-width. Each card already targets the right
+        // attention budget at full width.
         VStack(spacing: Space.sm) {
             if shouldShowFoodIntroTile {
                 HomeFoodIntroTile(
@@ -1247,21 +1261,7 @@ struct HomeView: View {
                 onTap: { showCaptureFlow = true }
             )
 
-            HStack(spacing: Space.sm) {
-                StepsPulseTile(service: StepsService.shared)
-                BreathworkHomeCard(state: BreathworkState.shared) {
-                    Analytics.track(.breathworkCardTapped, properties: [
-                        "mode": BreathworkState.shared.breathedToday
-                                ? "completed"
-                                : BreathworkState.shared.totalCompleted == 0
-                                    ? "unfamiliar" : "invitation"
-                    ])
-                    breathworkPhase = .library
-                    UIView.setAnimationsEnabled(false)
-                    showBreathwork = true
-                    DispatchQueue.main.async { UIView.setAnimationsEnabled(true) }
-                }
-            }
+            StepsPulseTile(service: StepsService.shared)
         }
     }
 
