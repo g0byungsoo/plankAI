@@ -57,11 +57,13 @@ public struct PantryItemID: Sendable, Hashable {
 /// placeholder estimate (mexican ~600, italian ~850, asian ~750,
 /// american ~700, pizza ~900). Optional — tap "just log it" defaults
 /// to a generic ~700 kcal placeholder.
-public enum CuisineChip: String, Sendable, CaseIterable {
+public enum CuisineChip: String, Sendable, CaseIterable, Identifiable {
     case mexican
     case italian
     case asian
     case american
     case pizza
     case other
+
+    public var id: String { rawValue }
 }
