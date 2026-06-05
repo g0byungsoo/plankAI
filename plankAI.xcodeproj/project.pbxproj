@@ -1083,6 +1083,7 @@
 		D0D33DB6B3381ADA8CF4E7EA /* JenisNoteCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D7A9B9BCB783158FA5926FE /* JenisNoteCard.swift */; };
 		D1579E3925887482D11CA6B7 /* BecomingProjectionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCE0D62BA7D705BFC4DE6CE8 /* BecomingProjectionCard.swift */; };
 		D1CC83BF2E9B55D007F01578 /* jeni_prep_short_air_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6CCC96283DD35DB235793821 /* jeni_prep_short_air_squat.m4a */; };
+		D1ED96F957F89976751780A6 /* USDAConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F62F52E38284657D80B6B36 /* USDAConfig.swift */; };
 		D268579F96C03B63D2C65681 /* JeniMethodContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1179DE676E9B609270383FE5 /* JeniMethodContent.swift */; };
 		D28621A15404A1BC788FB924 /* prep_short_high_knees.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 3A2E06A21D94A4BD38EBD667 /* prep_short_high_knees.m4a */; };
 		D2B06FB30C686FCBA732801A /* prep_full_plank_frog_jump.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AB1462915E14F7A2994C529A /* prep_full_plank_frog_jump.m4a */; };
@@ -1780,6 +1781,7 @@
 		7F051D78F24353A0AE59C9B3 /* matson_prep_short_side_plank.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_side_plank.m4a; sourceTree = "<group>"; };
 		7F42BB8306E88D2CE4086FC6 /* matson_prep_full_cat_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_cat_stretch.m4a; sourceTree = "<group>"; };
 		7F4D50B92CDFC434A05B0C45 /* prep_full_reverse_crunch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_reverse_crunch.m4a; sourceTree = "<group>"; };
+		7F62F52E38284657D80B6B36 /* USDAConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = USDAConfig.swift; sourceTree = "<group>"; };
 		7F8BC856AF54A969E06DD8EF /* matson_prep_short_modified_burpee.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_modified_burpee.m4a; sourceTree = "<group>"; };
 		8030F9F69DBA19F6A601DB63 /* prep_short_plank_frog_jump.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_plank_frog_jump.m4a; sourceTree = "<group>"; };
 		803EF90782EA5740D0ECF91F /* prep_short_alt_leg_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_alt_leg_raise.m4a; sourceTree = "<group>"; };
@@ -3882,6 +3884,7 @@
 				FAF028D604DCD031A53E9F35 /* SupabaseConfig.swift */,
 				BAD000000000000000000011 /* RevenueCatConfig.swift */,
 				1AEEF1C04BF7D0BC32892A79 /* PostHogAppConfig.swift */,
+				7F62F52E38284657D80B6B36 /* USDAConfig.swift */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -4115,13 +4118,13 @@
 			mainGroup = 783186382F99E3110096138F;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "Packages/PlankEngine" */,
-				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "Packages/PlankVoice" */,
-				783186712F99E7590096138F /* XCLocalSwiftPackageReference "Packages/PlankSync" */,
+				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */,
+				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */,
+				783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */,
 				BAD000000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 				BAD000000000000000000080 /* XCRemoteSwiftPackageReference "lottie-ios" */,
 				78DE5B982FC2E689006B9BA4 /* XCRemoteSwiftPackageReference "posthog-ios" */,
-				78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "Packages/PlankFood" */,
+				78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "PlankFood" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 783186422F99E3110096138F /* Products */;
@@ -5387,6 +5390,7 @@
 				507983A75FB199B0F9EC9553 /* BuildingPlanLoadingView.swift in Sources */,
 				CF59A22782464DC355C504CD /* OnboardingRevealView.swift in Sources */,
 				188A822CF62EB7817D07C31F /* ProjectionMath.swift in Sources */,
+				D1ED96F957F89976751780A6 /* USDAConfig.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5670,19 +5674,19 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "Packages/PlankEngine" */ = {
+		7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankEngine;
 		};
-		7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "Packages/PlankVoice" */ = {
+		7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankVoice;
 		};
-		783186712F99E7590096138F /* XCLocalSwiftPackageReference "Packages/PlankSync" */ = {
+		783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankSync;
 		};
-		78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "Packages/PlankFood" */ = {
+		78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "PlankFood" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankFood;
 		};
@@ -5730,7 +5734,7 @@
 		};
 		78A275D32FD17A8700E8A4BF /* PlankFood */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "Packages/PlankFood" */;
+			package = 78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "PlankFood" */;
 			productName = PlankFood;
 		};
 		BAD000000000000000000002 /* RevenueCat */ = {
