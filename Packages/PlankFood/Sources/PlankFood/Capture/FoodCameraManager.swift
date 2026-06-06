@@ -30,6 +30,13 @@ public final class FoodCameraManager: NSObject {
     public private(set) var isRunning = false
     public private(set) var permissionStatus: AVAuthorizationStatus = .notDetermined
     public private(set) var captureError: String?
+    /// v1.0.7 in-viewfinder scan magic. After shutter tap, the
+    /// captured photo is decoded into this UIImage and overlaid on top
+    /// of the still-running AVCaptureVideoPreviewLayer so the user
+    /// sees their actual photo "frozen" while the ScanningOverlay
+    /// runs animations on top — no full-screen takeover, no preview
+    /// flicker. Cleared when the result card dismisses.
+    public private(set) var frozenFrame: UIImage?
 
     /// Surfaced for `FoodCameraPreviewView` (UIViewRepresentable).
     public let previewLayer = AVCaptureVideoPreviewLayer()
@@ -151,6 +158,27 @@ public final class FoodCameraManager: NSObject {
             throw CameraError.encodingFailed
         }
         return jpeg
+    }
+
+    /// v1.0.7 in-viewfinder magic — capture + decode + freeze in one
+    /// call. Publishes the resized UIImage to `frozenFrame` so the
+    /// SwiftUI overlay can paint it on top of the still-running
+    /// AVCaptureVideoPreviewLayer. Same JPEG return value as
+    /// `captureStill()` so `FoodCaptureDispatcher` doesn't change.
+    public func captureStillAndFreeze() async throws -> Data {
+        let jpeg = try await captureStill()
+        // Decode off the main actor; assign back on @MainActor.
+        let image = await Task.detached(priority: .userInitiated) {
+            UIImage(data: jpeg)
+        }.value
+        self.frozenFrame = image
+        return jpeg
+    }
+
+    /// Clear the frozen overlay. Called from CaptureFlowView when the
+    /// result phase dismisses or the user backs out to retake.
+    public func clearFrozenFrame() {
+        self.frozenFrame = nil
     }
 
     // MARK: - Helpers

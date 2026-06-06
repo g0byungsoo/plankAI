@@ -43,6 +43,7 @@ public struct PhotoCaptureView: View {
     @State private var isCapturing: Bool = false
     @State private var capturedResult: CapturedFood?
     @State private var errorMessage: String?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public let onDismiss: () -> Void
     public let onCaptured: (CapturedFood) -> Void
@@ -74,7 +75,20 @@ public struct PhotoCaptureView: View {
                 topBar
                 Spacer(minLength: FoodTheme.Space.md)
                 viewfinder
-                Spacer(minLength: FoodTheme.Space.md)
+                Spacer(minLength: FoodTheme.Space.sm)
+                // v1.0.7 — italic-Fraunces label rotator under the
+                // viewfinder during the scan. The user reads
+                // "*reading* your plate" → "*finding* ingredients" →
+                // "*tallying* portions" in sync with the scanline
+                // sweep above. Static empty slot when idle so layout
+                // doesn't shift on first capture.
+                ZStack {
+                    if isCapturing && !reduceMotion {
+                        ScanLabelRotator(isActive: isCapturing)
+                    }
+                }
+                .frame(height: 22)
+                .padding(.bottom, FoodTheme.Space.sm)
                 shutter
                     .padding(.bottom, FoodTheme.Space.lg)
                 modeChips
@@ -93,17 +107,15 @@ public struct PhotoCaptureView: View {
                 errorBanner(errorMessage)
             }
         }
-        // Transparent processing overlay during the 1.5–3s vision call.
-        // Apple 5.1.2(i) wants the model handoff to be legible to the
-        // user; the 3-line streaming copy makes the pipeline literal
-        // instead of opaque. View tears down when `isCapturing` flips
-        // back to false (vision call returned or errored).
-        .overlay {
-            if isCapturing {
-                FoodProcessingView()
-                    .transition(.opacity)
-            }
-        }
+        // v1.0.7 — full-screen FoodProcessingView removed. The scan
+        // now runs INSIDE the viewfinder on top of the frozen still
+        // (ScanningOverlay) with an italic-Fraunces label rotator
+        // below. Apple 5.1.2(i) AI-transparency disclosure stays on
+        // the FoodAIConsentSheet (one-time, before first scan); the
+        // ongoing per-scan transparency lives in the label rotator
+        // reading "*reading* your plate / *finding* ingredients /
+        // *tallying* portions" — same legibility, no spatial-context
+        // loss.
         .animation(.easeInOut(duration: 0.2), value: isCapturing)
     }
 
@@ -140,6 +152,23 @@ public struct PhotoCaptureView: View {
         ZStack {
             if camera.permissionStatus == .authorized {
                 FoodCameraPreviewView(previewLayer: camera.previewLayer)
+
+                // v1.0.7 in-viewfinder scan magic. Once the shutter
+                // fires, captureStillAndFreeze publishes the decoded
+                // photo into `camera.frozenFrame`; we paint it on top
+                // of the still-running preview layer (no preview stop)
+                // so the user sees their actual photo with the
+                // ScanningOverlay animations on top. No full-screen
+                // takeover, no spatial-context loss.
+                if let frame = camera.frozenFrame {
+                    Image(uiImage: frame)
+                        .resizable()
+                        .scaledToFill()
+                        .transition(.opacity.animation(.linear(duration: 0.08)))
+                    if !reduceMotion {
+                        ScanningOverlay(isActive: isCapturing)
+                    }
+                }
             } else if camera.permissionStatus == .denied {
                 permissionDeniedPlaceholder
             } else {
@@ -272,7 +301,12 @@ public struct PhotoCaptureView: View {
         FoodAnalytics.firstScanStartedIfNeeded()
 
         do {
-            let jpeg = try await camera.captureStill()
+            // v1.0.7 in-viewfinder magic — captureStillAndFreeze
+            // publishes the decoded photo into camera.frozenFrame so
+            // the SwiftUI overlay can paint it inside the viewfinder
+            // while the ScanningOverlay animates on top. No
+            // FoodProcessingView takeover, no preview restart.
+            let jpeg = try await camera.captureStillAndFreeze()
             let result = try await dispatcher.dispatch(.photo(jpeg))
 
             // Empty-identification guard: LLM returned 200 but with no
