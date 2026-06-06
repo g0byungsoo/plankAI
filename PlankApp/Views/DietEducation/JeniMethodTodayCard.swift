@@ -52,28 +52,27 @@ struct JeniMethodTodayCard: View {
             .accessibilityLabel("Open today's lesson: \(teaser)")
             .accessibilityHint("Opens the JeniFit Method lesson")
         }
-        .padding(Space.cardPadding)
+        .padding(.vertical, Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.accentSubtle)
-        .overlay(
-            RoundedRectangle(cornerRadius: Radius.lg)
-                .stroke(Palette.accent, lineWidth: 1.5)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
-        .shadow(color: Palette.bgInverse.opacity(0.15), radius: 0, x: 3, y: 3)
-        // Scrapbook sticker accent on the empty top-right of the card.
-        // Line-art ribbon balances the painterly stickers elsewhere on
-        // the screen. Applied after clipShape so it bleeds off-corner.
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.ribbonLineart.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 50, height: 50)
-                .rotationEffect(.degrees(10))
-                .offset(x: 10, y: -16)
-                .opacity(StickerName.ribbonLineart.style.opacity)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+        // v1.0.7 aggressive Gen-Z luxury — scrapbook chrome stripped
+        // per docs/aggressive_genz_luxury_2026_06_06.md §2:
+        // > "JeniMethod card — kill the 24pt corners + 1.5pt accent
+        // >  border + offset shadow. The lesson IS the chrome. Acne
+        // >  Paper doesn't put borders around its essays."
+        // Cocoa pill CTA stays (brand-lock). Ribbon-lineart sticker
+        // retired per the §6 12→5 curation (kept signatures: bowSatin,
+        // heartGlossy, flower3D, sparkleGlossy, cherries). Hairline
+        // rules above + below mark the section editorially without
+        // the carded register.
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Palette.divider)
+                .frame(height: 0.5)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Palette.divider)
+                .frame(height: 0.5)
         }
     }
 }

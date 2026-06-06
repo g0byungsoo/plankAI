@@ -94,15 +94,24 @@ struct JeniMethodJourneyCard: View {
                 illustrationView(state: st, lesson: lesson)
             }
         }
-        .padding(Space.cardPadding)
+        .padding(.vertical, Space.md)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(st == .locked ? Palette.bgElevated : Palette.accentSubtle)
-        .overlay(
-            RoundedRectangle(cornerRadius: Radius.lg)
-                .stroke(st == .locked ? Palette.accent.opacity(0.4) : Palette.accent, lineWidth: 1.5)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
-        .shadow(color: Palette.bgInverse.opacity(st == .locked ? 0.06 : 0.15), radius: 0, x: 3, y: 3)
+        // v1.0.7 aggressive Gen-Z luxury — scrapbook chrome stripped
+        // per docs/aggressive_genz_luxury_2026_06_06.md §2: "The
+        // lesson IS the chrome." Day-N pill + completion glyph
+        // (above in the header row) already carry the visual state
+        // (locked / today / done) without needing a card background
+        // or border. Hairline rules mark the editorial section.
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Palette.divider)
+                .frame(height: 0.5)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Palette.divider)
+                .frame(height: 0.5)
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel(state: st, day: day, lesson: lesson))
     }

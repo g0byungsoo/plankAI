@@ -1661,15 +1661,21 @@ struct HomeView: View {
     /// visually defers to the food hero above.
     @ViewBuilder private var workoutCardChrome: some View {
         if FoodFlags.isEnabled {
-            // Demoted: flat card with subtle border, no shadow, no sticker.
-            ZStack {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Palette.bgElevated)
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(Palette.textPrimary.opacity(0.08), lineWidth: 0.5)
-            }
+            // v1.0.7 aggressive Gen-Z luxury — chrome stripped per
+            // docs/aggressive_genz_luxury_2026_06_06.md §2: "Workout
+            // card — kill the cocoa border + start button shape.
+            // Replace with text-CTA 'begin →'." Workout already lives
+            // collapsed under the "more today ▾" disclosure for the
+            // food-rail cohort (Phase B); when expanded, the card
+            // sits on the cream backdrop with editorial hairlines —
+            // no card fill, no border, no shadow. The "begin" CTA
+            // pill itself stays cocoa (brand-lock).
+            Rectangle().fill(Color.clear)
         } else {
-            // Hero: hard offset shadow + accent border (original chrome).
+            // Flag-off cohort retains the original scrapbook chrome
+            // hero treatment — zero regression for pre-food-rail
+            // users who still see workout as the visible primary
+            // action.
             ZStack {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(Palette.accent.opacity(0.18))
