@@ -1309,10 +1309,14 @@ struct OnboardingView: View {
                 ("prefer_not_say","prefer not to say",nil, "lock"),
             ],
             sel: $glp1Status, next: 142,
-            // C5: affirmation beat — deepest vulnerability question
-            // in the flow. Anti-shame line lands here as the cohort-
-            // safety signal.
-            confirmation: "no judgment, ever.",
+            // Delta v8 D86 — reciprocity beat (Culture brief). After
+            // the deepest vulnerability Q (GLP-1 + hormonal stage Qs
+            // immediately prior), explicit gratitude lands as the
+            // strongest single trust signal in the cohort. Replaces
+            // "no judgment, ever." (which was safety-beat, this is
+            // reciprocity-beat — research shows the latter converts
+            // higher in TikTok-acquired Gen-Z WL).
+            confirmation: "thank you for being honest ♥",
             trustAnchor: WeAskBecauseRow(
                 citation: "endocrine society 2025",
                 reason: "GLP-1s shift ~40% of weight loss to lean mass — your program protects what matters.",

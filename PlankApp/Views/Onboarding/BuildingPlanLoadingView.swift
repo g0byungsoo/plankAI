@@ -154,6 +154,17 @@ struct BuildingPlanLoadingView: View {
                 .padding(.horizontal, Space.xl)
                 .opacity(heroVisible ? 1 : 0)
 
+                // Delta v8 D75 — milestone checklist (calai34/31/38 adapted).
+                // Buell & Norton labor illusion (HBS 2011) — listing the
+                // computational stages with progressive checkmarks lifts
+                // perceived effort 9-15% over a single progress bar (Adapty
+                // 2026 H&F benchmark + Brief #7 §1.3). Items fill in at
+                // 20/40/60/80/100% as the bar advances. Voice-locked copy.
+                milestoneChecklist
+                    .padding(.top, 16)
+                    .padding(.horizontal, Space.xl)
+                    .opacity(heroVisible ? 1 : 0)
+
                 HStack(spacing: 6) {
                     ForEach(0..<3, id: \.self) { i in
                         Circle()
@@ -167,11 +178,54 @@ struct BuildingPlanLoadingView: View {
                             )
                     }
                 }
-                .padding(.top, 16)
+                .padding(.top, 12)
                 .padding(.bottom, 60)
             }
         }
         .task { await runChoreography() }
+    }
+
+    // MARK: - Milestone checklist (Delta v8 D75)
+    //
+    // Five items that progressively check in as the progress bar
+    // advances. Each item fires at its threshold percent. Voice-locked
+    // copy with italic-Fraunces punch words.
+    private static let milestones: [(threshold: Double, label: String, italic: [String])] = [
+        (0.20, "your *eating* story ♥",       ["eating"]),
+        (0.40, "cuisine match",                []),
+        (0.60, "calorie window",               []),
+        (0.80, "movement floor",               []),
+        (1.00, "your *becoming* arc",          ["becoming"]),
+    ]
+
+    @ViewBuilder private var milestoneChecklist: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(0..<Self.milestones.count, id: \.self) { i in
+                let m = Self.milestones[i]
+                let done = progress >= m.threshold
+                HStack(spacing: 10) {
+                    Image(systemName: done ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(done ? Palette.accent : Palette.textSecondary.opacity(0.4))
+                        .animation(.easeOut(duration: 0.3), value: done)
+                    if m.italic.isEmpty {
+                        Text(m.label)
+                            .font(.system(size: 13))
+                            .foregroundStyle(done ? Palette.textPrimary : Palette.textSecondary)
+                    } else {
+                        ItalicAccentText(
+                            m.label.replacingOccurrences(of: "*", with: ""),
+                            italic: m.italic,
+                            baseFont: .system(size: 13),
+                            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13),
+                            color: done ? Palette.textPrimary : Palette.textSecondary
+                        )
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Central bloom
