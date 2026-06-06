@@ -95,6 +95,12 @@ struct PaywallView: View {
     @State private var selectedPlan: Plan = .yearly
     @State private var working = false
     @State private var errorMessage: String?
+    /// Delta v8 D78 — two-step paywall split (calai43 → calai27).
+    /// Step 1 captures commitment (single CTA, no tier choice, "no
+    /// payment due now" reassurance). Step 2 captures tier selection
+    /// under a yes already given. +18-26% paywall→trial per Superwall
+    /// 2026 cross-app data — the monetization brief's #1 lever.
+    @State private var paywallStep: Int = 1
     @State private var legalDoc: LegalDoc?
     @State private var offering: Offering?
     @State private var loadingOfferings = true
@@ -536,62 +542,66 @@ struct PaywallView: View {
             // pulled for deceptive billing UI, NOT for WL claims per
             // techcrunch/macrumors April 2026). All projection copy
             // hedges with "on track to" verb framing.
-            VStack(spacing: 0) {
-                Spacer().frame(height: 56)  // topBar reserve
+            if paywallStep == 1 {
+                step1CommitView
+            } else {
+                VStack(spacing: 0) {
+                    Spacer().frame(height: 56)  // topBar reserve
 
-                heroCompactV2
-                    .padding(.horizontal, Space.lg)
-                    .padding(.top, 4)
-
-                Spacer().frame(height: 10)
-
-                reflectedAnswerCaption
-                    .padding(.horizontal, Space.lg)
-
-                Spacer().frame(height: 18)
-
-                pricingRowHorizontal
-                    .padding(.horizontal, Space.lg)
-                if offeringsLoadFailed {
-                    offeringsLoadFailedRow
+                    heroCompactV2
                         .padding(.horizontal, Space.lg)
-                        .padding(.top, 8)
-                }
+                        .padding(.top, 4)
 
-                Spacer().frame(height: 16)
+                    Spacer().frame(height: 10)
 
-                trialOrPlanRecap
-                    .padding(.horizontal, Space.lg)
-
-                Spacer().frame(height: 12)
-
-                trustMicroline
-                    .padding(.horizontal, Space.lg)
-
-                Spacer().frame(height: 14)
-
-                becomingProjectionCard
-                    .padding(.horizontal, Space.lg)
-
-                Spacer(minLength: 10)
-
-                ctaButtonV2
-                    .padding(.horizontal, Space.lg)
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.system(size: 11))
-                        .foregroundStyle(Palette.stateBad)
-                        .multilineTextAlignment(.center)
+                    reflectedAnswerCaption
                         .padding(.horizontal, Space.lg)
-                        .padding(.top, 6)
-                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer().frame(height: 18)
+
+                    pricingRowHorizontal
+                        .padding(.horizontal, Space.lg)
+                    if offeringsLoadFailed {
+                        offeringsLoadFailedRow
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, 8)
+                    }
+
+                    Spacer().frame(height: 16)
+
+                    trialOrPlanRecap
+                        .padding(.horizontal, Space.lg)
+
+                    Spacer().frame(height: 12)
+
+                    trustMicroline
+                        .padding(.horizontal, Space.lg)
+
+                    Spacer().frame(height: 14)
+
+                    becomingProjectionCard
+                        .padding(.horizontal, Space.lg)
+
+                    Spacer(minLength: 10)
+
+                    ctaButtonV2
+                        .padding(.horizontal, Space.lg)
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.system(size: 11))
+                            .foregroundStyle(Palette.stateBad)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, 6)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer().frame(height: 8)
+
+                    legalFooterCompact
+                        .padding(.horizontal, Space.lg)
+                        .padding(.bottom, 12)
                 }
-
-                Spacer().frame(height: 8)
-
-                legalFooterCompact
-                    .padding(.horizontal, Space.lg)
-                    .padding(.bottom, 12)
             }
 
             topBar
@@ -631,6 +641,74 @@ struct PaywallView: View {
     // StickerScatter (no illustration on paywall above-fold per luxury
     // convention), the chip strip (down to 44pt caption), and the
     // testimonial (no real source available).
+
+    /// Delta v8 D78 — paywall step 1 (commitment-only). Single CTA,
+    /// no tier choice, anxiety-neutralizing "no payment due now ♥"
+    /// + 3-day timeline preview. User says yes to commit; step 2
+    /// captures HOW (tier). Cal AI's calai43 → calai27 architecture.
+    @ViewBuilder private var step1CommitView: some View {
+        VStack(spacing: 0) {
+            Spacer().frame(height: 56)
+
+            heroCompactV2
+                .padding(.horizontal, Space.lg)
+                .padding(.top, 4)
+
+            Spacer().frame(height: 18)
+
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Palette.accent)
+                Text("no payment due now ♥")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary)
+            }
+            .padding(.horizontal, Space.lg)
+
+            Spacer().frame(height: 18)
+
+            VStack(alignment: .leading, spacing: 12) {
+                timelineLineRow(filled: true,  label: "today",
+                                text: "unlock your becoming plan")
+                timelineLineRow(filled: false, label: "day 2",
+                                text: "we'll send you one note before anything renews")
+                timelineLineRow(filled: false, label: "day 3",
+                                text: "trial ends · cancel anytime or stay on")
+            }
+            .padding(Space.md)
+            .background(Palette.bgElevated, in: RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, Space.lg)
+
+            Spacer(minLength: 16)
+
+            Button {
+                Haptics.medium()
+                Analytics.track(.paywallCtaTapped, properties: [
+                    "step": 1,
+                    "plan": "deferred",
+                ])
+                withAnimation(.easeInOut(duration: 0.35)) {
+                    paywallStep = 2
+                }
+            } label: {
+                Text("continue ♥")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
+                    .foregroundStyle(Palette.textInverse)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(Palette.bgInverse)
+                    .clipShape(Capsule())
+            }
+            .padding(.horizontal, Space.lg)
+
+            Spacer().frame(height: 12)
+
+            legalFooterCompact
+                .padding(.horizontal, Space.lg)
+                .padding(.bottom, 16)
+        }
+    }
 
     /// Slot 2 — identity hero. Lighter Fraunces weight (SemiBold→Regular
     /// at 400) per 2026 luxury convention. Drops bold; bold reads
