@@ -703,28 +703,63 @@ struct AnalyticsView: View {
         }
     }
 
-    /// Chapter title — italic-Fraunces punch word, accent eyebrow above.
-    /// Sits flush left, no card chrome (the chrome lives on the embedded
-    /// tiles below). Matches the BecomingProjectionCard / OnboardingRevealView
-    /// title rhythm so the becoming voice feels like one app.
+    /// v1.0.7 Phase C — editorial chapter spread per the luxury expert
+    /// brief (docs/home_becoming_research_luxury_2026_06_06.md):
+    ///
+    /// > "Give each of the 5 chapters a full-viewport opening spread —
+    /// > roman numeral eyebrow (`I.`), italic-Fraunces lowercase title,
+    /// > one chapter-family sticker, a one-sentence pull-caption in
+    /// > Fraunces italic, then a hairline rule before content.
+    /// > Converts Becoming from 'long dashboard' to 'browse a Cereal
+    /// > Magazine issue' — same data, page-turn rhythm."
+    ///
+    /// Sticker family assignments per luxury brief §4:
+    ///   - flower3D → becoming / journey
+    ///   - cherries → food
+    ///   - sparkleGlossy → movement / shine
+    ///   - bowSatin → identity work
+    ///   - heartGlossy → wins / celebration
     private func stackChapterHeader(
         eyebrow: String,
         title: String,
-        italic: [String]
+        italic: [String],
+        sticker: StickerName,
+        pullCaption: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(eyebrow)
-                .font(Typo.eyebrow)
-                .tracking(2)
-                .foregroundStyle(Palette.accent)
-            ItalicAccentText(
-                title,
-                italic: italic,
-                baseFont: .custom("Fraunces72pt-SemiBold", size: 22),
-                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
-                color: Palette.textPrimary,
-                alignment: .leading
-            )
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(eyebrow)
+                        .font(.custom("Fraunces72pt-SemiBold", size: 14))
+                        .tracking(2)
+                        .foregroundStyle(Palette.accent)
+                    ItalicAccentText(
+                        title,
+                        italic: italic,
+                        baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
+                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
+                        color: Palette.textPrimary,
+                        alignment: .leading
+                    )
+                }
+                Spacer()
+                Image(sticker.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 44, height: 44)
+                    .rotationEffect(.degrees(-8))
+                    .accessibilityHidden(true)
+            }
+
+            Text(pullCaption)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Rectangle()
+                .fill(Palette.accent.opacity(0.4))
+                .frame(height: 0.5)
+                .padding(.top, 2)
         }
     }
 
@@ -754,9 +789,11 @@ struct AnalyticsView: View {
     private var yourWeekSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             stackChapterHeader(
-                eyebrow: "chapter 1",
+                eyebrow: "I.",
                 title: "your week ♥",
-                italic: ["week"]
+                italic: ["week"],
+                sticker: .flower3D,
+                pullCaption: "where you are, gently."
             )
             coachTile
             TrendHeroCard(
@@ -779,9 +816,11 @@ struct AnalyticsView: View {
     private var whatYouAteSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             stackChapterHeader(
-                eyebrow: "chapter 2",
+                eyebrow: "II.",
                 title: "what you *ate*",
-                italic: ["ate"]
+                italic: ["ate"],
+                sticker: .cherries,
+                pullCaption: "rhythm, not rules."
             )
             FoodWeekBentoTile(
                 userId: AuthService.shared.currentUser?.id.uuidString ?? ""
@@ -803,9 +842,11 @@ struct AnalyticsView: View {
     private var howYouMovedSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             stackChapterHeader(
-                eyebrow: "chapter 3",
+                eyebrow: "III.",
                 title: "how you *moved*",
-                italic: ["moved"]
+                italic: ["moved"],
+                sticker: .sparkleGlossy,
+                pullCaption: "any movement counts."
             )
             StepsBentoTile(service: StepsService.shared) {
                 presentedMetric = .movement
@@ -845,9 +886,11 @@ struct AnalyticsView: View {
     private var whatsChangingSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             stackChapterHeader(
-                eyebrow: "chapter 4",
+                eyebrow: "IV.",
                 title: "what's *changing*",
-                italic: ["changing"]
+                italic: ["changing"],
+                sticker: .bowSatin,
+                pullCaption: "the shape of becoming."
             )
             if onboardingBarriers.isEmpty && benchmarkCount == 0 {
                 stackEmptyLine("the shape of change appears as you show up ♥")
@@ -869,9 +912,11 @@ struct AnalyticsView: View {
     private var whatsWorkedSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             stackChapterHeader(
-                eyebrow: "chapter 5",
+                eyebrow: "V.",
                 title: "what's *worked*",
-                italic: ["worked"]
+                italic: ["worked"],
+                sticker: .heartGlossy,
+                pullCaption: "wins the scale can't see."
             )
             nsvTile
         }
