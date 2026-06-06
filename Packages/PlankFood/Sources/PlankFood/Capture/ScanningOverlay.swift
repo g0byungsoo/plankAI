@@ -58,44 +58,71 @@ struct ScanningOverlay: View {
         .allowsHitTesting(false)
     }
 
-    /// Cocoa-tinted scanline: 28pt soft halo around a 1.5pt core line.
-    /// Drawn with Canvas linear gradient so the GPU compositor handles
-    /// the fall-off; no per-frame allocation.
+    /// Two-layer JeniFit scanline: a SOFT ROSE outer halo (44pt) +
+    /// COCOA core (1.5pt) with a slim cocoa halo (20pt) in between.
+    /// Rose-on-cocoa keeps the coquette-not-clinical register — pure
+    /// cocoa read as too utility, pure rose read as too femtech. Both
+    /// layers are GPU-backed linear gradients.
     private func drawScanline(
         in context: GraphicsContext,
         size: CGSize,
         phase: CGFloat
     ) {
         let y = phase * size.height
-        let halo: CGFloat = 28
+        let cocoaHalo: CGFloat = 20
+        let roseHalo: CGFloat = 44
         let core: CGFloat = 1.5
 
-        let haloRect = CGRect(
-            x: 0, y: y - halo,
-            width: size.width, height: halo * 2
+        // Outer rose halo — softens the cocoa scanline into the
+        // coquette voice. JeniFit accent rose, low alpha so it
+        // washes the photo with warmth rather than tinting it.
+        let rose = Color(red: 0.77, green: 0.40, blue: 0.48)  // #C4677A
+        let roseRect = CGRect(
+            x: 0, y: y - roseHalo,
+            width: size.width, height: roseHalo * 2
         )
-        let haloGradient = Gradient(stops: [
+        let roseGradient = Gradient(stops: [
             .init(color: .clear, location: 0.0),
-            .init(color: Color(red: 0.24, green: 0.16, blue: 0.16).opacity(0.20),
-                  location: 0.5),
+            .init(color: rose.opacity(0.10), location: 0.5),
             .init(color: .clear, location: 1.0),
         ])
         context.fill(
-            Path(haloRect),
+            Path(roseRect),
             with: .linearGradient(
-                haloGradient,
-                startPoint: CGPoint(x: 0, y: haloRect.minY),
-                endPoint:   CGPoint(x: 0, y: haloRect.maxY)
+                roseGradient,
+                startPoint: CGPoint(x: 0, y: roseRect.minY),
+                endPoint:   CGPoint(x: 0, y: roseRect.maxY)
             )
         )
 
+        // Inner cocoa halo — the "reading" mark proper.
+        let cocoa = Color(red: 0.24, green: 0.16, blue: 0.16)  // #3D2A2A
+        let cocoaRect = CGRect(
+            x: 0, y: y - cocoaHalo,
+            width: size.width, height: cocoaHalo * 2
+        )
+        let cocoaGradient = Gradient(stops: [
+            .init(color: .clear, location: 0.0),
+            .init(color: cocoa.opacity(0.18), location: 0.5),
+            .init(color: .clear, location: 1.0),
+        ])
+        context.fill(
+            Path(cocoaRect),
+            with: .linearGradient(
+                cocoaGradient,
+                startPoint: CGPoint(x: 0, y: cocoaRect.minY),
+                endPoint:   CGPoint(x: 0, y: cocoaRect.maxY)
+            )
+        )
+
+        // Core line — crisp cocoa thread.
         let coreRect = CGRect(
             x: 0, y: y - core / 2,
             width: size.width, height: core
         )
         context.fill(
             Path(coreRect),
-            with: .color(Color(red: 0.24, green: 0.16, blue: 0.16).opacity(0.55))
+            with: .color(cocoa.opacity(0.55))
         )
     }
 
@@ -140,11 +167,15 @@ struct ScanLabelRotator: View {
     }
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 0.7)) { ctx in
+        TimelineView(.periodic(from: .now, by: 0.9)) { ctx in
             let elapsed = ctx.date.timeIntervalSinceReferenceDate
-            let idx = max(0, Int(elapsed / 0.7)) % Phase.allCases.count
+            let idx = max(0, Int(elapsed / 0.9)) % Phase.allCases.count
             let phase = Phase.allCases[idx]
 
+            // .id(idx) forces SwiftUI to mount a fresh subtree per
+            // phase change so the transition actually fires. Cleaner
+            // resolve: opacity + slight blur fade-in (no slide — the
+            // slide-from-bottom was the part that read clinical).
             HStack(spacing: 0) {
                 Text(phase.verb)
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
@@ -153,10 +184,15 @@ struct ScanLabelRotator: View {
             }
             .foregroundStyle(FoodTheme.textPrimary)
             .id(idx)
-            .transition(.opacity.combined(with: .move(edge: .bottom)))
-            .animation(.easeInOut(duration: 0.35), value: idx)
+            .transition(
+                .asymmetric(
+                    insertion: .opacity.animation(.easeOut(duration: 0.45)),
+                    removal:   .opacity.animation(.easeIn(duration: 0.25))
+                )
+            )
         }
         .opacity(isActive ? 1 : 0)
+        .animation(.easeInOut(duration: 0.25), value: isActive)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("looking at your plate")
     }

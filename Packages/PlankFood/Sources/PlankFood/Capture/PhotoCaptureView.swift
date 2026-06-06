@@ -149,41 +149,72 @@ public struct PhotoCaptureView: View {
     }
 
     @ViewBuilder private var viewfinder: some View {
-        ZStack {
-            if camera.permissionStatus == .authorized {
-                FoodCameraPreviewView(previewLayer: camera.previewLayer)
+        // 2026-06-06 layout fix: GeometryReader pins the inner content
+        // (preview layer + frozen Image + ScanningOverlay) to the
+        // viewfinder's actual bounds. Without this, the Image's
+        // intrinsic photo dimensions propagate up the layout pass and
+        // the surrounding VStack reshuffles when frozenFrame appears,
+        // visibly growing the box mid-scan.
+        GeometryReader { geo in
+            ZStack {
+                if camera.permissionStatus == .authorized {
+                    FoodCameraPreviewView(previewLayer: camera.previewLayer)
+                        .frame(width: geo.size.width, height: geo.size.height)
 
-                // v1.0.7 in-viewfinder scan magic. Once the shutter
-                // fires, captureStillAndFreeze publishes the decoded
-                // photo into `camera.frozenFrame`; we paint it on top
-                // of the still-running preview layer (no preview stop)
-                // so the user sees their actual photo with the
-                // ScanningOverlay animations on top. No full-screen
-                // takeover, no spatial-context loss.
-                if let frame = camera.frozenFrame {
-                    Image(uiImage: frame)
-                        .resizable()
-                        .scaledToFill()
-                        .transition(.opacity.animation(.linear(duration: 0.08)))
-                    if !reduceMotion {
-                        ScanningOverlay(isActive: isCapturing)
+                    // v1.0.7 in-viewfinder scan magic. The decoded photo
+                    // paints on top of the still-running preview layer
+                    // (no preview stop, no flicker). The breathing-
+                    // aperture scale (1.0 → 1.012) per the iOS Swift
+                    // brief makes the plate feel "alive" instead of
+                    // frozen — almost subliminal.
+                    if let frame = camera.frozenFrame {
+                        Image(uiImage: frame)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .clipped()
+                            .scaleEffect(isCapturing && !reduceMotion ? 1.012 : 1.0)
+                            .animation(
+                                .easeInOut(duration: 1.6).repeatForever(autoreverses: true),
+                                value: isCapturing
+                            )
+                            .transition(.opacity.animation(.linear(duration: 0.08)))
+
+                        if !reduceMotion {
+                            ScanningOverlay(isActive: isCapturing)
+                                .frame(width: geo.size.width, height: geo.size.height)
+                        }
                     }
+                } else if camera.permissionStatus == .denied {
+                    permissionDeniedPlaceholder
+                        .frame(width: geo.size.width, height: geo.size.height)
+                } else {
+                    ProgressView()
+                        .tint(FoodTheme.accent)
+                        .frame(width: geo.size.width, height: geo.size.height)
                 }
-            } else if camera.permissionStatus == .denied {
-                permissionDeniedPlaceholder
-            } else {
-                ProgressView()
-                    .tint(FoodTheme.accent)
             }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .clipShape(RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous))
+            .overlay(
+                // Scrapbook frame chrome — 1.5pt cocoa border per v5
+                // lock. During the scan, the stroke pulses 1.5 → 2.0pt
+                // on the same 1.6s breathing token as the aperture
+                // scale so the chrome feels alive in sync with the
+                // photo. Subliminal — under 0.5pt swing.
+                RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous)
+                    .stroke(
+                        FoodTheme.textPrimary,
+                        lineWidth: (isCapturing && !reduceMotion) ? 2.0 : FoodTheme.Stroke.scrapbook
+                    )
+                    .animation(
+                        .easeInOut(duration: 1.6).repeatForever(autoreverses: true),
+                        value: isCapturing
+                    )
+            )
+            .shadow(color: FoodTheme.textPrimary.opacity(0.25), radius: 0, x: 3, y: 3)
         }
         .frame(maxWidth: .infinity, minHeight: 320, maxHeight: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous))
-        .overlay(
-            // Scrapbook frame chrome — 1.5pt cocoa border per v5 lock.
-            RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous)
-                .stroke(FoodTheme.textPrimary, lineWidth: FoodTheme.Stroke.scrapbook)
-        )
-        .shadow(color: FoodTheme.textPrimary.opacity(0.25), radius: 0, x: 3, y: 3)
     }
 
     @ViewBuilder private var permissionDeniedPlaceholder: some View {
