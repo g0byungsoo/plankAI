@@ -2712,3 +2712,96 @@ v1-v6 where they conflict. The diet-first POSITIONING is locked.
 v1.0.7 food rail ships as the Tier-1 hero, not Tier-3 plug-in slot.
 Sprint extended 7-8 weeks. App Store launch with new positioning
 matches v1.0.7 ship.*
+
+---
+
+# Delta v8 — Cal AI onboarding study + restructure 2026-06-06
+
+## What changed
+
+Founder commissioned 4 additional expert briefs studying Cal AI's full
+43-screen onboarding flow (saved at `/Users/bko/plankAI/screenshots/calai*.PNG`):
+
+- `docs/calai_research_ux_designer.md` — visual + interaction design
+- `docs/calai_research_wl_expert.md` — question content + program psychology
+- `docs/calai_research_monetization.md` — paywall + conversion mechanics
+- `docs/calai_research_culture.md` — copy register + trust signals
+
+Cal AI is doing $34-50M ARR with a 30-screen flow; JeniFit's v2FlowOrder
+is 58 screens. The compounding gap is COMMITMENT mechanics + reveal
+architecture + paywall sequencing. JeniFit can keep its richer data
+layer (sleep / stress / GLP-1 / hormonal) while adopting Cal AI's
+commitment-first architecture.
+
+## 15 new locked decisions D73-D87
+
+All cross-validated by 3+ of the 4 Cal AI expert briefs. JeniFit's
+voice locks (italic-Fraunces, lowercase, hearts, coquette stickers,
+"becoming" motif, Honesty Doctrine, anti-shame UX, no-DB-changes) are
+preserved across all.
+
+| # | Decision | Cal AI ref | Endorsers |
+|---|---|---|---|
+| **D73** | **Pace selector** Q with weeks-to-goal feedback. Coquette sticker variants (snail/bunny/cheetah, NOT animal cartoons). Italic-Fraunces caption per pace position. New case 167. | calai8/20/17/19 | UX, WL, Mon, Culture |
+| **D74** | **Multi-proof plan reveal** — replace single weight curve with 5-tile grid: calorie target + protein floor + plank ritual + becoming arc + date target. Keep "becoming, plotted" headline (NOT "Congratulations!"). | calai25/24 | UX, WL, Mon |
+| **D75** | **3-stage loader** at 67%/91%/97% with milestone checks ("eating story ♥ / cuisine match / calorie window / movement floor / *becoming* arc"). Buell & Norton labor illusion. Replace single-loader at case 180. | calai34/31/38 | UX, Mon |
+| **D76** | **Notification pre-prime** screen before iOS dialog. Voice: "want a nudge from jeni? one quiet one a day. nothing nagging." Expected +34% allow rate. New case 169. | calai23 | UX, Mon, Culture |
+| **D77** | **Apple Health permission BEFORE paywall**, not after. Voice: "let's pull your steps + sleep ♥". Move PairedPermissionsAsk's HealthKit ask up to OnboardingRevealView. | calai22 | UX, Mon |
+| **D78** | **Two-step paywall split** — Step 1: single "continue ♥" CTA + trial-end reminder commitment ("we'll send you one note before anything renews"). Step 2: tier selection (Annual / Quarterly / Weekly) + 3-day timeline. | calai43 → calai27 | Mon |
+| **D79** | **Specific date** in plan reveal — "by August 14 ♥" (computed from goal weight / pace). Commitment anchor. | calai36 | UX, Culture |
+| **D80** | **"No payment due now"** copy verbatim on paywall + trial-confirm. Lowest-effort highest-trust signal. | calai43 | Mon, Culture |
+| **D81** | **"You, on JeniFit vs starting over"** comparison chart. NOT "JeniFit vs Cal AI" (legal risk). Soft-positions anti-diet-diet. | calai4 | WL, Culture |
+| **D82** | **Sign-in BEFORE paywall** (post-plan-reveal, pre-trial-paywall). Sunk-cost lock. Uses existing anonymous-first Supabase auth — UPGRADES the anonymous account, doesn't create new. | calai37 | Mon |
+| **D83** | **Cut 12 redundant cases** from v2FlowOrder: section dividers 201/202/204 (keep 200/203/205), educational 232 (consolidate via Jeni confirmation lines on adjacent Qs), 111 (overlaps 140), 135 (one body-shape Q is enough), 235 (merge to 163), 237 (overlaps 159), 240 (brand-promises reads 2018 startup), 215 (rating prompt moved to post-Day-1), 26 (camera-setup unnecessary), 22 (personal stat too late). | n/a | WL |
+| **D84** | **Kill "$0.92/wk" line** on annual paywall card. Apple pulled Cal AI for this April 2026; JeniFit currently ships it. Replace with "save vs quarterly" framing. | calai43 | Mon |
+| **D85** | **70pt option pill grammar** standardized across all Q&A screens (cocoa selected + accentSubtle unselected + leading 32pt circular glyph). Route all "Continue" through ctaBtn at line 7923. | universal | UX |
+| **D86** | **Post-vulnerability reciprocity beat** — "thank you for being honest ♥" after GLP-1/hormonal/prior-attempts Qs. Cap at 3 softness beats per onboarding total. | calai22 | Culture |
+| **D87** | **Sunk-cost activation Q** early — "tried *everything* already?" 3 options (first try / a few times / many times) — drives downstream tone calibration. New case 168 between 100 and 162 (food wedge). | calai10 | WL, Culture |
+
+## Anti-patterns LOCKED OUT (unanimous reject across 4 briefs)
+
+Cannot adopt regardless of conversion lift potential:
+
+- ❌ "Crush your goal" labor verb (memory `feedback_post_ozempic_vocabulary` violation)
+- ❌ "AI" anywhere in user-facing copy
+- ❌ Health Score 7/10 numeric scoring
+- ❌ Explicit decimal weight numbers ("5.3 kg" specific)
+- ❌ Trophy-pop "Congratulations!" register
+- ❌ Finger-pointing emoji on Allow CTAs
+- ❌ Ozempic-substitute testimonials (use GLP-1 positive-frame instead)
+- ❌ Clinical white background (keep JeniFit cream)
+- ❌ Pre-experience 5-star rating prompt during onboarding loader
+
+## Register-pair discipline (Culture brief #4)
+
+Cal AI runs clinical-trust as default with ONE softness beat for
+contrast. JeniFit MUST mirror this discipline in the opposite
+direction — soft-girl warmth as default + **clinical-trust register
+reserved for biometric questions only** (height/weight/age — where
+clinical register actually REDUCES vulnerability friction).
+
+Anti-patterns to avoid:
+- Going saccharine on biometric asks (femvertising failure mode)
+- Going clinical on identity/food/permission asks (Cal AI clone failure)
+
+## Sprint impact
+
+Net: 5-7 dev-days on top of existing v1.0.7 sprint. Phases:
+
+- **Phase v8-A (~30 min):** quick wins — D80 (no payment due now), D84 (kill $0.92/wk), D79 (specific date in reveal)
+- **Phase v8-B (~2 hrs):** D73 pace selector + D87 sunk-cost Q (new cases 167 + 168)
+- **Phase v8-C (~2 hrs):** D75 3-stage loader expansion + D76 notification pre-prime + D77 Apple Health pre-paywall move
+- **Phase v8-D (~3 hrs):** D74 multi-proof plan reveal + D81 comparison chart + D86 reciprocity beat
+- **Phase v8-E (~2 hrs):** D78 two-step paywall split + D82 sign-in pre-paywall
+- **Phase v8-F (~1 hr):** D83 cut 12 redundant cases + D85 ctaBtn standardization
+
+Total: ~10-12 hours. Aggressive but matches founder's 5-7 dev-day estimate.
+
+---
+
+*End delta v8. v8 absorbs Cal AI's commitment-first architecture +
+multi-proof reveal + pace selector + two-step paywall + register-pair
+discipline. JeniFit's voice locks + Honesty Doctrine + anti-shame UX +
+no-DB-changes are preserved at every adoption. Cal AI's $34-50M ARR
+onboarding wisdom comes in; Cal AI's clinical-clone failure modes stay
+out.*
