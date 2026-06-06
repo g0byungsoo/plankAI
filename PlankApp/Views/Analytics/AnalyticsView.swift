@@ -590,12 +590,13 @@ struct AnalyticsView: View {
             .lineLimit(2)
             .fixedSize(horizontal: false, vertical: true)
 
-            if let motivationLine {
-                Text(motivationLine)
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            // v1.0.7 minimal-functional-aesthetic — subhero killed
+            // per docs/becoming_home_minimal_spec_2026_06_06.md.
+            // 3-of-4 expert briefs (Row + CalAI + iOS UX) flagged
+            // the motivationLine as "thesis statement for an essay"
+            // — the italic hero alone carries the emotional frame.
+            // motivationLine helper kept for the future weekly
+            // recap surface where editorial chrome earns its scroll.
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -695,25 +696,43 @@ struct AnalyticsView: View {
 
     private var becomingStack: some View {
         VStack(alignment: .leading, spacing: 28) {
-            // v1.0.7 aggressive Gen-Z luxury (Phase E.2) — Becoming
-            // reframed as "your issue." Masthead + TOC at the top
-            // turn the screen from "dashboard" into "magazine
-            // publication." Per docs/aggressive_genz_luxury_2026_06_06.md
-            // §3 + Cereal / Acne Paper / Sweet July convention.
-            issueMasthead
-            tableOfContents
+            // v1.0.7 minimal-functional-aesthetic redesign (founder
+            // pushback 2026-06-06: "ios app is ios app. it needs to
+            // be useful as a tool"). Per the 4 expert briefs in
+            // docs/becoming_home_redesign_briefs_2026_06_06.md the
+            // unanimous-kill list was: second masthead, "the june
+            // issue" eyebrow, "IN THIS ISSUE" TOC. Stripped here.
+            //
+            // Sunday Feature is also hidden — deferred to its own
+            // dedicated weekly recap surface per the Cal AI brief's
+            // compromise: "magazine dies on the daily dashboard,
+            // lives on the weekly recap." Sunday 7pm push will
+            // route there once the recap surface ships. Until then,
+            // the regression is accepted (the push opens Becoming
+            // and she sees the dashboard, not the editorial recap).
+            //
+            // issueMasthead + tableOfContents + SundayCard helpers
+            // are kept compiled (no dead-code deletion yet) so the
+            // weekly recap surface can reuse them when it lands.
+            //
+            // v1.0.7 minimal-functional-aesthetic dashboard hero —
+            // the new top-of-scroll. Replaces the editorial chrome
+            // with a 5-element tool surface: weight digit (Fraunces
+            // Light 64pt), unit+delta, jeweledRose sparkline,
+            // hairline, 3-stat row (streak/plank PR/this week).
+            // No italic on numbers. Per
+            // docs/becoming_home_minimal_spec_2026_06_06.md.
+            BecomingDashboardHero(
+                latestWeightKg: latestWeightKg,
+                startingWeightKg: startingWeightKg,
+                logs: weightLogs,
+                unit: weightUnit,
+                streakDays: streak.count,
+                bestPlankSeconds: bestPlankHold,
+                sessionsThisWeek: thisWeekSessions.count,
+                onLogWeight: { showLogWeight = true }
+            )
 
-            if SundayCard.shouldShowNow() {
-                SundayCard(
-                    userName: userName,
-                    weeklyWeightDelta: weeklyWeightDeltaCopy,
-                    breathDaysThisWeek: BreathworkState.shared.distinctDaysThisWeek,
-                    sessionsThisWeek: thisWeekSessions.count,
-                    platesThisWeek: platesThisWeek,
-                    voicePreference: voicePreference,
-                    isFoodRailEnabled: FoodFlags.isEnabled
-                )
-            }
             yourWeekSection
             whatYouAteSection
             howYouMovedSection
@@ -951,15 +970,15 @@ struct AnalyticsView: View {
                 pullCaption: "where you are, gently."
             )
             coachTile
-            TrendHeroCard(
-                latestWeightKg: latestWeightKg,
-                logs: weightLogs,
-                startingKg: startingWeightKg,
-                unit: weightUnit,
-                hideStats: $hideWeightStats,
-                hasTodaysLog: todaysWeightLog != nil,
-                onLogTap: { showLogWeight = true }
-            )
+            // v1.0.7 minimal-functional-aesthetic — TrendHeroCard
+            // removed here. Its weight + delta + sparkline content
+            // is now carried by BecomingDashboardHero at the top
+            // of becomingStack (the daily dashboard surface).
+            // Chapter I keeps the coachTile as its sole content —
+            // chapter cover + adaptive coach line, no duplicate
+            // weight chrome. TrendHeroCard struct itself stays
+            // compiled; it's reused on the Home cohort that's
+            // flag-off and may be reused in the weekly recap.
         }
     }
 

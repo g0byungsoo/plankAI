@@ -65,6 +65,57 @@ enum Typo {
     /// Section / chapter title where it's not a full cover (smaller
     /// inline use). Italic Fraunces 26pt, lh 1.2.
     static let sectionTitle = font("Fraunces72pt-SemiBoldItalic", size: 26, relativeTo: .title2)
+
+    // MARK: - v1.0.7 minimal-functional-aesthetic dashboard tokens
+    //
+    // Per docs/becoming_home_minimal_spec_2026_06_06.md. The
+    // founder's verdict on italic numerals: "i don't like italic
+    // numbers." Italic-Fraunces stays on COPY punch words (the
+    // *becoming* in "you're becoming steady") — for numerals it
+    // dies. These tokens lock the new numeral system:
+    //   - Hero: Fraunces *Light* 64pt (NOT SemiBold — SemiBold
+    //     reads banking-app; Light at display size carries Aesop
+    //     warmth). Tabular via the call-site .monospacedDigit().
+    //   - Secondary: DM Sans Medium 22pt for stat-row numbers,
+    //     deltas, anything that's "supporting metric." Tabular.
+    //   - Tertiary: DM Sans Regular 13pt for units, day-counts,
+    //     "of N" fragments. Tracking +0.1 (small upright digits
+    //     breathe without bolding — Things 3 move).
+    //   - Stat label: DM Sans Regular 11pt, uppercase, tracking
+    //     +0.06em via .kerning() at call site, cocoa 48%. Aesop's
+    //     specimen-label move; 60% of the difference between a
+    //     warm tool and a tracker.
+    //   - Roman ornament: Fraunces SemiBold UPRIGHT (not italic)
+    //     at 11pt for chapter pagination. Romans are typographic
+    //     furniture (Penguin Classics convention), not metrics —
+    //     italic on them would be redundant decoration.
+
+    /// Dashboard hero number — weight digit, plank PR, the single
+    /// largest numeral on the surface. Fraunces Light at 64pt.
+    /// Apply `.monospacedDigit()` at the call site for tabular.
+    static let numeralHero = font("Fraunces72pt-Light", size: 64, relativeTo: .largeTitle).leading(.tight)
+
+    /// Stat-row number — streak count, plank time, sessions this
+    /// week. DM Sans Medium 22pt. Apply `.monospacedDigit()` at
+    /// the call site so deltas re-render without horizontal shift.
+    static let numeralStat = font("DMSans-Medium", size: 22, relativeTo: .title3)
+
+    /// Tertiary digits — units ("lb"), day counts ("12 of 14"),
+    /// inline meta. DM Sans Regular 13pt. Add `.kerning(0.1)` at
+    /// the call site so small upright digits breathe.
+    static let numeralMeta = font("DMSans-Regular", size: 13, relativeTo: .footnote)
+
+    /// Stat-row label — uppercase one-word labels above stat
+    /// numerals ("STREAK", "PLANK PR", "THIS WEEK"). DM Sans
+    /// Regular 11pt. Apply `.kerning(0.06 * 11)` (~0.66pt) and
+    /// `.textCase(.uppercase)` at the call site.
+    static let statLabel = font("DMSans-Regular", size: 11, relativeTo: .caption2)
+
+    /// Roman numeral chapter pagination — "i.", "ii.", "iii.",
+    /// "iv.", "v." Upright Fraunces SemiBold 11pt, lowercase
+    /// (Penguin Classics convention). Apply `.kerning(0.3)` at
+    /// the call site.
+    static let romanOrnament = font("Fraunces72pt-SemiBold", size: 11, relativeTo: .caption2)
 }
 
 // MARK: - Spacing (4pt base)
@@ -131,6 +182,28 @@ enum Palette {
     static let stateBad = Color(hex: "#B47272")
 
     static let divider = Color(hex: "#EFE0DC")
+
+    // MARK: - v1.0.7 minimal-functional 3-tier cocoa scale
+    //
+    // Per docs/becoming_home_minimal_spec_2026_06_06.md "Linear-
+    // grade detail" — most apps ship 2 cocoa tiers (primary +
+    // 60% secondary) and look bolted-together. The third middle
+    // step at 72% is the move nobody ships, and it's what makes
+    // Things 3 / Linear / Reflect feel composed.
+    //
+    // Mapping:
+    //   cocoaPrimary   — hero numerals, section heads (100%)
+    //   cocoaSecondary — stat labels, tertiary digits (72%)
+    //   cocoaTertiary  — meta ("logged 2h ago", roman numerals,
+    //                    "of 14" fragments, hairline-context
+    //                    captions) (48%)
+    //
+    // Plus a paired 0.5pt hairline color at cocoa-12%. Always 0.5pt,
+    // never 1pt — that distinction is the whole difference.
+    static let cocoaPrimary = Color(hex: "#3D2A2A").opacity(1.0)
+    static let cocoaSecondary = Color(hex: "#3D2A2A").opacity(0.72)
+    static let cocoaTertiary = Color(hex: "#3D2A2A").opacity(0.48)
+    static let hairlineCocoa = Color(hex: "#3D2A2A").opacity(0.12)
 
     /// Activity-calendar "frozen day" cell. Aliased to accentSubtle so the
     /// calendar reads cohesive with the rest of the palette. Promoted from
