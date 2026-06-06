@@ -434,9 +434,20 @@ struct AnalyticsView: View {
                         .offset(y: sectionOffset[0])
                         .blur(radius: headerBlur)
 
-                    bentoJourney
-                        .opacity(sectionOpacity[1])
-                        .offset(y: sectionOffset[1])
+                    // v1.0.7 W4-T3 — 5-card BecomingStackView replaces the
+                    // bento grid when the food rail is enabled. The bento
+                    // reads as a dashboard; the stack reads as a chapter
+                    // of her becoming. Flag-off users keep the bento so
+                    // there's zero regression for the pre-1.0.7 cohort.
+                    if FoodFlags.isEnabled {
+                        becomingStack
+                            .opacity(sectionOpacity[1])
+                            .offset(y: sectionOffset[1])
+                    } else {
+                        bentoJourney
+                            .opacity(sectionOpacity[1])
+                            .offset(y: sectionOffset[1])
+                    }
 
                     activityCalendar
                         .opacity(sectionOpacity[2])
@@ -663,13 +674,218 @@ struct AnalyticsView: View {
         return "\(lead)this is your page. one small move today writes the next line."
     }
 
-    // MARK: - Bento journey grid (research-led weight-loss redesign)
+    // MARK: - Becoming stack (v1.0.7 W4-T3 chapter narrative)
+    //
+    // Replaces the bento dashboard with a 5-chapter vertical stack when
+    // the food rail is enabled. Cards reorder by signal density per the
+    // spec — empty cards collapse to a single-line empty state, never
+    // disappear, so the chapter rhythm reads the same week-1 vs
+    // week-26. Honesty Doctrine: movement chapter NEVER surfaces a
+    // kcal-burned number; food chapter has no over/under copy; trend
+    // is the smoothed EMA, not raw daily readings.
+    //
+    // Voice locks per chapter title:
+    //   - italic-Fraunces on the punch word
+    //   - lowercase casual
+    //   - hearts ♥ as terminal punctuation only
+    //
+    // All five cards pull from data the user has already given us
+    // (onboarding answers + collected sessions + weight logs + food
+    // logs + steps + breath). No fabrication.
+
+    private var becomingStack: some View {
+        VStack(alignment: .leading, spacing: 28) {
+            yourWeekSection
+            whatYouAteSection
+            howYouMovedSection
+            whatsChangingSection
+            whatsWorkedSection
+        }
+    }
+
+    /// Chapter title — italic-Fraunces punch word, accent eyebrow above.
+    /// Sits flush left, no card chrome (the chrome lives on the embedded
+    /// tiles below). Matches the BecomingProjectionCard / OnboardingRevealView
+    /// title rhythm so the becoming voice feels like one app.
+    private func stackChapterHeader(
+        eyebrow: String,
+        title: String,
+        italic: [String]
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(eyebrow)
+                .font(Typo.eyebrow)
+                .tracking(2)
+                .foregroundStyle(Palette.accent)
+            ItalicAccentText(
+                title,
+                italic: italic,
+                baseFont: .custom("Fraunces72pt-SemiBold", size: 22),
+                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
+                color: Palette.textPrimary,
+                alignment: .leading
+            )
+        }
+    }
+
+    /// Single-line empty-state row used when a chapter has no data yet.
+    /// Anti-shame copy: never "you haven't" / "you're missing." Frame
+    /// the empty state as INVITATION ("the page is open").
+    private func stackEmptyLine(_ text: String) -> some View {
+        Text(text)
+            .font(Typo.body)
+            .foregroundStyle(Palette.textSecondary)
+            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - 1. Your Week
+
+    /// Hero chapter. Coach read + weight trend chart + log button.
+    /// Always renders — even week 1 there's a coach note + a chart
+    /// inviting the first weight log.
+    private var yourWeekSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            stackChapterHeader(
+                eyebrow: "chapter 1",
+                title: "your week ♥",
+                italic: ["week"]
+            )
+            coachTile
+            trendTile
+        }
+    }
+
+    // MARK: - 2. What You Ate
+
+    /// Food chapter. FoodWeekBentoTile carries the 7-day bars + daily
+    /// average. Empty state if no logs yet. Pulls the most-logged day's
+    /// average as a quiet caption (never a goal-comparison number).
+    private var whatYouAteSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            stackChapterHeader(
+                eyebrow: "chapter 2",
+                title: "what you *ate*",
+                italic: ["ate"]
+            )
+            FoodWeekBentoTile(
+                userId: AuthService.shared.currentUser?.id.uuidString ?? ""
+            ) {
+                presentedMetric = .plate
+            }
+            if !foodLogsThisWeek {
+                stackEmptyLine("the page is open — snap one plate to start the story ♥")
+            }
+        }
+    }
+
+    // MARK: - 3. How You Moved
+
+    /// Movement chapter. Steps (HealthKit) + breath sessions + workout
+    /// session count, side by side. NEVER shows calories-burned per the
+    /// Honesty Doctrine — that's the active anti-pattern from MFP/Cal AI
+    /// our cohort burnt out on.
+    private var howYouMovedSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            stackChapterHeader(
+                eyebrow: "chapter 3",
+                title: "how you *moved*",
+                italic: ["moved"]
+            )
+            StepsBentoTile(service: StepsService.shared) {
+                presentedMetric = .movement
+            }
+            BreathworkBentoTile(state: BreathworkState.shared) {
+                presentedMetric = .breath
+            }
+            movedSummaryLine
+        }
+    }
+
+    /// Quiet two-line summary under the steps + breath tiles. Pulls
+    /// session count + days-shown-up. Never kcal-burned, never goal
+    /// comparison. If everything is zero, surfaces the invitation
+    /// empty state instead.
+    @ViewBuilder private var movedSummaryLine: some View {
+        let routines = sessionLogs.filter { $0.sessionType == "routine" }.count
+        let benchmarks = sessionLogs.filter { $0.sessionType == "plank_benchmark" }.count
+        let totalSessions = routines + benchmarks
+        if totalSessions == 0 {
+            stackEmptyLine("any movement counts. even a walk to the kitchen.")
+        } else {
+            let label = totalSessions == 1 ? "1 session logged" : "\(totalSessions) sessions logged"
+            Text("\(label) ♥")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .padding(.vertical, 2)
+        }
+    }
+
+    // MARK: - 4. What's Changing
+
+    /// Identity work chapter. Barriers + plank mastery curve + identity
+    /// affirmation pulled from her own answers. Empty state when no
+    /// barriers picked AND no benchmarks done (rare — most users pick
+    /// at least one barrier in v2 case 153).
+    private var whatsChangingSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            stackChapterHeader(
+                eyebrow: "chapter 4",
+                title: "what's *changing*",
+                italic: ["changing"]
+            )
+            if onboardingBarriers.isEmpty && benchmarkCount == 0 {
+                stackEmptyLine("the shape of change appears as you show up ♥")
+            } else {
+                if !onboardingBarriers.isEmpty {
+                    barrierCard
+                }
+                if benchmarkCount > 0 {
+                    plankCard
+                }
+            }
+        }
+    }
+
+    // MARK: - 5. What's Worked
+
+    /// NSV chapter. Wins the scale can't see. Cocoa/warm chrome so the
+    /// closing card lands as warmth, not as another data block.
+    private var whatsWorkedSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            stackChapterHeader(
+                eyebrow: "chapter 5",
+                title: "what's *worked*",
+                italic: ["worked"]
+            )
+            nsvTile
+        }
+    }
+
+    // MARK: - Stack signal helpers
+
+    /// True when the user has at least one food log in the last 7 days.
+    /// FoodWeekBentoTile is the source of truth; this is just a quick
+    /// chapter-empty-state gate so we don't double-render an empty
+    /// invitation when the tile already shows one.
+    private var foodLogsThisWeek: Bool {
+        let userId = AuthService.shared.currentUser?.id.uuidString ?? ""
+        guard !userId.isEmpty else { return false }
+        let week = FoodLogPersister.last7DaysKcal(userId: userId)
+        return week.contains { $0.kcal > 0 }
+    }
+
+    // MARK: - Bento journey grid (research-led weight-loss redesign — legacy / flag-off)
     //
     // Modular tiles of varying size (2026 bento idiom) telling the weight-
     // loss story: coach read → trend (hero) → forecast + milestone → % goal
     // + weigh-in cadence → NSV wins → future features. All from collected
     // data; calm/low-stimulus per the clean-luxury bar. Animates as one
     // section, so the body indexing stays simple.
+    //
+    // v1.0.7: kept for flag-off users so there's zero regression for the
+    // pre-food-rail cohort. Flag-on users see the becomingStack chapter
+    // narrative above instead.
     private var bentoJourney: some View {
         VStack(spacing: 12) {
             coachTile
