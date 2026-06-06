@@ -3,23 +3,32 @@ import AuthenticationServices
 
 // MARK: - SignInPromptView
 //
-// Soft sign-in prompt with two modes:
-//   .signUp — default. Mid-onboarding nudge: "Save your progress."
-//             Apple button reads "Sign up with Apple"; email sheet defaults
-//             to the create-account form.
-//   .signIn — opened from the welcome screen "Already have an account?"
-//             link. Apple button reads "Continue with Apple"; email sheet
-//             defaults to the sign-in form.
+// Soft sign-in prompt with three modes:
+//   .signUp        — default. Mid-onboarding nudge: "Save your progress."
+//                    Apple button reads "Sign up with Apple"; email sheet
+//                    defaults to the create-account form.
+//   .signIn        — opened from the welcome screen "Already have an
+//                    account?" link. Apple button reads "Continue with
+//                    Apple"; email sheet defaults to the sign-in form.
+//   .sunkCostLock  — Delta v8 D82 post-reveal sunk-cost lock. Fires
+//                    IMMEDIATELY after OnboardingRevealView and IMMEDIATELY
+//                    before the paywall. Headline ties directly to the
+//                    plan she just saw ("save your *becoming* plan ♥")
+//                    so sign-in reads as preserving the artifact, not as
+//                    account-setup friction.
 //
 // All three paths (Apple, Email, Maybe later) advance the flow via
 // `onContinue()`. The user can also sign in later from Settings (Phase E).
 // Anonymous sessions are first-class — local progress and SessionLog writes
 // work the same way whether or not the user has linked an Apple/email
-// identity.
+// identity. The anonymous-first AuthService UPGRADES the anonymous
+// account on Apple/email sign-in (it does NOT create a new account),
+// preserving everything she entered in onboarding.
 
 enum SignInPromptMode {
     case signUp
     case signIn
+    case sunkCostLock
 }
 
 struct SignInPromptView: View {
@@ -57,11 +66,16 @@ struct SignInPromptView: View {
     ]
 
     // Hero sticker — sign up mode gets sparkle (forward energy),
-    // sign in mode gets heart (welcome back warmth). Larger size + soft
-    // accent halo behind it so it reads as a deliberate brand mark, not
-    // ambient decor.
+    // sign in mode gets heart (welcome back warmth), sunk-cost-lock
+    // gets flower3D (the becoming/plan signifier from the projection
+    // card). Larger size + soft accent halo behind it so it reads as
+    // a deliberate brand mark, not ambient decor.
     private var heroStickerName: StickerName {
-        mode == .signIn ? .heartGlossy : .sparkleGlossy
+        switch mode {
+        case .signIn:       return .heartGlossy
+        case .sunkCostLock: return .flower3D
+        case .signUp:       return .sparkleGlossy
+        }
     }
 
     var body: some View {
@@ -90,12 +104,20 @@ struct SignInPromptView: View {
 
             // Italic accent on the emphasis word — Fraunces italic against
             // Fraunces SemiBold gives the headline its JeniFit voice.
+            // Sunk-cost-lock copy ties directly to what she just saw on
+            // the reveal screen ("save your *becoming* plan ♥") so the
+            // sign-in reads as preserving the artifact, not friction.
             Group {
-                if mode == .signIn {
+                switch mode {
+                case .signIn:
                     (Text("Welcome ").font(Typo.title)
                      + Text("back").font(Typo.titleItalic)
                      + Text(".").font(Typo.title))
-                } else {
+                case .sunkCostLock:
+                    (Text("save your ").font(Typo.title)
+                     + Text("becoming").font(Typo.titleItalic)
+                     + Text(" plan ♥").font(Typo.title))
+                case .signUp:
                     (Text("Save your ").font(Typo.title)
                      + Text("progress").font(Typo.titleItalic)
                      + Text(".").font(Typo.title))
@@ -106,9 +128,16 @@ struct SignInPromptView: View {
 
             Spacer().frame(height: Space.sm)
 
-            Text(mode == .signIn
-                 ? "Sign in to recover your routine\non this device."
-                 : "Sign in to keep your routine\nwhen you switch phones.")
+            Text({
+                switch mode {
+                case .signIn:
+                    return "Sign in to recover your routine\non this device."
+                case .sunkCostLock:
+                    return "so it's still here when you switch phones,\nand we never start you over."
+                case .signUp:
+                    return "Sign in to keep your routine\nwhen you switch phones."
+                }
+            }())
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
@@ -130,7 +159,13 @@ struct SignInPromptView: View {
                 }
 
                 Button(action: { Haptics.light(); onContinue() }) {
-                    Text(mode == .signIn ? "Cancel" : "Maybe later")
+                    Text({
+                        switch mode {
+                        case .signIn:       return "Cancel"
+                        case .sunkCostLock: return "skip for now"
+                        case .signUp:       return "Maybe later"
+                        }
+                    }())
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Palette.textSecondary)
                         .padding(.vertical, 8)
@@ -164,7 +199,7 @@ struct SignInPromptView: View {
             HStack(spacing: 8) {
                 Image(systemName: "apple.logo")
                     .font(.system(size: 19))
-                Text(mode == .signIn ? "Sign in with Apple" : "Sign up with Apple")
+                Text(mode == .signIn ? "Sign in with Apple" : "Continue with Apple")
                     .font(.system(size: 17, weight: .semibold))
             }
             .foregroundStyle(.white)

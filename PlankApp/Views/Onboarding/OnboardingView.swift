@@ -1413,7 +1413,19 @@ struct OnboardingView: View {
         // method preview. Reciprocity > forced commitment for TikTok-
         // acquired Gen Z; IKEA effect freshest right after plan reveal.
         case 240: brandPromisesScreen
-        case 26: SignInPromptView { Haptics.medium(); go(22) }
+        // Delta v8 D82 — post-reveal sunk-cost lock. Case 26 was
+        // previously a generic "Save your progress" prompt floating
+        // late in the flow (after brandPromises + rating). It now
+        // lands IMMEDIATELY after the reveal (250) and IMMEDIATELY
+        // before the paywall, framed as preserving the becoming plan
+        // she just saw. The `.sunkCostLock` mode swaps the headline
+        // copy + hero sticker; the auth mechanics are unchanged.
+        // (240 brandPromises + 215 rating prompt + 22 personal stat
+        // are removed from v2FlowOrder per D83 — the rating moved
+        // into BuildingPlanLoadingView's sentiment overlay earlier,
+        // so case 215 is now redundant; 240 + 22 read as filler.)
+        case 26: SignInPromptView(onContinue: { Haptics.medium(); go(23) },
+                                  mode: .sunkCostLock)
 
         // Legacy showcase screens (kept for Phase 5 reuse, not in flow)
         case 4: chartScreen
@@ -1586,10 +1598,20 @@ struct OnboardingView: View {
         // Act 5 — Reveal + commit. 153 is the new consolidated barriers
         // multi-select that replaces 150/151/152. The rest is the existing
         // reveal pipeline that Phase 5 already shipped.
+        //
+        // Delta v8 D82 + D83 (2026-06-06): tightened the post-reveal
+        // tail. Sign-in (case 26) now lands IMMEDIATELY after the
+        // reveal (250) so it reads as a sunk-cost lock on what she
+        // just saw, not a generic auth screen lost among filler.
+        // Cut from v2 tail: 240 (brandPromises — reads 2018 startup
+        // register), 215 (rating prompt — superseded by the loader's
+        // sentiment overlay), 22 (personalStat — duplicates the
+        // projection card from the reveal). Final tail: reveal →
+        // sign-in → finish.
         204, 153,
         206,
         205, 3, 11, 18, 19,
-        234, 21, 250, 240, 215, 26, 22, 23,
+        234, 21, 250, 26, 23,
     ]
 
     private var flowOrder: [Int] {
