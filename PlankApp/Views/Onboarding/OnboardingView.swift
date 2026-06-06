@@ -7464,12 +7464,20 @@ struct OnboardingView: View {
                         let granted = await NotificationPermission.request()
                         notificationsEnabled = granted
                         if granted {
-                            // Map the Q11 plankTime bucket to a real
-                            // Date so the daily reminder fires at the
-                            // hour the user picked.
+                            // v1.0.7 Phase D — daily reminder NO LONGER
+                            // auto-scheduled at permission grant per the
+                            // retention expert brief
+                            // (docs/home_becoming_research_retention_2026_06_06.md §3).
+                            // The user can re-enable it in Settings →
+                            // Reminders if they want one; default is
+                            // off so the trial-week push count stays
+                            // at 3 (Day 0 + Day 2 + Evening 8:30pm
+                            // plate review). The plankTime bucket is
+                            // still captured for the daily-reminder
+                            // settings UI to honor as the starting
+                            // time when the user opts back in.
                             let scheduledTime = reminderTimeFromBucket(plankTime)
                             notificationTime = scheduledTime
-                            NotificationPermission.scheduleDailyReminder(at: scheduledTime)
                         }
                         finish()
                     }

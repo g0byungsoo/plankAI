@@ -126,7 +126,17 @@ enum RetentionNotifications {
             scheduleAffirmations(now: now)
             scheduleDay0AnchorIfNeeded(now: now)
             scheduleDay2EngagementIfNeeded(now: now)
-            scheduleFirstLogNudgeIfNeeded(now: now)
+            // v1.0.7 Phase D — Day 3 first-log nudge CUT per the
+            // retention expert brief
+            // (docs/home_becoming_research_retention_2026_06_06.md §3):
+            // "Cut Week-1 push surface from 5 to 3. 3-6 weekly pushes
+            // drive 40% opt-out; iOS opt-in is already only 43.9%."
+            // Day 3 first-log surface moves in-app. The scheduling
+            // helper + cancelFirstLogNudge() stay defined so any
+            // pending request from a prior install is cancelled
+            // gracefully (see cancelFirstLogNudge() above which still
+            // fires on first food log).
+            // scheduleFirstLogNudgeIfNeeded(now: now)
             scheduleEveningPlateReview()
         }
     }
