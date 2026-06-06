@@ -46,6 +46,7 @@
 		0A4113CCEF34E77A6A64FAD0 /* matson_prep_full_y_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B46C8260304F20020E5DBF67 /* matson_prep_full_y_raise.m4a */; };
 		0A48A9667B4D89AE72745747 /* matson_prep_short_reverse_tabletop.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8BA8EA2A0C4B3906ABD64D8D /* matson_prep_short_reverse_tabletop.m4a */; };
 		0A7F3E6878EAA6E0E753AEE3 /* jeni_prep_full_shoulder_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6F7F68DF39CF4AFB0B3B0D17 /* jeni_prep_full_shoulder_stretch.m4a */; };
+		0A929B73358142BE0E708C0C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 497B84BED7952F84A2354358 /* Foundation.framework */; };
 		0AEBFA0D7C7CD8C74EF30AD2 /* jeni_prep_full_windshield_wipers.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E9FB18A39BCCA12434DBD9CF /* jeni_prep_full_windshield_wipers.m4a */; };
 		0B7C775412FEF90FCAF14DC0 /* TodayPathStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF73D458DA5C3750837A8E6 /* TodayPathStrip.swift */; };
 		0C1B32A7706578713F07EF8C /* matson_prep_full_jump_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4EE415F1F6C1311A718BE1BA /* matson_prep_full_jump_squat.m4a */; };
@@ -65,6 +66,7 @@
 		10BA6DC5AB14D55FFC4DC099 /* jeni_prep_full_burpee_pushup.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 3E3FEB3E035C42A5A92C3EDB /* jeni_prep_full_burpee_pushup.m4a */; };
 		110EB2EAEA8101255F29CEB5 /* matson_prep_short_reverse_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8C1225799ACB3CD09D52D7A3 /* matson_prep_short_reverse_lunge.m4a */; };
 		11158923785BAC1F9728A7D6 /* matson_prep_short_leg_raise_hold.m4a in Resources */ = {isa = PBXBuildFile; fileRef = C88258073CE5FA1E119C4B19 /* matson_prep_short_leg_raise_hold.m4a */; };
+		1118FF316E9C79F2874B4E2E /* ScanActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F173B304E8A21DC49C1BD73 /* ScanActivityAttributes.swift */; };
 		1136C702756E99EB31ADEDA4 /* prep_short_calf_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 79EBDF60275ABDA9591AE3E1 /* prep_short_calf_raise.m4a */; };
 		11B86C835A89916125093764 /* jeni_prep_short_skipping.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2D38D826AF1EA6B2D86160FD /* jeni_prep_short_skipping.m4a */; };
 		11CC8EC3F53BD4596F24F523 /* matson_prep_full_tabletop_bridge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2353A6AAB1701EB5CCDF3FC6 /* matson_prep_full_tabletop_bridge.m4a */; };
@@ -170,6 +172,7 @@
 		299382E8D2BC4AC3A3629583 /* matson_prep_full_single_knee_to_chest.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 26A5CFDAD4282CBC92710E91 /* matson_prep_full_single_knee_to_chest.m4a */; };
 		29B1280CF4DD595304C5B709 /* ExternalSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C72DBB9F0F1E5EC3593679FF /* ExternalSessionView.swift */; };
 		2A5FDFDD0CA050083A6672B0 /* prep_full_tabletop_bridge_knee_lift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6D0B5A0DA8ADDE90CBCEAFAE /* prep_full_tabletop_bridge_knee_lift.m4a */; };
+		2A8103D643ED37AE207EEA6D /* ScanLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12F5A6C130D8688B006211E1 /* ScanLiveActivity.swift */; };
 		2A8E6FB7F23D7AC7F73A2A88 /* matson_prep_short_squat_front_kick.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 650286D1036C2308EE7F7E6F /* matson_prep_short_squat_front_kick.m4a */; };
 		2B400CB71A2EA11DD255C185 /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = C1234A51095631DC061286BA /* PostHog */; };
 		2B4C65598B8F6AD6C2EB7A36 /* matson_prep_short_alt_forward_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 845D2128CFD5D9D4E45F53E0 /* matson_prep_short_alt_forward_lunge.m4a */; };
@@ -635,6 +638,7 @@
 		9D18CBB347D987062DD85012 /* matson_prep_full_cat_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7F42BB8306E88D2CE4086FC6 /* matson_prep_full_cat_stretch.m4a */; };
 		9D30BF58D6C08240F4E9844E /* prep_full_kneeling_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8711E1D49A161FB9AC5BFBFB /* prep_full_kneeling_squat.m4a */; };
 		9DA22633DAEA0BBE239D9CDD /* prep_full_single_leg_glute_bridge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 36DFB66DFA817C26B9926BDD /* prep_full_single_leg_glute_bridge.m4a */; };
+		9E6CCAC8D66D18A9A4C1A540 /* ScanActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F173B304E8A21DC49C1BD73 /* ScanActivityAttributes.swift */; };
 		9EDEEB1D1F581FD2753B2952 /* matson_prep_full_front_kicks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 36496577CBDE7E8F77F79240 /* matson_prep_full_front_kicks.m4a */; };
 		9F3C5C913B5F765022796ED3 /* prep_short_split_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 103A1C31246C6B8EC3F76433 /* prep_short_split_squat.m4a */; };
 		9F4DEEBA2ECF2D5957A7B915 /* matson_prep_short_modified_jacks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = DAC7B6DF714E6D72EB1FA053 /* matson_prep_short_modified_jacks.m4a */; };
@@ -1171,6 +1175,7 @@
 		EA50EE0BEDC93D498E131EC3 /* jeni_prep_full_diagonal_plank.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E45814C8F522D0C9FC2C4C57 /* jeni_prep_full_diagonal_plank.m4a */; };
 		EAE85CF08B1CCB3F215D19A7 /* BreathworkState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3E82401121039C64A84CC59 /* BreathworkState.swift */; };
 		EB0BF1D6384C15439EB4312D /* jeni_prep_short_crab_toe_touches.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 003AC61C574094D35C43DDE6 /* jeni_prep_short_crab_toe_touches.m4a */; };
+		EB771EF8C4D2ADDE4E543B38 /* JenifitWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = FEFCE18E893D5596452918C8 /* JenifitWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		EBD202C64DE6E4369C9B4027 /* matson_prep_short_childs_pose.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F1CDD80419A27CD3C4E680A7 /* matson_prep_short_childs_pose.m4a */; };
 		EBED72FD5124DE5E5903989F /* jeni_prep_short_tabletop_hold_knee_lift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 32588A31EC6A177A99A7E90C /* jeni_prep_short_tabletop_hold_knee_lift.m4a */; };
 		EC38C6A5991917192F5FE122 /* jeni_prep_short_overhead_forward_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 522395B11549DF3EA452EA1C /* jeni_prep_short_overhead_forward_lunge.m4a */; };
@@ -1255,6 +1260,7 @@
 		FF8E09FA2FA600FCED /* roast_3.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FFFA9AE32FA6009050 /* roast_3.m4a */; };
 		FFAD75842FA700AA29 /* routine_done_5.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF5816C92FA700F2A1 /* routine_done_5.m4a */; };
 		FFBB694DFCB6CF9F135467EA /* jeni_prep_full_cat_cow.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 5CD72DE2F7399E2EE9502F64 /* jeni_prep_full_cat_cow.m4a */; };
+		FFC4699823CCAE6E4D07F654 /* JenifitWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 048F1D375BC518AA82A9535F /* JenifitWidgetsBundle.swift */; };
 		FFCB5CE42FA6005EB8 /* encourage_3.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF0C305C2FA6008BF8 /* encourage_3.m4a */; };
 		FFF3B6EC2FA6008EAB /* encourage_4.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF4893B32FA6006A83 /* encourage_4.m4a */; };
 /* End PBXBuildFile section */
@@ -1267,7 +1273,28 @@
 			remoteGlobalIDString = 783186402F99E3110096138F;
 			remoteInfo = plankAI;
 		};
+		CC459A37255D55B712E52581 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 783186392F99E3110096138F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4076C317B06F5BEE1B721650;
+			remoteInfo = JenifitWidgets;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		7CA0E070DA41E74EC52546C7 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				EB771EF8C4D2ADDE4E543B38 /* JenifitWidgets.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		00334E42F41D28472D2789B0 /* prep_short_crunch_knee_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_crunch_knee_raise.m4a; sourceTree = "<group>"; };
@@ -1289,6 +1316,7 @@
 		04322AD621D1E9F86C830352 /* jeni_duration_intro_10.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_duration_intro_10.m4a; sourceTree = "<group>"; };
 		0448FE63AB3EFF955F412A3F /* jeni_prep_full_single_knee_to_chest.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_single_knee_to_chest.m4a; sourceTree = "<group>"; };
 		047A3523EBA1F3D83F316B0F /* matson_prep_full_w_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_w_raise.m4a; sourceTree = "<group>"; };
+		048F1D375BC518AA82A9535F /* JenifitWidgetsBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JenifitWidgetsBundle.swift; sourceTree = "<group>"; };
 		0504BBBC129FD0C825CFC6A3 /* prep_short_forward_fold_bind.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_forward_fold_bind.m4a; sourceTree = "<group>"; };
 		05259ED2F78C7200950C2899 /* prep_full_butt_kicks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_butt_kicks.m4a; sourceTree = "<group>"; };
 		054B34C39A488CC187FACC28 /* matson_prep_short_burpee_pushup.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_burpee_pushup.m4a; sourceTree = "<group>"; };
@@ -1339,6 +1367,7 @@
 		125792892A3C8C711FDF2557 /* prep_short_low_plank_leg_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_low_plank_leg_raise.m4a; sourceTree = "<group>"; };
 		1278991062E2E594F7C44F34 /* prep_short_seated_forward_fold.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_seated_forward_fold.m4a; sourceTree = "<group>"; };
 		128FBE018EC08C48596ACBE1 /* countdown_beep_final.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = countdown_beep_final.m4a; sourceTree = "<group>"; };
+		12F5A6C130D8688B006211E1 /* ScanLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScanLiveActivity.swift; sourceTree = "<group>"; };
 		13153FE51DDF04B35AC400BD /* matson_prep_short_alternating_superman.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_alternating_superman.m4a; sourceTree = "<group>"; };
 		1345C881AC495AB9C78E1EEC /* prep_short_donkey_kick_pulse.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_donkey_kick_pulse.m4a; sourceTree = "<group>"; };
 		1386D4105F0FA70206192907 /* prep_short_jumping_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_jumping_jacks.m4a; sourceTree = "<group>"; };
@@ -1495,6 +1524,7 @@
 		3E5378438DA2F0B80533E2C4 /* matson_prep_short_side_tilt.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_side_tilt.m4a; sourceTree = "<group>"; };
 		3EBD65C8DE50F37463FC41F1 /* matson_prep_full_burpee.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_burpee.m4a; sourceTree = "<group>"; };
 		3EF431D74B15F527AD9AEF31 /* prep_short_sumo_jump_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_sumo_jump_squat.m4a; sourceTree = "<group>"; };
+		3F173B304E8A21DC49C1BD73 /* ScanActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScanActivityAttributes.swift; sourceTree = "<group>"; };
 		3F4A178719ECF8F2976E65A9 /* jeni_prep_full_skipping.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_skipping.m4a; sourceTree = "<group>"; };
 		3F62EC2BB171329ECBE9A2A4 /* JenisNoteTemplate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JenisNoteTemplate.swift; sourceTree = "<group>"; };
 		3F6BD8BB34D4FAD1D61F33A5 /* matson_prep_full_leg_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_leg_raise.m4a; sourceTree = "<group>"; };
@@ -2504,6 +2534,7 @@
 		FDD8820181D2AB1EB91D6353 /* ScrapbookCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScrapbookCard.swift; sourceTree = "<group>"; };
 		FDE7AA410E98E86E4C728D7B /* prep_short_bird_dog.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_bird_dog.m4a; sourceTree = "<group>"; };
 		FE6674A40C5BFF81609347CB /* prep_full_reverse_tabletop.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_reverse_tabletop.m4a; sourceTree = "<group>"; };
+		FEFCE18E893D5596452918C8 /* JenifitWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = JenifitWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		FF0C305C2FA6008BF8 /* encourage_3.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = encourage_3.m4a; sourceTree = "<group>"; };
 		FF26AEC12FA7000719 /* routine_done_4.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = routine_done_4.m4a; sourceTree = "<group>"; };
 		FF2B76F92FA6006A4B /* encourage_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = encourage_2.m4a; sourceTree = "<group>"; };
@@ -2540,6 +2571,14 @@
 				BAD000000000000000000003 /* RevenueCat in Frameworks */,
 				BAD000000000000000000022 /* Lottie in Frameworks */,
 				2B400CB71A2EA11DD255C185 /* PostHog in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A3FBAE017C1C61C5C68F64F8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0A929B73358142BE0E708C0C /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2594,6 +2633,7 @@
 				7831866D2F99E6A70096138F /* Frameworks */,
 				783186422F99E3110096138F /* Products */,
 				5747CE84C1A2E80AF85C6FB0 /* plankAITests */,
+				C0A55A098AB29DD2EA90B909 /* JenifitWidgets */,
 			);
 			sourceTree = "<group>";
 		};
@@ -2602,6 +2642,7 @@
 			children = (
 				783186412F99E3110096138F /* plankAI.app */,
 				2D26393518BA28A17D9EC22C /* plankAITests.xctest */,
+				FEFCE18E893D5596452918C8 /* JenifitWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -3982,6 +4023,17 @@
 			path = Notifications;
 			sourceTree = "<group>";
 		};
+		C0A55A098AB29DD2EA90B909 /* JenifitWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				3F173B304E8A21DC49C1BD73 /* ScanActivityAttributes.swift */,
+				12F5A6C130D8688B006211E1 /* ScanLiveActivity.swift */,
+				048F1D375BC518AA82A9535F /* JenifitWidgetsBundle.swift */,
+			);
+			name = JenifitWidgets;
+			path = JenifitWidgets;
+			sourceTree = "<group>";
+		};
 		CC0001042FA3000100000003 /* Root */ = {
 			isa = PBXGroup;
 			children = (
@@ -4067,6 +4119,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		4076C317B06F5BEE1B721650 /* JenifitWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 090899B0F991EBCCD1C17EA6 /* Build configuration list for PBXNativeTarget "JenifitWidgets" */;
+			buildPhases = (
+				31DB78E173E9ABA8DF3D4D51 /* Sources */,
+				A3FBAE017C1C61C5C68F64F8 /* Frameworks */,
+				2BFBCDA31E809825CC5FBC3A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = JenifitWidgets;
+			productName = JenifitWidgets;
+			productReference = FEFCE18E893D5596452918C8 /* JenifitWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		6933F14EC6C91D49C618315E /* plankAITests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = C3D24D5643A6FAC02EB1AEE8 /* Build configuration list for PBXNativeTarget "plankAITests" */;
@@ -4092,10 +4161,12 @@
 				7831863D2F99E3110096138F /* Sources */,
 				7831863E2F99E3110096138F /* Frameworks */,
 				7831863F2F99E3110096138F /* Resources */,
+				7CA0E070DA41E74EC52546C7 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				4E5FC75C22F41E5B7598D800 /* PBXTargetDependency */,
 			);
 			name = plankAI;
 			packageProductDependencies = (
@@ -4126,7 +4197,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 7831863C2F99E3110096138F /* Build configuration list for PBXProject "PlankAI" */;
+			buildConfigurationList = 7831863C2F99E3110096138F /* Build configuration list for PBXProject "plankAI" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -4151,11 +4222,19 @@
 			targets = (
 				783186402F99E3110096138F /* plankAI */,
 				6933F14EC6C91D49C618315E /* plankAITests */,
+				4076C317B06F5BEE1B721650 /* JenifitWidgets */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		2BFBCDA31E809825CC5FBC3A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7831863F2F99E3110096138F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -5291,6 +5370,16 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		31DB78E173E9ABA8DF3D4D51 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9E6CCAC8D66D18A9A4C1A540 /* ScanActivityAttributes.swift in Sources */,
+				2A8103D643ED37AE207EEA6D /* ScanLiveActivity.swift in Sources */,
+				FFC4699823CCAE6E4D07F654 /* JenifitWidgetsBundle.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7831863D2F99E3110096138F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -5415,6 +5504,7 @@
 				99A19371CEDE360A7A24183F /* TrendHeroCard.swift in Sources */,
 				0B7C775412FEF90FCAF14DC0 /* TodayPathStrip.swift in Sources */,
 				97588DAED21FAB070B4A9AB3 /* SundayCard.swift in Sources */,
+				1118FF316E9C79F2874B4E2E /* ScanActivityAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5438,6 +5528,12 @@
 			target = 783186402F99E3110096138F /* plankAI */;
 			targetProxy = 91ED81E51971F980FAB549D2 /* PBXContainerItemProxy */;
 		};
+		4E5FC75C22F41E5B7598D800 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = JenifitWidgets;
+			target = 4076C317B06F5BEE1B721650 /* JenifitWidgets */;
+			targetProxy = CC459A37255D55B712E52581 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -5458,6 +5554,30 @@
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
+		};
+		63F7C83B7E3016F35EBC403F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = JenifitWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = JenifitWidgets;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAI.JenifitWidgets;
+				PRODUCT_NAME = JenifitWidgets;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
 		};
 		6811DFB089046353C3DC2469 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -5665,10 +5785,44 @@
 			};
 			name = Release;
 		};
+		F95ABC0EC99FDF6AED6607E2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = JenifitWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = JenifitWidgets;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAI.JenifitWidgets;
+				PRODUCT_NAME = JenifitWidgets;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		7831863C2F99E3110096138F /* Build configuration list for PBXProject "PlankAI" */ = {
+		090899B0F991EBCCD1C17EA6 /* Build configuration list for PBXNativeTarget "JenifitWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F95ABC0EC99FDF6AED6607E2 /* Release */,
+				63F7C83B7E3016F35EBC403F /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7831863C2F99E3110096138F /* Build configuration list for PBXProject "plankAI" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7831864A2F99E3120096138F /* Debug */,

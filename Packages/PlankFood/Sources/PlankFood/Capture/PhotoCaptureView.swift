@@ -361,6 +361,21 @@ public struct PhotoCaptureView: View {
         FoodAnalytics.track(.scanStarted)
         FoodAnalytics.firstScanStartedIfNeeded()
 
+        // v1.0.7 Phase F — Dynamic Island Live Activity. Starts on
+        // scan begin, runs through phase rotations driven by a
+        // detached Task, ends on success or failure. Uses opaque
+        // Any? handle so PlankFood stays ActivityKit-blind; the main
+        // app's closure (registered in PlankAIApp.swift) holds the
+        // real Activity instance.
+        let name = UserDefaults.standard.string(forKey: "userName") ?? ""
+        let activityHandle = FoodScanActivity.start(displayName: name)
+        let phaseTask: Task<Void, Never>? = activityHandle == nil ? nil : Task.detached {
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            await FoodScanActivity.update(handle: activityHandle, phase: "matching")
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            await FoodScanActivity.update(handle: activityHandle, phase: "tallying")
+        }
+
         do {
             // v1.0.7 in-viewfinder magic — captureStillAndFreeze
             // publishes the decoded photo into camera.frozenFrame so
@@ -381,6 +396,8 @@ public struct PhotoCaptureView: View {
             if result.items.isEmpty && result.kcalLow == nil {
                 errorMessage = "couldn't see any food. try a brighter or closer angle?"
                 FoodAnalytics.track(.scanFallbackFired, properties: ["reason": "empty_items"])
+                phaseTask?.cancel()
+                FoodScanActivity.end(handle: activityHandle)
                 // 2026-06-06 — release the frozen photo so the live
                 // preview comes back. Without this the still keeps
                 // covering the camera and the user can't reframe
@@ -398,6 +415,17 @@ public struct PhotoCaptureView: View {
             ])
             FoodAnalytics.firstScanCompletedIfNeeded()
 
+            // End the Live Activity with a brief "ready ♥" beat
+            // before tearing down so the system pill registers the
+            // success state visibly. Detached so it doesn't block
+            // the main-thread transition into the result phase.
+            phaseTask?.cancel()
+            Task.detached {
+                await FoodScanActivity.update(handle: activityHandle, phase: "ready")
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                await FoodScanActivity.end(handle: activityHandle)
+            }
+
             capturedResult = result
             // v1.0.7 — pass the frozen photo to the result phase so it
             // can scaffold the photo as a Polaroid hero with
@@ -412,6 +440,8 @@ public struct PhotoCaptureView: View {
             #else
             errorMessage = "give us a few hours — we're catching our breath."
             #endif
+            phaseTask?.cancel()
+            FoodScanActivity.end(handle: activityHandle)
             withAnimation(.easeOut(duration: 0.25)) {
                 camera.clearFrozenFrame()
             }
@@ -443,6 +473,8 @@ public struct PhotoCaptureView: View {
                 "reason": "capture_error",
                 "ns_error_code": ns.code,
             ])
+            phaseTask?.cancel()
+            FoodScanActivity.end(handle: activityHandle)
             withAnimation(.easeOut(duration: 0.25)) {
                 camera.clearFrozenFrame()
             }

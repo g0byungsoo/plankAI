@@ -6,6 +6,7 @@ import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodu
 import RevenueCat
 import PostHog
 import os.log
+import ActivityKit
 
 // MARK: - Orientation Control
 
@@ -168,6 +169,45 @@ struct PlankAIApp: App {
                 HealthKitDietaryEnergyWriter.shared.write(kcal: kcal, at: date)
             }
         }
+
+        // v1.0.7 Phase F — wire PlankFood's FoodScanActivity closure-
+        // sink to the JenifitWidgets Live Activity. PhotoCaptureView
+        // calls start at scan begin and end on completion/failure;
+        // the closures here own the Activity instance (the opaque
+        // handle PlankFood treats as Any?).
+        FoodScanActivity.register(
+            start: { displayName in
+                guard ActivityAuthorizationInfo().areActivitiesEnabled else { return nil }
+                let attrs = ScanActivityAttributes(displayName: displayName)
+                let state = ScanActivityAttributes.ContentState(phase: .reading, startedAt: Date())
+                do {
+                    let activity = try Activity.request(
+                        attributes: attrs,
+                        content: .init(state: state, staleDate: nil)
+                    )
+                    return activity
+                } catch {
+                    #if DEBUG
+                    print("[FoodScanActivity] start failed: \(error)")
+                    #endif
+                    return nil
+                }
+            },
+            update: { handle, phaseString in
+                guard let activity = handle as? Activity<ScanActivityAttributes> else { return }
+                let phase = ScanActivityAttributes.ContentState.Phase(rawValue: phaseString) ?? .reading
+                let state = ScanActivityAttributes.ContentState(phase: phase, startedAt: Date())
+                Task {
+                    await activity.update(.init(state: state, staleDate: nil))
+                }
+            },
+            end: { handle in
+                guard let activity = handle as? Activity<ScanActivityAttributes> else { return }
+                Task {
+                    await activity.end(nil, dismissalPolicy: .immediate)
+                }
+            }
+        )
 
         #if DEBUG
         // Internal/test traffic separation. Two layers in PostHog:

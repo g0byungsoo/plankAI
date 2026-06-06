@@ -32,6 +32,8 @@
 	<string>If you turn on the Apple Health write toggle in JeniFit's food settings, your logged meal calories are saved to Apple Health as Dietary Energy. Off by default. You can change this anytime.</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>This lets us learn how you found us so Jeni can keep getting better for women like you. We never sell your data and you can change this anytime in Settings.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIAppFonts</key>
 	<array>
 		<string>DMSans-Light.ttf</string>
