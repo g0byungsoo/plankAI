@@ -253,6 +253,23 @@ private struct ProjectionPresentation: View {
         return min(max(raw, 70), 130)
     }
 
+    /// Delta v8 D79 — specific date target ("august 14") for the plan
+    /// reveal pill. ACSM 0.5-1%/wk midpoint (0.75%) of current body
+    /// weight projected to goal. Returns lowercase month + day, no
+    /// year. Nil when no weight-loss goal is set.
+    private var goalDateText: String? {
+        guard let curr = currentWeightKg, let goal = goalWeightKg,
+              curr > goal else { return nil }
+        let toLose = curr - goal
+        let weeklyLossKg = curr * 0.0075  // 0.75% of body weight per ACSM
+        let weeks = max(2.0, toLose / weeklyLossKg)
+        let days = Int((weeks * 7).rounded())
+        guard let date = Calendar.current.date(byAdding: .day, value: days, to: .now) else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM d"
+        return formatter.string(from: date).lowercased()
+    }
+
     @ViewBuilder
     private func calorieTargetHero(kcal: Int) -> some View {
         VStack(alignment: .leading, spacing: Space.sm) {
@@ -279,6 +296,25 @@ private struct ProjectionPresentation: View {
                     Text("protein floor")
                         .font(.system(size: 13))
                         .foregroundStyle(Palette.textSecondary)
+                }
+            }
+
+            // Delta v8 D79 — specific date in plan reveal. Cal AI's
+            // commitment-anchor pattern (calai36 "by May 18"). 12-week
+            // horizon is the ACSM-aligned default; Becoming projection
+            // card below shows the curve. This pill is the headline.
+            if let date = goalDateText {
+                HStack(spacing: 6) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.accent)
+                    ItalicAccentText(
+                        "by \(date) ♥",
+                        italic: [date],
+                        baseFont: .custom("Fraunces72pt-SemiBold", size: 14),
+                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 14),
+                        color: Palette.textPrimary
+                    )
                 }
             }
 

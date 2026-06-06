@@ -438,32 +438,33 @@ struct PaywallView: View {
         return "\(quarterly.storeProduct.localizedPriceString)/3 months — billed quarterly"
     }
 
-    /// Per-week math + savings %, both computed from the actual yearly
-    /// and weekly storeProduct prices. Uses the yearly product's price
-    /// formatter so the per-week amount shows in the same locale/currency.
+    /// Delta v8 D84 — total-savings framing replaces weekly-equivalent
+    /// display. Apple pulled Cal AI in April 2026 specifically for the
+    /// "$0.92/wk · billed $47.99/yr" pattern. JeniFit was shipping the
+    /// same pattern. Switched to "save vs quarterly" total framing
+    /// which is post-pull compliant per RevenueCat 2026 legal review.
+    /// Math: compares yearly annualized vs quarterly × 4.
     private var yearlyPerWeekText: String {
-        if debugMockPricing { return "Just $0.92/week · save 85%" }
         guard let yearly = yearlyPackage else {
-            return "Just $0.92/week · save 85%"
+            return "save vs quarterly"
         }
         let yearlyPrice = yearly.storeProduct.price as NSDecimalNumber
-        let perWeek = yearlyPrice.dividing(by: NSDecimalNumber(value: 52))
         let formatter = yearly.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
-        let perWeekStr = formatter.string(from: perWeek) ?? "\(perWeek)"
 
-        guard let weekly = weeklyPackage else {
-            return "Just \(perWeekStr)/week"
+        guard let quarterly = quarterlyPackage else {
+            return formatter.string(from: yearlyPrice).map { "billed \($0)/year" } ?? "billed yearly"
         }
-        let weeklyPrice = weekly.storeProduct.price as NSDecimalNumber
-        guard weeklyPrice.doubleValue > 0 else {
-            return "Just \(perWeekStr)/week"
+        let quarterlyAnnualized = (quarterly.storeProduct.price as NSDecimalNumber)
+            .multiplying(by: NSDecimalNumber(value: 4))
+        guard quarterlyAnnualized.doubleValue > 0 else {
+            return "billed yearly"
         }
-        let ratio = perWeek.dividing(by: weeklyPrice).doubleValue
-        let savingsPercent = Int(((1.0 - ratio) * 100).rounded())
-        guard savingsPercent > 0 else {
-            return "Just \(perWeekStr)/week"
+        let savings = quarterlyAnnualized.subtracting(yearlyPrice)
+        guard savings.doubleValue > 0 else {
+            return "billed yearly"
         }
-        return "Just \(perWeekStr)/week · save \(savingsPercent)%"
+        let savingsStr = formatter.string(from: savings) ?? "\(savings)"
+        return "save \(savingsStr) vs quarterly"
     }
 
     private var weeklyPriceText: String {
@@ -737,6 +738,20 @@ struct PaywallView: View {
 
     private var expandedTrialTimeline: some View {
         VStack(alignment: .leading, spacing: 10) {
+            // Delta v8 D80 — "no payment due now" trust chip per Cal AI
+            // verbatim adoption (calai43). Per the monetization brief +
+            // culture brief, this is the strongest single trial-trust
+            // copy in the category. Sits above the 3-row timeline.
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Palette.accent)
+                Text("no payment due now ♥")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary)
+            }
+            .padding(.bottom, 2)
+
             timelineLineRow(filled: true,
                             label: "today",
                             text: "unlock your becoming plan")
