@@ -612,33 +612,57 @@ struct BuildingPlanLoadingView: View {
         // animated. This loop ticks `progress` in 1% steps so the
         // Text re-renders on every body invocation alongside the bar.
         //
-        // Delta v8 founder-pacing fix (2026-06-06): compressed from
-        // 25-35s baseline → capped at ~12s. Ease-in curve on `progress`
-        // makes the back half of wall-clock time cover 70%+ of
-        // perceived progress — user feels acceleration ("slow start,
-        // fast finish" per founder intuition). Pure perceived-velocity
-        // play; total wall-clock time also shorter.
+        // Delta v8 founder-pacing fix v3 (2026-06-06): two-phase whip curve
+        // replaces the single t^1.5 power curve. Founder feedback:
+        // "still feels not accelerating fast enough at later phase."
         //
-        // Wall-clock pacing: 1.3s per label + 0.6s opening dwell, capped
-        // at 12s total. Tick loop stays at 100 ticks for smooth % counter
-        // animation; the displayed `progress` value is eased.
+        // Single power curves trade off "stuck early" vs "limp end."
+        // t^1.5 felt alive early but anticlimactic at the finish;
+        // t^2.5 felt stuck for the first 3 seconds. The two-phase
+        // shape solves both:
+        //
+        //   - Phase 1 (first 60% of wall-clock): gentle ease-in from
+        //     0 → 50% progress. Bar moves visibly from tick one, no
+        //     "stuck" frame (Cornell HCI 2008 < 10% / 3s threshold).
+        //   - Phase 2 (last 40% of wall-clock): exponential ease-out
+        //     from 50 → 100% with a steep slope at the transition.
+        //     Velocity at the boundary jumps ~2.4× — the actual whip
+        //     the founder is asking for. Last 4 seconds cover the
+        //     second half of perceived progress.
+        //
+        // Buell & Norton labor illusion is unaffected: total computed
+        // labels still surface, milestones still tick at 20/40/60/80/100,
+        // ATT + sentiment beats still land at the same progress values
+        // (now mapped to different wall-clock instants — ATT around 4s,
+        // sentiment around 7.5s of a 10.5s total).
+        //
+        // Total time tightened 12.0s → 10.5s.
         let totalLabels = totalLabelCount
-        let totalSeconds = min(12.0, Double(totalLabels) * 1.3 + 0.6)
+        let totalSeconds = min(10.5, Double(totalLabels) * 1.2 + 0.5)
         let tickCount = 100
         let perTickNs = UInt64((totalSeconds * 1_000_000_000) / Double(tickCount))
         let ticksPerLabel = max(1, tickCount / totalLabels)
 
+        // Pre-computed normalizer so phase 2 lands cleanly at 1.0 even
+        // with a steep decay constant. exp(-3) ≈ 0.0498; normalizing by
+        // (1 - exp(-3)) ≈ 0.9502 makes the curve span exactly 0.50 → 1.0.
+        let phase2K: Double = 3.0
+        let phase2Norm: Double = 1.0 / (1.0 - exp(-phase2K))
+
         for tick in 1...tickCount {
             try? await Task.sleep(nanoseconds: perTickNs)
             if Task.isCancelled { return }
-            // Delta v8 loader-expert tweak (2026-06-06): softened
-            // ease from t^1.8 → t^1.5. The 1.8 curve showed only 9% at
-            // 25% wall-clock which can read "stuck" for the first 3s
-            // (Cornell HCI 2008). t^1.5 shows 14% at 25%, 32% at 50% —
-            // still accelerates in the back half but feels alive from
-            // the first tick.
             let t = Double(tick) / Double(tickCount)
-            progress = pow(t, 1.5)
+            if t < 0.6 {
+                // Phase 1 — gentle ease-in to 50% over first 60% of time.
+                let s = t / 0.6
+                progress = 0.50 * pow(s, 1.2)
+            } else {
+                // Phase 2 — exponential whip from 50% → 100% over last
+                // 40% of time. Steep slope at the boundary, smooth land.
+                let s = (t - 0.6) / 0.4
+                progress = 0.50 + 0.50 * (1.0 - exp(-phase2K * s)) * phase2Norm
+            }
 
             // Delta v8 loader-expert #3 — ATT prompt at ~30% perceived
             // progress (~3.5s wall-clock at the new pacing). System
