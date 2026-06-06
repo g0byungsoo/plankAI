@@ -1461,18 +1461,15 @@ struct OnboardingView: View {
         // method preview. Reciprocity > forced commitment for TikTok-
         // acquired Gen Z; IKEA effect freshest right after plan reveal.
         case 240: brandPromisesScreen
-        // Delta v8 D82 — post-reveal sunk-cost lock. Case 26 was
-        // previously a generic "Save your progress" prompt floating
-        // late in the flow (after brandPromises + rating). It now
-        // lands IMMEDIATELY after the reveal (250) and IMMEDIATELY
-        // before the paywall, framed as preserving the becoming plan
+        // Delta v8 D82 — post-reveal sunk-cost lock. Case 26 now lands
+        // IMMEDIATELY after the reveal (250) and IMMEDIATELY before the
+        // rating + final beats, framed as preserving the becoming plan
         // she just saw. The `.sunkCostLock` mode swaps the headline
         // copy + hero sticker; the auth mechanics are unchanged.
-        // (240 brandPromises + 215 rating prompt + 22 personal stat
-        // are removed from v2FlowOrder per D83 — the rating moved
-        // into BuildingPlanLoadingView's sentiment overlay earlier,
-        // so case 215 is now redundant; 240 + 22 read as filler.)
-        case 26: SignInPromptView(onContinue: { Haptics.medium(); go(23) },
+        // 240 (brandPromises) and 22 (personal stat) are removed from
+        // v2FlowOrder per D83. Routes to 215 (rating prompt) — case 215
+        // gracefully skips itself when the rating trigger is ineligible.
+        case 26: SignInPromptView(onContinue: { Haptics.medium(); go(215) },
                                   mode: .sunkCostLock)
 
         // Legacy showcase screens (kept for Phase 5 reuse, not in flow)
@@ -1626,14 +1623,25 @@ struct OnboardingView: View {
         170,
         260,
         // Act 5 — Reveal + commit. D83 cut 204 (section divider).
-        // Delta v8 D82 + D83 final tail: reveal → sign-in → finish.
-        // Cut: 240 (brandPromises), 215 (rating prompt — superseded
-        // by the loader's sentiment overlay), 22 (personalStat —
-        // duplicates the projection card from the reveal).
+        // Delta v8 D82 final tail: reveal → sign-in → rating → finish.
+        // Cut: 240 (brandPromises — reads 2018 startup register),
+        // 22 (personalStat — duplicates the projection card from the
+        // reveal).
+        //
+        // Case 215 (rating prompt) RESTORED 2026-06-06 per founder
+        // feedback. The loader sentiment overlay's "love ♥" tap fires
+        // SKStoreReviewController as a side effect but doesn't read as
+        // "asking about rating" — that's a 3-way sentiment chip. Case
+        // 215 is the explicit "love your plan?" ask. Apple's
+        // 3-prompts-per-365-days throttle on SKStoreReviewController
+        // prevents users from seeing the rating modal twice in the
+        // same onboarding (loader "love" path OR case 215, never both).
+        // Position: post-sign-in, pre-final — fires while she's still
+        // on the post-reveal + post-commit high.
         153,
         206,
         205, 3, 11, 18, 19,
-        234, 21, 250, 26, 23,
+        234, 21, 250, 26, 215, 23,
     ]
 
     private var flowOrder: [Int] {
@@ -7554,15 +7562,19 @@ struct OnboardingView: View {
                         // appear before we slide forward; if iOS
                         // suppresses it (quota, throttle), the user
                         // just lands on the next screen.
+                        // 2026-06-06: route to 23 (final). Pre-D82 this
+                        // routed to 26 (sign-in came AFTER rating); D82
+                        // flipped the order so sign-in is now upstream
+                        // of the rating ask.
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                            go(26)
+                            go(23)
                         }
                     }
 
                     Button {
                         Haptics.light()
                         handleReviewPromptNo()
-                        go(26)
+                        go(23)
                     } label: {
                         Text("not yet")
                             .font(.system(size: 15, weight: .medium))
@@ -7582,8 +7594,12 @@ struct OnboardingView: View {
             // can't actually fire SKStoreReviewController. Existing
             // v1.0.6 users with the legacy onboardingReviewPromptShown
             // flag set fall through this gate too.
+            // 2026-06-06: routed to 23 (next case post-D82). The loader
+            // sentiment overlay also fires SKStoreReviewController on
+            // "love" tap, so users who interacted there land on this
+            // ineligibility gate and skip straight to final.
             if !RatingPromptService.shared.isEligible(for: .postPlanReveal) {
-                go(26)
+                go(23)
             }
         }
     }
