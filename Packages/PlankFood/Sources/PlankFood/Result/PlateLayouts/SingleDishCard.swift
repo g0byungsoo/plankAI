@@ -143,7 +143,8 @@ public struct SingleDishCard: View {
     /// post-Ozempic vocab lock + the behavioral expert's "calorie-as-
     /// hero is disordered-eating-accelerator" finding both point here:
     /// describe the FEELING of the food, not its judgment.
-    private static func feelingWord(forKcal kcal: Double) -> String {
+    /// Internal (was private) so MixedPlateCard shares the same scheme.
+    static func feelingWord(forKcal kcal: Double) -> String {
         switch kcal {
         case ..<80:    return "bright"        // espresso, lemon, mint, broth
         case 80..<200: return "easy"          // toast, fruit, latte

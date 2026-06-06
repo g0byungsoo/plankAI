@@ -34,6 +34,8 @@ public struct MixedPlateCard: View {
         self.onItemTap = onItemTap
     }
 
+    @State private var showMacros: Bool = false
+
     public var body: some View {
         VStack(alignment: .leading, spacing: FoodTheme.Space.lg) {
 
@@ -45,16 +47,14 @@ public struct MixedPlateCard: View {
                 emptyStatePanel
             }
 
-            // Hero — restaurant range bar when the source produced a range
-            // (.imOut / .restaurantEstimate), otherwise plate-total ConfidencePill.
+            // v1.0.7 Phase A.4 — feeling-word hero (same pattern as
+            // SingleDishCard). Restaurant-range source still gets the
+            // bar (the range IS the hero in that flow); plate-total
+            // flows now get feeling → plate summary → cal+fits.
             if let low = food.kcalLow, let high = food.kcalHigh {
                 RestaurantRangeBar(kcalLow: low, kcalHigh: high)
             } else if let total = food.totalKcal {
-                ConfidencePill(
-                    kcal: total,
-                    kcalLow: nil,
-                    kcalHigh: nil
-                )
+                plateFeelingHero(totalKcal: total)
             } else {
                 Text("reading the plate…")
                     .font(.system(size: 15, weight: .medium))
@@ -77,23 +77,24 @@ public struct MixedPlateCard: View {
                 }
             }
 
-            // Plate-aggregated nutrients across all items.
-            NutrientGrid(
-                kcal: food.totalKcal,
-                proteinG: food.items.compactMap(\.proteinG).reduce(0, +).optionalNonZero,
-                carbsG: food.items.compactMap(\.carbsG).reduce(0, +).optionalNonZero,
-                fatG: food.items.compactMap(\.fatG).reduce(0, +).optionalNonZero,
-                fiberG: food.items.compactMap(\.fiberG).reduce(0, +).optionalNonZero,
-                sugarG: food.items.compactMap(\.sugarG).reduce(0, +).optionalNonZero,
-                sodiumMg: food.items.compactMap(\.sodiumMg).reduce(0, +).optionalNonZero,
-                saturatedFatG: food.items.compactMap(\.saturatedFatG).reduce(0, +).optionalNonZero
-            )
+            // Macros hidden behind a tap — see SingleDishCard A.4
+            // for rationale. NutrientGrid sums across all plate items.
+            if food.totalKcal != nil {
+                plateMacrosDisclosure
+            }
 
             // Jeni interpretation. D54: single unified copy via
             // SingleDishCard.synthesizeJeniLine (shared between
             // single + mixed plate layouts).
             if let copy = SingleDishCard.synthesizeJeniLine(for: food) {
                 JeniLine(copy)
+            }
+
+            // tell me *more* ♥ — routes the user to the per-item
+            // correction sheet via the first item. v1.0.8 will swap
+            // for the inline conversation.
+            if let item = food.items.first {
+                tellMeMoreLink(item: item)
             }
 
             // Second-photo hint, if the LLM flagged it.
@@ -128,6 +129,113 @@ public struct MixedPlateCard: View {
                 .offset(x: 6, y: -10)
                 .accessibilityHidden(true)
         }
+    }
+
+    // MARK: - Feeling-word hero (v1.0.7 Phase A.4)
+
+    /// Plate-total feeling-word hero. Same five-bucket scheme as
+    /// SingleDishCard.feelingWord(forKcal:). Plate caption uses item
+    /// count instead of a single meal name ("3 things on your plate").
+    @ViewBuilder
+    private func plateFeelingHero(totalKcal: Double) -> some View {
+        let feeling = SingleDishCard.feelingWord(forKcal: totalKcal)
+        let plateCaption: String = {
+            let n = food.items.count
+            if n == 0 { return "your plate" }
+            if n == 1 { return "1 thing on your plate" }
+            return "\(n) things on your plate"
+        }()
+
+        VStack(alignment: .leading, spacing: 6) {
+            (Text(feeling)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
+                .foregroundStyle(FoodTheme.textPrimary)
+             + Text(" ♥")
+                .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                .foregroundStyle(FoodTheme.accent))
+
+            Text(plateCaption)
+                .font(.custom("Fraunces72pt-Regular", size: 17))
+                .foregroundStyle(FoodTheme.textSecondary)
+
+            HStack(spacing: 4) {
+                Text("around \(Int(totalKcal.rounded())) cal")
+                    .font(.system(size: 13))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                Text("·")
+                    .font(.system(size: 13))
+                    .foregroundStyle(FoodTheme.textSecondary.opacity(0.6))
+                (Text("fits")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                    .foregroundStyle(FoodTheme.accent)
+                 + Text(" ♥")
+                    .font(.system(size: 13))
+                    .foregroundStyle(FoodTheme.accent))
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(feeling), \(plateCaption), around \(Int(totalKcal.rounded())) calories, fits")
+    }
+
+    @ViewBuilder
+    private var plateMacrosDisclosure: some View {
+        VStack(alignment: .leading, spacing: FoodTheme.Space.sm) {
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+                    showMacros.toggle()
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(showMacros ? "hide macros" : "show macros")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(FoodTheme.textSecondary.opacity(0.7))
+                        .rotationEffect(.degrees(showMacros ? 90 : 0))
+                }
+            }
+            .buttonStyle(.plain)
+
+            if showMacros {
+                NutrientGrid(
+                    kcal: food.totalKcal,
+                    proteinG: food.items.compactMap(\.proteinG).reduce(0, +).optionalNonZero,
+                    carbsG: food.items.compactMap(\.carbsG).reduce(0, +).optionalNonZero,
+                    fatG: food.items.compactMap(\.fatG).reduce(0, +).optionalNonZero,
+                    fiberG: food.items.compactMap(\.fiberG).reduce(0, +).optionalNonZero,
+                    sugarG: food.items.compactMap(\.sugarG).reduce(0, +).optionalNonZero,
+                    sodiumMg: food.items.compactMap(\.sodiumMg).reduce(0, +).optionalNonZero,
+                    saturatedFatG: food.items.compactMap(\.saturatedFatG).reduce(0, +).optionalNonZero
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func tellMeMoreLink(item: CapturedItem) -> some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            onItemTap(item)
+        } label: {
+            HStack(spacing: 4) {
+                Text("tell me")
+                    .font(.system(size: 13))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                (Text("more")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                    .foregroundStyle(FoodTheme.accent)
+                 + Text(" ♥")
+                    .font(.system(size: 13))
+                    .foregroundStyle(FoodTheme.accent))
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(FoodTheme.accent.opacity(0.7))
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Subviews
