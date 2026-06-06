@@ -524,6 +524,7 @@ struct OnboardingView: View {
         case 232: educationalFiveMinScreen       // before session length
         case 233: educationalCycleScreen         // after identity feeling
         case 234: educationalPlateauScreen       // before plan reveal
+        case 166: educationalPreEatScreen        // delta v7 — diet-first wedge early
 
         // ─── N1 — "anything we should know about this month?" ────
         // Hormonal-acknowledgment moment. Net-new question, but no
@@ -657,7 +658,10 @@ struct OnboardingView: View {
                 ("google",     "google search",       nil, "globe"),
                 ("other",      "somewhere else",      nil, "ellipsis.circle"),
             ],
-            sel: $acquisitionSource, next: 110
+            // Delta v7 — routes to the FOOD WEDGE start (case 162) for
+            // v2 users instead of jumping into workout questions.
+            // resolveNext sends v1 users to 110 (next in v1FlowOrder).
+            sel: $acquisitionSource, next: 162
         )
 
         case 110: jfMulti(
@@ -1067,7 +1071,9 @@ struct OnboardingView: View {
                 ("heavy",        "heavy",       nil, "cloud.rain"),
                 ("overwhelmed",  "overwhelmed", nil, "cloud.bolt"),
             ],
-            sel: $stressLevel, next: 156,
+            // Delta v7 — eating cadence/window moved to early food block,
+            // so stress now routes to hormonal stage (163) directly.
+            sel: $stressLevel, next: 163,
             // C5: affirmation beat after stress disclosure.
             confirmation: "we got you.",
             trustAnchor: WeAskBecauseRow(
@@ -1105,7 +1111,10 @@ struct OnboardingView: View {
                 ("late",     "after 10pm",  nil, "moon.zzz"),
                 ("varies",   "varies",      nil, "cloud"),
             ],
-            sel: $eatingWindow, next: 142,
+            // Delta v7 — routes to prior-win (159) which still has
+            // "logging_food" as an option. After food wedge completes
+            // we hand off to Act 2 (workout) via 201.
+            sel: $eatingWindow, next: 159,
             trustAnchor: WeAskBecauseRow(
                 citation: "bmj 2024",
                 reason: "late-night eating is the top weight-loss stall pattern.",
@@ -1130,7 +1139,9 @@ struct OnboardingView: View {
                 ("three_five", "3 to 5",       nil, "3.circle"),
                 ("many",       "lost count",   nil, "infinity"),
             ],
-            sel: $priorAttempts, next: 159,
+            // Delta v7 — prior win moved to early food block, so prior
+            // attempts now routes directly to sleep in Act 4.
+            sel: $priorAttempts, next: 154,
             // C5: affirmation beat after a skeptic-aware prior-attempts
             // disclosure. The user just admitted she's tried before;
             // brand voice acknowledges without overpromising.
@@ -1156,7 +1167,9 @@ struct OnboardingView: View {
                 ("logging_food",  "tracking food",   nil, "list.clipboard"),
                 ("nothing_yet",   "nothing yet",     nil, "questionmark.circle"),
             ],
-            sel: $priorWin, next: 162,
+            // Delta v7 — closes the food wedge block; routes to the
+            // Act 2 (workout/activity) divider at 201.
+            sel: $priorWin, next: 201,
             trustAnchor: WeAskBecauseRow(
                 citation: "bandura 1997",
                 reason: "we anchor your plan to what already works.",
@@ -1174,7 +1187,10 @@ struct OnboardingView: View {
                 ("control",      "control",     nil, "slider.horizontal.3"),
                 ("complicated",  "complicated", nil, "circle.dashed"),
             ],
-            sel: $foodRelationship, next: 154,
+            // Delta v7 — routes to the new pre-eat permission wedge
+            // (case 166) instead of the sleep Q. The food block now
+            // sits at the top of onboarding.
+            sel: $foodRelationship, next: 166,
             trustAnchor: WeAskBecauseRow(
                 citation: nil,
                 reason: "we calibrate the voice to how you relate to food.",
@@ -1460,9 +1476,26 @@ struct OnboardingView: View {
         // Act 1 — Soft entry: welcome → anti-shame anchor → soft "why" →
         // attribution. Low-stakes commitment, get her one screen in.
         200, 230, 1, 100,
-        // Act 2 — Identity build (foundation): body focus + real reason
-        // + training honesty + 5-min science + session length + commitment.
-        // 270 (12-week habit quiz) closes this act as a value-delivery beat.
+        //
+        // Delta v7 — FOOD WEDGE early (before workout Qs). The diet-first
+        // pivot's single biggest signal is that food questions land
+        // BEFORE workout questions. Pre-pivot this block lived in late
+        // Act 4 (after ~30 workout/biometric Qs); post-pivot it's the
+        // first thing she answers after the soft becoming entry.
+        //
+        //   162 (food relationship) → 166 (pre-eat permission wedge,
+        //   educational) → 156 (eating cadence) → 157 (eating window) →
+        //   159 (prior one-thing-worked — has logging_food as option).
+        //   Then continues into the demoted workout/activity block (201).
+        //
+        // 154 (sleep) + 155 (stress) + 158 (prior attempts) stay in Act 4
+        // (they're vulnerability/anchor questions, not food-specific).
+        162, 166, 156, 157, 159,
+        //
+        // Act 2 — Workout/activity (demoted from "identity build" pre-pivot).
+        // The diet-first positioning treats workout as a Tier-2 rail; the
+        // questions still land but after the food wedge has established
+        // category-fit.
         201, 110, 111, 2, 8, 232, 25, 17,
         270,
         // Act 3 — Biometric core (mid-flow, after she's already invested).
@@ -1470,18 +1503,16 @@ struct OnboardingView: View {
         160, 161,
         // Act 4 — Vulnerability + cohort signal.
         //   Lighter inputs first: identity feeling (140) → cycle primer
-        //   (233) → month signals (235).
-        //   A3 identity-anchor block (Prochaska + Bandura): previous
-        //   attempts (158) → one-thing-worked (159) → food relationship
-        //   (162). These land BEFORE A2's vulnerability so identity
-        //   anchoring precedes deeper biometric vulnerability.
+        //   (233) → month signals (235) → prior attempts (158).
         //   A2 credibility block (deeper vulnerability): sleep (154) →
-        //   stress (155) → eating cadence (156) → eating window (157).
+        //   stress (155).
         //   A4 cohort signal (deepest vulnerability — placed LAST so the
         //   user has already invested ~50 screens before being asked):
         //   hormonal stage (163) → GLP-1 status (164). Both skip-friendly.
         //   Then comparison frame (142) closes the act.
-        203, 140, 233, 235, 158, 159, 162, 154, 155, 156, 157, 163, 164, 142,
+        //
+        // Food Qs (162, 156, 157, 159) moved to early flow per delta v7.
+        203, 140, 233, 235, 158, 154, 155, 163, 164, 142,
         // Delta v7 D67 — commitment confidence (165) lands right
         // before the video demo. Cal AI's +1.7× trial-to-paid lever:
         // pure investment screen, no answer gates anything.
@@ -4618,6 +4649,24 @@ struct OnboardingView: View {
             body: "your hormones shift weekly. jeni adjusts. no push-through required.",
             next: 235,
             signature: "— and yes, she notices."
+        )
+    }
+
+    // 166 — pre-eat permission wedge (delta v7 D66 expansion).
+    // Lands EARLY (after the soft becoming Q + acquisition Q) so the
+    // diet-first signal is unmistakable in the first 6-8 screens.
+    // Per Brief #2 §3 mockup: "decide before you eat" is JeniFit's
+    // App-Store-screenshot wedge and the strongest single
+    // differentiator from Cal AI. Teaching it during onboarding sets
+    // the mental model before the user hits any workout-related Q.
+    private var educationalPreEatScreen: some View {
+        educationalScreen(
+            eyebrow: "here's something different",
+            headline: "you can decide before you eat.",
+            italicWords: ["before"],
+            body: "most apps make you log after. jenifit lets you snap before — see if it fits. no shame either way.",
+            next: 156,
+            signature: "— that's the whole game ♥"
         )
     }
 
