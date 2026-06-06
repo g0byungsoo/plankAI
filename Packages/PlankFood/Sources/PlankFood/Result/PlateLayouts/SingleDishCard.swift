@@ -45,15 +45,23 @@ public struct SingleDishCard: View {
                 emptyStatePanel
             }
 
-            // v1.0.7 Phase A.4 — feeling-word hero replaces the "around
-            // N kcal" lead. Per the behavioral expert (Helander 2014 +
-            // Pacanowski 2024 + Linardon 2025 + post-Ozempic Body Image
-            // 2025): calorie-as-hero is a disordered-eating accelerator
-            // for TikTok-acquired Gen-Z women. Feeling word → meal name
-            // → cal + fits framing puts permission upstream of the
-            // number. Italic-Fraunces punch word locked.
+            // 2026-06-06 — feeling-word hero reverted per founder
+            // direction: "bright doesn't tell me anything. i want to
+            // see 17 cal bigger." Calorie number back as the visible
+            // hero. The behavioral risk (calorie-as-hero for an anti-
+            // shame Gen-Z cohort) is real and documented in
+            // docs/home_becoming_research_behavioral_2026_06_06.md but
+            // the founder is overriding for the post-scan moment
+            // specifically — at the point of "what did I just eat?",
+            // the number IS the answer she wants. Trend-as-hero stays
+            // the Home decision (different surface, different need).
+            // Macros-behind-disclosure + tell-me-more ♥ kept from A.4.
             if let item = food.items.first, let kcal = item.kcal {
-                feelingHero(item: item, kcal: kcal)
+                ConfidencePill(
+                    kcal: kcal,
+                    kcalLow: nil,
+                    kcalHigh: nil
+                )
             } else if food.totalKcal == nil {
                 // USDA join pending — show name only, kcal lands when it does.
                 if let item = food.items.first {
@@ -257,20 +265,28 @@ public struct SingleDishCard: View {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             onItemTap(item)
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
                 Text("tell me")
-                    .font(.system(size: 13))
-                    .foregroundStyle(FoodTheme.textSecondary)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(FoodTheme.textPrimary)
                 (Text("more")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
                     .foregroundStyle(FoodTheme.accent)
                  + Text(" ♥")
-                    .font(.system(size: 13))
+                    .font(.system(size: 15))
                     .foregroundStyle(FoodTheme.accent))
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(FoodTheme.accent.opacity(0.7))
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(FoodTheme.accentSubtle.opacity(0.45))
+            .overlay(
+                Capsule().stroke(FoodTheme.accent.opacity(0.35), lineWidth: 1)
+            )
+            .clipShape(Capsule())
         }
         .buttonStyle(.plain)
     }

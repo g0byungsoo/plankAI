@@ -47,14 +47,19 @@ public struct MixedPlateCard: View {
                 emptyStatePanel
             }
 
-            // v1.0.7 Phase A.4 — feeling-word hero (same pattern as
-            // SingleDishCard). Restaurant-range source still gets the
-            // bar (the range IS the hero in that flow); plate-total
-            // flows now get feeling → plate summary → cal+fits.
+            // 2026-06-06 — feeling-word hero reverted per founder
+            // direction. ConfidencePill back as the visible hero for
+            // plate-total flows; RestaurantRangeBar still wins for the
+            // imOut estimator path. See SingleDishCard for the full
+            // rationale.
             if let low = food.kcalLow, let high = food.kcalHigh {
                 RestaurantRangeBar(kcalLow: low, kcalHigh: high)
             } else if let total = food.totalKcal {
-                plateFeelingHero(totalKcal: total)
+                ConfidencePill(
+                    kcal: total,
+                    kcalLow: nil,
+                    kcalHigh: nil
+                )
             } else {
                 Text("reading the plate…")
                     .font(.system(size: 15, weight: .medium))
@@ -220,20 +225,28 @@ public struct MixedPlateCard: View {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             onItemTap(item)
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
                 Text("tell me")
-                    .font(.system(size: 13))
-                    .foregroundStyle(FoodTheme.textSecondary)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(FoodTheme.textPrimary)
                 (Text("more")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
                     .foregroundStyle(FoodTheme.accent)
                  + Text(" ♥")
-                    .font(.system(size: 13))
+                    .font(.system(size: 15))
                     .foregroundStyle(FoodTheme.accent))
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(FoodTheme.accent.opacity(0.7))
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(FoodTheme.accentSubtle.opacity(0.45))
+            .overlay(
+                Capsule().stroke(FoodTheme.accent.opacity(0.35), lineWidth: 1)
+            )
+            .clipShape(Capsule())
         }
         .buttonStyle(.plain)
     }
