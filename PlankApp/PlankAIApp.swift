@@ -149,6 +149,12 @@ struct PlankAIApp: App {
         // sink lists, super-properties, queue, and dedup all apply.
         FoodAnalytics.register { eventName, properties in
             Analytics.track(eventName, properties: properties)
+            // W5-T5 — cancel the pending Day 3 first-log nudge the
+            // moment the user's first log lands. Cheap event-name
+            // check; runs on the analytics background queue.
+            if eventName == "food_first_log_saved" {
+                RetentionNotifications.cancelFirstLogNudge()
+            }
         }
 
         // Wire PlankFood's FoodHealthKitWriter closure-sink. Each

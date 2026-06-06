@@ -42,6 +42,12 @@ enum RetentionNotifications {
     /// (Burke et al. 2011). Cal AI / MFP / Noom / MacroFactor all have
     /// silent evenings; this is JeniFit's evening wedge.
     static let eveningPlateReviewIdentifier = "evening_plate_review"
+    /// v1.0.7 W5-T5 — Day 3 first-log nudge for users who haven't logged
+    /// a single meal in the food rail yet. Fires ONCE per install at
+    /// 12:30pm local on Day 3 (firstSeen + 72h). Cancelled the moment
+    /// FoodAnalytics records the firstLogSaved milestone — so users who
+    /// log on Day 0/1/2 never see it.
+    static let firstLogNudgeIdentifier = "food_first_log_nudge"
 
     // MARK: - Toggles (UserDefaults; default ON, gated on system permission)
 
@@ -64,6 +70,7 @@ enum RetentionNotifications {
         /// the same install doesn't re-schedule a duplicate.
         static let day0AnchorDone      = "notif.day0_anchor_done"
         static let day2EngagementDone  = "notif.day2_engagement_done"
+        static let firstLogNudgeDone   = "notif.first_log_nudge_done"
     }
 
     /// Read-only count of distinct days shown up (stamped via
@@ -119,8 +126,79 @@ enum RetentionNotifications {
             scheduleAffirmations(now: now)
             scheduleDay0AnchorIfNeeded(now: now)
             scheduleDay2EngagementIfNeeded(now: now)
+            scheduleFirstLogNudgeIfNeeded(now: now)
             scheduleEveningPlateReview()
         }
+    }
+
+    /// Cancel the first-log nudge. Called by PlankAIApp's
+    /// FoodHealthKitWriter / FoodAnalytics registration site — when the
+    /// firstLogSaved AppStorage flag flips, this fires once to clear
+    /// any pending Day 3 push.
+    static func cancelFirstLogNudge() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(
+            withIdentifiers: [firstLogNudgeIdentifier]
+        )
+        UserDefaults.standard.set(true, forKey: Key.firstLogNudgeDone)
+    }
+
+    // MARK: - Day 3 first-log nudge (W5-T5)
+    //
+    // Fires at 12:30pm local on Day 3 (firstSeen + 72h, at the next
+    // 12:30pm window) for users who haven't logged a single food entry
+    // yet. Lunch is the highest-intention first-scan moment — breakfast
+    // is rushed, dinner is socially loaded, lunch is plate-on-desk.
+    //
+    // Cancellation: the FoodAnalytics.firstLogSavedIfNeeded flag drives
+    // skip + cancel. Users who scan on Day 0/1/2 never see this push.
+    // PlankAIApp's analytics-sink registration calls cancelFirstLogNudge
+    // when firstLogSaved fires so the cancel is real-time, not next-launch.
+    //
+    // Voice: lowercase, anti-shame, no "you haven't" framing. "even a
+    // coffee counts" reframes the friction question (how hard is the
+    // first scan?) into a permission question (anything counts as start).
+
+    private static func scheduleFirstLogNudgeIfNeeded(now: Date) {
+        let d = UserDefaults.standard
+        guard !d.bool(forKey: Key.firstLogNudgeDone) else { return }
+        // Skip if the user has already logged at least once. The flag
+        // mirrors FoodAnalytics.firstLogSavedIfNeeded.
+        if d.bool(forKey: "food_analytics.first_log_saved_fired") {
+            d.set(true, forKey: Key.firstLogNudgeDone)
+            return
+        }
+        guard let firstSeen = firstSeenAt() else { return }
+
+        let cal = Calendar.current
+        // Day 3 = firstSeen + 3 calendar days at 12:30pm local.
+        guard let day3 = cal.date(byAdding: .day, value: 3, to: cal.startOfDay(for: firstSeen)) else { return }
+        var comps = cal.dateComponents([.year, .month, .day], from: day3)
+        comps.hour = 12
+        comps.minute = 30
+        guard let fireDate = cal.date(from: comps), fireDate > now.addingTimeInterval(60) else {
+            // Window already past (e.g. user installs and opens for the
+            // first time on Day 4+). Stamp done so we don't retry.
+            d.set(true, forKey: Key.firstLogNudgeDone)
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        let name = (d.string(forKey: "userName") ?? "").lowercased()
+        let opener = name.isEmpty ? "" : "\(name), "
+        content.title = "your first plate ♥"
+        content.body = "\(opener)even a coffee counts. it takes three seconds — promise."
+        content.sound = .default
+
+        let trigger = UNCalendarNotificationTrigger(
+            dateMatching: cal.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate),
+            repeats: false
+        )
+        UNUserNotificationCenter.current().add(UNNotificationRequest(
+            identifier: firstLogNudgeIdentifier,
+            content: content,
+            trigger: trigger
+        ))
+        d.set(true, forKey: Key.firstLogNudgeDone)
     }
 
     /// Daily 8:30pm local Evening Plate Review push (D64). Single
