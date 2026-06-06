@@ -59,14 +59,6 @@ struct PaywallView: View {
 
     @Query private var userRecords: [UserRecord]
 
-    /// 2026-05-31 v2 single-screen redesign: drives the commitment-ladder
-    /// progress bar. SessionLogRecord is the immutable source of truth for
-    /// "what has the user already done." Pulled via @Query so the bar
-    /// reflects any new sessions logged between paywall renders. For
-    /// brand-new users at post-onboarding paywall, count = 0 and the
-    /// computation below floors at 4% (counts onboarding investment).
-    @Query private var sessionLogsAll: [SessionLogRecord]
-
     @State private var auth = AuthService.shared
 
     /// Cross-device-synced UserRecord row for the current auth user, or
@@ -95,12 +87,10 @@ struct PaywallView: View {
     @State private var selectedPlan: Plan = .yearly
     @State private var working = false
     @State private var errorMessage: String?
-    /// Delta v8 D78 — two-step paywall split (calai43 → calai27).
-    /// Step 1 captures commitment (single CTA, no tier choice, "no
-    /// payment due now" reassurance). Step 2 captures tier selection
-    /// under a yes already given. +18-26% paywall→trial per Superwall
-    /// 2026 cross-app data — the monetization brief's #1 lever.
-    @State private var paywallStep: Int = 1
+    /// 2026-06-06 — replaces the v8 D78 two-step pattern. Founder + UX +
+    /// monetization research (paywall_research_*_2026_06_06.md) chose
+    /// single-screen with projection-as-hero. Drawer shows alt plans.
+    @State private var showAllPlansSheet: Bool = false
     @State private var legalDoc: LegalDoc?
     @State private var offering: Offering?
     @State private var loadingOfferings = true
@@ -219,26 +209,16 @@ struct PaywallView: View {
             return (base, [punch])
         }
 
-        // v5 weight-loss-direct hero (research Q1/Q3 winning pattern —
-        // Cal AI + Noom both ship "lose X by Y" projection-framed copy).
-        // Apple-safe because the verb "on track to" is a projection
-        // hedge, not a promise. Punch word is "lose N lbs" to anchor
-        // the outcome the user came for.
-        if let lbs = weightToLoseDisplay,
-           let date = projectedTargetDateText {
-            let unit = WeightUnit.current.label
-            let lbsInt = Int(lbs.rounded())
-            let punch = "lose \(lbsInt) \(unit)"
-            let base = "\(namePrefix)you're on track to \(punch) by \(date)."
-            return (base, [punch])
-        }
-
-        // Graceful fallback — user without weight goal (maintain/gain mode
-        // or didn't enter weights). Falls back to becoming-ritual copy.
-        if first.isEmpty {
-            return ("your 5-min becoming ritual starts today.", ["becoming"])
-        }
-        return ("\(first), your 5-min becoming ritual starts today.", ["becoming"])
+        // 2026-06-06 — anti-Cal-AI permission-framing default (UX
+        // research, paywall_research_ux_2026_06_06.md §4). Replaces
+        // the v5 "lose N lbs by date" outcome-promise hero. US Gen-Z
+        // cohort is Cal-AI-trained + pattern-matches direct WL copy
+        // to scammy. Permission frame ("softer with food") signals
+        // anti-restriction without sacrificing WL intent. Italic-
+        // Fraunces lands on the punch word per locked voice.
+        let punch = "softer"
+        let base = "\(namePrefix)\(punch) with food."
+        return (base, [punch])
     }
 
     // MARK: RevenueCat package lookup
@@ -276,36 +256,6 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: - Commitment-ladder (v2 redesign 2026-05-31)
-    //
-    // The "you've already mapped N% of becoming" progress bar pulls real
-    // session-log data through EngagementDayCalculator. Frames the price
-    // as continuation, not purchase — ethical loss-aversion. Apple-safe
-    // because there's no "you'll lose X" framing; it's pure surfacing of
-    // work already invested.
-    //
-    // Calibration: 12-week becoming arc = 84 days. Brand-new users at
-    // post-onboarding paywall have 0 completed sessions; the formula
-    // floors at 4% so the bar isn't visually empty (4% accounts for the
-    // onboarding investment itself — they spent 4+ minutes mapping this
-    // plan). Caps at 100% for users who hit/exceed the 12-week mark.
-
-    private var sessionLogsForUser: [SessionLogRecord] {
-        guard let userId = auth.currentUser?.id.uuidString.lowercased(), !userId.isEmpty else {
-            return sessionLogsAll
-        }
-        return sessionLogsAll.filter { $0.userId.lowercased() == userId }
-    }
-
-    /// Engagement percent for the becoming-ritual progress bar. Real
-    /// computation: days completed out of 84 (12 weeks), with a 4% floor
-    /// to surface the onboarding investment even for day-0 users.
-    private var becomingPercent: Int {
-        let days = EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogsForUser)
-        let raw = Double(days + 3) / 84.0 * 100.0  // +3 base = onboarding floor
-        return max(4, min(100, Int(raw.rounded())))
-    }
-
     // MARK: - Weight-loss projection (v5 2026-05-31)
     //
     // Pulls from already-collected onboarding fields (currentWeightKg +
@@ -322,78 +272,6 @@ struct PaywallView: View {
     // Graceful fallback at every site: if the user didn't set a weight
     // goal (or is in maintain/gain mode), the WL hero + pill drop out
     // and the paywall falls back to the becoming-ritual copy.
-
-    /// Lbs (or kg, per user preference) to lose, display-unit rounded.
-    /// Nil when no goal set or in maintain/gain mode.
-    private var weightToLoseDisplay: Double? {
-        guard let record = currentUserRecord,
-              let current = record.onboardingCurrentWeightKg,
-              let goal = record.onboardingGoalWeightKg,
-              current > goal else { return nil }
-        return WeightUnit.current.display(fromKg: current - goal)
-    }
-
-    private var currentWeightDisplay: Double? {
-        guard let record = currentUserRecord,
-              let kg = record.onboardingCurrentWeightKg else { return nil }
-        return WeightUnit.current.display(fromKg: kg)
-    }
-
-    private var goalWeightDisplay: Double? {
-        guard let record = currentUserRecord,
-              let kg = record.onboardingGoalWeightKg else { return nil }
-        return WeightUnit.current.display(fromKg: kg)
-    }
-
-    /// Projected per-week loss in display units (lb default).
-    /// ACSM midpoint 0.75%/wk of current body weight.
-    private var perWeekLossDisplay: Double? {
-        guard let record = currentUserRecord,
-              let current = record.onboardingCurrentWeightKg else { return nil }
-        return WeightUnit.current.display(fromKg: current * 0.0075)
-    }
-
-    /// Projected target date at the 0.75%/wk pace. Floored at 2 weeks
-    /// (avoids "by next week" overpromise) and capped at 6 months
-    /// (projection beyond that loses credibility).
-    private var projectedTargetDate: Date? {
-        guard let record = currentUserRecord,
-              let current = record.onboardingCurrentWeightKg,
-              let goal = record.onboardingGoalWeightKg,
-              current > goal else { return nil }
-        let kgToLose = current - goal
-        let kgPerWeek = current * 0.0075
-        guard kgPerWeek > 0 else { return nil }
-        let weeksRaw = kgToLose / kgPerWeek
-        let weeks = min(max(weeksRaw, 2.0), 26.0)
-        return Calendar.current.date(byAdding: .day, value: Int(weeks * 7), to: Date())
-    }
-
-    private var projectedTargetDateText: String? {
-        guard let date = projectedTargetDate else { return nil }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
-        return formatter.string(from: date).lowercased()
-    }
-
-    /// Pace label for the projection pill. Maps voicePreference → pace
-    /// word the user already implicitly chose in onboarding. Italic-
-    /// Fraunces punch word per brand voice lock.
-    private var paceLabel: String {
-        switch voicePreference {
-        case "encouraging": return "gentle pace"
-        case "balanced":    return "steady pace"
-        case "roast":       return "ambitious pace"
-        default:            return "steady pace"
-        }
-    }
-
-    private func formatWeight(_ value: Double) -> String {
-        if value == value.rounded() {
-            return String(format: "%.0f", value)
-        }
-        return String(format: "%.1f", value)
-    }
 
     /// 2026-05-30 (epic #1 child #6): true when the user has set a
     /// weight-loss goal that's solvable in ~12 weeks at ACSM's 0.5-1%/wk
@@ -523,105 +401,74 @@ struct PaywallView: View {
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
 
-            // 2026-05-31 v5 weight-loss-direct redesign. Drops feature
-            // mini-grid + outcome anchor in favor of the goal-projection
-            // pill — the single highest-impact mid-section element for
-            // WL apps per Cal AI / Noom / Yazio teardown research.
-            // Composition:
-            //   slot 1: topBar (44pt, floating)
-            //   slot 2: heroCompactV2 (~110pt) — weight-loss-direct copy
-            //   slot 2.5: goalProjectionPill (~50pt) — current→goal · pace
-            //   slot 3: reflectedAnswerCaption (~44pt) — onboarding mirror
-            //   slot 4: pricingRowHorizontal (~132pt) — 3 cards across
-            //   slot 5: trialOrPlanRecap (~88pt yearly, ~36pt others)
-            //   slot 6: trustMicroline (~24pt) — privacy assurance
-            //   slot 7: ctaButtonV2 (~56pt) — near-black rect
-            //   slot 8: legalFooterCompact (~24pt) — terms · privacy
+            // 2026-06-06 single-screen redesign. No scroll. Projection
+            // card is the hero element (UX + monetization brief
+            // consensus — see docs/paywall_research_*_2026_06_06.md).
+            // Composition (target ≤720pt for iPhone 13 mini):
+            //   slot 1: topBar (44pt, floating)        — Restore
+            //   slot 2: heroPermission (~80pt)         — permission frame
+            //   slot 3: becomingProjectionCard (~260pt) — promoted to hero
+            //   slot 4: singleTierCard (~96pt)         — visible plan
+            //   slot 5: seeOtherPlansLink (~28pt)      — opens drawer
+            //   slot 6: trialOrPlanRecap (~88pt yearly, ~36pt others)
+            //   slot 7: ctaButtonV2 (~56pt)            — cocoa pill
+            //   slot 8: trustAndLegalFooter (~32pt)    — trust + legal
             //
             // Apple-safety lock: weight-loss copy is allowed (Cal AI was
             // pulled for deceptive billing UI, NOT for WL claims per
-            // techcrunch/macrumors April 2026). All projection copy
-            // hedges with "on track to" verb framing.
-            if paywallStep == 1 {
-                step1CommitView
-            } else {
-                // Delta v8 follow-up (2026-06-06) — content scrolls,
-                // CTA + footer pin to bottom. Step 2's 8-slot stack
-                // overflowed on iPhone 13 mini / SE-class viewports
-                // after BecomingProjectionCard was added — hero clipped
-                // at top, "continue" + legal clipped at bottom.
-                VStack(spacing: 0) {
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 0) {
-                            Spacer().frame(height: 56)  // topBar reserve
+            // techcrunch/macrumors April 2026). Permission-frame default
+            // sidesteps Cal-AI-trained cohort pattern-match risk.
+            // card is the hero element (UX + monetization brief
+            // consensus — see docs/paywall_research_*_2026_06_06.md).
+            // Single tier card visible; alt plans behind a drawer.
+            // Targets iPhone 13 mini's ~720pt usable height.
+            VStack(spacing: 8) {
+                Spacer().frame(height: 44)  // topBar reserve
 
-                            heroCompactV2
-                                .padding(.horizontal, Space.lg)
-                                .padding(.top, 4)
+                heroPermission
+                    .padding(.horizontal, Space.lg)
 
-                            Spacer().frame(height: 10)
+                becomingProjectionCard
+                    .padding(.horizontal, Space.lg)
 
-                            reflectedAnswerCaption
-                                .padding(.horizontal, Space.lg)
+                singleTierCard
+                    .padding(.horizontal, Space.lg)
 
-                            Spacer().frame(height: 18)
+                seeOtherPlansLink
 
-                            pricingRowHorizontal
-                                .padding(.horizontal, Space.lg)
-                            if offeringsLoadFailed {
-                                offeringsLoadFailedRow
-                                    .padding(.horizontal, Space.lg)
-                                    .padding(.top, 8)
-                            }
-
-                            Spacer().frame(height: 16)
-
-                            trialOrPlanRecap
-                                .padding(.horizontal, Space.lg)
-
-                            Spacer().frame(height: 12)
-
-                            trustMicroline
-                                .padding(.horizontal, Space.lg)
-
-                            Spacer().frame(height: 14)
-
-                            becomingProjectionCard
-                                .padding(.horizontal, Space.lg)
-
-                            Spacer().frame(height: 12)
-                        }
-                    }
-
-                    // Pinned CTA + legal — always reachable regardless
-                    // of scroll position. bg fill makes the boundary
-                    // read as intentional, not clipped.
-                    VStack(spacing: 0) {
-                        ctaButtonV2
-                            .padding(.horizontal, Space.lg)
-                        if let errorMessage {
-                            Text(errorMessage)
-                                .font(.system(size: 11))
-                                .foregroundStyle(Palette.stateBad)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, Space.lg)
-                                .padding(.top, 6)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-
-                        Spacer().frame(height: 8)
-
-                        legalFooterCompact
-                            .padding(.horizontal, Space.lg)
-                            .padding(.bottom, 12)
-                    }
-                    .background(Palette.bgPrimary)
+                trialOrPlanRecap
+                    .padding(.horizontal, Space.lg)
+                if offeringsLoadFailed {
+                    offeringsLoadFailedRow
+                        .padding(.horizontal, Space.lg)
                 }
+
+                Spacer(minLength: 0)
+
+                ctaButtonV2
+                    .padding(.horizontal, Space.lg)
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.stateBad)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Space.lg)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                trustAndLegalFooter
+                    .padding(.horizontal, Space.lg)
+                    .padding(.bottom, 12)
             }
 
             topBar
                 .padding(.horizontal, Space.lg)
                 .padding(.top, Space.sm)
+        }
+        .sheet(isPresented: $showAllPlansSheet) {
+            allPlansSheet
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
         }
         .sheet(item: $legalDoc) { doc in
             SafariView(url: doc.url).ignoresSafeArea()
@@ -657,138 +504,247 @@ struct PaywallView: View {
     // convention), the chip strip (down to 44pt caption), and the
     // testimonial (no real source available).
 
-    /// Delta v8 D78 — paywall step 1 (commitment-only). Single CTA,
-    /// no tier choice, anxiety-neutralizing "no payment due now ♥"
-    /// + 3-day timeline preview. User says yes to commit; step 2
-    /// captures HOW (tier). Cal AI's calai43 → calai27 architecture.
-    @ViewBuilder private var step1CommitView: some View {
-        VStack(spacing: 0) {
-            Spacer().frame(height: 56)
+    // MARK: - 2026-06-06 single-screen helpers
+    //
+    // Built from the two-expert paywall research (UX + monetization,
+    // saved at docs/paywall_research_*_2026_06_06.md). Cuts step 1
+    // (commitment-only) and the 3-card horizontal pricing row in favor
+    // of a projection-as-hero composition with the alt plans behind a
+    // drawer. Single screen, no scroll, iPhone 13 mini compatible.
 
-            heroCompactV2
-                .padding(.horizontal, Space.lg)
-                .padding(.top, 4)
-
-            Spacer().frame(height: 18)
-
-            HStack(spacing: 8) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Palette.accent)
-                Text("no payment due now ♥")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Palette.textPrimary)
-            }
-            .padding(.horizontal, Space.lg)
-
-            Spacer().frame(height: 18)
-
-            VStack(alignment: .leading, spacing: 12) {
-                timelineLineRow(filled: true,  label: "today",
-                                text: "unlock your becoming plan")
-                timelineLineRow(filled: false, label: "day 2",
-                                text: "we'll send you one note before anything renews")
-                timelineLineRow(filled: false, label: "day 3",
-                                text: "trial ends · cancel anytime or stay on")
-            }
-            .padding(Space.md)
-            .background(Palette.bgElevated, in: RoundedRectangle(cornerRadius: 16))
-            .padding(.horizontal, Space.lg)
-
-            Spacer(minLength: 16)
-
-            Button {
-                Haptics.medium()
-                Analytics.track(.paywallCtaTapped, properties: [
-                    "step": 1,
-                    "plan": "deferred",
-                ])
-                withAnimation(.easeInOut(duration: 0.35)) {
-                    paywallStep = 2
-                }
-            } label: {
-                Text("continue ♥")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
-                    .foregroundStyle(Palette.textInverse)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(Palette.bgInverse)
-                    .clipShape(Capsule())
-            }
-            .padding(.horizontal, Space.lg)
-
-            Spacer().frame(height: 12)
-
-            legalFooterCompact
-                .padding(.horizontal, Space.lg)
-                .padding(.bottom, 16)
-        }
-    }
-
-    /// Slot 2 — identity hero. Lighter Fraunces weight (SemiBold→Regular
-    /// at 400) per 2026 luxury convention. Drops bold; bold reads
-    /// discount. Includes name prefix when available. Italic-Fraunces
-    /// on "becoming" punch word (locked voice signal).
-    private var heroCompactV2: some View {
+    /// Permission-framed hero. 80pt. Single-line italic-Fraunces
+    /// punch word on "softer" — anti-Cal-AI variant chosen by founder
+    /// from the UX brief. Drops the "YOUR PLAN" eyebrow per luxury
+    /// convention (eyebrows read corporate).
+    private var heroPermission: some View {
         let parts = headlineParts
-        return VStack(spacing: 6) {
-            Text("YOUR PLAN")
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(2.4)
-                .foregroundStyle(Palette.textSecondary)
+        return VStack(spacing: 4) {
+            ItalicAccentText(
+                parts.base,
+                italic: parts.italic,
+                baseFont: .custom("Fraunces72pt-Regular", size: 28),
+                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
+                alignment: .center
+            )
+            .tracking(-0.4)
+            .padding(.horizontal, 8)
+            .fixedSize(horizontal: false, vertical: true)
 
-            ItalicAccentText(parts.base,
-                             italic: parts.italic,
-                             baseFont: .custom("Fraunces72pt-Regular", size: 26),
-                             italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 26),
-                             alignment: .center)
-                .tracking(-0.4)
-                .padding(.horizontal, 8)
+            Text("no rules. just becoming, with permission.")
+                .font(.system(size: 12))
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
     }
 
-    /// Slot 3 — reflected onboarding answers as caption. 44pt, no chips,
-    /// no pills, no icons. Pulls bodyFocus + pace + commitment from
-    /// already-collected data. Reciprocity loop ("we listened") without
-    /// announcing it. Falls back gracefully when answers missing.
-    private var reflectedAnswerCaption: some View {
-        let parts = reflectedAnswerParts
-        return Text(parts.joined(separator: " · "))
-            .font(.system(size: 12))
-            .tracking(0.2)
-            .foregroundStyle(Palette.textSecondary)
-            .multilineTextAlignment(.center)
-            .lineLimit(2)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity)
+    /// Single visible tier card — renders the currently-selected plan
+    /// at full width. Default is Yearly (with 3-DAY FREE badge); if
+    /// the user picks something else via the drawer, this swaps to
+    /// reflect that. Replaces the 3-cards-horizontal pricingRowHorizontal
+    /// per monetization brief (single anchor + drawer beats triple-row
+    /// for our cohort).
+    @ViewBuilder private var singleTierCard: some View {
+        switch selectedPlan {
+        case .yearly:
+            tierCardYearly
+        case .quarterly:
+            tierCardQuarterly
+        case .weekly:
+            tierCardWeekly
+        }
     }
 
-    private var reflectedAnswerParts: [String] {
-        var parts: [String] = []
-        switch bodyFocus {
-        case "flatBelly": parts.append("flat belly focus")
-        case "tonedArms": parts.append("toned arms focus")
-        case "roundButt": parts.append("round butt focus")
-        case "slimLegs":  parts.append("slim legs focus")
-        case "fullBody":  parts.append("full-body focus")
-        default: break
+    private var tierCardYearly: some View {
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text("Yearly")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("3-DAY FREE")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.8)
+                        .foregroundStyle(Palette.textInverse)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Palette.bgInverse, in: Capsule())
+                }
+                HStack(spacing: 6) {
+                    Text(yearlyPrice)
+                        .font(.custom("Fraunces72pt-SemiBold", size: 22))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("$99.96")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.textSecondary)
+                        .strikethrough(true, color: Palette.textSecondary)
+                }
+                // Dollar-savings framing — post-Cal-AI safer than "save 52%"
+                // per monetization brief. Math: $99.96 (4×$24.99 quarterly
+                // anchor, genuine) − $47.99 = $51.97. Audit-clean.
+                Text("save $51.97 vs quarterly")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.accent)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(Palette.accent)
         }
-        if let mins = Int(sessionLengthPref), mins > 0 {
-            parts.append("\(mins) min/day")
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Palette.bgElevated)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Palette.accent, lineWidth: 1.5)
+                )
+        )
+    }
+
+    private var tierCardQuarterly: some View {
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("12-week")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary)
+                Text(quarterlyPrice)
+                    .font(.custom("Fraunces72pt-SemiBold", size: 22))
+                    .foregroundStyle(Palette.textPrimary)
+                Text("$0.45/day · billed once today")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(Palette.accent)
         }
-        switch voicePreference {
-        case "encouraging": parts.append("gentle pace")
-        case "balanced":    parts.append("steady pace")
-        case "roast":       parts.append("energetic pace")
-        default: break
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Palette.bgElevated)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Palette.accent, lineWidth: 1.5)
+                )
+        )
+    }
+
+    private var tierCardWeekly: some View {
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Weekly")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary)
+                Text(weeklyPrice)
+                    .font(.custom("Fraunces72pt-SemiBold", size: 22))
+                    .foregroundStyle(Palette.textPrimary)
+                Text("pay as you go · cancel anytime")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(Palette.accent)
         }
-        if let days = Int(commitmentDays), days > 0 {
-            parts.append("\(days)-day commit")
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Palette.bgElevated)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Palette.accent, lineWidth: 1.5)
+                )
+        )
+    }
+
+    private var seeOtherPlansLink: some View {
+        Button {
+            Haptics.light()
+            showAllPlansSheet = true
+        } label: {
+            Text("see other plans")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Palette.textSecondary)
+                .underline()
         }
-        if parts.isEmpty { parts.append("built around your 12-week becoming plan") }
-        return parts
+        .buttonStyle(.plain)
+    }
+
+    /// Drawer with the two non-default plans. Tapping a row selects it
+    /// and dismisses. Sheet uses .medium detent so it doesn't take over
+    /// the screen.
+    @ViewBuilder private var allPlansSheet: some View {
+        VStack(spacing: 16) {
+            Text("all plans")
+                .font(.custom("Fraunces72pt-SemiBold", size: 20))
+                .foregroundStyle(Palette.textPrimary)
+                .padding(.top, 8)
+
+            Button {
+                Haptics.light()
+                withAnimation(Motion.tap) { selectedPlan = .yearly }
+                showAllPlansSheet = false
+            } label: { tierCardYearly }
+                .buttonStyle(.plain)
+                .padding(.horizontal, Space.lg)
+
+            Button {
+                Haptics.light()
+                withAnimation(Motion.tap) { selectedPlan = .quarterly }
+                showAllPlansSheet = false
+            } label: { tierCardQuarterly }
+                .buttonStyle(.plain)
+                .padding(.horizontal, Space.lg)
+
+            Button {
+                Haptics.light()
+                withAnimation(Motion.tap) { selectedPlan = .weekly }
+                showAllPlansSheet = false
+            } label: { tierCardWeekly }
+                .buttonStyle(.plain)
+                .padding(.horizontal, Space.lg)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.bottom, 24)
+        .background(Palette.bgPrimary)
+    }
+
+    /// Compact two-line footer combining the trust microline and the
+    /// terms · privacy legal links. Saves ~16pt over rendering both
+    /// as separate sections.
+    private var trustAndLegalFooter: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 6) {
+                Image("sticker_flower_3d")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 14, height: 14)
+                    .rotationEffect(.degrees(-8))
+                    .accessibilityHidden(true)
+                Text("your data stays yours · no ads, ever")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            HStack(spacing: 6) {
+                Button("terms") { legalDoc = .terms }
+                    .font(.system(size: 10))
+                    .foregroundStyle(Palette.textSecondary.opacity(0.7))
+                    .buttonStyle(.plain)
+                Text("·")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Palette.textSecondary.opacity(0.5))
+                Button("privacy") { legalDoc = .privacy }
+                    .font(.system(size: 10))
+                    .foregroundStyle(Palette.textSecondary.opacity(0.7))
+                    .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 
     /// v6 BecomingProjectionCard — visual data-viz that fills the dead
@@ -944,131 +900,6 @@ struct PaywallView: View {
         }
     }
 
-    /// Slot 6 — trust microline + the ONE coquette sticker on paywall.
-    /// flower3D glyph at left, privacy assurance text. Footer-anchored,
-    /// periphery placement — Co-Star/Mejuri pattern. Privacy lines are
-    /// "materially" conversion-moving for women's health (Funnelfox 2025).
-    private var trustMicroline: some View {
-        HStack(spacing: 8) {
-            Image("sticker_flower_3d")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 16, height: 16)
-                .rotationEffect(.degrees(-8))
-                .accessibilityHidden(true)
-            Text("your data stays yours · no ads, ever")
-                .font(.system(size: 11))
-                .foregroundStyle(Palette.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    /// Slot 9 — compact legal footer (terms · privacy only). The risk-
-    /// reversal copy moved into the trial timeline / plan recap line, so
-    /// this is just legal links. Stays muted and small.
-    private var legalFooterCompact: some View {
-        HStack(spacing: 8) {
-            Button("terms") { legalDoc = .terms }
-                .font(.system(size: 11))
-                .foregroundStyle(Palette.textSecondary.opacity(0.7))
-                .buttonStyle(.plain)
-            Text("·")
-                .font(.system(size: 11))
-                .foregroundStyle(Palette.textSecondary.opacity(0.5))
-            Button("privacy") { legalDoc = .privacy }
-                .font(.system(size: 11))
-                .foregroundStyle(Palette.textSecondary.opacity(0.7))
-                .buttonStyle(.plain)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    /// Slot 5 — horizontal pricing row, 3 cards across, default first.
-    /// Order: default plan (goal-aware) → remaining tiers stable. Yearly
-    /// always carries the trial badge; default plan also carries the
-    /// "best value" neutral badge when distinct from yearly.
-    private var pricingRowHorizontal: some View {
-        HStack(spacing: 10) {
-            ForEach(orderedPlans, id: \.self) { plan in
-                compactPricingCard(for: plan)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func compactPricingCard(for plan: Plan) -> some View {
-        // Visual weight stack on the default (first in orderedPlans):
-        //   1. "MOST POPULAR" pill (small caps) anchors top-center
-        //   2. 2pt warm-red border + warmer cream fill via PricingCardCompact
-        //   3. "3-DAY FREE" trial badge always on yearly (independent signal)
-        // Per Q3 research: stacked weight cues guarantee the recommended
-        // tier visually dominates even at small card sizes — kills the
-        // "cheapest looks selected" bug from v2.
-        let isDefault = orderedPlans.first == plan
-        let isYearly = plan == .yearly
-        let badgeText: String? = {
-            if isYearly { return "3-DAY FREE" }
-            if isDefault { return "MOST POPULAR" }
-            return nil
-        }()
-        let badgeKind: PricingCardCompact.BadgeKind = isYearly ? .trial : .neutral
-
-        switch plan {
-        case .yearly:
-            // Anchor strikethrough = 4×$24.99 (= $99.96) genuine math,
-            // not a fabricated MSRP. Apple-safe per post-Cal-AI research
-            // (research Q2): anchored pricing is allowed if anchor is
-            // real. $99.96 - $47.99 = $51.97 save = 52% off — real anchor
-            // for users who'd otherwise pay 4 quarterly tiers.
-            PricingCardCompact(
-                title: "Yearly",
-                price: yearlyPrice,
-                // Delta v8 D84 follow-up (2026-06-06) — dropped the
-                // "$0.92/wk" prefix that snuck through. That weekly-
-                // equivalent display on an annual SKU is the exact
-                // pattern Apple pulled Cal AI for in April 2026. The
-                // 52% number itself is real ($99.96 anchor − $47.99 =
-                // $51.97 = 51.99% off), so the savings call-out is
-                // compliant on its own.
-                subtitle: "save 52%",
-                anchor: "$99.96",
-                badge: badgeText,
-                badgeKind: badgeKind,
-                isSelected: selectedPlan == .yearly,
-                isDefault: isDefault
-            ) {
-                Haptics.light()
-                withAnimation(Motion.tap) { selectedPlan = .yearly }
-            }
-        case .quarterly:
-            PricingCardCompact(
-                title: "12-week",
-                price: quarterlyPrice,
-                subtitle: "$0.45/day",
-                badge: badgeText,
-                badgeKind: badgeKind,
-                isSelected: selectedPlan == .quarterly,
-                isDefault: isDefault
-            ) {
-                Haptics.light()
-                withAnimation(Motion.tap) { selectedPlan = .quarterly }
-            }
-        case .weekly:
-            PricingCardCompact(
-                title: "Weekly",
-                price: weeklyPrice,
-                subtitle: "pay as you go",
-                badge: badgeText,
-                badgeKind: badgeKind,
-                isSelected: selectedPlan == .weekly,
-                isDefault: isDefault
-            ) {
-                Haptics.light()
-                withAnimation(Motion.tap) { selectedPlan = .weekly }
-            }
-        }
-    }
-
     private var quarterlyPrice: String {
         quarterlyPriceText.replacingOccurrences(of: "/3 months", with: "")
     }
@@ -1186,23 +1017,6 @@ struct PaywallView: View {
     }
 
     // MARK: Sections
-
-    /// Plan order for the pricing stack — default first (per primacy
-    /// bias + research), then the remaining tiers in a stable order.
-    /// Weekly is never default and always last. Quarterly appears when
-    /// its RC package is available OR (in DEBUG) when debugMockPricing
-    /// is active so the founder can visually verify the 3-card layout
-    /// before completing the ASC manual setup.
-    private var orderedPlans: [Plan] {
-        let quarterlyAvailable = quarterlyPackage != nil || debugMockPricing
-        let defaultPlan: Plan = (goalSolvableInTwelveWeeks && quarterlyAvailable)
-            ? .quarterly : .yearly
-        var rest: [Plan] = [.yearly, .quarterly, .weekly].filter { $0 != defaultPlan }
-        if !quarterlyAvailable {
-            rest.removeAll { $0 == .quarterly }
-        }
-        return [defaultPlan] + rest
-    }
 
     /// Yearly card price ("$47.99"). Strips the "/year" suffix used by the
     /// legacy headline text — the card subtitle already carries the
