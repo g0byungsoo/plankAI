@@ -36,13 +36,10 @@ struct BecomingDashboardHero: View {
     let startingWeightKg: Double?
     let logs: [WeightLogRecord]
     let unit: WeightUnit
-    let streakDays: Int
-    let bestPlankSeconds: Double
-    let sessionsThisWeek: Int
     let onLogWeight: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 12) {
             if latestWeightKg == nil {
                 EditorialEmptyState(
                     headline: "your week is unwritten.",
@@ -55,10 +52,6 @@ struct BecomingDashboardHero: View {
                     sparkline.padding(.top, 4)
                 }
             }
-
-            hairline
-
-            statRow
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -204,61 +197,12 @@ struct BecomingDashboardHero: View {
         return Calendar.current.dateComponents([.day], from: earliest, to: .now).day
     }
 
-    // MARK: - Hairline
-
-    /// 0.5pt cocoa at 12%. NEVER 1pt — the difference is the whole
-    /// thing.
-    private var hairline: some View {
-        Rectangle()
-            .fill(Palette.hairlineCocoa)
-            .frame(height: 0.5)
-            .padding(.vertical, 4)
-            .accessibilityHidden(true)
-    }
-
-    // MARK: - 3-stat row
-
-    /// Streak · Plank PR · This week. Equal-weight 3-column layout.
-    /// Labels uppercase tracked +0.06em cocoa 48%. Numbers DM Sans
-    /// Medium 22pt tabular cocoa 100%. The Aesop specimen-label
-    /// move: small uppercase labels with tracking are "60% of the
-    /// difference between a warm tool and a tracker."
-    private var statRow: some View {
-        HStack(alignment: .top, spacing: 0) {
-            statColumn(label: "STREAK", value: "\(streakDays)")
-            statColumn(label: "PLANK PR", value: plankPRDisplay)
-            statColumn(label: "THIS WEEK", value: "\(sessionsThisWeek)")
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Streak \(streakDays) days, plank personal record \(plankPRDisplay), \(sessionsThisWeek) sessions this week")
-    }
-
-    private var plankPRDisplay: String {
-        let total = Int(bestPlankSeconds.rounded())
-        guard total > 0 else { return "—" }
-        let m = total / 60
-        let s = total % 60
-        if m > 0 {
-            return String(format: "%d:%02d", m, s)
-        }
-        return "\(s)s"
-    }
-
-    private func statColumn(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label)
-                .font(Typo.statLabel)
-                .kerning(0.66) // +0.06em at 11pt
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.cocoaTertiary)
-            Text(value)
-                .font(Typo.numeralStat)
-                .monospacedDigit()
-                .foregroundStyle(Palette.cocoaPrimary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
+    // v1.0.7 snapshot redesign 2026-06-06 (founder feedback round 3):
+    // the 3-stat row (streak / plank PR / this week) moved out to
+    // dedicated BecomingStatTile components so the snapshot grid
+    // can lay them out as 2-up secondary tiles. Hero is now just
+    // the weight digit + delta + sparkline — single signal, single
+    // tile, ~180pt of vertical.
 }
 
 #if DEBUG
@@ -268,9 +212,6 @@ struct BecomingDashboardHero: View {
         startingWeightKg: 65.9,
         logs: [],
         unit: .lb,
-        streakDays: 12,
-        bestPlankSeconds: 102,
-        sessionsThisWeek: 4,
         onLogWeight: {}
     )
     .padding(20)
@@ -283,9 +224,6 @@ struct BecomingDashboardHero: View {
         startingWeightKg: nil,
         logs: [],
         unit: .lb,
-        streakDays: 0,
-        bestPlankSeconds: 0,
-        sessionsThisWeek: 0,
         onLogWeight: {}
     )
     .padding(20)

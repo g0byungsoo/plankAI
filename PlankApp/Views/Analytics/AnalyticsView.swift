@@ -423,22 +423,24 @@ struct AnalyticsView: View {
                 // rows for active users) — eager VStack would render
                 // and animate them all on appear.
                 LazyVStack(alignment: .leading, spacing: 20) {
-                    // Bento journey redesign: identity hero → bento grid (the
-                    // new weight-loss story: coach read, trend hero, forecast,
-                    // milestone, % goal, weigh-in cadence, NSV wins, future
-                    // tiles) → kept depth (consistency calendar, barriers,
-                    // strength, the log). All from collected data; no DB change.
-                    header
+                    // v1.0.7 Becoming snapshot redesign (founder feedback
+                    // round 3, 2026-06-06: "becoming screen is still too
+                    // busy ... no snapshot feeling of showing everything
+                    // in one snap"). Per the 3 luxury fitness designers
+                    // briefs in
+                    // docs/becoming_snapshot_redesign_briefs_2026_06_06.md
+                    // — chapter spreads die above the fold; everything
+                    // visible in one viewport.
+                    //
+                    // Status strip replaces the page hero ("you're /
+                    // becoming steady"). Concierge tell — date + state
+                    // word in italic-Fraunces jeweledRose top-right.
+                    BecomingStatusStrip(weightLogs: weightLogs)
                         .padding(.top, Space.md)
                         .opacity(sectionOpacity[0])
                         .offset(y: sectionOffset[0])
                         .blur(radius: headerBlur)
 
-                    // v1.0.7 W4-T3 — 5-card BecomingStackView replaces the
-                    // bento grid when the food rail is enabled. The bento
-                    // reads as a dashboard; the stack reads as a chapter
-                    // of her becoming. Flag-off users keep the bento so
-                    // there's zero regression for the pre-1.0.7 cohort.
                     if FoodFlags.isEnabled {
                         becomingStack
                             .opacity(sectionOpacity[1])
@@ -449,6 +451,12 @@ struct AnalyticsView: View {
                             .offset(y: sectionOffset[1])
                     }
 
+                    // Below-the-fold drill-in content. Per the
+                    // unanimous-kill verdict the chapter spreads die on
+                    // first viewport; the chapter CONTENT survives here
+                    // as bare modules the curious user scrolls into.
+                    // Activity calendar, barriers, plank curve, recent
+                    // sessions — all preserved, just below the snapshot.
                     activityCalendar
                         .opacity(sectionOpacity[2])
                         .offset(y: sectionOffset[2])
@@ -695,50 +703,111 @@ struct AnalyticsView: View {
     // logs + steps + breath). No fabrication.
 
     private var becomingStack: some View {
-        VStack(alignment: .leading, spacing: 28) {
-            // v1.0.7 minimal-functional-aesthetic redesign (founder
-            // pushback 2026-06-06: "ios app is ios app. it needs to
-            // be useful as a tool"). Per the 4 expert briefs in
-            // docs/becoming_home_redesign_briefs_2026_06_06.md the
-            // unanimous-kill list was: second masthead, "the june
-            // issue" eyebrow, "IN THIS ISSUE" TOC. Stripped here.
+        VStack(alignment: .leading, spacing: 14) {
+            // v1.0.7 snapshot redesign — 3 luxury fitness designer
+            // briefs (Equinox+, Apple Fitness+, Whoop/Oura) all
+            // agreed: 5 chapter spreads kill ~400pt of pacing chrome.
+            // Replace with one-viewport snapshot dashboard:
+            //   1. Weight hero (already shipped) — full-bleed
+            //   2. 2-up secondary tiles (streak | plank PR)
+            //   3. Composite movement tile (steps · breath · sessions)
+            //   4. Coach voice line (one sentence, no card)
             //
-            // Sunday Feature is also hidden — deferred to its own
-            // dedicated weekly recap surface per the Cal AI brief's
-            // compromise: "magazine dies on the daily dashboard,
-            // lives on the weekly recap." Sunday 7pm push will
-            // route there once the recap surface ships. Until then,
-            // the regression is accepted (the push opens Becoming
-            // and she sees the dashboard, not the editorial recap).
-            //
-            // issueMasthead + tableOfContents + SundayCard helpers
-            // are kept compiled (no dead-code deletion yet) so the
-            // weekly recap surface can reuse them when it lands.
-            //
-            // v1.0.7 minimal-functional-aesthetic dashboard hero —
-            // the new top-of-scroll. Replaces the editorial chrome
-            // with a 5-element tool surface: weight digit (Fraunces
-            // Light 64pt), unit+delta, jeweledRose sparkline,
-            // hairline, 3-stat row (streak/plank PR/this week).
-            // No italic on numbers. Per
-            // docs/becoming_home_minimal_spec_2026_06_06.md.
+            // Chapter spreads (yourWeekSection, whatYouAteSection,
+            // howYouMovedSection, whatsChangingSection,
+            // whatsWorkedSection) DIE on first viewport. The
+            // chapter cover ornament (roman + italic title + pull
+            // caption + sticker + hairline = 80pt × 5) was the
+            // snapshot leak. Chapter content (food bento, barrier
+            // card, plank curve, NSV) survives below the fold as
+            // bare modules — drill-in detail sheets are a follow-on
+            // phase. issueMasthead / tableOfContents / SundayCard /
+            // stackChapterHeader helpers stay compiled for the
+            // future dedicated weekly recap surface.
+
             BecomingDashboardHero(
                 latestWeightKg: latestWeightKg,
                 startingWeightKg: startingWeightKg,
                 logs: weightLogs,
                 unit: weightUnit,
-                streakDays: streak.count,
-                bestPlankSeconds: bestPlankHold,
-                sessionsThisWeek: thisWeekSessions.count,
                 onLogWeight: { showLogWeight = true }
             )
 
-            yourWeekSection
-            whatYouAteSection
-            howYouMovedSection
-            whatsChangingSection
-            whatsWorkedSection
+            // 2-up secondary tiles — streak | plank PR.
+            HStack(alignment: .top, spacing: 16) {
+                BecomingStatTile(
+                    label: "STREAK",
+                    value: "\(streak.count)",
+                    hint: streak.count == 1 ? "day ♥" : "days ♥"
+                )
+                BecomingStatTile(
+                    label: "PLANK PR",
+                    value: plankPRDisplay,
+                    hint: bestPlankHold > 0 ? "personal best" : "log when ready"
+                )
+            }
+            .overlay(alignment: .top) {
+                Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+            }
+            .padding(.top, 6)
+
+            // Composite movement tile — Chapter III collapsed into
+            // one row (steps + breath + sessions). Lowest-cost
+            // movement summary per founder pick.
+            BecomingMovementTile(
+                stepsToday: stepsTodayCount,
+                breathSessionsToday: BreathworkState.shared.breathedToday ? 1 : 0,
+                workoutSessionsThisWeek: thisWeekSessions.count
+            )
+
+            // Coach voice line — one sentence, italic punch verb,
+            // no card chrome. Replaces Chapter I coachTile + the
+            // hero subhero killed earlier.
+            BecomingCoachLine(line: insightLine, italicWords: coachItalicWords)
+
+            // Food snapshot (below-the-fold, but quiet) — kept as
+            // one bento tile since food rail is enabled. No chapter
+            // cover above it. Surfaces only when she has logged.
+            if foodLogsThisWeek {
+                FoodWeekBentoTile(
+                    userId: AuthService.shared.currentUser?.id.uuidString ?? ""
+                ) {
+                    presentedMetric = .plate
+                }
+                .padding(.top, 4)
+            }
+
+            // NSV wins — closing identity-work card (the heart of
+            // what Chapter V carried). Kept as quiet single tile
+            // below the food snapshot, no chapter cover.
+            nsvTile.padding(.top, 4)
         }
+    }
+
+    /// Plank PR display for the 2-up stat tile. Mirrors
+    /// BecomingDashboardHero's old internal helper.
+    private var plankPRDisplay: String {
+        let total = Int(bestPlankHold.rounded())
+        guard total > 0 else { return "—" }
+        let m = total / 60
+        let s = total % 60
+        if m > 0 { return String(format: "%d:%02d", m, s) }
+        return "\(s)s"
+    }
+
+    /// Words to italicize in the coach line. Computed by walking
+    /// the line for the brand's recurring punch verbs.
+    private var coachItalicWords: [String] {
+        let candidates = ["steady", "becoming", "showing", "shown", "moved", "stronger", "clear", "consistent", "present"]
+        let lower = insightLine.lowercased()
+        return candidates.filter { lower.contains($0) }
+    }
+
+    /// Today's HealthKit step count, surfaced for the composite
+    /// movement tile. StepsService caches the latest read on its
+    /// shared singleton; mirror the same pattern other surfaces use.
+    private var stepsTodayCount: Int {
+        StepsService.shared.todayCount
     }
 
     /// "becoming · vol. [N] ♥ / the [month] issue" — issue-as-object
