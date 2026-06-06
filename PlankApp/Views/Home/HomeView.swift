@@ -597,20 +597,26 @@ struct HomeView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: Space.md) {
-                        // Phase 10 cohesion pass — ONE coach voice + ONE
-                        // daily action + ONE day count. Order: coach line
-                        // (replaces the old greeting + note box) → HERO
-                        // session → momentum strip → (escape-hatch workout)
-                        // → demoted stats/actions → data rails.
-
-                        // ONE coach voice at the top: Jeni avatar + the
-                        // daily templated line (which already carries the
-                        // time-of-day greeting). Voice-only / chrome-light
-                        // so the hero below stays the single visual hero.
-                        JenisNoteCard(note: jenisNoteForToday)
-                            .padding(.horizontal, Space.screenPadding)
-                            .opacity(msgOpacity[0]).offset(y: msgOffset[0])
-                            .blur(radius: greetingBlur)
+                        // v1.0.7 Home aesthetic redesign (founder feedback
+                        // round 4, 2026-06-06) — per the 3 luxury fitness
+                        // designer briefs in
+                        // docs/home_aesthetic_redesign_briefs_2026_06_06.md
+                        // the unanimous top-move is a typographic "reading"
+                        // line pulled from HER data, no chrome, generous
+                        // padding. JenisNoteCard (templated time-of-day
+                        // greeting with avatar) replaced — Flo brief
+                        // specifically called time-of-day language the
+                        // cohort's "tell for try-hard." Helper kept
+                        // compiled for potential reuse on a different
+                        // surface (or revival as the Sunday recap voice).
+                        HomeReadingLine(
+                            mostRecentSessionAt: sessionLogs.first?.completedAt,
+                            sessionsThisWeek: weeklyCount,
+                            totalSessionCount: sessionLogs.count
+                        )
+                        .padding(.horizontal, Space.screenPadding)
+                        .opacity(msgOpacity[0]).offset(y: msgOffset[0])
+                        .blur(radius: greetingBlur)
 
                         // HERO — food card per delta v7 D56 (2026-06-05).
                         // 2026-06-06: TrendHeroCard moved to Becoming

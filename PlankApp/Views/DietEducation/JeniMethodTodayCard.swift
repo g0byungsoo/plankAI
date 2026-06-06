@@ -18,39 +18,68 @@ struct JeniMethodTodayCard: View {
     let teaser: String        // typically the lesson's learnHeadline
     let onTap: () -> Void
 
+    /// Weekly-rotating signature sticker per the 3 luxury fitness
+    /// designer briefs (docs/home_aesthetic_redesign_briefs_2026_06_06.md).
+    /// Founder picked "scale a signature sticker as the visual hero" —
+    /// rotates by week-of-year through the curated 5 so each week
+    /// opens to a fresh "issue sticker," editorial-magazine convention.
+    private var weekStickerName: StickerName {
+        let week = Calendar.current.component(.weekOfYear, from: .now)
+        let sigs: [StickerName] = [.bowSatin, .flower3D, .sparkleGlossy, .cherries, .heartGlossy]
+        return sigs[week % sigs.count]
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.xs) {
-            Text("the jenifit method")
-                .font(Typo.eyebrow)
-                .foregroundStyle(Palette.textSecondary)
-                .accessibilityHidden(true)
-            Text(teaser)
-                .font(Typo.heading)
-                .foregroundStyle(Palette.textPrimary)
-                .multilineTextAlignment(.leading)
+        HStack(alignment: .top, spacing: Space.md) {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text("the jenifit method")
+                    .font(Typo.eyebrow)
+                    .foregroundStyle(Palette.textSecondary)
+                    .accessibilityHidden(true)
+                Text(teaser)
+                    .font(Typo.heading)
+                    .foregroundStyle(Palette.textPrimary)
+                    .multilineTextAlignment(.leading)
 
             // Only the pill is the CTA — the card itself is no longer
             // tappable, so the tap target is explicit (and leaves room for
             // a future swipe gesture on the card body). Cocoa pill + arrow
             // mirrors the workout card's "start" idiom; compact so it
             // doesn't compete with the full-width start CTA below it.
-            Button(action: onTap) {
-                HStack(spacing: 8) {
-                    Text("today's lesson")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 13, weight: .bold))
+                Button(action: onTap) {
+                    HStack(spacing: 8) {
+                        Text("today's lesson")
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 13, weight: .bold))
+                    }
+                    .foregroundStyle(Palette.textInverse)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 11)
+                    .background(Palette.bgInverse)
+                    .clipShape(Capsule())
                 }
-                .foregroundStyle(Palette.textInverse)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 11)
-                .background(Palette.bgInverse)
-                .clipShape(Capsule())
+                .buttonStyle(CardCTAPressStyle())
+                .padding(.top, Space.sm)
+                .accessibilityLabel("Open today's lesson: \(teaser)")
+                .accessibilityHint("Opens the JeniFit Method lesson")
             }
-            .buttonStyle(CardCTAPressStyle())
-            .padding(.top, Space.sm)
-            .accessibilityLabel("Open today's lesson: \(teaser)")
-            .accessibilityHint("Opens the JeniFit Method lesson")
+            Spacer(minLength: 0)
+
+            // Hero signature sticker — 72pt canonical scale per the
+            // Strava-leaning brief verdict. Rotates weekly so each
+            // week opens to a fresh editorial mark. Top-right per
+            // the Apple-Fitness composition lock (top-right anchor +
+            // bottom-left metric stack = "composed, not centered-
+            // and-shouting"). allowsHitTesting false so the whole
+            // card stays tappable.
+            Image(weekStickerName.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 72, height: 72)
+                .opacity(weekStickerName.style.opacity)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
         }
         .padding(.vertical, Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)

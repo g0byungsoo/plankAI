@@ -165,12 +165,12 @@ struct WeightLogQuickCard: View {
 
     // MARK: - Log CTA pill
 
-    /// Cocoa-on-cream pill mirroring the JeniMethodTodayCard and
-    /// workout "begin" pill register. Says "log" or "update" based
-    /// on whether today's log already exists. The pill is the
-    /// visible-on-card affordance — the entire card is still a
-    /// tap target (Button wrapper) so the hit area covers the
-    /// hero number too, but the pill makes the action obvious.
+    /// v1.0.7 home aesthetic redesign (founder feedback round 4):
+    /// converted to SECONDARY tier per the 3-tier cocoa pill
+    /// system (hero solid / secondary outline / tertiary text-only).
+    /// Weight log is a recurring utility action, not the daily hero
+    /// (the JeniMethod lesson is). Outline pill signals "tappable,
+    /// not loudest" so the lesson hero pill above visually wins.
     private var logCTAPill: some View {
         HStack(spacing: 6) {
             Text(hasTodaysLog ? "update" : "log")
@@ -178,11 +178,12 @@ struct WeightLogQuickCard: View {
             Image(systemName: "arrow.right")
                 .font(.system(size: 11, weight: .bold))
         }
-        .foregroundStyle(Palette.textInverse)
+        .foregroundStyle(Palette.cocoaPrimary)
         .padding(.horizontal, 14)
         .padding(.vertical, 9)
-        .background(Palette.bgInverse)
-        .clipShape(Capsule())
+        .overlay(
+            Capsule().stroke(Palette.cocoaPrimary, lineWidth: 1)
+        )
     }
 
     // MARK: - Empty state (editorial invitation)
