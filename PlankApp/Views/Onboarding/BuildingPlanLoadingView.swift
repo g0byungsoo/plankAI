@@ -430,12 +430,18 @@ struct BuildingPlanLoadingView: View {
         // animated. This loop ticks `progress` in 1% steps so the
         // Text re-renders on every body invocation alongside the bar.
         //
-        // 100 ticks over `totalSeconds` (~25-35s depending on label
-        // count). Sub-label rotation triggers at boundaries — whenever
-        // the tick crosses a `100/totalLabels` step, the label fades
-        // forward.
+        // Delta v8 founder-pacing fix (2026-06-06): compressed from
+        // 25-35s baseline → capped at ~12s. Ease-in curve on `progress`
+        // makes the back half of wall-clock time cover 70%+ of
+        // perceived progress — user feels acceleration ("slow start,
+        // fast finish" per founder intuition). Pure perceived-velocity
+        // play; total wall-clock time also shorter.
+        //
+        // Wall-clock pacing: 1.3s per label + 0.6s opening dwell, capped
+        // at 12s total. Tick loop stays at 100 ticks for smooth % counter
+        // animation; the displayed `progress` value is eased.
         let totalLabels = totalLabelCount
-        let totalSeconds = Double(totalLabels) * 2.5 + 0.6
+        let totalSeconds = min(12.0, Double(totalLabels) * 1.3 + 0.6)
         let tickCount = 100
         let perTickNs = UInt64((totalSeconds * 1_000_000_000) / Double(tickCount))
         let ticksPerLabel = max(1, tickCount / totalLabels)
@@ -443,7 +449,15 @@ struct BuildingPlanLoadingView: View {
         for tick in 1...tickCount {
             try? await Task.sleep(nanoseconds: perTickNs)
             if Task.isCancelled { return }
-            progress = Double(tick) / Double(tickCount)
+            // Ease-in quadratic-ish curve: t^1.8.
+            //   tick  25 (25% wall-clock) → progress  9%
+            //   tick  50 (50% wall-clock) → progress 29%
+            //   tick  75 (75% wall-clock) → progress 61%
+            //   tick 100 (100% wall-clock) → progress 100%
+            // Milestone checklist (D75) reads `progress` directly so
+            // checks fire at the perceived thresholds, not wall-clock.
+            let t = Double(tick) / Double(tickCount)
+            progress = pow(t, 1.8)
 
             // Rotate sub-label when we cross a label boundary.
             // Cap at totalLabels - 1 so we don't overflow at tick 100.
