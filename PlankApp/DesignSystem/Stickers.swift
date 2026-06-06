@@ -2,8 +2,8 @@ import SwiftUI
 
 // MARK: - StickerName
 //
-// Type-safe handle for the 17 sticker assets bundled in
-// Assets.xcassets/Stickers/ (Phase 14a). The Stickers group has
+// Type-safe handle for the 33 sticker assets bundled in
+// Assets.xcassets/Stickers/. The Stickers group has
 // provides-namespace = false so the raw asset names are flat
 // — Image("sticker_xxx") works.
 //
@@ -11,6 +11,31 @@ import SwiftUI
 //   .lineArt   — single-color hand-drawn ink, full opacity
 //   .painterly — saturated 3D / painted illustrations, knocked
 //                back to 85% so they recede behind content.
+//
+// ─────────────────────────────────────────────────────────────
+// v1.0.7 aggressive Gen-Z luxury — sticker curation 12 → 5
+// (docs/aggressive_genz_luxury_2026_06_06.md §6)
+// ─────────────────────────────────────────────────────────────
+// All 33 cases remain to preserve existing scatter call sites
+// (welcomeDefault, coachIntroDefault, breathworkPrimerDefault,
+// breathworkSessionDefault, etc.). New surfaces MUST pick from
+// `StickerName.signature` — the curated 5 that carry the brand
+// going forward. Anything in `StickerName.archived` is being
+// phased out as those surfaces get a polish pass.
+//
+// Placement discipline (Cloud Paint convention — "one spot per
+// sticker, no more scatter"):
+//   • bowSatin      — 32pt, masthead top-right, 0° rotation
+//   • heartGlossy   — 28pt, end-of-row, paired with NSV copy
+//   • flower3D      — 36pt, chapter-cover top-right (Ch I +
+//                     Today's Plate only)
+//   • sparkleGlossy — 14pt inline accent only — never decorative
+//   • cherries      — 32pt, top-right of food sections only
+//
+// Use `StickerName.canonicalPlacement(at:phaseDelay:)` to render
+// a signature sticker at its locked size + rotation in a single
+// call; it crashes in DEBUG if you pass a non-signature case so
+// the wrong sticker can't sneak into a new surface.
 
 enum StickerName: String, CaseIterable {
     case ribbonLineart
@@ -272,6 +297,94 @@ struct StickerScatter: View {
             }
         }
         .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Curation (v1.0.7 §6)
+
+extension StickerName {
+    /// The 5 stickers that carry the brand going forward. New surfaces
+    /// pick from here; anything outside this set is being phased out.
+    static let signature: Set<StickerName> = [
+        .bowSatin,
+        .heartGlossy,
+        .flower3D,
+        .sparkleGlossy,
+        .cherries,
+    ]
+
+    /// Stickers flagged for retirement per the §6 curation. Kept in the
+    /// enum so existing scatter call sites still compile; do not pick
+    /// these for new placements.
+    /// - gummyBear      — too y2k-juvenile for 2026 luxury direction
+    /// - bowIridescent  — redundant with bowSatin; iridescent reads 2022
+    /// - heartsLineart  — replaced by heartGlossy + ♥ punctuation
+    /// - ribbonLineart  — redundant with bowSatin
+    /// - butterflyRing  — too literal; weak symbol
+    static let archived: Set<StickerName> = [
+        .gummyBear,
+        .bowIridescent,
+        .heartsLineart,
+        .ribbonLineart,
+        .butterflyRing,
+    ]
+
+    /// True if this case is in the signature 5. Use to gate new
+    /// placements at build sites:
+    ///   precondition(StickerName.flower3D.isSignature)
+    var isSignature: Bool { StickerName.signature.contains(self) }
+}
+
+/// Locked size + rotation for each signature sticker. "One spot per
+/// sticker, no more scatter" — the same case always renders at the
+/// same scale and angle so the cluster reads as a curated mark, not
+/// decorative confetti.
+struct CanonicalStickerPlacement {
+    let size: CGFloat
+    let rotation: Double
+}
+
+extension StickerName {
+    /// The locked size + rotation for this signature sticker, or `nil`
+    /// for the archived / not-yet-curated cases. New code should pass
+    /// the position separately and consume `size` + `rotation` from
+    /// here so a Today's Plate cherries and a food-feed cherries can
+    /// never disagree on scale.
+    var canonical: CanonicalStickerPlacement? {
+        switch self {
+        case .bowSatin:      return .init(size: 32, rotation: 0)
+        case .heartGlossy:   return .init(size: 28, rotation: 0)
+        case .flower3D:      return .init(size: 36, rotation: 0)
+        case .sparkleGlossy: return .init(size: 14, rotation: 0)
+        case .cherries:      return .init(size: 32, rotation: 0)
+        default:             return nil
+        }
+    }
+
+    /// Convenience: build a StickerPlacement at this case's canonical
+    /// size + rotation, given a position + phase delay. Asserts in
+    /// DEBUG if the case isn't a signature sticker.
+    func canonicalPlacement(
+        at position: CGPoint,
+        phaseDelay: Double
+    ) -> StickerPlacement {
+        guard let c = canonical else {
+            assertionFailure("Non-signature sticker \(self) used at a new placement site. Pick from StickerName.signature.")
+            return StickerPlacement(
+                sticker: self,
+                position: position,
+                size: 32,
+                rotation: 0,
+                phaseDelay: phaseDelay
+            )
+        }
+        return StickerPlacement(
+            sticker: self,
+            position: position,
+            size: c.size,
+            rotation: c.rotation,
+            phaseDelay: phaseDelay
+        )
     }
 }
 
