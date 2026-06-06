@@ -93,8 +93,25 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \SessionLogRecord.completedAt, order: .reverse) private var allSessionLogs: [SessionLogRecord]
     @Query(sort: \DayProgressRecord.programDay, order: .reverse) private var allDayProgress: [DayProgressRecord]
+    /// v1.0.7 Phase 5 Home reorder — weight logs surfaced on Home
+    /// to fix weight-logging-near-zero (the leak per the iOS UX
+    /// brief). WeightLogQuickCard sits one slot below the lesson
+    /// hero so a one-tap log is the second visible action on
+    /// every Home open.
+    @Query(sort: \WeightLogRecord.loggedAt, order: .reverse) private var allWeightLogs: [WeightLogRecord]
     @State private var auth = AuthService.shared
     @State private var payment = PaymentService.shared
+
+    /// Onboarding-entered starting weight (kg). Used as a fallback
+    /// when no weight logs exist yet. Mirrors the AnalyticsView
+    /// wiring for consistency across surfaces.
+    @AppStorage("onboardingCurrentWeightKg") private var onboardingCurrentWeightKg: Double = 0
+    @AppStorage("weightUnit") private var weightUnitRaw: String = "lb"
+    private var weightUnit: WeightUnit { WeightUnit(rawValue: weightUnitRaw) ?? .lb }
+
+    /// LogWeightSheet presentation state. Driven by the
+    /// WeightLogQuickCard tap.
+    @State private var showLogWeight = false
 
     /// User-scoped session logs. After sign-in/sign-out cycles, SwiftData
     /// holds rows for every user_id this device has authenticated as. The
@@ -111,6 +128,27 @@ struct HomeView: View {
     private var dayProgress: [DayProgressRecord] {
         guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return [] }
         return allDayProgress.filter { $0.userId == userId }
+    }
+
+    /// User-scoped weight logs (cross-account safety — same pattern
+    /// as sessionLogs above).
+    private var weightLogs: [WeightLogRecord] {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return [] }
+        return allWeightLogs.filter { $0.userId == userId }
+    }
+
+    private var latestWeightKg: Double? { weightLogs.first?.weightKg }
+
+    /// Starting weight = first log (oldest) we have, falling back to
+    /// onboarding entry. Mirrors AnalyticsView.startingWeightKg.
+    private var startingWeightKg: Double? {
+        if let first = weightLogs.last { return first.weightKg }
+        return onboardingCurrentWeightKg > 0 ? onboardingCurrentWeightKg : nil
+    }
+
+    private var hasTodaysWeightLog: Bool {
+        let cal = Calendar.current
+        return weightLogs.contains { cal.isDateInToday($0.loggedAt) }
     }
 
 
@@ -655,6 +693,27 @@ struct HomeView: View {
                                 .opacity(msgOpacity[2]).offset(y: msgOffset[2])
                         }
 
+                        // v1.0.7 Phase 5 Home reorder — weight log quick
+                        // card. Per docs/becoming_home_minimal_spec_2026_06_06.md
+                        // "Home tab reorder": health anchor slot →
+                        // weight log + steps, side-by-side. Production
+                        // data showed weight-logging near-zero; surfacing
+                        // a one-tap log card right under the lesson hero
+                        // (+ workout disclosure) puts the ask on the
+                        // highest-traffic surface. Editorial register —
+                        // Fraunces Light 36pt digit, jeweledRose mini-
+                        // sparkline, no italic on numbers.
+                        WeightLogQuickCard(
+                            latestKg: latestWeightKg,
+                            startingKg: startingWeightKg,
+                            logs: weightLogs,
+                            unit: weightUnit,
+                            hasTodaysLog: hasTodaysWeightLog,
+                            onTap: { showLogWeight = true }
+                        )
+                        .padding(.horizontal, Space.screenPadding)
+                        .opacity(msgOpacity[2]).offset(y: msgOffset[2])
+
                         // Momentum — one soft, flat signal (no flame, no
                         // streak: direction §5.3). Enrolled users see the
                         // "day N of 14" method arc; everyone else sees this
@@ -1143,6 +1202,18 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showEnergySheet) {
             energySheet
+        }
+        .sheet(isPresented: $showLogWeight) {
+            LogWeightSheet(
+                startingFromKg: latestWeightKg ?? (onboardingCurrentWeightKg > 0 ? onboardingCurrentWeightKg : 65),
+                isUpdatingToday: hasTodaysWeightLog,
+                onSave: { kg in
+                    saveWeightLog(kg: kg)
+                    showLogWeight = false
+                },
+                onCancel: { showLogWeight = false }
+            )
+            .presentationDetents([.medium])
         }
         .onAppear {
             Analytics.captureScreen("Home")
@@ -2071,6 +2142,35 @@ struct HomeView: View {
             await AppSync.shared.upsertSessionLog(session)
             await AppSync.shared.upsertDayProgress(progressRecord)
         }
+    }
+
+    /// v1.0.7 Phase 5 Home reorder — weight log save path. Mirrors
+    /// AnalyticsView.saveWeightLog (one-row-per-day policy per
+    /// Helander 2014 + Pacanowski 2014): if today already has a
+    /// row, mutate it in place; otherwise insert a new row. Same
+    /// id flows through to Supabase upsert which UPDATEs by primary
+    /// key so the trend chart stays at one point per day.
+    private func saveWeightLog(kg: Double) {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return }
+        let cal = Calendar.current
+        if let existing = weightLogs.first(where: { cal.isDateInToday($0.loggedAt) }) {
+            existing.weightKg = kg
+            existing.loggedAt = .now
+            existing.source = "manual"
+            existing.pendingUpsert = true
+            try? modelContext.save()
+            Task { await AppSync.shared.upsertWeightLog(existing) }
+            return
+        }
+        let log = WeightLogRecord(
+            userId: userId,
+            weightKg: kg,
+            loggedAt: .now,
+            source: "manual"
+        )
+        modelContext.insert(log)
+        try? modelContext.save()
+        Task { await AppSync.shared.upsertWeightLog(log) }
     }
 }
 

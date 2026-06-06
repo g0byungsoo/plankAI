@@ -49,6 +49,7 @@
 		0A929B73358142BE0E708C0C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 497B84BED7952F84A2354358 /* Foundation.framework */; };
 		0AEBFA0D7C7CD8C74EF30AD2 /* jeni_prep_full_windshield_wipers.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E9FB18A39BCCA12434DBD9CF /* jeni_prep_full_windshield_wipers.m4a */; };
 		0B7C775412FEF90FCAF14DC0 /* TodayPathStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF73D458DA5C3750837A8E6 /* TodayPathStrip.swift */; };
+		0B7C775412FEF90FCAF14DC1 /* WeightLogQuickCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF73D458DA5C3750837A8E7 /* WeightLogQuickCard.swift */; };
 		0C1B32A7706578713F07EF8C /* matson_prep_full_jump_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4EE415F1F6C1311A718BE1BA /* matson_prep_full_jump_squat.m4a */; };
 		0C516670BA5B945AEBFA87FB /* jeni_prep_full_glute_bridge_march.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B19437FEEA45C1D7B0B8BE0D /* jeni_prep_full_glute_bridge_march.m4a */; };
 		0C95DDA6EBEDC2BBE04113F8 /* jeni_prep_short_cocoon_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 25EA431A092ED3341C16D2AC /* jeni_prep_short_cocoon_crunch.m4a */; };
@@ -2196,6 +2197,7 @@
 		ACF49E3A95722FA97349 /* jeni_end_bad.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_end_bad.m4a; sourceTree = "<group>"; };
 		ACF6A03B97D32FA932FD /* jeni_stopped_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_stopped_2.m4a; sourceTree = "<group>"; };
 		ACF73D458DA5C3750837A8E6 /* TodayPathStrip.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodayPathStrip.swift; sourceTree = "<group>"; };
+		ACF73D458DA5C3750837A8E7 /* WeightLogQuickCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightLogQuickCard.swift; sourceTree = "<group>"; };
 		ACF9014DF6092FA93EF6 /* matson_guide_setup_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = matson_guide_setup_1.m4a; sourceTree = "<group>"; };
 		ACFDEE85B8FB2FA91E85 /* matson_hip_sag_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = matson_hip_sag_1.m4a; sourceTree = "<group>"; };
 		ACFF7880419F2FA95179 /* matson_milestone_120.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = matson_milestone_120.m4a; sourceTree = "<group>"; };
@@ -2693,6 +2695,7 @@
 				1BDB4EC3CD4739874F0D09A6 /* BreathworkHomeCard.swift */,
 				A57691CE83A231F4BF72985C /* TrendHeroCard.swift */,
 				ACF73D458DA5C3750837A8E6 /* TodayPathStrip.swift */,
+				ACF73D458DA5C3750837A8E7 /* WeightLogQuickCard.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -5511,6 +5514,7 @@
 				7FDF5049B31CBEBBFE424872 /* HealthKitDietaryEnergyWriter.swift in Sources */,
 				99A19371CEDE360A7A24183F /* TrendHeroCard.swift in Sources */,
 				0B7C775412FEF90FCAF14DC0 /* TodayPathStrip.swift in Sources */,
+				0B7C775412FEF90FCAF14DC1 /* WeightLogQuickCard.swift in Sources */,
 				97588DAED21FAB070B4A9AB3 /* SundayCard.swift in Sources */,
 				1118FF316E9C79F2874B4E2E /* ScanActivityAttributes.swift in Sources */,
 			);
