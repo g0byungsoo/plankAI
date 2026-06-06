@@ -63,7 +63,15 @@ public final class FoodVisionService: Sendable {
         let url = config.supabaseURL.appendingPathComponent("functions/v1/food-vision")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 30  // GPT-5 hi-res image scan is typically 2-4s; 30s is generous headroom
+        // 2026-06-06 — bumped 30s → 90s. Founder hit chronic -1001
+        // timeouts. GPT-5 hi-res image scan is typically 2-4s, but
+        // the server-side pipeline may chain: Gemini Flash food-or-not
+        // pre-filter → GPT-5 → Opus 4.7 confidence-gated fallback +
+        // server-side nutrition lookup. A long chain plus cold-start
+        // edge function plus mobile network variance can easily eat
+        // the 30s budget. 90s gives the full chain headroom without
+        // making the iOS shutter feel broken.
+        request.timeoutInterval = 90
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(config.anonKey, forHTTPHeaderField: "apikey")

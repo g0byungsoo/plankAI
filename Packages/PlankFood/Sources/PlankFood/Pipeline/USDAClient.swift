@@ -25,13 +25,36 @@ public struct USDAClient: Sendable {
         self.session = session
     }
 
-    /// Search for foods matching the query. Returns the highest-score
+    /// Search for foods matching the query. Returns the best-ranked
     /// result mapped to a NutritionLookupResult, or nil if no match.
+    ///
+    /// 2026-06-06 fix: USDA returns four dataTypes:
+    ///   - **Foundation** — raw single-ingredient (Lemon, raw → 29 kcal/100g)
+    ///   - **Survey (FNDDS)** — composite foods from dietary surveys
+    ///   - **SR Legacy** — older standard reference
+    ///   - **Branded** — manufacturer products (lemon-pepper seasoning,
+    ///     lemonade mix, lemon meringue pie)
+    ///
+    /// Previously we trusted decoded.foods.first, which for a query like
+    /// "lemon" hit a Branded result (founder screenshot: 360 kcal for
+    /// 120g lemon — that was a lemon-pepper seasoning entry's 300 kcal/100g
+    /// density propagated through CalorieMathService). Branded entries
+    /// are correct nutrition for the SPECIFIC product but never what
+    /// we want when the LLM identified a raw whole food.
+    ///
+    /// Two-layer fix:
+    ///   1. API-level: dataType=Foundation,SR Legacy,Survey (FNDDS)
+    ///      excludes Branded entirely. Branded would only be useful
+    ///      when scanning a barcode, which v1.0.7 doesn't do.
+    ///   2. Sort-order: within the remaining types, prefer Foundation
+    ///      > Survey > SR Legacy so the rawest single-ingredient hit
+    ///      wins regardless of USDA's relevance score.
     public func search(_ query: String) async throws -> NutritionLookupResult? {
         var components = URLComponents(string: "https://api.nal.usda.gov/fdc/v1/foods/search")!
         components.queryItems = [
             URLQueryItem(name: "query", value: query),
-            URLQueryItem(name: "pageSize", value: "5"),
+            URLQueryItem(name: "pageSize", value: "10"),
+            URLQueryItem(name: "dataType", value: "Foundation,SR Legacy,Survey (FNDDS)"),
             URLQueryItem(name: "api_key", value: config.apiKey),
         ]
 
@@ -67,8 +90,24 @@ public struct USDAClient: Sendable {
             throw NutritionLookupError.parseError(source: .usdaFDC, detail: String(describing: error))
         }
 
-        guard let top = decoded.foods.first else { return nil }
+        // Re-rank within the response: prefer Foundation > Survey
+        // (FNDDS) > SR Legacy. The dataType field is decoded from the
+        // wire response (added to SearchResponse.Food below).
+        let ranked = decoded.foods.sorted { (a, b) in
+            Self.dataTypeRank(a.dataType) < Self.dataTypeRank(b.dataType)
+        }
+        guard let top = ranked.first else { return nil }
         return Self.map(top)
+    }
+
+    /// Lower rank = preferred. Unknown types sink to the bottom.
+    private static func dataTypeRank(_ type: String?) -> Int {
+        switch type {
+        case "Foundation":      return 0
+        case "Survey (FNDDS)":  return 1
+        case "SR Legacy":       return 2
+        default:                return 99
+        }
     }
 
     // MARK: - Mapping
@@ -137,6 +176,10 @@ private struct SearchResponse: Decodable {
         let fdcId: Int
         let description: String
         let foodNutrients: [Nutrient]
+        /// USDA's dataType field — "Foundation" / "Survey (FNDDS)" /
+        /// "SR Legacy" / "Branded". Decoded so re-ranking can prefer
+        /// raw single-ingredient results over packaged products.
+        let dataType: String?
     }
 
     struct Nutrient: Decodable {
