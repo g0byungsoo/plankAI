@@ -6806,6 +6806,9 @@ struct OnboardingView: View {
                     // (case 165) sits between here and 145. Use
                     // advance(to:) so resolveNext does the right thing
                     // per flow version — v2 goes to 165, v1 skips past.
+                    #if DEBUG
+                    print("[D67] comparisonScreen → advance(to: 165). v2_enabled=\(onboardingV2Enabled), flowContains165=\(flowOrder.contains(165))")
+                    #endif
                     advance(to: 165, confirmation: nil)
                 }
                     .padding(.bottom, Space.lg)

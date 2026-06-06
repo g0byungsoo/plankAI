@@ -231,9 +231,18 @@ private struct ProjectionPresentation: View {
     /// over the first 2-4 weeks of logged food data. Returns nil if
     /// we don't have a current weight (skip the card entirely).
     private var estimatedCalorieTarget: Int? {
-        guard let kg = currentWeightKg, kg > 0 else { return nil }
+        guard let kg = currentWeightKg, kg > 0 else {
+            #if DEBUG
+            print("[D68] calorie hero SKIPPED — currentWeightKg=\(currentWeightKg ?? -1)")
+            #endif
+            return nil
+        }
         let raw = Int(kg * 22)
-        return min(max(raw, 1300), 2000)
+        let clamped = min(max(raw, 1300), 2000)
+        #if DEBUG
+        print("[D68] calorie hero rendering — kg=\(kg) kcal=\(clamped)")
+        #endif
+        return clamped
     }
 
     /// Protein floor — 1.6g/kg current weight (Helms 2014 satiety +
