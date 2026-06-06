@@ -32,14 +32,11 @@ struct BecomingProjectionCard: View {
             let dateText = projectedDateText(currentKg: curr, goalKg: goal)
 
             VStack(alignment: .leading, spacing: 14) {
-                // Caption — italic-Fraunces punch on "plotted"
-                (Text("your becoming, ")
-                    .font(.custom("Fraunces72pt-Light", size: 14))
-                    .foregroundStyle(Palette.textPrimary)
-                 + Text("plotted")
-                    .font(.custom("Fraunces72pt-LightItalic", size: 14))
-                    .foregroundStyle(Palette.accent))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                // Delta v8 (2026-06-06) — inner card title removed.
+                // The OUTER reveal screen already says "your becoming,
+                // plotted" as the headline. Repeating it inside the
+                // chart card was redundant. The chart speaks for
+                // itself with the today/end labels + the curve.
 
                 // Chart: Y-axis labels on left + curve + endpoint sticker
                 HStack(alignment: .top, spacing: 10) {

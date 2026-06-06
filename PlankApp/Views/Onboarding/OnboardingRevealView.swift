@@ -126,65 +126,71 @@ private struct ProjectionPresentation: View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
 
-            VStack(spacing: Space.lg) {
-                Spacer(minLength: Space.xl)
+            // Delta v8 (2026-06-06) — wrapped scrollable content with
+            // pinned CTA. Adding the 5-tile multi-proof grid (D74)
+            // grew total content height past the viewport on most
+            // devices, cutting headline + CTA. Now content scrolls;
+            // CTA stays fixed at the bottom.
+            VStack(spacing: 0) {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: Space.lg) {
+                        Spacer().frame(height: Space.md)
 
-                ItalicAccentText(
-                    "your becoming, plotted",
-                    italic: ["plotted"],
-                    baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
-                    color: Palette.textPrimary,
-                    alignment: .center
-                )
-                .opacity(heroVisible ? 1 : 0)
-                .scaleEffect(heroVisible ? 1.0 : 0.96)
+                        ItalicAccentText(
+                            "your becoming, plotted",
+                            italic: ["plotted"],
+                            baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
+                            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
+                            color: Palette.textPrimary,
+                            alignment: .center
+                        )
+                        .opacity(heroVisible ? 1 : 0)
+                        .scaleEffect(heroVisible ? 1.0 : 0.96)
 
-                Text("here's the shape of the next 12 weeks, drawn from your answers.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Space.lg)
-                    .opacity(heroVisible ? 1 : 0)
-
-                // Calorie target HERO (delta v7 D68) — diet-first
-                // signal lands before the weight curve. "starting
-                // estimate" copy is the MacroFactor radical-honesty
-                // borrow (Brief #1 §4): users trust an app that
-                // admits it'll learn over 2-4 weeks more than one
-                // that promises a perfect number day one.
-                if let kcal = estimatedCalorieTarget {
-                    calorieTargetHero(kcal: kcal)
-                        .padding(.horizontal, Space.lg)
-                        .opacity(calorieVisible ? 1 : 0)
-                        .scaleEffect(calorieVisible ? 1.0 : 0.97)
-                }
-
-                BecomingProjectionCard(
-                    currentWeightKg: currentWeightKg,
-                    goalWeightKg: goalWeightKg,
-                    voicePreference: voicePreference
-                )
-                .padding(.horizontal, Space.md)
-                .opacity(cardVisible ? 1 : 0)
-                .scaleEffect(cardVisible ? 1.0 : 0.97)
-
-                if !contextChips.isEmpty {
-                    VStack(alignment: .center, spacing: 6) {
-                        Text("your actual context")
-                            .font(.system(size: 10, weight: .medium))
-                            .textCase(.lowercase)
-                            .tracking(0.6)
+                        Text("here's the shape of the next 12 weeks, drawn from your answers.")
+                            .font(.system(size: 14))
                             .foregroundStyle(Palette.textSecondary)
-                        FlowingChips(items: contextChips)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, Space.lg)
+                            .opacity(heroVisible ? 1 : 0)
+
+                        if let kcal = estimatedCalorieTarget {
+                            calorieTargetHero(kcal: kcal)
+                                .padding(.horizontal, Space.lg)
+                                .opacity(calorieVisible ? 1 : 0)
+                                .scaleEffect(calorieVisible ? 1.0 : 0.97)
+                        }
+
+                        BecomingProjectionCard(
+                            currentWeightKg: currentWeightKg,
+                            goalWeightKg: goalWeightKg,
+                            voicePreference: voicePreference
+                        )
+                        .padding(.horizontal, Space.md)
+                        .opacity(cardVisible ? 1 : 0)
+                        .scaleEffect(cardVisible ? 1.0 : 0.97)
+
+                        if !contextChips.isEmpty {
+                            VStack(alignment: .center, spacing: 6) {
+                                Text("your actual context")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .textCase(.lowercase)
+                                    .tracking(0.6)
+                                    .foregroundStyle(Palette.textSecondary)
+                                FlowingChips(items: contextChips)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, Space.lg)
+                            .opacity(contextVisible ? 1 : 0)
+                        }
+
+                        Spacer().frame(height: Space.md)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, Space.lg)
-                    .opacity(contextVisible ? 1 : 0)
                 }
 
-                Spacer()
-
+                // Pinned CTA — always visible regardless of scroll
+                // position. Subtle separator above so the boundary
+                // reads as intentional, not clipped.
                 Button(action: onContinue) {
                     Text("continue")
                         .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
@@ -195,7 +201,9 @@ private struct ProjectionPresentation: View {
                         .clipShape(Capsule())
                 }
                 .padding(.horizontal, Space.lg)
-                .padding(.bottom, 32)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+                .background(Palette.bgPrimary)
                 .opacity(ctaVisible ? 1 : 0)
             }
         }
