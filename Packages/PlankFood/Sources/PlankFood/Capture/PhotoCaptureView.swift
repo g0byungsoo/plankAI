@@ -351,6 +351,14 @@ public struct PhotoCaptureView: View {
             if result.items.isEmpty && result.kcalLow == nil {
                 errorMessage = "couldn't see any food. try a brighter or closer angle?"
                 FoodAnalytics.track(.scanFallbackFired, properties: ["reason": "empty_items"])
+                // 2026-06-06 — release the frozen photo so the live
+                // preview comes back. Without this the still keeps
+                // covering the camera and the user can't reframe
+                // until they tap shutter again (which captures the
+                // SAME bad photo).
+                withAnimation(.easeOut(duration: 0.25)) {
+                    camera.clearFrozenFrame()
+                }
                 return
             }
 
@@ -374,8 +382,8 @@ public struct PhotoCaptureView: View {
             #else
             errorMessage = "give us a few hours — we're catching our breath."
             #endif
-            withAnimation {
-                // Trigger transition; errorMessage non-nil renders the banner.
+            withAnimation(.easeOut(duration: 0.25)) {
+                camera.clearFrozenFrame()
             }
         } catch {
             #if DEBUG
@@ -384,6 +392,9 @@ public struct PhotoCaptureView: View {
             errorMessage = "couldn't read your plate just now. try again?"
             #endif
             FoodAnalytics.track(.scanFallbackFired, properties: ["reason": "capture_error"])
+            withAnimation(.easeOut(duration: 0.25)) {
+                camera.clearFrozenFrame()
+            }
         }
     }
 }
