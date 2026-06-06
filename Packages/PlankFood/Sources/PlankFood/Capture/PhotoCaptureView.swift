@@ -299,18 +299,48 @@ public struct PhotoCaptureView: View {
         }
     }
 
+    /// Constrained, tap-to-dismiss error card. Replaces the v1
+    /// Capsule banner which expanded into a giant cocoa blob when the
+    /// DEBUG message was long (full URLSession error dump). Now caps
+    /// at 3 visible lines with a "tap to dismiss" affordance; long
+    /// DEBUG content scrolls inside.
     @ViewBuilder
     private func errorBanner(_ message: String) -> some View {
-        Text(message)
-            .font(.system(size: 13))
-            .foregroundStyle(FoodTheme.bgPrimary)
-            .padding(.horizontal, FoodTheme.Space.md)
-            .padding(.vertical, FoodTheme.Space.sm)
+        Button {
+            withAnimation(.easeOut(duration: 0.22)) {
+                errorMessage = nil
+            }
+        } label: {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(FoodTheme.bgPrimary.opacity(0.9))
+                ScrollView {
+                    Text(message)
+                        .font(.system(size: 12))
+                        .foregroundStyle(FoodTheme.bgPrimary)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 72)
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(FoodTheme.bgPrimary.opacity(0.7))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
             .background(
-                Capsule().fill(FoodTheme.textPrimary)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(FoodTheme.textPrimary)
             )
-            .padding(.top, 60)
-            .transition(.move(edge: .top).combined(with: .opacity))
+            .shadow(color: FoodTheme.textPrimary.opacity(0.3), radius: 0, x: 3, y: 3)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, FoodTheme.Space.md)
+        .padding(.top, 60)
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .accessibilityLabel("error: \(message). tap to dismiss.")
     }
 
     // MARK: - Actions
@@ -386,12 +416,33 @@ public struct PhotoCaptureView: View {
                 camera.clearFrozenFrame()
             }
         } catch {
+            // 2026-06-06 — pull just the human-readable message via
+            // NSError.localizedDescription instead of dumping the
+            // entire Swift error description (which for a
+            // VisionError.networkError wraps the full URLSession
+            // Apple-error dictionary and reads as 20 lines of
+            // garbage). The console still gets the full thing via
+            // print so debugging stays sharp.
+            let ns = error as NSError
             #if DEBUG
-            errorMessage = "capture failed: \(error)"
+            print("[PhotoCaptureView] capture failed: \(error)")
+            // Map common URLSession codes to readable lines.
+            let friendly: String = {
+                switch ns.code {
+                case -1001: return "request timed out — the vision call took too long."
+                case -1009: return "no internet — check your connection."
+                case -1003, -1004: return "couldn't reach the vision server."
+                default:    return ns.localizedDescription
+                }
+            }()
+            errorMessage = "capture failed (\(ns.code)): \(friendly)"
             #else
             errorMessage = "couldn't read your plate just now. try again?"
             #endif
-            FoodAnalytics.track(.scanFallbackFired, properties: ["reason": "capture_error"])
+            FoodAnalytics.track(.scanFallbackFired, properties: [
+                "reason": "capture_error",
+                "ns_error_code": ns.code,
+            ])
             withAnimation(.easeOut(duration: 0.25)) {
                 camera.clearFrozenFrame()
             }
