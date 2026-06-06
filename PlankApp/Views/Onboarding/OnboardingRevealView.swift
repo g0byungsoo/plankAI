@@ -270,61 +270,58 @@ private struct ProjectionPresentation: View {
         return formatter.string(from: date).lowercased()
     }
 
+    /// Delta v8 D74 — multi-proof plan reveal. Replaces the single-
+    /// number calorie hero with a 5-tile grid per the WL + UX +
+    /// monetization briefs studying Cal AI (calai25/24). Tiles surface
+    /// the daily-decision proofs the cohort came for: calorie target,
+    /// protein floor, date target, plank ritual, becoming arc. Plank
+    /// + becoming arc are JeniFit's two non-cloneable program proofs
+    /// that Cal AI structurally cannot show.
     @ViewBuilder
     private func calorieTargetHero(kcal: Int) -> some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("\(kcal)")
-                    .font(.custom("Fraunces72pt-SemiBold", size: 44))
-                    .foregroundStyle(Palette.textPrimary)
-                    .monospacedDigit()
-                ItalicAccentText(
-                    "calories",
-                    italic: ["calories"],
-                    baseFont: .custom("Fraunces72pt-SemiBoldItalic", size: 18),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 18),
-                    color: Palette.textSecondary
+        VStack(alignment: .leading, spacing: 12) {
+            // Top row: calorie + date — the two anchors of the program.
+            HStack(alignment: .top, spacing: 10) {
+                proofTile(
+                    eyebrow: "calories",
+                    value: "\(kcal)",
+                    valueFont: .custom("Fraunces72pt-SemiBold", size: 36),
+                    sub: estimatedProteinFloor.map { "\($0)g protein floor" } ?? "starting target"
                 )
-                Spacer(minLength: 0)
-            }
-
-            if let protein = estimatedProteinFloor {
-                HStack(spacing: 6) {
-                    Text("\(protein)g")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("protein floor")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.textSecondary)
-                }
-            }
-
-            // Delta v8 D79 — specific date in plan reveal. Cal AI's
-            // commitment-anchor pattern (calai36 "by May 18"). 12-week
-            // horizon is the ACSM-aligned default; Becoming projection
-            // card below shows the curve. This pill is the headline.
-            if let date = goalDateText {
-                HStack(spacing: 6) {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Palette.accent)
-                    ItalicAccentText(
-                        "by \(date) ♥",
-                        italic: [date],
-                        baseFont: .custom("Fraunces72pt-SemiBold", size: 14),
-                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 14),
-                        color: Palette.textPrimary
+                if let date = goalDateText {
+                    proofTile(
+                        eyebrow: "by",
+                        value: date,
+                        valueFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
+                        sub: "your becoming date"
                     )
+                    .frame(width: 130)
                 }
             }
 
-            Text("a starting number — we'll learn yours over the first few weeks ♥")
+            // Bottom row: program proofs Cal AI can't show.
+            HStack(spacing: 10) {
+                proofTile(
+                    eyebrow: "ritual",
+                    value: "5-min",
+                    valueFont: .custom("Fraunces72pt-SemiBold", size: 22),
+                    sub: "plank a day"
+                )
+                proofTile(
+                    eyebrow: "method",
+                    value: "14-day",
+                    valueFont: .custom("Fraunces72pt-SemiBold", size: 22),
+                    sub: "becoming arc"
+                )
+            }
+
+            Text("a starting plan — we'll tune yours over the first few weeks ♥")
                 .font(.system(size: 12))
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 2)
         }
-        .padding(20)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             ZStack {
@@ -336,6 +333,39 @@ private struct ProjectionPresentation: View {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .stroke(Palette.accent, lineWidth: 1.5)
             }
+        )
+    }
+
+    @ViewBuilder
+    private func proofTile(eyebrow: String, value: String, valueFont: Font, sub: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(eyebrow)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Palette.textSecondary)
+                .tracking(0.8)
+                .textCase(.lowercase)
+            Text(value)
+                .font(valueFont)
+                .foregroundStyle(Palette.textPrimary)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(sub)
+                .font(.system(size: 11))
+                .foregroundStyle(Palette.textSecondary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Palette.bgPrimary.opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Palette.textPrimary.opacity(0.06), lineWidth: 0.5)
         )
     }
 
