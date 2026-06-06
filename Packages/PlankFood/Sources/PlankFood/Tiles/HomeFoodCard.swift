@@ -62,7 +62,15 @@ public struct HomeFoodCard: View {
 
                 Spacer(minLength: 0)
 
-                tapHint
+                // v1.0.7 §6 — when the editorial empty state is showing,
+                // its CTA line ("tap the camera to begin.") already
+                // covers the tap hint affordance. Two lines + sticker
+                // is the locked pattern; a third "tap to log →" line
+                // would push the card past the brief's "never more"
+                // rule. Show tapHint only on the loaded state.
+                if todayKcal > 0 {
+                    tapHint
+                }
             }
             .padding(FoodTheme.Space.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -134,11 +142,36 @@ public struct HomeFoodCard: View {
         }
     }
 
+    /// v1.0.7 §6 editorial empty state. Inline implementation
+    /// (PlankFood is a leaf package and can't import the app's
+    /// EditorialEmptyState component) — same locked pattern:
+    /// italic-Fraunces headline + DM Sans CTA + signature
+    /// sticker (cherries, top-right). 22pt headline instead of
+    /// 28pt because the card is constrained chrome, not a full-
+    /// screen mark. No hairline rule for the same reason — the
+    /// card's own border already serves as the section break.
     @ViewBuilder private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("ready when you are.")
-                .font(.system(size: 15))
-                .foregroundStyle(FoodTheme.textSecondary)
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("the table is set.")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                Text("tap the camera to begin.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(FoodTheme.textSecondary)
+            }
+            Spacer(minLength: 0)
+            // PlankFood declares resources in Package.swift so SwiftUI
+            // Image defaults to Bundle.module. The cherries sticker
+            // lives in the app's Assets.xcassets, so we explicitly
+            // pass Bundle.main to resolve against the host app
+            // bundle. Without this, the asset silently renders blank.
+            Image("sticker_cherries", bundle: .main)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 28, height: 28)
+                .opacity(0.85)
+                .accessibilityHidden(true)
         }
         .padding(.vertical, FoodTheme.Space.sm)
     }
@@ -164,7 +197,7 @@ public struct HomeFoodCard: View {
 
     private var accessibilityLabel: String {
         if todayKcal == 0 {
-            return "today's plate, empty, ready when you are"
+            return "today's plate. the table is set. tap the camera to begin."
         }
         return "today's plate, \(Int(todayKcal.rounded())) calories logged today"
     }

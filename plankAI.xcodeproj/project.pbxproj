@@ -1233,6 +1233,7 @@
 		FAFA000000000000000B0005 /* PremiumWelcomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000B0015 /* PremiumWelcomeScreen.swift */; };
 		FAFA000000000000000C0001 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0011 /* Components.swift */; };
 		FAFA000000000000000C0002 /* Stickers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0012 /* Stickers.swift */; };
+		FAFA000000000000000C0003 /* EditorialEmptyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0013 /* EditorialEmptyState.swift */; };
 		FAFA000000000000000C0102 /* MagicalLoading.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0112 /* MagicalLoading.swift */; };
 		FAFA000000000000000C0202 /* EffectAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0212 /* EffectAnimation.swift */; };
 		FAFA000000000000000F0001 /* Fraunces72pt-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */; };
@@ -2513,6 +2514,7 @@
 		FAFA000000000000000B0015 /* PremiumWelcomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumWelcomeScreen.swift; sourceTree = "<group>"; };
 		FAFA000000000000000C0011 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		FAFA000000000000000C0012 /* Stickers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stickers.swift; sourceTree = "<group>"; };
+		FAFA000000000000000C0013 /* EditorialEmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorialEmptyState.swift; sourceTree = "<group>"; };
 		FAFA000000000000000C0112 /* MagicalLoading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagicalLoading.swift; sourceTree = "<group>"; };
 		FAFA000000000000000C0212 /* EffectAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EffectAnimation.swift; sourceTree = "<group>"; };
 		FAFA000000000000000F0011 /* Fraunces72pt-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Fraunces72pt-Light.ttf"; sourceTree = "<group>"; };
@@ -2662,6 +2664,7 @@
 				783187DD2F9AF2060096138F /* Haptics.swift */,
 				FAFA000000000000000C0011 /* Components.swift */,
 				FAFA000000000000000C0012 /* Stickers.swift */,
+				FAFA000000000000000C0013 /* EditorialEmptyState.swift */,
 				FAFA000000000000000C0112 /* MagicalLoading.swift */,
 				FAFA000000000000000C0212 /* EffectAnimation.swift */,
 				FDD8820181D2AB1EB91D6353 /* ScrapbookCard.swift */,
@@ -5389,6 +5392,7 @@
 				783187DE2F9AF2060096138F /* Haptics.swift in Sources */,
 				FAFA000000000000000C0001 /* Components.swift in Sources */,
 				FAFA000000000000000C0002 /* Stickers.swift in Sources */,
+				FAFA000000000000000C0003 /* EditorialEmptyState.swift in Sources */,
 				FAFA000000000000000C0102 /* MagicalLoading.swift in Sources */,
 				FAFA000000000000000C0202 /* EffectAnimation.swift in Sources */,
 				FAFA000000000000000B0001 /* AffirmationScreen.swift in Sources */,

@@ -977,13 +977,22 @@ struct AnalyticsView: View {
                 sticker: .cherries,
                 pullCaption: "rhythm, not rules."
             )
-            FoodWeekBentoTile(
-                userId: AuthService.shared.currentUser?.id.uuidString ?? ""
-            ) {
-                presentedMetric = .plate
-            }
-            if !foodLogsThisWeek {
-                stackEmptyLine("the page is open — snap one plate to start the story ♥")
+            if foodLogsThisWeek {
+                FoodWeekBentoTile(
+                    userId: AuthService.shared.currentUser?.id.uuidString ?? ""
+                ) {
+                    presentedMetric = .plate
+                }
+            } else {
+                // v1.0.7 §6 editorial empty state. Replaces the
+                // single-line invitation; FoodWeekBentoTile is
+                // hidden in this branch so we don't double-render
+                // an empty bar chart underneath the editorial mark.
+                EditorialEmptyState(
+                    headline: "the page is open.",
+                    cta: "tap to log your first plate.",
+                    sticker: .cherries
+                )
             }
         }
     }
@@ -1048,7 +1057,12 @@ struct AnalyticsView: View {
                 pullCaption: "the shape of becoming."
             )
             if onboardingBarriers.isEmpty && benchmarkCount == 0 {
-                stackEmptyLine("the shape of change appears as you show up ♥")
+                // v1.0.7 §6 editorial empty state.
+                EditorialEmptyState(
+                    headline: "the shape is forming.",
+                    cta: "two more weeks and we'll show you.",
+                    sticker: .bowSatin
+                )
             } else {
                 if !onboardingBarriers.isEmpty {
                     barrierCard

@@ -125,16 +125,17 @@ struct TrendHeroCard: View {
 
     // MARK: - Empty state
 
+    /// v1.0.7 §6 editorial empty state. Brief copy:
+    /// "*your week is unwritten.*" + "log when you're ready." +
+    /// flower3D 28pt. The CTA button below (rendered by the
+    /// caller's `actionRow`) carries the actual "log weight"
+    /// interaction — this view is the editorial mark.
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            (Text("your ").font(.custom("Fraunces72pt-Regular", size: 24))
-             + Text("trend").font(.custom("Fraunces72pt-SemiBoldItalic", size: 24))
-             + Text(" lives here").font(.custom("Fraunces72pt-Regular", size: 24)))
-                .foregroundStyle(Palette.textPrimary)
-            Text("log to start the story ♥")
-                .font(.system(size: 13))
-                .foregroundStyle(Palette.textSecondary)
-        }
+        EditorialEmptyState(
+            headline: "your week is unwritten.",
+            cta: "log when you're ready.",
+            sticker: .flower3D
+        )
     }
 
     // MARK: - Stocked hero (number + delta)
