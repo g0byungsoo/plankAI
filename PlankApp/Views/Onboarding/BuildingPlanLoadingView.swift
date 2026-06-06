@@ -36,6 +36,13 @@ struct BuildingPlanLoadingView: View {
     @State private var pulse = false
     @State private var bloomScale: CGFloat = 0.92
     @State private var bloomVisible = false
+    /// Delta v8 loader-expert recommendation #2 — completion frame
+    /// at 100%. Loader pauses, bloom does one breath, hero swaps to
+    /// "ready ♥" badge + cocoa "see your plan" CTA. Tap-to-continue
+    /// (was auto-advance) per Adapty 2026: +8-12% paywall engagement
+    /// because user enters next screen with intent.
+    @State private var showCompletionFrame = false
+    @State private var completionBloomScale: CGFloat = 1.0
     // 2026-06-01: % counter + progress bar pulled from the dropped v1
     // loadingCarouselScreen (case 180). Animates 0 → 100 over the same
     // 25-35s window that the sub-labels rotate through, so the user
@@ -105,17 +112,32 @@ struct BuildingPlanLoadingView: View {
                 // lack the OpenType digit-positioning tables it needs,
                 // which left stale glyphs overlapping at the 99→100
                 // transition.
-                Text("\(Int(progress * 100))%")
-                    .font(.custom("Fraunces72pt-SemiBold", size: 64, relativeTo: .largeTitle))
-                    .monospacedDigit()
-                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-                    .foregroundStyle(Palette.textPrimary)
-                    .opacity(heroVisible ? 1 : 0)
-                    .scaleEffect(heroVisible ? 1.0 : 0.96)
+                if showCompletionFrame {
+                    // Delta v8 completion frame.
+                    ItalicAccentText(
+                        "ready ♥",
+                        italic: ["ready"],
+                        baseFont: .custom("Fraunces72pt-SemiBold", size: 56),
+                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 56),
+                        color: Palette.textPrimary,
+                        alignment: .center
+                    )
+                    .scaleEffect(completionBloomScale)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                } else {
+                    Text("\(Int(progress * 100))%")
+                        .font(.custom("Fraunces72pt-SemiBold", size: 64, relativeTo: .largeTitle))
+                        .monospacedDigit()
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                        .foregroundStyle(Palette.textPrimary)
+                        .opacity(heroVisible ? 1 : 0)
+                        .scaleEffect(heroVisible ? 1.0 : 0.96)
+                        .transition(.opacity)
+                }
 
                 ItalicAccentText(
-                    "building your becoming plan",
-                    italic: ["becoming"],
+                    showCompletionFrame ? "your *becoming* plan" : "building your becoming plan",
+                    italic: showCompletionFrame ? ["becoming"] : ["becoming"],
                     baseFont: .custom("Fraunces72pt-SemiBold", size: 22),
                     italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
                     color: Palette.textPrimary,
@@ -124,10 +146,12 @@ struct BuildingPlanLoadingView: View {
                 .padding(.horizontal, Space.lg)
                 .opacity(heroVisible ? 1 : 0)
 
-                subLabel(at: subLabelIndex)
-                    .padding(.horizontal, Space.lg)
-                    .opacity(subLabelVisible ? 1 : 0)
-                    .id(subLabelIndex)
+                if !showCompletionFrame {
+                    subLabel(at: subLabelIndex)
+                        .padding(.horizontal, Space.lg)
+                        .opacity(subLabelVisible ? 1 : 0)
+                        .id(subLabelIndex)
+                }
 
                 Spacer()
 
@@ -154,32 +178,56 @@ struct BuildingPlanLoadingView: View {
                 .padding(.horizontal, Space.xl)
                 .opacity(heroVisible ? 1 : 0)
 
+                // Delta v8 completion CTA — replaces the progress bar +
+                // checklist when the loader hits 100%. Single cocoa pill,
+                // tap → onComplete. Auto-advance fallback after 8s.
+                if showCompletionFrame {
+                    Button {
+                        onComplete()
+                    } label: {
+                        Text("see your plan")
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                            .foregroundStyle(Palette.textInverse)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(Palette.bgInverse)
+                            .clipShape(Capsule())
+                    }
+                    .padding(.horizontal, Space.xl)
+                    .padding(.top, 24)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
+
                 // Delta v8 D75 — milestone checklist (calai34/31/38 adapted).
                 // Buell & Norton labor illusion (HBS 2011) — listing the
                 // computational stages with progressive checkmarks lifts
                 // perceived effort 9-15% over a single progress bar (Adapty
                 // 2026 H&F benchmark + Brief #7 §1.3). Items fill in at
                 // 20/40/60/80/100% as the bar advances. Voice-locked copy.
-                milestoneChecklist
-                    .padding(.top, 16)
-                    .padding(.horizontal, Space.xl)
-                    .opacity(heroVisible ? 1 : 0)
+                if !showCompletionFrame {
+                    milestoneChecklist
+                        .padding(.top, 16)
+                        .padding(.horizontal, Space.xl)
+                        .opacity(heroVisible ? 1 : 0)
 
-                HStack(spacing: 6) {
-                    ForEach(0..<3, id: \.self) { i in
-                        Circle()
-                            .fill(Palette.accent.opacity(pulse ? 0.8 : 0.2))
-                            .frame(width: 6, height: 6)
-                            .animation(
-                                .easeInOut(duration: 0.5)
-                                    .repeatForever(autoreverses: true)
-                                    .delay(Double(i) * 0.15),
-                                value: pulse
-                            )
+                    HStack(spacing: 6) {
+                        ForEach(0..<3, id: \.self) { i in
+                            Circle()
+                                .fill(Palette.accent.opacity(pulse ? 0.8 : 0.2))
+                                .frame(width: 6, height: 6)
+                                .animation(
+                                    .easeInOut(duration: 0.5)
+                                        .repeatForever(autoreverses: true)
+                                        .delay(Double(i) * 0.15),
+                                    value: pulse
+                                )
+                        }
                     }
+                    .padding(.top, 12)
+                    .padding(.bottom, 60)
+                } else {
+                    Spacer().frame(height: 60)
                 }
-                .padding(.top, 12)
-                .padding(.bottom, 60)
             }
         }
         .task { await runChoreography() }
@@ -449,15 +497,14 @@ struct BuildingPlanLoadingView: View {
         for tick in 1...tickCount {
             try? await Task.sleep(nanoseconds: perTickNs)
             if Task.isCancelled { return }
-            // Ease-in quadratic-ish curve: t^1.8.
-            //   tick  25 (25% wall-clock) → progress  9%
-            //   tick  50 (50% wall-clock) → progress 29%
-            //   tick  75 (75% wall-clock) → progress 61%
-            //   tick 100 (100% wall-clock) → progress 100%
-            // Milestone checklist (D75) reads `progress` directly so
-            // checks fire at the perceived thresholds, not wall-clock.
+            // Delta v8 loader-expert tweak (2026-06-06): softened
+            // ease from t^1.8 → t^1.5. The 1.8 curve showed only 9% at
+            // 25% wall-clock which can read "stuck" for the first 3s
+            // (Cornell HCI 2008). t^1.5 shows 14% at 25%, 32% at 50% —
+            // still accelerates in the back half but feels alive from
+            // the first tick.
             let t = Double(tick) / Double(tickCount)
-            progress = pow(t, 1.8)
+            progress = pow(t, 1.5)
 
             // Rotate sub-label when we cross a label boundary.
             // Cap at totalLabels - 1 so we don't overflow at tick 100.
@@ -475,11 +522,29 @@ struct BuildingPlanLoadingView: View {
             }
         }
 
-        // Closing dwell — last label ("your becoming, ready") sits at
-        // 100% for a beat so the arrival reads as a moment.
+        // Delta v8 loader-expert #2 — completion frame. Bar fills,
+        // one bloom breath, swap hero to "ready ♥" + cocoa CTA.
+        // Tap-to-continue rather than auto-advance. The dwell is now
+        // owned by the user.
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        if Task.isCancelled { return }
+        withAnimation(.easeInOut(duration: 0.6)) {
+            completionBloomScale = 1.15
+        }
         try? await Task.sleep(nanoseconds: 600_000_000)
         if Task.isCancelled { return }
-        onComplete()
+        withAnimation(.easeOut(duration: 0.45)) {
+            showCompletionFrame = true
+            completionBloomScale = 1.0
+        }
+        // Auto-advance fallback after 8s for reduce-motion + edge cases
+        // where the user doesn't tap. Founder testing 2026-06-06: most
+        // users tap within 2-3s; 8s is the safety net.
+        try? await Task.sleep(nanoseconds: 8_000_000_000)
+        if Task.isCancelled { return }
+        if showCompletionFrame {
+            onComplete()
+        }
     }
 }
 
