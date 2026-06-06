@@ -402,23 +402,28 @@ struct PaywallView: View {
             // 3-tier row with asymmetric center-stage scaling (Quarterly
             // is taller + cream-filled, lifted above the row silhouette).
             // Per founder direction + UX/Mon v3 briefs
-            // (docs/paywall_research_*_v3_2026_06_06.md). BecomingProjection
-            // chip removed (already on plan-reveal one beat earlier);
-            // subhead dropped; $99.96 strikethrough + savings copy lifted
-            // to row-anchor line above the cards where it does the
-            // discount-story work BEFORE the user picks.
+            // (docs/paywall_research_*_v3_2026_06_06.md). Subhead dropped;
+            // $99.96 strikethrough + savings copy lifted to row-anchor
+            // line above the cards where it does the discount-story work
+            // BEFORE the user picks. Projection chip restored (the
+            // horizontal layout left enough headroom; cutting it had
+            // made the screen feel empty).
             // Composition:
             //   slot 1: topBar (44pt)                   — Restore
             //   slot 2: heroPermission (~52pt)          — single-line hero
-            //   slot 3: pricingRowAnchorLine (~24pt)    — strikethrough+save
-            //   slot 4: tierRowHorizontal (~156pt)      — 3 cards, asymmetric
-            //   slot 5: trialOrPlanRecap (~88pt yearly / ~36pt others)
-            //   slot 6: ctaButtonV2 (~56pt)
-            //   slot 7: trustAndLegalFooter (~32pt)
+            //   slot 3: becomingProjectionChip (~110pt) — commitment device
+            //   slot 4: pricingRowAnchorLine (~24pt)    — strikethrough+save
+            //   slot 5: tierRowHorizontal (~156pt)      — 3 cards, asymmetric
+            //   slot 6: trialOrPlanRecap (~88pt yearly / ~36pt others)
+            //   slot 7: ctaButtonV2 (~56pt)
+            //   slot 8: trustAndLegalFooter (~32pt)
             VStack(spacing: 10) {
                 Spacer().frame(height: 44)  // topBar reserve
 
                 heroPermission
+                    .padding(.horizontal, Space.lg)
+
+                becomingProjectionChip
                     .padding(.horizontal, Space.lg)
 
                 pricingRowAnchorLine
@@ -514,6 +519,24 @@ struct PaywallView: View {
         .padding(.horizontal, 8)
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity)
+    }
+
+    /// Compressed BecomingProjectionCard. 2026-06-06 — restored after
+    /// removal in the initial v3 layout. The horizontal tier row is
+    /// only 156pt (vs vertical's 224pt) so we have ~70pt of reclaimed
+    /// room; cutting the chart in addition was overkill. Acts as a
+    /// commitment device — the user saw the full chart on plan-reveal
+    /// one beat earlier, this is reinforcement of "this is what you're
+    /// buying into" right above the pricing logic. chartHeight: 50
+    /// keeps the chip ~110pt total.
+    @ViewBuilder
+    private var becomingProjectionChip: some View {
+        BecomingProjectionCard(
+            currentWeightKg: currentUserRecord?.onboardingCurrentWeightKg,
+            goalWeightKg: currentUserRecord?.onboardingGoalWeightKg,
+            voicePreference: voicePreference,
+            chartHeight: 50
+        )
     }
 
     /// v3 row-anchor line — $99.96 strikethrough + "$51.97 off ♥".
