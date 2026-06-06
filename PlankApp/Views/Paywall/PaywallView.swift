@@ -547,11 +547,12 @@ struct PaywallView: View {
     /// Per v4 expert briefs (docs/paywall_research_*_v4_benefits_2026_06_06.md):
     /// placement above the tier row keeps screen mass constant across tier
     /// selections, which solves the "empty when Quarterly/Weekly selected"
-    /// complaint structurally instead of as a per-tier patch. Food included
-    /// with "coming soon ♥" tag — honest forward-disclosure pattern (Lasta,
-    /// BetterMe, Fastic) matches the founder's stated example without
-    /// triggering Cal-AI-takedown-adjacent overpromise risk.
+    /// complaint structurally instead of as a per-tier patch.
     /// Italic-Fraunces punch word per row; supporting line in muted 11pt.
+    /// Food row uses the established "see what fits" voice from the
+    /// existing food-first paywall headline variant — Cal-AI-trained US
+    /// Gen-Z cohort pattern-matches the explicit photo-to-calories
+    /// outcome without triggering AI-language locks.
     private var paywallBenefits: some View {
         VStack(alignment: .leading, spacing: 8) {
             benefitRow(punch: "workouts",
@@ -559,17 +560,14 @@ struct PaywallView: View {
             benefitRow(punch: "becoming",
                        supporting: "weight trend, steps, breathwork")
             benefitRow(punch: "food",
-                       supporting: "coming soon ♥ · snap a meal, log without thinking",
-                       italicTrail: true)
+                       supporting: "snap a meal, see what fits")
             benefitRow(punch: "jeni method",
                        supporting: "short reads, evidence-backed")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// One benefits row. `italicTrail` lets the food row carry the
-    /// "coming soon ♥" italic punctuation that flags forward-disclosure.
-    private func benefitRow(punch: String, supporting: String, italicTrail: Bool = false) -> some View {
+    private func benefitRow(punch: String, supporting: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Circle()
                 .fill(Palette.accent)
