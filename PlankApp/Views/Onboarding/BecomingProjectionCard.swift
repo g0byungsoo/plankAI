@@ -21,6 +21,10 @@ struct BecomingProjectionCard: View {
     let currentWeightKg: Double?
     let goalWeightKg: Double?
     let voicePreference: String
+    /// 2026-06-06 — paywall compact variant. Paywall wants a short
+    /// projection chip (~110pt total) so 3 tier cards can fit on
+    /// one screen. Reveal screen keeps the full 110pt chart.
+    var chartHeight: CGFloat = 110
 
     @ViewBuilder
     var body: some View {
@@ -49,7 +53,7 @@ struct BecomingProjectionCard: View {
                             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11))
                             .foregroundStyle(Palette.accent)
                     }
-                    .frame(width: 44, height: 110)
+                    .frame(width: 44, height: chartHeight)
 
                     GeometryReader { geo in
                         ZStack(alignment: .topLeading) {
@@ -81,7 +85,7 @@ struct BecomingProjectionCard: View {
                                 .accessibilityHidden(true)
                         }
                     }
-                    .frame(height: 110)
+                    .frame(height: chartHeight)
                 }
 
                 // X-axis labels — bonus per-week pace below the right tick
