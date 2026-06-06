@@ -451,17 +451,18 @@ struct AnalyticsView: View {
                             .offset(y: sectionOffset[1])
                     }
 
-                    // Below-the-fold drill-in content. Per the
-                    // unanimous-kill verdict the chapter spreads die on
-                    // first viewport; the chapter CONTENT survives here
-                    // as bare modules the curious user scrolls into.
-                    // Activity calendar, barriers, plank curve, recent
-                    // sessions — all preserved, just below the snapshot.
-                    activityCalendar
-                        .opacity(sectionOpacity[2])
-                        .offset(y: sectionOffset[2])
-                        .scaleEffect(calendarScale, anchor: .top)
-
+                    // v1.0.7 founder cleanup 2026-06-06 — activityCalendar
+                    // removed: there's no streak logic in JeniFit (freeze-
+                    // day logic was retired with the EngagementDay refactor
+                    // in v1.0.6), so the month-grid calendar surfaced
+                    // visual structure without honest signal. Helper kept
+                    // compiled (`activityCalendar` and its sub-views) for
+                    // potential reuse on the weekly recap surface.
+                    //
+                    // Remaining below-fold modules (barriers / plank /
+                    // sessions) retyped to the snapshot register —
+                    // hairlines instead of scrapbook chrome, 3-tier
+                    // cocoa, Fraunces Light numerals.
                     if !onboardingBarriers.isEmpty {
                         barrierCard
                             .opacity(sectionOpacity[3])
@@ -1531,25 +1532,39 @@ struct AnalyticsView: View {
     // intention-behavior gap (Gollwitzer & Sheeran 2006). Copy is
     // affirming, not preachy.
 
+    /// v1.0.7 snapshot register — "what's happening" card retyped
+    /// per founder cleanup feedback. Scrapbook chrome (24pt corners
+    /// + 1.5pt cocoa border + offset shadow) replaced with hairline
+    /// section mark. Title compressed to a single italic-Fraunces
+    /// SemiBold heading + uppercase eyebrow label (matches the
+    /// BecomingStatTile + BecomingMovementTile register).
     private var barrierCard: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            Text("you said it'd be hard")
-                .font(Typo.eyebrow).tracking(3)
-                .foregroundStyle(Palette.accent)
-            Text("here's what's actually happening.")
-                .font(Typo.titleItalic)
-                .foregroundStyle(Palette.textPrimary)
-                .padding(.bottom, 2)
-
-            VStack(spacing: Space.sm) {
+        VStack(alignment: .leading, spacing: Space.md) {
+            Text("WHAT'S HAPPENING")
+                .font(Typo.statLabel)
+                .kerning(0.66)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+            ItalicAccentText(
+                "the work *under* the surface",
+                italic: ["under"],
+                baseFont: .custom("Fraunces72pt-SemiBold", size: 22),
+                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
+                color: Palette.cocoaPrimary,
+                alignment: .leading
+            )
+            VStack(spacing: Space.md) {
                 ForEach(orderedBarriers, id: \.self) { key in
                     barrierRow(key: key)
                 }
             }
+            .padding(.top, 4)
         }
-        .padding(Space.md)
+        .padding(.vertical, Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(scrapbookCardChrome())
+        .overlay(alignment: .top) {
+            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+        }
     }
 
     /// Orders barriers by importance/impact rather than picked order.
@@ -1564,23 +1579,20 @@ struct AnalyticsView: View {
         let pair = barrierCopy(key: key)
         return HStack(alignment: .top, spacing: Space.md) {
             Image(systemName: pair.icon)
-                .font(.system(size: 16, weight: .regular))
-                .foregroundStyle(Palette.accent)
-                .frame(width: 28)
-            VStack(alignment: .leading, spacing: 2) {
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(Palette.jeweledRose.opacity(0.85))
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 3) {
                 Text(pair.title)
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
-                    .foregroundStyle(Palette.textPrimary)
+                    .foregroundStyle(Palette.cocoaPrimary)
                 Text(pair.detail)
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
+                    .font(.custom("DMSans-Regular", size: 13))
+                    .foregroundStyle(Palette.cocoaSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
         }
-        // Compound row — VoiceOver announces "you said never have time.
-        // your sessions average 12 min..." as one phrase rather than
-        // walking icon/title/detail separately.
         .accessibilityElement(children: .combine)
     }
 
@@ -1973,63 +1985,64 @@ struct AnalyticsView: View {
 
     // MARK: - Plank Progress
 
+    /// v1.0.7 snapshot register — plank progress card retyped. Scrapbook
+    /// chrome stripped, 1pt internal dividers → 0.5pt cocoa-12 hairlines,
+    /// SemiBold 32pt numerals → Fraunces Light 32pt (no italic on
+    /// numerals — voice lock). The "+25% capability" gain readout
+    /// stays in italic-Fraunces because "capability" is a copy punch
+    /// word and the percent is part of an editorial brag line, not a
+    /// data-row numeral — call-site editorial moment.
     private var plankCard: some View {
         VStack(alignment: .leading, spacing: Space.md) {
             HStack {
-                Text("plank progress")
-                    .font(Typo.eyebrow).tracking(3)
-                    .foregroundStyle(Palette.accent)
+                Text("PLANK PROGRESS")
+                    .font(Typo.statLabel)
+                    .kerning(0.66)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
                 Spacer()
                 Text("\(benchmarkCount) tests")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.cocoaSecondary)
             }
 
             HStack(spacing: 0) {
-                VStack(spacing: 4) {
-                    Text(String(format: "%.0f", latestPlankHold))
-                        .font(.custom("Fraunces72pt-SemiBold", size: 32))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("latest (s)")
-                        .font(Typo.caption).foregroundStyle(Palette.textSecondary)
-                }
-                .frame(maxWidth: .infinity)
-
-                Rectangle().fill(Palette.divider).frame(width: 1, height: 40)
-
-                VStack(spacing: 4) {
-                    Text(String(format: "%.0f", bestPlankHold))
-                        .font(.custom("Fraunces72pt-SemiBold", size: 32))
-                        .foregroundStyle(Palette.accent)
-                    Text("best (s)")
-                        .font(Typo.caption).foregroundStyle(Palette.textSecondary)
-                }
-                .frame(maxWidth: .infinity)
-
-                Rectangle().fill(Palette.divider).frame(width: 1, height: 40)
-
-                VStack(spacing: 4) {
-                    Text(averageRating > 0 ? String(format: "%.1f", averageRating) : "--")
-                        .font(.custom("Fraunces72pt-SemiBold", size: 32))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("avg rating")
-                        .font(Typo.caption).foregroundStyle(Palette.textSecondary)
-                }
-                .frame(maxWidth: .infinity)
+                plankStatColumn(value: String(format: "%.0f", latestPlankHold), label: "latest (s)", tint: Palette.cocoaPrimary)
+                hairlineColumnDivider
+                plankStatColumn(value: String(format: "%.0f", bestPlankHold), label: "best (s)", tint: Palette.jeweledRose)
+                hairlineColumnDivider
+                plankStatColumn(value: averageRating > 0 ? String(format: "%.1f", averageRating) : "—", label: "avg rating", tint: Palette.cocoaPrimary)
             }
 
-            // Mastery curve callout — Bandura 1997 / Annesi 2011: showing
-            // capability gain (vs. raw number) is the strongest single
-            // predictor of weight-loss adherence at 6 months. Pulls
-            // baselineHoldSeconds straight from onboarding; renders only
-            // when both baseline and a current best exist.
             if plankBaselineSeconds > 0 && bestPlankHold > 0 {
                 masteryCurveLine
             }
         }
-        .padding(Space.md)
+        .padding(.vertical, Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(scrapbookCardChrome())
+        .overlay(alignment: .top) {
+            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+        }
+    }
+
+    private func plankStatColumn(value: String, label: String, tint: Color) -> some View {
+        VStack(spacing: 6) {
+            Text(value)
+                .font(.custom("Fraunces72pt-Light", size: 32))
+                .monospacedDigit()
+                .foregroundStyle(tint)
+            Text(label)
+                .font(.custom("DMSans-Regular", size: 11))
+                .foregroundStyle(Palette.cocoaTertiary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var hairlineColumnDivider: some View {
+        Rectangle()
+            .fill(Palette.hairlineCocoa)
+            .frame(width: 0.5, height: 32)
     }
 
     /// Inline "from baseline" delta. Shows current best vs. onboarding
@@ -2043,17 +2056,21 @@ struct AnalyticsView: View {
         let positive = delta > 0
         return HStack(spacing: 6) {
             Image(systemName: positive ? "arrow.up.right" : "minus")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(positive ? Palette.stateGood : Palette.textSecondary)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(positive ? Palette.jeweledRose.opacity(0.85) : Palette.cocoaTertiary)
             Text("from \(plankBaselineSeconds)s at start")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
+                .font(.custom("DMSans-Regular", size: 12))
+                .monospacedDigit()
+                .foregroundStyle(Palette.cocoaSecondary)
             if positive {
                 Text("·")
-                    .foregroundStyle(Palette.divider)
-                Text("+\(pct)% capability")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                    .foregroundStyle(Palette.stateGood)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                (Text("+\(pct)% ")
+                    .font(.custom("DMSans-Medium", size: 12))
+                    .monospacedDigit()
+                 + Text("capability")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12)))
+                    .foregroundStyle(Palette.jeweledRose)
             }
             Spacer()
         }
@@ -2062,114 +2079,116 @@ struct AnalyticsView: View {
 
     // MARK: - Recent Sessions (grouped)
 
+    /// v1.0.7 snapshot register — sessions list retyped. Per-row
+    /// card chrome (RoundedRectangle 14pt + plankShadow) stripped;
+    /// rows now read as a clean editorial log with 0.5pt cocoa-12
+    /// row dividers. Section eyebrow uppercase + tracked label.
     private var recentSessions: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: Space.md) {
+            Text("SESSIONS")
+                .font(Typo.statLabel)
+                .kerning(0.66)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+
             if !thisWeekSessions.isEmpty {
-                sectionHeader("This Week")
-                ForEach(Array(thisWeekSessions.enumerated()), id: \.element.id) { i, log in
-                    sessionRow(log)
-                        .transition(.opacity.combined(with: .offset(y: 8)))
-                        .animation(.spring(response: 0.4, dampingFraction: 0.85).delay(Double(i) * 0.08), value: sectionOpacity[4])
+                sectionHeader("this week")
+                VStack(spacing: 0) {
+                    ForEach(Array(thisWeekSessions.enumerated()), id: \.element.id) { i, log in
+                        sessionRow(log)
+                            .transition(.opacity.combined(with: .offset(y: 8)))
+                            .animation(.spring(response: 0.4, dampingFraction: 0.85).delay(Double(i) * 0.08), value: sectionOpacity[4])
+                        if i < thisWeekSessions.count - 1 {
+                            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+                        }
+                    }
                 }
             }
 
             if !earlierSessions.isEmpty {
-                sectionHeader("Earlier")
-                ForEach(Array(earlierSessions.enumerated()), id: \.element.id) { i, log in
-                    sessionRow(log)
-                        .transition(.opacity.combined(with: .offset(y: 8)))
-                        .animation(.spring(response: 0.4, dampingFraction: 0.85).delay(Double(i) * 0.06), value: sectionOpacity[4])
+                sectionHeader("earlier")
+                VStack(spacing: 0) {
+                    ForEach(Array(earlierSessions.enumerated()), id: \.element.id) { i, log in
+                        sessionRow(log)
+                            .transition(.opacity.combined(with: .offset(y: 8)))
+                            .animation(.spring(response: 0.4, dampingFraction: 0.85).delay(Double(i) * 0.06), value: sectionOpacity[4])
+                        if i < earlierSessions.count - 1 {
+                            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+                        }
+                    }
                 }
             }
 
-            // Fresh-user hint: no sessions yet. Surfaces a positive
-            // "what shows up here" rather than leaving the section
-            // silently empty (Lally 2010 — habit formation tolerates
-            // the long ramp; framing the absence as anticipated is
-            // healthier than rendering nothing).
             if thisWeekSessions.isEmpty && earlierSessions.isEmpty {
                 firstSessionHint
             }
+        }
+        .padding(.vertical, Space.md)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
         }
     }
 
     /// First-time empty state for the recent-sessions section. Calm
     /// italic Fraunces line + scrapbook chrome, matching the rest of
     /// the becoming tab. Single sticker accent.
+    /// v1.0.7 snapshot register — first-session empty state retyped.
+    /// Routes through EditorialEmptyState for consistency with the
+    /// rest of the chapter empty surfaces. sparkleGlossy at 14pt
+    /// inline-only per the §6 sticker curation (signature 5).
     private var firstSessionHint: some View {
-        VStack(alignment: .leading, spacing: Space.xs) {
-            Text("your sessions")
-                .font(Typo.eyebrow).tracking(3)
-                .foregroundStyle(Palette.accent)
-            Text("land here.")
-                .font(Typo.titleItalic)
-                .foregroundStyle(Palette.textPrimary)
-            Text("finish your first workout and the week lights up. one shows up. the rest stack from there.")
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 2)
-        }
-        .padding(Space.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(scrapbookCardChrome())
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.starLineart.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 40, height: 40)
-                .rotationEffect(.degrees(12))
-                .offset(x: 4, y: -8)
-                .opacity(StickerName.starLineart.style.opacity)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
+        EditorialEmptyState(
+            headline: "your sessions land here.",
+            cta: "finish one and the week lights up.",
+            sticker: .sparkleGlossy
+        )
     }
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(.system(size: 15, weight: .semibold))
-            .foregroundStyle(Palette.textPrimary)
+            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
+            .foregroundStyle(Palette.cocoaSecondary)
             .padding(.top, 4)
     }
 
+    /// v1.0.7 snapshot register — session row retyped. Bento card
+    /// chrome (RoundedRectangle 14pt corners + plankShadow) stripped.
+    /// Rows now sit flush in the recentSessions list, separated by
+    /// 0.5pt cocoa-12 hairlines drawn from the caller. Icon glyph
+    /// quieted from circle-tinted to inline cocoa-tertiary, the
+    /// editorial register the snapshot tiles share.
     private func sessionRow(_ log: SessionLogRecord) -> some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(log.sessionType == "routine" ? Palette.accent.opacity(0.12) : Palette.accentSubtle.opacity(0.3))
-                    .frame(width: 36, height: 36)
-                Image(systemName: log.sessionType == "routine" ? "flame.fill" : "figure.core.training")
-                    .font(.system(size: 14))
-                    .foregroundStyle(log.sessionType == "routine" ? Palette.accent : Palette.textSecondary)
-            }
+        HStack(spacing: Space.md) {
+            Image(systemName: log.sessionType == "routine" ? "flame" : "figure.core.training")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(Palette.cocoaTertiary)
+                .frame(width: 20)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(log.sessionType == "routine" ? "Core Routine" : "Plank Benchmark")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Palette.textPrimary)
+                Text(log.sessionType == "routine" ? "core routine" : "plank benchmark")
+                    .font(.custom("DMSans-Medium", size: 14))
+                    .foregroundStyle(Palette.cocoaPrimary)
                 Text(log.completedAt.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour(.defaultDigits(amPM: .abbreviated)).minute()))
-                    .font(.system(size: 12))
-                    .foregroundStyle(Palette.textSecondary)
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.cocoaTertiary)
             }
 
             Spacer()
 
             if log.sessionType == "plank_benchmark" {
                 Text(String(format: "%.0fs", log.holdTime))
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(Palette.accent)
+                    .font(.custom("Fraunces72pt-Light", size: 20))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.jeweledRose)
             } else {
                 let duration = log.totalDuration ?? 0
-                Text(duration > 0 ? formatDuration(duration) : "--")
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(Palette.textPrimary)
+                Text(duration > 0 ? formatDuration(duration) : "—")
+                    .font(.custom("Fraunces72pt-Light", size: 20))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.cocoaPrimary)
             }
         }
-        .padding(12)
-        .background(Palette.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .plankShadow()
+        .padding(.vertical, Space.sm)
     }
 
     private func formatDuration(_ time: TimeInterval) -> String {
