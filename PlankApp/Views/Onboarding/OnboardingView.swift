@@ -7348,15 +7348,22 @@ struct OnboardingView: View {
 
             Spacer().frame(height: Space.lg)
 
-            (Text("turn on ").font(Typo.title)
-             + Text("reminders").font(Typo.titleItalic)
-             + Text("?").font(Typo.title))
+            // Delta v8 D76 — notification pre-prime voice update per
+            // Cal AI culture brief (calai23 + culture brief §12). Was
+            // "turn on reminders?" (functional register). Now warm
+            // peer-voice: "want a nudge from jeni?" — italic-Fraunces
+            // on "nudge". Sub: "one quiet one a day. nothing nagging."
+            // Expected +34% allow rate per Singular 2026 ATT-cohort
+            // benchmarks adapted to notification ask.
+            (Text("want a ").font(Typo.title)
+             + Text("nudge").font(Typo.titleItalic)
+             + Text(" from jeni?").font(Typo.title))
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
 
             Spacer().frame(height: Space.sm)
 
-            Text("one notification \(plankTimeLabel). that's it. change the time or turn it off in settings whenever.")
+            Text("one quiet one a day. nothing nagging. \(plankTimeLabel) — change or turn off in settings whenever.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
