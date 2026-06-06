@@ -1542,73 +1542,46 @@ struct OnboardingView: View {
         // attribution. Low-stakes commitment, get her one screen in.
         200, 230, 1, 100,
         //
-        // Delta v8 D87 — sunk-cost activation Q FIRST (case 168), drives
-        // downstream tone calibration for the food wedge that follows.
-        // Cal AI's calai10 pattern adapted to 3 options for nuance.
+        // Delta v8 D87 — sunk-cost activation Q FIRST (case 168).
         168,
         //
-        // Delta v7 — FOOD WEDGE early (before workout Qs). The diet-first
-        // pivot's single biggest signal is that food questions land
-        // BEFORE workout questions. Pre-pivot this block lived in late
-        // Act 4 (after ~30 workout/biometric Qs); post-pivot it's the
-        // first thing she answers after the soft becoming entry.
-        //
+        // Delta v7 — FOOD WEDGE early. Diet-first pivot signal.
         //   162 (food relationship) → 166 (pre-eat permission wedge,
         //   educational) → 156 (eating cadence) → 157 (eating window) →
-        //   159 (prior one-thing-worked — has logging_food as option).
-        //   Then continues into the demoted workout/activity block (201).
-        //
-        // 154 (sleep) + 155 (stress) + 158 (prior attempts) stay in Act 4
-        // (they're vulnerability/anchor questions, not food-specific).
+        //   159 (prior one-thing-worked).
         162, 166, 156, 157, 159,
         //
-        // Act 2 — Workout/activity (demoted from "identity build" pre-pivot).
-        // The diet-first positioning treats workout as a Tier-2 rail; the
-        // questions still land but after the food wedge has established
-        // category-fit.
-        201, 110, 111, 2, 8, 232, 25, 17,
+        // Act 2 — Workout/activity (demoted, post-food-wedge).
+        // Delta v8 D83 (2026-06-06): cut 201 (section divider —
+        // 200/203/205 keep the section beat; 201/202/204 were
+        // redundant), 111 (overlaps 140 identity feeling), 232
+        // (5-min educational interlude reads as filler — the
+        // session-length Q itself carries the framing).
+        110, 2, 8, 25, 17,
         270,
-        // Act 3 — Biometric core (mid-flow, after she's already invested).
-        202, 231, 130, 7, 131, 132, 133, 134, 135,
+        // Act 3 — Biometric core. D83 cut 202 (section divider)
+        // and 135 ("your goal" body type — 134 "your starting point"
+        // captures the body-shape signal alone; goal-state body is
+        // already implicit in the weight-goal Qs).
+        231, 130, 7, 131, 132, 133, 134,
         160, 161,
-        // Act 4 — Vulnerability + cohort signal.
-        //   Lighter inputs first: identity feeling (140) → cycle primer
-        //   (233) → month signals (235) → prior attempts (158).
-        //   A2 credibility block (deeper vulnerability): sleep (154) →
-        //   stress (155).
-        //   A4 cohort signal (deepest vulnerability — placed LAST so the
-        //   user has already invested ~50 screens before being asked):
-        //   hormonal stage (163) → GLP-1 status (164). Both skip-friendly.
-        //   Then comparison frame (142) closes the act.
-        //
-        // Food Qs (162, 156, 157, 159) moved to early flow per delta v7.
-        // Delta v8 D73 — pace selector (case 167) lands BEFORE Act 4
-        // vulnerability. Per WL brief: slots between 161 (first
-        // prediction) and 203 so the user has seen the projection
-        // curve before being asked to choose pace.
+        // Delta v8 D73 — pace selector (case 167).
         167,
-        203, 140, 233, 235, 158, 154, 155, 163, 164, 142,
-        // Delta v7 D67 — commitment confidence (165) lands right
-        // before the video demo. Cal AI's +1.7× trial-to-paid lever:
-        // pure investment screen, no answer gates anything.
+        // Act 4 — Vulnerability + cohort signal. D83 cut 235
+        // (month-signals — hormonal stage 163 captures the same
+        // cycle-awareness signal at lower vulnerability cost).
+        203, 140, 233, 158, 154, 155, 163, 164, 142,
+        // Delta v7 D67 — commitment confidence (165).
         165,
         145,
         170,
         260,
-        // Act 5 — Reveal + commit. 153 is the new consolidated barriers
-        // multi-select that replaces 150/151/152. The rest is the existing
-        // reveal pipeline that Phase 5 already shipped.
-        //
-        // Delta v8 D82 + D83 (2026-06-06): tightened the post-reveal
-        // tail. Sign-in (case 26) now lands IMMEDIATELY after the
-        // reveal (250) so it reads as a sunk-cost lock on what she
-        // just saw, not a generic auth screen lost among filler.
-        // Cut from v2 tail: 240 (brandPromises — reads 2018 startup
-        // register), 215 (rating prompt — superseded by the loader's
-        // sentiment overlay), 22 (personalStat — duplicates the
-        // projection card from the reveal). Final tail: reveal →
-        // sign-in → finish.
-        204, 153,
+        // Act 5 — Reveal + commit. D83 cut 204 (section divider).
+        // Delta v8 D82 + D83 final tail: reveal → sign-in → finish.
+        // Cut: 240 (brandPromises), 215 (rating prompt — superseded
+        // by the loader's sentiment overlay), 22 (personalStat —
+        // duplicates the projection card from the reveal).
+        153,
         206,
         205, 3, 11, 18, 19,
         234, 21, 250, 26, 23,
