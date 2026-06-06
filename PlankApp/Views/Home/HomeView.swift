@@ -85,6 +85,16 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \SessionLogRecord.completedAt, order: .reverse) private var allSessionLogs: [SessionLogRecord]
     @Query(sort: \DayProgressRecord.programDay, order: .reverse) private var allDayProgress: [DayProgressRecord]
+    /// v1.0.7 Phase B — TrendHeroCard reads weight logs to render the
+    /// sparkline + latest weight + delta. Same @Query pattern as
+    /// AnalyticsView.allWeightLogs.
+    @Query(sort: \WeightLogRecord.loggedAt, order: .reverse) private var allWeightLogs: [WeightLogRecord]
+
+    @AppStorage("hideWeightStats") private var hideWeightStats = false
+    @AppStorage("weightUnit") private var weightUnitRaw: String = "lb"
+    private var weightUnit: WeightUnit { WeightUnit(rawValue: weightUnitRaw) ?? .lb }
+    @AppStorage("onboardingCurrentWeightKg") private var onboardingCurrentWeightKg: Double = 0
+    @State private var showLogWeight = false
     @State private var auth = AuthService.shared
     @State private var payment = PaymentService.shared
 
@@ -103,6 +113,48 @@ struct HomeView: View {
     private var dayProgress: [DayProgressRecord] {
         guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return [] }
         return allDayProgress.filter { $0.userId == userId }
+    }
+
+    // MARK: - Weight log scoping + trend (v1.0.7 Phase B)
+
+    private var weightLogs: [WeightLogRecord] {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return [] }
+        return allWeightLogs.filter { $0.userId == userId }
+    }
+    private var latestWeightKg: Double? { weightLogs.first?.weightKg }
+    private var startingWeightKg: Double? {
+        weightLogs.last?.weightKg ?? (onboardingCurrentWeightKg > 0 ? onboardingCurrentWeightKg : nil)
+    }
+    private var hasTodaysWeightLog: Bool {
+        let cal = Calendar.current
+        return weightLogs.contains { cal.isDateInToday($0.loggedAt) }
+    }
+
+    /// One-row-per-day weight save. Same policy as AnalyticsView's
+    /// saveWeightLog: if today already has a row, mutate in place and
+    /// upsert; otherwise insert. Helander 2014 / Pacanowski 2014 —
+    /// single daily weigh-in is the healthy ceiling.
+    private func saveWeightLog(kg: Double, source: String) {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return }
+        let cal = Calendar.current
+        if let existing = weightLogs.first(where: { cal.isDateInToday($0.loggedAt) }) {
+            existing.weightKg = kg
+            existing.loggedAt = .now
+            existing.source = source
+            existing.pendingUpsert = true
+            try? modelContext.save()
+            Task { await AppSync.shared.upsertWeightLog(existing) }
+            return
+        }
+        let log = WeightLogRecord(
+            userId: userId,
+            weightKg: kg,
+            loggedAt: .now,
+            source: source
+        )
+        modelContext.insert(log)
+        try? modelContext.save()
+        Task { await AppSync.shared.upsertWeightLog(log) }
     }
 
     @State private var showPreSession = false
@@ -565,18 +617,33 @@ struct HomeView: View {
                             .opacity(msgOpacity[0]).offset(y: msgOffset[0])
                             .blur(radius: greetingBlur)
 
-                        // HERO — food card per delta v7 D56 (2026-06-05).
-                        // Diet-first pivot moves the daily-decision surface
-                        // (food camera) to slot 1, demoting JeniMethod to
-                        // slot 2 with full chrome retained. Gated on
-                        // FoodFlags.isEnabled so flag-off cohort keeps the
-                        // existing JeniMethod-hero layout. Instrumented
-                        // rollback per D56: if lesson engagement drops
-                        // >15% within 14 days post-flip, revert.
+                        // HERO — v1.0.7 Phase B: trend-as-hero replaces
+                        // the food-calorie hero. Per the 9-expert
+                        // research pass (docs/home_becoming_research_*),
+                        // calorie-as-hero is a known disordered-eating
+                        // accelerator for TikTok-acquired Gen-Z women
+                        // (Helander 2014 + Pacanowski 2024 + Linardon
+                        // 2025 + post-Ozempic Body Image 2025). Trend-
+                        // as-hero is the only defensible Home choice for
+                        // this cohort. Calorie number lives one tap deep
+                        // inside the food scan + the Today strip below.
+                        // Food card is NOT removed — it demotes into the
+                        // unified Today strip (slot 4) alongside steps
+                        // + breath rings. Gated on FoodFlags.isEnabled
+                        // so flag-off users see the existing JeniMethod-
+                        // hero layout (no regression).
                         if FoodFlags.isEnabled {
-                            foodHeroSection
-                                .padding(.horizontal, Space.screenPadding)
-                                .opacity(msgOpacity[1]).offset(y: msgOffset[1])
+                            TrendHeroCard(
+                                latestWeightKg: latestWeightKg,
+                                logs: weightLogs,
+                                startingKg: startingWeightKg,
+                                unit: weightUnit,
+                                hideStats: $hideWeightStats,
+                                hasTodaysLog: hasTodaysWeightLog,
+                                onLogTap: { showLogWeight = true }
+                            )
+                            .padding(.horizontal, Space.screenPadding)
+                            .opacity(msgOpacity[1]).offset(y: msgOffset[1])
                         }
 
                         // JeniMethod card — was slot 1 hero pre-pivot,
@@ -929,6 +996,21 @@ struct HomeView: View {
         // repeat users land on the technique picker, not the edu screen
         // they've already seen. The session adapts to the picked protocol
         // (.calming / .coherent / .energizing) via `techProtocol`.
+        // v1.0.7 Phase B — LogWeightSheet wired from TrendHeroCard's
+        // "log" / "update" pill. One-row-per-day policy via
+        // saveWeightLog (same as AnalyticsView).
+        .sheet(isPresented: $showLogWeight) {
+            LogWeightSheet(
+                startingFromKg: latestWeightKg ?? (onboardingCurrentWeightKg > 0 ? onboardingCurrentWeightKg : 65),
+                isUpdatingToday: hasTodaysWeightLog,
+                onSave: { kg in
+                    saveWeightLog(kg: kg, source: "manual")
+                    showLogWeight = false
+                },
+                onCancel: { showLogWeight = false }
+            )
+            .presentationDetents([.medium])
+        }
         .fullScreenCover(isPresented: $showBreathwork) {
             ZStack {
                 Palette.bgPrimary.ignoresSafeArea()

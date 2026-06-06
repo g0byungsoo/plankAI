@@ -161,9 +161,7 @@ struct TrendHeroCard: View {
                     .foregroundStyle(Palette.textSecondary)
             }
 
-            if let deltaCopy = deltaCopy {
-                deltaCopy
-            }
+            deltaCopy
         }
     }
 
