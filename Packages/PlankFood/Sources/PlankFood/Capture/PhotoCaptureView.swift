@@ -93,6 +93,18 @@ public struct PhotoCaptureView: View {
                 errorBanner(errorMessage)
             }
         }
+        // Transparent processing overlay during the 1.5–3s vision call.
+        // Apple 5.1.2(i) wants the model handoff to be legible to the
+        // user; the 3-line streaming copy makes the pipeline literal
+        // instead of opaque. View tears down when `isCapturing` flips
+        // back to false (vision call returned or errored).
+        .overlay {
+            if isCapturing {
+                FoodProcessingView()
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: isCapturing)
     }
 
     // MARK: - Subviews

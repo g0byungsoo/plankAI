@@ -27,7 +27,7 @@ public struct CaptureFlowView: View {
 
     @Environment(\.modelContext) private var modelContext
 
-    @State private var phase: Phase = .camera
+    @State private var phase: Phase
     @State private var capturedFood: CapturedFood?
     @State private var editingItem: CapturedItem?
 
@@ -39,6 +39,10 @@ public struct CaptureFlowView: View {
         self.userId = userId
         self.cuisineProfile = cuisineProfile
         self.onDismiss = onDismiss
+        // Apple 5.1.2(i) gate — first scan must surface the disclosure
+        // before any photo is taken. Subsequent scans skip directly to
+        // the camera. AppStorage backs the snapshot.
+        _phase = State(initialValue: FoodAIConsent.hasAccepted() ? .camera : .consent)
     }
 
     public var body: some View {
@@ -46,6 +50,15 @@ public struct CaptureFlowView: View {
             FoodTheme.bgPrimary.ignoresSafeArea()
 
             switch phase {
+            case .consent:
+                FoodAIConsentSheet(
+                    onAccept: {
+                        FoodAIConsent.markAccepted()
+                        phase = .camera
+                    },
+                    onDecline: onDismiss
+                )
+
             case .camera:
                 PhotoCaptureView(
                     onDismiss: onDismiss,
@@ -171,6 +184,7 @@ public struct CaptureFlowView: View {
 // MARK: - Phase
 
 private enum Phase {
+    case consent
     case camera
     case quickAdd
     case imOut
