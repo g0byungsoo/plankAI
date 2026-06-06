@@ -684,14 +684,23 @@ struct HomeView: View {
                         // want it without crowding the hero stack for
                         // the 77% who don't. Flag-off users keep the
                         // visible workout card (no regression).
-                        if FoodFlags.isEnabled {
-                            moreTodayDisclosure
-                                .padding(.horizontal, Space.screenPadding)
-                                .opacity(msgOpacity[2]).offset(y: msgOffset[2])
-                        } else {
-                            jenifitWorkoutCard
-                                .opacity(msgOpacity[2]).offset(y: msgOffset[2])
-                        }
+                        // v1.0.7 — workout card lifted back out of
+                        // "more today ▾" disclosure per founder feedback
+                        // 2026-06-06: "custom workout module is completely
+                        // gone but i like it to live somewhere at home
+                        // since it was the main selling point so far."
+                        //
+                        // Earlier today's Phase B retention brief argued
+                        // for the disclosure (workout completes at 23%
+                        // vs lesson 75%, so the disclosure was framed as
+                        // demoting a lower-converting surface). Founder
+                        // overrides: custom workout IS the product's
+                        // differentiation vs Cal AI / MFP — burying it
+                        // kills discovery of the actual selling point.
+                        // Disclosure helper kept compiled but no longer
+                        // rendered on Home for either cohort.
+                        jenifitWorkoutCard
+                            .opacity(msgOpacity[2]).offset(y: msgOffset[2])
 
                         // v1.0.7 Phase 5 Home reorder — weight log quick
                         // card. Per docs/becoming_home_minimal_spec_2026_06_06.md

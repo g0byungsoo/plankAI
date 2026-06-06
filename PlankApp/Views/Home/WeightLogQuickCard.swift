@@ -50,7 +50,15 @@ struct WeightLogQuickCard: View {
                 weightBlock
                 Spacer(minLength: 0)
                 miniSparkline
-                tapHint
+                // v1.0.7 founder feedback fix 2026-06-06: "weight log
+                // input button is very confusing (users won't know
+                // where it is)." The previous trailing arrow tap hint
+                // was easy to miss — the whole card was tappable but
+                // the affordance read as a passive display. Replaced
+                // with a visible cocoa CTA pill ("log" / "update")
+                // that matches the start-workout pill register, so
+                // the action is obvious at-a-glance.
+                logCTAPill
             }
             .padding(.vertical, Space.md)
             .overlay(alignment: .top) {
@@ -155,12 +163,26 @@ struct WeightLogQuickCard: View {
         }
     }
 
-    // MARK: - Tap hint
+    // MARK: - Log CTA pill
 
-    private var tapHint: some View {
-        Image(systemName: "arrow.right")
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Palette.cocoaTertiary)
+    /// Cocoa-on-cream pill mirroring the JeniMethodTodayCard and
+    /// workout "begin" pill register. Says "log" or "update" based
+    /// on whether today's log already exists. The pill is the
+    /// visible-on-card affordance — the entire card is still a
+    /// tap target (Button wrapper) so the hit area covers the
+    /// hero number too, but the pill makes the action obvious.
+    private var logCTAPill: some View {
+        HStack(spacing: 6) {
+            Text(hasTodaysLog ? "update" : "log")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+            Image(systemName: "arrow.right")
+                .font(.system(size: 11, weight: .bold))
+        }
+        .foregroundStyle(Palette.textInverse)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(Palette.bgInverse)
+        .clipShape(Capsule())
     }
 
     // MARK: - Empty state (editorial invitation)
