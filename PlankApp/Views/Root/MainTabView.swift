@@ -67,6 +67,8 @@ struct MainTabView: View {
         .fullScreenCover(isPresented: $showCaptureFlow) {
             CaptureFlowView(
                 userId: AuthService.shared.currentUser?.id.uuidString ?? "",
+                cuisineProfile: UserDefaults.standard
+                    .string(forKey: "onboardingCuisinePreference"),
                 onDismiss: { showCaptureFlow = false }
             )
         }

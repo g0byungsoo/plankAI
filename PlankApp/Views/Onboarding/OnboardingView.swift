@@ -178,6 +178,14 @@ struct OnboardingView: View {
     @AppStorage("onboardingStressLevel")   private var stressLevel: String = ""
     @AppStorage("onboardingEatingCadence") private var eatingCadence: String = ""
     @AppStorage("onboardingEatingWindow")  private var eatingWindow: String = ""
+    /// Delta v8 + food rail W5-T6 — cuisine multi-select (case 169).
+    /// CSV of cuisine keys (american, italian, korean, etc.). Feeds the
+    /// FoodVisionService system prompt as anti-cultural-bias accuracy
+    /// lift — Cal AI's per-bench failure mode is non-American cuisine
+    /// identification (Brief #4 §2). Multi-select so users who eat
+    /// across cuisines (typical for the cohort) get the full prompt
+    /// context, not a forced single bucket.
+    @AppStorage("onboardingCuisinePreference") private var cuisinePreferenceCSV: String = ""
 
     // v2-A3 identity + previous-attempt block. Same AppStorage pattern.
     @AppStorage("onboardingPriorAttempts")    private var priorAttempts: String = ""
@@ -1177,14 +1185,54 @@ struct OnboardingView: View {
                 ("logging_food",  "tracking food",   nil, "list.clipboard"),
                 ("nothing_yet",   "nothing yet",     nil, "questionmark.circle"),
             ],
-            // Delta v7 — closes the food wedge block; routes to the
-            // Act 2 (workout/activity) divider at 201.
-            sel: $priorWin, next: 201,
+            // Delta v8 (2026-06-06) — closes the food wedge block,
+            // routes to the cuisine Q (case 169) which is now the final
+            // food-wedge screen before the workout block.
+            sel: $priorWin, next: 169,
             trustAnchor: WeAskBecauseRow(
                 citation: "bandura 1997",
                 reason: "we anchor your plan to what already works.",
                 italicWords: ["anchor", "what already works"]
             )
+        )
+
+        // ─── Delta v8 + W5-T6 — cuisine multi-select (case 169) ────
+        //
+        // Final food-wedge screen. Feeds FoodVisionService system
+        // prompt for cohort accuracy — Cal AI's per-bench failure mode
+        // is non-American cuisine identification (food rail plan §22 +
+        // Brief #4 §2). The cohort eats across cuisines so this is
+        // multi-select, not single-pick. Saves as CSV to
+        // `onboardingCuisinePreference` AppStorage; the vision service
+        // reads + parses on each scan dispatch.
+        //
+        // Routes to case 110 (next in v2 flow after the wedge).
+        // resolveNext handles the old `next: 201` fallback for v1.
+        case 169: jfMulti(
+            "what's on your *plate* most?",
+            sub: "multi-pick — helps jeni read your meals better.",
+            opts: [
+                ("american",      "american",      nil, nil),
+                ("italian",       "italian",       nil, nil),
+                ("mexican",       "mexican",       nil, nil),
+                ("korean",        "korean",        nil, nil),
+                ("japanese",      "japanese",      nil, nil),
+                ("chinese",       "chinese",       nil, nil),
+                ("mediterranean", "mediterranean", nil, nil),
+                ("other",         "other",         nil, nil),
+            ],
+            sel: Binding<Set<String>>(
+                get: {
+                    Set(cuisinePreferenceCSV
+                        .split(separator: ",")
+                        .map(String.init)
+                        .filter { !$0.isEmpty })
+                },
+                set: { newValue in
+                    cuisinePreferenceCSV = newValue.sorted().joined(separator: ",")
+                }
+            ),
+            next: 110
         )
 
         case 162: jfQuestion(
@@ -1545,11 +1593,12 @@ struct OnboardingView: View {
         // Delta v8 D87 — sunk-cost activation Q FIRST (case 168).
         168,
         //
-        // Delta v7 — FOOD WEDGE early. Diet-first pivot signal.
+        // Delta v7 + v8 — FOOD WEDGE early. Diet-first pivot signal.
         //   162 (food relationship) → 166 (pre-eat permission wedge,
         //   educational) → 156 (eating cadence) → 157 (eating window) →
-        //   159 (prior one-thing-worked).
-        162, 166, 156, 157, 159,
+        //   159 (prior one-thing-worked) → 169 (cuisine multi-select,
+        //   feeds the vision system prompt for cohort accuracy).
+        162, 166, 156, 157, 159, 169,
         //
         // Act 2 — Workout/activity (demoted, post-food-wedge).
         // Delta v8 D83 (2026-06-06): cut 201 (section divider —
