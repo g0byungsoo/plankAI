@@ -1280,9 +1280,16 @@ struct HomeView: View {
     // just the passive health-data tile. BreathworkHomeCard remains a
     // peer below, not inside the strip.
     @ViewBuilder private var todayHealthStrip: some View {
-        VStack(spacing: Space.sm) {
-            StepsPulseTile(service: StepsService.shared)
-        }
+        // v1.0.7 Phase B — TodayPathStrip per the 2-expert anxiety
+        // review (docs/today_strip_research_*_2026_06_06.md). Replaces
+        // the prior StepsPulseTile-only strip with a unified 3-row
+        // capsule-bar strip (food + steps + breath) using soft
+        // asymptote bars instead of Apple rings. No daily reset
+        // semantics — empty state is positive copy, not a 0/3 view.
+        TodayPathStrip(
+            userId: AuthService.shared.currentUser?.id.uuidString ?? "",
+            foodTargetKcal: foodDailyTarget
+        )
     }
 
     /// Gate for the soft intro tile. Show ONCE for existing pre-1.0.7

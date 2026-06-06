@@ -47,6 +47,7 @@
 		0A48A9667B4D89AE72745747 /* matson_prep_short_reverse_tabletop.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8BA8EA2A0C4B3906ABD64D8D /* matson_prep_short_reverse_tabletop.m4a */; };
 		0A7F3E6878EAA6E0E753AEE3 /* jeni_prep_full_shoulder_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6F7F68DF39CF4AFB0B3B0D17 /* jeni_prep_full_shoulder_stretch.m4a */; };
 		0AEBFA0D7C7CD8C74EF30AD2 /* jeni_prep_full_windshield_wipers.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E9FB18A39BCCA12434DBD9CF /* jeni_prep_full_windshield_wipers.m4a */; };
+		0B7C775412FEF90FCAF14DC0 /* TodayPathStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF73D458DA5C3750837A8E6 /* TodayPathStrip.swift */; };
 		0C1B32A7706578713F07EF8C /* matson_prep_full_jump_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4EE415F1F6C1311A718BE1BA /* matson_prep_full_jump_squat.m4a */; };
 		0C516670BA5B945AEBFA87FB /* jeni_prep_full_glute_bridge_march.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B19437FEEA45C1D7B0B8BE0D /* jeni_prep_full_glute_bridge_march.m4a */; };
 		0C95DDA6EBEDC2BBE04113F8 /* jeni_prep_short_cocoon_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 25EA431A092ED3341C16D2AC /* jeni_prep_short_cocoon_crunch.m4a */; };
@@ -2160,6 +2161,7 @@
 		ACF49062BF652FA96A83 /* jeni_recovery_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_recovery_2.m4a; sourceTree = "<group>"; };
 		ACF49E3A95722FA97349 /* jeni_end_bad.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_end_bad.m4a; sourceTree = "<group>"; };
 		ACF6A03B97D32FA932FD /* jeni_stopped_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_stopped_2.m4a; sourceTree = "<group>"; };
+		ACF73D458DA5C3750837A8E6 /* TodayPathStrip.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodayPathStrip.swift; sourceTree = "<group>"; };
 		ACF9014DF6092FA93EF6 /* matson_guide_setup_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = matson_guide_setup_1.m4a; sourceTree = "<group>"; };
 		ACFDEE85B8FB2FA91E85 /* matson_hip_sag_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = matson_hip_sag_1.m4a; sourceTree = "<group>"; };
 		ACFF7880419F2FA95179 /* matson_milestone_120.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = matson_milestone_120.m4a; sourceTree = "<group>"; };
@@ -2642,6 +2644,7 @@
 				0DE4C443FAA065AAB68E76D1 /* StepsPulseTile.swift */,
 				1BDB4EC3CD4739874F0D09A6 /* BreathworkHomeCard.swift */,
 				A57691CE83A231F4BF72985C /* TrendHeroCard.swift */,
+				ACF73D458DA5C3750837A8E6 /* TodayPathStrip.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -5407,6 +5410,7 @@
 				8E652F638090CC27A4DC70E0 /* FoodSettingsView.swift in Sources */,
 				7FDF5049B31CBEBBFE424872 /* HealthKitDietaryEnergyWriter.swift in Sources */,
 				99A19371CEDE360A7A24183F /* TrendHeroCard.swift in Sources */,
+				0B7C775412FEF90FCAF14DC0 /* TodayPathStrip.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
