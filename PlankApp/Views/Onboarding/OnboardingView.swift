@@ -189,6 +189,16 @@ struct OnboardingView: View {
     /// is the commitment. Read in paywall + Day-21 win-back copy
     /// ("you said you'd give it 3 days...").
     @AppStorage("onboardingCommitConfidence") private var commitConfidence: String = ""
+    /// Delta v8 D87 — sunk-cost activation Q ("tried everything
+    /// already?"). 3 options drive downstream tone calibration. Per
+    /// the Cal AI culture brief, the few-vs-many distinction lets
+    /// reciprocity copy ramp on prior-attempts cohort. New case 168.
+    @AppStorage("onboardingTriedBefore") private var triedBefore: String = ""
+    /// Delta v8 D73 — pace selector (gentle/steady/focused). Drives
+    /// weekly weight-loss target + downstream calorie computation.
+    /// Per the WL expert brief, this is the single highest-leverage
+    /// question-level addition to the onboarding flow. New case 167.
+    @AppStorage("onboardingPaceChoice") private var paceChoice: String = "steady"
 
     // v2-A4 cohort signal. GLP-1 status uses the AppStorage key reserved
     // in the prior v2 plan (onboarding_glp1_status, value space:
@@ -658,10 +668,10 @@ struct OnboardingView: View {
                 ("google",     "google search",       nil, "globe"),
                 ("other",      "somewhere else",      nil, "ellipsis.circle"),
             ],
-            // Delta v7 — routes to the FOOD WEDGE start (case 162) for
-            // v2 users instead of jumping into workout questions.
-            // resolveNext sends v1 users to 110 (next in v1FlowOrder).
-            sel: $acquisitionSource, next: 162
+            // Delta v8 D87 — routes to sunk-cost activation Q (case 168)
+            // BEFORE the food wedge starts. v1 users walk past 168 via
+            // resolveNext to whatever comes next in v1FlowOrder.
+            sel: $acquisitionSource, next: 168
         )
 
         case 110: jfMulti(
@@ -1249,6 +1259,45 @@ struct OnboardingView: View {
             confirmation: "stake's in. ♥"
         )
 
+        // ─── Delta v8 D73 — pace selector (case 167) ───────────────
+        // Single highest-leverage question per the WL expert brief
+        // studying Cal AI (calai8/20/17/19 sloth/hamster/panther →
+        // JeniFit's coquette flower3D / cherry / heart stickers).
+        // The pace choice does Bandura self-efficacy (informed pace
+        // selection = ownership) + Sunsteinian default anchoring
+        // (steady is recommended, not selected automatically) +
+        // commitment-via-informed-consent. NO red warning chip per
+        // Culture brief — anti-shame violation.
+        case 167: jfQuestion(
+            "*how* do you want to get there?",
+            sub: "we calibrate the calorie target to your pace.",
+            opts: [
+                ("gentle",  "gentle",   "12-16 weeks · easier to sustain",      "tortoise"),
+                ("steady",  "steady",   "8-12 weeks · most chosen pace",        "hare"),
+                ("focused", "focused",  "6-10 weeks · stay consistent",         "flame"),
+            ],
+            sel: $paceChoice, next: 203,
+            confirmation: "got it ♥"
+        )
+
+        // ─── Delta v8 D87 — sunk-cost activation (case 168) ────────
+        // Cal AI's calai10 pattern adapted. 3 options (not 2) per
+        // WL + Culture briefs: first try / a few times / many times.
+        // The few-vs-many distinction drives downstream copy ramp.
+        // Slot between attribution (100) and food relationship (162)
+        // so it lands BEFORE the food wedge.
+        case 168: jfQuestion(
+            "tried *everything* already?",
+            sub: "no judgment — we build from where you are.",
+            opts: [
+                ("first",       "this is my first real try",   nil, "sparkles"),
+                ("fewTimes",    "yes, a few times",            nil, "checkmark.circle"),
+                ("manyTimes",   "yes, many times",             nil, "arrow.clockwise"),
+            ],
+            sel: $triedBefore, next: 162,
+            confirmation: "okay ♥"
+        )
+
         case 164: jfQuestion(
             "any weight-related medication right now?",
             sub: "honest either way.",
@@ -1477,6 +1526,11 @@ struct OnboardingView: View {
         // attribution. Low-stakes commitment, get her one screen in.
         200, 230, 1, 100,
         //
+        // Delta v8 D87 — sunk-cost activation Q FIRST (case 168), drives
+        // downstream tone calibration for the food wedge that follows.
+        // Cal AI's calai10 pattern adapted to 3 options for nuance.
+        168,
+        //
         // Delta v7 — FOOD WEDGE early (before workout Qs). The diet-first
         // pivot's single biggest signal is that food questions land
         // BEFORE workout questions. Pre-pivot this block lived in late
@@ -1512,6 +1566,11 @@ struct OnboardingView: View {
         //   Then comparison frame (142) closes the act.
         //
         // Food Qs (162, 156, 157, 159) moved to early flow per delta v7.
+        // Delta v8 D73 — pace selector (case 167) lands BEFORE Act 4
+        // vulnerability. Per WL brief: slots between 161 (first
+        // prediction) and 203 so the user has seen the projection
+        // curve before being asked to choose pace.
+        167,
         203, 140, 233, 235, 158, 154, 155, 163, 164, 142,
         // Delta v7 D67 — commitment confidence (165) lands right
         // before the video demo. Cal AI's +1.7× trial-to-paid lever:
