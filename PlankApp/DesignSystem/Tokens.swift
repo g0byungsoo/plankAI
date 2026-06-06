@@ -32,6 +32,39 @@ enum Typo {
     static let body = font("DMSans-Regular", size: 16, relativeTo: .body)
     static let caption = font("DMSans-Medium", size: 13, relativeTo: .caption)
     static let eyebrow = font("DMSans-SemiBold", size: 12, relativeTo: .caption2)
+
+    // MARK: - v1.0.7 aggressive Gen-Z luxury editorial tokens
+    //
+    // Per docs/aggressive_genz_luxury_2026_06_06.md §4. Fraunces ships
+    // optical-size axes at 9pt / 72pt / 144pt; editorial typography
+    // MUST use the axis. Until v1.0.8 wires actual variable-font
+    // optical-axis instances, we map these to the SemiBold / Light
+    // weights that ship with the bundled Fraunces72pt cuts — the
+    // SwiftUI rendering still reads as more editorial because the
+    // sizing + tracking + line-height are tuned per token.
+
+    /// JenisNote masthead. Italic Fraunces, 19pt display, tracking -0.2
+    /// (editorial display always tightens). Editorial 72pt-optical
+    /// register.
+    static let mastheadDisplay = font("Fraunces72pt-SemiBoldItalic", size: 19, relativeTo: .title3)
+
+    /// Becoming chapter cover title. Italic Fraunces 36pt, tracking
+    /// -0.5 for the display-cut shrink. Magazine-masthead register.
+    static let chapterCover = font("Fraunces72pt-SemiBoldItalic", size: 36, relativeTo: .title)
+
+    /// Editorial eyebrow — 11pt UPPERCASE tracking 3 (Acne Paper +
+    /// Cereal convention). Fraunces SemiBold for the editorial weight;
+    /// not DM Sans (this is the wider-tracked, page-numbered eyebrow
+    /// register).
+    static let editorialEyebrow = font("Fraunces72pt-SemiBold", size: 11, relativeTo: .caption2)
+
+    /// Pull-quote between chapters / on Sunday Feature. Italic
+    /// Fraunces 22pt, lh 1.45 — pull-quotes should breathe.
+    static let pullQuote = font("Fraunces72pt-SemiBoldItalic", size: 22, relativeTo: .title3)
+
+    /// Section / chapter title where it's not a full cover (smaller
+    /// inline use). Italic Fraunces 26pt, lh 1.2.
+    static let sectionTitle = font("Fraunces72pt-SemiBoldItalic", size: 26, relativeTo: .title2)
 }
 
 // MARK: - Spacing (4pt base)
@@ -70,6 +103,21 @@ enum Palette {
 
     static let accent = Color(hex: "#C4677A")
     static let accentSubtle = Color(hex: "#F5D5D8")
+
+    /// v1.0.7 aggressive Gen-Z luxury (Sweet July + Acne Paper
+    /// editorial register). Two-cream paper-layering — bgPrimary
+    /// is the standard scroll, pageIvory is the chapter-cover /
+    /// TOC stock. Like a real magazine has cover stock + interior
+    /// stock. Per docs/aggressive_genz_luxury_2026_06_06.md §5.
+    static let pageIvory = Color(hex: "#F8F0EC")
+
+    /// Heirloom oxblood-rose for Roman numerals, drop caps, pull-
+    /// quote first letter, Sunday Feature byline, pagination active
+    /// state. Sits between rose and cocoa — adds richness without
+    /// breaking warmth. Per the 2026 jewel-tone trend (Envato
+    /// color-scheme research). Reserved for editorial moments;
+    /// never a CTA color.
+    static let jeweledRose = Color(hex: "#7A2E3F")
 
     /// State colors deepened to pass WCAG AA (4.5:1) on bgPrimary
     /// for normal-weight body text. Previously failed even AA-Large

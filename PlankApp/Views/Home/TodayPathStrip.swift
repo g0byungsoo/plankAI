@@ -49,17 +49,23 @@ struct TodayPathStrip: View {
             }
             .padding(.top, 14)
         }
-        .padding(16)
+        .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Palette.bgElevated)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Palette.accent.opacity(0.35), lineWidth: 1)
-                )
-        )
-        .shadow(color: Palette.textPrimary.opacity(0.12), radius: 0, x: 2, y: 2)
+        // v1.0.7 aggressive Gen-Z luxury (Phase E.2) — scrapbook
+        // card chrome stripped per the luxury brief: "TodayPathStrip
+        // card chrome — keep the content, lose the card. 0.5pt
+        // hairlines only." Rows now breathe on the cream backdrop
+        // with editorial hairline separators above + below.
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Palette.divider)
+                .frame(height: 0.5)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Palette.divider)
+                .frame(height: 0.5)
+        }
         .onAppear(perform: refresh)
         .onAppear {
             cancellable = FoodLogPersister.changeNotifier.sink { _ in refresh() }

@@ -695,9 +695,14 @@ struct AnalyticsView: View {
 
     private var becomingStack: some View {
         VStack(alignment: .leading, spacing: 28) {
-            // v1.0.7 Phase C.2 — Sunday Card top-loads Fri evening
-            // through Mon end-of-day per the retention brief. Hidden
-            // Tue–Thu so it doesn't read as a weekly nag.
+            // v1.0.7 aggressive Gen-Z luxury (Phase E.2) — Becoming
+            // reframed as "your issue." Masthead + TOC at the top
+            // turn the screen from "dashboard" into "magazine
+            // publication." Per docs/aggressive_genz_luxury_2026_06_06.md
+            // §3 + Cereal / Acne Paper / Sweet July convention.
+            issueMasthead
+            tableOfContents
+
             if SundayCard.shouldShowNow() {
                 SundayCard(
                     userName: userName,
@@ -715,6 +720,112 @@ struct AnalyticsView: View {
             whatsChangingSection
             whatsWorkedSection
         }
+    }
+
+    /// "becoming · vol. [N] ♥ / the [month] issue" — issue-as-object
+    /// masthead. Italic-Fraunces volume mark + DM Sans hairline rule
+    /// + italic Fraunces issue-name. Pure Cereal / Acne Paper opening.
+    private var issueMasthead: some View {
+        let cal = Calendar.current
+        let now = Date()
+        let weekNum = cal.component(.weekOfYear, from: now)
+        let weekOrdinal = weekNum % 12 + 1
+        let romanNumeral = Self.roman(weekOrdinal)
+        let monthName: String = {
+            let f = DateFormatter()
+            f.dateFormat = "MMMM"
+            return f.string(from: now).lowercased()
+        }()
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                (Text("becoming")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
+                    .foregroundStyle(Palette.textPrimary))
+                Spacer()
+                HStack(spacing: 6) {
+                    Text("vol. \(romanNumeral)")
+                        .font(Typo.editorialEyebrow)
+                        .tracking(2.5)
+                        .foregroundStyle(Palette.jeweledRose)
+                    Text("♥")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.jeweledRose)
+                }
+            }
+            Rectangle()
+                .fill(Palette.divider)
+                .frame(height: 0.5)
+            Text("the \(monthName) issue")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                .foregroundStyle(Palette.textSecondary)
+        }
+    }
+
+    /// "IN THIS ISSUE" — print-convention table of contents with
+    /// italic-Fraunces chapter titles and DM Sans page numbers,
+    /// hairline-separated. Per the luxury brief §3 (Cereal / Acne
+    /// Paper opens). Turns reflection into a curated artifact, not
+    /// a dashboard.
+    private var tableOfContents: some View {
+        let rows: [(numeral: String, title: String, italic: [String], page: String)] = [
+            ("i.",    "your week",         ["week"],         "p. 02"),
+            ("ii.",   "what you ate",      ["ate"],          "p. 04"),
+            ("iii.",  "how you moved",     ["moved"],        "p. 06"),
+            ("iv.",   "what's changing",   ["changing"],     "p. 08"),
+            ("v.",    "what's worked",     ["worked"],       "p. 10"),
+        ]
+
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("IN THIS ISSUE")
+                .font(Typo.editorialEyebrow)
+                .tracking(3)
+                .foregroundStyle(Palette.textSecondary)
+
+            VStack(spacing: 0) {
+                ForEach(0..<rows.count, id: \.self) { idx in
+                    let r = rows[idx]
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(r.numeral)
+                            .font(Typo.editorialEyebrow)
+                            .tracking(2)
+                            .foregroundStyle(Palette.jeweledRose)
+                            .frame(width: 32, alignment: .leading)
+                        ItalicAccentText(
+                            r.title,
+                            italic: r.italic,
+                            baseFont: .custom("Fraunces72pt-Regular", size: 22),
+                            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
+                            color: Palette.textPrimary,
+                            alignment: .leading
+                        )
+                        Spacer()
+                        Text(r.page)
+                            .font(.custom("DMSans-Medium", size: 11))
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                    .padding(.vertical, 10)
+                    if idx < rows.count - 1 {
+                        Rectangle()
+                            .fill(Palette.divider)
+                            .frame(height: 0.5)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(Palette.pageIvory)
+        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+    }
+
+    /// Arabic → Roman numeral (1–12 only, the volume-counter range we
+    /// need). Fallback to the raw number for >12.
+    private static func roman(_ n: Int) -> String {
+        let map: [Int: String] = [
+            1: "i", 2: "ii", 3: "iii", 4: "iv", 5: "v", 6: "vi",
+            7: "vii", 8: "viii", 9: "ix", 10: "x", 11: "xi", 12: "xii"
+        ]
+        return map[n] ?? "\(n)"
     }
 
     /// v1.0.7 Phase C.2 — pre-formatted weekly weight delta for the
@@ -767,41 +878,44 @@ struct AnalyticsView: View {
         sticker: StickerName,
         pullCaption: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
+            // Jeweled-rose Roman numeral — magazine pagination active
+            // state, isolated on its own line above the title (per
+            // luxury brief §3 chapter-cover treatment).
+            Text(eyebrow)
+                .font(Typo.editorialEyebrow)
+                .tracking(3)
+                .foregroundStyle(Palette.jeweledRose)
+
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(eyebrow)
-                        .font(.custom("Fraunces72pt-SemiBold", size: 14))
-                        .tracking(2)
-                        .foregroundStyle(Palette.accent)
-                    ItalicAccentText(
-                        title,
-                        italic: italic,
-                        baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
-                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
-                        color: Palette.textPrimary,
-                        alignment: .leading
-                    )
-                }
+                ItalicAccentText(
+                    title,
+                    italic: italic,
+                    baseFont: .custom("Fraunces72pt-SemiBold", size: 36),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 36),
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
                 Spacer()
                 Image(sticker.assetName)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 44, height: 44)
+                    .frame(width: 36, height: 36)
                     .rotationEffect(.degrees(-8))
                     .accessibilityHidden(true)
             }
 
             Text(pullCaption)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                .font(Typo.pullQuote)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             Rectangle()
-                .fill(Palette.accent.opacity(0.4))
+                .fill(Palette.divider)
                 .frame(height: 0.5)
-                .padding(.top, 2)
+                .padding(.top, 4)
         }
+        .padding(.vertical, 8)
     }
 
     /// Single-line empty-state row used when a chapter has no data yet.
