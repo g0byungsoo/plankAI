@@ -398,30 +398,33 @@ struct PaywallView: View {
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
 
-            // 2026-06-06 single-screen v2 redesign. No scroll. Three tier
-            // cards visible. Founder direction + 2-expert research v2
-            // (docs/paywall_research_*_v2_2026_06_06.md). Reverses last
-            // turn's drawer pattern; matches 2026 majority paywall layout
-            // (Apphud, Adapty, Cal AI). Compressed projection chip
-            // replaces the 260pt hero card so all 3 tiers fit ≤720pt.
+            // 2026-06-06 single-screen v3 redesign. No scroll. Horizontal
+            // 3-tier row with asymmetric center-stage scaling (Quarterly
+            // is taller + cream-filled, lifted above the row silhouette).
+            // Per founder direction + UX/Mon v3 briefs
+            // (docs/paywall_research_*_v3_2026_06_06.md). BecomingProjection
+            // chip removed (already on plan-reveal one beat earlier);
+            // subhead dropped; $99.96 strikethrough + savings copy lifted
+            // to row-anchor line above the cards where it does the
+            // discount-story work BEFORE the user picks.
             // Composition:
-            //   slot 1: topBar (44pt)                 — Restore
-            //   slot 2: heroPermission (~80pt)        — permission frame
-            //   slot 3: becomingProjectionChip (~110pt) — compressed chart
-            //   slot 4: tierStack (~224pt)            — 3 vertical cards
-            //   slot 5: trialOrPlanRecap (~88pt yearly, ~36pt others)
+            //   slot 1: topBar (44pt)                   — Restore
+            //   slot 2: heroPermission (~52pt)          — single-line hero
+            //   slot 3: pricingRowAnchorLine (~24pt)    — strikethrough+save
+            //   slot 4: tierRowHorizontal (~156pt)      — 3 cards, asymmetric
+            //   slot 5: trialOrPlanRecap (~88pt yearly / ~36pt others)
             //   slot 6: ctaButtonV2 (~56pt)
             //   slot 7: trustAndLegalFooter (~32pt)
-            VStack(spacing: 8) {
+            VStack(spacing: 10) {
                 Spacer().frame(height: 44)  // topBar reserve
 
                 heroPermission
                     .padding(.horizontal, Space.lg)
 
-                becomingProjectionChip
+                pricingRowAnchorLine
                     .padding(.horizontal, Space.lg)
 
-                tierStack
+                tierRowHorizontal
                     .padding(.horizontal, Space.lg)
 
                 trialOrPlanRecap
@@ -495,153 +498,232 @@ struct PaywallView: View {
     // of a projection-as-hero composition with the alt plans behind a
     // drawer. Single screen, no scroll, iPhone 13 mini compatible.
 
-    /// Permission-framed hero. 80pt. Single-line italic-Fraunces
-    /// punch word on "softer" — anti-Cal-AI variant chosen by founder
-    /// from the UX brief. Drops the "YOUR PLAN" eyebrow per luxury
-    /// convention (eyebrows read corporate).
+    /// Quarterly-anchor-aligned hero. 2026-06-06 v3 — subhead dropped
+    /// (UX brief: "headline alone carries voice"). Italic-Fraunces on
+    /// "your"; hearts ♥ as terminal punctuation per voice locks.
     private var heroPermission: some View {
         let parts = headlineParts
-        return VStack(spacing: 4) {
-            ItalicAccentText(
-                parts.base,
-                italic: parts.italic,
-                baseFont: .custom("Fraunces72pt-Regular", size: 28),
-                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
-                alignment: .center
-            )
-            .tracking(-0.4)
-            .padding(.horizontal, 8)
-            .fixedSize(horizontal: false, vertical: true)
+        return ItalicAccentText(
+            parts.base,
+            italic: parts.italic,
+            baseFont: .custom("Fraunces72pt-Regular", size: 28),
+            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
+            alignment: .center
+        )
+        .tracking(-0.4)
+        .padding(.horizontal, 8)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity)
+    }
 
-            Text("your pace. your timeline.")
+    /// v3 row-anchor line — $99.96 strikethrough + "$51.97 off ♥".
+    /// Per UX v3 brief: anchoring at row-level (above the cards) does
+    /// the discount-story work BEFORE the user picks. Inside-card
+    /// strikethrough at 10pt on 104pt-wide Annual doesn't actually
+    /// anchor anything.
+    private var pricingRowAnchorLine: some View {
+        HStack(spacing: 8) {
+            Text("$99.96")
                 .font(.system(size: 12))
                 .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+                .strikethrough(true, color: Palette.textSecondary)
+            Text("save $51.97 ♥")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Palette.accent)
         }
         .frame(maxWidth: .infinity)
     }
 
-    /// 3-tier vertical stack. Founder direction 2026-06-06: revert from
-    /// drawer pattern to all-tiers-visible. Annual carries BEST VALUE +
-    /// 3-DAY FREE badges (LTV winner). Quarterly carries a conditional
-    /// "recommended for your 12-week goal ♥" badge that fires only when
-    /// goalSolvableInTwelveWeeks (split-badge compromise from the v2
-    /// monetization brief). Weekly is the no-badge foil. Tapping a row
-    /// selects it (cocoa border + checkmark). Goal-aware default still
-    /// pre-selects Quarterly for qualifying users via .task.
-    private var tierStack: some View {
-        VStack(spacing: 8) {
-            tierRow(
-                plan: .yearly,
-                title: "Yearly",
-                price: yearlyPrice,
-                anchor: "$99.96",
-                subtitle: "save $51.97 vs quarterly",
-                primaryBadge: "BEST VALUE",
-                trialBadge: "3-DAY FREE"
-            )
-            tierRow(
-                plan: .quarterly,
-                title: "12-week",
-                price: quarterlyPrice,
-                anchor: nil,
-                subtitle: "$0.45/day · billed once today",
-                // Conditional badge — only when this user's goal pace
-                // genuinely fits a 12-week horizon. Aligns the rec with
-                // their own data instead of slapping it on universally.
-                primaryBadge: goalSolvableInTwelveWeeks
-                    ? "recommended for your 12-week goal ♥"
-                    : nil,
-                trialBadge: nil
-            )
-            tierRow(
-                plan: .weekly,
-                title: "Weekly",
-                price: weeklyPrice,
-                anchor: nil,
-                subtitle: "pay as you go · cancel anytime",
-                primaryBadge: nil,
-                trialBadge: nil
-            )
+    /// v3 horizontal 3-tier row with asymmetric scaling. Quarterly is
+    /// 130×150 (cream-filled, lifted above the row silhouette via bottom
+    /// alignment); Annual + Weekly are 104×135. Per UX/Mon v3 briefs —
+    /// asymmetric center-stage is the single highest-leverage move that
+    /// makes horizontal-3-across actually convert. Conditional ribbon
+    /// above the row when this user's goal genuinely fits 12 weeks.
+    private var tierRowHorizontal: some View {
+        VStack(spacing: 6) {
+            if goalSolvableInTwelveWeeks {
+                quarterlyRecommendRibbon
+            }
+            HStack(alignment: .bottom, spacing: 8) {
+                tierCardAnnualCompact
+                tierCardQuarterlyHero
+                tierCardWeeklyCompact
+            }
+            .frame(maxWidth: .infinity)
         }
     }
 
-    /// Reusable tier row. `primaryBadge` is the small-caps accent pill
-    /// above the title (BEST VALUE / recommended-for-your-goal). `trialBadge`
-    /// is the cocoa pill (3-DAY FREE) shown inline with the title. Both
-    /// optional; pass nil to omit.
-    @ViewBuilder
-    private func tierRow(
-        plan: Plan,
-        title: String,
-        price: String,
-        anchor: String?,
-        subtitle: String,
-        primaryBadge: String?,
-        trialBadge: String?
-    ) -> some View {
-        let isSelected = selectedPlan == plan
-        Button {
+    /// Centered ribbon above the row when goalSolvableInTwelveWeeks.
+    /// Single-line copy — narrow font + tight padding makes the full
+    /// "recommended for your 12-week goal ♥" string fit on iPhone 13
+    /// mini without overflow. The user's eye naturally connects this
+    /// ribbon to the visually-dominant Quarterly card below it.
+    private var quarterlyRecommendRibbon: some View {
+        Text("recommended for your 12-week goal ♥")
+            .font(.system(size: 10, weight: .semibold))
+            .tracking(0.4)
+            .foregroundStyle(Palette.textInverse)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(Palette.accent, in: Capsule())
+    }
+
+    private var tierCardAnnualCompact: some View {
+        let isSelected = selectedPlan == .yearly
+        return Button {
             Haptics.light()
-            withAnimation(Motion.tap) { selectedPlan = plan }
+            withAnimation(Motion.tap) { selectedPlan = .yearly }
         } label: {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    if let badge = primaryBadge {
-                        Text(badge)
-                            .font(.system(size: 9, weight: .bold))
-                            .tracking(0.8)
-                            .foregroundStyle(Palette.accent)
-                            .textCase(.uppercase)
-                    }
-                    HStack(spacing: 6) {
-                        Text(title)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Palette.textPrimary)
-                        if let trial = trialBadge {
-                            Text(trial)
-                                .font(.system(size: 9, weight: .bold))
-                                .tracking(0.8)
-                                .foregroundStyle(Palette.textInverse)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Palette.bgInverse, in: Capsule())
-                        }
-                    }
-                    HStack(spacing: 6) {
-                        Text(price)
-                            .font(.custom("Fraunces72pt-SemiBold", size: 20))
-                            .foregroundStyle(Palette.textPrimary)
-                        if let anchor {
-                            Text(anchor)
-                                .font(.system(size: 11))
-                                .foregroundStyle(Palette.textSecondary)
-                                .strikethrough(true, color: Palette.textSecondary)
-                        }
-                    }
-                    Text(subtitle)
+            ZStack(alignment: .topTrailing) {
+                VStack(spacing: 4) {
+                    Spacer().frame(height: 12)
+                    Text("Yearly")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(yearlyPrice)
+                        .font(.custom("Fraunces72pt-SemiBold", size: 20))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("/year")
                         .font(.system(size: 10))
                         .foregroundStyle(Palette.textSecondary)
+                    Spacer(minLength: 4)
+                    Text("3-day free trial ♥")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                    Spacer().frame(height: 10)
                 }
-                Spacer(minLength: 0)
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 18))
-                    .foregroundStyle(isSelected ? Palette.accent : Palette.textSecondary.opacity(0.3))
+                .frame(width: 104, height: 135)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Palette.bgElevated)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(
+                                    isSelected ? Palette.bgInverse : Palette.textSecondary.opacity(0.15),
+                                    lineWidth: isSelected ? 2 : 0.5
+                                )
+                        )
+                )
+
+                Text("BEST")
+                    .font(.system(size: 8, weight: .bold))
+                    .tracking(0.8)
+                    .foregroundStyle(Palette.textInverse)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Palette.bgInverse, in: Capsule())
+                    .offset(x: -6, y: 6)
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Palette.accent)
+                        .background(Palette.bgPrimary, in: Circle())
+                        .offset(x: 6, y: -6)
+                }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Palette.bgElevated)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(
-                                isSelected ? Palette.accent : Palette.textSecondary.opacity(0.15),
-                                lineWidth: isSelected ? 1.5 : 0.5
-                            )
-                    )
-            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var tierCardQuarterlyHero: some View {
+        let isSelected = selectedPlan == .quarterly
+        return Button {
+            Haptics.light()
+            withAnimation(Motion.tap) { selectedPlan = .quarterly }
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                VStack(spacing: 4) {
+                    Spacer().frame(height: 14)
+                    Text("12-week")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(quarterlyPrice)
+                        .font(.custom("Fraunces72pt-SemiBold", size: 24))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("/3 months")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Palette.textSecondary)
+                    Spacer(minLength: 4)
+                    Text("$0.45/day · billed once")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                    Spacer().frame(height: 12)
+                }
+                .frame(width: 130, height: 150)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Palette.bgElevated)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(
+                                    isSelected ? Palette.bgInverse : Palette.accent.opacity(0.5),
+                                    lineWidth: isSelected ? 2 : 1
+                                )
+                        )
+                )
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Palette.accent)
+                        .background(Palette.bgPrimary, in: Circle())
+                        .offset(x: 6, y: -6)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var tierCardWeeklyCompact: some View {
+        let isSelected = selectedPlan == .weekly
+        return Button {
+            Haptics.light()
+            withAnimation(Motion.tap) { selectedPlan = .weekly }
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                VStack(spacing: 4) {
+                    Spacer().frame(height: 12)
+                    Text("Weekly")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(weeklyPrice)
+                        .font(.custom("Fraunces72pt-SemiBold", size: 20))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("/week")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Palette.textSecondary)
+                    Spacer(minLength: 4)
+                    Text("pay as you go")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                    Spacer().frame(height: 10)
+                }
+                .frame(width: 104, height: 135)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Palette.bgElevated)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(
+                                    isSelected ? Palette.bgInverse : Palette.textSecondary.opacity(0.15),
+                                    lineWidth: isSelected ? 2 : 0.5
+                                )
+                        )
+                )
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Palette.accent)
+                        .background(Palette.bgPrimary, in: Circle())
+                        .offset(x: 6, y: -6)
+                }
+            }
         }
         .buttonStyle(.plain)
     }
@@ -677,22 +759,6 @@ struct PaywallView: View {
             }
         }
         .frame(maxWidth: .infinity)
-    }
-
-    /// Compressed BecomingProjectionCard for paywall use. Founder + v2
-    /// brief direction 2026-06-06: 3 tier cards visible needs ~220pt;
-    /// reusing the 260pt reveal-screen chart breaks the viewport. Pass
-    /// chartHeight: 50 — same card, shorter chart geometry. The full
-    /// chart already runs on plan-reveal one beat earlier, so this is
-    /// reinforcement (commitment device) not first-render.
-    @ViewBuilder
-    private var becomingProjectionChip: some View {
-        BecomingProjectionCard(
-            currentWeightKg: currentUserRecord?.onboardingCurrentWeightKg,
-            goalWeightKg: currentUserRecord?.onboardingGoalWeightKg,
-            voicePreference: voicePreference,
-            chartHeight: 50
-        )
     }
 
     /// Slot 5 — trial timeline (annual selected) or plan recap (other
