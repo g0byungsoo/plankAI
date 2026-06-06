@@ -744,6 +744,13 @@ struct AnalyticsView: View {
     /// Hero chapter. Coach read + weight trend chart + log button.
     /// Always renders — even week 1 there's a coach note + a chart
     /// inviting the first weight log.
+    ///
+    /// 2026-06-06 — trendTile swapped for TrendHeroCard. Founder
+    /// direction: "trend hero needs to live in becoming screen"
+    /// (it was on Home in the prior commit; moved here as the chapter
+    /// 1 hero). Becoming = journey/trend; Home = today's action.
+    /// TrendHeroCard carries a richer sparkline + delta + log button
+    /// than the original trendTile so the chapter opener lands.
     private var yourWeekSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             stackChapterHeader(
@@ -752,7 +759,15 @@ struct AnalyticsView: View {
                 italic: ["week"]
             )
             coachTile
-            trendTile
+            TrendHeroCard(
+                latestWeightKg: latestWeightKg,
+                logs: weightLogs,
+                startingKg: startingWeightKg,
+                unit: weightUnit,
+                hideStats: $hideWeightStats,
+                hasTodaysLog: todaysWeightLog != nil,
+                onLogTap: { showLogWeight = true }
+            )
         }
     }
 
