@@ -127,7 +127,10 @@ enum RetentionNotifications {
     /// repeating UNCalendarNotificationTrigger — fires every day at
     /// 8:30pm local time once authorized. Idempotent — repeated calls
     /// replace the existing scheduled request rather than stacking.
-    private static func scheduleEveningPlateReview() {
+    /// Module-internal (was private) so FoodSettingsView can re-arm
+    /// immediately after the user flips the toggle, rather than
+    /// waiting for the next bootstrap.
+    static func scheduleEveningPlateReview() {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [eveningPlateReviewIdentifier])
         guard eveningPlateReviewEnabled else { return }

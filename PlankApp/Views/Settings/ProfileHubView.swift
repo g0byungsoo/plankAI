@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import PlankSync
+import PlankFood
 import Auth
 
 /// The profile/settings hub. Closes via the morphing ☰↔X mark that floats in
@@ -30,7 +31,7 @@ struct ProfileHubView: View {
     @Query(sort: \SessionLogRecord.completedAt, order: .forward) private var allSessionLogs: [SessionLogRecord]
 
     enum HubRoute: Hashable {
-        case myPlan, coach, reminders, account, feedback, jeniMethod
+        case myPlan, coach, reminders, account, feedback, jeniMethod, foodSettings
         #if DEBUG
         case debug
         #endif
@@ -130,14 +131,17 @@ struct ProfileHubView: View {
                 VStack(spacing: Space.sm) {
                     hubRow("my plan", "focus area · session length", .bowSatin, .myPlan, 1)
                     coachRow(2)
-                    hubRow("reminders", "when jeni checks in", .sparkleGlossy, .reminders, 3)
-                    hubRow("account", "sign-in & subscription", .heartLock, .account, 4)
-                    hubRow("feedback", "tell us anything ♥", .starLineart, .feedback, 5)
+                    if FoodFlags.isEnabled {
+                        hubRow("food", "calories · cuisine · privacy", .cherries, .foodSettings, 3)
+                    }
+                    hubRow("reminders", "when jeni checks in", .sparkleGlossy, .reminders, 4)
+                    hubRow("account", "sign-in & subscription", .heartLock, .account, 5)
+                    hubRow("feedback", "tell us anything ♥", .starLineart, .feedback, 6)
                     if jeniMethodFlagEnabled && jeniMethodLastCompletedId >= 14 {
-                        hubRow("the jenifit method", "re-read your lessons", .flower3D, .jeniMethod, 6)
+                        hubRow("the jenifit method", "re-read your lessons", .flower3D, .jeniMethod, 7)
                     }
                     #if DEBUG
-                    hubRow("debug auth", "dev only", .discoBall, .debug, 7)
+                    hubRow("debug auth", "dev only", .discoBall, .debug, 8)
                     #endif
                 }
                 .padding(.horizontal, Space.screenPadding)
@@ -150,14 +154,15 @@ struct ProfileHubView: View {
     @ViewBuilder
     private func destination(for route: HubRoute) -> some View {
         switch route {
-        case .myPlan:     EditProfileView()
-        case .coach:      ChangeTrainerView()
-        case .reminders:  NotificationSettingsView()
-        case .account:    AccountView()
-        case .feedback:   FeedbackView()
-        case .jeniMethod: JeniMethodReReadView()
+        case .myPlan:        EditProfileView()
+        case .coach:         ChangeTrainerView()
+        case .reminders:     NotificationSettingsView()
+        case .account:       AccountView()
+        case .feedback:      FeedbackView()
+        case .jeniMethod:    JeniMethodReReadView()
+        case .foodSettings:  FoodSettingsView()
         #if DEBUG
-        case .debug:      DebugAuthView()
+        case .debug:         DebugAuthView()
         #endif
         }
     }
