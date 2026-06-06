@@ -33,6 +33,8 @@ public struct SingleDishCard: View {
         self.onItemTap = onItemTap
     }
 
+    @State private var showMacros: Bool = false
+
     public var body: some View {
         VStack(alignment: .leading, spacing: FoodTheme.Space.lg) {
             // Defensive empty-state: if items is empty, the camera-layer
@@ -43,13 +45,15 @@ public struct SingleDishCard: View {
                 emptyStatePanel
             }
 
-            // Hero: kcal + uncertainty copy.
+            // v1.0.7 Phase A.4 — feeling-word hero replaces the "around
+            // N kcal" lead. Per the behavioral expert (Helander 2014 +
+            // Pacanowski 2024 + Linardon 2025 + post-Ozempic Body Image
+            // 2025): calorie-as-hero is a disordered-eating accelerator
+            // for TikTok-acquired Gen-Z women. Feeling word → meal name
+            // → cal + fits framing puts permission upstream of the
+            // number. Italic-Fraunces punch word locked.
             if let item = food.items.first, let kcal = item.kcal {
-                ConfidencePill(
-                    kcal: kcal,
-                    kcalLow: nil,
-                    kcalHigh: nil
-                )
+                feelingHero(item: item, kcal: kcal)
             } else if food.totalKcal == nil {
                 // USDA join pending — show name only, kcal lands when it does.
                 if let item = food.items.first {
@@ -62,7 +66,7 @@ public struct SingleDishCard: View {
                 }
             }
 
-            // The item itself — tap to edit.
+            // The item itself — tap to edit portion / name.
             if let item = food.items.first {
                 ItemRow(
                     name: item.name,
@@ -72,16 +76,7 @@ public struct SingleDishCard: View {
                 )
 
                 if item.kcal != nil {
-                    NutrientGrid(
-                        kcal: item.kcal,
-                        proteinG: item.proteinG,
-                        carbsG: item.carbsG,
-                        fatG: item.fatG,
-                        fiberG: item.fiberG,
-                        sugarG: item.sugarG,
-                        sodiumMg: item.sodiumMg,
-                        saturatedFatG: item.saturatedFatG
-                    )
+                    macrosDisclosure(item: item)
                 }
             }
 
@@ -91,6 +86,15 @@ public struct SingleDishCard: View {
             // knows which).
             if let jeniCopy = Self.synthesizeJeniLine(for: food) {
                 JeniLine(jeniCopy)
+            }
+
+            // "tell me more ♥" inline — corrections-as-moat surface per
+            // the Cal AI teardown brief. v1.0.7 wires this to the
+            // existing FoodCorrectionSheet (portion + name edit) for
+            // the speed of the patch; v1.0.8 will swap it for the
+            // inline chat conversation that the brief recommended.
+            if let item = food.items.first {
+                tellMeMoreLink(item: item)
             }
 
             Divider()
@@ -128,6 +132,146 @@ public struct SingleDishCard: View {
                 .offset(x: 8, y: -12)
                 .accessibilityHidden(true)
         }
+    }
+
+    // MARK: - Feeling-word hero (v1.0.7 Phase A.4)
+
+    /// Calorie-bucket → italic-Fraunces feeling word. Five buckets that
+    /// span the realistic single-dish range. All five are neutral-
+    /// positive descriptors — never moral framing ("indulgent",
+    /// "guilty"), never deficit framing ("burned", "deserved"). The
+    /// post-Ozempic vocab lock + the behavioral expert's "calorie-as-
+    /// hero is disordered-eating-accelerator" finding both point here:
+    /// describe the FEELING of the food, not its judgment.
+    private static func feelingWord(forKcal kcal: Double) -> String {
+        switch kcal {
+        case ..<80:    return "bright"        // espresso, lemon, mint, broth
+        case 80..<200: return "easy"          // toast, fruit, latte
+        case 200..<400: return "satisfying"   // sandwich, bowl, pasta single
+        case 400..<600: return "hearty"       // pasta plate, burger, big bowl
+        default:       return "nourishing"    // steak dinner, brunch plate
+        }
+    }
+
+    @ViewBuilder
+    private func feelingHero(item: CapturedItem, kcal: Double) -> some View {
+        let feeling = Self.feelingWord(forKcal: kcal)
+        let mealName = ItalicAccentText.parseAsterisks(item.name).base
+
+        VStack(alignment: .leading, spacing: 6) {
+            // Hero feeling word — italic-Fraunces, big, with a soft
+            // heart terminal. Reads like a friend describing the
+            // plate, not a calorie counter.
+            (Text(feeling)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
+                .foregroundStyle(FoodTheme.textPrimary)
+             + Text(" ♥")
+                .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                .foregroundStyle(FoodTheme.accent))
+
+            // Meal name — secondary line, plain Fraunces.
+            Text(mealName)
+                .font(.custom("Fraunces72pt-Regular", size: 17))
+                .foregroundStyle(FoodTheme.textSecondary)
+
+            // Cal + fits framing — uncertainty in language ("around"),
+            // permission in voice ("fits"). One small line carrying
+            // the number AND the permission frame.
+            HStack(spacing: 4) {
+                Text("around \(Int(kcal.rounded())) cal")
+                    .font(.system(size: 13))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                Text("·")
+                    .font(.system(size: 13))
+                    .foregroundStyle(FoodTheme.textSecondary.opacity(0.6))
+                (Text("fits")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                    .foregroundStyle(FoodTheme.accent)
+                 + Text(" ♥")
+                    .font(.system(size: 13))
+                    .foregroundStyle(FoodTheme.accent))
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(feeling), \(mealName), around \(Int(kcal.rounded())) calories, fits")
+    }
+
+    // MARK: - Macros disclosure (v1.0.7 Phase A.4)
+    //
+    // The full NutrientGrid is now hidden behind a tap. Defaults to
+    // collapsed because the macro grid is a power-user lens — most
+    // logging events don't need it, and showing it upfront re-anchors
+    // the result card on numbers (which is exactly the calorie-hero
+    // anti-pattern the behavioral expert flagged). User who wants
+    // macros taps "show macros" and the grid expands in place.
+
+    @ViewBuilder
+    private func macrosDisclosure(item: CapturedItem) -> some View {
+        VStack(alignment: .leading, spacing: FoodTheme.Space.sm) {
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+                    showMacros.toggle()
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(showMacros ? "hide macros" : "show macros")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(FoodTheme.textSecondary.opacity(0.7))
+                        .rotationEffect(.degrees(showMacros ? 90 : 0))
+                }
+            }
+            .buttonStyle(.plain)
+
+            if showMacros {
+                NutrientGrid(
+                    kcal: item.kcal,
+                    proteinG: item.proteinG,
+                    carbsG: item.carbsG,
+                    fatG: item.fatG,
+                    fiberG: item.fiberG,
+                    sugarG: item.sugarG,
+                    sodiumMg: item.sodiumMg,
+                    saturatedFatG: item.saturatedFatG
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    // MARK: - Tell me more (v1.0.7 Phase A.4)
+    //
+    // Corrections-as-moat surface per the Cal AI teardown brief.
+    // v1.0.7 routes to the existing FoodCorrectionSheet (portion +
+    // name edit) — same UI users already see when tapping the item
+    // row. v1.0.8 will swap this for the inline conversation flow
+    // ("tell me more" → jeni line + clarifying questions + memory).
+
+    @ViewBuilder
+    private func tellMeMoreLink(item: CapturedItem) -> some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            onItemTap(item)
+        } label: {
+            HStack(spacing: 4) {
+                Text("tell me")
+                    .font(.system(size: 13))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                (Text("more")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                    .foregroundStyle(FoodTheme.accent)
+                 + Text(" ♥")
+                    .font(.system(size: 13))
+                    .foregroundStyle(FoodTheme.accent))
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(FoodTheme.accent.opacity(0.7))
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Action buttons
