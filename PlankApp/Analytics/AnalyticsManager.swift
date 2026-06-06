@@ -235,6 +235,36 @@ enum AnalyticsEvent: String {
     case breathworkSessionStarted     = "breathwork_session_started"
     case breathworkSessionCompleted   = "breathwork_session_completed"
     case breathworkSessionDismissed   = "breathwork_session_dismissed"
+
+    // ── Food rail funnel + per-scan (W5-T3) ──
+    // Fires from inside PlankFood via the FoodAnalytics closure-sink
+    // pattern (PlankAIApp registers a closure at launch that wraps
+    // Analytics.track). Every food event gets the cuisine_profile +
+    // meal_slot + confidence_min + glp1_status + paid_status props
+    // attached by the sink so funnel queries don't need joins.
+    case foodAIConsentShown           = "food_ai_consent_shown"
+    case foodAIConsentAccepted        = "food_ai_consent_accepted"
+    case foodAIConsentDeclined        = "food_ai_consent_declined"
+    case foodFirstScanStarted         = "food_first_scan_started"
+    case foodFirstScanCompleted       = "food_first_scan_completed"
+    case foodFirstLogSaved            = "food_first_log_saved"
+    case foodScanStarted              = "food_scan_started"
+    case foodScanCompleted            = "food_scan_completed"
+    case foodScanFallbackFired        = "food_scan_fallback_fired"
+    case foodScanCorrectionOpened     = "food_scan_correction_opened"
+    case foodScanCorrectionSaved      = "food_scan_correction_saved"
+    case foodLogSaved                 = "food_log_saved"
+    case foodQuickAddTapped           = "food_quick_add_tapped"
+    case foodQuickAddLogged           = "food_quick_add_logged"
+    case foodImOutUsed                = "food_im_out_used"
+    case foodImOutLogged              = "food_im_out_logged"
+    // Cost telemetry — fires per scan with model + estimated tokens so
+    // the daily budget cap can be tracked from PostHog without server-
+    // side aggregation. Properties: model (gpt-5 / opus-4.7 / gemini-flash),
+    // tokens_in, tokens_out, estimated_cost_usd, paid_status.
+    case foodScanCost                 = "food_scan_cost"
+    case foodBudgetCapHit             = "food_budget_cap_hit"
+    case foodRateLimitHit             = "food_rate_limit_hit"
 }
 
 /// Sink protocol for pluggable backends. Add an implementation and

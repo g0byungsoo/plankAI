@@ -142,6 +142,15 @@ struct PlankAIApp: App {
 
         Analytics.sinks.append(PostHogSink())
 
+        // Wire PlankFood's FoodAnalytics closure-sink into the main app
+        // analytics layer. PlankFood is a leaf SPM package and can't
+        // import AnalyticsManager directly; this closure is the
+        // boundary. Every food event flows through Analytics.track so
+        // sink lists, super-properties, queue, and dedup all apply.
+        FoodAnalytics.register { eventName, properties in
+            Analytics.track(eventName, properties: properties)
+        }
+
         #if DEBUG
         // Internal/test traffic separation. Two layers in PostHog:
         //

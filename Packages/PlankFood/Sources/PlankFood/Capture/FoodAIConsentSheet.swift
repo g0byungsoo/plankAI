@@ -110,7 +110,11 @@ public struct FoodAIConsentSheet: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+        .onAppear {
+            FoodAnalytics.track(.aiConsentShown)
+        }
     }
+
 
     @ViewBuilder
     private func detailRow(icon: String, text: String) -> some View {

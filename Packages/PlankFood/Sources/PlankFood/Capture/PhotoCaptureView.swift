@@ -268,6 +268,9 @@ public struct PhotoCaptureView: View {
         errorMessage = nil
         defer { isCapturing = false }
 
+        FoodAnalytics.track(.scanStarted)
+        FoodAnalytics.firstScanStartedIfNeeded()
+
         do {
             let jpeg = try await camera.captureStill()
             let result = try await dispatcher.dispatch(.photo(jpeg))
@@ -282,8 +285,15 @@ public struct PhotoCaptureView: View {
             // items was empty).
             if result.items.isEmpty && result.kcalLow == nil {
                 errorMessage = "couldn't see any food. try a brighter or closer angle?"
+                FoodAnalytics.track(.scanFallbackFired, properties: ["reason": "empty_items"])
                 return
             }
+
+            FoodAnalytics.track(.scanCompleted, properties: [
+                "items_count": result.items.count,
+                "has_restaurant_range": result.kcalLow != nil,
+            ])
+            FoodAnalytics.firstScanCompletedIfNeeded()
 
             capturedResult = result
             onCaptured(result)
@@ -305,6 +315,7 @@ public struct PhotoCaptureView: View {
             #else
             errorMessage = "couldn't read your plate just now. try again?"
             #endif
+            FoodAnalytics.track(.scanFallbackFired, properties: ["reason": "capture_error"])
         }
     }
 }

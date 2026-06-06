@@ -53,10 +53,14 @@ public struct CaptureFlowView: View {
             case .consent:
                 FoodAIConsentSheet(
                     onAccept: {
+                        FoodAnalytics.track(.aiConsentAccepted)
                         FoodAIConsent.markAccepted()
                         phase = .camera
                     },
-                    onDecline: onDismiss
+                    onDecline: {
+                        FoodAnalytics.track(.aiConsentDeclined)
+                        onDismiss()
+                    }
                 )
 
             case .camera:
@@ -73,21 +77,30 @@ public struct CaptureFlowView: View {
             case .quickAdd:
                 QuickAddView(
                     onLogged: { food in
+                        FoodAnalytics.track(.quickAddLogged, properties: [
+                            "items_count": food.items.count,
+                        ])
                         capturedFood = food
                         phase = .result
                     },
                     onScanInstead: { phase = .camera },
                     onDismiss: { phase = .camera }
                 )
+                .onAppear { FoodAnalytics.track(.quickAddTapped) }
 
             case .imOut:
                 ImOutTonightView(
                     onLogged: { food in
+                        FoodAnalytics.track(.imOutLogged, properties: [
+                            "kcal_low":  food.kcalLow ?? 0,
+                            "kcal_high": food.kcalHigh ?? 0,
+                        ])
                         capturedFood = food
                         phase = .result
                     },
                     onDismiss: { phase = .camera }
                 )
+                .onAppear { FoodAnalytics.track(.imOutUsed) }
 
             case .result:
                 if let food = capturedFood {
@@ -102,11 +115,17 @@ public struct CaptureFlowView: View {
             FoodCorrectionSheet(
                 original: item,
                 onSave: { edited in
+                    FoodAnalytics.track(.scanCorrectionSaved, properties: [
+                        "field_changed": edited.name != item.name ? "name" : "portion",
+                    ])
                     capturedFood = capturedFood?.replacing(item: edited)
                     editingItem = nil
                 },
                 onCancel: { editingItem = nil }
             )
+            .onAppear {
+                FoodAnalytics.track(.scanCorrectionOpened)
+            }
         }
     }
 
@@ -168,6 +187,11 @@ public struct CaptureFlowView: View {
                 userId: userId,
                 into: modelContext
             )
+            FoodAnalytics.track(.logSaved, properties: [
+                "items_count": food.items.count,
+                "source": food.source.rawValue,
+            ])
+            FoodAnalytics.firstLogSavedIfNeeded()
             onDismiss()
         } catch {
             // Persistence error — surface as a transient banner in
