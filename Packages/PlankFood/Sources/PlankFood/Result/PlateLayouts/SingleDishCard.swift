@@ -130,13 +130,17 @@ public struct SingleDishCard: View {
                 .stroke(FoodTheme.accent.opacity(0.5), lineWidth: FoodTheme.Stroke.scrapbook)
         )
         .shadow(color: FoodTheme.textPrimary.opacity(0.2), radius: 0, x: 3, y: 3)
-        // Sticker scatter — flower3D emoji rotated and offset to read
-        // as a hand-placed scrapbook accent. Decorative only, hidden
-        // from VoiceOver.
+        // v1.0.7 Phase E sticker discipline — cherries emoji per the
+        // luxury brief sticker-family mapping (cherries = food). Was
+        // 🌸 (flower/becoming family — mis-categorized). Rotation kept
+        // in the 6-14° band per the brief's discipline; decorative
+        // only, accessibility hidden. v1.0.8 polish ticket: bundle
+        // the brand cherries 3D asset into PlankFood and swap to
+        // Image(name:) for the proper sticker register.
         .overlay(alignment: .topTrailing) {
-            Text("🌸")
-                .font(.system(size: 32))
-                .rotationEffect(.degrees(15))
+            Text("🍒")
+                .font(.system(size: 30))
+                .rotationEffect(.degrees(10))
                 .offset(x: 8, y: -12)
                 .accessibilityHidden(true)
         }

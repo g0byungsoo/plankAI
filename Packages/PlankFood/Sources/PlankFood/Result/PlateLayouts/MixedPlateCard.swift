@@ -125,12 +125,17 @@ public struct MixedPlateCard: View {
                 .stroke(FoodTheme.accent.opacity(0.5), lineWidth: FoodTheme.Stroke.scrapbook)
         )
         .shadow(color: FoodTheme.textPrimary.opacity(0.2), radius: 0, x: 3, y: 3)
-        // Sticker overlay — different emoji from SingleDishCard so
-        // result-card variants visually differ at a glance.
+        // v1.0.7 Phase E sticker discipline — cherries emoji per the
+        // luxury brief sticker-family mapping (cherries = food). Was
+        // ✨ (sparkle/lessons family — mis-categorized). Both single
+        // + mixed plate cards now share the food sticker family;
+        // mixed-vs-single is conveyed by content (item count caption),
+        // not by sticker variant. v1.0.8: bundle the brand cherries
+        // 3D asset into PlankFood and swap to Image(name:).
         .overlay(alignment: .topTrailing) {
-            Text("✨")
+            Text("🍒")
                 .font(.system(size: 28))
-                .rotationEffect(.degrees(-12))
+                .rotationEffect(.degrees(-10))
                 .offset(x: 6, y: -10)
                 .accessibilityHidden(true)
         }
