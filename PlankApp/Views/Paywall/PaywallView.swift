@@ -408,15 +408,16 @@ struct PaywallView: View {
             // BEFORE the user picks. Projection chip restored (the
             // horizontal layout left enough headroom; cutting it had
             // made the screen feel empty).
-            // Composition:
+            // Composition (v4 — benefits list added above tier row):
             //   slot 1: topBar (44pt)                   — Restore
             //   slot 2: heroPermission (~52pt)          — single-line hero
             //   slot 3: becomingProjectionChip (~110pt) — commitment device
-            //   slot 4: pricingRowAnchorLine (~24pt)    — strikethrough+save
-            //   slot 5: tierRowHorizontal (~156pt)      — 3 cards, asymmetric
-            //   slot 6: trialOrPlanRecap (~88pt yearly / ~36pt others)
-            //   slot 7: ctaButtonV2 (~56pt)
-            //   slot 8: trustAndLegalFooter (~32pt)
+            //   slot 4: paywallBenefits (~88pt)         — 4-row always-on
+            //   slot 5: pricingRowAnchorLine (~24pt)    — strikethrough+save
+            //   slot 6: tierRowHorizontal (~156pt)      — 3 cards, asymmetric
+            //   slot 7: trialOrPlanRecap (~88pt yearly / ~36pt others)
+            //   slot 8: ctaButtonV2 (~56pt)
+            //   slot 9: trustAndLegalFooter (~32pt)
             VStack(spacing: 10) {
                 Spacer().frame(height: 44)  // topBar reserve
 
@@ -424,6 +425,9 @@ struct PaywallView: View {
                     .padding(.horizontal, Space.lg)
 
                 becomingProjectionChip
+                    .padding(.horizontal, Space.lg)
+
+                paywallBenefits
                     .padding(.horizontal, Space.lg)
 
                 pricingRowAnchorLine
@@ -537,6 +541,49 @@ struct PaywallView: View {
             voicePreference: voicePreference,
             chartHeight: 50
         )
+    }
+
+    /// v4 benefits list — 4 always-on rows sitting above the tier row.
+    /// Per v4 expert briefs (docs/paywall_research_*_v4_benefits_2026_06_06.md):
+    /// placement above the tier row keeps screen mass constant across tier
+    /// selections, which solves the "empty when Quarterly/Weekly selected"
+    /// complaint structurally instead of as a per-tier patch. Food included
+    /// with "coming soon ♥" tag — honest forward-disclosure pattern (Lasta,
+    /// BetterMe, Fastic) matches the founder's stated example without
+    /// triggering Cal-AI-takedown-adjacent overpromise risk.
+    /// Italic-Fraunces punch word per row; supporting line in muted 11pt.
+    private var paywallBenefits: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            benefitRow(punch: "workouts",
+                       supporting: "plank, position-block flow · 5–30 min")
+            benefitRow(punch: "becoming",
+                       supporting: "weight trend, steps, breathwork")
+            benefitRow(punch: "food",
+                       supporting: "coming soon ♥ · snap a meal, log without thinking",
+                       italicTrail: true)
+            benefitRow(punch: "jeni method",
+                       supporting: "short reads, evidence-backed")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// One benefits row. `italicTrail` lets the food row carry the
+    /// "coming soon ♥" italic punctuation that flags forward-disclosure.
+    private func benefitRow(punch: String, supporting: String, italicTrail: Bool = false) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Circle()
+                .fill(Palette.accent)
+                .frame(width: 5, height: 5)
+                .offset(y: -2)
+            (Text(punch)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                .foregroundStyle(Palette.textPrimary)
+             + Text(" — \(supporting)")
+                .font(.system(size: 11))
+                .foregroundStyle(Palette.textSecondary))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
     }
 
     /// v3 row-anchor line — $99.96 strikethrough + "$51.97 off ♥".
