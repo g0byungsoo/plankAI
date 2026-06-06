@@ -205,15 +205,16 @@ struct PaywallView: View {
             return (base, [punch])
         }
 
-        // 2026-06-06 — anti-Cal-AI permission-framing default (UX
-        // research, paywall_research_ux_2026_06_06.md §4). Replaces
-        // the v5 "lose N lbs by date" outcome-promise hero. US Gen-Z
-        // cohort is Cal-AI-trained + pattern-matches direct WL copy
-        // to scammy. Permission frame ("softer with food") signals
-        // anti-restriction without sacrificing WL intent. Italic-
-        // Fraunces lands on the punch word per locked voice.
-        let punch = "softer"
-        let base = "\(namePrefix)\(punch) with food."
+        // 2026-06-06 v2 — quarterly-anchor-aligned timeline frame (UX
+        // expert v2, docs/paywall_research_ux_v2_2026_06_06.md). Replaces
+        // the food-rail-future "softer with food" variant. Both are
+        // permission-framed and Cal-AI-safe; the timeline frame aligns
+        // with the quarterly-emphasis layout (12-week becoming horizon)
+        // instead of pre-promoting the unshipped food rail.
+        // Italic-Fraunces lands on "your" per locked voice; hearts ♥ as
+        // terminal punctuation (locked); lowercase casual (locked).
+        let punch = "your"
+        let base = "\(namePrefix)sized for \(punch) timeline ♥"
         return (base, [punch])
     }
 
@@ -512,7 +513,7 @@ struct PaywallView: View {
             .padding(.horizontal, 8)
             .fixedSize(horizontal: false, vertical: true)
 
-            Text("no rules. just becoming, with permission.")
+            Text("your pace. your timeline.")
                 .font(.system(size: 12))
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
