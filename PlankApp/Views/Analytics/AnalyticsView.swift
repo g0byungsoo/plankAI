@@ -695,12 +695,53 @@ struct AnalyticsView: View {
 
     private var becomingStack: some View {
         VStack(alignment: .leading, spacing: 28) {
+            // v1.0.7 Phase C.2 — Sunday Card top-loads Fri evening
+            // through Mon end-of-day per the retention brief. Hidden
+            // Tue–Thu so it doesn't read as a weekly nag.
+            if SundayCard.shouldShowNow() {
+                SundayCard(
+                    userName: userName,
+                    weeklyWeightDelta: weeklyWeightDeltaCopy,
+                    breathDaysThisWeek: BreathworkState.shared.distinctDaysThisWeek,
+                    sessionsThisWeek: thisWeekSessions.count,
+                    platesThisWeek: platesThisWeek,
+                    voicePreference: voicePreference,
+                    isFoodRailEnabled: FoodFlags.isEnabled
+                )
+            }
             yourWeekSection
             whatYouAteSection
             howYouMovedSection
             whatsChangingSection
             whatsWorkedSection
         }
+    }
+
+    /// v1.0.7 Phase C.2 — pre-formatted weekly weight delta for the
+    /// Sunday Card. Pulls the earliest and latest weight log within the
+    /// current calendar week, formats in the user's display unit
+    /// ("down 0.4 lb" / "even" / "up 0.2 lb"). Returns nil when fewer
+    /// than 2 logs exist this week — the Sunday Card hides the weight
+    /// row in that case rather than showing a non-truth.
+    private var weeklyWeightDeltaCopy: String? {
+        let cal = Calendar.current
+        guard let weekStart = cal.dateInterval(of: .weekOfYear, for: Date())?.start else { return nil }
+        let weekLogs = weightLogs.filter { $0.loggedAt >= weekStart }
+        guard weekLogs.count >= 2 else { return nil }
+        let sorted = weekLogs.sorted { $0.loggedAt < $1.loggedAt }
+        let deltaKg = (sorted.last?.weightKg ?? 0) - (sorted.first?.weightKg ?? 0)
+        let absDisplay = abs(weightUnit.display(fromKg: deltaKg))
+        if abs(deltaKg) < 0.05 { return "even with where you started" }
+        let dir = deltaKg < 0 ? "down" : "up"
+        return "\(dir) \(String(format: "%.1f", absDisplay)) \(weightUnit.label)"
+    }
+
+    /// Count of distinct days this week with at least one food log.
+    private var platesThisWeek: Int {
+        guard FoodFlags.isEnabled else { return 0 }
+        let userId = AuthService.shared.currentUser?.id.uuidString ?? ""
+        guard !userId.isEmpty else { return 0 }
+        return FoodLogPersister.last7DaysKcal(userId: userId).filter { $0.kcal > 0 }.count
     }
 
     /// v1.0.7 Phase C — editorial chapter spread per the luxury expert
