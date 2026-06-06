@@ -49,6 +49,14 @@ struct HomeView: View {
     /// pendingPostRitualWorkoutLaunch pattern: HomeView reads on
     /// appear, opens CaptureFlowView, clears the flag.
     @AppStorage("pendingFoodScan") private var pendingFoodScan = false
+    /// v1.0.7 Phase B — workout card collapsed under "more today" when
+    /// the food rail is enabled. Per the retention expert brief
+    /// (docs/home_becoming_research_retention_2026_06_06.md): workout
+    /// completion is 23% in production today, low enough that demoting
+    /// it from a visible slot to a tap-to-reveal disclosure is the
+    /// research-backed call. Persists across launches so users who
+    /// expanded it once don't have to re-expand every time.
+    @AppStorage("homeShowMoreToday") private var showMoreToday: Bool = false
     /// Daily calorie target. Defaults to Mifflin-St Jeor result from
     /// onboarding (W4-T4 Food Settings will expose an editor). 1650
     /// is the cohort median for a 65kg woman with light activity at
@@ -628,13 +636,24 @@ struct HomeView: View {
                         }
                         .opacity(msgOpacity[1]).offset(y: msgOffset[1])
 
-                        // Daily action — sits BELOW the lesson hero so
-                        // Jeni's voice has landed before the user is
-                        // asked to commit to the workout. Same workout
-                        // card chrome + functionality; just demoted from
-                        // "hero" to "second hero" in the cascade.
-                        jenifitWorkoutCard
-                            .opacity(msgOpacity[2]).offset(y: msgOffset[2])
+                        // Daily action — sits BELOW the lesson hero.
+                        // v1.0.7 Phase B (2026-06-06): when food rail
+                        // is enabled, workout collapses under a "more
+                        // today ▾" disclosure per the retention expert
+                        // brief. Production workout completion is 23%;
+                        // demoting the card from visible slot to
+                        // tap-to-reveal preserves it for the users who
+                        // want it without crowding the hero stack for
+                        // the 77% who don't. Flag-off users keep the
+                        // visible workout card (no regression).
+                        if FoodFlags.isEnabled {
+                            moreTodayDisclosure
+                                .padding(.horizontal, Space.screenPadding)
+                                .opacity(msgOpacity[2]).offset(y: msgOffset[2])
+                        } else {
+                            jenifitWorkoutCard
+                                .opacity(msgOpacity[2]).offset(y: msgOffset[2])
+                        }
 
                         // Momentum — one soft, flat signal (no flame, no
                         // streak: direction §5.3). Enrolled users see the
@@ -1251,6 +1270,49 @@ struct HomeView: View {
     // slot right under the coach note, ABOVE the JeniMethod card.
     // Existing-user intro tile appears on flag-flip day above the
     // food card, dismissible, auto-hides after 7 days.
+
+    // MARK: - More today disclosure (v1.0.7 Phase B)
+    //
+    // Workout card lives behind a tap-to-reveal disclosure when the
+    // food rail is enabled. Per the retention expert brief:
+    // production workout completion is 23%, so demoting the visible
+    // slot saves vertical space for the 77% who don't engage while
+    // preserving the affordance for the 23% who do. State persists
+    // across launches via AppStorage so users who expand once stay
+    // expanded.
+
+    @ViewBuilder private var moreTodayDisclosure: some View {
+        VStack(spacing: showMoreToday ? Space.md : 0) {
+            Button {
+                Haptics.light()
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+                    showMoreToday.toggle()
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    (Text("more")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                        .foregroundStyle(Palette.accent)
+                     + Text(" today")
+                        .font(.custom("Fraunces72pt-Regular", size: 14))
+                        .foregroundStyle(Palette.textSecondary))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Palette.accent.opacity(0.7))
+                        .rotationEffect(.degrees(showMoreToday ? 90 : 0))
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 10)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(showMoreToday ? "hide today's workout" : "show today's workout")
+
+            if showMoreToday {
+                jenifitWorkoutCard
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
 
     @ViewBuilder private var foodHeroSection: some View {
         VStack(spacing: Space.sm) {
