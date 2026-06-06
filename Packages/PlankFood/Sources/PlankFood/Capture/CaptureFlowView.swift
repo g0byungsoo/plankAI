@@ -40,9 +40,19 @@ public struct CaptureFlowView: View {
         self.cuisineProfile = cuisineProfile
         self.onDismiss = onDismiss
         // Apple 5.1.2(i) gate — first scan must surface the disclosure
-        // before any photo is taken. Subsequent scans skip directly to
-        // the camera. AppStorage backs the snapshot.
-        _phase = State(initialValue: FoodAIConsent.hasAccepted() ? .camera : .consent)
+        // before any photo is taken. After consent, the FoodOnboarding
+        // sheet collects dietary + cuisine retro + exclusions ONCE.
+        // Subsequent scans skip directly to the camera. AppStorage
+        // backs both snapshots.
+        let initial: Phase
+        if !FoodAIConsent.hasAccepted() {
+            initial = .consent
+        } else if !FoodOnboardingFlag.hasCompleted() {
+            initial = .firstScanOnboarding
+        } else {
+            initial = .camera
+        }
+        _phase = State(initialValue: initial)
     }
 
     public var body: some View {
@@ -55,13 +65,25 @@ public struct CaptureFlowView: View {
                     onAccept: {
                         FoodAnalytics.track(.aiConsentAccepted)
                         FoodAIConsent.markAccepted()
-                        phase = .camera
+                        // After consent lands, FoodOnboardingSheet
+                        // collects dietary + cuisine retro + exclusions
+                        // (first-time only). Skip straight to camera
+                        // if the sheet already completed.
+                        phase = FoodOnboardingFlag.hasCompleted()
+                            ? .camera
+                            : .firstScanOnboarding
                     },
                     onDecline: {
                         FoodAnalytics.track(.aiConsentDeclined)
                         onDismiss()
                     }
                 )
+
+            case .firstScanOnboarding:
+                FoodOnboardingSheet(onContinue: {
+                    FoodOnboardingFlag.markCompleted()
+                    phase = .camera
+                })
 
             case .camera:
                 PhotoCaptureView(
@@ -209,6 +231,7 @@ public struct CaptureFlowView: View {
 
 private enum Phase {
     case consent
+    case firstScanOnboarding
     case camera
     case quickAdd
     case imOut
