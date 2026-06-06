@@ -55,13 +55,21 @@ public enum FoodLogPersister {
                 .reduce(0, +)
         }
 
+        let loggedAt = Date()
         inMemoryEntries.append(Entry(
             userId: userId,
-            loggedAt: .now,
+            loggedAt: loggedAt,
             kcal: plateKcal
         ))
 
         changeNotifier.send(())
+
+        // Apple Health write hook. The main app registers a closure at
+        // launch that reads the user's "foodHealthKitWriteEnabled"
+        // toggle, confirms HK auth, and saves an HKQuantitySample.
+        // No-op if toggle off or write auth not granted. PlankFood
+        // stays HealthKit-blind.
+        FoodHealthKitWriter.writeIfRegistered(kcal: plateKcal, at: loggedAt)
 
         // Return a placeholder FoodLogRecord so the call-site signature
         // is preserved (the @Model class still exists; it's just not in

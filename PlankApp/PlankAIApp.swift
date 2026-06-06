@@ -151,6 +151,18 @@ struct PlankAIApp: App {
             Analytics.track(eventName, properties: properties)
         }
 
+        // Wire PlankFood's FoodHealthKitWriter closure-sink. Each
+        // successful FoodLogPersister.persist call invokes this
+        // closure with (kcal, timestamp). The writer inspects the
+        // user's AppStorage toggle + HK authorization status and
+        // either saves to HealthKit's Dietary Energy or no-ops.
+        // PlankFood stays leaf — no HK entitlement in the package.
+        FoodHealthKitWriter.register { kcal, date in
+            Task { @MainActor in
+                HealthKitDietaryEnergyWriter.shared.write(kcal: kcal, at: date)
+            }
+        }
+
         #if DEBUG
         // Internal/test traffic separation. Two layers in PostHog:
         //

@@ -164,13 +164,24 @@ struct FoodSettingsView: View {
                         Text("write to apple health")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(Palette.textPrimary)
-                        Text("logs daily kcal totals to dietary energy.")
+                        Text("each meal logs as dietary energy. off by default.")
                             .font(.system(size: 11))
                             .foregroundStyle(Palette.textSecondary)
                     }
                 }
                 .tint(Palette.accent)
-                .onChange(of: healthKitWriteEnabled) { _, _ in Haptics.light() }
+                .onChange(of: healthKitWriteEnabled) { _, newValue in
+                    Haptics.light()
+                    if newValue {
+                        // First flip-on surfaces the system HK share
+                        // sheet. If the user denies, the toggle stays
+                        // on but writes silently no-op until they
+                        // grant access via Settings → Health → JeniFit.
+                        Task {
+                            await HealthKitDietaryEnergyWriter.shared.requestAuthorization()
+                        }
+                    }
+                }
 
                 Divider().background(Palette.divider)
 

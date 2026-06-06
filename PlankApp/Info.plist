@@ -29,7 +29,7 @@
 	<key>NSHealthShareUsageDescription</key>
 	<string>JeniFit reads your step count so Jeni can quietly notice the days you moved more. Your step data stays between you and Apple Health — JeniFit never sees the raw samples or sends them anywhere.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>JeniFit does not currently write to Apple Health. This permission is requested only because the HealthKit framework requires it, and may be used in a future update to sync your JeniFit sessions back to Apple Health if you choose to enable it.</string>
+	<string>If you turn on the Apple Health write toggle in JeniFit's food settings, your logged meal calories are saved to Apple Health as Dietary Energy. Off by default. You can change this anytime.</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>This lets us learn how you found us so Jeni can keep getting better for women like you. We never sell your data and you can change this anytime in Settings.</string>
 	<key>UIAppFonts</key>
