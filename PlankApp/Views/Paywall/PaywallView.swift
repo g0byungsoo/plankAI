@@ -545,62 +545,77 @@ struct PaywallView: View {
             if paywallStep == 1 {
                 step1CommitView
             } else {
+                // Delta v8 follow-up (2026-06-06) — content scrolls,
+                // CTA + footer pin to bottom. Step 2's 8-slot stack
+                // overflowed on iPhone 13 mini / SE-class viewports
+                // after BecomingProjectionCard was added — hero clipped
+                // at top, "continue" + legal clipped at bottom.
                 VStack(spacing: 0) {
-                    Spacer().frame(height: 56)  // topBar reserve
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            Spacer().frame(height: 56)  // topBar reserve
 
-                    heroCompactV2
-                        .padding(.horizontal, Space.lg)
-                        .padding(.top, 4)
+                            heroCompactV2
+                                .padding(.horizontal, Space.lg)
+                                .padding(.top, 4)
 
-                    Spacer().frame(height: 10)
+                            Spacer().frame(height: 10)
 
-                    reflectedAnswerCaption
-                        .padding(.horizontal, Space.lg)
+                            reflectedAnswerCaption
+                                .padding(.horizontal, Space.lg)
 
-                    Spacer().frame(height: 18)
+                            Spacer().frame(height: 18)
 
-                    pricingRowHorizontal
-                        .padding(.horizontal, Space.lg)
-                    if offeringsLoadFailed {
-                        offeringsLoadFailedRow
-                            .padding(.horizontal, Space.lg)
-                            .padding(.top, 8)
+                            pricingRowHorizontal
+                                .padding(.horizontal, Space.lg)
+                            if offeringsLoadFailed {
+                                offeringsLoadFailedRow
+                                    .padding(.horizontal, Space.lg)
+                                    .padding(.top, 8)
+                            }
+
+                            Spacer().frame(height: 16)
+
+                            trialOrPlanRecap
+                                .padding(.horizontal, Space.lg)
+
+                            Spacer().frame(height: 12)
+
+                            trustMicroline
+                                .padding(.horizontal, Space.lg)
+
+                            Spacer().frame(height: 14)
+
+                            becomingProjectionCard
+                                .padding(.horizontal, Space.lg)
+
+                            Spacer().frame(height: 12)
+                        }
                     }
 
-                    Spacer().frame(height: 16)
-
-                    trialOrPlanRecap
-                        .padding(.horizontal, Space.lg)
-
-                    Spacer().frame(height: 12)
-
-                    trustMicroline
-                        .padding(.horizontal, Space.lg)
-
-                    Spacer().frame(height: 14)
-
-                    becomingProjectionCard
-                        .padding(.horizontal, Space.lg)
-
-                    Spacer(minLength: 10)
-
-                    ctaButtonV2
-                        .padding(.horizontal, Space.lg)
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.stateBad)
-                            .multilineTextAlignment(.center)
+                    // Pinned CTA + legal — always reachable regardless
+                    // of scroll position. bg fill makes the boundary
+                    // read as intentional, not clipped.
+                    VStack(spacing: 0) {
+                        ctaButtonV2
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 6)
-                            .fixedSize(horizontal: false, vertical: true)
+                        if let errorMessage {
+                            Text(errorMessage)
+                                .font(.system(size: 11))
+                                .foregroundStyle(Palette.stateBad)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, Space.lg)
+                                .padding(.top, 6)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        Spacer().frame(height: 8)
+
+                        legalFooterCompact
+                            .padding(.horizontal, Space.lg)
+                            .padding(.bottom, 12)
                     }
-
-                    Spacer().frame(height: 8)
-
-                    legalFooterCompact
-                        .padding(.horizontal, Space.lg)
-                        .padding(.bottom, 12)
+                    .background(Palette.bgPrimary)
                 }
             }
 
@@ -1008,7 +1023,14 @@ struct PaywallView: View {
             PricingCardCompact(
                 title: "Yearly",
                 price: yearlyPrice,
-                subtitle: "$0.92/wk · save 52%",
+                // Delta v8 D84 follow-up (2026-06-06) — dropped the
+                // "$0.92/wk" prefix that snuck through. That weekly-
+                // equivalent display on an annual SKU is the exact
+                // pattern Apple pulled Cal AI for in April 2026. The
+                // 52% number itself is real ($99.96 anchor − $47.99 =
+                // $51.97 = 51.99% off), so the savings call-out is
+                // compliant on its own.
+                subtitle: "save 52%",
                 anchor: "$99.96",
                 badge: badgeText,
                 badgeKind: badgeKind,
