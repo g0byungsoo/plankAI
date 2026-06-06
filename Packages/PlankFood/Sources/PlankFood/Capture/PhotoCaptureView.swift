@@ -46,7 +46,7 @@ public struct PhotoCaptureView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public let onDismiss: () -> Void
-    public let onCaptured: (CapturedFood) -> Void
+    public let onCaptured: (CapturedFood, UIImage?) -> Void
     public let onQuickAddTapped: () -> Void
     public let onImOutTapped: () -> Void
 
@@ -54,7 +54,7 @@ public struct PhotoCaptureView: View {
 
     public init(
         onDismiss: @escaping () -> Void,
-        onCaptured: @escaping (CapturedFood) -> Void,
+        onCaptured: @escaping (CapturedFood, UIImage?) -> Void,
         onQuickAddTapped: @escaping () -> Void = {},
         onImOutTapped: @escaping () -> Void = {}
     ) {
@@ -361,7 +361,10 @@ public struct PhotoCaptureView: View {
             FoodAnalytics.firstScanCompletedIfNeeded()
 
             capturedResult = result
-            onCaptured(result)
+            // v1.0.7 — pass the frozen photo to the result phase so it
+            // can scaffold the photo as a Polaroid hero with
+            // matchedGeometryEffect from the viewfinder bounds.
+            onCaptured(result, camera.frozenFrame)
         } catch FoodCaptureError.notImplemented(let ticket, let message, _) {
             // Expected until W2-T3 wires FoodVisionService. Surface the
             // ticket in DEBUG so it's obvious during sprint runs; show

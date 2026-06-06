@@ -29,7 +29,16 @@ public struct CaptureFlowView: View {
 
     @State private var phase: Phase
     @State private var capturedFood: CapturedFood?
+    @State private var capturedPhoto: UIImage?
     @State private var editingItem: CapturedItem?
+    /// v1.0.7 — transient "sparkle" flash that fires when the scan
+    /// completes and we cross from camera → result. Soft rose halo
+    /// that pulses for ~0.55s. Brief enough to feel magical, short
+    /// enough to never block.
+    @State private var transitionBloom: Bool = false
+    /// Shared namespace so the frozen photo can `matchedGeometryEffect`
+    /// from the viewfinder bounds to the result-card Polaroid hero.
+    @Namespace private var photoTransition
 
     public init(
         userId: String,
@@ -88,13 +97,38 @@ public struct CaptureFlowView: View {
             case .camera:
                 PhotoCaptureView(
                     onDismiss: onDismiss,
-                    onCaptured: { food in
+                    onCaptured: { food, photo in
+                        // v1.0.7 — smooth magical camera→result
+                        // transition. Hold the photo, kick off the
+                        // sparkle bloom, then animate the phase
+                        // change. The Polaroid hero on resultPhase
+                        // uses matchedGeometryEffect from the same
+                        // photoTransition namespace so the still
+                        // morphs from the viewfinder bounds into the
+                        // result-card hero block instead of hard cut.
                         capturedFood = food
-                        phase = .result
+                        capturedPhoto = photo
+                        withAnimation(.easeOut(duration: 0.35)) {
+                            transitionBloom = true
+                        }
+                        withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+                            phase = .result
+                        }
+                        // Fade the bloom back out after the transition
+                        // settles. Independent timing from the spring
+                        // so the bloom outlasts the phase change by a
+                        // beat — "the photo arrived" cue.
+                        Task { @MainActor in
+                            try? await Task.sleep(nanoseconds: 600_000_000)
+                            withAnimation(.easeIn(duration: 0.45)) {
+                                transitionBloom = false
+                            }
+                        }
                     },
                     onQuickAddTapped: { phase = .quickAdd },
                     onImOutTapped: { phase = .imOut }
                 )
+                .transition(.opacity.combined(with: .scale(scale: 0.96)))
 
             case .quickAdd:
                 QuickAddView(
@@ -127,10 +161,32 @@ public struct CaptureFlowView: View {
             case .result:
                 if let food = capturedFood {
                     resultPhase(food: food)
+                        .transition(.opacity.combined(with: .scale(scale: 1.04)))
                 } else {
                     // Should be unreachable; defensive fallback.
                     ProgressView()
                 }
+            }
+
+            // v1.0.7 transition bloom — soft rose halo that flashes at
+            // the moment of scan→result handoff. Sits ABOVE every phase
+            // so both the fading camera and the arriving result see the
+            // same washing warmth. Subliminal — under 0.25 opacity peak,
+            // 0.55s total.
+            if transitionBloom {
+                RadialGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: Color(red: 0.77, green: 0.40, blue: 0.48).opacity(0.22),
+                              location: 0.0),
+                        .init(color: .clear, location: 1.0),
+                    ]),
+                    center: .center,
+                    startRadius: 20,
+                    endRadius: 320
+                )
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+                .transition(.opacity)
             }
         }
         .sheet(item: $editingItem) { item in
@@ -183,21 +239,76 @@ public struct CaptureFlowView: View {
             .padding(.horizontal, FoodTheme.Space.md)
 
             ScrollView {
-                ResultCard(
-                    food: food,
-                    primaryAction: { logTapped(food) },
-                    // "actually skip" on a populated card OR "retake →"
-                    // on an empty-items defensive fallback — both bounce
-                    // back to camera so the user can correct course.
-                    secondaryAction: {
-                        capturedFood = nil
-                        phase = .camera
-                    },
-                    onItemTap: { item in editingItem = item }
-                )
+                VStack(spacing: FoodTheme.Space.md) {
+                    // v1.0.7 Polaroid hero — the captured photo lands
+                    // here from the camera transition. Cream border +
+                    // hard offset shadow + 1.5pt cocoa stroke matches
+                    // the scrapbook chrome family. The matchedGeometry
+                    // namespace shares with the viewfinder so SwiftUI
+                    // morphs the photo from its full-screen position
+                    // into this hero block instead of hard-cutting.
+                    if let photo = capturedPhoto {
+                        polaroidHero(photo: photo)
+                    }
+
+                    ResultCard(
+                        food: food,
+                        primaryAction: { logTapped(food) },
+                        // "actually skip" on a populated card OR "retake →"
+                        // on an empty-items defensive fallback — both bounce
+                        // back to camera so the user can correct course.
+                        secondaryAction: {
+                            capturedFood = nil
+                            capturedPhoto = nil
+                            phase = .camera
+                        },
+                        onItemTap: { item in editingItem = item }
+                    )
+                }
                 .padding(FoodTheme.Space.screenPadding)
             }
         }
+    }
+
+    /// Polaroid-style photo hero. Cream border (~12pt all around),
+    /// hard offset shadow, 1.5pt cocoa stroke — matches the scrapbook
+    /// chrome family. Photo clips to a 20pt inner radius so the
+    /// Polaroid frame reads as a sticker-stack layer, not a crop. The
+    /// caption row at the bottom carries italic-Fraunces "*just now*"
+    /// — locked voice signal making the moment feel curated, not just
+    /// logged.
+    @ViewBuilder
+    private func polaroidHero(photo: UIImage) -> some View {
+        VStack(spacing: 8) {
+            Image(uiImage: photo)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(height: 220)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+            HStack {
+                Text("just")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                    .foregroundStyle(FoodTheme.accent)
+                Text("now")
+                    .font(.custom("Fraunces72pt-Regular", size: 12))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                Spacer()
+            }
+            .padding(.horizontal, 4)
+        }
+        .padding(12)
+        .background(FoodTheme.bgElevated)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(FoodTheme.textPrimary, lineWidth: 1.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: FoodTheme.textPrimary.opacity(0.22), radius: 0, x: 4, y: 4)
+        // Slight angle — Polaroid signature. Not too much, so it
+        // doesn't fight the underlying ResultCard.
+        .rotationEffect(.degrees(-1.2))
     }
 
     // MARK: - Persistence
