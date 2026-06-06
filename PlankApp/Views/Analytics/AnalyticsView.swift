@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import PlankSync
+import PlankFood
 import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
 
 // MARK: - Bento metric explainers (progressive disclosure)
@@ -11,7 +12,7 @@ import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodu
 // "overwhelmed by dieting info"), anti-shame, and traces the number to how
 // it's computed (data-provenance).
 enum BecomingMetric: String, Identifiable {
-    case trend, forecast, milestone, goal, cadence, movement, breath
+    case trend, forecast, milestone, goal, cadence, movement, breath, plate
     var id: String { rawValue }
 
     var sticker: StickerName {
@@ -23,6 +24,7 @@ enum BecomingMetric: String, Identifiable {
         case .cadence:   return .heartGlossy
         case .movement:  return .shoeIridescent
         case .breath:    return .heartGlossy
+        case .plate:     return .cherries
         }
     }
 
@@ -35,6 +37,7 @@ enum BecomingMetric: String, Identifiable {
         case .cadence:   return "your weigh-in rhythm"
         case .movement:  return "your moving"
         case .breath:    return "your breath"
+        case .plate:     return "your plate"
         }
     }
 
@@ -54,6 +57,8 @@ enum BecomingMetric: String, Identifiable {
             return "your steps from apple health, for the last 7 days. the soft line at 7,500 is research-backed — that's where weight tends to stay off, not the old 10k myth. brisk walks count more than slow ones, but every walk counts ♥"
         case .breath:
             return "one slow minute of breath flips on your parasympathetic system — the rest-and-digest mode that brings cortisol down. lower cortisol means fewer cravings that aren't really hunger, and a body less locked into holding on. the dots are the days you breathed this week. balban (stanford 2023, n=111), epel (yale, cortisol & abdominal fat), sato (senobi, biomed res 2010, n=40) ♥"
+        case .plate:
+            return "the bars are your last 7 days. the number up top is your daily average — only the days you logged. days you didn't log don't count against you; this is rhythm, not surveillance. snapping a plate adds it; editing fixes the ai when it's off ♥"
         }
     }
 }
@@ -684,10 +689,25 @@ struct AnalyticsView: View {
             BreathworkBentoTile(state: BreathworkState.shared) {
                 presentedMetric = .breath
             }
+            // Plate — passive 7-day food read. Sourced from FoodLogPersister
+            // (in-memory until v1.0.8 SwiftData lands). Gated on
+            // FoodFlags.isEnabled so flag-off users see the existing
+            // "coming soon" foodLog chip below instead.
+            if FoodFlags.isEnabled {
+                FoodWeekBentoTile(
+                    userId: AuthService.shared.currentUser?.id.uuidString ?? ""
+                ) {
+                    presentedMetric = .plate
+                }
+            }
             nsvTile
             // .stepCounter dropped from this row — steps shipped as a real
-            // tile above, no longer a "coming soon" chip.
-            FutureRailRow(rails: [.foodLog, .bodyScan]) { presentedFutureRail = $0 }
+            // tile above, no longer a "coming soon" chip. .foodLog drops out
+            // when FoodFlags.isEnabled because the real FoodWeekBentoTile
+            // above replaces it.
+            FutureRailRow(
+                rails: FoodFlags.isEnabled ? [.bodyScan] : [.foodLog, .bodyScan]
+            ) { presentedFutureRail = $0 }
                 .padding(.top, 2)
         }
     }

@@ -114,4 +114,29 @@ public enum FoodLogPersister {
 
         return (today, weekly)
     }
+
+    /// Per-day kcal totals for the last 7 days, ordered oldest → newest.
+    /// Days with no logs return 0. Used by FoodWeekBentoTile to render
+    /// the 7-bar week strip in the Becoming bento.
+    public static func last7DaysKcal(userId: String) -> [(date: Date, kcal: Double)] {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date.now)
+        let userEntries = inMemoryEntries.filter { $0.userId == userId }
+
+        var byDay: [Date: Double] = [:]
+        for entry in userEntries {
+            let day = cal.startOfDay(for: entry.loggedAt)
+            // Only consider entries within the last-7-days window.
+            guard let daysAgo = cal.dateComponents([.day], from: day, to: today).day,
+                  daysAgo >= 0, daysAgo < 7 else { continue }
+            byDay[day, default: 0] += entry.kcal
+        }
+
+        var result: [(date: Date, kcal: Double)] = []
+        for offset in (0..<7).reversed() {
+            guard let day = cal.date(byAdding: .day, value: -offset, to: today) else { continue }
+            result.append((day, byDay[day] ?? 0))
+        }
+        return result
+    }
 }
