@@ -7,11 +7,15 @@ import Foundation
 // matching `FOOD_VISION_SCHEMA` from supabase/functions/food-vision/
 // index.ts. Maps the response into the in-app `CapturedFood` shape.
 //
-// Per v3 §Honesty Doctrine: this service never returns kcal directly.
-// `CapturedFood.items[].kcal` lands later when the USDA join completes
-// (W2-T4 NutritionLookupService). For now, the result card renders
-// item names + portion ranges + Jeni interpretation; kcal shows a
-// loading state until the join lands.
+// v1.0.7 direct-kcal rewrite (2026-06-07): the Edge Function now
+// returns kcal + macros directly per item, plus plate-level total
+// bounds. The Honesty Doctrine — which had this service return only
+// portion grams + USDA search terms, with kcal filled in by a USDA
+// join later — is retired. `CapturedItem.kcal` is populated inline
+// from the LLM response and tagged `.llmDirect`. The USDA fallback
+// path still exists for legacy responses where `kcal == nil` and
+// for the low-confidence calibration sweep in `FoodCaptureDispatcher
+// .enrich` (items with confidence < 0.5 get a USDA sanity check).
 //
 // Why not in PlankApp: PlankFood owns the food rail pipeline. The
 // service takes its config (URL, anon key, JWT provider) at init so
@@ -138,25 +142,53 @@ public final class FoodVisionService: Sendable {
     private static func map(
         _ response: VisionResponse
     ) -> CapturedFood {
-        let items = response.items.map { item in
-            CapturedItem(
+        let items = response.items.map { item -> CapturedItem in
+            // v1.0.7 direct-kcal: trust LLM output. The hybrid
+            // calibration sweep in FoodCaptureDispatcher.enrich
+            // optionally upgrades low-confidence items to
+            // `.usdaCalibrated` / `.usdaOverride`. High-confidence
+            // items stay `.llmDirect` and skip the USDA round-trip.
+            //
+            // Legacy fallback: if the EF returns kcal == nil (e.g.
+            // FOOD_VISION_MODEL secret was rolled back to gpt-4o
+            // mid-flight or the model under-filled the schema), the
+            // dispatcher's enrich path runs the full USDA join.
+
+            // Hoist Optional<Int> → Optional<Double> conversions out
+            // of the init call — Swift's type checker times out on
+            // 6+ chained `.map { Double($0) }` calls inside a single
+            // expression.
+            let kcalDouble: Double? = item.kcal.map(Double.init)
+            let proteinDouble: Double? = item.protein_g.map(Double.init)
+            let carbsDouble: Double? = item.carbs_g.map(Double.init)
+            let fatDouble: Double? = item.fat_g.map(Double.init)
+            let fiberDouble: Double? = item.fiber_g.map(Double.init)
+            let source: NutritionSource? = (kcalDouble != nil) ? .llmDirect : nil
+
+            // EF no longer requires usda_search_terms (dropped from
+            // the schema in the direct-kcal rewrite). Fall back to
+            // [item.name] so the calibration sweep has a search seed
+            // when confidence < 0.5.
+            let searchTerms: [String] = item.usda_search_terms
+                ?? (item.name.isEmpty ? [] : [item.name])
+
+            return CapturedItem(
                 id: UUID().uuidString,
                 name: item.name,
                 portionGrams: item.portion_grams,
                 portionGramsLow: item.portion_grams_low,
                 portionGramsHigh: item.portion_grams_high,
-                usdaSearchTerms: item.usda_search_terms,
+                usdaSearchTerms: searchTerms,
                 preparation: item.preparation.isEmpty ? nil : item.preparation,
                 cuisineHint: item.cuisine_hint.isEmpty ? nil : item.cuisine_hint,
                 confidence: item.confidence,
                 notes: item.notes.isEmpty ? nil : item.notes,
-                // W2-T4 fills these from USDA + Open Food Facts join.
-                kcal: nil,
-                proteinG: nil,
-                carbsG: nil,
-                fatG: nil,
-                fiberG: nil,
-                nutritionSource: nil
+                kcal: kcalDouble,
+                proteinG: proteinDouble,
+                carbsG: carbsDouble,
+                fatG: fatDouble,
+                fiberG: fiberDouble,
+                nutritionSource: source
             )
         }
 
@@ -176,8 +208,8 @@ public final class FoodVisionService: Sendable {
             secondPhotoHint: response.needs_second_photo
                 ? response.second_photo_hint
                 : nil,
-            kcalLow: nil,
-            kcalHigh: nil
+            kcalLow: response.total_kcal_low.map { Double($0) },
+            kcalHigh: response.total_kcal_high.map { Double($0) }
         )
     }
 
@@ -198,25 +230,48 @@ private struct ScanRequestBody: Encodable {
 }
 
 /// Response body shape. Mirrors `FOOD_VISION_SCHEMA` in
-/// supabase/functions/food-vision/index.ts. Coding keys match the
-/// schema's field names exactly (snake_case). Renaming any field on
-/// either side will fail decoding silently — every Decodable field
-/// is required, so JSONDecoder throws on missing keys.
+/// supabase/functions/food-vision/index.ts.
+///
+/// v1.0.7 (2026-06-07): direct-kcal rewrite. The schema added kcal +
+/// macros at the item level and total_kcal_low/high at the plate
+/// level, and dropped usda_search_terms from the required item
+/// fields. To keep iOS backwards-compatible with legacy responses
+/// (gpt-4o secret override, partial rollback, mid-flight model swap
+/// where the EF gets re-deployed before the iOS bundle does), every
+/// new field is Optional and the dropped field stays Optional.
+/// JSONDecoder will accept either schema shape.
 private struct VisionResponse: Decodable {
     let items: [Item]
     let plate_type: String
     let needs_second_photo: Bool
     let second_photo_hint: String
+    /// v1.0.7 plate-level total bounds. Optional for backwards
+    /// compatibility with the legacy Honesty Doctrine schema.
+    let total_kcal_low: Int?
+    let total_kcal_high: Int?
     let _meta: Meta?
 
     struct Item: Decodable {
         let name: String
-        let usda_search_terms: [String]
+        /// Optional in v1.0.7+ (LLM direct-kcal path doesn't need
+        /// it). Used by the FoodCaptureDispatcher.enrich
+        /// calibration sweep for low-confidence items; falls back
+        /// to [name] when absent.
+        let usda_search_terms: [String]?
         let preparation: String
         let cuisine_hint: String
         let portion_grams: Double
         let portion_grams_low: Double
         let portion_grams_high: Double
+        /// v1.0.7+ direct-kcal fields. All Optional so iOS can keep
+        /// decoding legacy gpt-4o-style responses that omit them.
+        let kcal: Int?
+        let kcal_low: Int?
+        let kcal_high: Int?
+        let protein_g: Int?
+        let carbs_g: Int?
+        let fat_g: Int?
+        let fiber_g: Int?
         let confidence: Double
         let notes: String
     }

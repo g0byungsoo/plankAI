@@ -1,4 +1,5 @@
 import Foundation
+import PostHog
 
 // MARK: - FoodCaptureDispatcher
 //
@@ -147,35 +148,163 @@ public final class FoodCaptureDispatcher {
 // MARK: - Enrich
 
 extension FoodCaptureDispatcher {
-    /// Join LLM-identified items with nutrition density from the
-    /// configured lookup service (Option A: AppSideNutritionLookup
-    /// hitting pantry > USDA > OFF in parallel). Items where lookup
-    /// returns nil keep their existing nil kcal/macros — UI shows
-    /// "couldn't ID this" placeholder.
+
+    /// Confidence threshold under which an LLM-direct kcal is
+    /// considered ambiguous enough to warrant a USDA sanity check.
+    /// Threshold picked from GPT-5 vision JFB benchmark: at
+    /// confidence ≥0.5, mean absolute % error sits at ~12% (well
+    /// inside the rounding bucket); below 0.5, MAPE jumps to >25%
+    /// where USDA Foundation can usefully overlay.
+    static let calibrationConfidenceThreshold: Double = 0.5
+
+    /// Maximum kcal drift (as fraction of LLM kcal) the USDA
+    /// calibration sweep tolerates before USDA wins. 30% picked
+    /// against the rounding-bucket scheme: a 50-kcal bucket on a
+    /// 200-kcal item is already 25%, so anything tighter would
+    /// fire on rounding noise.
+    static let calibrationDriftThreshold: Double = 0.30
+
+    /// Three-path enrichment for LLM-identified items:
+    ///
+    /// 1. **High-confidence + LLM kcal present** (the new common
+    ///    path post-v1.0.7 direct-kcal rewrite) — keep LLM numbers
+    ///    as-is, tag `.llmDirect`. No USDA round-trip; fastest.
+    ///
+    /// 2. **Low-confidence + LLM kcal present** — run USDA lookup
+    ///    as a sanity check. If USDA agrees within ±30%, keep LLM
+    ///    kcal but tag `.usdaCalibrated` for telemetry. If drift
+    ///    exceeds ±30%, USDA wins — replace kcal + macros, tag
+    ///    `.usdaOverride`, log the override for the v1.0.8
+    ///    correction flywheel.
+    ///
+    /// 3. **LLM kcal missing** (legacy fallback — gpt-4o secret
+    ///    override, schema mid-flight migration, partial response)
+    ///    — full USDA join. Same as the pre-v1.0.7 path.
+    ///
+    /// Items where USDA lookup returns nil keep their existing LLM
+    /// numbers (path 1 or 2 fallback) or stay kcal-nil (path 3
+    /// fallback) so the result card surfaces the "couldn't ID this"
+    /// placeholder.
     static func enrich(
         _ identified: CapturedFood,
         using lookup: NutritionLookupService?
     ) async -> CapturedFood {
-        guard let lookup else { return identified }
         guard !identified.items.isEmpty else { return identified }
 
-        let queries = identified.items.map { item in
-            NutritionQuery(
-                itemName: item.name,
-                usdaSearchTerms: item.usdaSearchTerms,
-                cuisineHint: item.cuisineHint
+        // Determine which items need a USDA round-trip. Skip-eligible
+        // items (high-confidence LLM-direct) take the fast path and
+        // never touch the network. Lookup-eligible items go through
+        // either calibration or legacy enrichment.
+        let needsLookup: [Bool] = identified.items.map { item in
+            shouldRunUSDA(for: item)
+        }
+
+        // If no lookup service configured OR no items need lookup,
+        // return as-is. The all-high-confidence case is the v1.0.7
+        // happy path — every item kept LLM kcal with no network cost.
+        guard let lookup, needsLookup.contains(true) else {
+            return identified
+        }
+
+        // Build queries only for the items that need them; map back
+        // to the original item indices so we can slot results in.
+        var queryIndices: [Int] = []
+        var queries: [NutritionQuery] = []
+        for (index, item) in identified.items.enumerated() where needsLookup[index] {
+            queryIndices.append(index)
+            queries.append(
+                NutritionQuery(
+                    itemName: item.name,
+                    usdaSearchTerms: item.usdaSearchTerms,
+                    cuisineHint: item.cuisineHint
+                )
             )
         }
-        let densities = await lookup.lookup(queries)
+        let results = await lookup.lookup(queries)
 
-        let enriched: [CapturedItem] = zip(identified.items, densities).map { item, lookup in
-            guard let lookup else { return item }
-            let nutrition = CalorieMathService.compute(
-                portionGrams: item.portionGrams,
-                portionGramsLow: item.portionGramsLow,
-                portionGramsHigh: item.portionGramsHigh,
-                density: lookup.density
-            )
+        // Build an index → lookup-result map for the items we queried.
+        var lookupByIndex: [Int: NutritionLookupResult?] = [:]
+        for (i, queryIndex) in queryIndices.enumerated() {
+            lookupByIndex[queryIndex] = results[i]
+        }
+
+        let enriched: [CapturedItem] = identified.items.enumerated().map { index, item in
+            if !needsLookup[index] {
+                // Path 1 — high-confidence LLM-direct, no work to do.
+                return item
+            }
+            guard let result = lookupByIndex[index] ?? nil else {
+                // Lookup ran but returned nil. Keep whatever the LLM
+                // gave us — path 2 falls back to LLM kcal as-is,
+                // path 3 stays kcal-nil.
+                return item
+            }
+            if item.kcal != nil {
+                // Path 2 — LLM kcal present, low confidence → calibrate.
+                return calibrate(item: item, against: result)
+            } else {
+                // Path 3 — LLM kcal missing → full USDA join.
+                return enrichFromUSDA(item: item, with: result)
+            }
+        }
+
+        return CapturedFood(
+            items: enriched,
+            plateType: identified.plateType,
+            source: identified.source,
+            confidence: identified.confidence,
+            needsSecondPhoto: identified.needsSecondPhoto,
+            secondPhotoHint: identified.secondPhotoHint,
+            // Re-derive plate totals from enriched items if any item's
+            // kcal changed via calibration/override. If every item kept
+            // its LLM value, the original totals carry through.
+            kcalLow: derivedKcalLow(items: enriched, fallback: identified.kcalLow),
+            kcalHigh: derivedKcalHigh(items: enriched, fallback: identified.kcalHigh)
+        )
+    }
+
+    /// True when this item needs a USDA round-trip. Two cases:
+    /// LLM didn't return kcal (path 3), or LLM did but flagged
+    /// itself low-confidence (path 2 calibration). High-confidence
+    /// LLM-direct items skip USDA entirely.
+    private static func shouldRunUSDA(for item: CapturedItem) -> Bool {
+        if item.kcal == nil { return true }
+        let conf = item.confidence ?? 1.0
+        return conf < calibrationConfidenceThreshold
+    }
+
+    /// Path 2 — LLM returned kcal but flagged low confidence. Run
+    /// USDA as a sanity check. Within ±30% drift → keep LLM, tag
+    /// `.usdaCalibrated`. Exceeds ±30% → USDA wins, tag
+    /// `.usdaOverride`. The override case also writes USDA macros
+    /// since they're the calibrated source.
+    private static func calibrate(
+        item: CapturedItem,
+        against result: NutritionLookupResult
+    ) -> CapturedItem {
+        guard let llmKcal = item.kcal, llmKcal > 0 else {
+            // Defensive: caller gates on kcal != nil, but the > 0
+            // check protects the drift denominator from divide-by-zero.
+            return enrichFromUSDA(item: item, with: result)
+        }
+        let usdaMath = CalorieMathService.compute(
+            portionGrams: item.portionGrams,
+            portionGramsLow: item.portionGramsLow,
+            portionGramsHigh: item.portionGramsHigh,
+            density: result.density
+        )
+        let drift = abs(usdaMath.kcal - llmKcal) / llmKcal
+        logCalibrationTelemetry(
+            item: item,
+            llmKcal: llmKcal,
+            usdaKcal: usdaMath.kcal,
+            drift: drift,
+            override: drift > calibrationDriftThreshold,
+            source: result.source
+        )
+        if drift <= calibrationDriftThreshold {
+            // USDA agrees within tolerance — keep LLM numbers, mark
+            // the source so cohort analyst can see the check ran.
             return CapturedItem(
                 id: item.id,
                 name: item.name,
@@ -187,28 +316,129 @@ extension FoodCaptureDispatcher {
                 cuisineHint: item.cuisineHint,
                 confidence: item.confidence,
                 notes: item.notes,
-                kcal: nutrition.kcal,
-                proteinG: nutrition.proteinG,
-                carbsG: nutrition.carbsG,
-                fatG: nutrition.fatG,
-                fiberG: nutrition.fiberG,
-                nutritionSource: lookup.source,
-                sugarG: nutrition.sugarG,
-                sodiumMg: nutrition.sodiumMg,
-                saturatedFatG: nutrition.saturatedFatG
+                kcal: item.kcal,
+                proteinG: item.proteinG,
+                carbsG: item.carbsG,
+                fatG: item.fatG,
+                fiberG: item.fiberG,
+                nutritionSource: .usdaCalibrated,
+                sugarG: item.sugarG,
+                sodiumMg: item.sodiumMg,
+                saturatedFatG: item.saturatedFatG
             )
         }
-
-        return CapturedFood(
-            items: enriched,
-            plateType: identified.plateType,
-            source: identified.source,
-            confidence: identified.confidence,
-            needsSecondPhoto: identified.needsSecondPhoto,
-            secondPhotoHint: identified.secondPhotoHint,
-            kcalLow: identified.kcalLow,
-            kcalHigh: identified.kcalHigh
+        // USDA disagrees by more than tolerance — USDA wins. Replace
+        // kcal + macros with the USDA-derived numbers and mark the
+        // source for the correction flywheel.
+        return CapturedItem(
+            id: item.id,
+            name: item.name,
+            portionGrams: item.portionGrams,
+            portionGramsLow: item.portionGramsLow,
+            portionGramsHigh: item.portionGramsHigh,
+            usdaSearchTerms: item.usdaSearchTerms,
+            preparation: item.preparation,
+            cuisineHint: item.cuisineHint,
+            confidence: item.confidence,
+            notes: item.notes,
+            kcal: usdaMath.kcal,
+            proteinG: usdaMath.proteinG,
+            carbsG: usdaMath.carbsG,
+            fatG: usdaMath.fatG,
+            fiberG: usdaMath.fiberG,
+            nutritionSource: .usdaOverride,
+            sugarG: usdaMath.sugarG,
+            sodiumMg: usdaMath.sodiumMg,
+            saturatedFatG: usdaMath.saturatedFatG
         )
+    }
+
+    /// Path 3 — LLM didn't return kcal at all (legacy gpt-4o
+    /// fallback or schema mid-flight). Full USDA join, tag the
+    /// source as returned by the lookup service.
+    private static func enrichFromUSDA(
+        item: CapturedItem,
+        with result: NutritionLookupResult
+    ) -> CapturedItem {
+        let nutrition = CalorieMathService.compute(
+            portionGrams: item.portionGrams,
+            portionGramsLow: item.portionGramsLow,
+            portionGramsHigh: item.portionGramsHigh,
+            density: result.density
+        )
+        return CapturedItem(
+            id: item.id,
+            name: item.name,
+            portionGrams: item.portionGrams,
+            portionGramsLow: item.portionGramsLow,
+            portionGramsHigh: item.portionGramsHigh,
+            usdaSearchTerms: item.usdaSearchTerms,
+            preparation: item.preparation,
+            cuisineHint: item.cuisineHint,
+            confidence: item.confidence,
+            notes: item.notes,
+            kcal: nutrition.kcal,
+            proteinG: nutrition.proteinG,
+            carbsG: nutrition.carbsG,
+            fatG: nutrition.fatG,
+            fiberG: nutrition.fiberG,
+            nutritionSource: result.source,
+            sugarG: nutrition.sugarG,
+            sodiumMg: nutrition.sodiumMg,
+            saturatedFatG: nutrition.saturatedFatG
+        )
+    }
+
+    /// Plate totals re-derivation when items' kcal may have changed
+    /// via calibration. Returns nil when any item is missing kcal —
+    /// matches CapturedFood.totalKcal's "nil means loading state"
+    /// contract. Falls back to the original LLM-direct totals when
+    /// no item was touched (path 1 happy path).
+    /// PostHog telemetry for the v1.0.8 correction flywheel. One
+    /// event per calibration check (path 2 only — path 1 skips
+    /// USDA entirely and path 3 logs via the existing
+    /// `nutrition_lookup_*` events in AppSideNutritionLookup).
+    /// Fire-and-forget; never blocks the result card.
+    private static func logCalibrationTelemetry(
+        item: CapturedItem,
+        llmKcal: Double,
+        usdaKcal: Double,
+        drift: Double,
+        override: Bool,
+        source: NutritionSource
+    ) {
+        let props: [String: Any] = [
+            "item_name": item.name,
+            "confidence": item.confidence ?? -1,
+            "llm_kcal": Int(llmKcal.rounded()),
+            "usda_kcal": Int(usdaKcal.rounded()),
+            "drift_pct": Int((drift * 100).rounded()),
+            "override": override,
+            "usda_source": source.rawValue,
+            "cuisine_hint": item.cuisineHint ?? "none",
+        ]
+        let event = override
+            ? "nutrition_calibration_overrode"
+            : "nutrition_calibration_agreed"
+        PostHogSDK.shared.capture(event, properties: props)
+    }
+
+    private static func derivedKcalLow(items: [CapturedItem], fallback: Double?) -> Double? {
+        guard items.contains(where: { $0.nutritionSource == .usdaOverride }) else {
+            return fallback
+        }
+        let kcals = items.compactMap { $0.kcal }
+        guard kcals.count == items.count else { return nil }
+        return kcals.reduce(0, +)
+    }
+
+    private static func derivedKcalHigh(items: [CapturedItem], fallback: Double?) -> Double? {
+        guard items.contains(where: { $0.nutritionSource == .usdaOverride }) else {
+            return fallback
+        }
+        let kcals = items.compactMap { $0.kcal }
+        guard kcals.count == items.count else { return nil }
+        return kcals.reduce(0, +)
     }
 }
 

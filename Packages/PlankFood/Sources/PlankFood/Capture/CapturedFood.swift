@@ -175,12 +175,42 @@ public enum CaptureSource: String, Sendable, CaseIterable {
 
 // MARK: - NutritionSource
 
-/// Which database answered the per-item USDA join. Tracked for
-/// telemetry and future fine-tune-data assembly. Codable so it can
-/// round-trip through NutritionLookupResult (cache + telemetry).
+/// Which path produced the per-item kcal/macros. Tracked for
+/// telemetry and the v1.0.8+ correction flywheel.
+///
+/// Three families:
+///
+/// - **Lookup-produced** — the original W2-T4 path. The LLM returned
+///   portion grams only and `AppSideNutritionLookup` joined per-100g
+///   density from `canonical_pantry` / `usda_fdc` / `open_food_facts`.
+///   Still hit when the LLM returns `kcal == nil` (no longer the
+///   default after v1.0.7 direct-kcal rewrite, but the fallback path
+///   stays for resilience).
+///
+/// - **LLM-direct** (v1.0.7+) — the new default. `food-vision` Edge
+///   Function returns kcal + macros directly from GPT-5 vision; no
+///   USDA join needed. Marked `.llmDirect` for telemetry.
+///
+/// - **Hybrid calibrated** (v1.0.7+) — for low-confidence LLM items
+///   (< 0.5), `FoodCaptureDispatcher.enrich` runs the USDA lookup as
+///   a sanity check. If the USDA estimate sits within ±30% of the
+///   LLM kcal, the LLM number is kept and tagged `.usdaCalibrated`
+///   (we trust the model, but flagged the check ran). If drift
+///   exceeds ±30%, the USDA number wins and the item is tagged
+///   `.usdaOverride` so the cohort analyst sees how often LLM
+///   accuracy drifts on ambiguous items.
 public enum NutritionSource: String, Sendable, Codable, Hashable, CaseIterable {
     case usdaFDC = "usda_fdc"
     case openFoodFacts = "open_food_facts"
     case canonicalPantry = "canonical_pantry"
     case ruleBasedEstimate = "rule_based_estimate"
+    /// LLM returned kcal + macros directly; no USDA join attempted
+    /// (high-confidence path, v1.0.7+ default).
+    case llmDirect = "llm_direct"
+    /// LLM returned kcal; USDA lookup ran as a sanity check and
+    /// agreed within ±30%. Kept LLM number, flagged the check.
+    case usdaCalibrated = "usda_calibrated"
+    /// LLM returned kcal; USDA lookup disagreed by >±30%. USDA
+    /// number wins, LLM number logged for the correction flywheel.
+    case usdaOverride = "usda_override"
 }

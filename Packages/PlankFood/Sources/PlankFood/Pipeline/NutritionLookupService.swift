@@ -95,6 +95,12 @@ public struct NutritionLookupResult: Sendable, Codable, Equatable {
         case .usdaFDC:             return 90 * 86_400
         case .openFoodFacts:       return 30 * 86_400
         case .ruleBasedEstimate:   return 1 * 86_400
+        // LLM-produced sources never round-trip through this cache
+        // (NutritionLookupResult is only built by lookup services),
+        // but the compiler demands exhaustivity. Treat as 1-day
+        // if they ever do leak in via tests/fixtures.
+        case .llmDirect, .usdaCalibrated, .usdaOverride:
+            return 1 * 86_400
         }
     }
 

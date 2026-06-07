@@ -128,6 +128,8 @@ public final class AppSideNutritionLookup: NutritionLookupService {
                 cache.set(NutritionCache.offKey(barcodeOrHash: resolved.sourceId), resolved)
             case .ruleBasedEstimate:
                 break  // not produced by this lookup path
+            case .llmDirect, .usdaCalibrated, .usdaOverride:
+                break  // produced upstream of lookup, never seen here
             }
         }
 
