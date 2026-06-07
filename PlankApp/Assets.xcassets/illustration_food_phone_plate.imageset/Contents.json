@@ -1,6 +1,6 @@
 {
   "images" : [
-    { "idiom" : "universal", "filename" : "illustration_food_phone_plate.jpg", "scale" : "1x" },
+    { "idiom" : "universal", "filename" : "illustration_food_phone_plate.png", "scale" : "1x" },
     { "idiom" : "universal", "scale" : "2x" },
     { "idiom" : "universal", "scale" : "3x" }
   ],

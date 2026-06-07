@@ -787,9 +787,13 @@ struct AnalyticsView: View {
 
             becomingStreakStrip
 
+            // v1.0.7 round 12 (founder feedback 2026-06-06): two
+            // separate calorie cards (balance + spent breakdown)
+            // confused users — both showed bars side-by-side
+            // without it being clear what each meant. Merged into a
+            // single becomingTodayBalanceCard that shows the
+            // balance equation AND the spent breakdown inline.
             becomingTodayBalanceCard
-
-            becomingSpentBreakdownCard
 
             becomingWHORing
 
@@ -847,7 +851,11 @@ struct AnalyticsView: View {
                 .frame(height: 14)
                 .padding(.vertical, 6)
 
-            HStack(spacing: 0) {
+            // Two-column gained/spent — gained left + bmr/steps/
+            // workout breakdown inline under "spent" so the user
+            // sees in one card both the balance AND where the
+            // spent number came from.
+            HStack(alignment: .top, spacing: 0) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("gained")
                         .font(.custom("DMSans-Regular", size: 11))
@@ -856,6 +864,9 @@ struct AnalyticsView: View {
                         .font(.custom("Fraunces72pt-SemiBold", size: 18))
                         .monospacedDigit()
                         .foregroundStyle(Palette.cocoaPrimary)
+                    Text("from food")
+                        .font(.custom("DMSans-Regular", size: 11))
+                        .foregroundStyle(Palette.cocoaSecondary)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
@@ -866,6 +877,13 @@ struct AnalyticsView: View {
                         .font(.custom("Fraunces72pt-SemiBold", size: 18))
                         .monospacedDigit()
                         .foregroundStyle(Palette.jeweledRose)
+                    let parts = spentBreakdown
+                    Text("bmr \(Int(parts.bmr)) · steps \(Int(parts.steps)) · move \(Int(parts.workout))")
+                        .font(.custom("DMSans-Regular", size: 11))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
             }
             Text(payload.subline)
