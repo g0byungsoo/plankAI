@@ -431,6 +431,17 @@ public struct PhotoCaptureView: View {
             // can scaffold the photo as a Polaroid hero with
             // matchedGeometryEffect from the viewfinder bounds.
             onCaptured(result, camera.frozenFrame)
+        } catch CameraError.captureTooSoon {
+            // v1.0.7 — silently ignore back-to-back shutter taps
+            // within the 3s debounce window. No banner, no telemetry
+            // event (would spam PostHog). The user's next intentional
+            // tap will work normally.
+            phaseTask?.cancel()
+            FoodScanActivity.end(handle: activityHandle)
+            withAnimation(.easeOut(duration: 0.25)) {
+                camera.clearFrozenFrame()
+            }
+            return
         } catch FoodCaptureError.notImplemented(let ticket, let message, _) {
             // Expected until W2-T3 wires FoodVisionService. Surface the
             // ticket in DEBUG so it's obvious during sprint runs; show

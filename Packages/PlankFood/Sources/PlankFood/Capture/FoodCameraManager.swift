@@ -50,6 +50,17 @@ public final class FoodCameraManager: NSObject {
     private var pendingCapture: CheckedContinuation<Data, Error>?
     private var rotationObservation: NSKeyValueObservation?
 
+    /// v1.0.7 — post-completion debounce. The shutter Button's
+    /// `.disabled(isCapturing)` guard covers in-flight taps; this
+    /// covers the smaller window between capture completion and
+    /// result-card render, AND covers any UI bug that programmatically
+    /// fires `captureStill()` in a loop (animation tick, gesture
+    /// recognizer, etc.). 3s is the smallest interval that gives the
+    /// user time to see the freeze + scanning overlay before the next
+    /// tap could plausibly be intentional.
+    private var lastCaptureCompletedAt: Date?
+    private static let captureDebounceInterval: TimeInterval = 3
+
     // MARK: - Init
 
     public override init() {
@@ -135,11 +146,18 @@ public final class FoodCameraManager: NSObject {
     /// EXIF stripped (the input shape food-vision Edge Function expects).
     ///
     /// Throws `CameraError.notReady` if called before `startSession()`,
+    /// `CameraError.captureInProgress` if a capture is already in flight,
+    /// `CameraError.captureTooSoon` if called within the debounce window
+    /// after the last completion (3s — protects against UI loops),
     /// `CameraError.captureFailed` if the AVFoundation callback errors,
     /// `CameraError.encodingFailed` if image processing fails after capture.
     public func captureStill() async throws -> Data {
         guard isRunning else { throw CameraError.notReady }
         guard pendingCapture == nil else { throw CameraError.captureInProgress }
+        if let last = lastCaptureCompletedAt,
+           Date().timeIntervalSince(last) < Self.captureDebounceInterval {
+            throw CameraError.captureTooSoon
+        }
 
         let rawData: Data = try await withCheckedThrowingContinuation { continuation in
             self.pendingCapture = continuation
@@ -148,6 +166,10 @@ public final class FoodCameraManager: NSObject {
             settings.flashMode = .off
             photoOutput.capturePhoto(with: settings, delegate: self)
         }
+
+        // Stamp completion time before the resize work so the debounce
+        // window starts at "photo captured" not "JPEG re-encoded".
+        lastCaptureCompletedAt = Date()
 
         // Resize + re-encode + EXIF strip.
         guard let image = UIImage(data: rawData) else {
@@ -231,6 +253,12 @@ extension FoodCameraManager: AVCapturePhotoCaptureDelegate {
 public enum CameraError: Error, Sendable {
     case notReady
     case captureInProgress
+    /// Caller invoked `captureStill()` within the post-completion
+    /// debounce window. Treated as a silent no-op at the UI layer —
+    /// no error banner, no scan attempt. Protects against UI loops
+    /// and back-to-back shutter taps the Button.disabled gate
+    /// can't catch.
+    case captureTooSoon
     case captureFailed(underlying: Error)
     case encodingFailed
 }
