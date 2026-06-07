@@ -146,6 +146,10 @@ public struct MixedPlateCard: View {
     /// Plate-total feeling-word hero. Same five-bucket scheme as
     /// SingleDishCard.feelingWord(forKcal:). Plate caption uses item
     /// count instead of a single meal name ("3 things on your plate").
+    /// v1.0.7 founder feedback round 7 — calorie HERO, feeling-word
+    /// demoted to a quiet supporting line. Mirrors SingleDishCard
+    /// pattern so single-plate vs mixed-plate scan results read
+    /// the same tool-first register.
     @ViewBuilder
     private func plateFeelingHero(totalKcal: Double) -> some View {
         let feeling = SingleDishCard.feelingWord(forKcal: totalKcal)
@@ -157,34 +161,34 @@ public struct MixedPlateCard: View {
         }()
 
         VStack(alignment: .leading, spacing: 6) {
-            (Text(feeling)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
-                .foregroundStyle(FoodTheme.textPrimary)
-             + Text(" ♥")
-                .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                .foregroundStyle(FoodTheme.accent))
+            HStack(alignment: .lastTextBaseline, spacing: 6) {
+                Text("\(Int(totalKcal.rounded()))")
+                    .font(.custom("Fraunces72pt-Light", size: 48))
+                    .monospacedDigit()
+                    .foregroundStyle(FoodTheme.textPrimary)
+                Text("cal")
+                    .font(.custom("DMSans-Regular", size: 16))
+                    .foregroundStyle(FoodTheme.textSecondary)
+            }
 
             Text(plateCaption)
                 .font(.custom("Fraunces72pt-Regular", size: 17))
                 .foregroundStyle(FoodTheme.textSecondary)
 
             HStack(spacing: 4) {
-                Text("around \(Int(totalKcal.rounded())) cal")
-                    .font(.system(size: 13))
+                Text(feeling)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                     .foregroundStyle(FoodTheme.textSecondary)
                 Text("·")
                     .font(.system(size: 13))
                     .foregroundStyle(FoodTheme.textSecondary.opacity(0.6))
-                (Text("fits")
+                Text("fits")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                     .foregroundStyle(FoodTheme.accent)
-                 + Text(" ♥")
-                    .font(.system(size: 13))
-                    .foregroundStyle(FoodTheme.accent))
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(feeling), \(plateCaption), around \(Int(totalKcal.rounded())) calories, fits")
+        .accessibilityLabel("\(Int(totalKcal.rounded())) calories. \(plateCaption). \(feeling), fits.")
     }
 
     @ViewBuilder

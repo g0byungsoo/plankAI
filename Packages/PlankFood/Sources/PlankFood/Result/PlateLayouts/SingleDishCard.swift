@@ -166,47 +166,64 @@ public struct SingleDishCard: View {
         }
     }
 
+    /// v1.0.7 founder feedback round 7 (2026-06-06):
+    /// > "after taking a photo to calculate calories, it's very
+    /// >  confusing because it doesn't say calories. Let's be very
+    /// >  simple and minimalistic about the information we're
+    /// >  giving within jenifit theme. ... right now, app needs to
+    /// >  serve women who want to lose weight as a tool."
+    ///
+    /// Tool-first reset: calorie number is now the HERO (Fraunces
+    /// Light 48pt). Feeling word + permission frame demoted to a
+    /// quiet supporting line. The cohort scanning food wants the
+    /// calorie answer in 2 seconds without writing anything (per
+    /// the behavioral research definition of "useful tool"). The
+    /// JeniFit theme survives in the meal name italic-Fraunces and
+    /// the soft cocoa register — but the answer to her actual
+    /// question (kcal) leads.
     @ViewBuilder
     private func feelingHero(item: CapturedItem, kcal: Double) -> some View {
         let feeling = Self.feelingWord(forKcal: kcal)
         let mealName = ItalicAccentText.parseAsterisks(item.name).base
 
         VStack(alignment: .leading, spacing: 6) {
-            // Hero feeling word — italic-Fraunces, big, with a soft
-            // heart terminal. Reads like a friend describing the
-            // plate, not a calorie counter.
-            (Text(feeling)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
-                .foregroundStyle(FoodTheme.textPrimary)
-             + Text(" ♥")
-                .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                .foregroundStyle(FoodTheme.accent))
+            // Calorie HERO — Fraunces Light 48pt, tabular, the
+            // single biggest type on the surface. "cal" unit
+            // baseline-aligned in 16pt cocoa-secondary, like the
+            // weight digit on Becoming.
+            HStack(alignment: .lastTextBaseline, spacing: 6) {
+                Text("\(Int(kcal.rounded()))")
+                    .font(.custom("Fraunces72pt-Light", size: 48))
+                    .monospacedDigit()
+                    .foregroundStyle(FoodTheme.textPrimary)
+                Text("cal")
+                    .font(.custom("DMSans-Regular", size: 16))
+                    .foregroundStyle(FoodTheme.textSecondary)
+            }
 
-            // Meal name — secondary line, plain Fraunces.
+            // Meal name — plain Fraunces 17pt cocoa-secondary.
             Text(mealName)
                 .font(.custom("Fraunces72pt-Regular", size: 17))
                 .foregroundStyle(FoodTheme.textSecondary)
 
-            // Cal + fits framing — uncertainty in language ("around"),
-            // permission in voice ("fits"). One small line carrying
-            // the number AND the permission frame.
+            // Quiet supporting line — feeling word + permission
+            // frame, italic-Fraunces on the feeling punch word so
+            // the JeniFit voice survives without competing with the
+            // hero numeral.
             HStack(spacing: 4) {
-                Text("around \(Int(kcal.rounded())) cal")
-                    .font(.system(size: 13))
+                Text(feeling)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                     .foregroundStyle(FoodTheme.textSecondary)
                 Text("·")
                     .font(.system(size: 13))
                     .foregroundStyle(FoodTheme.textSecondary.opacity(0.6))
-                (Text("fits")
+                Text("fits")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                     .foregroundStyle(FoodTheme.accent)
-                 + Text(" ♥")
-                    .font(.system(size: 13))
-                    .foregroundStyle(FoodTheme.accent))
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(feeling), \(mealName), around \(Int(kcal.rounded())) calories, fits")
+        .accessibilityLabel("\(Int(kcal.rounded())) calories. \(mealName). \(feeling), fits.")
     }
 
     // MARK: - Macros disclosure (v1.0.7 Phase A.4)
