@@ -1479,21 +1479,12 @@ struct AnalyticsView: View {
                 .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        // v1.0.7 round 9: butterflyRing sticker BACK per WL expert
-        // brief — "weight card is the single most emotionally loaded
-        // surface in the app and butterflyRing carries transformation
-        // semantics that none of the other 5 do." One-card exception
-        // to the §6 curation, hangs off the top-right corner.
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.butterflyRing.assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 56, height: 56)
-                .rotationEffect(.degrees(-8))
-                .offset(x: 6, y: -10)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
+        // v1.0.7 round 16: butterflyRing sticker REMOVED per founder
+        // feedback — sticker was overlapping the "+ log" action pill
+        // and making it visually hard to tap. The transformation
+        // semantics WL expert argued for can survive elsewhere
+        // (Sunday recap surface, milestone modals); the weight card
+        // stays clean.
         .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 2, y: 2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Weight trend: \(payload.direction) \(payload.delta) \(weightUnit.label). \(latestDisplay) today, \(startingDisplay) at start.")
