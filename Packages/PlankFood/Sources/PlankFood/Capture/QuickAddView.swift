@@ -24,6 +24,8 @@ public struct QuickAddView: View {
     public let onDismiss: () -> Void
 
     @State private var selectedTile: QuickAddTile?
+    @State private var searchText: String = ""
+    @FocusState private var searchFocused: Bool
 
     public init(
         onLogged: @escaping (CapturedFood) -> Void,
@@ -39,8 +41,17 @@ public struct QuickAddView: View {
         VStack(spacing: FoodTheme.Space.lg) {
             topBar
             header
-            tileGrid
-            Spacer(minLength: 0)
+            searchField
+            // v1.0.7 round 17: when search is non-empty, results
+            // replace the tile grid. Empty search keeps the
+            // existing 6-tile "what girls are having" grid.
+            if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                cohortGridEyebrow
+                tileGrid
+                Spacer(minLength: 0)
+            } else {
+                searchResults
+            }
             scanInsteadLink
         }
         .padding(FoodTheme.Space.screenPadding)
@@ -77,11 +88,147 @@ public struct QuickAddView: View {
 
     @ViewBuilder private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("what'd you have?")
+            (Text("what'd you ")
                 .font(.custom("Fraunces72pt-SemiBold", size: 24))
+             + Text("have")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 24))
+             + Text("? ♥")
+                .font(.custom("Fraunces72pt-SemiBold", size: 24)))
                 .foregroundStyle(FoodTheme.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// v1.0.7 round 17 search input — per Cal AI + WL expert
+    /// briefs the single highest-leverage fix for the food log
+    /// surface. Searches across CohortCatalog (50 hand-curated
+    /// cohort items) on every keystroke; results render inline
+    /// below replacing the tile grid.
+    @ViewBuilder private var searchField: some View {
+        HStack(spacing: FoodTheme.Space.sm) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(FoodTheme.textSecondary)
+            TextField("search anything you ate ♥", text: $searchText)
+                .focused($searchFocused)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled(true)
+                .submitLabel(.search)
+                .font(.system(size: 15))
+                .foregroundStyle(FoodTheme.textPrimary)
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("clear search")
+            }
+        }
+        .padding(.horizontal, FoodTheme.Space.md)
+        .padding(.vertical, 11)
+        .background(FoodTheme.bgElevated)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(FoodTheme.textPrimary.opacity(0.08), lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    /// "what girls are *having*" eyebrow above the existing 6-tile
+    /// grid — per the WL expert's voice-locked copy spec. Replaces
+    /// the implicit "you have to pick from these 6" framing.
+    @ViewBuilder private var cohortGridEyebrow: some View {
+        (Text("what girls are ")
+            .font(.custom("DMSans-Regular", size: 13))
+         + Text("having")
+            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13)))
+            .foregroundStyle(FoodTheme.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Search results list — renders when searchText is non-empty.
+    /// Tap any row to log it directly (no edit sheet — these are
+    /// already specific enough; size customization can come from
+    /// v1.0.7.1 edit-sheet wiring).
+    @ViewBuilder private var searchResults: some View {
+        let results = CohortCatalog.search(searchText)
+        if results.isEmpty {
+            VStack(alignment: .leading, spacing: FoodTheme.Space.md) {
+                Text("hmm, not finding that.")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                Text("wanna scan it?")
+                    .font(.custom("DMSans-Regular", size: 14))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                Button(action: onScanInstead) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "camera")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("snap it instead")
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundStyle(FoodTheme.bgPrimary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(Capsule().fill(FoodTheme.textPrimary))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, FoodTheme.Space.sm)
+        } else {
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(results) { item in
+                        searchResultRow(item)
+                        if item.id != results.last?.id {
+                            Rectangle()
+                                .fill(FoodTheme.textPrimary.opacity(0.08))
+                                .frame(height: 0.5)
+                                .padding(.horizontal, FoodTheme.Space.sm)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private func searchResultRow(_ item: CatalogItem) -> some View {
+        Button {
+            Task { await logCatalogItem(item) }
+        } label: {
+            HStack(spacing: FoodTheme.Space.md) {
+                Text(item.emoji)
+                    .font(.system(size: 24))
+                    .frame(width: 32)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.name)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(FoodTheme.textPrimary)
+                        .multilineTextAlignment(.leading)
+                    Text(item.kcalRangeDisplay)
+                        .font(.system(size: 12))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundStyle(FoodTheme.textPrimary)
+            }
+            .padding(.vertical, 10)
+            .padding(.horizontal, FoodTheme.Space.sm)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(item.name), \(item.kcalRangeDisplay)")
     }
 
     @ViewBuilder private var tileGrid: some View {
@@ -127,8 +274,12 @@ public struct QuickAddView: View {
     }
 
     @ViewBuilder private var scanInsteadLink: some View {
+        // v1.0.7 round 17: voice-locked copy per WL expert brief
+        // ("snap it instead" reads as cohort-native; "not here?
+        // scan instead" implied the grid was the answer, but
+        // search now is).
         Button(action: onScanInstead) {
-            Text("not here? scan instead →")
+            Text("snap it instead →")
                 .font(.system(size: 14))
                 .foregroundStyle(FoodTheme.textSecondary)
         }
@@ -136,6 +287,44 @@ public struct QuickAddView: View {
     }
 
     // MARK: - Actions
+
+    /// Log a CohortCatalog item directly. Builds a CapturedFood
+    /// with .quickAdd source + .single plateType + an inline
+    /// CapturedItem carrying the catalog item's name + kcal.
+    /// Bypasses the dispatcher's pantry resolution path since the
+    /// catalog item already has its kcal value.
+    private func logCatalogItem(_ item: CatalogItem) async {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        let capturedItem = CapturedItem(
+            id: item.id,
+            name: item.name,
+            portionGrams: 0,
+            portionGramsLow: 0,
+            portionGramsHigh: 0,
+            usdaSearchTerms: [],
+            preparation: nil,
+            cuisineHint: nil,
+            confidence: nil,
+            notes: nil,
+            kcal: Double(item.kcal),
+            proteinG: nil,
+            carbsG: nil,
+            fatG: nil,
+            fiberG: nil,
+            nutritionSource: nil
+        )
+        let food = CapturedFood(
+            items: [capturedItem],
+            plateType: .single,
+            source: .quickAdd,
+            confidence: nil,
+            needsSecondPhoto: false,
+            secondPhotoHint: nil,
+            kcalLow: Double(item.kcalLow),
+            kcalHigh: Double(item.kcalHigh)
+        )
+        onLogged(food)
+    }
 
     private func logQuickAdd(_ variant: QuickAddVariant) async {
         // Build a CapturedFood directly from the variant's known
