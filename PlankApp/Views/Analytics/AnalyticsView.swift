@@ -771,18 +771,301 @@ struct AnalyticsView: View {
             //
             // docs/becoming_calorie_integration_2026_06_06.md
 
-            becomingIdentityCaption
+            // v1.0.7 round 10 founder picks:
+            //   - daily-only calorie cards (today's balance)
+            //   - show spent transparently (BMR + steps + workout)
+            //   - kill BMI (program expert: NIH 2023 racial bias)
+            //   - identity attached to weight trend, not standalone
+            //
+            // Layout:
+            //   1. Streak strip (kept)
+            //   2. Today's balance (NEW signature — gained vs spent)
+            //   3. Spent breakdown (NEW — BMR + steps + workout)
+            //   4. WHO 150-min ring (kept)
+            //   5. Weight + trend with identity caption attached
+            //   6. More depth link
 
             becomingStreakStrip
+
+            becomingTodayBalanceCard
+
+            becomingSpentBreakdownCard
 
             becomingWHORing
 
             becomingTrendHeroCard
 
-            becomingBMICard
-
             moreDepthLink
         }
+    }
+
+    // MARK: - v1.0.7 round 10 calorie + identity cards
+
+    /// Today's balance — the signature calorie card. Horizontal bar
+    /// "gained" left + "spent" right + headline deficit number.
+    /// Per WL design expert spec (founder picked daily-only +
+    /// show-spent-transparently). pageIvory fill, not pink — "pink
+    /// fills on a deficit card would feel like the app is trying
+    /// to apologize for the math."
+    @ViewBuilder private var becomingTodayBalanceCard: some View {
+        let payload = todayBalancePayload
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("TODAY")
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .kerning(0.66)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer()
+                if payload.gained > 0, payload.deficit > 0 {
+                    Image(StickerName.heartGlossy.assetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
+                        .rotationEffect(.degrees(-8))
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
+
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
+                Text(payload.headlineSign)
+                    .font(.custom("Fraunces72pt-SemiBold", size: 36))
+                    .foregroundStyle(payload.headlineColor)
+                Text(payload.headlineNum)
+                    .font(.custom("Fraunces72pt-SemiBold", size: 36))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.cocoaPrimary)
+                (Text("kcal ")
+                    .font(.custom("DMSans-Regular", size: 13))
+                 + Text(payload.headlineWord)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13)))
+                    .foregroundStyle(Palette.cocoaSecondary)
+            }
+
+            balanceBar(gained: payload.gained, spent: payload.spent)
+                .frame(height: 14)
+                .padding(.vertical, 6)
+
+            HStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("gained")
+                        .font(.custom("DMSans-Regular", size: 11))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                    Text("\(Int(payload.gained))")
+                        .font(.custom("Fraunces72pt-SemiBold", size: 18))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.cocoaPrimary)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("spent")
+                        .font(.custom("DMSans-Regular", size: 11))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                    Text("\(Int(payload.spent))")
+                        .font(.custom("Fraunces72pt-SemiBold", size: 18))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.jeweledRose)
+                }
+            }
+            Text(payload.subline)
+                .font(.custom("DMSans-Regular", size: 12))
+                .foregroundStyle(Palette.cocoaSecondary)
+                .padding(.top, 2)
+        }
+        .padding(.horizontal, Space.md)
+        .padding(.vertical, Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Palette.pageIvory)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 2, y: 2)
+    }
+
+    /// Horizontal balance bar — left half cocoa (gained), right half
+    /// jeweledRose (spent). Widths scaled to the combined total.
+    private func balanceBar(gained: Double, spent: Double) -> some View {
+        GeometryReader { geo in
+            let total = max(gained + spent, 1)
+            let gainedW = max(4, CGFloat(gained / total) * geo.size.width)
+            HStack(spacing: 0) {
+                Capsule()
+                    .fill(Palette.cocoaSecondary)
+                    .frame(width: gainedW)
+                Capsule()
+                    .fill(Palette.jeweledRose)
+            }
+        }
+    }
+
+    /// Compute today's balance: gained (food kcal) - spent (BMR +
+    /// steps + workout). Positive deficit = under maintenance =
+    /// progress toward goal. Returns headline strings and the bar
+    /// proportions.
+    private var todayBalancePayload: (
+        gained: Double, spent: Double, deficit: Double,
+        headlineSign: String, headlineNum: String, headlineWord: String,
+        headlineColor: Color, subline: String
+    ) {
+        let gained = todayKcalGained
+        let spent = todaySpent
+        let deficit = spent - gained // positive = deficit
+        let absVal = Int(abs(deficit))
+        if gained == 0 && spent == 0 {
+            return (0, 0, 0, "", "—", "", Palette.cocoaSecondary,
+                    "log a meal to see today's balance")
+        }
+        if gained == 0 {
+            return (gained, spent, deficit, "", "\(Int(spent))", "moved today",
+                    Palette.jeweledRose,
+                    "log a meal to see today's deficit")
+        }
+        if deficit > 0 {
+            return (gained, spent, deficit, "−", "\(absVal)", "deficit",
+                    Palette.jeweledRose,
+                    "you're ahead of plan today ♥")
+        }
+        return (gained, spent, deficit, "+", "\(absVal)", "surplus",
+                Palette.cocoaSecondary,
+                "honest day — tomorrow resets")
+    }
+
+    /// Spent breakdown card — BMR + steps + workout, stacked
+    /// horizontal bar with 3 segments. Founder picked
+    /// "show transparently"; this card answers "where did the
+    /// spent number come from?" without ringing the "earn this
+    /// cookie" bell (no per-workout calorie callout).
+    @ViewBuilder private var becomingSpentBreakdownCard: some View {
+        let parts = spentBreakdown
+        VStack(alignment: .leading, spacing: 8) {
+            Text("MOVED TODAY")
+                .font(.custom("DMSans-Regular", size: 11))
+                .kerning(0.66)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+
+            HStack(alignment: .lastTextBaseline, spacing: 6) {
+                Text("\(Int(parts.total))")
+                    .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.cocoaPrimary)
+                Text("kcal spent")
+                    .font(.custom("DMSans-Regular", size: 13))
+                    .foregroundStyle(Palette.cocoaSecondary)
+            }
+
+            spentStackedBar(bmr: parts.bmr, steps: parts.steps, workout: parts.workout)
+                .frame(height: 12)
+                .padding(.vertical, 4)
+
+            HStack(spacing: 0) {
+                spentLegendDot(color: Palette.cocoaSecondary, label: "bmr", value: parts.bmr)
+                Spacer()
+                spentLegendDot(color: Palette.cocoaSecondary.opacity(0.6), label: "steps", value: parts.steps)
+                Spacer()
+                spentLegendDot(color: Palette.jeweledRose, label: "workout", value: parts.workout)
+            }
+        }
+        .padding(.horizontal, Space.md)
+        .padding(.vertical, Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Palette.pageIvory)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Palette.hairlineCocoa, lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    private func spentStackedBar(bmr: Double, steps: Double, workout: Double) -> some View {
+        GeometryReader { geo in
+            let total = max(bmr + steps + workout, 1)
+            let bmrW = max(4, CGFloat(bmr / total) * geo.size.width)
+            let stepsW = max(4, CGFloat(steps / total) * geo.size.width)
+            HStack(spacing: 1) {
+                Capsule().fill(Palette.cocoaSecondary).frame(width: bmrW)
+                Capsule().fill(Palette.cocoaSecondary.opacity(0.6)).frame(width: stepsW)
+                Capsule().fill(Palette.jeweledRose)
+            }
+        }
+    }
+
+    private func spentLegendDot(color: Color, label: String, value: Double) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text("\(label) ")
+                .font(.custom("DMSans-Regular", size: 11))
+                .foregroundStyle(Palette.cocoaSecondary)
+             + Text("\(Int(value))")
+                .font(.custom("DMSans-Medium", size: 11))
+                .monospacedDigit()
+                .foregroundStyle(Palette.cocoaPrimary)
+        }
+    }
+
+    /// Today's gained kcal from FoodLogPersister (in-memory store
+    /// until v1.0.8 SwiftData migration). Returns 0 when food rail
+    /// disabled or no logs.
+    private var todayKcalGained: Double {
+        guard FoodFlags.isEnabled else { return 0 }
+        let userId = auth.currentUser?.id.uuidString ?? ""
+        guard !userId.isEmpty else { return 0 }
+        return FoodLogPersister.todayAndWeekly(userId: userId).today
+    }
+
+    /// Today's spent kcal = BMR + steps × 0.04 + workout duration ×
+    /// 5 kcal/min. Mifflin-St Jeor BMR for female since the cohort
+    /// is exclusively women.
+    private var todaySpent: Double {
+        return bmrEstimate + stepsKcal + workoutKcalToday
+    }
+
+    private var spentBreakdown: (bmr: Double, steps: Double, workout: Double, total: Double) {
+        let bmr = bmrEstimate
+        let steps = stepsKcal
+        let workout = workoutKcalToday
+        return (bmr, steps, workout, bmr + steps + workout)
+    }
+
+    /// Mifflin-St Jeor BMR (female): 10w + 6.25h − 5a − 161
+    private var bmrEstimate: Double {
+        guard let h = currentUserRecord?.onboardingHeightCm, h > 50,
+              let w = latestWeightKg, w > 20 else { return 0 }
+        let age = ageFromRange()
+        return 10 * w + 6.25 * h - 5 * Double(age) - 161
+    }
+
+    private func ageFromRange() -> Int {
+        let range = currentUserRecord?.onboardingAgeRange ?? ""
+        switch range {
+        case "18-24": return 21
+        case "25-34": return 29
+        case "35-44": return 39
+        case "45-54": return 49
+        case "55+":   return 60
+        default:      return 30
+        }
+    }
+
+    /// Steps kcal estimate — ~0.04 kcal/step. Pulls today's count
+    /// from StepsService.shared.
+    private var stepsKcal: Double {
+        Double(StepsService.shared.todayCount) * 0.04
+    }
+
+    /// Workout kcal estimate — sum of today's session duration (min)
+    /// × 5 kcal/min (rough MET=5 × avg weight). Approximation; can
+    /// be replaced with HealthKit active energy in v1.0.8.
+    private var workoutKcalToday: Double {
+        let cal = Calendar.current
+        let todaySec = sessionLogs
+            .filter { cal.isDateInToday($0.completedAt) }
+            .compactMap { $0.totalDuration }
+            .reduce(0, +)
+        return (todaySec / 60.0) * 5.0
     }
 
     /// Identity as quiet caption — one line above the streak strip
@@ -859,6 +1142,14 @@ struct AnalyticsView: View {
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
+    }
+
+    /// Identity-on-trend caption — "*becoming powerful* takes
+    /// consistency, you're showing it." Q140 italic punch attached
+    /// to the weight delta data. Replaces the killed 40pt hero per
+    /// program expert verdict.
+    private var identityTrendCaption: String {
+        "becoming \(identityFeelingWord) takes consistency · you're showing it"
     }
 
     /// Q140 identity feeling word. Falls back to a behavior-derived
@@ -1143,6 +1434,19 @@ struct AnalyticsView: View {
                 .font(.custom("DMSans-Regular", size: 11))
                 .monospacedDigit()
                 .foregroundStyle(Palette.cocoaSecondary)
+
+            // v1.0.7 round 10 — identity caption attached to trend
+            // data per program expert: "Identity attached to evidence
+            // is adherence-driving." Pulls Q140 + Q111 inline.
+            ItalicAccentText(
+                identityTrendCaption,
+                italic: [identityFeelingWord],
+                baseFont: .custom("DMSans-Regular", size: 11),
+                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 11),
+                color: Palette.cocoaTertiary,
+                alignment: .leading
+            )
+            .padding(.top, 2)
 
             weightTrendSparkline
                 .frame(height: 44)
