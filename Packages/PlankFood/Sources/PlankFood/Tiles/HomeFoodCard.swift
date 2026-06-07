@@ -37,50 +37,69 @@ public struct HomeFoodCard: View {
 
     public var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: FoodTheme.Space.md) {
-                header
+            ZStack(alignment: .topTrailing) {
+                VStack(alignment: .leading, spacing: FoodTheme.Space.md) {
+                    header
 
-                if todayKcal == 0 {
-                    emptyState
-                } else {
-                    WeeklyAvgBar(
-                        todayKcal: todayKcal,
-                        dailyTarget: dailyTarget,
-                        weeklyAvgKcal: weeklyAvg
-                    )
+                    if todayKcal == 0 {
+                        emptyState
+                    } else {
+                        WeeklyAvgBar(
+                            todayKcal: todayKcal,
+                            dailyTarget: dailyTarget,
+                            weeklyAvgKcal: weeklyAvg
+                        )
 
-                    // D64 evening review surface — when the 8:30pm push
-                    // lands the user back on Home and she has logs today,
-                    // show a soft Jeni line that turns logging into
-                    // reflection (Carver & Scheier self-regulation,
-                    // Brief #5 §10). The push title is "today's plate ♥";
-                    // this is the in-app payoff.
-                    if isEveningReviewWindow {
-                        eveningReviewLine
+                        if isEveningReviewWindow {
+                            eveningReviewLine
+                        }
                     }
-                }
 
-                Spacer(minLength: 0)
+                    Spacer(minLength: 0)
 
-                // v1.0.7 §6 — when the editorial empty state is showing,
-                // its CTA line ("tap the camera to begin.") already
-                // covers the tap hint affordance. Two lines + sticker
-                // is the locked pattern; a third "tap to log →" line
-                // would push the card past the brief's "never more"
-                // rule. Show tapHint only on the loaded state.
-                if todayKcal > 0 {
-                    tapHint
+                    addCTAPill
                 }
+                .padding(FoodTheme.Space.lg)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // v1.0.7 founder feedback round 5 (2026-06-06) per
+                // Lasta WL designer brief: cherries 56pt sticker
+                // top-right -12° overlap. The cute anchor for the
+                // food card. sparkleGlossy 14pt bottom-left adds
+                // the second beat (Lasta's two-sticker rule for the
+                // visual signature card). Both via Bundle.main
+                // since PlankFood is a leaf package.
+                Image("sticker_cherries", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 56, height: 56)
+                    .rotationEffect(.degrees(-12))
+                    .opacity(0.95)
+                    .offset(x: 10, y: -12)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
             }
-            .padding(FoodTheme.Space.lg)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(FoodTheme.bgElevated)
-            .overlay(
-                RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous)
-                    .stroke(FoodTheme.textPrimary.opacity(0.08), lineWidth: 0.5)
+            .background(
+                // v1.0.7 Lasta treatment — solid accentSubtle
+                // (#F5D5D8) fill, 28pt radius. "Pink + outline reads
+                // weak" — solid pink fill carries the warmth so the
+                // cocoa pill below stays the sole CTA without
+                // chrome competition. The card becomes Home's
+                // visual signature.
+                Color(red: 245/255, green: 213/255, blue: 216/255)
             )
-            .clipShape(RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous))
-            .shadow(color: FoodTheme.textPrimary.opacity(0.05), radius: 3, x: 0, y: 2)
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .overlay(alignment: .bottomLeading) {
+                Image("sticker_sparkle_glossy", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 14, height: 14)
+                    .opacity(0.85)
+                    .padding(.leading, 14)
+                    .padding(.bottom, 12)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
@@ -88,6 +107,26 @@ public struct HomeFoodCard: View {
         .accessibilityHint("tap to log a meal")
         .onAppear { refresh() }
         .onReceive(FoodLogPersister.changeNotifier) { _ in refresh() }
+    }
+
+    /// Solid jeweledRose pink CTA pill — replaces the old quiet
+    /// tapHint per Lasta's verdict: "Pink + outline reads weak;
+    /// solid jeweledRose ('+ add ↗') is the right register on a
+    /// pink card." Italic-Fraunces punch on "add" (copy word).
+    @ViewBuilder private var addCTAPill: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "plus")
+                .font(.system(size: 11, weight: .bold))
+            Text("add")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 11, weight: .bold))
+        }
+        .foregroundStyle(Color.white)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(Color(red: 122/255, green: 46/255, blue: 63/255)) // jeweledRose #7A2E3F
+        .clipShape(Capsule())
     }
 
     // MARK: - Evening review
@@ -130,14 +169,19 @@ public struct HomeFoodCard: View {
 
     // MARK: - Subviews
 
+    /// v1.0.7 Lasta-treatment header — italic-Fraunces "*what you
+    /// ate*" eyebrow in jeweledRose. The emoji + Fraunces SemiBold
+    /// "today's plate" combo from v1.0.6 retired; the card's
+    /// 56pt cherries sticker now carries the food semantic cue,
+    /// so the eyebrow can compress to a single editorial line.
     @ViewBuilder private var header: some View {
-        HStack(spacing: 8) {
-            Text("🍓")
-                .font(.system(size: 22))
-                .accessibilityHidden(true)
-            Text("today's plate")
-                .font(.custom("Fraunces72pt-SemiBold", size: 18))
-                .foregroundStyle(FoodTheme.textPrimary)
+        HStack(spacing: 0) {
+            (Text("what you ")
+                .font(.custom("DMSans-Regular", size: 13))
+             + Text("ate")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13)))
+                .foregroundStyle(Color(red: 122/255, green: 46/255, blue: 63/255)) // jeweledRose
+                .textCase(.lowercase)
             Spacer(minLength: 0)
         }
     }
@@ -150,28 +194,20 @@ public struct HomeFoodCard: View {
     /// 28pt because the card is constrained chrome, not a full-
     /// screen mark. No hairline rule for the same reason — the
     /// card's own border already serves as the section break.
+    /// v1.0.7 Lasta-treatment empty state. Card's 56pt overlapping
+    /// cherries already carries the visual food cue; the empty
+    /// state copy alone — italic-Fraunces "*the table is set.*"
+    /// headline + DM Sans hint — handles the editorial moment.
+    /// No second sticker inside the content (the chrome stickers
+    /// already pull weight).
     @ViewBuilder private var emptyState: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("the table is set.")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
-                    .foregroundStyle(FoodTheme.textPrimary)
-                Text("tap the camera to begin.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(FoodTheme.textSecondary)
-            }
-            Spacer(minLength: 0)
-            // PlankFood declares resources in Package.swift so SwiftUI
-            // Image defaults to Bundle.module. The cherries sticker
-            // lives in the app's Assets.xcassets, so we explicitly
-            // pass Bundle.main to resolve against the host app
-            // bundle. Without this, the asset silently renders blank.
-            Image("sticker_cherries", bundle: .main)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 28, height: 28)
-                .opacity(0.85)
-                .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: 6) {
+            Text("the table is set.")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                .foregroundStyle(FoodTheme.textPrimary)
+            Text("tap to log your first plate.")
+                .font(.system(size: 13))
+                .foregroundStyle(FoodTheme.textSecondary)
         }
         .padding(.vertical, FoodTheme.Space.sm)
     }

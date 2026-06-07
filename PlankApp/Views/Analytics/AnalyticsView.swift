@@ -371,6 +371,13 @@ struct AnalyticsView: View {
     @State private var sectionOffset: [CGFloat] = [20, 20, 20, 20, 20, 20]
     @State private var hasAnimated = false
     @State private var showLogWeight = false
+
+    /// v1.0.7 Becoming compaction — "more depth ↗" sheet presents
+    /// barriers + plank curve + sessions log + activity calendar
+    /// (modules that previously lived below the snapshot fold).
+    /// Founder's "no scrolling" rule honored: snapshot one viewport,
+    /// detail one tap away.
+    @State private var showDepthSheet = false
     @State private var presentedFutureRail: FutureRail? = nil
     @State private var presentedMetric: BecomingMetric? = nil
     @State private var calendarScale: CGFloat = 0.95
@@ -451,33 +458,14 @@ struct AnalyticsView: View {
                             .offset(y: sectionOffset[1])
                     }
 
-                    // v1.0.7 founder cleanup 2026-06-06 — activityCalendar
-                    // removed: there's no streak logic in JeniFit (freeze-
-                    // day logic was retired with the EngagementDay refactor
-                    // in v1.0.6), so the month-grid calendar surfaced
-                    // visual structure without honest signal. Helper kept
-                    // compiled (`activityCalendar` and its sub-views) for
-                    // potential reuse on the weekly recap surface.
-                    //
-                    // Remaining below-fold modules (barriers / plank /
-                    // sessions) retyped to the snapshot register —
-                    // hairlines instead of scrapbook chrome, 3-tier
-                    // cocoa, Fraunces Light numerals.
-                    if !onboardingBarriers.isEmpty {
-                        barrierCard
-                            .opacity(sectionOpacity[3])
-                            .offset(y: sectionOffset[3])
-                    }
-
-                    if benchmarkCount > 0 {
-                        plankCard
-                            .opacity(sectionOpacity[4])
-                            .offset(y: sectionOffset[4])
-                    }
-
-                    recentSessions
-                        .opacity(sectionOpacity[5])
-                        .offset(y: sectionOffset[5])
+                    // v1.0.7 founder feedback round 5 (2026-06-06) —
+                    // below-fold modules (barrierCard / plankCard /
+                    // recentSessions) moved into the "more depth ↗"
+                    // sheet per all 3 WL designer briefs (Cal AI,
+                    // Noom-2024, Lasta). Becoming snapshot fits in
+                    // one viewport above; detail one tap away. The
+                    // module helpers stay compiled and are rendered
+                    // by `becomingDepthSheet` (the sheet view) below.
                 }
                 .padding(.horizontal, Space.screenPadding)
                 .padding(.bottom, 100)
@@ -501,6 +489,9 @@ struct AnalyticsView: View {
                 onCancel: { showLogWeight = false }
             )
             .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $showDepthSheet) {
+            becomingDepthSheet
         }
         .task { seedFirstWeightLogIfNeeded() }
         .sheet(item: $presentedFutureRail) { rail in
@@ -726,6 +717,17 @@ struct AnalyticsView: View {
             // stackChapterHeader helpers stay compiled for the
             // future dedicated weekly recap surface.
 
+            // v1.0.7 Becoming compaction (founder feedback round 5
+            // 2026-06-06: "i was expecting to have some compacted
+            // design with one snapshot ... i don't like scrolling").
+            // Per the 3 WL designer briefs (Cal AI / Noom-2024 /
+            // Lasta — docs/compact_redesign_wl_briefs_2026_06_06.md)
+            // the Becoming tab compresses to ~5 elements fitting one
+            // viewport. BecomingMovementTile + BecomingCoachLine +
+            // FoodWeekBentoTile + nsvTile all removed from this body.
+            // Their content survives in the "more depth ↗" sheet
+            // accessed at the bottom.
+
             BecomingDashboardHero(
                 latestWeightKg: latestWeightKg,
                 startingWeightKg: startingWeightKg,
@@ -752,36 +754,107 @@ struct AnalyticsView: View {
             }
             .padding(.top, 6)
 
-            // Composite movement tile — Chapter III collapsed into
-            // one row (steps + breath + sessions). Lowest-cost
-            // movement summary per founder pick.
-            BecomingMovementTile(
-                stepsToday: stepsTodayCount,
-                breathSessionsToday: BreathworkState.shared.breathedToday ? 1 : 0,
-                workoutSessionsThisWeek: thisWeekSessions.count
-            )
+            // Identity close — Lasta's Q140/Q111 pattern. One
+            // sentence pulled from her onboarding answers, no card
+            // chrome. The emotional close of Becoming.
+            becomingIdentityLine
 
-            // Coach voice line — one sentence, italic punch verb,
-            // no card chrome. Replaces Chapter I coachTile + the
-            // hero subhero killed earlier.
-            BecomingCoachLine(line: insightLine, italicWords: coachItalicWords)
+            // "more depth ↗" link to the secondary detail sheet
+            // (barriers, plank curve, sessions log, activity calendar).
+            // One-viewport snapshot above; depth one tap away.
+            moreDepthLink
+        }
+    }
 
-            // Food snapshot (below-the-fold, but quiet) — kept as
-            // one bento tile since food rail is enabled. No chapter
-            // cover above it. Surfaces only when she has logged.
-            if foodLogsThisWeek {
-                FoodWeekBentoTile(
-                    userId: AuthService.shared.currentUser?.id.uuidString ?? ""
-                ) {
-                    presentedMetric = .plate
+    private var becomingIdentityLine: some View {
+        let (line, italic) = identityLineContent
+        return ItalicAccentText(
+            line,
+            italic: italic,
+            baseFont: .custom("DMSans-Regular", size: 14),
+            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 14),
+            color: Palette.cocoaSecondary,
+            alignment: .leading
+        )
+        .padding(.vertical, Space.md)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+        }
+    }
+
+    private var identityLineContent: (line: String, italic: [String]) {
+        let lead = userName.isEmpty ? "she" : userName.lowercased()
+        let weeklyShowUp = thisWeekSessions.count
+        if weeklyShowUp >= 3 {
+            return ("\(lead) is the one who shows up — \(weeklyShowUp) days this week ♥", ["shows up"])
+        }
+        if streak.count >= 1 {
+            return ("\(lead) keeps coming back. that's the whole work ♥", ["coming back"])
+        }
+        if let id = currentUserRecord?.onboardingIdentityFeeling, !id.isEmpty {
+            return ("becoming \(id) ♥", [id])
+        }
+        return ("showing up. one move at a time ♥", ["showing up"])
+    }
+
+    /// "more depth ↗" sheet view. Holds the modules that previously
+    /// lived below the Becoming snapshot fold. Founder picked the
+    /// sheet path over deletion so the data survives — barriers,
+    /// plank mastery, sessions log, and the legacy activity
+    /// calendar are all one tap away when the user wants depth.
+    @ViewBuilder private var becomingDepthSheet: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 28) {
+                    if !onboardingBarriers.isEmpty {
+                        barrierCard
+                    }
+                    if benchmarkCount > 0 {
+                        plankCard
+                    }
+                    if foodLogsThisWeek {
+                        FoodWeekBentoTile(
+                            userId: AuthService.shared.currentUser?.id.uuidString ?? ""
+                        ) {
+                            presentedMetric = .plate
+                        }
+                    }
+                    nsvTile
+                    recentSessions
                 }
-                .padding(.top, 4)
+                .padding(.horizontal, Space.screenPadding)
+                .padding(.vertical, Space.md)
             }
+            .background(Palette.bgPrimary.ignoresSafeArea())
+            .navigationTitle("more depth")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("done") { showDepthSheet = false }
+                        .font(.custom("DMSans-Medium", size: 15))
+                        .foregroundStyle(Palette.cocoaPrimary)
+                }
+            }
+        }
+    }
 
-            // NSV wins — closing identity-work card (the heart of
-            // what Chapter V carried). Kept as quiet single tile
-            // below the food snapshot, no chapter cover.
-            nsvTile.padding(.top, 4)
+    @ViewBuilder private var moreDepthLink: some View {
+        Button {
+            showDepthSheet = true
+        } label: {
+            HStack(spacing: 4) {
+                Text("more depth")
+                    .font(.custom("DMSans-Regular", size: 13))
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundStyle(Palette.cocoaTertiary)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, Space.md)
+        }
+        .buttonStyle(.plain)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
         }
     }
 

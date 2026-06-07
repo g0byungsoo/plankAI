@@ -729,24 +729,21 @@ struct HomeView: View {
                         .padding(.horizontal, Space.screenPadding)
                         .opacity(msgOpacity[2]).offset(y: msgOffset[2])
 
-                        // Momentum — one soft, flat signal (no flame, no
-                        // streak: direction §5.3). Enrolled users see the
-                        // "day N of 14" method arc; everyone else sees this
-                        // week's showing-up rhythm. Nurturing "shown up N
-                        // times" tenure only; the single home for the count.
-                        WeekProgressStrip(
-                            mode: jeniMethodEnrolled
-                                ? .method(currentDay: currentDay)
-                                : .weekly(sessionsThisWeek: weeklyCount),
-                            // Derived count, not dayProgress.count — the
-                            // latter is row-count which inflated under the
-                            // prior buggy writer. EngagementDayCalculator
-                            // dedups by calendar day so "shown up Nx"
-                            // reads honestly for existing users.
-                            sessionsShownUp: EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs)
-                        )
-                        .padding(.horizontal, Space.screenPadding)
-                        .opacity(msgOpacity[3]).offset(y: msgOffset[3])
+                        // v1.0.7 founder feedback round 5 (2026-06-06):
+                        // WeekProgressStrip removed from Home per all 3
+                        // WL designer briefs (Cal AI / Noom-2024 /
+                        // Lasta). The 14-dot strip conflated lesson day
+                        // count with session "shown up" cumulative
+                        // count — founder couldn't parse what 4-of-14
+                        // meant. Noom-2024 specifically flagged dot-
+                        // fill UIs as "diet-culture progress theater"
+                        // that triggers loss-aversion in the GLP-1-
+                        // adjacent cohort. The lesson day count
+                        // survives inside JeniMethodJourneyCard
+                        // ("day N of 14" header is rendered there).
+                        // The "shown up N days" signal moves to the
+                        // Becoming identity line. WeekProgressStrip
+                        // helper kept compiled for potential reuse.
 
                         // Movement anchor — HealthKit-backed steps pulse,
                         // positioned RIGHT BELOW the action cluster (hero +
@@ -1824,9 +1821,19 @@ struct HomeView: View {
 
                 Spacer().frame(height: Space.xs)
 
-                // Exercise list preview — first 3, with expand-to-all.
+                // v1.0.7 founder feedback round 5 (2026-06-06) per
+                // all 3 WL designer briefs: exercise list "+N more"
+                // expand + "feeling it differently?" energy adjust
+                // were unlabeled and confused users on Home. Both
+                // removed. The user taps start → PreRoutineView
+                // surfaces full exercise detail + difficulty
+                // adjustment. "Home is where you commit, not where
+                // you edit" (Cal AI + Noom + Lasta convergence).
+                // Exercise list still previews first 3 so the card
+                // conveys what's in the session without the
+                // unlabeled chevron disclosure.
                 VStack(spacing: Space.xs) {
-                    ForEach(Array(workout.exercises.prefix(visibleCount).enumerated()), id: \.offset) { i, slot in
+                    ForEach(Array(workout.exercises.prefix(3).enumerated()), id: \.offset) { i, slot in
                         if let ex = slot.exercise {
                             HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
                                 Text("\(i + 1).")
@@ -1840,45 +1847,7 @@ struct HomeView: View {
                             }
                         }
                     }
-
-                    if hasMore {
-                        Button {
-                            Haptics.light()
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
-                                showAllExercises.toggle()
-                            }
-                        } label: {
-                            HStack(spacing: 4) {
-                                Text(showAllExercises ? "show less" : "+\(workout.exercises.count - 3) more")
-                                    .font(.system(size: 13, weight: .semibold))
-                                Image(systemName: showAllExercises ? "chevron.up" : "chevron.down")
-                                    .font(.system(size: 11, weight: .semibold))
-                            }
-                            .foregroundStyle(Palette.accent)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, Space.xs)
-                        }
-                    }
                 }
-
-                // Quiet difficulty override — Jeni offering flexibility, not
-                // a control panel (Freeletics "adapt session" pattern). Opens
-                // the energy sheet; the post-session loop is the primary tuner.
-                Button {
-                    Haptics.light()
-                    showEnergySheet = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Text("feeling it differently today?")
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 11, weight: .semibold))
-                    }
-                    .foregroundStyle(Palette.accent)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, Space.sm)
-                }
-                .buttonStyle(.plain)
 
                 Spacer().frame(height: 20)   // loose gap: CTA is a separate unit
 
