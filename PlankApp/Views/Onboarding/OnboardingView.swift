@@ -7602,10 +7602,13 @@ struct OnboardingView: View {
             // can't actually fire SKStoreReviewController. Existing
             // v1.0.6 users with the legacy onboardingReviewPromptShown
             // flag set fall through this gate too.
-            // 2026-06-06: routed to 23 (next case post-D82). The loader
-            // sentiment overlay also fires SKStoreReviewController on
-            // "love" tap, so users who interacted there land on this
-            // ineligibility gate and skip straight to final.
+            // 2026-06-07: post-plan-reveal is now the SOLE rating ask in
+            // the onboarding flow. The earlier loader-sentiment overlay
+            // (BuildingPlanLoadingView, ~75% loader) was dropped because
+            // it double-fired SKStoreReviewController against this gate
+            // — neither side called RatingPromptService.markShown so
+            // both passed eligibility and a "love"-tapping user got
+            // two rating asks ~60s apart.
             if !RatingPromptService.shared.isEligible(for: .postPlanReveal) {
                 go(23)
             }

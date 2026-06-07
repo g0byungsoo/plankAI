@@ -1,6 +1,5 @@
 import SwiftUI
 import AppTrackingTransparency
-import StoreKit
 
 // MARK: - BuildingPlanLoadingView
 //
@@ -53,13 +52,16 @@ struct BuildingPlanLoadingView: View {
     /// Single-shot via attPromptFired flag.
     @State private var attPromptFired = false
 
-    /// Delta v8 loader-expert recommendation #1 — sentiment capture
-    /// at ~75%. 3-option overlay. "love ♥" → SKStoreReviewController.
-    /// +3-5× App Store review volume (Adapty 2026). Loader pauses
-    /// while overlay is up.
-    @State private var showSentimentCapture = false
-    @State private var sentimentResumeContinuation: CheckedContinuation<Void, Never>?
-    @AppStorage("onboardingLoaderSentiment") private var loaderSentiment: String = ""
+    // Delta v8 loader-expert #1 (sentiment capture at ~75% + "love" →
+    // SKStoreReviewController) RETIRED 2026-06-07. It was double-firing
+    // SKStoreReviewController against the post-plan-reveal review
+    // prompt (case 215) — neither side called RatingPromptService.markShown,
+    // so both passed eligibility and the user got two rating asks in
+    // ~60 seconds. Post-plan-reveal is the research-grade slot
+    // (post-wow-moment); loader-position was the weaker trigger
+    // (during a loading animation, before the user has seen anything
+    // tailored to them) and was burning the Apple 3/365 quota on the
+    // wrong moment. Founder verdict: drop entirely.
     // 2026-06-01: % counter + progress bar pulled from the dropped v1
     // loadingCarouselScreen (case 180). Animates 0 → 100 over the same
     // 25-35s window that the sub-labels rotate through, so the user
@@ -248,11 +250,6 @@ struct BuildingPlanLoadingView: View {
             }
         }
         .task { await runChoreography() }
-        .overlay {
-            if showSentimentCapture {
-                sentimentOverlay
-            }
-        }
     }
 
     // MARK: - ATT prompt (Delta v8 loader-expert #3)
@@ -271,100 +268,6 @@ struct BuildingPlanLoadingView: View {
         try? await Task.sleep(nanoseconds: 300_000_000)
         if Task.isCancelled { return }
         _ = await ATTrackingManager.requestTrackingAuthorization()
-    }
-
-    // MARK: - Sentiment capture (Delta v8 loader-expert #1)
-
-    /// Pauses the loader, shows the sentiment overlay, awaits the user's
-    /// tap. On "love" the SKStoreReviewController dialog fires before
-    /// resume. Other taps capture + continue. Continuation pattern lets
-    /// us bridge the SwiftUI tap into the async loop.
-    private func pauseForSentimentCapture() async {
-        withAnimation(.easeOut(duration: 0.3)) {
-            showSentimentCapture = true
-        }
-        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-            sentimentResumeContinuation = cont
-        }
-    }
-
-    private func handleSentimentTap(_ choice: String) {
-        loaderSentiment = choice
-        if choice == "love", let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-            // Apple's review controller handles its own throttling +
-            // cap (3 prompts per 365 days). No-op safe to call.
-            SKStoreReviewController.requestReview(in: windowScene)
-        }
-        withAnimation(.easeIn(duration: 0.25)) {
-            showSentimentCapture = false
-        }
-        // Give the dismiss animation a beat before resuming the loader.
-        Task {
-            try? await Task.sleep(nanoseconds: 250_000_000)
-            sentimentResumeContinuation?.resume()
-            sentimentResumeContinuation = nil
-        }
-    }
-
-    @ViewBuilder private var sentimentOverlay: some View {
-        ZStack {
-            Palette.bgPrimary.opacity(0.92).ignoresSafeArea()
-            VStack(spacing: Space.lg) {
-                Spacer()
-                ItalicAccentText(
-                    "how does this feel so *far*?",
-                    italic: ["far"],
-                    baseFont: .custom("Fraunces72pt-SemiBold", size: 24),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 24),
-                    color: Palette.textPrimary,
-                    alignment: .center
-                )
-                .padding(.horizontal, Space.lg)
-
-                Text("honest — there's no wrong answer.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Palette.textSecondary)
-
-                VStack(spacing: 10) {
-                    sentimentButton("like",     icon: "checkmark.circle")
-                    sentimentButton("love ♥",   icon: "heart.fill", value: "love")
-                    sentimentButton("not yet",  icon: "circle")
-                }
-                .padding(.horizontal, Space.lg)
-
-                Spacer()
-            }
-        }
-        .transition(.opacity)
-    }
-
-    @ViewBuilder
-    private func sentimentButton(_ label: String, icon: String, value: String? = nil) -> some View {
-        Button {
-            Haptics.light()
-            handleSentimentTap(value ?? label)
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Palette.textPrimary)
-                    .frame(width: 24)
-                Text(label)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Palette.textPrimary)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 58)
-            .background(Palette.bgElevated)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(Palette.textPrimary.opacity(0.08), lineWidth: 0.5)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Milestone checklist (Delta v8 D75)
@@ -672,12 +575,6 @@ struct BuildingPlanLoadingView: View {
             if !attPromptFired, progress >= 0.30 {
                 attPromptFired = true
                 await requestATTIfNeeded()
-            }
-
-            // Delta v8 loader-expert #1 — sentiment capture at ~75%.
-            // Loader pauses, overlay shows. Resumes after tap.
-            if !showSentimentCapture, loaderSentiment.isEmpty, progress >= 0.75 {
-                await pauseForSentimentCapture()
             }
 
             // Rotate sub-label when we cross a label boundary.
