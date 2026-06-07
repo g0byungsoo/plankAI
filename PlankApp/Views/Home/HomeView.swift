@@ -719,11 +719,21 @@ struct HomeView: View {
                         // Steps demotes to a lateral pill below. Per v5
                         // §Home redesign: trend caption, never daily
                         // over/under language.
-                        if FoodFlags.isEnabled {
-                            todayHealthStrip
-                                .padding(.horizontal, Space.screenPadding)
-                                .opacity(msgOpacity[4]).offset(y: msgOffset[4])
-                        } else {
+                        // v1.0.7 founder feedback round 11 (2026-06-06):
+                        // > "i think this starting/moving card is
+                        // >  mispositioned. doesn't add any value in
+                        // >  home screen."
+                        // TodayPathStrip removed from Home for the
+                        // food-rail cohort. The food row was
+                        // duplicating the HomeFoodCard hero above;
+                        // steps + breath each have their own surfaces
+                        // (breath card below, steps on Becoming's
+                        // this-week activity card). todayHealthStrip
+                        // helper kept compiled for potential reuse on
+                        // a future "today" tab if ever needed.
+                        // Flag-off users keep StepsPulseTile since
+                        // they don't have the food card hero.
+                        if !FoodFlags.isEnabled {
                             StepsPulseTile(service: StepsService.shared)
                                 .padding(.horizontal, Space.screenPadding)
                                 .opacity(msgOpacity[4]).offset(y: msgOffset[4])
@@ -1776,8 +1786,15 @@ struct HomeView: View {
                 // Exercise list still previews first 3 so the card
                 // conveys what's in the session without the
                 // unlabeled chevron disclosure.
+                // v1.0.7 founder feedback round 11 (2026-06-06):
+                // exercise list expand restored — founder confirmed
+                // "+N more" is still needed on Home (overriding round
+                // 5's WL-designer-trio verdict). Label clarified to
+                // "+N more · show all" so the affordance is explicit
+                // (the unlabeled-chevron confusion round 5 flagged
+                // was the LABEL not the existence).
                 VStack(spacing: Space.xs) {
-                    ForEach(Array(workout.exercises.prefix(3).enumerated()), id: \.offset) { i, slot in
+                    ForEach(Array(workout.exercises.prefix(visibleCount).enumerated()), id: \.offset) { i, slot in
                         if let ex = slot.exercise {
                             HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
                                 Text("\(i + 1).")
@@ -1790,6 +1807,27 @@ struct HomeView: View {
                                 Spacer()
                             }
                         }
+                    }
+                    if hasMore {
+                        Button {
+                            Haptics.light()
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                                showAllExercises.toggle()
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(showAllExercises
+                                     ? "show less"
+                                     : "+\(workout.exercises.count - 3) more · show all")
+                                    .font(.custom("DMSans-Medium", size: 13))
+                                Image(systemName: showAllExercises ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundStyle(Palette.accent)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, Space.xs)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
 

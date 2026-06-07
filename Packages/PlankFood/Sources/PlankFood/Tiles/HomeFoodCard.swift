@@ -112,6 +112,36 @@ public struct HomeFoodCard: View {
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
+            // v1.0.7 round 11 — Grok Imagine illustration slot per
+            // the WL illustration designer brief. Phone-over-plate
+            // 3D glossy sticker, 128×112pt, anchored bottom-right
+            // with overhang (+14 x, +18 y) and -8° rotation to
+            // echo the cherries top-right (-12°). Z-order: below
+            // the "+ add ↗" pill (the pill sits bottom-left), same
+            // plane as cherries.
+            //
+            // Asset slot: drop a Grok-generated image at
+            // Assets.xcassets/illustration_food_phone_plate.imageset/
+            // Until the asset exists, UIImage(named:) check on the
+            // host bundle returns nil and the overlay no-ops —
+            // safe to ship the slot ahead of the image.
+            //
+            // 60% opacity on filled state (todayKcal > 0), full
+            // opacity on empty state — illustration is the card's
+            // brand signature on empty, fades to backdrop on data.
+            .overlay(alignment: .bottomTrailing) {
+                if UIImage(named: "illustration_food_phone_plate") != nil {
+                    Image("illustration_food_phone_plate", bundle: .main)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 128, height: 112)
+                        .rotationEffect(.degrees(-8))
+                        .opacity(todayKcal > 0 ? 0.6 : 1.0)
+                        .offset(x: 14, y: 18)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
             // Hard offset shadow — Lasta's "scrapbook chrome on the
             // visual signature card" — adds dimensionality + makes
             // the card feel like a sticker the user could peel off.
