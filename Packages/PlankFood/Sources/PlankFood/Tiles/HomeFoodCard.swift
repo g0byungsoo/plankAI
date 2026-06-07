@@ -112,34 +112,37 @@ public struct HomeFoodCard: View {
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
-            // v1.0.7 round 13 (founder: "plate needs to be much
-            // bigger, get rid of the phone"). Regenerated via Grok
-            // Imagine as a phone-less bowl-only composition (large
-            // ruffled ivory ceramic bowl + acai + berries + granola
-            // + coconut flakes). Bumped from 128×112pt to 200×180pt
-            // and tightened overhang so it reads as the visual
-            // signature of the card. Reduced rotation -8° → -4°
-            // since the bowl is now the hero (not a decorative
-            // accent).
-            //
-            // 60% opacity on filled state preserved so logged data
-            // breathes; full opacity on empty state lets the bowl
-            // carry the "what you ate" semantic.
             // v1.0.7 round 14: realistic wholefoods photo (TikTok
-            // creator-plate aesthetic) per founder's image-71
-            // reference. Top-down shot of avocado toast + tomato-
-            // feta yogurt toast + banana + cherry tomatoes +
-            // blueberries + soft-boiled egg on a white plate
-            // with marble background removed. No rotation since
-            // it's a photo, not a sticker.
+            // creator-plate aesthetic). Top-down shot of avocado
+            // toast + tomato-feta yogurt toast + banana + cherry
+            // tomatoes + blueberries + soft-boiled egg.
+            //
+            // v1.0.7 round 15 (founder 2026-06-07): the 220×200
+            // illustration was overlapping the WeeklyAvgBar caption
+            // ("averaging 40 — your body needs more") in the filled
+            // state, making the text unreadable. Now state-aware:
+            //   - Empty state: 220×200, full opacity. The plate IS
+            //     the "what you ate" semantic cue when there's no
+            //     data to compete with.
+            //   - Filled state: 110×100, 0.35 opacity, tucked tight
+            //     into the corner. The bar + caption + count carry
+            //     meaning; the illustration becomes a small accent
+            //     anchor that doesn't fight for legibility.
             .overlay(alignment: .bottomTrailing) {
                 if UIImage(named: "illustration_food_phone_plate") != nil {
+                    let isFilled = todayKcal > 0
                     Image("illustration_food_phone_plate", bundle: .main)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 220, height: 200)
-                        .opacity(todayKcal > 0 ? 0.55 : 1.0)
-                        .offset(x: 20, y: 28)
+                        .frame(
+                            width: isFilled ? 110 : 220,
+                            height: isFilled ? 100 : 200
+                        )
+                        .opacity(isFilled ? 0.35 : 1.0)
+                        .offset(
+                            x: isFilled ? 8 : 20,
+                            y: isFilled ? 12 : 28
+                        )
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 }
