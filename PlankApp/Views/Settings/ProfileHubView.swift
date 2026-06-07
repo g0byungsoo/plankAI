@@ -24,6 +24,8 @@ struct ProfileHubView: View {
     @AppStorage("jenimethod.last_lesson_completed_id") private var jeniMethodLastCompletedId = 0
     @AppStorage("jenimethod.feature_enabled") private var jeniMethodFlagEnabled = true
 
+    @State private var stepsService = StepsService.shared
+
     @State private var auth = AuthService.shared
     @State private var route: HubRoute?
     @State private var revealed = false
@@ -135,6 +137,7 @@ struct ProfileHubView: View {
                         hubRow("food", "calories · cuisine · privacy", .cherries, .foodSettings, 3)
                     }
                     hubRow("reminders", "when jeni checks in", .sparkleGlossy, .reminders, 4)
+                    appleHealthRowIfNeeded(index: 4)
                     hubRow("account", "sign-in & subscription", .heartLock, .account, 5)
                     hubRow("feedback", "tell us anything ♥", .starLineart, .feedback, 6)
                     if jeniMethodFlagEnabled && jeniMethodLastCompletedId >= 14 {
@@ -252,6 +255,68 @@ struct ProfileHubView: View {
         }
         .buttonStyle(.plain)
         .reveal(index, revealed)
+    }
+
+    /// v1.0.7 — recovery surface for users who declined Apple Health
+    /// during onboarding and have no other path to enable it. Hidden
+    /// when authorized (the home pulse tile already shows live data)
+    /// and when unavailable (no recovery possible). The two recoverable
+    /// states get distinct tap behavior:
+    ///   - .notDetermined → calls `requestAccess()` which fires the
+    ///     iOS sheet (first time only — Apple disallows re-prompting).
+    ///   - .denied → opens Apple Health → Sources, the only path
+    ///     Apple gives us back after the initial decline.
+    @ViewBuilder
+    private func appleHealthRowIfNeeded(index: Int) -> some View {
+        switch stepsService.authStatus {
+        case .notDetermined:
+            appleHealthRow(
+                subtitle: "tap to connect steps",
+                action: {
+                    Task { await stepsService.requestAccess() }
+                },
+                index: index + 1
+            )
+        case .denied:
+            appleHealthRow(
+                subtitle: "tap to reconnect in apple health",
+                action: {
+                    if let url = StepsService.openAppleHealthURL,
+                       UIApplication.shared.canOpenURL(url) {
+                        UIApplication.shared.open(url)
+                    }
+                },
+                index: index + 1
+            )
+        case .authorized, .unavailable:
+            EmptyView()
+        }
+    }
+
+    private func appleHealthRow(subtitle: String, action: @escaping () -> Void, index: Int) -> some View {
+        Button {
+            Haptics.light()
+            action()
+        } label: {
+            HStack(spacing: Space.md) {
+                ZStack {
+                    Circle().fill(Palette.accentSubtle.opacity(0.45)).frame(width: 40, height: 40)
+                    Image(StickerName.shoeIridescent.assetName)
+                        .resizable().scaledToFit().frame(width: 26, height: 26)
+                        .opacity(StickerName.shoeIridescent.style.opacity)
+                }
+                .accessibilityHidden(true)
+                rowText(title: "apple health", subtitle: subtitle)
+                Spacer(minLength: 0)
+                chevron
+            }
+            .padding(Space.md)
+            .frame(maxWidth: .infinity)
+            .background(scrapbookChrome())
+        }
+        .buttonStyle(.plain)
+        .reveal(index, revealed)
+        .accessibilityLabel("Apple Health. \(subtitle).")
     }
 
     private func hubRow(_ title: String, _ subtitle: String, _ sticker: StickerName, _ dest: HubRoute, _ index: Int) -> some View {

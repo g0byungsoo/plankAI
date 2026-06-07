@@ -119,6 +119,20 @@ final class StepsService {
     /// the iOS HealthKit share-data sheet for step count. After the user
     /// decides, we run one refresh — and infer .denied if we still read
     /// nothing (HealthKit won't tell us read denials directly).
+    ///
+    /// v1.0.7 (2026-06-07): the previous behavior promoted to .authorized
+    /// in both branches of the post-ask probe — even when the user denied
+    /// in the iOS sheet. That broke the recovery path: the home tile
+    /// stopped showing a "connect" affordance, the bento tile said
+    /// "connect on home," but home no longer had a CTA. Founder bug
+    /// report: "looks like in UI, when you didn't connect apple health
+    /// for steps in onboarding, there is no way i can add it back."
+    ///
+    /// Fix: when post-ask probe returns zero data, flip to .denied so
+    /// the UI can surface the "open apple health" deep-link recovery
+    /// path. The fresh-phone-zero-steps edge case still recovers
+    /// automatically: the observer query picks up the first walk that
+    /// arrives and promotes back to .authorized via refresh().
     func requestAccess() async {
         guard HKHealthStore.isHealthDataAvailable() else {
             authStatus = .unavailable
@@ -140,29 +154,38 @@ final class StepsService {
 
         // Post-ask probe.
         await refresh()
-        // If we got data, we're authorized. If we got zero AND the user
-        // has been using their phone (so some steps almost certainly
-        // exist), infer deny — but we can't be sure. Stay conservative:
-        // flip to authorized when there's any signal at all; stay
-        // .notDetermined when zero, so the CTA keeps inviting (vs. a
-        // dead-end "denied" state for a user who genuinely just hasn't
-        // walked yet today).
         if todayCount > 0 || weekTotal > 0 {
             authStatus = .authorized
             startObserving()
         } else {
-            // First-day install on a fresh-out-of-the-box phone with
-            // zero historical samples is rare but real — leave the
-            // door open. The next refresh will move us out of this
-            // state once data arrives.
-            authStatus = .authorized
+            // Zero data after the ask — best inference is the user
+            // denied in the iOS sheet. The fresh-phone case (user
+            // genuinely hasn't walked yet today AND has no prior week
+            // of samples) still self-recovers: the observer query
+            // we start below catches the first sample that lands and
+            // promotes the status back via refresh().
+            authStatus = .denied
             startObserving()
         }
 
         Analytics.track(.stepsConnected, properties: [
             "today_count": todayCount,
-            "week_total": weekTotal
+            "week_total": weekTotal,
+            "auth_status_after": authStatus == .authorized ? "authorized" : "denied"
         ])
+    }
+
+    /// URL scheme that opens the Apple Health app to its Sources tab,
+    /// from which the user can navigate to JeniFit → Steps and toggle
+    /// access. There is no public URL that deep-links directly to the
+    /// per-app data-access page; `x-apple-health://` is the closest
+    /// affordance Apple exposes.
+    ///
+    /// Returns nil on Simulator (Apple Health isn't installed there)
+    /// or older OS versions that don't honor the scheme. Callers
+    /// should fall back to an explanatory line when nil.
+    static var openAppleHealthURL: URL? {
+        URL(string: "x-apple-health://")
     }
 
     // MARK: - Refresh

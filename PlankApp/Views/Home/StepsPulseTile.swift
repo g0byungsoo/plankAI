@@ -41,7 +41,10 @@ struct StepsPulseTile: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityAddTraits(service.authStatus == .notDetermined ? [.isButton] : [])
+        .accessibilityAddTraits(
+            (service.authStatus == .notDetermined || service.authStatus == .denied)
+                ? [.isButton] : []
+        )
         .task {
             await service.bootstrap()
             await service.refresh()
@@ -67,7 +70,15 @@ struct StepsPulseTile: View {
             authorizedRow
         case .notDetermined:
             connectRow
-        case .denied, .unavailable:
+        case .denied:
+            // v1.0.7 — distinct from .unavailable. Apple's HealthKit
+            // won't let us re-prompt the sheet after the user has
+            // been asked once, so we surface a deep-link affordance
+            // ("tap to open apple health") that takes them to the
+            // Sources tab. .unavailable stays passive (no recovery
+            // possible).
+            reconnectRow
+        case .unavailable:
             fallbackRow
         }
     }
@@ -120,6 +131,33 @@ struct StepsPulseTile: View {
         }
     }
 
+    /// v1.0.7 — recovery row for the .denied state. Looks the same as
+    /// .notDetermined (the cohort can't be expected to remember the
+    /// fine distinction between "I tapped allow then said no" vs
+    /// "I skipped the prompt"). Tap opens Apple Health → Sources so
+    /// the user can flip Steps access back on.
+    private var reconnectRow: some View {
+        HStack(alignment: .center, spacing: Space.md) {
+            ringStencil
+            VStack(alignment: .leading, spacing: 2) {
+                Text("steps + jeni")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
+                    .foregroundStyle(Palette.textPrimary)
+                Text("tap to open apple health")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textPrimary)
+                Text("turn on steps under sources → jenifit ♥")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    /// .unavailable only — HealthKit isn't supported on this device
+    /// (vanishingly rare on iPhone, possible on some iPad variants).
+    /// No recovery path possible; copy stays passive and gentle.
     private var fallbackRow: some View {
         HStack(alignment: .center, spacing: Space.md) {
             ringStencil
@@ -127,7 +165,7 @@ struct StepsPulseTile: View {
                 Text("steps live in apple health")
                     .font(Typo.body).fontWeight(.semibold)
                     .foregroundStyle(Palette.textPrimary)
-                Text("turn on access in settings whenever ♥")
+                Text("not available on this device ♥")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -202,8 +240,10 @@ struct StepsPulseTile: View {
             return "Moving today, \(service.todayCount) steps of \(StepsService.dailyGoal). \(helperLine)"
         case .notDetermined:
             return "Steps and Jeni. Tap to connect Apple Health."
-        case .denied, .unavailable:
-            return "Steps live in Apple Health. Turn on access in settings."
+        case .denied:
+            return "Steps and Jeni. Tap to open Apple Health and turn on steps access."
+        case .unavailable:
+            return "Steps live in Apple Health. Not available on this device."
         }
     }
 
@@ -223,9 +263,23 @@ struct StepsPulseTile: View {
         switch service.authStatus {
         case .notDetermined:
             Task { await service.requestAccess() }
-        case .authorized, .denied, .unavailable:
-            // No-op on tap once decided — the deeper bento tile holds
-            // the trend; the pulse stays a glanceable anchor.
+        case .denied:
+            // v1.0.7 — open Apple Health → Sources tab so the user
+            // can navigate to JeniFit and toggle Steps access back
+            // on. Apple's HealthKit API doesn't expose a way to
+            // re-prompt the system sheet after the first ask, so
+            // this deep-link is the only recovery path.
+            if let url = StepsService.openAppleHealthURL,
+               UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+                Analytics.track(.stepsConnected, properties: [
+                    "auth_status": "denied",
+                    "action": "opened_apple_health"
+                ])
+            }
+        case .authorized, .unavailable:
+            // No-op — the deeper bento tile holds the trend; the
+            // pulse stays a glanceable anchor.
             break
         }
     }
