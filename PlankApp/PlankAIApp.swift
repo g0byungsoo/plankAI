@@ -770,15 +770,60 @@ private struct RootView: View {
     /// so the cover presents as the paywall dismisses, no double slide.
     private func presentPostPurchaseFlowIfEligible() {
         let flagEnabled = JeniMethodFeatureFlag.isEnabled
-        let idempotencyOK = CoachIntroState.shouldShowOnPurchase()
+        // 2026-06-07 (founder bug): a returning user re-purchasing on
+        // a fresh-install device was seeing "DAY 1 WITH JENI" even
+        // though their account already had several days of session
+        // history. The per-device UserDefaults stamp gets wiped on
+        // reinstall, so the device gate said "first time" while the
+        // account had real history. Now: query the model store for
+        // any qualifying session_log for the current user_id; if
+        // there are any, suppress the coach intro entirely. Skip
+        // the DB check if the user isn't authenticated yet (anon
+        // bootstrap path) — in that case the per-device gate is
+        // still the right signal.
+        let hasActivity = userHasExistingSessionActivity()
+        let idempotencyOK = CoachIntroState.shouldShowOnPurchase(hasExistingActivity: hasActivity)
         #if DEBUG
-        print("[PostPurchase] onSubscribed. shouldShow=\(flagEnabled && idempotencyOK) (flag=\(flagEnabled), idempotency=\(idempotencyOK))")
+        print("[PostPurchase] onSubscribed. shouldShow=\(flagEnabled && idempotencyOK) (flag=\(flagEnabled), idempotency=\(idempotencyOK), hasActivity=\(hasActivity))")
         #endif
         guard flagEnabled && idempotencyOK else { return }
         var t = Transaction()
         t.disablesAnimations = true
         withTransaction(t) {
             showingCoachIntro = true
+        }
+    }
+
+    /// True iff the current signed-in user has any prior session_log
+    /// or day_progress records in the local store. Used to suppress
+    /// the post-purchase Jeni intro for returning accounts. Returns
+    /// false (treating as a new user) when the user isn't signed in
+    /// yet OR the fetch errors — both fall back to the existing
+    /// per-device idempotency gate.
+    private func userHasExistingSessionActivity() -> Bool {
+        guard let uid = auth.currentUser?.id.uuidString else { return false }
+        let sessionPredicate = #Predicate<SessionLogRecord> { $0.userId == uid }
+        var descriptor = FetchDescriptor<SessionLogRecord>(predicate: sessionPredicate)
+        descriptor.fetchLimit = 1
+        do {
+            let any = try modelContext.fetch(descriptor)
+            if !any.isEmpty { return true }
+        } catch {
+            #if DEBUG
+            print("[PostPurchase] activity check failed for session_logs: \(error)")
+            #endif
+        }
+        let dayPredicate = #Predicate<DayProgressRecord> { $0.userId == uid }
+        var dayDescriptor = FetchDescriptor<DayProgressRecord>(predicate: dayPredicate)
+        dayDescriptor.fetchLimit = 1
+        do {
+            let any = try modelContext.fetch(dayDescriptor)
+            return !any.isEmpty
+        } catch {
+            #if DEBUG
+            print("[PostPurchase] activity check failed for day_progress: \(error)")
+            #endif
+            return false
         }
     }
 

@@ -507,14 +507,32 @@ struct CoachIntroView: View {
 enum CoachIntroState {
     private static let shownAtKey = "coach_intro_shown_at"
 
-    /// True iff the coach intro has not yet been shown to this user.
-    /// Idempotent across cold relaunches and restore-purchase flows.
+    /// True iff the coach intro has not yet been shown to this user
+    /// AND the account doesn't already have prior activity.
     ///
-    /// DEBUG builds bypass the idempotency check so devs can re-test the
-    /// welcome flow without having to delete the app between runs. The
-    /// `markShown()` write still happens — so production behavior is
-    /// preserved when the build flips to release.
-    static func shouldShowOnPurchase() -> Bool {
+    /// 2026-06-07 — `hasExistingActivity` parameter added (founder bug:
+    /// a returning user with Day 4 of session_logs was seeing "DAY 1
+    /// WITH JENI" after re-subscribing). The DEBUG bypass that always
+    /// returned true is preserved for the no-activity case so devs can
+    /// re-test fresh-user flows, but explicit existing activity now
+    /// wins even in DEBUG — re-running the post-purchase intro for a
+    /// user who's already logged sessions is misleading regardless of
+    /// build configuration.
+    ///
+    /// In production:
+    ///   - First-purchase, no prior activity → true (intro shows)
+    ///   - Re-purchase after expiry, no prior activity → false (gated
+    ///     by `markShown` timestamp; idempotent across relaunches)
+    ///   - Re-purchase after expiry, has prior activity → false
+    ///     (gated by activity; covers cross-device re-install case
+    ///     where the per-device UserDefaults stamp was lost)
+    static func shouldShowOnPurchase(hasExistingActivity: Bool = false) -> Bool {
+        if hasExistingActivity {
+            #if DEBUG
+            print("[CoachIntroState] suppressed — account has existing session activity")
+            #endif
+            return false
+        }
         #if DEBUG
         let already = UserDefaults.standard.object(forKey: shownAtKey) != nil
         if already {
