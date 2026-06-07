@@ -4729,17 +4729,24 @@ struct OnboardingView: View {
                          size: 32, rotation: -10, phaseDelay: 0.75),
     ]
 
-    // 230 (E1-a) — brand-promise anchor + coach intro. Bodies tightened
-    // 2026-06-01 per feedback_copy_succinct_genz.
+    // 230 (E1-a) — brand-promise anchor. Founder review 2026-06-07:
+    // the prior "you've got jeni now / a real person. not a chatbot"
+    // beat read defensive (drew attention to a chatbot suspicion the
+    // user didn't have yet) and made Jeni do all the work ("she brings
+    // the rest") which conflicts with the agency frame. Reframed as
+    // a value-prop anchor: "built for real life" — 5-min beats +
+    // 3-month arcs, anti-overhaul promise. Companion illustration
+    // edu-real-life (cozy domestic couch scene) replaces the
+    // edu-coach-intro mug shot.
     private var educationalAntiShameScreen: some View {
         educationalScreen(
-            heroImage: "edu-coach-intro",
-            eyebrow: "first things first",
-            headline: "you've got jeni now.",
-            italicWords: ["jeni"],
-            body: "five minutes a day. she brings the rest. ♥",
+            heroImage: "edu-real-life",
+            eyebrow: "first thing to know",
+            headline: "built for *real* life.",
+            italicWords: ["real"],
+            body: "5-min beats. 3-month arcs. no all-or-nothing. ♥",
             next: 1,
-            signature: "— a real person. not a chatbot."
+            signature: "— the friendly version."
         )
     }
 
