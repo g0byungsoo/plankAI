@@ -728,36 +728,313 @@ struct AnalyticsView: View {
             // Their content survives in the "more depth ↗" sheet
             // accessed at the bottom.
 
-            // v1.0.7 sharable bento (founder feedback round 6
-            // 2026-06-06). Two follow-up briefs: WL shareable-card
-            // designer + Gen-Z women WL user researcher.
-            // docs/becoming_bento_redesign_2026_06_06.md
+            // v1.0.7 tool-first reset (founder feedback round 7
+            // 2026-06-06). 2 expert briefs (WL iOS design veteran +
+            // Gen-Z behavioral researcher) unanimous: kill the
+            // identity hero, ship a projection card as the
+            // conversion driver, swap to activity trend when
+            // weight is stale. Voice register shifts to direct/
+            // tool-first; italic-Fraunces budget cut to 1
+            // punch-word per tab; hearts removed from default tab.
             //
-            // Founder Q1 verdict on hero choice: "percentage of
-            // users who log into weight is very small ... winning
-            // apps provide value with minimal input from users."
-            // So weight is NOT the hero. The identity affirmation
-            // (auto from onboarding Q140 + engagement days from
-            // session_logs) becomes the share-card hero. Weight
-            // delta survives as a conditional card that renders
-            // only when she's actually logged.
+            // Layout:
+            //   1. Trend hero (weight when logged, activity when
+            //      stale) — full-width scrapbook chrome
+            //   2-3. Projection + This Week Activity — 2-up
+            //   4. Streak / consistency — full-width thin
+            //   5-6. Plank PR + Lesson progress — 2-up
+            //   7. More depth link
 
-            becomingIdentityHeroCard
+            becomingTrendHeroCard
 
             HStack(spacing: 12) {
-                becomingShownUpCard
-                becomingAdaptiveCard  // plank PR (powerful/strong) or lesson progress (others)
+                becomingProjectionCard
+                becomingWeekActivityCard
             }
 
-            if !weightLogs.isEmpty {
-                becomingWeightDeltaCard
+            becomingShownUpCard
+                .frame(maxHeight: 110)
+
+            HStack(spacing: 12) {
+                becomingAdaptiveCard
             }
 
             moreDepthLink
         }
     }
 
-    // MARK: - v1.0.7 sharable bento cards
+    // MARK: - v1.0.7 tool-first bento cards
+
+    /// Card 1 — Trend hero. When she has ≥2 weight logs: weight
+    /// trend with delta + sparkline. When stale (low log
+    /// engagement per PostHog — affects ~62% of opens): swap to
+    /// step/workout activity trend so the tab earns its open
+    /// without requiring weight input.
+    @ViewBuilder private var becomingTrendHeroCard: some View {
+        if weightLogs.count >= 2 {
+            weightTrendHeroCard
+        } else {
+            activityTrendHeroCard
+        }
+    }
+
+    /// Weight trend hero — concrete delta + receipt numbers
+    /// ("162.4 today · 168.6 at start"). Direct register per the
+    /// tool-first reset: numerical before/after UNLOCKED here.
+    private var weightTrendHeroCard: some View {
+        let payload = weightDeltaPayload
+        let latestDisplay: String = {
+            guard let l = latestWeightKg else { return "—" }
+            return String(format: "%.1f", weightUnit.display(fromKg: l))
+        }()
+        let startingDisplay: String = {
+            guard let s = startingWeightKg else { return "—" }
+            return String(format: "%.1f", weightUnit.display(fromKg: s))
+        }()
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("YOUR TREND")
+                .font(Typo.statLabel)
+                .kerning(0.66)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+
+            HStack(alignment: .lastTextBaseline, spacing: 6) {
+                Text(payload.direction)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
+                    .foregroundStyle(payload.color)
+                Text(payload.delta)
+                    .font(.custom("Fraunces72pt-Light", size: 48))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.cocoaPrimary)
+                Text(weightUnit.label)
+                    .font(.custom("DMSans-Regular", size: 16))
+                    .foregroundStyle(Palette.cocoaSecondary)
+            }
+
+            // Numerical before/after receipt (unlocked per
+            // founder's tool-first reset — this is data, not a
+            // body-comparison image).
+            Text("\(latestDisplay) today · \(startingDisplay) at start")
+                .font(.custom("DMSans-Regular", size: 12))
+                .monospacedDigit()
+                .foregroundStyle(Palette.cocoaSecondary)
+
+            weightTrendSparkline
+                .frame(height: 56)
+                .padding(.top, 4)
+        }
+        .padding(Space.lg)
+        .frame(maxWidth: .infinity, minHeight: 180, alignment: .leading)
+        .background(Palette.pageIvory)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 3, y: 3)
+        .onTapGesture { showLogWeight = true }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Weight trend: \(payload.direction) \(payload.delta) \(weightUnit.label). \(latestDisplay) today, \(startingDisplay) at start.")
+    }
+
+    private var weightTrendSparkline: some View {
+        GeometryReader { geo in
+            let points = weightSparkPoints(in: geo.size)
+            ZStack {
+                if points.count >= 2 {
+                    // Soft accent-rose fill under the line
+                    Path { p in
+                        p.move(to: CGPoint(x: points[0].x, y: geo.size.height))
+                        p.addLine(to: points[0])
+                        for pt in points.dropFirst() { p.addLine(to: pt) }
+                        p.addLine(to: CGPoint(x: points.last!.x, y: geo.size.height))
+                        p.closeSubpath()
+                    }
+                    .fill(LinearGradient(
+                        colors: [Palette.accentSubtle.opacity(0.6), Palette.accentSubtle.opacity(0.0)],
+                        startPoint: .top, endPoint: .bottom
+                    ))
+                    // jeweledRose stroke + endpoint dot
+                    Path { p in
+                        p.move(to: points[0])
+                        for pt in points.dropFirst() { p.addLine(to: pt) }
+                    }
+                    .stroke(Palette.jeweledRose, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+                    if let last = points.last {
+                        Circle()
+                            .fill(Palette.jeweledRose)
+                            .frame(width: 6, height: 6)
+                            .position(last)
+                    }
+                }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    /// Activity trend hero — renders when weight data is stale or
+    /// missing. Carries the tab with auto-captured signals. Per
+    /// the WL expert's verdict: "Auto-captured signals MUST carry
+    /// the tab when weight is stale."
+    private var activityTrendHeroCard: some View {
+        let stepsAvg = StepsService.shared.todayCount
+        let workouts = thisWeekSessions.count
+        let breathDays = BreathworkState.shared.distinctDaysThisWeek
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("THIS WEEK")
+                .font(Typo.statLabel)
+                .kerning(0.66)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+
+            HStack(alignment: .lastTextBaseline, spacing: 6) {
+                Text("\(workouts)")
+                    .font(.custom("Fraunces72pt-Light", size: 48))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.cocoaPrimary)
+                Text("workouts")
+                    .font(.custom("DMSans-Regular", size: 16))
+                    .foregroundStyle(Palette.cocoaSecondary)
+            }
+
+            Text("\(stepsAvg) steps today · \(breathDays) breath days")
+                .font(.custom("DMSans-Regular", size: 12))
+                .monospacedDigit()
+                .foregroundStyle(Palette.cocoaSecondary)
+
+            Text("log a weight to unlock your trend")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                .foregroundStyle(Palette.cocoaTertiary)
+                .padding(.top, 6)
+        }
+        .padding(Space.lg)
+        .frame(maxWidth: .infinity, minHeight: 180, alignment: .leading)
+        .background(Palette.pageIvory)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 3, y: 3)
+        .onTapGesture { showLogWeight = true }
+    }
+
+    /// Card 2 — Projection card. THE conversion driver per both
+    /// expert briefs ("the moment 'this is actually a tool' lands").
+    /// "at this pace, **Sept 12** / 5.4 lb to go · 0.6 lb/wk."
+    /// Stalled-pace fallback: "pace slowed — try logging food this
+    /// week." ACSM-aligned 0.5-1%/wk + Wing & Phelan 10% cap.
+    @ViewBuilder private var becomingProjectionCard: some View {
+        let payload = projectionPayload
+        VStack(alignment: .leading, spacing: 6) {
+            Text("AT THIS PACE")
+                .font(Typo.statLabel)
+                .kerning(0.66)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+            Text(payload.headline)
+                .font(.custom("Fraunces72pt-Light", size: 28))
+                .foregroundStyle(Palette.cocoaPrimary)
+                .lineLimit(2)
+            Text(payload.subline)
+                .font(.custom("DMSans-Regular", size: 12))
+                .monospacedDigit()
+                .foregroundStyle(Palette.cocoaSecondary)
+                .lineLimit(2)
+            Spacer(minLength: 0)
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, minHeight: 130, alignment: .leading)
+        .background(Palette.accentSubtle)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 3, y: 3)
+    }
+
+    /// Goal projection math. Returns headline + subline strings,
+    /// handles 4 cases: (a) not enough data, (b) on pace, (c)
+    /// stalled, (d) ahead-of-pace.
+    private var projectionPayload: (headline: String, subline: String) {
+        guard onboardingGoalWeightKg > 0,
+              weightLogs.count >= 2,
+              let latest = latestWeightKg else {
+            return ("not enough data", "log twice this week to unlock")
+        }
+        let toGoKg = latest - onboardingGoalWeightKg
+        guard toGoKg > 0.5 else {
+            return ("at your goal ♥", "celebrate the work")
+        }
+        // EMA slope from last 14-30 days
+        let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: .now)!
+        let recent = weightLogs.filter { $0.loggedAt >= cutoff }.sorted { $0.loggedAt < $1.loggedAt }
+        guard recent.count >= 2,
+              let first = recent.first,
+              let last = recent.last else {
+            return ("not enough data", "log twice this week to unlock")
+        }
+        let daysSpan = max(Calendar.current.dateComponents([.day], from: first.loggedAt, to: last.loggedAt).day ?? 1, 1)
+        let kgPerDay = (last.weightKg - first.weightKg) / Double(daysSpan)
+        let kgPerWeek = kgPerDay * 7
+        let lbPerWeek = abs(kgPerWeek * 2.20462)
+
+        if kgPerWeek >= -0.05 {
+            return ("pace slowed", "try logging food this week")
+        }
+
+        let toGoDisplay = abs(weightUnit.display(fromKg: toGoKg))
+        let weeksToGoal = Int(ceil(toGoKg / abs(kgPerWeek)))
+        let goalDate = Calendar.current.date(byAdding: .day, value: weeksToGoal * 7, to: .now) ?? .now
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        let dateStr = f.string(from: goalDate).lowercased()
+
+        return ("\(dateStr)", "\(String(format: "%.1f", toGoDisplay)) \(weightUnit.label) to go · \(String(format: "%.1f", lbPerWeek)) lb/wk")
+    }
+
+    /// Card 3 — This Week Activity. Three quiet rows summarizing
+    /// auto-captured signals (workouts + steps + breath). Always
+    /// has data; never empty. Per the WL expert: "WW's MyDay
+    /// rebuild centered this. Three rows scan faster than rings."
+    private var becomingWeekActivityCard: some View {
+        let workouts = thisWeekSessions.count
+        let stepsToday = StepsService.shared.todayCount
+        let breathDays = BreathworkState.shared.distinctDaysThisWeek
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("THIS WEEK")
+                .font(Typo.statLabel)
+                .kerning(0.66)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+            weekActivityRow(label: "workouts", value: "\(workouts)")
+            weekActivityRow(label: "steps today", value: stepsToday > 0 ? "\(stepsToday)" : "—")
+            weekActivityRow(label: "breath days", value: "\(breathDays)")
+            Spacer(minLength: 0)
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, minHeight: 130, alignment: .leading)
+        .background(Palette.pageIvory)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Palette.hairlineCocoa, lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    private func weekActivityRow(label: String, value: String) -> some View {
+        HStack(spacing: 0) {
+            Text(label)
+                .font(.custom("DMSans-Regular", size: 13))
+                .foregroundStyle(Palette.cocoaSecondary)
+            Spacer(minLength: 4)
+            Text(value)
+                .font(.custom("Fraunces72pt-Light", size: 16))
+                .monospacedDigit()
+                .foregroundStyle(Palette.cocoaPrimary)
+        }
+    }
 
     /// Card 1 — Identity hero. Full-width, accentSubtle pink fill,
     /// 24pt corners, 1pt jeweledRose hairline border, hard offset
