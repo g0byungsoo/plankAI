@@ -1619,11 +1619,15 @@ struct OnboardingView: View {
         // session-length Q itself carries the framing).
         110, 2, 8, 25, 17,
         270,
-        // Act 3 — Biometric core. D83 cut 202 (section divider)
-        // and 135 ("your goal" body type — 134 "your starting point"
-        // captures the body-shape signal alone; goal-state body is
-        // already implicit in the weight-goal Qs).
-        231, 130, 7, 131, 132, 133, 134,
+        // Act 3 — Biometric core. D83 cut 202 (section divider).
+        // 135 was D83-cut on the rationale that "goal-state body is
+        // already implicit in the weight-goal Qs" — RESTORED
+        // 2026-06-07 per founder review. The goal body-type screen
+        // is a distinct visual-identity signal that the weight-goal
+        // numbers don't capture (the user picks a shape, not a kg
+        // delta), and it's the pair-screen the user expects after
+        // picking a starting body type.
+        231, 130, 7, 131, 132, 133, 134, 135,
         160, 161,
         // Delta v8 D73 — pace selector (case 167).
         167,
