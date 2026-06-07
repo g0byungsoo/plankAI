@@ -58,7 +58,10 @@ struct LogWeightSheet: View {
                 saveButton
             }
             .padding(.horizontal, Space.screenPadding)
-            .padding(.top, Space.sm)
+            // v1.0.7 founder feedback round 9: more top padding so
+            // the heart-lock sticker (offset y:-10) clears the
+            // sheet's top edge instead of being clipped.
+            .padding(.top, Space.lg)
             .padding(.bottom, Space.lg)
         }
     }

@@ -564,26 +564,18 @@ struct HomeView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: Space.md) {
-                        // v1.0.7 Home aesthetic redesign (founder feedback
-                        // round 4, 2026-06-06) — per the 3 luxury fitness
-                        // designer briefs in
-                        // docs/home_aesthetic_redesign_briefs_2026_06_06.md
-                        // the unanimous top-move is a typographic "reading"
-                        // line pulled from HER data, no chrome, generous
-                        // padding. JenisNoteCard (templated time-of-day
-                        // greeting with avatar) replaced — Flo brief
-                        // specifically called time-of-day language the
-                        // cohort's "tell for try-hard." Helper kept
-                        // compiled for potential reuse on a different
-                        // surface (or revival as the Sunday recap voice).
-                        HomeReadingLine(
-                            mostRecentSessionAt: sessionLogs.first?.completedAt,
-                            sessionsThisWeek: weeklyCount,
-                            totalSessionCount: sessionLogs.count
-                        )
-                        .padding(.horizontal, Space.screenPadding)
-                        .opacity(msgOpacity[0]).offset(y: msgOffset[0])
-                        .blur(radius: greetingBlur)
+                        // v1.0.7 founder feedback round 9 (2026-06-06):
+                        // > "i miss the jenifit icon with greetings on
+                        // >  home screen."
+                        // JenisNoteCard restored as the top greeting —
+                        // Jeni avatar + voice-templated daily note.
+                        // HomeReadingLine (the typographic Lasta-style
+                        // line) is now demoted; the founder explicitly
+                        // wants the avatar-led greeting back.
+                        JenisNoteCard(note: jenisNoteForToday)
+                            .padding(.horizontal, Space.screenPadding)
+                            .opacity(msgOpacity[0]).offset(y: msgOffset[0])
+                            .blur(radius: greetingBlur)
 
                         // HERO — food card per delta v7 D56 (2026-06-05).
                         // 2026-06-06: TrendHeroCard moved to Becoming

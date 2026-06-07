@@ -488,7 +488,13 @@ struct AnalyticsView: View {
                 },
                 onCancel: { showLogWeight = false }
             )
-            .presentationDetents([.medium])
+            // v1.0.7 founder feedback round 9: log popup was being
+            // cut at the top with .medium detent (the heart-lock
+            // sticker offset(-10) overhung past the safe area).
+            // Bump to a custom fraction so the sticker + grabber +
+            // header all clear comfortably.
+            .presentationDetents([.fraction(0.78)])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showDepthSheet) {
             becomingDepthSheet
@@ -745,19 +751,298 @@ struct AnalyticsView: View {
             //   5-6. Plank PR + Lesson progress — 2-up
             //   7. More depth link
 
+            // v1.0.7 founder feedback round 9 (2026-06-06): "the
+            // becoming screen is too empty now ... can we spawn weight
+            // loss ios app expert and we try to add value to customers
+            // ... right now it's compacted but ... it doesn't look too
+            // useful and the jenifit design is gone."
+            //
+            // WL expert returned a value-dense 10-card plan; this
+            // commit ships 5 of the highest-leverage cards matching
+            // the founder's reference image:
+            //   1. Identity hero (Q140+Q111 data-driven)
+            //   2. 3-up streak strip (streak / workouts / min total)
+            //   3. WHO 150-min ring (educational + actionable)
+            //   4. Weight + trend (eye toggle, progress to goal,
+            //      butterflyRing back per WL expert)
+            //   5. BMI card (AHA 2021 framing — UNLOCKED)
+            // Existing depth modules (barriers, plank, sessions)
+            // stay accessible via the "more depth ↗" sheet at the
+            // bottom + via the existing bentoJourney path for
+            // flag-off users.
+
+            becomingIdentityHero
+
+            becomingStreakStrip
+
+            becomingWHORing
+
             becomingTrendHeroCard
 
-            HStack(spacing: 10) {
-                becomingProjectionCard
-                becomingWeekActivityCard
-            }
-
-            HStack(spacing: 10) {
-                becomingShownUpCard
-                becomingAdaptiveCard
-            }
+            becomingBMICard
 
             moreDepthLink
+        }
+    }
+
+    /// Identity hero — Q140 identity feeling word in italic-Fraunces
+    /// PLUS Q111 motivation fragment as the subhero. Per WL expert:
+    /// "identity comes from HER answers ... this is identity AS a
+    /// tool: it reminds her what she signed up for every time she
+    /// opens the tab." Reference image: "you're / becoming
+    /// stronger. / you said you wanted confidence in any outfit.
+    /// one session at a time." + heartGlossy top-right.
+    private var becomingIdentityHero: some View {
+        let identity = identityFeelingWord
+        let motivation = motivationFragment
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("you're")
+                .font(Typo.eyebrow).tracking(2)
+                .foregroundStyle(Palette.accent)
+            (Text("becoming ")
+                .font(.custom("Fraunces72pt-SemiBold", size: 40))
+             + Text(identity)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 40))
+             + Text(".")
+                .font(.custom("Fraunces72pt-SemiBold", size: 40)))
+                .foregroundStyle(Palette.textPrimary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            if let m = motivation {
+                ItalicAccentText(
+                    "you said you wanted *\(m)*. one session at a time.",
+                    italic: [m],
+                    baseFont: .custom("DMSans-Regular", size: 14),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 14),
+                    color: Palette.textSecondary,
+                    alignment: .leading
+                )
+                .padding(.top, 2)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .topTrailing) {
+            Image(StickerName.heartGlossy.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 44, height: 44)
+                .rotationEffect(.degrees(-8))
+                .offset(x: 8, y: -4)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+
+    /// Q140 identity feeling word. Falls back to a behavior-derived
+    /// word (the previous identityTrailer cascade) when the user
+    /// hasn't answered Q140 (legacy rows / skip).
+    private var identityFeelingWord: String {
+        if let id = currentUserRecord?.onboardingIdentityFeeling, !id.isEmpty {
+            return id
+        }
+        if isReturningAfterInactivity { return "steady" }
+        if benchmarkCount > 0         { return "stronger" }
+        if !weightLogs.isEmpty        { return "clear" }
+        if !sessionLogs.isEmpty       { return "consistent" }
+        return "present"
+    }
+
+    /// Q111 motivation fragment for the subhero. Reuses the same
+    /// mapping as the legacy motivationLine helper.
+    private var motivationFragment: String? {
+        let key = currentUserRecord?.onboardingMotivation ?? ""
+        switch key {
+        case "getShaped":   return "to build the body you want"
+        case "lookBetter":  return "confidence in any outfit"
+        case "summer":      return "to feel ready for summer"
+        case "confidence":  return "stronger inside and out"
+        case "selfLove":    return "to make peace with your body"
+        default:            return nil
+        }
+    }
+
+    /// 3-up streak strip per the founder's reference image: day
+    /// streak / workouts / min total. Each tile = icon + big
+    /// Fraunces SemiBold number + DM Sans label. pageIvory fill,
+    /// 20pt corners, soft offset shadow.
+    private var becomingStreakStrip: some View {
+        let streakDays = streak.count
+        let workoutsLifetime = sessionLogs.filter { $0.sessionType == "routine" }.count
+        let minutesTotal: Int = {
+            let totalSec = sessionLogs.compactMap { $0.totalDuration }.reduce(0, +)
+            return Int(totalSec / 60)
+        }()
+        return HStack(spacing: 10) {
+            streakStripTile(iconSystem: "flame.fill", iconColor: Palette.accent, value: "\(streakDays)", label: "day streak")
+            streakStripTile(iconSystem: "checkmark.circle.fill", iconColor: Palette.cocoaSecondary, value: "\(workoutsLifetime)", label: "workouts")
+            streakStripTile(iconSystem: "clock.fill", iconColor: Palette.cocoaSecondary, value: "\(minutesTotal)", label: "min total")
+        }
+    }
+
+    private func streakStripTile(iconSystem: String, iconColor: Color, value: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: iconSystem)
+                .font(.system(size: 18, weight: .regular))
+                .foregroundStyle(iconColor)
+                .padding(.top, 4)
+            Text(value)
+                .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                .monospacedDigit()
+                .foregroundStyle(Palette.cocoaPrimary)
+            Text(label)
+                .font(.custom("DMSans-Regular", size: 12))
+                .foregroundStyle(Palette.cocoaSecondary)
+                .padding(.bottom, 4)
+        }
+        .frame(maxWidth: .infinity, minHeight: 110)
+        .background(Palette.pageIvory)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Palette.jeweledRose.opacity(0.18), lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Palette.jeweledRose.opacity(0.08), radius: 0, x: 2, y: 2)
+    }
+
+    /// WHO 150-min ring card. Per WL expert spec: 200pt, ring left
+    /// 45% + copy right 55%. Ring = accentSubtle track + jeweledRose
+    /// progress arc, 14pt stroke, 130pt diameter. Educational copy
+    /// ("WHO sets 150 min/wk for general health") + 3 states (empty,
+    /// mid, hit).
+    private var becomingWHORing: some View {
+        let weekMin = weekActiveMinutes
+        let target = 150
+        let pct = min(Double(weekMin) / Double(target), 1.0)
+        let pctText = "\(Int(pct * 100))%"
+        let stateCopy: String = {
+            if weekMin == 0 {
+                return "WHO sets 150 min/wk for general health. one session puts you on the board."
+            }
+            if weekMin < target {
+                return "\(target - weekMin) min to hit this week's anchor."
+            }
+            return "you cleared the WHO anchor this week."
+        }()
+        return HStack(alignment: .center, spacing: 14) {
+            ZStack {
+                Circle()
+                    .stroke(Palette.accentSubtle, lineWidth: 14)
+                Circle()
+                    .trim(from: 0, to: pct)
+                    .stroke(Palette.jeweledRose, style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(Motion.gentleSpring, value: pct)
+                VStack(spacing: 2) {
+                    Text(pctText)
+                        .font(.custom("Fraunces72pt-SemiBold", size: 24))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.cocoaPrimary)
+                    Text("of target")
+                        .font(.custom("DMSans-Regular", size: 11))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                }
+            }
+            .frame(width: 130, height: 130)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("this week")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                    .foregroundStyle(Palette.jeweledRose)
+                HStack(alignment: .lastTextBaseline, spacing: 4) {
+                    Text("\(weekMin)")
+                        .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.cocoaPrimary)
+                    Text("/ 150 min")
+                        .font(.custom("DMSans-Regular", size: 14))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                }
+                Text(stateCopy)
+                    .font(.custom("DMSans-Regular", size: 13))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, minHeight: 160, alignment: .leading)
+        .background(Palette.pageIvory)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 2, y: 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("This week: \(weekMin) of 150 minutes. \(pctText) of WHO target. \(stateCopy)")
+    }
+
+    /// This week's active minutes (sum of session totalDuration in
+    /// the last 7 days, converted to integer minutes).
+    private var weekActiveMinutes: Int {
+        let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: .now)!
+        let totalSec = sessionLogs
+            .filter { $0.completedAt >= weekAgo }
+            .compactMap { $0.totalDuration }
+            .reduce(0, +)
+        return Int(totalSec / 60)
+    }
+
+    /// BMI card with AHA 2021 framing. UNLOCKED per founder's tool-
+    /// first reset: "BMI was on the avoid list — RECOMMEND whether
+    /// to unlock." WL expert: "stay locked." Founder's reference
+    /// image shows BMI explicitly. Founder wins; AHA 2021 framing
+    /// keeps it clinical-honest (context not verdict).
+    @ViewBuilder private var becomingBMICard: some View {
+        if let bmi = bmiValue {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("body mass index")
+                        .font(.custom("DMSans-Regular", size: 11))
+                        .kerning(0.66)
+                        .textCase(.lowercase)
+                        .tracking(2)
+                        .foregroundStyle(Palette.jeweledRose)
+                    Text(String(format: "%.1f", bmi))
+                        .font(.custom("Fraunces72pt-SemiBold", size: 36))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.cocoaPrimary)
+                    Text(bmiBandLabel(bmi))
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                }
+                Spacer()
+                Text("AHA 2021")
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            .padding(Space.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Palette.pageIvory)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(Palette.hairlineCocoa, lineWidth: 0.5)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+    }
+
+    /// Compute BMI from height (cm) + latest weight (kg). Returns
+    /// nil when either input is missing.
+    private var bmiValue: Double? {
+        guard let h = currentUserRecord?.onboardingHeightCm, h > 50,
+              let w = latestWeightKg, w > 20 else { return nil }
+        let m = h / 100.0
+        return w / (m * m)
+    }
+
+    /// AHA 2021 BMI banding — context-tolerant copy, never verdicts.
+    private func bmiBandLabel(_ bmi: Double) -> String {
+        switch bmi {
+        case ..<18.5: return "underweight band — context not a verdict."
+        case 18.5..<25: return "healthy band — context not a verdict."
+        case 25..<30: return "overweight band — context not a verdict."
+        case 30..<35: return "class i band — context not a verdict."
+        default:      return "higher band — context not a verdict."
         }
     }
 
@@ -844,6 +1129,21 @@ struct AnalyticsView: View {
                 .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        // v1.0.7 round 9: butterflyRing sticker BACK per WL expert
+        // brief — "weight card is the single most emotionally loaded
+        // surface in the app and butterflyRing carries transformation
+        // semantics that none of the other 5 do." One-card exception
+        // to the §6 curation, hangs off the top-right corner.
+        .overlay(alignment: .topTrailing) {
+            Image(StickerName.butterflyRing.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 56, height: 56)
+                .rotationEffect(.degrees(-8))
+                .offset(x: 6, y: -10)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 2, y: 2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Weight trend: \(payload.direction) \(payload.delta) \(weightUnit.label). \(latestDisplay) today, \(startingDisplay) at start.")
