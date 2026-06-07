@@ -25,7 +25,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>JeniFit uses your camera to watch your form during plank sessions. Frames are processed on-device and never leave your phone.</string>
+	<string>JeniFit uses your camera for two things: to watch your form during plank sessions (frames stay on your phone, never sent anywhere), and to scan your meals (one photo per scan is sent to our private vision service for calorie estimation, never stored as a personal photo and never used to train models).</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>JeniFit reads your step count so Jeni can quietly notice the days you moved more. Your step data stays between you and Apple Health — JeniFit never sees the raw samples or sends them anywhere.</string>
 	<key>NSHealthUpdateUsageDescription</key>
