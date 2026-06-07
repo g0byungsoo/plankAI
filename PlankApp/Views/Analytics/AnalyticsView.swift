@@ -747,15 +747,13 @@ struct AnalyticsView: View {
 
             becomingTrendHeroCard
 
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 becomingProjectionCard
                 becomingWeekActivityCard
             }
 
-            becomingShownUpCard
-                .frame(maxHeight: 110)
-
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
+                becomingShownUpCard
                 becomingAdaptiveCard
             }
 
@@ -791,48 +789,62 @@ struct AnalyticsView: View {
             guard let s = startingWeightKg else { return "—" }
             return String(format: "%.1f", weightUnit.display(fromKg: s))
         }()
-        return VStack(alignment: .leading, spacing: 8) {
-            Text("YOUR TREND")
-                .font(Typo.statLabel)
-                .kerning(0.66)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.cocoaTertiary)
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("YOUR TREND")
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .kerning(0.66)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer()
+                Button { showLogWeight = true } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("log")
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                    }
+                    .foregroundStyle(Palette.textInverse)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Palette.bgInverse)
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
 
             HStack(alignment: .lastTextBaseline, spacing: 6) {
                 Text(payload.direction)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 20))
                     .foregroundStyle(payload.color)
                 Text(payload.delta)
-                    .font(.custom("Fraunces72pt-Light", size: 48))
+                    .font(.custom("Fraunces72pt-SemiBold", size: 36))
                     .monospacedDigit()
                     .foregroundStyle(Palette.cocoaPrimary)
                 Text(weightUnit.label)
-                    .font(.custom("DMSans-Regular", size: 16))
+                    .font(.custom("DMSans-Regular", size: 14))
                     .foregroundStyle(Palette.cocoaSecondary)
             }
 
-            // Numerical before/after receipt (unlocked per
-            // founder's tool-first reset — this is data, not a
-            // body-comparison image).
             Text("\(latestDisplay) today · \(startingDisplay) at start")
-                .font(.custom("DMSans-Regular", size: 12))
+                .font(.custom("DMSans-Regular", size: 11))
                 .monospacedDigit()
                 .foregroundStyle(Palette.cocoaSecondary)
 
             weightTrendSparkline
-                .frame(height: 56)
-                .padding(.top, 4)
+                .frame(height: 44)
+                .padding(.top, 2)
         }
-        .padding(Space.lg)
-        .frame(maxWidth: .infinity, minHeight: 180, alignment: .leading)
+        .padding(.horizontal, Space.md)
+        .padding(.vertical, Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Palette.pageIvory)
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 3, y: 3)
-        .onTapGesture { showLogWeight = true }
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 2, y: 2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Weight trend: \(payload.direction) \(payload.delta) \(weightUnit.label). \(latestDisplay) today, \(startingDisplay) at start.")
     }
@@ -880,43 +892,60 @@ struct AnalyticsView: View {
         let stepsAvg = StepsService.shared.todayCount
         let workouts = thisWeekSessions.count
         let breathDays = BreathworkState.shared.distinctDaysThisWeek
-        return VStack(alignment: .leading, spacing: 8) {
-            Text("THIS WEEK")
-                .font(Typo.statLabel)
-                .kerning(0.66)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.cocoaTertiary)
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("THIS WEEK")
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .kerning(0.66)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer()
+                Button { showLogWeight = true } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("log weight")
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                    }
+                    .foregroundStyle(Palette.textInverse)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Palette.bgInverse)
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
 
             HStack(alignment: .lastTextBaseline, spacing: 6) {
                 Text("\(workouts)")
-                    .font(.custom("Fraunces72pt-Light", size: 48))
+                    .font(.custom("Fraunces72pt-SemiBold", size: 36))
                     .monospacedDigit()
                     .foregroundStyle(Palette.cocoaPrimary)
                 Text("workouts")
-                    .font(.custom("DMSans-Regular", size: 16))
+                    .font(.custom("DMSans-Regular", size: 14))
                     .foregroundStyle(Palette.cocoaSecondary)
             }
 
             Text("\(stepsAvg) steps today · \(breathDays) breath days")
-                .font(.custom("DMSans-Regular", size: 12))
+                .font(.custom("DMSans-Regular", size: 11))
                 .monospacedDigit()
                 .foregroundStyle(Palette.cocoaSecondary)
 
             Text("log a weight to unlock your trend")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
                 .foregroundStyle(Palette.cocoaTertiary)
-                .padding(.top, 6)
+                .padding(.top, 4)
         }
-        .padding(Space.lg)
-        .frame(maxWidth: .infinity, minHeight: 180, alignment: .leading)
+        .padding(.horizontal, Space.md)
+        .padding(.vertical, Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Palette.pageIvory)
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 3, y: 3)
-        .onTapGesture { showLogWeight = true }
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 2, y: 2)
     }
 
     /// Card 2 — Projection card. THE conversion driver per both
@@ -928,30 +957,32 @@ struct AnalyticsView: View {
         let payload = projectionPayload
         VStack(alignment: .leading, spacing: 6) {
             Text("AT THIS PACE")
-                .font(Typo.statLabel)
+                .font(.custom("DMSans-Regular", size: 11))
                 .kerning(0.66)
                 .textCase(.uppercase)
                 .foregroundStyle(Palette.cocoaTertiary)
             Text(payload.headline)
-                .font(.custom("Fraunces72pt-Light", size: 28))
+                .font(.custom("Fraunces72pt-SemiBold", size: 22))
                 .foregroundStyle(Palette.cocoaPrimary)
                 .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
             Text(payload.subline)
-                .font(.custom("DMSans-Regular", size: 12))
+                .font(.custom("DMSans-Regular", size: 11))
                 .monospacedDigit()
                 .foregroundStyle(Palette.cocoaSecondary)
                 .lineLimit(2)
             Spacer(minLength: 0)
         }
-        .padding(Space.md)
-        .frame(maxWidth: .infinity, minHeight: 130, alignment: .leading)
+        .padding(.horizontal, Space.md)
+        .padding(.vertical, Space.md)
+        .frame(maxWidth: .infinity, minHeight: 110, alignment: .leading)
         .background(Palette.accentSubtle)
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 3, y: 3)
+        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 2, y: 2)
     }
 
     /// Goal projection math. Returns headline + subline strings,
@@ -1002,9 +1033,9 @@ struct AnalyticsView: View {
         let workouts = thisWeekSessions.count
         let stepsToday = StepsService.shared.todayCount
         let breathDays = BreathworkState.shared.distinctDaysThisWeek
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 6) {
             Text("THIS WEEK")
-                .font(Typo.statLabel)
+                .font(.custom("DMSans-Regular", size: 11))
                 .kerning(0.66)
                 .textCase(.uppercase)
                 .foregroundStyle(Palette.cocoaTertiary)
@@ -1013,24 +1044,26 @@ struct AnalyticsView: View {
             weekActivityRow(label: "breath days", value: "\(breathDays)")
             Spacer(minLength: 0)
         }
-        .padding(Space.md)
-        .frame(maxWidth: .infinity, minHeight: 130, alignment: .leading)
+        .padding(.horizontal, Space.md)
+        .padding(.vertical, Space.md)
+        .frame(maxWidth: .infinity, minHeight: 110, alignment: .leading)
         .background(Palette.pageIvory)
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Palette.hairlineCocoa, lineWidth: 0.5)
+                .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 2, y: 2)
     }
 
     private func weekActivityRow(label: String, value: String) -> some View {
         HStack(spacing: 0) {
             Text(label)
-                .font(.custom("DMSans-Regular", size: 13))
+                .font(.custom("DMSans-Regular", size: 12))
                 .foregroundStyle(Palette.cocoaSecondary)
             Spacer(minLength: 4)
             Text(value)
-                .font(.custom("Fraunces72pt-Light", size: 16))
+                .font(.custom("Fraunces72pt-SemiBold", size: 15))
                 .monospacedDigit()
                 .foregroundStyle(Palette.cocoaPrimary)
         }
@@ -1109,21 +1142,20 @@ struct AnalyticsView: View {
         .accessibilityLabel("Becoming \(resolvedIdentity), day \(engagementDay)")
     }
 
-    /// Card 2 — Shown up this week. Left half of the 2-up row.
-    /// pageIvory fill. "N days" Fraunces Light hero + dot-bloom
-    /// pearl row showing last 7 days. heartGlossy top-right.
-    /// Auto from session_logs, zero user input.
+    /// Card 4 (left half of bottom 2-up) — Shown up this week.
+    /// Compact, no overhanging sticker (founder feedback round 8:
+    /// "cards overlapping"). Pearl row stays as the cute chart.
     private var becomingShownUpCard: some View {
         let weekly = thisWeekSessions.count
-        return ZStack(alignment: .topTrailing) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("SHOWED UP")
-                    .font(Typo.statLabel)
-                    .kerning(0.66)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("SHOWED UP")
+                .font(.custom("DMSans-Regular", size: 11))
+                .kerning(0.66)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
                 Text("\(weekly)")
-                    .font(.custom("Fraunces72pt-Light", size: 48))
+                    .font(.custom("Fraunces72pt-SemiBold", size: 36))
                     .monospacedDigit()
                     .foregroundStyle(Palette.cocoaPrimary)
                 (Text(weekly == 1 ? "day " : "days ")
@@ -1131,28 +1163,20 @@ struct AnalyticsView: View {
                  + Text("this week")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12)))
                     .foregroundStyle(Palette.cocoaSecondary)
-                Spacer(minLength: 0)
-                pearlRowDots
             }
-            .padding(Space.md)
-            .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
+            Spacer(minLength: 0)
+            pearlRowDots
         }
+        .padding(.horizontal, Space.md)
+        .padding(.vertical, Space.md)
+        .frame(maxWidth: .infinity, minHeight: 110, alignment: .leading)
         .background(Palette.pageIvory)
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Palette.hairlineCocoa, lineWidth: 0.5)
+                .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.heartGlossy.assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 32, height: 32)
-                .rotationEffect(.degrees(10))
-                .offset(x: 4, y: -6)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
+        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 2, y: 2)
     }
 
     /// 7-dot pearl row. Filled jeweledRose for days she showed up,
@@ -1194,42 +1218,32 @@ struct AnalyticsView: View {
     }
 
     private var plankPRBentoCard: some View {
-        ZStack(alignment: .topTrailing) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("PLANK PR")
-                    .font(Typo.statLabel)
-                    .kerning(0.66)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                Text(plankPRDisplay)
-                    .font(.custom("Fraunces72pt-Light", size: 48))
-                    .monospacedDigit()
-                    .foregroundStyle(Palette.cocoaPrimary)
-                Text("personal best")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
-                    .foregroundStyle(Palette.cocoaSecondary)
-                Spacer(minLength: 0)
-                plankMacaronStrip
-            }
-            .padding(Space.md)
-            .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
+        VStack(alignment: .leading, spacing: 6) {
+            Text("PLANK PR")
+                .font(.custom("DMSans-Regular", size: 11))
+                .kerning(0.66)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+            Text(plankPRDisplay)
+                .font(.custom("Fraunces72pt-SemiBold", size: 36))
+                .monospacedDigit()
+                .foregroundStyle(Palette.cocoaPrimary)
+            Text("personal best")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                .foregroundStyle(Palette.cocoaSecondary)
+            Spacer(minLength: 0)
+            plankMacaronStrip
         }
-        .background(Palette.bgPrimary)
+        .padding(.horizontal, Space.md)
+        .padding(.vertical, Space.md)
+        .frame(maxWidth: .infinity, minHeight: 110, alignment: .leading)
+        .background(Palette.pageIvory)
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.sparkleGlossy.assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 18, height: 18)
-                .padding(.top, 12)
-                .padding(.trailing, 12)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
+        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 2, y: 2)
     }
 
     /// Macaron strip — last 3 plank holds as horizontal capsules.
@@ -1252,48 +1266,38 @@ struct AnalyticsView: View {
     private var lessonProgressBentoCard: some View {
         let lessonDay = max(min(EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs), 14), 0)
         let display = lessonDay > 0 ? "\(lessonDay)" : "—"
-        return ZStack(alignment: .topTrailing) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("THE METHOD")
-                    .font(Typo.statLabel)
-                    .kerning(0.66)
-                    .textCase(.uppercase)
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("THE METHOD")
+                .font(.custom("DMSans-Regular", size: 11))
+                .kerning(0.66)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
+                Text(display)
+                    .font(.custom("Fraunces72pt-SemiBold", size: 36))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.cocoaPrimary)
+                Text("/ 14")
+                    .font(.custom("DMSans-Regular", size: 14))
+                    .monospacedDigit()
                     .foregroundStyle(Palette.cocoaTertiary)
-                HStack(alignment: .lastTextBaseline, spacing: 4) {
-                    Text(display)
-                        .font(.custom("Fraunces72pt-Light", size: 48))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.cocoaPrimary)
-                    Text("/ 14")
-                        .font(.custom("DMSans-Regular", size: 16))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.cocoaTertiary)
-                }
-                Text("of becoming")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
-                    .foregroundStyle(Palette.cocoaSecondary)
-                Spacer(minLength: 0)
-                lessonProgressBar(active: lessonDay, total: 14)
             }
-            .padding(Space.md)
-            .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
+            Text("of becoming")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                .foregroundStyle(Palette.cocoaSecondary)
+            Spacer(minLength: 0)
+            lessonProgressBar(active: lessonDay, total: 14)
         }
-        .background(Palette.bgPrimary)
+        .padding(.horizontal, Space.md)
+        .padding(.vertical, Space.md)
+        .frame(maxWidth: .infinity, minHeight: 110, alignment: .leading)
+        .background(Palette.pageIvory)
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.bowSatin.assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 32, height: 32)
-                .rotationEffect(.degrees(8))
-                .offset(x: 4, y: -6)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
+        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 2, y: 2)
     }
 
     private func lessonProgressBar(active: Int, total: Int) -> some View {
