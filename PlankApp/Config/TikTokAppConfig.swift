@@ -48,10 +48,7 @@ enum TikTokAppConfig {
     /// App Store Connect → My Apps → JeniFit: Lose Weight → App
     /// Information → "Apple ID" (numeric). NOT the bundle ID
     /// (`com.bk.plankAI`) and NOT the SKU.
-    ///
-    /// TODO(founder): drop the numeric Apple App Store ID in here
-    /// once the App Store Connect record is finalized.
-    static let appleAppId = ""
+    static let appleAppId = "6765550752"
 
     /// TikTok Ads Manager → App Events → Settings → "App Secret".
     /// Ships in the iOS binary — that's the accepted constraint for
@@ -59,9 +56,7 @@ enum TikTokAppConfig {
     /// RevenueCatConfig.apiKey). The truly-sensitive personal API
     /// key for the TikTok Ads Manager dashboard NEVER goes here;
     /// that stays in your TikTok dashboard / secrets manager.
-    ///
-    /// TODO(founder): drop the App Secret here.
-    static let appSecret = ""
+    static let appSecret = "TT0gDgUaT1C5GUPOvoHW8DWpSODdoWh0"
 
     /// All three values present + non-empty. SDK init short-circuits
     /// when this is false so DEBUG builds keep compiling + running
