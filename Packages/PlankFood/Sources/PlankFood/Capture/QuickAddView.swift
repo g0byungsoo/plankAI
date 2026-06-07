@@ -410,6 +410,13 @@ public struct QuickAddView: View {
             fiberG: nil,
             nutritionSource: nil
         )
+        // v1.0.7 QA fix (CohortCatalog drift): leave kcalLow / kcalHigh
+        // nil here so FoodLogPersister.persist falls back to summing
+        // item.kcal (exact curated value), not the band-bucket
+        // midpoint (which drifts 5-20 kcal off for several items —
+        // oatmeal 320→300, pizza 320→300, sweetgreen kale 520→500,
+        // etc.). The range display still uses item.kcalRangeDisplay
+        // at the row UI level; only the PERSISTED kcal is exact.
         let food = CapturedFood(
             items: [capturedItem],
             plateType: .single,
@@ -417,8 +424,8 @@ public struct QuickAddView: View {
             confidence: nil,
             needsSecondPhoto: false,
             secondPhotoHint: nil,
-            kcalLow: Double(item.kcalLow),
-            kcalHigh: Double(item.kcalHigh)
+            kcalLow: nil,
+            kcalHigh: nil
         )
         onLogged(food)
     }

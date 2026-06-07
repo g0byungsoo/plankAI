@@ -238,6 +238,32 @@ struct PlankAIApp: App {
         ])
         #endif
     }
+
+    /// v1.0.7 QA blocker 2: identify the current user in PostHog with
+    /// their Supabase user_id. Wired post-bootstrap + on every auth
+    /// change so anon→named upgrades unify in one PostHog Person.
+    /// Without this, every Apple/email upgrade creates a brand-new
+    /// distinct_id and the funnel splits cohorts on every signup.
+    ///
+    /// Called from `.onChange(of: auth.currentUser?.id)` and
+    /// `.onChange(of: auth.authMethod)` so it fires both on the
+    /// initial anon bootstrap and on signup-upgrade. Idempotent at
+    /// the PostHog side — repeated identify with the same id is a
+    /// no-op except for property merge.
+    @MainActor
+    static func identifyPostHogUser() {
+        guard let uid = AuthService.shared.currentUser?.id.uuidString else { return }
+        #if DEBUG
+        // Keep the dev-{vendorId} alias so internal builds don't
+        // pollute the production person graph.
+        return
+        #else
+        PostHogSDK.shared.identify(uid, userProperties: [
+            "auth_method": AuthService.shared.authMethod.rawValue
+        ])
+        #endif
+    }
+    nonisolated(unsafe) private static var analyticsBootstrapped_unused = false
     nonisolated(unsafe) private static var analyticsBootstrapped = false
 
     private static func registerBundledFonts() {
@@ -659,11 +685,18 @@ private struct RootView: View {
         .onChange(of: auth.currentUser?.id) { _, _ in
             // Fires on sign-in (different user_id) and sign-out (named -> anon).
             Task { await AppSync.shared.onAuthChanged(modelContext: modelContext) }
+            // v1.0.7 QA blocker 2 — keep PostHog distinct_id in sync
+            // with Supabase user_id so cross-device sessions + funnel
+            // cohorts unify in one Person.
+            PlankAIApp.identifyPostHogUser()
         }
         .onChange(of: auth.authMethod) { _, _ in
             // Fires on signup-upgrade (anon -> email/apple, same user_id).
             // Without this, retry/hydrate never run after upgrade.
             Task { await AppSync.shared.onAuthChanged(modelContext: modelContext) }
+            // Re-identify on upgrade so auth_method super-property
+            // is set and the merged Person picks up the new method.
+            PlankAIApp.identifyPostHogUser()
         }
     }
 

@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Auth
 
 // MARK: - BreathworkState
 //
@@ -28,9 +29,20 @@ final class BreathworkState {
     static let shared = BreathworkState()
 
     private enum Key {
-        static let total      = "breathwork.total_completed"
-        static let lastAt     = "breathwork.last_completed_at"
-        static let weeklyKeys = "breathwork.weekly_day_keys"
+        // v1.0.7 QA fix (cross-account leak): keys namespaced by the
+        // current user_id so sign-out → sign-in to a different account
+        // doesn't inherit prior user's breath count + day stamps.
+        // Anonymous users get the "anon" suffix until upgrade.
+        static func total(_ uid: String) -> String      { "breathwork.\(uid).total_completed" }
+        static func lastAt(_ uid: String) -> String     { "breathwork.\(uid).last_completed_at" }
+        static func weeklyKeys(_ uid: String) -> String { "breathwork.\(uid).weekly_day_keys" }
+
+        // Legacy unnamespaced keys (pre-v1.0.7). load() one-time
+        // migrates these into the current user's namespace then
+        // deletes them so the data follows the user that wrote it.
+        static let legacyTotal      = "breathwork.total_completed"
+        static let legacyLastAt     = "breathwork.last_completed_at"
+        static let legacyWeeklyKeys = "breathwork.weekly_day_keys"
     }
 
     private(set) var totalCompleted: Int = 0
@@ -40,6 +52,30 @@ final class BreathworkState {
     private(set) var weekDayKeys: Set<String> = []
 
     private init() { load() }
+
+    /// Resolve the current user's id for key namespacing. Returns
+    /// "anon" when no signed-in user is available (pre-bootstrap,
+    /// or fully anonymous device). Accessing AuthService.shared
+    /// from BreathworkState couples the two but the alternative
+    /// (passing userId into every method) is more invasive than
+    /// this release window allows.
+    private static func currentNamespace() -> String {
+        if let uid = AuthService.shared.currentUser?.id.uuidString {
+            return uid
+        }
+        return "anon"
+    }
+
+    /// Wipe the in-memory cache so the next read reloads from the
+    /// current user's UserDefaults namespace. Called from AppSync on
+    /// auth change so a sign-in to a different account doesn't keep
+    /// stale prior-account counts displayed in the UI.
+    func reloadForCurrentUser() {
+        totalCompleted = 0
+        lastCompletedAt = nil
+        weekDayKeys = []
+        load()
+    }
 
     // MARK: - Reads
 
@@ -84,18 +120,40 @@ final class BreathworkState {
 
     private func load() {
         let d = UserDefaults.standard
-        totalCompleted = d.integer(forKey: Key.total)
-        if let ts = d.object(forKey: Key.lastAt) as? Date { lastCompletedAt = ts }
-        if let arr = d.array(forKey: Key.weeklyKeys) as? [String] {
+        let ns = Self.currentNamespace()
+
+        // One-time migration: if legacy unnamespaced keys exist AND
+        // the namespaced keys for the current user are empty, copy
+        // the legacy values into the current namespace then delete
+        // the legacy keys. This preserves the breath count for the
+        // single-user device case (vast majority) and stops it from
+        // leaking to future accounts on the same device.
+        let hasNamespaced = d.object(forKey: Key.total(ns)) != nil
+        if !hasNamespaced, d.object(forKey: Key.legacyTotal) != nil {
+            let legacyTotal = d.integer(forKey: Key.legacyTotal)
+            let legacyLast = d.object(forKey: Key.legacyLastAt) as? Date
+            let legacyWeekly = (d.array(forKey: Key.legacyWeeklyKeys) as? [String]) ?? []
+            d.set(legacyTotal, forKey: Key.total(ns))
+            if let last = legacyLast { d.set(last, forKey: Key.lastAt(ns)) }
+            d.set(legacyWeekly, forKey: Key.weeklyKeys(ns))
+            d.removeObject(forKey: Key.legacyTotal)
+            d.removeObject(forKey: Key.legacyLastAt)
+            d.removeObject(forKey: Key.legacyWeeklyKeys)
+        }
+
+        totalCompleted = d.integer(forKey: Key.total(ns))
+        if let ts = d.object(forKey: Key.lastAt(ns)) as? Date { lastCompletedAt = ts }
+        if let arr = d.array(forKey: Key.weeklyKeys(ns)) as? [String] {
             weekDayKeys = pruned(Set(arr))
         }
     }
 
     private func persist() {
         let d = UserDefaults.standard
-        d.set(totalCompleted, forKey: Key.total)
-        if let ts = lastCompletedAt { d.set(ts, forKey: Key.lastAt) }
-        d.set(Array(weekDayKeys), forKey: Key.weeklyKeys)
+        let ns = Self.currentNamespace()
+        d.set(totalCompleted, forKey: Key.total(ns))
+        if let ts = lastCompletedAt { d.set(ts, forKey: Key.lastAt(ns)) }
+        d.set(Array(weekDayKeys), forKey: Key.weeklyKeys(ns))
     }
 
     /// Drops day keys older than 7 days. Pure — never reads UserDefaults,

@@ -1061,12 +1061,23 @@ struct HomeView: View {
                         PreRoutineView(workout: workout) {
                             // User tapped Start in pre-session. Single
                             // chokepoint for all start paths (home, browse,
-                            // post-ritual) — fires on every workout, unlike
-                            // the activation-only first_workout_start.
+                            // post-ritual) — fires on every workout.
                             Analytics.track(.workoutStart, properties: [
                                 "workout_name": workout.name,
                                 "duration_min": workout.estimatedDuration
                             ])
+                            // v1.0.7 QA fix: firstWorkoutStart fires here
+                            // (at actual start tap) rather than after
+                            // completion. Funnel previously reported 100%
+                            // start→complete because both events fired in
+                            // the same code path post-completion. Gated on
+                            // !hasCompletedFirstSession so it stays a
+                            // once-per-user activation event.
+                            if !hasCompletedFirstSession {
+                                Analytics.track(.firstWorkoutStart, properties: [
+                                    "workout_name": workout.name
+                                ])
+                            }
                             withAnimation(Motion.crossFade) {
                                 routineFlow = .session
                             }
@@ -1080,14 +1091,11 @@ struct HomeView: View {
                             let didMeet = SessionCompletion.didMeetThreshold(results)
                             let wasFirstSession = !hasCompletedFirstSession
                             // Funnel beats — only fire on first complete
-                            // session (≥70% threshold). _start is logged
-                            // *here* (post-finish) instead of on view mount
-                            // so we don't count users who bailed in the
-                            // first second.
+                            // session (≥70% threshold). firstWorkoutStart
+                            // now lives in the PreRoutineView start
+                            // callback (above) so it actually measures
+                            // start→complete conversion.
                             if didMeet && wasFirstSession {
-                                Analytics.track(.firstWorkoutStart, properties: [
-                                    "workout_name": workout.name
-                                ])
                                 Analytics.track(.firstWorkoutComplete, properties: [
                                     "workout_name": workout.name,
                                     "duration_seconds": Int(duration)

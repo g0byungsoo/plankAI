@@ -119,7 +119,11 @@ public final class FoodCaptureDispatcher {
     static func restaurantEstimate(cuisine: CuisineChip?) -> CapturedFood {
         let center: Double
         switch cuisine {
-        case .mexican:  center = 600
+        // v1.0.7 QA: Mexican bumped 600→750 — cohort Chipotle/Tex-Mex
+        // dinners (bowl + chips-and-guac, or 2-taco combo with rice
+        // and beans) avg 750-900 kcal published. 600±150 under-
+        // reported the upper end users actually hit.
+        case .mexican:  center = 750
         case .italian:  center = 850
         case .asian:    center = 750
         case .american: center = 700
