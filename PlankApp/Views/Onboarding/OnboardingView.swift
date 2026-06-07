@@ -206,7 +206,14 @@ struct OnboardingView: View {
     /// weekly weight-loss target + downstream calorie computation.
     /// Per the WL expert brief, this is the single highest-leverage
     /// question-level addition to the onboarding flow. New case 167.
-    @AppStorage("onboardingPaceChoice") private var paceChoice: String = "steady"
+    ///
+    /// 2026-06-07: default was "steady" — which violated the design
+    /// intent ("steady is recommended, not selected automatically"
+    /// per case 167's comment). Every fresh install saw "steady"
+    /// pre-selected. Now defaults to "" so case 167 starts unselected;
+    /// the "most chosen pace" caption on the steady row carries the
+    /// soft recommendation without anchoring the radio dot.
+    @AppStorage("onboardingPaceChoice") private var paceChoice: String = ""
 
     // v2-A4 cohort signal. GLP-1 status uses the AppStorage key reserved
     // in the prior v2 plan (onboarding_glp1_status, value space:
@@ -236,6 +243,13 @@ struct OnboardingView: View {
         foodRelationship = ""
         hormonalStage = ""
         glp1Status = ""
+        // 2026-06-07: the three Delta v7/v8 single-selects that landed
+        // after this reset was written. Each was leaking through as a
+        // pre-selected radio dot on re-runs of onboarding (founder
+        // bug report on "tried *everything* already?" — case 168).
+        triedBefore = ""
+        commitConfidence = ""
+        paceChoice = ""
     }
 
     // Confirmation badge state — fired only at strategic commits
