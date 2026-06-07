@@ -37,69 +37,90 @@ public struct HomeFoodCard: View {
 
     public var body: some View {
         Button(action: onTap) {
-            ZStack(alignment: .topTrailing) {
-                VStack(alignment: .leading, spacing: FoodTheme.Space.md) {
-                    header
+            VStack(alignment: .leading, spacing: FoodTheme.Space.md) {
+                header
 
-                    if todayKcal == 0 {
-                        emptyState
-                    } else {
-                        WeeklyAvgBar(
-                            todayKcal: todayKcal,
-                            dailyTarget: dailyTarget,
-                            weeklyAvgKcal: weeklyAvg
-                        )
+                if todayKcal == 0 {
+                    emptyState
+                } else {
+                    WeeklyAvgBar(
+                        todayKcal: todayKcal,
+                        dailyTarget: dailyTarget,
+                        weeklyAvgKcal: weeklyAvg
+                    )
 
-                        if isEveningReviewWindow {
-                            eveningReviewLine
-                        }
+                    if isEveningReviewWindow {
+                        eveningReviewLine
                     }
-
-                    Spacer(minLength: 0)
-
-                    addCTAPill
                 }
-                .padding(FoodTheme.Space.lg)
-                .frame(maxWidth: .infinity, alignment: .leading)
 
-                // v1.0.7 founder feedback round 5 (2026-06-06) per
-                // Lasta WL designer brief: cherries 56pt sticker
-                // top-right -12° overlap. The cute anchor for the
-                // food card. sparkleGlossy 14pt bottom-left adds
-                // the second beat (Lasta's two-sticker rule for the
-                // visual signature card). Both via Bundle.main
-                // since PlankFood is a leaf package.
+                Spacer(minLength: 0)
+
+                addCTAPill
+            }
+            .padding(FoodTheme.Space.lg)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                // v1.0.7 round 6 (founder: "pink card still needs to
+                // be beautified to have more highlight"). Solid
+                // accentSubtle base + a subtle top-down highlight
+                // gradient (cream→pink) adds dimensionality without
+                // crossing into garish. The gradient is anchored
+                // by the cherries top-right so the eye lands warm.
+                LinearGradient(
+                    stops: [
+                        .init(color: Color(red: 252/255, green: 232/255, blue: 234/255), location: 0.0), // soft cream-pink top
+                        .init(color: Color(red: 245/255, green: 213/255, blue: 216/255), location: 0.6)  // accentSubtle base
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .overlay(
+                // 1pt jeweledRose stroke at 35% opacity — frames the
+                // card without competing with the cocoa-12 hairlines
+                // elsewhere on Home.
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(Color(red: 122/255, green: 46/255, blue: 63/255).opacity(0.35), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            // v1.0.7 round 6 cherries-clip fix: sticker placed as
+            // .overlay AFTER clipShape so it can overhang the card
+            // edge without being clipped. The previous ZStack +
+            // clipShape combo was cutting the cherries at the
+            // corner. allowsHitTesting false so the whole card
+            // stays tappable.
+            .overlay(alignment: .topTrailing) {
                 Image("sticker_cherries", bundle: .main)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 56, height: 56)
-                    .rotationEffect(.degrees(-12))
-                    .opacity(0.95)
-                    .offset(x: 10, y: -12)
+                    .frame(width: 64, height: 64)
+                    .rotationEffect(.degrees(-14))
+                    .shadow(color: Color(red: 122/255, green: 46/255, blue: 63/255).opacity(0.15), radius: 4, x: 1, y: 2)
+                    .offset(x: 10, y: -14)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
-            .background(
-                // v1.0.7 Lasta treatment — solid accentSubtle
-                // (#F5D5D8) fill, 28pt radius. "Pink + outline reads
-                // weak" — solid pink fill carries the warmth so the
-                // cocoa pill below stays the sole CTA without
-                // chrome competition. The card becomes Home's
-                // visual signature.
-                Color(red: 245/255, green: 213/255, blue: 216/255)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             .overlay(alignment: .bottomLeading) {
                 Image("sticker_sparkle_glossy", bundle: .main)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 14, height: 14)
-                    .opacity(0.85)
+                    .frame(width: 18, height: 18)
+                    .opacity(0.95)
                     .padding(.leading, 14)
-                    .padding(.bottom, 12)
+                    .padding(.bottom, 14)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
+            // Hard offset shadow — Lasta's "scrapbook chrome on the
+            // visual signature card" — adds dimensionality + makes
+            // the card feel like a sticker the user could peel off.
+            .shadow(
+                color: Color(red: 122/255, green: 46/255, blue: 63/255).opacity(0.12),
+                radius: 0,
+                x: 3,
+                y: 3
+            )
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)

@@ -728,41 +728,400 @@ struct AnalyticsView: View {
             // Their content survives in the "more depth ↗" sheet
             // accessed at the bottom.
 
-            BecomingDashboardHero(
-                latestWeightKg: latestWeightKg,
-                startingWeightKg: startingWeightKg,
-                logs: weightLogs,
-                unit: weightUnit,
-                onLogWeight: { showLogWeight = true }
-            )
+            // v1.0.7 sharable bento (founder feedback round 6
+            // 2026-06-06). Two follow-up briefs: WL shareable-card
+            // designer + Gen-Z women WL user researcher.
+            // docs/becoming_bento_redesign_2026_06_06.md
+            //
+            // Founder Q1 verdict on hero choice: "percentage of
+            // users who log into weight is very small ... winning
+            // apps provide value with minimal input from users."
+            // So weight is NOT the hero. The identity affirmation
+            // (auto from onboarding Q140 + engagement days from
+            // session_logs) becomes the share-card hero. Weight
+            // delta survives as a conditional card that renders
+            // only when she's actually logged.
 
-            // 2-up secondary tiles — streak | plank PR.
-            HStack(alignment: .top, spacing: 16) {
-                BecomingStatTile(
-                    label: "STREAK",
-                    value: "\(streak.count)",
-                    hint: streak.count == 1 ? "day ♥" : "days ♥"
-                )
-                BecomingStatTile(
-                    label: "PLANK PR",
-                    value: plankPRDisplay,
-                    hint: bestPlankHold > 0 ? "personal best" : "log when ready"
-                )
+            becomingIdentityHeroCard
+
+            HStack(spacing: 12) {
+                becomingShownUpCard
+                becomingAdaptiveCard  // plank PR (powerful/strong) or lesson progress (others)
             }
-            .overlay(alignment: .top) {
-                Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+
+            if !weightLogs.isEmpty {
+                becomingWeightDeltaCard
             }
-            .padding(.top, 6)
 
-            // Identity close — Lasta's Q140/Q111 pattern. One
-            // sentence pulled from her onboarding answers, no card
-            // chrome. The emotional close of Becoming.
-            becomingIdentityLine
-
-            // "more depth ↗" link to the secondary detail sheet
-            // (barriers, plank curve, sessions log, activity calendar).
-            // One-viewport snapshot above; depth one tap away.
             moreDepthLink
+        }
+    }
+
+    // MARK: - v1.0.7 sharable bento cards
+
+    /// Card 1 — Identity hero. Full-width, accentSubtle pink fill,
+    /// 24pt corners, 1pt jeweledRose hairline border, hard offset
+    /// shadow (scrapbook chrome BACK per data-viz brief: "this
+    /// combination is the JeniFit visual moat"). Hero copy pulled
+    /// from onboardingIdentityFeeling (Q140) + engagement day count
+    /// (derived from session_logs, ZERO user input required).
+    /// flower3D 36pt top-right -12° rotation. Bottom-left wordmark
+    /// "*becoming* — since you started ♥" italic on punch word.
+    private var becomingIdentityHeroCard: some View {
+        let engagementDay = EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs)
+        let identity = currentUserRecord?.onboardingIdentityFeeling ?? ""
+        let resolvedIdentity = identity.isEmpty ? "steady" : identity
+        return ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("BECOMING")
+                    .font(Typo.statLabel)
+                    .kerning(0.66)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .padding(.top, 4)
+
+                (Text("becoming ")
+                    .font(.custom("Fraunces72pt-Light", size: 40))
+                 + Text(resolvedIdentity)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 40)))
+                    .foregroundStyle(Palette.cocoaPrimary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 6) {
+                    Text(engagementDay > 0 ? "day \(engagementDay)" : "day one")
+                        .font(.custom("DMSans-Medium", size: 14))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.cocoaSecondary)
+                    Text("♥")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.jeweledRose)
+                }
+                .padding(.top, 2)
+
+                Spacer(minLength: 0)
+
+                (Text("becoming")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11))
+                 + Text(" — since you started ♥")
+                    .font(.custom("DMSans-Regular", size: 11)))
+                    .foregroundStyle(Palette.cocoaSecondary.opacity(0.85))
+            }
+            .padding(Space.lg)
+            .frame(maxWidth: .infinity, minHeight: 180, alignment: .leading)
+        }
+        .background(Palette.accentSubtle)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(alignment: .topTrailing) {
+            Image(StickerName.flower3D.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 56, height: 56)
+                .rotationEffect(.degrees(-12))
+                .shadow(color: Palette.jeweledRose.opacity(0.12), radius: 4, x: 1, y: 2)
+                .offset(x: 8, y: -10)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+        .shadow(color: Palette.jeweledRose.opacity(0.12), radius: 0, x: 3, y: 3)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Becoming \(resolvedIdentity), day \(engagementDay)")
+    }
+
+    /// Card 2 — Shown up this week. Left half of the 2-up row.
+    /// pageIvory fill. "N days" Fraunces Light hero + dot-bloom
+    /// pearl row showing last 7 days. heartGlossy top-right.
+    /// Auto from session_logs, zero user input.
+    private var becomingShownUpCard: some View {
+        let weekly = thisWeekSessions.count
+        return ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("SHOWED UP")
+                    .font(Typo.statLabel)
+                    .kerning(0.66)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Text("\(weekly)")
+                    .font(.custom("Fraunces72pt-Light", size: 48))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.cocoaPrimary)
+                (Text(weekly == 1 ? "day " : "days ")
+                    .font(.custom("DMSans-Regular", size: 12))
+                 + Text("this week")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12)))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                Spacer(minLength: 0)
+                pearlRowDots
+            }
+            .padding(Space.md)
+            .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
+        }
+        .background(Palette.pageIvory)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Palette.hairlineCocoa, lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(alignment: .topTrailing) {
+            Image(StickerName.heartGlossy.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 32, height: 32)
+                .rotationEffect(.degrees(10))
+                .offset(x: 4, y: -6)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+
+    /// 7-dot pearl row. Filled jeweledRose for days she showed up,
+    /// accentSubtle ring for empty days. Reads as a row of pearls,
+    /// not a progress bar. Built from this-week active dates.
+    private var pearlRowDots: some View {
+        let cal = Calendar.current
+        let weekStart = cal.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now
+        let dotsActive: [Bool] = (0..<7).map { dayOffset in
+            let dayStart = cal.date(byAdding: .day, value: dayOffset, to: weekStart) ?? weekStart
+            return sessionLogs.contains { cal.isDate($0.completedAt, inSameDayAs: dayStart) }
+        }
+        return HStack(spacing: 4) {
+            ForEach(0..<7, id: \.self) { i in
+                Circle()
+                    .fill(dotsActive[i] ? Palette.jeweledRose : Color.clear)
+                    .overlay(
+                        Circle().stroke(dotsActive[i] ? Color.clear : Palette.accentSubtle, lineWidth: 1.5)
+                    )
+                    .frame(width: 8, height: 8)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    /// Card 3 — Adaptive secondary. Right half of the 2-up row.
+    /// For powerful/strong identity cohort: plank PR with mini-pills.
+    /// For everyone else: lesson progress ("lesson N of 14") with
+    /// cute progress dots. Lesson rail clears 75%+ vs workout 23%
+    /// per launch data, so it's the right alternate hook.
+    @ViewBuilder private var becomingAdaptiveCard: some View {
+        let identity = currentUserRecord?.onboardingIdentityFeeling ?? ""
+        let prefersPlank = (identity == "powerful" || identity == "strong") && bestPlankHold > 0
+        if prefersPlank {
+            plankPRBentoCard
+        } else {
+            lessonProgressBentoCard
+        }
+    }
+
+    private var plankPRBentoCard: some View {
+        ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("PLANK PR")
+                    .font(Typo.statLabel)
+                    .kerning(0.66)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Text(plankPRDisplay)
+                    .font(.custom("Fraunces72pt-Light", size: 48))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.cocoaPrimary)
+                Text("personal best")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                Spacer(minLength: 0)
+                plankMacaronStrip
+            }
+            .padding(Space.md)
+            .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
+        }
+        .background(Palette.bgPrimary)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(alignment: .topTrailing) {
+            Image(StickerName.sparkleGlossy.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 18, height: 18)
+                .padding(.top, 12)
+                .padding(.trailing, 12)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+
+    /// Macaron strip — last 3 plank holds as horizontal capsules.
+    /// Current PR solid jeweledRose, prior holds accentSubtle. Reads
+    /// as macarons in a row, not a bar chart.
+    private var plankMacaronStrip: some View {
+        let recent = sessionLogs.filter { $0.sessionType == "plank_benchmark" }.prefix(3).map(\.holdTime)
+        return HStack(spacing: 4) {
+            ForEach(0..<3, id: \.self) { i in
+                let isCurrent = i == 0 && recent.count > 0
+                Capsule()
+                    .fill(isCurrent ? Palette.jeweledRose : Palette.accentSubtle)
+                    .frame(width: 22, height: 8)
+                    .opacity(i < recent.count ? 1.0 : 0.3)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    private var lessonProgressBentoCard: some View {
+        let lessonDay = max(min(EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs), 14), 0)
+        let display = lessonDay > 0 ? "\(lessonDay)" : "—"
+        return ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("THE METHOD")
+                    .font(Typo.statLabel)
+                    .kerning(0.66)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                HStack(alignment: .lastTextBaseline, spacing: 4) {
+                    Text(display)
+                        .font(.custom("Fraunces72pt-Light", size: 48))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.cocoaPrimary)
+                    Text("/ 14")
+                        .font(.custom("DMSans-Regular", size: 16))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+                Text("of becoming")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                Spacer(minLength: 0)
+                lessonProgressBar(active: lessonDay, total: 14)
+            }
+            .padding(Space.md)
+            .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
+        }
+        .background(Palette.bgPrimary)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(alignment: .topTrailing) {
+            Image(StickerName.bowSatin.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 32, height: 32)
+                .rotationEffect(.degrees(8))
+                .offset(x: 4, y: -6)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private func lessonProgressBar(active: Int, total: Int) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Palette.accentSubtle).frame(height: 4)
+                Capsule().fill(Palette.jeweledRose)
+                    .frame(width: max(4, geo.size.width * CGFloat(active) / CGFloat(max(total, 1))), height: 4)
+            }
+        }
+        .frame(height: 4)
+        .accessibilityHidden(true)
+    }
+
+    /// Card 4 — Weight delta (CONDITIONAL — only when she's logged).
+    /// Quiet card, not hero — founder verdict: weight log engagement
+    /// is low per PostHog, so leading with it on a fresh user reads
+    /// as empty. Renders only when weightLogs is non-empty.
+    private var becomingWeightDeltaCard: some View {
+        let payload = weightDeltaPayload
+        return HStack(alignment: .center, spacing: Space.md) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("YOUR WEIGHT")
+                    .font(Typo.statLabel)
+                    .kerning(0.66)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                    Text(payload.direction)
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                        .foregroundStyle(payload.color)
+                    Text(payload.delta)
+                        .font(.custom("Fraunces72pt-Light", size: 32))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.cocoaPrimary)
+                    Text(weightUnit.label)
+                        .font(.custom("DMSans-Regular", size: 13))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                }
+                Text("since you started ♥")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.cocoaSecondary)
+            }
+            Spacer()
+            // Quiet sparkline
+            weightMiniSparkline
+                .frame(width: 80, height: 32)
+        }
+        .padding(Space.md)
+        .background(Palette.bgPrimary)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Palette.hairlineCocoa, lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .onTapGesture { showLogWeight = true }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Weight \(payload.direction) \(payload.delta) \(weightUnit.label) since you started. Tap to log.")
+    }
+
+    private var weightDeltaPayload: (delta: String, direction: String, color: Color) {
+        guard let s = startingWeightKg, let l = latestWeightKg, abs(l - s) >= 0.05 else {
+            return ("—", "steady", Palette.cocoaSecondary)
+        }
+        let absDisp = abs(weightUnit.display(fromKg: l - s))
+        let delta = String(format: "%.1f", absDisp)
+        if l < s {
+            return (delta, "down", Palette.jeweledRose.opacity(0.9))
+        }
+        return (delta, "up", Palette.cocoaSecondary)
+    }
+
+    private var weightMiniSparkline: some View {
+        GeometryReader { geo in
+            let points = weightSparkPoints(in: geo.size)
+            if points.count >= 2 {
+                Path { p in
+                    p.move(to: points[0])
+                    for pt in points.dropFirst() { p.addLine(to: pt) }
+                }
+                .stroke(Palette.jeweledRose.opacity(0.85), style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round))
+            }
+        }
+    }
+
+    private func weightSparkPoints(in size: CGSize) -> [CGPoint] {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: .now)!
+        let recent = weightLogs.filter { $0.loggedAt >= cutoff }.sorted { $0.loggedAt < $1.loggedAt }
+        guard recent.count >= 2 else { return [] }
+        let alpha: Double = 2.0 / (7.0 + 1.0)
+        var ema: [Double] = []
+        for (i, log) in recent.enumerated() {
+            if i == 0 { ema.append(log.weightKg) }
+            else { ema.append(alpha * log.weightKg + (1 - alpha) * ema[i - 1]) }
+        }
+        let minVal = ema.min() ?? 0
+        let maxVal = ema.max() ?? 1
+        let range = max(maxVal - minVal, 0.1)
+        let first = recent.first!.loggedAt.timeIntervalSinceReferenceDate
+        let last = recent.last!.loggedAt.timeIntervalSinceReferenceDate
+        let timeRange = max(last - first, 1)
+        return zip(recent, ema).map { (log, value) in
+            let x = CGFloat((log.loggedAt.timeIntervalSinceReferenceDate - first) / timeRange) * size.width
+            let y = CGFloat(1 - (value - minVal) / range) * size.height
+            return CGPoint(x: x, y: y)
         }
     }
 
