@@ -125,15 +125,21 @@ public struct HomeFoodCard: View {
             // 60% opacity on filled state preserved so logged data
             // breathes; full opacity on empty state lets the bowl
             // carry the "what you ate" semantic.
+            // v1.0.7 round 14: realistic wholefoods photo (TikTok
+            // creator-plate aesthetic) per founder's image-71
+            // reference. Top-down shot of avocado toast + tomato-
+            // feta yogurt toast + banana + cherry tomatoes +
+            // blueberries + soft-boiled egg on a white plate
+            // with marble background removed. No rotation since
+            // it's a photo, not a sticker.
             .overlay(alignment: .bottomTrailing) {
                 if UIImage(named: "illustration_food_phone_plate") != nil {
                     Image("illustration_food_phone_plate", bundle: .main)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 200, height: 180)
-                        .rotationEffect(.degrees(-4))
-                        .opacity(todayKcal > 0 ? 0.6 : 1.0)
-                        .offset(x: 18, y: 24)
+                        .frame(width: 220, height: 200)
+                        .opacity(todayKcal > 0 ? 0.55 : 1.0)
+                        .offset(x: 20, y: 28)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 }
