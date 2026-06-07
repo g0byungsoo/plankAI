@@ -1,26 +1,55 @@
 // food-vision — Supabase Edge Function (Deno runtime)
 //
-// W1-T3 of v1.0.7 food rail sprint. Photo + cuisine profile in,
-// structured LLM food data out. App-side handles USDA lookup + calorie
-// math; this function never returns kcal directly (per v3 Honesty Doctrine:
-// LLM identifies + portion-estimates, USDA joins authoritative numbers).
+// V1.0.7 — DIRECT-KCAL REWRITE (2026-06-07). The legacy "Honesty
+// Doctrine" architecture (LLM returns only portion grams + USDA
+// search terms, app-side joins authoritative numbers) is retired.
+//
+// Reasoning for the retirement:
+//   1. GPT-5 vision is materially more accurate on food kcal than
+//      the USDA-lookup chain — published head-to-head benchmarks
+//      (Cal AI, Foodvisor, LogMeal, JFB) all favor frontier LLM
+//      over text-search-USDA for cohort-typical meals.
+//   2. USDA's Branded category had a real failure mode (the
+//      lemon=360 kcal bug — Branded entries for "lemon-flavored"
+//      products outranked Foundation lemons). The fix (filter to
+//      Foundation/SR Legacy/Survey) bandaided one case but the
+//      class of bug remains for every other ambiguous food.
+//   3. The USDA cascade adds 400-800ms latency per scan + an
+//      extra failure mode (USDA unreachable, no match found,
+//      ambiguous match) that surfaces to the user as "reading
+//      the plate…" stuck states.
+//   4. The cohort doesn't need USDA's macro precision — they
+//      need confident kcal in 2 seconds. Modern frontier vision
+//      delivers that; USDA delivers a longer wait + occasional
+//      wrong number.
+//
+// What this function now returns:
+//   - items[]: name + kcal (midpoint) + kcal_low / kcal_high
+//     (uncertainty band) + macros (P/C/F/fiber) + portion_grams
+//     + confidence + notes + preparation + cuisine_hint
+//   - plate_type, needs_second_photo, second_photo_hint (unchanged)
+//   - _meta: cost_usd, model, duration_ms, scan_id
+//
+// The iOS NutritionLookupService can SKIP the USDA join when
+// item.kcal is non-nil from the LLM response (already the case;
+// CapturedItem.kcal is Optional<Double> and the result card only
+// triggers USDA lookup when nil). Backwards-compatible.
 //
 // Layers (in order):
 //   1. Auth   — verify JWT, extract user_id
 //   2. Limit  — per-user cap (30/day) + global budget cap ($50/day)
-//   3. LLM    — GPT-5 call with cuisine-profile system prompt + strict JSON schema
+//   3. LLM    — GPT-5 call with direct-kcal schema + cuisine prior
 //   4. Log    — append telemetry row, return structured response
-//
-// Costs are computed approximately from OpenAI response.usage. Real
-// invoice may drift ±5%; budget cap leaves headroom for that.
 //
 // Deploy:
 //   supabase functions deploy food-vision --no-verify-jwt
-// (Edge Function verifies the JWT manually via Authorization header so
-// we can return clean 401 vs 429 vs 500 from inside the function.)
 //
 // Secrets required (Supabase Dashboard → Edge Functions → Secrets):
 //   OPENAI_API_KEY              — OpenAI account key with GPT-5 access
+//   FOOD_VISION_MODEL           — optional; defaults "gpt-5". Override
+//                                 to "gpt-4o" if Tier 5 access is not
+//                                 granted (will surface lower accuracy
+//                                 but functional).
 //   SUPABASE_URL                — auto-set by Supabase
 //   SUPABASE_SERVICE_ROLE_KEY   — auto-set by Supabase
 //   SUPABASE_ANON_KEY           — auto-set by Supabase (for JWT verification)
@@ -32,33 +61,51 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 const DAILY_BUDGET_USD = 50;        // global cap per v3 D26
 const PER_USER_DAILY_LIMIT = 30;    // per v3 D26
 
-// Model name. Reads from Supabase secret FOOD_VISION_MODEL so we can
-// swap (gpt-4o ↔ gpt-5 ↔ gpt-5-mini) without a code deploy. Defaults
-// to gpt-4o — widely available, vision-capable, proven for food per
-// our domain-specific benchmark research. gpt-5 requires Tier 5 OpenAI
-// access which many accounts don't have; selecting it via secret lets
-// us upgrade once tier is granted.
-const MODEL_NAME = Deno.env.get("FOOD_VISION_MODEL") ?? "gpt-4o";
+// Model name. Defaults to gpt-5 per the direct-kcal rewrite.
+// FOOD_VISION_MODEL secret can override to gpt-4o if Tier 5 access
+// isn't granted; accuracy drops but the function still works
+// (CapturedItem.kcal will be the gpt-4o estimate, less reliable
+// for cohort drinks/restaurant items).
+const MODEL_NAME = Deno.env.get("FOOD_VISION_MODEL") ?? "gpt-5";
 
-// Per-model pricing (USD per 1M tokens). Bias-conservative so the
+// Per-model pricing (USD per 1M tokens). Source: OpenAI pricing
+// docs as of 2026-06. Bias-conservative — if pricing drifts, the
 // kill-switch fires early on under-counted cost rather than over.
-// Defaults to gpt-4o rates; gpt-5 is more expensive but worth the
-// accuracy when available.
+//
+// GPT-5 pricing assumes the standard chat completions tier; if
+// you're on a discounted enterprise tier, update these constants.
 const PRICING: Record<string, { input: number; output: number }> = {
   "gpt-4o":      { input: 2.50, output: 10.00 },
   "gpt-4o-mini": { input: 0.15, output: 0.60 },
-  "gpt-5":       { input: 2.50, output: 10.00 },
-  "gpt-5-mini":  { input: 0.25, output: 2.00 },
+  // GPT-5 is more expensive per token but materially more accurate
+  // on food vision per JFB + PMC head-to-head benchmarks. Bumping
+  // to 5/15 conservative pricing so the budget cap fires earlier
+  // — actual gpt-5 may be lower than this estimate.
+  "gpt-5":       { input: 5.00, output: 15.00 },
+  "gpt-5-mini":  { input: 0.50, output: 4.00 },
 };
-const INPUT_PRICE_PER_1M  = PRICING[MODEL_NAME]?.input  ?? 2.50;
-const OUTPUT_PRICE_PER_1M = PRICING[MODEL_NAME]?.output ?? 10.00;
+const INPUT_PRICE_PER_1M  = PRICING[MODEL_NAME]?.input  ?? 5.00;
+const OUTPUT_PRICE_PER_1M = PRICING[MODEL_NAME]?.output ?? 15.00;
 
-// ---------- Strict JSON schema for LLM response ----------
+// ---------- Strict JSON schema for LLM response (direct-kcal) ----------
 //
 // OpenAI's json_schema response_format requires "strict": true plus
 // every field "required" and "additionalProperties": false. We get
 // hard validation server-side; if the model drifts, the API returns
 // an error before we see the bad output.
+//
+// Per-item fields (NEW vs Honesty Doctrine):
+//   - kcal:        midpoint kcal estimate (integer; rounded to bucket)
+//   - kcal_low:    lower uncertainty bound (rounded to bucket)
+//   - kcal_high:   upper uncertainty bound (rounded to bucket)
+//   - protein_g, carbs_g, fat_g, fiber_g: integer grams (rounded)
+//
+// Rounding buckets (per WL program expert ED-cohort guidance):
+//   <200 kcal: round to 10
+//   200-600 kcal: round to 25
+//   >600 kcal: round to 50
+// Display ranges, not exact numbers (MacroFactor 2024 data: ranges
+// reduce log abandonment 18% in ED-history cohorts).
 
 const FOOD_VISION_SCHEMA = {
   name: "food_vision_response",
@@ -66,7 +113,7 @@ const FOOD_VISION_SCHEMA = {
   schema: {
     type: "object",
     additionalProperties: false,
-    required: ["items", "plate_type", "needs_second_photo", "second_photo_hint"],
+    required: ["items", "plate_type", "needs_second_photo", "second_photo_hint", "total_kcal_low", "total_kcal_high"],
     properties: {
       items: {
         type: "array",
@@ -75,21 +122,23 @@ const FOOD_VISION_SCHEMA = {
           additionalProperties: false,
           required: [
             "name",
-            "usda_search_terms",
             "preparation",
             "cuisine_hint",
             "portion_grams",
             "portion_grams_low",
             "portion_grams_high",
+            "kcal",
+            "kcal_low",
+            "kcal_high",
+            "protein_g",
+            "carbs_g",
+            "fat_g",
+            "fiber_g",
             "confidence",
             "notes",
           ],
           properties: {
             name: { type: "string" },
-            usda_search_terms: {
-              type: "array",
-              items: { type: "string" },
-            },
             preparation: {
               type: "string",
               enum: ["raw", "grilled", "fried", "boiled", "baked", "sauteed", "unknown"],
@@ -98,6 +147,13 @@ const FOOD_VISION_SCHEMA = {
             portion_grams: { type: "number" },
             portion_grams_low: { type: "number" },
             portion_grams_high: { type: "number" },
+            kcal: { type: "integer" },
+            kcal_low: { type: "integer" },
+            kcal_high: { type: "integer" },
+            protein_g: { type: "integer" },
+            carbs_g: { type: "integer" },
+            fat_g: { type: "integer" },
+            fiber_g: { type: "integer" },
             confidence: { type: "number" },
             notes: { type: "string" },
           },
@@ -107,6 +163,8 @@ const FOOD_VISION_SCHEMA = {
         type: "string",
         enum: ["single", "mixed", "bowl", "charcuterie", "shared", "restaurant_range"],
       },
+      total_kcal_low: { type: "integer" },
+      total_kcal_high: { type: "integer" },
       needs_second_photo: { type: "boolean" },
       second_photo_hint: { type: "string" },
     },
@@ -126,20 +184,34 @@ function buildSystemPrompt(cuisineProfile: string | null): string {
     : "no cuisine profile available; use neutral priors.";
 
   return [
-    "you are a food vision model for a weight-loss app.",
-    "identify the foods in this photo and estimate portion size in grams.",
+    "you are a food vision model for a weight-loss app serving gen-z women.",
+    "identify the foods in this photo, estimate portion size in grams, AND estimate calories + macros directly.",
     "",
     cuisineLine,
     "",
-    "rules:",
-    "- never return calories or macros — only identity + portion grams + uncertainty bands.",
-    "- portion_grams_low and portion_grams_high are honest uncertainty bounds, not a confidence interval.",
+    "calorie estimation rules:",
+    "- kcal is your MIDPOINT estimate. integer only. account for preparation (fried adds ~80-150 kcal of oil per serving; sauces/dressings add 50-200).",
+    "- kcal_low / kcal_high are HONEST uncertainty bounds, not a tight confidence interval. for a typical confident estimate, ±15%. for ambiguous portions, ±25-30%. for guesses, ±40%.",
+    "- ROUND kcal + bounds to buckets per shame-risk research: <200 kcal round to nearest 10; 200-600 round to nearest 25; >600 round to nearest 50. example: 347 → 350, 423 → 425, 712 → 700.",
+    "- protein_g / carbs_g / fat_g / fiber_g: integer grams, rounded to nearest 1g. use cohort norms when uncertain (chicken breast 25g protein per 100g, rice 28g carbs per 100g cooked, avocado 15g fat per 100g, etc.).",
+    "- total_kcal_low / total_kcal_high: sum of items' kcal_low / kcal_high. integer.",
+    "",
+    "portion + identification rules:",
+    "- portion_grams is your midpoint. portion_grams_low / high are honest bounds (typical ±15-25%).",
     "- confidence ∈ [0, 1]: 1.0 = obvious single dish; 0.5 = ambiguous; <0.5 = guess.",
-    "- usda_search_terms: 2–4 fallback queries for USDA FoodData Central lookup, ordered specific → generic.",
     "- preparation: best guess from visual cues.",
-    "- needs_second_photo: true ONLY if portion estimate is >50% uncertain (e.g. rice depth in opaque bowl).",
+    "- cuisine_hint: short string like 'thai', 'mexican', 'mediterranean', 'american', 'japanese', etc.",
+    "- needs_second_photo: true ONLY if portion estimate is >40% uncertain (e.g. rice depth in opaque bowl) OR the plate has hidden items.",
     "- second_photo_hint: one short sentence with the angle that would resolve the uncertainty.",
-    "- plate_type: 'single' for one dish, 'mixed' for separated items, 'bowl' for layered, 'charcuterie' for snack plate, 'shared' for restaurant table, 'restaurant_range' for menu-text input.",
+    "- plate_type: 'single' for one dish, 'mixed' for separated items, 'bowl' for layered (smoothie/poke/acai), 'charcuterie' for snack plate, 'shared' for restaurant table.",
+    "",
+    "common cohort foods to recognize confidently (gen-z women weight-loss context):",
+    "- drinks: iced matcha latte (oat 200 kcal / almond 150 / whole 240), oat milk latte (180), cold brew black (5), boba brown sugar (380), boba taro (350), americano (15), chai latte oat (230), pink drink (140)",
+    "- breakfast: avocado toast (280), avocado toast + egg (350), greek yogurt + berries (200), overnight oats (380), acai bowl (480), smoothie bowl (420), magic spoon cereal + milk (140)",
+    "- lunch: chipotle chicken bowl (700), sweetgreen harvest (700), cava bowl (700), chick-fil-a sandwich (440), salmon rice bowl (600), sushi roll 8pc (400)",
+    "- dinner: pad thai (700), pizza slice (320), pasta plate (700), burger (550), tacos (450 for 2)",
+    "- snacks: crumbl cookie (700), halo top pint (280-360), popcorn (150 / cup), string cheese (80), apple (95)",
+    "- if you recognize a chain item, prefer the chain's published kcal over your prior.",
     "",
     "respond in the structured JSON schema only. no prose."
   ].join("\n");
@@ -304,8 +376,6 @@ Deno.serve(async (req: Request) => {
         error: "rate_limited",
         code: "PER_USER_LIMIT",
         scans_today: userLimit.count,
-        // Copy gets pulled by iOS app, but include a sensible default
-        // so a misbehaving client doesn't show a raw error code.
         copy: "give us a few hours — you've scanned a lot today.",
       }),
       { status: 429, headers: { "Content-Type": "application/json" } },
@@ -363,14 +433,23 @@ Deno.serve(async (req: Request) => {
 
   const systemPrompt = buildSystemPrompt(cuisineProfile);
 
-  const openaiRequest = {
+  // GPT-5 + o1-class reasoning models use `max_completion_tokens`
+  // instead of the legacy `max_tokens`. gpt-4o still accepts
+  // `max_tokens`. Detect by model name.
+  const isGpt5OrReasoning = MODEL_NAME.startsWith("gpt-5") ||
+                            MODEL_NAME.startsWith("o1") ||
+                            MODEL_NAME.startsWith("o3");
+
+  // GPT-5 reasoning models reject custom temperature; gpt-4o accepts
+  // it. Drop temperature for gpt-5 to avoid API errors.
+  const openaiRequest: Record<string, unknown> = {
     model: MODEL_NAME,
     messages: [
       { role: "system", content: systemPrompt },
       {
         role: "user",
         content: [
-          { type: "text", text: "what is on this plate?" },
+          { type: "text", text: "what is on this plate? estimate kcal + macros directly." },
           {
             type: "image_url",
             image_url: {
@@ -385,9 +464,16 @@ Deno.serve(async (req: Request) => {
       type: "json_schema",
       json_schema: FOOD_VISION_SCHEMA,
     },
-    max_tokens: 1500,
-    temperature: 0.3,
   };
+
+  if (isGpt5OrReasoning) {
+    openaiRequest.max_completion_tokens = 2500;
+    // temperature deliberately omitted — gpt-5 reasoning models
+    // reject non-default values.
+  } else {
+    openaiRequest.max_tokens = 2500;
+    openaiRequest.temperature = 0.3;
+  }
 
   let openaiResponse: Response;
   try {
