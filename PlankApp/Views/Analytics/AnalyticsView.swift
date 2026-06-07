@@ -2589,12 +2589,14 @@ struct AnalyticsView: View {
                 }
             }
             nsvTile
-            // .stepCounter dropped from this row — steps shipped as a real
-            // tile above, no longer a "coming soon" chip. .foodLog drops out
-            // when FoodFlags.isEnabled because the real FoodWeekBentoTile
-            // above replaces it.
+            // 2026-06-07: .foodLog removed entirely (food scanning shipped
+            // in v1.0.7). Replaced with .foodScrapbook — Pinterest-coded
+            // curation layer that tests cohort interest before we commit
+            // build cost. When FoodFlags is disabled, also surface the
+            // foodScrapbook chip so the demand signal is collected even
+            // pre-food-flag flip.
             FutureRailRow(
-                rails: FoodFlags.isEnabled ? [.bodyScan] : [.foodLog, .bodyScan]
+                rails: [.foodScrapbook, .bodyScan]
             ) { presentedFutureRail = $0 }
                 .padding(.top, 2)
         }

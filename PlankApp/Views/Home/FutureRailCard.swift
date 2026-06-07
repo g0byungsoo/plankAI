@@ -17,8 +17,13 @@ import SwiftUI
 // your meals" — surveillance language Gen Z rejects).
 
 enum FutureRail: String, Identifiable {
-    case foodLog       = "food_log"
-    case stepCounter   = "step_counter"
+    // .foodLog removed 2026-06-07 — food scanning shipped in v1.0.7,
+    // no longer "coming soon". .stepCounter also removed — steps
+    // shipped in v1.0.6 and is already gated out of the HomeView
+    // callsite. New: .foodScrapbook — Pinterest-coded polaroid log
+    // layered on top of the v1.0.7 food rail. Tests cohort interest
+    // in the aesthetic-curation angle before we commit build cost.
+    case foodScrapbook = "food_scrapbook"
     case bodyScan      = "body_scan"
     case weeklyCheckIn = "weekly_check_in"
 
@@ -27,8 +32,7 @@ enum FutureRail: String, Identifiable {
     /// Full title — explainer sheet + accessibility label.
     var title: String {
         switch self {
-        case .foodLog:       return "food + jeni"
-        case .stepCounter:   return "steps + jeni"
+        case .foodScrapbook: return "food scrapbook"
         case .bodyScan:      return "body scan + jeni"
         case .weeklyCheckIn: return "weekly check-in photo"
         }
@@ -37,8 +41,7 @@ enum FutureRail: String, Identifiable {
     /// Short title for the compact home chip.
     var shortTitle: String {
         switch self {
-        case .foodLog:       return "food + jeni"
-        case .stepCounter:   return "steps"
+        case .foodScrapbook: return "scrapbook"
         case .bodyScan:      return "body scan"
         case .weeklyCheckIn: return "weekly photo"
         }
@@ -47,8 +50,10 @@ enum FutureRail: String, Identifiable {
     /// Brand sticker for the explainer hero (replaces SF Symbols).
     var sticker: StickerName {
         switch self {
-        case .foodLog:       return .peach
-        case .stepCounter:   return .sparkleGlossy
+        // .bowSatin is the most "scrapbook-handcrafted" reading
+        // sticker in the brand pack — matches washi-tape /
+        // ribbon-on-polaroid energy without being too literal.
+        case .foodScrapbook: return .bowSatin
         case .bodyScan:      return .butterflyRing
         case .weeklyCheckIn: return .cameraLineart
         }
@@ -56,8 +61,7 @@ enum FutureRail: String, Identifiable {
 
     var explainerEyebrow: String {
         switch self {
-        case .foodLog:       return "coming next"
-        case .stepCounter:   return "coming soon"
+        case .foodScrapbook: return "coming soon"
         case .bodyScan:      return "coming soon"
         case .weeklyCheckIn: return "coming soon"
         }
@@ -65,13 +69,13 @@ enum FutureRail: String, Identifiable {
 
     var explainerBody: String {
         switch self {
-        // Calorie tracking is the core demand (the Cal AI draw) — surfaced
-        // plainly. Stays Jeni-voiced (never "AI", per §5.1 CI rule) and
-        // keeps the ED-safety guardrail (no good-or-bad food labels, §10).
-        case .foodLog:
-            return "snap a photo of your plate and jeni does the rest. she counts the calories and tracks them for you, so there's no manual logging. just the numbers, never good-or-bad labels about what you eat."
-        case .stepCounter:
-            return "jeni keeps an eye on your steps in the background, no extra app to open. the little walks count too, and she'll notice the days you moved more."
+        // Food scrapbook — the cohort-aesthetic layer on top of the
+        // shipped food rail. Pinterest-coded curation, polaroid
+        // meals, washi-tape arrangements, captions. Anti-MFP-
+        // spreadsheet vibe. Voice locks held: lowercase, no
+        // diet-culture verbs, ED-safety (no good-or-bad labels).
+        case .foodScrapbook:
+            return "your meals as a soft scrapbook. each plate gets a polaroid, a sticker, a little note from your day. no spreadsheet. just a quiet record of how you eat, kept like a journal you'd actually open again."
         // Body scan is body-image sensitive — framed private, on-device, and
         // NSV ("the progress the scale misses"), never a score or comparison.
         case .bodyScan:
@@ -183,17 +187,17 @@ struct FutureRailExplainerSheet: View {
 
 #if DEBUG
 #Preview("rail row") {
-    FutureRailRow(rails: [.foodLog, .stepCounter, .weeklyCheckIn], onTap: { _ in })
+    FutureRailRow(rails: [.foodScrapbook, .bodyScan, .weeklyCheckIn], onTap: { _ in })
         .padding()
         .background(Palette.bgPrimary)
 }
 
-#Preview("food rail explainer") {
-    FutureRailExplainerSheet(rail: .foodLog, onClose: {})
+#Preview("scrapbook rail explainer") {
+    FutureRailExplainerSheet(rail: .foodScrapbook, onClose: {})
 }
 
-#Preview("steps rail explainer") {
-    FutureRailExplainerSheet(rail: .stepCounter, onClose: {})
+#Preview("body scan rail explainer") {
+    FutureRailExplainerSheet(rail: .bodyScan, onClose: {})
 }
 
 #Preview("photo rail explainer") {

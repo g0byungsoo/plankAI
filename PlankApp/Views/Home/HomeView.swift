@@ -777,13 +777,19 @@ struct HomeView: View {
                             .opacity(msgOpacity[5]).offset(y: msgOffset[5])
                             .padding(.horizontal, Space.screenPadding)
 
-                        // Future data features (vision: food log, weekly
-                        // check-in). One quiet line, not two stub cards —
-                        // still fires future_rail_tapped per rail so we keep
-                        // the Phase B/C demand signal (§8.5) without clutter.
-                        // .stepCounter dropped from this row — steps shipped
-                        // as a real card above, no longer "coming soon".
-                        FutureRailRow(rails: [.foodLog, .weeklyCheckIn]) { rail in
+                        // Future data features (Pinterest-coded scrapbook
+                        // layer for food, weekly check-in photo). One quiet
+                        // line, not two stub cards — still fires
+                        // future_rail_tapped per rail so we keep the Phase
+                        // B/C demand signal (§8.5) without clutter.
+                        //
+                        // 2026-06-07: .foodLog dropped (food scanning shipped
+                        // in v1.0.7). Replaced with .foodScrapbook — tests
+                        // cohort interest in the aesthetic-curation angle
+                        // (polaroid meals, washi-tape, captions) before we
+                        // commit build cost. .stepCounter still excluded
+                        // (steps shipped in v1.0.6).
+                        FutureRailRow(rails: [.foodScrapbook, .weeklyCheckIn]) { rail in
                             presentedFutureRail = rail
                         }
                         .padding(.horizontal, Space.screenPadding)
