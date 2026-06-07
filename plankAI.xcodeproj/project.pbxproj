@@ -4043,7 +4043,6 @@
 				12F5A6C130D8688B006211E1 /* ScanLiveActivity.swift */,
 				048F1D375BC518AA82A9535F /* JenifitWidgetsBundle.swift */,
 			);
-			name = JenifitWidgets;
 			path = JenifitWidgets;
 			sourceTree = "<group>";
 		};
@@ -4222,13 +4221,13 @@
 			mainGroup = 783186382F99E3110096138F;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */,
-				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */,
-				783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */,
+				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "Packages/PlankEngine" */,
+				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "Packages/PlankVoice" */,
+				783186712F99E7590096138F /* XCLocalSwiftPackageReference "Packages/PlankSync" */,
 				BAD000000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 				BAD000000000000000000080 /* XCRemoteSwiftPackageReference "lottie-ios" */,
 				78DE5B982FC2E689006B9BA4 /* XCRemoteSwiftPackageReference "posthog-ios" */,
-				78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "PlankFood" */,
+				78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "Packages/PlankFood" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 783186422F99E3110096138F /* Products */;
@@ -5744,7 +5743,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = plankAI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = AK7RQAKLYW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -5754,7 +5753,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.6;
+				MARKETING_VERSION = 1.0.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -5778,7 +5777,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = plankAI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = AK7RQAKLYW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -5788,7 +5787,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.6;
+				MARKETING_VERSION = 1.0.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -5872,19 +5871,19 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */ = {
+		7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "Packages/PlankEngine" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankEngine;
 		};
-		7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */ = {
+		7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "Packages/PlankVoice" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankVoice;
 		};
-		783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */ = {
+		783186712F99E7590096138F /* XCLocalSwiftPackageReference "Packages/PlankSync" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankSync;
 		};
-		78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "PlankFood" */ = {
+		78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "Packages/PlankFood" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankFood;
 		};
@@ -5932,7 +5931,7 @@
 		};
 		78A275D32FD17A8700E8A4BF /* PlankFood */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "PlankFood" */;
+			package = 78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "Packages/PlankFood" */;
 			productName = PlankFood;
 		};
 		BAD000000000000000000002 /* RevenueCat */ = {
