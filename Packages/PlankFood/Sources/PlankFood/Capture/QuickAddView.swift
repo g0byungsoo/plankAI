@@ -24,6 +24,7 @@ public struct QuickAddView: View {
     public let onDismiss: () -> Void
 
     @State private var selectedTile: QuickAddTile?
+    @State private var selectedCatalogItem: CatalogItem?
     @State private var searchText: String = ""
     @FocusState private var searchFocused: Bool
 
@@ -54,6 +55,13 @@ public struct QuickAddView: View {
                 searchResults
             }
             scanInsteadLink
+            // v1.0.7 round 19 (founder bug fix): primary "log it"
+            // commit button at the bottom of the screen, matching
+            // ImOutTonightView's pattern. Chips now select (highlight)
+            // rather than auto-log; the explicit log button gives the
+            // user feedback that the chip selection is intentional +
+            // a clear commit action. Disabled until a chip is picked.
+            logCommitButton
         }
         .padding(FoodTheme.Space.screenPadding)
         .background(FoodTheme.bgPrimary.ignoresSafeArea())
@@ -88,27 +96,71 @@ public struct QuickAddView: View {
     }
 
     @ViewBuilder private func chip(for item: CatalogItem) -> some View {
+        let isSelected = selectedCatalogItem == item
         Button {
-            Task { await logCatalogItem(item) }
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            selectedCatalogItem = isSelected ? nil : item
         } label: {
             HStack(spacing: 5) {
                 Text(item.emoji)
                     .font(.system(size: 13))
                 Text(item.name)
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(FoodTheme.textPrimary)
+                    .foregroundStyle(isSelected ? FoodTheme.bgPrimary : FoodTheme.textPrimary)
                     .lineLimit(1)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(FoodTheme.bgElevated)
+            .background(isSelected ? FoodTheme.textPrimary : FoodTheme.bgElevated)
             .overlay(
-                Capsule().stroke(FoodTheme.textPrimary.opacity(0.08), lineWidth: 0.5)
+                Capsule().stroke(FoodTheme.textPrimary.opacity(isSelected ? 0 : 0.08), lineWidth: 0.5)
             )
             .clipShape(Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(item.name), \(item.kcalRangeDisplay)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    /// Primary "log it" button at the bottom — commits the currently
+    /// selected chip. Disabled until a chip is selected; copy
+    /// changes to reflect state ("pick what you had" vs "log it").
+    @ViewBuilder private var logCommitButton: some View {
+        Button {
+            guard let item = selectedCatalogItem else { return }
+            Task { await logCatalogItem(item) }
+        } label: {
+            HStack(spacing: 6) {
+                if let item = selectedCatalogItem {
+                    Text(item.emoji)
+                        .font(.system(size: 14))
+                    Text("log ")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                     + Text(item.name)
+                        .font(.system(size: 16, weight: .semibold))
+                } else {
+                    Text("pick what you had")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+            }
+            .foregroundStyle(selectedCatalogItem == nil
+                             ? FoodTheme.textSecondary
+                             : FoodTheme.bgPrimary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(
+                Capsule().fill(
+                    selectedCatalogItem == nil
+                        ? FoodTheme.bgElevated
+                        : FoodTheme.textPrimary
+                )
+            )
+            .overlay(
+                Capsule().stroke(FoodTheme.textPrimary.opacity(selectedCatalogItem == nil ? 0.08 : 0), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(selectedCatalogItem == nil)
     }
 
     // MARK: - Subviews
@@ -242,8 +294,10 @@ public struct QuickAddView: View {
     }
 
     @ViewBuilder private func searchResultRow(_ item: CatalogItem) -> some View {
+        let isSelected = selectedCatalogItem == item
         Button {
-            Task { await logCatalogItem(item) }
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            selectedCatalogItem = isSelected ? nil : item
         } label: {
             HStack(spacing: FoodTheme.Space.md) {
                 Text(item.emoji)
@@ -259,16 +313,19 @@ public struct QuickAddView: View {
                         .foregroundStyle(FoodTheme.textSecondary)
                 }
                 Spacer(minLength: 0)
-                Image(systemName: "plus.circle.fill")
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 22))
-                    .foregroundStyle(FoodTheme.textPrimary)
+                    .foregroundStyle(isSelected ? FoodTheme.textPrimary : FoodTheme.textPrimary.opacity(0.3))
             }
             .padding(.vertical, 10)
             .padding(.horizontal, FoodTheme.Space.sm)
+            .background(isSelected ? FoodTheme.bgElevated : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(item.name), \(item.kcalRangeDisplay)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     @ViewBuilder private var tileGrid: some View {
