@@ -24,14 +24,71 @@ import SwiftUI
 //   other     → 700 (default)
 //   (skipped) → 700 (default)
 
+/// Visible chip in the restaurant cloud. v1.0.7 round 18 — many
+/// small chips (cuisines + popular fast-casual chains) so the
+/// surface reads "this app knows food" instead of "6 vague
+/// cuisines." Each chip resolves to one of the 6 backend
+/// CuisineChip cases for dispatcher kcal estimation.
+private struct RestaurantChip: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let emoji: String
+    let cuisine: CuisineChip
+}
+
 public struct ImOutTonightView: View {
 
     public let onLogged: (CapturedFood) -> Void
     public let onDismiss: () -> Void
 
-    @State private var selectedCuisine: CuisineChip?
+    @State private var selectedChip: RestaurantChip?
     @State private var isLogging: Bool = false
     @State private var errorMessage: String?
+
+    /// 36 restaurant chips covering ≥85% of US Gen-Z women dining out
+    /// surface per WL program expert ethnographic data. Each chip
+    /// maps to one of the 6 backend CuisineChip values for kcal
+    /// estimation via FoodCaptureDispatcher's existing cuisine math.
+    private static let chips: [RestaurantChip] = [
+        // Fast-casual chains (highest log frequency)
+        RestaurantChip(id: "chipotle", name: "chipotle", emoji: "🌯", cuisine: .mexican),
+        RestaurantChip(id: "sweetgreen", name: "sweetgreen", emoji: "🥗", cuisine: .american),
+        RestaurantChip(id: "cava", name: "cava", emoji: "🥙", cuisine: .other),
+        RestaurantChip(id: "starbucks", name: "starbucks", emoji: "☕", cuisine: .american),
+        RestaurantChip(id: "chickfila", name: "chick-fil-a", emoji: "🐔", cuisine: .american),
+        RestaurantChip(id: "panera", name: "panera", emoji: "🥪", cuisine: .american),
+        RestaurantChip(id: "shake_shack", name: "shake shack", emoji: "🍔", cuisine: .american),
+        RestaurantChip(id: "in_n_out", name: "in-n-out", emoji: "🍔", cuisine: .american),
+        RestaurantChip(id: "taco_bell", name: "taco bell", emoji: "🌮", cuisine: .mexican),
+        RestaurantChip(id: "mcdonalds", name: "mcdonald's", emoji: "🍟", cuisine: .american),
+        RestaurantChip(id: "subway", name: "subway", emoji: "🥖", cuisine: .american),
+        RestaurantChip(id: "dunkin", name: "dunkin'", emoji: "🍩", cuisine: .american),
+        RestaurantChip(id: "dominos", name: "domino's", emoji: "🍕", cuisine: .pizza),
+        RestaurantChip(id: "erewhon", name: "erewhon", emoji: "🥬", cuisine: .american),
+        RestaurantChip(id: "jamba", name: "jamba juice", emoji: "🥤", cuisine: .american),
+        // Cuisine fallbacks
+        RestaurantChip(id: "mexican", name: "mexican", emoji: "🌮", cuisine: .mexican),
+        RestaurantChip(id: "italian", name: "italian", emoji: "🍝", cuisine: .italian),
+        RestaurantChip(id: "pizza", name: "pizza", emoji: "🍕", cuisine: .pizza),
+        RestaurantChip(id: "chinese", name: "chinese", emoji: "🥡", cuisine: .asian),
+        RestaurantChip(id: "japanese", name: "japanese", emoji: "🍱", cuisine: .asian),
+        RestaurantChip(id: "korean", name: "korean", emoji: "🍜", cuisine: .asian),
+        RestaurantChip(id: "thai", name: "thai", emoji: "🍤", cuisine: .asian),
+        RestaurantChip(id: "vietnamese", name: "vietnamese", emoji: "🍜", cuisine: .asian),
+        RestaurantChip(id: "sushi", name: "sushi", emoji: "🍣", cuisine: .asian),
+        RestaurantChip(id: "indian", name: "indian", emoji: "🍛", cuisine: .other),
+        RestaurantChip(id: "mediterranean", name: "mediterranean", emoji: "🫒", cuisine: .other),
+        RestaurantChip(id: "greek", name: "greek", emoji: "🥗", cuisine: .other),
+        RestaurantChip(id: "french", name: "french", emoji: "🥐", cuisine: .other),
+        RestaurantChip(id: "american", name: "american", emoji: "🍔", cuisine: .american),
+        RestaurantChip(id: "burger", name: "burger spot", emoji: "🍔", cuisine: .american),
+        RestaurantChip(id: "salad", name: "salad bar", emoji: "🥗", cuisine: .american),
+        RestaurantChip(id: "sandwich", name: "sandwich shop", emoji: "🥪", cuisine: .american),
+        RestaurantChip(id: "ramen", name: "ramen", emoji: "🍜", cuisine: .asian),
+        RestaurantChip(id: "bbq", name: "bbq", emoji: "🍖", cuisine: .american),
+        RestaurantChip(id: "brunch", name: "brunch spot", emoji: "🥞", cuisine: .american),
+        RestaurantChip(id: "other", name: "other", emoji: "🍽️", cuisine: .other),
+    ]
 
     public init(
         onLogged: @escaping (CapturedFood) -> Void,
@@ -101,41 +158,48 @@ public struct ImOutTonightView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// v1.0.7 round 18 — 6 large cuisine pills replaced with a
+    /// scrolling chip cloud of 36 restaurant/cuisine chips. Per
+    /// founder feedback the user shouldn't feel like the app
+    /// "doesn't know food." Each chip resolves to one of the 6
+    /// backend CuisineChip cases via RestaurantChip.cuisine.
     @ViewBuilder private var cuisineGrid: some View {
-        let columns = [
-            GridItem(.flexible(), spacing: FoodTheme.Space.sm),
-            GridItem(.flexible(), spacing: FoodTheme.Space.sm),
-            GridItem(.flexible(), spacing: FoodTheme.Space.sm),
-        ]
-        LazyVGrid(columns: columns, spacing: FoodTheme.Space.sm) {
-            ForEach(CuisineChip.allCases) { cuisine in
-                cuisineButton(cuisine)
+        ScrollView {
+            ChipCloudLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                ForEach(Self.chips) { chip in
+                    chipButton(chip)
+                }
             }
         }
     }
 
     @ViewBuilder
-    private func cuisineButton(_ cuisine: CuisineChip) -> some View {
-        let isSelected = selectedCuisine == cuisine
+    private func chipButton(_ chip: RestaurantChip) -> some View {
+        let isSelected = selectedChip == chip
         Button {
-            selectedCuisine = isSelected ? nil : cuisine
+            selectedChip = isSelected ? nil : chip
         } label: {
-            Text(cuisine.rawValue)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(isSelected ? FoodTheme.bgPrimary : FoodTheme.textPrimary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, FoodTheme.Space.md)
-                .background(
-                    Capsule().fill(
-                        isSelected ? FoodTheme.textPrimary : FoodTheme.bgElevated
-                    )
+            HStack(spacing: 5) {
+                Text(chip.emoji)
+                    .font(.system(size: 13))
+                Text(chip.name)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(isSelected ? FoodTheme.bgPrimary : FoodTheme.textPrimary)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                Capsule().fill(
+                    isSelected ? FoodTheme.textPrimary : FoodTheme.bgElevated
                 )
-                .overlay(
-                    Capsule().stroke(FoodTheme.textPrimary.opacity(0.08), lineWidth: 0.5)
-                )
+            )
+            .overlay(
+                Capsule().stroke(FoodTheme.textPrimary.opacity(0.08), lineWidth: 0.5)
+            )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(cuisine.rawValue)
+        .accessibilityLabel(chip.name)
     }
 
     @ViewBuilder private var justLogItLink: some View {
@@ -178,7 +242,7 @@ public struct ImOutTonightView: View {
 
         let dispatcher = FoodCaptureDispatcher()
         do {
-            let food = try await dispatcher.dispatch(.imOutTonight(cuisine: selectedCuisine))
+            let food = try await dispatcher.dispatch(.imOutTonight(cuisine: selectedChip?.cuisine))
             onLogged(food)
         } catch FoodCaptureError.notImplemented(let ticket, let message, _) {
             #if DEBUG

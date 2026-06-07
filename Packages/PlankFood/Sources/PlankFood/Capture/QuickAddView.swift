@@ -38,17 +38,18 @@ public struct QuickAddView: View {
     }
 
     public var body: some View {
-        VStack(spacing: FoodTheme.Space.lg) {
+        VStack(spacing: FoodTheme.Space.md) {
             topBar
             header
             searchField
-            // v1.0.7 round 17: when search is non-empty, results
-            // replace the tile grid. Empty search keeps the
-            // existing 6-tile "what girls are having" grid.
+            // v1.0.7 round 18: large emoji tile grid replaced with
+            // dense chip cloud showing all 50 catalog items, per
+            // founder feedback: "i don't want users to feel there
+            // are not many options and this app is not complete yet
+            // feeling." Search filters the cloud in place.
             if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 cohortGridEyebrow
-                tileGrid
-                Spacer(minLength: 0)
+                chipCloudScroll
             } else {
                 searchResults
             }
@@ -69,6 +70,45 @@ public struct QuickAddView: View {
                 onCancel: { selectedTile = nil }
             )
         }
+    }
+
+    /// Scrolling chip cloud of all 50 catalog items. Variable-width
+    /// chips that wrap via ChipCloudLayout. Tap a chip to log
+    /// directly (no edit sheet — chip cloud prioritizes density +
+    /// speed; size customization is deferred to v1.0.7.1).
+    @ViewBuilder private var chipCloudScroll: some View {
+        ScrollView {
+            ChipCloudLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                ForEach(CohortCatalog.items) { item in
+                    chip(for: item)
+                }
+            }
+            .padding(.top, 6)
+        }
+    }
+
+    @ViewBuilder private func chip(for item: CatalogItem) -> some View {
+        Button {
+            Task { await logCatalogItem(item) }
+        } label: {
+            HStack(spacing: 5) {
+                Text(item.emoji)
+                    .font(.system(size: 13))
+                Text(item.name)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(FoodTheme.bgElevated)
+            .overlay(
+                Capsule().stroke(FoodTheme.textPrimary.opacity(0.08), lineWidth: 0.5)
+            )
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(item.name), \(item.kcalRangeDisplay)")
     }
 
     // MARK: - Subviews
