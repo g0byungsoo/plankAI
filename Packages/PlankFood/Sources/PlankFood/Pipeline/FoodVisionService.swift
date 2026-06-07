@@ -296,7 +296,7 @@ private struct ErrorBody: Decodable {
 
 // MARK: - VisionError
 
-public enum VisionError: Error, Sendable {
+public enum VisionError: Error, LocalizedError, Sendable {
     case notAuthenticated
     case rateLimited(copy: String)                                    // 429 PER_USER_LIMIT
     case budgetCapped(copy: String)                                    // 429 DAILY_BUDGET
@@ -304,6 +304,11 @@ public enum VisionError: Error, Sendable {
     case upstreamFailure(status: Int, detail: String?, code: String?) // 5xx or unexpected
     case parseError(detail: String)
     case networkError(underlying: Error)
+
+    /// LocalizedError bridge — uses the voice-locked userFacingCopy
+    /// for system bridging so NSError.localizedDescription returns
+    /// friendly copy instead of "(PlankFood.VisionError error N.)".
+    public var errorDescription: String? { userFacingCopy }
 
     /// User-facing copy following v5 voice locks (lowercase casual,
     /// no diet-culture vocab, anti-shame). Falls through to a generic

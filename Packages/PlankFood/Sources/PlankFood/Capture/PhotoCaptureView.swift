@@ -393,8 +393,21 @@ public struct PhotoCaptureView: View {
             // a card with only "log it" + "actually skip" because every
             // content branch was `if let item = food.items.first` and
             // items was empty).
-            if result.items.isEmpty && result.kcalLow == nil {
-                errorMessage = "couldn't see any food. try a brighter or closer angle?"
+            // v1.0.7 direct-kcal rewrite (2026-06-07): the new EF
+            // schema returns total_kcal_low / total_kcal_high as
+            // required Int fields, so empty-items scans now arrive
+            // with kcalLow = 0.0 instead of nil. The previous
+            // `kcalLow == nil` predicate stopped firing for that case
+            // and the empty result card rendered instead of the
+            // friendly "no food in frame" banner. Loosen to also
+            // match kcalLow == 0, which is the actual signature of a
+            // non-food image under the direct-kcal schema. The
+            // restaurant-range path always sets non-zero kcalLow so
+            // it stays unaffected.
+            let noFood = result.items.isEmpty
+                && (result.kcalLow == nil || result.kcalLow == 0)
+            if noFood {
+                errorMessage = "didn't see food in that one. try a closer angle or more light?"
                 FoodAnalytics.track(.scanFallbackFired, properties: ["reason": "empty_items"])
                 phaseTask?.cancel()
                 FoodScanActivity.end(handle: activityHandle)
@@ -456,30 +469,36 @@ public struct PhotoCaptureView: View {
             withAnimation(.easeOut(duration: 0.25)) {
                 camera.clearFrozenFrame()
             }
+        } catch let captureError as FoodCaptureError {
+            // v1.0.7 (2026-06-07) — pipeline / invalidInput paths.
+            // FoodCaptureError.errorDescription unwraps to the
+            // VisionError.userFacingCopy when present, so a 502 from
+            // the food-vision EF or a timeout from URLSession both
+            // surface as voice-locked friendly copy instead of the
+            // raw "PlankFood.FoodCaptureError error 2" leak the
+            // founder saw on a non-food image scan.
+            #if DEBUG
+            print("[PhotoCaptureView] capture failed: \(captureError)")
+            #endif
+            errorMessage = captureError.errorDescription
+                ?? "couldn't read your plate just now. try again?"
+            FoodAnalytics.track(.scanFallbackFired, properties: [
+                "reason": "capture_error",
+                "case": String(describing: captureError),
+            ])
+            phaseTask?.cancel()
+            FoodScanActivity.end(handle: activityHandle)
         } catch {
-            // 2026-06-06 — pull just the human-readable message via
-            // NSError.localizedDescription instead of dumping the
-            // entire Swift error description (which for a
-            // VisionError.networkError wraps the full URLSession
-            // Apple-error dictionary and reads as 20 lines of
-            // garbage). The console still gets the full thing via
-            // print so debugging stays sharp.
+            // Truly unexpected (non-FoodCaptureError, non-CameraError).
+            // Use the system localizedDescription — both VisionError
+            // and FoodCaptureError now conform to LocalizedError so
+            // this only fires for genuinely unknown error types.
             let ns = error as NSError
             #if DEBUG
-            print("[PhotoCaptureView] capture failed: \(error)")
-            // Map common URLSession codes to readable lines.
-            let friendly: String = {
-                switch ns.code {
-                case -1001: return "request timed out — the vision call took too long."
-                case -1009: return "no internet — check your connection."
-                case -1003, -1004: return "couldn't reach the vision server."
-                default:    return ns.localizedDescription
-                }
-            }()
-            errorMessage = "capture failed (\(ns.code)): \(friendly)"
-            #else
-            errorMessage = "couldn't read your plate just now. try again?"
+            print("[PhotoCaptureView] capture failed (unknown): \(error)")
             #endif
+            errorMessage = (error as? LocalizedError)?.errorDescription
+                ?? "couldn't read your plate just now. try again?"
             FoodAnalytics.track(.scanFallbackFired, properties: [
                 "reason": "capture_error",
                 "ns_error_code": ns.code,

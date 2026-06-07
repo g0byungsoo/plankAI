@@ -444,7 +444,7 @@ extension FoodCaptureDispatcher {
 
 // MARK: - FoodCaptureError
 
-public enum FoodCaptureError: Error, Sendable {
+public enum FoodCaptureError: Error, LocalizedError, Sendable {
     /// Pipeline not yet wired. Carries the sprint ticket reference so
     /// the UI can surface developer-facing copy in DEBUG (and
     /// fall-through to "give us a few hours" in Release).
@@ -457,6 +457,32 @@ public enum FoodCaptureError: Error, Sendable {
     /// Downstream service returned an error. Wraps the underlying
     /// error so call-sites can pattern-match on cause.
     case pipeline(underlying: Error)
+
+    /// User-facing error description per LocalizedError conformance.
+    /// Without this, NSError bridging produces "(PlankFood
+    /// .FoodCaptureError error N.)" which leaks the internal type
+    /// name. The PhotoCaptureView catch still pattern-matches on
+    /// each case for the best-fit copy; this is the fallback when
+    /// the error escapes into a generic catch or banner.
+    public var errorDescription: String? {
+        switch self {
+        case .notImplemented:
+            return "give us a few hours — we're catching our breath."
+        case .invalidInput:
+            return "something looked off with the photo. try once more?"
+        case .pipeline(let underlying):
+            // If the underlying error has its own user-facing
+            // description (VisionError now does), use that. Otherwise
+            // a generic gentle line.
+            if let vision = underlying as? VisionError {
+                return vision.userFacingCopy
+            }
+            if let localized = (underlying as? LocalizedError)?.errorDescription {
+                return localized
+            }
+            return "couldn't read your plate just now. try again?"
+        }
+    }
 }
 
 /// Carries the case-specific payload through a notImplemented error so
