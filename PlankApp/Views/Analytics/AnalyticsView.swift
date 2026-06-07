@@ -751,27 +751,27 @@ struct AnalyticsView: View {
             //   5-6. Plank PR + Lesson progress — 2-up
             //   7. More depth link
 
-            // v1.0.7 founder feedback round 9 (2026-06-06): "the
-            // becoming screen is too empty now ... can we spawn weight
-            // loss ios app expert and we try to add value to customers
-            // ... right now it's compacted but ... it doesn't look too
-            // useful and the jenifit design is gone."
+            // v1.0.7 founder feedback round 10 (2026-06-06):
+            // > "do you think we need this becoming powerful big font
+            // >  play necessary (as this give almost no value to users.)
+            // >  in the metrics as weight loss ios app, shouldn't we
+            // >  emphasize more calorie spent, gained?"
             //
-            // WL expert returned a value-dense 10-card plan; this
-            // commit ships 5 of the highest-leverage cards matching
-            // the founder's reference image:
-            //   1. Identity hero (Q140+Q111 data-driven)
-            //   2. 3-up streak strip (streak / workouts / min total)
-            //   3. WHO 150-min ring (educational + actionable)
-            //   4. Weight + trend (eye toggle, progress to goal,
-            //      butterflyRing back per WL expert)
-            //   5. BMI card (AHA 2021 framing — UNLOCKED)
-            // Existing depth modules (barriers, plank, sessions)
-            // stay accessible via the "more depth ↗" sheet at the
-            // bottom + via the existing bentoJourney path for
-            // flag-off users.
+            // Both expert briefs unanimous: kill the 40pt identity
+            // hero. WL design veteran: "brand poetry, not tool value.
+            // Cal AI / MFP / MacroFactor / WW all open on the answer
+            // to today's question, not a who-am-I splash." WL program
+            // expert: "Identity attached to evidence is adherence-
+            // driving; identity floating alone is decoration."
+            //
+            // Identity survives as a QUIET CAPTION above the streak
+            // strip (one line, italic-Fraunces on the Q140 punch
+            // word only, ~14pt). All viewport real estate previously
+            // burned on the 40pt hero is recovered.
+            //
+            // docs/becoming_calorie_integration_2026_06_06.md
 
-            becomingIdentityHero
+            becomingIdentityCaption
 
             becomingStreakStrip
 
@@ -783,6 +783,34 @@ struct AnalyticsView: View {
 
             moreDepthLink
         }
+    }
+
+    /// Identity as quiet caption — one line above the streak strip
+    /// (vs the previous 40pt hero that ate 30% of viewport). Per
+    /// program expert: "Identity attached to evidence is adherence-
+    /// driving." Q140 italic punch + Q111 motivation fragment
+    /// inline. No card chrome, no sticker — just a quiet voice
+    /// line that holds the brand register without burning real
+    /// estate.
+    private var becomingIdentityCaption: some View {
+        let identity = identityFeelingWord
+        let motivation = motivationFragment
+        let line: String = {
+            if let m = motivation {
+                return "becoming \(identity) — you said you wanted \(m) ♥"
+            }
+            return "becoming \(identity) — one session at a time ♥"
+        }()
+        return ItalicAccentText(
+            line,
+            italic: [identity, motivation].compactMap { $0 },
+            baseFont: .custom("DMSans-Regular", size: 14),
+            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 14),
+            color: Palette.cocoaSecondary,
+            alignment: .leading
+        )
+        .padding(.top, 4)
+        .padding(.bottom, 4)
     }
 
     /// Identity hero — Q140 identity feeling word in italic-Fraunces
