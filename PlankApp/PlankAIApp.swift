@@ -5,6 +5,7 @@ import PlankSync
 import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
 import RevenueCat
 import PostHog
+import TikTokBusinessSDK
 import os.log
 import ActivityKit
 
@@ -59,6 +60,15 @@ struct PlankAIApp: App {
         // service init) keeps the funnel intact from the very first
         // event (onboarding_start / paywall_view).
         Self.bootstrapAnalytics()
+
+        // TikTok Business SDK — runs after PostHog so PostHog still
+        // owns the in-app funnel; TikTok owns ad-attribution + SKAN.
+        // Auto-tracking left enabled (Install + Launch + 2DRetention +
+        // Purchase from StoreKit) since those ARE the CPI-bidder
+        // optimization signal. Short-circuits silently when the
+        // config still has placeholder values (development builds
+        // before secrets land).
+        Self.bootstrapTikTok()
 
         // Ensure Application Support directory exists before SwiftData tries to create the store
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -239,6 +249,52 @@ struct PlankAIApp: App {
         #endif
     }
 
+    /// Initialize the TikTok Business SDK for app-install attribution
+    /// from TikTok Ads Manager campaigns. Idempotent — guarded against
+    /// re-invocation the same way PostHog is. Silent no-op when
+    /// TikTokAppConfig still has placeholder values so the DEBUG
+    /// pre-launch flow keeps working before secrets land.
+    ///
+    /// What this enables:
+    /// - Install + Launch + 2DRetention + Purchase auto-tracking
+    ///   (the optimization signals TikTok's CPI bidder reads).
+    /// - SKAdNetwork postback chain owned by TikTok — no MMP in the
+    ///   app currently (no Adjust/AppsFlyer/Branch), so leaving
+    ///   SKAN ownership to the only SDK that handles it is correct.
+    ///
+    /// ATT (NSUserTrackingUsageDescription) is already prompted at
+    /// loader 30% in BuildingPlanLoadingView via
+    /// ATTrackingManager.requestTrackingAuthorization(). The TikTok
+    /// SDK reads the same IDFA once granted — no second prompt needed.
+    private static func bootstrapTikTok() {
+        guard !tiktokBootstrapped else { return }
+        guard let config = TikTokAppConfig.makeSdkConfig() else {
+            #if DEBUG
+            print("[TikTok] init skipped — TikTokAppConfig has placeholder values")
+            #endif
+            return
+        }
+        tiktokBootstrapped = true
+
+        #if DEBUG
+        // Marks every generated event as a test event in the
+        // TikTok Events Manager "Test Events" tab. Strip before
+        // shipping (the !DEBUG branch is the release path).
+        config.enableDebugMode()
+        config.setLogLevel(TikTokLogLevelVerbose)
+        #endif
+
+        TikTokBusiness.initializeSdk(config) { success, error in
+            #if DEBUG
+            if success {
+                print("[TikTok] SDK initialized")
+            } else {
+                print("[TikTok] SDK init failed: \(error?.localizedDescription ?? "unknown")")
+            }
+            #endif
+        }
+    }
+
     /// v1.0.7 QA blocker 2: identify the current user in PostHog with
     /// their Supabase user_id. Wired post-bootstrap + on every auth
     /// change so anon→named upgrades unify in one PostHog Person.
@@ -265,6 +321,7 @@ struct PlankAIApp: App {
     }
     nonisolated(unsafe) private static var analyticsBootstrapped_unused = false
     nonisolated(unsafe) private static var analyticsBootstrapped = false
+    nonisolated(unsafe) private static var tiktokBootstrapped = false
 
     private static func registerBundledFonts() {
         guard let urls = Bundle.main.urls(forResourcesWithExtension: "ttf", subdirectory: nil) else {

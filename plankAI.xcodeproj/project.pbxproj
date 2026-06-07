@@ -433,6 +433,7 @@
 		720E38DB2ECF21FDC30D0C5D /* prep_short_run_in_place.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0EA8FCC8933767F7D5C6E582 /* prep_short_run_in_place.m4a */; };
 		724ACFB3EFD5586EE434639D /* prep_full_neck_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 3960ECF53709701583CA342F /* prep_full_neck_stretch.m4a */; };
 		724C2E05CB3CE640AE982FD1 /* prep_full_side_split_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = A3BDD97A4B3E3CCB1A4D5149 /* prep_full_side_split_squat.m4a */; };
+		7274AA8F41098FE3FCA54633 /* TikTokAppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91A1D46CA0F7C20AE65D38AD /* TikTokAppConfig.swift */; };
 		7360BBC0CF901A66C6332A83 /* jeni_prep_full_seated_forward_fold.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 66524BCE4AEA0E46908E3013 /* jeni_prep_full_seated_forward_fold.m4a */; };
 		73B5764F1D37C5C44321ED90 /* matson_prep_short_stiff_leg_deadlift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 89F7F3AAFBCFD245EF9A823F /* matson_prep_short_stiff_leg_deadlift.m4a */; };
 		73ED318D2DD9981C5B2BE0A7 /* jeni_prep_full_alternating_superman.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8FED4F76BE7667920006AD16 /* jeni_prep_full_alternating_superman.m4a */; };
@@ -516,6 +517,7 @@
 		78519A3173DA2C272D30DFE2 /* jeni_prep_short_side_leg_jack.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BC7BC938B64F5C3450F63D14 /* jeni_prep_short_side_leg_jack.m4a */; };
 		785C1E38E46C268F4FE0ACBF /* jeni_prep_full_lying_glute_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 3D391E9C2376B4B278122BBD /* jeni_prep_full_lying_glute_stretch.m4a */; };
 		78A275D42FD17A8700E8A4BF /* PlankFood in Frameworks */ = {isa = PBXBuildFile; productRef = 78A275D32FD17A8700E8A4BF /* PlankFood */; };
+		78A275D72FD5901300E8A4BF /* TikTokBusinessSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 78A275D62FD5901300E8A4BF /* TikTokBusinessSDK */; };
 		78FDCD412FA9CFC70017F2CA /* hero.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 78FDCD402FA9CFC70017F2CA /* hero.mp4 */; };
 		7910EF26A6102B38EB3AF6AE /* jeni_prep_full_stiff_leg_deadlift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 020CAD751FFBC1C7E1ACF11E /* jeni_prep_full_stiff_leg_deadlift.m4a */; };
 		7982E6F6CF6455505BB6F8B5 /* jeni_prep_short_standing_side_bend.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D870229D5523CD5603CF8A65 /* jeni_prep_short_standing_side_bend.m4a */; };
@@ -1904,6 +1906,7 @@
 		91026BE7B9F95327A33D4E42 /* matson_prep_full_narrow_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_narrow_squat.m4a; sourceTree = "<group>"; };
 		9115CB62E5CA01838F840F66 /* prep_full_cow_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_cow_stretch.m4a; sourceTree = "<group>"; };
 		913577B4B401D8B6EC44E7BD /* jeni_prep_full_overhead_forward_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_overhead_forward_lunge.m4a; sourceTree = "<group>"; };
+		91A1D46CA0F7C20AE65D38AD /* TikTokAppConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TikTokAppConfig.swift; sourceTree = "<group>"; };
 		91E84E4D46E63C0BD85336B2 /* prep_full_wall_sit.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_wall_sit.m4a; sourceTree = "<group>"; };
 		921DA0BF8536793ED1705801 /* PreReviewSentimentSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PreReviewSentimentSheet.swift; sourceTree = "<group>"; };
 		929F1C6F5163AAB74A041814 /* jeni_prep_short_good_morning.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_good_morning.m4a; sourceTree = "<group>"; };
@@ -2581,6 +2584,7 @@
 				BAD000000000000000000003 /* RevenueCat in Frameworks */,
 				BAD000000000000000000022 /* Lottie in Frameworks */,
 				2B400CB71A2EA11DD255C185 /* PostHog in Frameworks */,
+				78A275D72FD5901300E8A4BF /* TikTokBusinessSDK in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3953,6 +3957,7 @@
 				BAD000000000000000000011 /* RevenueCatConfig.swift */,
 				1AEEF1C04BF7D0BC32892A79 /* PostHogAppConfig.swift */,
 				7F62F52E38284657D80B6B36 /* USDAConfig.swift */,
+				91A1D46CA0F7C20AE65D38AD /* TikTokAppConfig.swift */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -4191,6 +4196,7 @@
 				BAD000000000000000000081 /* Lottie */,
 				C1234A51095631DC061286BA /* PostHog */,
 				78A275D32FD17A8700E8A4BF /* PlankFood */,
+				78A275D62FD5901300E8A4BF /* TikTokBusinessSDK */,
 			);
 			productName = plankAI;
 			productReference = 783186412F99E3110096138F /* plankAI.app */;
@@ -4221,13 +4227,14 @@
 			mainGroup = 783186382F99E3110096138F;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "Packages/PlankEngine" */,
-				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "Packages/PlankVoice" */,
-				783186712F99E7590096138F /* XCLocalSwiftPackageReference "Packages/PlankSync" */,
+				7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */,
+				7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */,
+				783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */,
 				BAD000000000000000000001 /* XCRemoteSwiftPackageReference "purchases-ios" */,
 				BAD000000000000000000080 /* XCRemoteSwiftPackageReference "lottie-ios" */,
 				78DE5B982FC2E689006B9BA4 /* XCRemoteSwiftPackageReference "posthog-ios" */,
-				78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "Packages/PlankFood" */,
+				78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "PlankFood" */,
+				78A275D52FD5901300E8A4BF /* XCRemoteSwiftPackageReference "tiktok-business-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 783186422F99E3110096138F /* Products */;
@@ -5524,6 +5531,7 @@
 				0B7C775412FEF90FCAF14DC2 /* HomeReadingLine.swift in Sources */,
 				97588DAED21FAB070B4A9AB3 /* SundayCard.swift in Sources */,
 				1118FF316E9C79F2874B4E2E /* ScanActivityAttributes.swift in Sources */,
+				7274AA8F41098FE3FCA54633 /* TikTokAppConfig.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5754,6 +5762,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.7;
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-lc++",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -5788,6 +5800,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.7;
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-lc++",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -5871,25 +5887,33 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "Packages/PlankEngine" */ = {
+		7831866A2F99E5C60096138F /* XCLocalSwiftPackageReference "PlankEngine" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankEngine;
 		};
-		7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "Packages/PlankVoice" */ = {
+		7831866E2F99E73A0096138F /* XCLocalSwiftPackageReference "PlankVoice" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankVoice;
 		};
-		783186712F99E7590096138F /* XCLocalSwiftPackageReference "Packages/PlankSync" */ = {
+		783186712F99E7590096138F /* XCLocalSwiftPackageReference "PlankSync" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankSync;
 		};
-		78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "Packages/PlankFood" */ = {
+		78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "PlankFood" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/PlankFood;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		78A275D52FD5901300E8A4BF /* XCRemoteSwiftPackageReference "tiktok-business-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/tiktok/tiktok-business-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.6.1;
+			};
+		};
 		78DE5B982FC2E689006B9BA4 /* XCRemoteSwiftPackageReference "posthog-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/PostHog/posthog-ios";
@@ -5931,8 +5955,13 @@
 		};
 		78A275D32FD17A8700E8A4BF /* PlankFood */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "Packages/PlankFood" */;
+			package = 78A275D22FD16D9000E8A4BF /* XCLocalSwiftPackageReference "PlankFood" */;
 			productName = PlankFood;
+		};
+		78A275D62FD5901300E8A4BF /* TikTokBusinessSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 78A275D52FD5901300E8A4BF /* XCRemoteSwiftPackageReference "tiktok-business-ios-sdk" */;
+			productName = TikTokBusinessSDK;
 		};
 		BAD000000000000000000002 /* RevenueCat */ = {
 			isa = XCSwiftPackageProductDependency;
