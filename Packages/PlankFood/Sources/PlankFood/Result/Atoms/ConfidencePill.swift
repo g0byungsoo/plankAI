@@ -3,22 +3,22 @@ import SwiftUI
 
 // MARK: - ConfidencePill
 //
-// Per v5 D23 Honesty Doctrine + §Calorie scan Screen 3:
-// **uncertainty is in COPY, not in a percentage**.
+// Title: straightforward "N Calories" — founder direction 2026-06-07.
+// The earlier "around N" doubled with the Jeni line below the card
+// ("this is around N — fits") so the number appeared twice. Title
+// now carries the number cleanly; uncertainty/honesty stays in the
+// qualifier line + the Jeni interpretation underneath.
 //
-// "around 480, give or take a slice" — anti-CalAI signature.
-// Cal AI shows "85% confident" which reads as overconfident-tech.
-// "give or take" reads as honest-friend.
-//
-// Copy variants by uncertainty range (computed from
+// Qualifier line variants by uncertainty range (computed from
 // portionGramsLow/High / portionGrams ratio):
 //
 //   wide (>30% spread)   → "give or take a bit"
 //   medium (15-30%)      → "give or take a slice" / "give or take a sip"
 //   tight (<15%)         → "this looks right"
 //
-// The kcal centerpiece value is the headline. The qualifier line
-// below it carries the honesty.
+// Why "Calories" not "cal": founder direction. Capital C matches
+// how the cohort sees it on packaging + CalAI/competitor apps —
+// recognizable unit, no parsing required.
 
 public struct ConfidencePill: View {
 
@@ -41,7 +41,7 @@ public struct ConfidencePill: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("around \(Int(kcal.rounded()))")
+            Text("\(Int(kcal.rounded())) Calories")
                 .font(.custom("Fraunces72pt-SemiBold", size: 28))
                 .foregroundStyle(FoodTheme.textPrimary)
 
@@ -50,7 +50,7 @@ public struct ConfidencePill: View {
                 .foregroundStyle(FoodTheme.textSecondary)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("around \(Int(kcal.rounded())) calories, \(qualifierCopy)")
+        .accessibilityLabel("\(Int(kcal.rounded())) calories, \(qualifierCopy)")
     }
 
     // MARK: - Copy

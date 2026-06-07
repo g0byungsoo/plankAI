@@ -368,13 +368,22 @@ public struct SingleDishCard: View {
     /// when the upstream pipeline doesn't inject anything custom.
     ///
     /// Voice locked: no banned vocabulary, italic on punch word,
-    /// heart as terminal punctuation.
+    /// heart as terminal punctuation. Kcal-adaptive so Jeni's
+    /// register matches the size of the food (a lemon doesn't get
+    /// the same "totally fits" line as a Chipotle bowl). Founder
+    /// rewrite 2026-06-07 — dropped the kcal number from the line
+    /// (it's already in the title above) and ditched "easy yes if
+    /// you want it" (read as marketing-y, not friend-y).
     static func synthesizeJeniLine(for food: CapturedFood) -> String? {
         guard food.items.first != nil else { return nil }
-        if let kcal = food.items.first?.kcal {
-            return "this is around \(Int(kcal.rounded())) — *fits*. easy yes if you want it. ♥"
+        guard let kcal = food.items.first?.kcal else {
+            return "this *works* ♥"
         }
-        return "this *fits*. easy yes if you want it. ♥"
+        switch kcal {
+        case ..<100:        return "barely *counts* ♥"
+        case 100..<500:     return "totally *fits* ♥"
+        default:            return "this *works* ♥"
+        }
     }
 }
 
