@@ -257,23 +257,33 @@ struct OnboardingOptionCard: View {
     let isSelected: Bool
     let action: () -> Void
 
+    /// v1.0.7 (2026-06-07): when both icon and sticker are nil, render
+    /// the card in compact mode — no decorative circle, shorter min
+    /// height, tighter vertical padding. Without this, callers like
+    /// case 169 (cuisine multi-pick with 8 options) overflow the
+    /// screen: 8 cards × 72pt + chrome pushes the title under the
+    /// status bar and the Continue button below the visible area.
+    private var isCompact: Bool { icon == nil && sticker == nil }
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: Space.md) {
-                ZStack {
-                    Circle()
-                        .fill(Palette.accentSubtle)
-                        .frame(width: 44, height: 44)
-                    if let sticker {
-                        Image(sticker.assetName)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 28, height: 28)
-                            .opacity(sticker.style.opacity)
-                    } else if let icon {
-                        Image(systemName: icon)
-                            .font(.system(size: 22, weight: .regular))
-                            .foregroundStyle(Palette.accent)
+                if !isCompact {
+                    ZStack {
+                        Circle()
+                            .fill(Palette.accentSubtle)
+                            .frame(width: 44, height: 44)
+                        if let sticker {
+                            Image(sticker.assetName)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 28, height: 28)
+                                .opacity(sticker.style.opacity)
+                        } else if let icon {
+                            Image(systemName: icon)
+                                .font(.system(size: 22, weight: .regular))
+                                .foregroundStyle(Palette.accent)
+                        }
                     }
                 }
 
@@ -306,8 +316,8 @@ struct OnboardingOptionCard: View {
                 }
             }
             .padding(.horizontal, Space.md)
-            .padding(.vertical, Space.md)
-            .frame(minHeight: 72)
+            .padding(.vertical, isCompact ? Space.sm : Space.md)
+            .frame(minHeight: isCompact ? 52 : 72)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Palette.bgElevated, in: RoundedRectangle(cornerRadius: Radius.md))
             .overlay(
