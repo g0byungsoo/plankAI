@@ -112,32 +112,28 @@ public struct HomeFoodCard: View {
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
-            // v1.0.7 round 11 — Grok Imagine illustration slot per
-            // the WL illustration designer brief. Phone-over-plate
-            // 3D glossy sticker, 128×112pt, anchored bottom-right
-            // with overhang (+14 x, +18 y) and -8° rotation to
-            // echo the cherries top-right (-12°). Z-order: below
-            // the "+ add ↗" pill (the pill sits bottom-left), same
-            // plane as cherries.
+            // v1.0.7 round 13 (founder: "plate needs to be much
+            // bigger, get rid of the phone"). Regenerated via Grok
+            // Imagine as a phone-less bowl-only composition (large
+            // ruffled ivory ceramic bowl + acai + berries + granola
+            // + coconut flakes). Bumped from 128×112pt to 200×180pt
+            // and tightened overhang so it reads as the visual
+            // signature of the card. Reduced rotation -8° → -4°
+            // since the bowl is now the hero (not a decorative
+            // accent).
             //
-            // Asset slot: drop a Grok-generated image at
-            // Assets.xcassets/illustration_food_phone_plate.imageset/
-            // Until the asset exists, UIImage(named:) check on the
-            // host bundle returns nil and the overlay no-ops —
-            // safe to ship the slot ahead of the image.
-            //
-            // 60% opacity on filled state (todayKcal > 0), full
-            // opacity on empty state — illustration is the card's
-            // brand signature on empty, fades to backdrop on data.
+            // 60% opacity on filled state preserved so logged data
+            // breathes; full opacity on empty state lets the bowl
+            // carry the "what you ate" semantic.
             .overlay(alignment: .bottomTrailing) {
                 if UIImage(named: "illustration_food_phone_plate") != nil {
                     Image("illustration_food_phone_plate", bundle: .main)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 128, height: 112)
-                        .rotationEffect(.degrees(-8))
+                        .frame(width: 200, height: 180)
+                        .rotationEffect(.degrees(-4))
                         .opacity(todayKcal > 0 ? 0.6 : 1.0)
-                        .offset(x: 14, y: 18)
+                        .offset(x: 18, y: 24)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 }
