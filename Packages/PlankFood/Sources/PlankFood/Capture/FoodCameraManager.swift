@@ -96,7 +96,9 @@ public final class FoodCameraManager: NSObject {
     /// atomic; worst case the freeze grabs the frame from one tick
     /// earlier (~16ms staleness) which is imperceptible.
     private nonisolated(unsafe) var latestPixelBuffer: CVPixelBuffer?
-    private let ciContext = CIContext(options: nil)
+    /// nonisolated because the freeze decode runs off main per Phase
+    /// R.4 — CIContext is thread-safe so this is fine.
+    private nonisolated let ciContext = CIContext(options: nil)
     /// Holds the continuation so the async capture API can resume from
     /// the AVCapturePhotoCaptureDelegate callback.
     private var pendingCapture: CheckedContinuation<Data, Error>?
@@ -373,23 +375,35 @@ public final class FoodCameraManager: NSObject {
         return jpeg
     }
 
-    /// v1.0.8 Phase L (2026-06-08) — synchronous instant freeze
-    /// backed by `latestPixelBuffer`. The previous Phase J version
-    /// used `previewLayer.render(in:)`, which doesn't work for
-    /// AVCaptureVideoPreviewLayer (its content is GPU/IOSurface, not
-    /// CALayer backing store) — the resulting image was blank, the
-    /// overlay was invisible, and the user saw the live preview keep
-    /// moving for 1-2s until the JPEG decode landed. Now we convert
-    /// the most recent VideoDataOutput frame to a UIImage in ~10ms.
-    @discardableResult
-    public func freezeInstantly() -> Bool {
-        guard let pb = latestPixelBuffer else { return false }
-        let ciImage = CIImage(cvPixelBuffer: pb)
-        guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else {
-            return false
+    /// v1.0.8 Phase R.4 (2026-06-08) — freeze decode now runs on a
+    /// userInitiated background queue, NOT synchronously on main.
+    /// Founder: "i think there's a instant lag when i click 'scan'."
+    ///
+    /// Root cause: CIImage→CGImage→UIImage decode runs ~30-60ms even
+    /// with a cached CIContext, and previously blocked the main thread
+    /// inside the Button closure. The SwiftUI render that picks up
+    /// `isPreviewFrozen=true` couldn't fire until after the decode
+    /// finished, so tap → visible freeze had a 30-60ms gap.
+    ///
+    /// Now the heavy decode is dispatched off main. The visible freeze
+    /// (UIView.snapshotView via freezePreview) happens on the very
+    /// next SwiftUI render tick (~16ms). The decoded UIImage for the
+    /// downstream result-phase polaroid lands ~30-60ms later — by
+    /// then the inline result card hasn't even appeared yet, so the
+    /// async landing is invisible.
+    public func freezeInstantly() {
+        guard let pb = latestPixelBuffer else { return }
+        let ctx = ciContext
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let ciImage = CIImage(cvPixelBuffer: pb)
+            guard let cgImage = ctx.createCGImage(ciImage, from: ciImage.extent) else {
+                return
+            }
+            let img = UIImage(cgImage: cgImage)
+            DispatchQueue.main.async {
+                self?.frozenFrame = img
+            }
         }
-        self.frozenFrame = UIImage(cgImage: cgImage)
-        return true
     }
 
     /// v1.0.8 Phase O — visually freeze the live preview via a

@@ -43,38 +43,53 @@ struct NutritionCarousel: View {
 
     private let pageCount = 3
 
+    /// v1.0.8 Phase R.4 — carousel container height is now driven by
+    /// the parent (resultModeOverlay's GeometryReader). Lets the
+    /// carousel fill the available vertical room so slide 2's stacked
+    /// cards aren't cut at the top and bottom edges. Falls back to
+    /// 500pt if no explicit height passed.
+    let carouselHeight: CGFloat
+
+    init(result: CapturedFood, carouselHeight: CGFloat = 500) {
+        self.result = result
+        self.carouselHeight = carouselHeight
+    }
+
     var body: some View {
-        VStack(spacing: 12) {
-            TabView(selection: $currentPage) {
-                MealSummaryCard(result: result)
-                    .padding(.horizontal, 4)
-                    .tag(0)
-
-                // v1.0.8 Phase R.2 — slide 2 is now a SCROLLABLE
-                // packed card containing 3 stacked sections (daily
-                // totals, lifestyle scores, nutrient breakdown) per
-                // founder direction: "the second slide packed like
-                // this." Vertical drag scrolls the sections; horizontal
-                // drag still swipes the carousel.
-                PackedDailyCard(
-                    result: result,
-                    kcalTarget: kcalTarget,
-                    proteinTarget: proteinTarget
-                )
+        // v1.0.8 Phase R.4 — dots overlay inside the carousel frame at
+        // the bottom, not below it. Founder direction: "carousel dots
+        // on the bottom layer of card (consistent for all 3 slides)."
+        // ZStack(alignment: .bottom) pins the dots to the carousel's
+        // bottom edge regardless of card content size, so all 3 slides
+        // show dots at the exact same vertical position.
+        TabView(selection: $currentPage) {
+            MealSummaryCard(result: result)
                 .padding(.horizontal, 4)
-                .tag(1)
+                .padding(.bottom, 28)  // room for dots overlay
+                .tag(0)
 
-                JeniEvaluationCard(result: result)
-                    .padding(.horizontal, 4)
-                    .tag(2)
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 360)
+            PackedDailyCard(
+                result: result,
+                kcalTarget: kcalTarget,
+                proteinTarget: proteinTarget
+            )
+            .padding(.horizontal, 4)
+            .padding(.bottom, 28)
+            .tag(1)
 
+            JeniEvaluationCard(result: result)
+                .padding(.horizontal, 4)
+                .padding(.bottom, 28)
+                .tag(2)
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .frame(height: carouselHeight)
+        .overlay(alignment: .bottom) {
             PageDotsIndicator(
                 count: pageCount,
                 currentIndex: currentPage
             )
+            .padding(.bottom, 10)
         }
     }
 
@@ -429,16 +444,25 @@ private struct JeniEvaluationCard: View {
     let result: CapturedFood
 
     var body: some View {
+        // v1.0.8 Phase R.4 — colors moved off hot pink onto JeniFit's
+        // brand rose. Founder: "the color of words have hot pink color.
+        // can we keep jenifit's theme font color here?"
+        //
+        // Hot pink (#FF13F0) is reserved for the camera-mode signal
+        // (rotating border + shutter ring + log-it CTA + share-target
+        // chips). Inside the result cards we stay in the brand palette:
+        // FoodTheme.textPrimary (cocoa) for prose, FoodTheme.accent
+        // (#C4677A rose) for emphasis spots.
         ZStack(alignment: .topTrailing) {
             CarouselCardShell(title: nil) {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 6) {
                         Image(systemName: "sparkle")
                             .font(.system(size: 12))
-                            .foregroundStyle(Color(red: 1.0, green: 0.075, blue: 0.94))
+                            .foregroundStyle(FoodTheme.accent)
                         Text("jeni says")
                             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                            .foregroundStyle(Color(red: 1.0, green: 0.075, blue: 0.94))
+                            .foregroundStyle(FoodTheme.accent)
                     }
 
                     Text(headline)
@@ -460,12 +484,6 @@ private struct JeniEvaluationCard: View {
                         .frame(height: 1)
                         .padding(.vertical, 2)
 
-                    // v1.0.8 Phase R.2 — richer last slide. List the
-                    // scanned items so the card carries real recall:
-                    // "what's on my plate today" — voice signal +
-                    // ownership reinforce. Plus a vibe-tag pill
-                    // (warming / energizing / comforting) derived from
-                    // macro signature.
                     VStack(alignment: .leading, spacing: 8) {
                         Text("on your plate")
                             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
@@ -475,8 +493,7 @@ private struct JeniEvaluationCard: View {
                             ForEach(displayItems, id: \.self) { item in
                                 HStack(spacing: 8) {
                                     Circle()
-                                        .fill(Color(red: 1.0, green: 0.075, blue: 0.94)
-                                            .opacity(0.55))
+                                        .fill(FoodTheme.accent.opacity(0.55))
                                         .frame(width: 4, height: 4)
                                     Text(item)
                                         .font(.system(size: 13))
@@ -496,10 +513,6 @@ private struct JeniEvaluationCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            // Small decorative sticker — flower3D, slight rotation,
-            // overhanging the top-right corner per the scrapbook chrome
-            // family. Falls back to a sparkle SF Symbol if the asset
-            // isn't bundled.
             decorativeSticker
                 .offset(x: 8, y: -8)
         }
@@ -517,7 +530,7 @@ private struct JeniEvaluationCard: View {
         } else {
             Image(systemName: "sparkles")
                 .font(.system(size: 20))
-                .foregroundStyle(Color(red: 1.0, green: 0.075, blue: 0.94))
+                .foregroundStyle(FoodTheme.accent)
                 .rotationEffect(.degrees(-12))
         }
     }
@@ -887,10 +900,10 @@ struct ShareJeniBlock: View {
             HStack(spacing: 6 * scale) {
                 Image(systemName: "sparkle")
                     .font(.system(size: 12 * scale))
-                    .foregroundStyle(Color(red: 1.0, green: 0.075, blue: 0.94))
+                    .foregroundStyle(FoodTheme.accent)
                 Text("jeni says")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13 * scale))
-                    .foregroundStyle(Color(red: 1.0, green: 0.075, blue: 0.94))
+                    .foregroundStyle(FoodTheme.accent)
             }
 
             Text(headline)
@@ -918,7 +931,7 @@ struct ShareJeniBlock: View {
                 ForEach(items, id: \.self) { item in
                     HStack(spacing: 8 * scale) {
                         Circle()
-                            .fill(Color(red: 1.0, green: 0.075, blue: 0.94).opacity(0.55))
+                            .fill(FoodTheme.accent.opacity(0.55))
                             .frame(width: 4 * scale, height: 4 * scale)
                         Text(item)
                             .font(.system(size: 13 * scale))

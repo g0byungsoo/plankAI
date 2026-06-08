@@ -439,14 +439,18 @@ public struct PhotoCaptureView: View {
                     .accessibilityLabel("close")
                 }
 
-                Spacer().frame(height: geo.size.height * 0.06)
+                Spacer().frame(height: geo.size.height * 0.04)
 
-                // v1.0.8 Phase R — single card → 5-page TikTok-style
-                // carousel. Each card sits in the same vertical slot
-                // over the captured photo; dots indicator below.
-                NutritionCarousel(result: result)
+                // v1.0.8 Phase R.4 — carousel sized from the available
+                // height so slide 2's stacked cards aren't clipped at
+                // the top/bottom. Reserves ~50pt for the X close button
+                // + the small top spacer; the rest goes to the carousel.
+                NutritionCarousel(
+                    result: result,
+                    carouselHeight: max(360, geo.size.height - 80)
+                )
 
-                Spacer()
+                Spacer(minLength: 0)
             }
         }
     }
