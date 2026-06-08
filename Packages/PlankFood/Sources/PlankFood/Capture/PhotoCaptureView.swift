@@ -119,6 +119,7 @@ public struct PhotoCaptureView: View {
             await bootCamera()
         }
         .onDisappear {
+            camera.unfreezePreview()
             camera.stopSession()
         }
         .overlay(alignment: .top) {
@@ -195,7 +196,10 @@ public struct PhotoCaptureView: View {
             Color.black
 
             if camera.permissionStatus == .authorized {
-                FoodCameraPreviewView(previewLayer: camera.previewLayer)
+                FoodCameraPreviewView(
+                    previewLayer: camera.previewLayer,
+                    isFrozen: camera.isPreviewFrozen
+                )
 
                 if !reduceMotion {
                     ScanningOverlay(isActive: isCapturing)
@@ -274,9 +278,11 @@ public struct PhotoCaptureView: View {
     @ViewBuilder private var bigShutterButton: some View {
         Button {
             guard !isCapturing else { return }
-            // v1.0.8 Phase J — synchronous capture beats in the Button
-            // closure so the freeze + haptic + sound land within the
-            // same runloop tick as the tap.
+            // v1.0.8 Phase O — synchronous capture beats. Snapshot
+            // freeze the visible preview pixels (zero geometry shift)
+            // AND store the captured pixel buffer for the result
+            // phase polaroid.
+            camera.freezePreview()
             camera.freezeInstantly()
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             AudioServicesPlaySystemSound(1108)

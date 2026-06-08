@@ -53,6 +53,15 @@ public final class FoodCameraManager: NSObject {
     /// digital zoom is poor enough that the EF starts losing the plate.
     public let maxZoom: CGFloat = 5.0
 
+    /// v1.0.8 Phase O (2026-06-08) — drives the snapshot-overlay
+    /// freeze inside `FoodCameraPreviewView`. Setting this to true
+    /// makes the preview UIView mount a `UIView.snapshotView`
+    /// (afterScreenUpdates: false) on top — pixel-perfect freeze of
+    /// what was just composited. Setting it false removes the
+    /// snapshot. @Observable so SwiftUI re-runs updateUIView on
+    /// change.
+    public var isPreviewFrozen: Bool = false
+
     // MARK: - Private
 
     private let session = AVCaptureSession()
@@ -383,10 +392,28 @@ public final class FoodCameraManager: NSObject {
         return true
     }
 
+    /// v1.0.8 Phase O — visually freeze the live preview via a
+    /// UIView snapshot overlay. Distinct from `freezeInstantly()`,
+    /// which captures the pixel buffer into `frozenFrame` for the
+    /// downstream result-phase polaroid. This one is purely visual:
+    /// it stops the on-screen preview from updating, with zero
+    /// geometry / aspect shift.
+    public func freezePreview() {
+        isPreviewFrozen = true
+    }
+
+    public func unfreezePreview() {
+        isPreviewFrozen = false
+    }
+
     /// Clear the frozen overlay. Called from CaptureFlowView when the
-    /// result phase dismisses or the user backs out to retake.
+    /// result phase dismisses or the user backs out to retake. Also
+    /// unfreezes the visual preview snapshot (Phase O) so the live
+    /// camera resumes — the two are always paired in the error paths
+    /// and at result-phase dismissal.
     public func clearFrozenFrame() {
         self.frozenFrame = nil
+        self.isPreviewFrozen = false
     }
 
     /// v1.0.8 — call after a failed scan (network blip, EF 5xx,
