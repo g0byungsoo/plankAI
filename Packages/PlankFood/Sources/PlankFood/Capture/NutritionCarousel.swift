@@ -248,33 +248,27 @@ private struct MealSummaryCard: View {
             // adjusters (smaller/bigger/+sauce/rename). The corrected
             // CapturedFood propagates via onCorrect → all 3 slides
             // re-render with the new numbers.
-            // v1.0.8 Phase U.1 — solid brand chip per founder direction:
-            // "tweak this chip needs to have solid jenifit background
-            // color with jenifit theme color font." Solid bgElevated
-            // cream + 1.5pt accent rose border + cocoa text reads as
-            // a clearly visible secondary CTA that matches the card's
-            // scrapbook chrome family.
+            // v1.0.8 Phase U.3 — clean, minimal chip. Founder: "tweak
+            // this chip actually looks ugly... shade with tweak font."
+            //
+            // Stripped: hard offset shadow (pills don't carry it the
+            // way cards do — looked clunky), the pencil icon (visual
+            // noise), and the mixed italic/system typography (reads
+            // disjointed). Now: single italic-Fraunces "tweak this ♥"
+            // in accent rose on a cream pill with a thin accent
+            // border. Treats the chip as a voice-signal label rather
+            // than a chrome CTA.
             Button {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 showTweakSheet = true
             } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "pencil.line")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(FoodTheme.accent)
-                    (Text("tweak")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
-                        .foregroundStyle(FoodTheme.accent)
-                     + Text(" this ♥")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(FoodTheme.textPrimary))
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 9)
-                .background(Capsule().fill(FoodTheme.bgElevated))
-                .overlay(Capsule().stroke(FoodTheme.accent, lineWidth: 1.5))
-                .shadow(color: FoodTheme.textPrimary.opacity(0.12),
-                        radius: 0, x: 2, y: 2)
+                Text("tweak this ♥")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                    .foregroundStyle(FoodTheme.accent)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(FoodTheme.bgElevated))
+                    .overlay(Capsule().stroke(FoodTheme.accent.opacity(0.6), lineWidth: 1))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("adjust this meal's calories")
