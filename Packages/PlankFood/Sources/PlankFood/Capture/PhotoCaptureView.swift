@@ -92,6 +92,14 @@ public struct PhotoCaptureView: View {
     /// "cancel" CTAs.
     @State private var galleryPreviewMode: Bool = false
 
+    /// v1.0.8 Phase S (2026-06-08) — dedicated UI state for terminal
+    /// errors (rate limit / budget cap). Triggers a prominent
+    /// "you've hit your daily limit" overlay instead of the
+    /// transient error banner. Founder ask: "we need to do better
+    /// error handling too. like we can inform user about the daily
+    /// limit when they hit this problem."
+    @State private var terminalError: TerminalError?
+
     /// v1.0.8 Phase R.10 (2026-06-08) — PROOF-OF-LIFE confirm sheet.
     /// Founder repeatedly hits a "scan starts instantly + kicked back
     /// to home" pattern despite the inline preview chrome being in
@@ -239,6 +247,16 @@ public struct PhotoCaptureView: View {
         }
         .preferredColorScheme(.dark)
         .animation(.easeInOut(duration: 0.35), value: isCapturing)
+        // v1.0.8 Phase S — terminal-error sheet. Rate limit / budget
+        // cap → dedicated UI instead of vague banner.
+        .sheet(item: $terminalError) { err in
+            TerminalErrorSheet(error: err, onDismiss: {
+                terminalError = nil
+                camera.unfreezePreview()
+                galleryImage = nil
+            })
+            .presentationDetents([.medium])
+        }
     }
 
     // MARK: - Camera frame (inset rounded rect)
@@ -609,29 +627,31 @@ public struct PhotoCaptureView: View {
         // instead of in dead headroom. Same vertical position the
         // shareable 9:16 render uses, so the in-camera preview
         // matches what gets exported.
+        // v1.0.8 Phase S (2026-06-08) — X button now FLOATS via ZStack
+        // overlay instead of taking a row in the VStack. Founder ask:
+        // "more space towards top for slide 2 + X button can be
+        // floating." Result: the carousel gets ~50pt more vertical
+        // space because the X close no longer reserves a top row. The
+        // X overlays the top-right of the camera frame, always
+        // tappable, but doesn't push the carousel down.
         GeometryReader { geo in
-            VStack(spacing: 0) {
-                HStack {
-                    Spacer()
-                    glassButton(systemName: "xmark", action: {
-                        camera.unfreezePreview()
-                        onDismiss()
-                    })
-                    .accessibilityLabel("close")
+            ZStack(alignment: .topTrailing) {
+                VStack(spacing: 0) {
+                    Spacer().frame(height: 8)
+
+                    NutritionCarousel(
+                        result: result,
+                        carouselHeight: max(380, geo.size.height - 24)
+                    )
+
+                    Spacer(minLength: 0)
                 }
 
-                Spacer().frame(height: geo.size.height * 0.04)
-
-                // v1.0.8 Phase R.4 — carousel sized from the available
-                // height so slide 2's stacked cards aren't clipped at
-                // the top/bottom. Reserves ~50pt for the X close button
-                // + the small top spacer; the rest goes to the carousel.
-                NutritionCarousel(
-                    result: result,
-                    carouselHeight: max(360, geo.size.height - 80)
-                )
-
-                Spacer(minLength: 0)
+                glassButton(systemName: "xmark", action: {
+                    camera.unfreezePreview()
+                    onDismiss()
+                })
+                .accessibilityLabel("close")
             }
         }
     }
@@ -1262,28 +1282,28 @@ public struct PhotoCaptureView: View {
             // v1.0.8 — clear debounce so retry isn't blocked.
             camera.recordCaptureFailed()
         } catch let captureError as FoodCaptureError {
-            // v1.0.7 (2026-06-07) — pipeline / invalidInput paths.
-            // FoodCaptureError.errorDescription unwraps to the
-            // VisionError.userFacingCopy when present, so a 502 from
-            // the food-vision EF or a timeout from URLSession both
-            // surface as voice-locked friendly copy instead of the
-            // raw "PlankFood.FoodCaptureError error 2" leak the
-            // founder saw on a non-food image scan.
             #if DEBUG
             print("[PhotoCaptureView] capture failed: \(captureError)")
             #endif
-            errorMessage = captureError.errorDescription
-                ?? "couldn't read your plate just now. try again?"
-            FoodAnalytics.track(.scanFallbackFired, properties: [
-                "reason": "capture_error",
-                "case": String(describing: captureError),
-            ])
+            // v1.0.8 Phase S — route rate-limit / budget-cap errors
+            // to the dedicated terminalError overlay; everything else
+            // goes through the transient error banner.
+            if let term = TerminalError.from(captureError) {
+                terminalError = term
+                FoodAnalytics.track(.scanFallbackFired, properties: [
+                    "reason": "terminal_error",
+                    "case": term.id,
+                ])
+            } else {
+                errorMessage = captureError.errorDescription
+                    ?? "couldn't read your plate just now. try again?"
+                FoodAnalytics.track(.scanFallbackFired, properties: [
+                    "reason": "capture_error",
+                    "case": String(describing: captureError),
+                ])
+            }
             phaseTask?.cancel()
             FoodScanActivity.end(handle: activityHandle)
-            // v1.0.8 — restore live preview + clear debounce so the
-            // next intentional tap on cafe wifi blips goes through
-            // immediately. Founder's iced-latte 4-attempt loop was
-            // mostly bottlenecked by this 3s wait.
             withAnimation(.easeOut(duration: 0.25)) {
                 camera.clearFrozenFrame()
             }
@@ -1416,13 +1436,24 @@ public struct PhotoCaptureView: View {
             #if DEBUG
             print("[PhotoCaptureView] library capture failed: \(captureError)")
             #endif
-            errorMessage = captureError.errorDescription
-                ?? "couldn't read your plate just now. try again?"
-            FoodAnalytics.track(.scanFallbackFired, properties: [
-                "reason": "capture_error",
-                "source": "library",
-                "case": String(describing: captureError),
-            ])
+            // v1.0.8 Phase S — route terminal errors to the dedicated
+            // overlay; everything else through the transient banner.
+            if let term = TerminalError.from(captureError) {
+                terminalError = term
+                FoodAnalytics.track(.scanFallbackFired, properties: [
+                    "reason": "terminal_error",
+                    "source": "library",
+                    "case": term.id,
+                ])
+            } else {
+                errorMessage = captureError.errorDescription
+                    ?? "couldn't read your plate just now. try again?"
+                FoodAnalytics.track(.scanFallbackFired, properties: [
+                    "reason": "capture_error",
+                    "source": "library",
+                    "case": String(describing: captureError),
+                ])
+            }
             phaseTask?.cancel()
             FoodScanActivity.end(handle: activityHandle)
             withAnimation(.easeOut(duration: 0.25)) {
@@ -1517,6 +1548,57 @@ private enum CaptureTab: Hashable {
     case photo
     case quickAdd
     case imOut
+}
+
+// MARK: - TerminalError
+
+/// v1.0.8 Phase S — terminal errors that warrant a dedicated UI
+/// state instead of the transient error banner. Founder ask: "we
+/// need to do better error handling too. like we can inform user
+/// about the daily limit when they hit this problem."
+///
+/// Both cases reset at midnight (UTC). The copy from the EF already
+/// carries the relevant detail (count + reset time); we extract it
+/// and render in a clear dismissable overlay.
+enum TerminalError: Identifiable, Equatable {
+    case rateLimited(copy: String)
+    case budgetCapped(copy: String)
+
+    var id: String {
+        switch self {
+        case .rateLimited: return "rate_limited"
+        case .budgetCapped: return "budget_capped"
+        }
+    }
+
+    var copy: String {
+        switch self {
+        case .rateLimited(let copy): return copy
+        case .budgetCapped(let copy): return copy
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .rateLimited: return "all caught up"
+        case .budgetCapped: return "we're full for now"
+        }
+    }
+
+    /// Extract a TerminalError from a thrown capture error if it's
+    /// one of the rate-limit / budget-cap cases; nil otherwise.
+    static func from(_ error: Error) -> TerminalError? {
+        guard let cap = error as? FoodCaptureError,
+              case .pipeline(let underlying) = cap,
+              let vision = underlying as? VisionError else {
+            return nil
+        }
+        switch vision {
+        case .rateLimited(let copy): return .rateLimited(copy: copy)
+        case .budgetCapped(let copy): return .budgetCapped(copy: copy)
+        default: return nil
+        }
+    }
 }
 
 // MARK: - NutritionCardView
@@ -2061,6 +2143,67 @@ struct ShareActivityView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
+}
+
+// MARK: - TerminalErrorSheet
+//
+// v1.0.8 Phase S — clean, JeniFit-voiced UI for rate limit + budget
+// cap errors. Replaces the generic "couldn't reach us" banner with
+// an explicit "you've hit your daily limit, resets at midnight"
+// message. Founder: "we need to do better error handling too. like
+// we can inform user about the daily limit when they hit this
+// problem."
+
+struct TerminalErrorSheet: View {
+    let error: TerminalError
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Spacer()
+
+            // Icon — soft sparkle for "you're done for today" vibe,
+            // not warning iconography.
+            Image(systemName: "sparkles")
+                .font(.system(size: 36, weight: .light))
+                .foregroundStyle(FoodTheme.accent)
+
+            // Italic-Fraunces headline per brand voice signal.
+            Text(error.title)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+                .foregroundStyle(FoodTheme.textPrimary)
+
+            // Server-provided copy with the scan count + reset time.
+            Text(error.copy)
+                .font(.system(size: 15))
+                .foregroundStyle(FoodTheme.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer()
+
+            Button(action: {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                onDismiss()
+            }) {
+                Text("got it ♥")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(
+                        Capsule().fill(Color(red: 1.0, green: 0.075, blue: 0.94))
+                    )
+                    .shadow(color: Color(red: 1.0, green: 0.075, blue: 0.94)
+                                .opacity(0.3),
+                            radius: 8, x: 0, y: 2)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 28)
+        }
+        .background(FoodTheme.bgElevated)
+    }
 }
 
 // MARK: - PendingGallery + GalleryConfirmSheet

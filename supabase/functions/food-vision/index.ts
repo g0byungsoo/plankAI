@@ -436,7 +436,8 @@ Deno.serve(async (req: Request) => {
         error: "rate_limited",
         code: "PER_USER_LIMIT",
         scans_today: userLimit.count,
-        copy: "give us a few hours — you've scanned a lot today.",
+        limit: PER_USER_DAILY_LIMIT,
+        copy: `you've logged ${userLimit.count} plates today ♥ scan limit resets at midnight.`,
       }),
       { status: 429, headers: { "Content-Type": "application/json" } },
     );
@@ -460,7 +461,7 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         error: "budget_cap",
         code: "DAILY_BUDGET",
-        copy: "give us a few hours — we're catching our breath.",
+        copy: "we're full for the day ♥ scan limit resets at midnight.",
       }),
       { status: 429, headers: { "Content-Type": "application/json" } },
     );

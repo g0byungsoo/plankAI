@@ -325,16 +325,29 @@ private struct DailyTotalsCard: View {
         return (Int(c.rounded()), Int(p.rounded()), Int(f.rounded()), Int(k.rounded()))
     }
 
-    /// V1 mock: assume a plausible mid-day baseline + this scan. Will
-    /// be replaced by real today-sum from SwiftData in a follow-up.
+    /// v1.0.8 Phase S (2026-06-08) — REAL today's kcal total from
+    /// FoodLogPersister + the new scan that's about to be logged.
+    /// Single-user-per-device so no userId filter. Founder ask:
+    /// "can we also check slide 2 data is actually coming from real
+    /// data?" — calories is now real, protein remains a heuristic
+    /// (the FoodLogPersister Entry struct only stores kcal, not
+    /// macros, so true protein totals need a schema migration first).
     private var caloriesNow: Int {
-        let baseline = Int(Double(kcalTarget) * 0.62)  // ~62% of target as baseline
-        return baseline + scanTotals.kcal
+        let loggedToday = Int(FoodLogPersister.todayKcalTotal().rounded())
+        return loggedToday + scanTotals.kcal
     }
 
+    /// HEURISTIC — not real. The FoodLogPersister stores kcal only,
+    /// not protein. True protein totals require a schema migration.
+    /// For now we estimate today's protein from the kcal total at a
+    /// typical 18% protein-to-kcal ratio (matches gen-z weight-loss
+    /// cohort macro targets), plus this scan's measured protein.
+    /// TODO v1.0.9 — extend FoodLogPersister.Entry with macros and
+    /// query real protein totals here.
     private var proteinNow: Int {
-        let baseline = Int(Double(proteinTarget) * 0.55)
-        return baseline + scanTotals.protein
+        let loggedKcal = FoodLogPersister.todayKcalTotal()
+        let estProtein = Int((loggedKcal * 0.18 / 4).rounded())
+        return estProtein + scanTotals.protein
     }
 
     private var cravingsScore: Double {

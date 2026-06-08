@@ -96,6 +96,30 @@ public enum FoodLogPersister {
         }
     }
 
+    // MARK: - Public read APIs
+
+    /// v1.0.8 Phase S (2026-06-08) — sum of all kcal logged TODAY,
+    /// across all users on this device. Single-user-per-device app
+    /// so no userId filter needed. Drives the "Calories: N / target"
+    /// progress bar on the NutritionCarousel's daily-totals card.
+    /// Returns 0 before any logs are persisted today.
+    public static func todayKcalTotal() -> Double {
+        hydrateIfNeeded()
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        return inMemoryEntries
+            .filter { $0.loggedAt >= startOfDay }
+            .reduce(0.0) { $0 + $1.kcal }
+    }
+
+    /// v1.0.8 Phase S — count of logs today, used for a future
+    /// "you've logged N meals" affordance. Currently unused but
+    /// cheap, so left in.
+    public static func todayLogCount() -> Int {
+        hydrateIfNeeded()
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        return inMemoryEntries.filter { $0.loggedAt >= startOfDay }.count
+    }
+
     // MARK: - Public API
 
     /// Insert a CapturedFood. Returns a placeholder FoodLogRecord
