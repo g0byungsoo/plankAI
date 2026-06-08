@@ -89,12 +89,21 @@ public struct PhotoCaptureView: View {
 
     /// v1.0.8 Phase R.7 (2026-06-08) — gallery preview-confirm step.
     /// True while showing the picked photo with "use this photo" /
-    /// "cancel" CTAs. Founder feedback: "when i select photo there is
-    /// no select button + i still get kicked out." Adding an explicit
-    /// confirm step gives the missing "select" affordance AND ensures
-    /// the scan only fires when the user explicitly taps "use this
-    /// photo" (no possibility of accidental dismiss).
+    /// "cancel" CTAs.
     @State private var galleryPreviewMode: Bool = false
+
+    /// v1.0.8 Phase R.10 (2026-06-08) — PROOF-OF-LIFE confirm sheet.
+    /// Founder repeatedly hits a "scan starts instantly + kicked back
+    /// to home" pattern despite the inline preview chrome being in
+    /// place. Suspicion: SwiftUI state-batching is somehow bypassing
+    /// the inline preview state on their device.
+    ///
+    /// Switching to `.sheet(item:)` on this wrapper: SwiftUI cannot
+    /// present a scan + dismiss the food rail without first
+    /// dismissing the sheet, and the sheet only dismisses on explicit
+    /// "use this photo" / "cancel" tap. Hard barrier — scan literally
+    /// CANNOT fire until the user confirms.
+    @State private var pendingGalleryImage: PendingGallery?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -172,24 +181,36 @@ public struct PhotoCaptureView: View {
             PhotoLibraryPicker(
                 onPicked: { image in
                     showingLibraryPicker = false
-                    // v1.0.8 Phase R.9 (2026-06-08) — defer the state
-                    // mutation a small amount so the sheet dismiss
-                    // animation completes first. Without this, on
-                    // some iOS versions SwiftUI batches the sheet
-                    // dismiss + state change in a way that the
-                    // preview overlay doesn't appear visibly.
+                    // v1.0.8 Phase R.10 — defer state mutation 350ms
+                    // so the PHPicker sheet fully dismisses before
+                    // the confirm sheet tries to present (iOS won't
+                    // present sheet-on-top-of-sheet during the same
+                    // runloop tick).
                     Task { @MainActor in
-                        try? await Task.sleep(nanoseconds: 250_000_000)
+                        try? await Task.sleep(nanoseconds: 350_000_000)
                         #if DEBUG
-                        print("[PhotoCaptureView] gallery onPicked → preview mode (galleryPreviewMode=true)")
+                        print("[PhotoCaptureView] gallery picked → presenting confirm sheet")
                         #endif
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            galleryImage = image
-                            galleryPreviewMode = true
-                        }
+                        pendingGalleryImage = PendingGallery(image: image)
                     }
                 },
                 onCancel: { showingLibraryPicker = false }
+            )
+        }
+        .sheet(item: $pendingGalleryImage) { pending in
+            GalleryConfirmSheet(
+                image: pending.image,
+                onConfirm: {
+                    let img = pending.image
+                    pendingGalleryImage = nil
+                    #if DEBUG
+                    print("[PhotoCaptureView] gallery CONFIRMED → starting scan")
+                    #endif
+                    Task { await libraryImagePicked(img) }
+                },
+                onCancel: {
+                    pendingGalleryImage = nil
+                }
             )
         }
         .preferredColorScheme(.dark)
@@ -2008,6 +2029,100 @@ struct ShareActivityView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
+}
+
+// MARK: - PendingGallery + GalleryConfirmSheet
+//
+// v1.0.8 Phase R.10 — hard-barrier preview-confirm step for gallery
+// uploads. .sheet(item:) requires the user to explicitly tap a button
+// to dismiss; there's no way for SwiftUI state batching, Task timing,
+// or any other side effect to "skip" this step.
+
+struct PendingGallery: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
+struct GalleryConfirmSheet: View {
+    let image: UIImage
+    let onConfirm: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        VStack(spacing: 18) {
+            HStack {
+                Text("use this photo?")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                Spacer()
+                Button(action: onCancel) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                        .frame(width: 36, height: 36)
+                        .background(Color.black.opacity(0.05), in: Circle())
+                }
+                .accessibilityLabel("close")
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(maxHeight: 340)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(
+                            Color(red: 1.0, green: 0.075, blue: 0.94),
+                            lineWidth: 3
+                        )
+                )
+                .padding(.horizontal, 20)
+                .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 4)
+
+            Spacer()
+
+            HStack(spacing: 12) {
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    onCancel()
+                } label: {
+                    Text("cancel")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(FoodTheme.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(
+                            Capsule().fill(Color.black.opacity(0.06))
+                        )
+                }
+
+                Button {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    onConfirm()
+                } label: {
+                    Text("scan this")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(
+                            Capsule().fill(Color(red: 1.0, green: 0.075, blue: 0.94))
+                        )
+                        .shadow(color: Color(red: 1.0, green: 0.075, blue: 0.94)
+                                    .opacity(0.3),
+                                radius: 8, x: 0, y: 2)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+        .background(FoodTheme.bgElevated)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+    }
 }
 
 #endif  // canImport(UIKit)
