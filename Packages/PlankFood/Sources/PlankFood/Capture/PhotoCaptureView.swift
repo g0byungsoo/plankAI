@@ -153,30 +153,38 @@ public struct PhotoCaptureView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            VStack(spacing: 14) {
-                // v1.0.8 Phase R.11 (2026-06-08) — camera frame LOCKED
-                // to 9:16. Founder: "and when uploaded photo, it
-                // changes the layout. can you keep the 9:16 layout
-                // the same and never change the layout?"
-                //
-                // Three benefits of pinning to 9:16:
-                //   1. Live preview, gallery scan, and result modes
-                //      all share IDENTICAL geometry. No size shift on
-                //      photo upload.
-                //   2. Visual matches the 1080×1920 shareable export
-                //      exactly — what the user sees is what they share.
-                //   3. Crop is deterministic across iPhone sizes;
-                //      bottom toolbar position is consistent.
-                cameraFrame
-                    .aspectRatio(9.0 / 16.0, contentMode: .fit)
-                    .padding(.horizontal, 12)
-                    .padding(.top, 4)
+            // v1.0.8 Phase R.12 (2026-06-08) — frame size is now EXPLICITLY
+            // computed via GeometryReader, not derived from .aspectRatio.
+            // The .aspectRatio approach was being bypassed (photo extended
+            // beyond the inset bounds when galleryImage was set). Now we
+            // compute exact pixel dimensions and force them with
+            // .frame(width:height:) — no SwiftUI layout slack possible.
+            //
+            // Math:
+            //   - Reserve ~100pt at the bottom for the toolbar + safe area
+            //   - Available height = geo.height - 100pt
+            //   - Available width  = geo.width  - 24pt (12pt left/right)
+            //   - Frame is the LARGER 9:16 rect that fits in both
+            //   - Photo gets .clipped() so it can't escape under any modifier
+            GeometryReader { geo in
+                let availableHeight = max(0, geo.size.height - 100)
+                let availableWidth = max(0, geo.size.width - 24)
+                let widthFromHeight = availableHeight * 9.0 / 16.0
+                let frameWidth = min(availableWidth, widthFromHeight)
+                let frameHeight = frameWidth * 16.0 / 9.0
 
-                Spacer(minLength: 0)
+                VStack(spacing: 14) {
+                    cameraFrame
+                        .frame(width: frameWidth, height: frameHeight)
+                        .padding(.top, 4)
+                        .frame(maxWidth: .infinity)
 
-                bottomToolbar
-                    .padding(.horizontal, FoodTheme.Space.lg)
-                    .padding(.bottom, 4)
+                    Spacer(minLength: 0)
+
+                    bottomToolbar
+                        .padding(.horizontal, FoodTheme.Space.lg)
+                        .padding(.bottom, 4)
+                }
             }
         }
         .task {
@@ -307,9 +315,17 @@ public struct PhotoCaptureView: View {
             // see the same scanning overlay + carousel result UI on
             // top — identical experience.
             if let galleryImage {
-                Image(uiImage: galleryImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
+                // v1.0.8 Phase R.12 — hard frame + clipped + GeometryReader
+                // so the photo can NEVER overflow the camera frame bounds.
+                // .fill alone allows visible overflow if outer modifiers
+                // don't clip; this enforces a strict bounding box.
+                GeometryReader { inner in
+                    Image(uiImage: galleryImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: inner.size.width, height: inner.size.height)
+                        .clipped()
+                }
 
                 if !reduceMotion {
                     ScanningOverlay(isActive: isCapturing)
