@@ -168,9 +168,13 @@ struct ScanLabelRotator: View {
         let tail: String
     }
     private static let phrases: [Phrase] = [
-        .init(verb: "reading",  tail: " your plate"),
-        .init(verb: "finding",  tail: " ingredients"),
-        .init(verb: "tallying", tail: " portions"),
+        // v1.0.9 D2 — UX expert pick. Tightens the rhythm of the
+        // rotator + adds a heart on the last beat as a soft "almost
+        // there" tell. "looking" is gentler than "reading" — less
+        // clinical, more friend-energy.
+        .init(verb: "looking", tail: " at your plate"),
+        .init(verb: "finding", tail: " the good stuff"),
+        .init(verb: "tallying", tail: " portions ♥"),
     ]
 
     var body: some View {

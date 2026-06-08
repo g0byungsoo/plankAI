@@ -52,6 +52,11 @@ public struct PhotoCaptureView: View {
     /// gestureScale` matches what the user expects (iPhone Camera
     /// semantics — pinch from current state, not from 1.0). The
     /// indicator pill auto-hides 800ms after the pinch releases.
+    /// v1.0.9 D2 — subtle 6s scale 1.0 ↔ 1.02 breathe on the shutter
+    /// when nothing's happening. Started in onAppear with a repeating
+    /// withAnimation. Reduce-motion users get a static shutter.
+    @State private var shutterBreathing: Bool = false
+
     @State private var baseZoom: CGFloat = 1.0
     @State private var liveZoom: CGFloat = 1.0
     @State private var zoomIndicatorVisible: Bool = false
@@ -293,10 +298,38 @@ public struct PhotoCaptureView: View {
                 inFrameChrome
                     .padding(14)
             }
+
+            // v1.0.9 D2 — cherries idle sticker. Coquette signal
+            // pinned to the top-left of the camera frame, only
+            // visible when nothing's happening (idle + not in result
+            // mode + no gallery preview). Disappears the moment a
+            // scan starts so it doesn't compete with the scanning
+            // overlay or label rotator.
+            if !isCapturing && capturedResult == nil && !galleryPreviewMode {
+                Text("🍒")
+                    .font(.system(size: 36))
+                    .rotationEffect(.degrees(-8))
+                    .padding(.top, 22)
+                    .padding(.leading, 22)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                    .transition(.opacity.combined(with: .scale(scale: 0.7)))
+            }
         }
         .contentShape(Rectangle())
         .gesture(pinchZoomGesture)
         .animation(.spring(response: 0.45, dampingFraction: 0.82), value: capturedResult != nil)
+        .onChange(of: capturedResult != nil) { _, hasResult in
+            // v1.0.9 D2 — soft haptic at the moment the result card
+            // lands. Currently the scan-to-result transition is
+            // silent visually; the .soft haptic gives the cohort a
+            // tactile "got it ♥" confirmation. Only fires on the
+            // nil → present transition, not on dismiss.
+            if hasResult {
+                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            }
+        }
         .animation(.easeInOut(duration: 0.3), value: galleryPreviewMode)
     }
 
@@ -451,63 +484,54 @@ public struct PhotoCaptureView: View {
             AudioServicesPlaySystemSound(1108)
             Task { await captureTapped() }
         } label: {
-            ZStack {
-                // Static outer ring: hot pink stroke, always visible.
-                Circle()
-                    .stroke(
-                        Color(red: 1.0, green: 0.075, blue: 0.94),
-                        lineWidth: 4
-                    )
-                    .frame(width: 78, height: 78)
+            // v1.0.9 D2 — shutter revolves as a UNIT per founder + UX
+            // expert. The ring + disc + 📷 sticker rotate together as
+            // one sticker-on-spinning-coin object (NOT a white arc
+            // swirling around a static button — that's dropped).
+            //
+            // Motion language:
+            //   - idle: subtle 6s breathe (scale 1.0 ↔ 1.02) for
+            //     alive-ness without dizziness
+            //   - scanning: full 3.0s/revolution rotation, CCW
+            //     (opposite of border's CW shimmer → parallax)
+            //   - 📷 keeps its -4° tilt INSIDE the spinning parent so
+            //     it reads as a sticker stuck to a coin, not a logo
+            //   - reduce-motion: no rotation, no breathe
+            TimelineView(.animation(minimumInterval: 1.0 / 60.0,
+                                    paused: !(isCapturing && !reduceMotion))) { timeline in
+                let elapsed = timeline.date.timeIntervalSinceReferenceDate
+                let phase = (elapsed.truncatingRemainder(dividingBy: 3.0)) / 3.0
+                let scanAngle = -phase * 360.0  // CCW
 
-                // v1.0.8 Phase N — REVOLVING arc on the shutter.
-                // Founder direction: "revolving borderline + revolving
-                // camera button." A 30% white arc sweeps around the
-                // outer ring during scan, fading in/out smoothly when
-                // isCapturing flips. Same TimelineView-paused pattern
-                // as the border shimmer for guaranteed clean stop.
-                TimelineView(.animation(minimumInterval: 1.0 / 60.0,
-                                        paused: !(isCapturing && !reduceMotion))) { timeline in
-                    let elapsed = timeline.date.timeIntervalSinceReferenceDate
-                    let phase = (elapsed.truncatingRemainder(dividingBy: 1.4)) / 1.4
-                    let angle = phase * 360.0
+                ZStack {
+                    Circle()
+                        .stroke(FoodTheme.cameraScanPink, lineWidth: 4)
+                        .frame(width: 78, height: 78)
 
                     Circle()
-                        .trim(from: 0, to: 0.3)
-                        .stroke(
-                            Color.white,
-                            style: StrokeStyle(lineWidth: 4, lineCap: .round)
-                        )
-                        .frame(width: 78, height: 78)
-                        .rotationEffect(.degrees(angle))
+                        .fill(isCapturing ? FoodTheme.cameraScanDisc : Color.white)
+                        .frame(width: 64, height: 64)
+                        .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 2)
+                        .animation(.easeInOut(duration: 0.3), value: isCapturing)
+
+                    Text("📷")
+                        .font(.system(size: 28))
+                        .rotationEffect(.degrees(-4))  // baked sticker tilt
+                        .accessibilityHidden(true)
                 }
-                .opacity(isCapturing && !reduceMotion ? 1 : 0)
-                .animation(.easeInOut(duration: 0.35), value: isCapturing)
-
-                // Inner white disc. Stays the same size across scan
-                // states — founder wants the layout to NOT shift,
-                // including subtle size changes. The rotation arc
-                // does the "scanning" signaling on its own.
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 64, height: 64)
-                    .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 2)
-
-                // v1.0.8 Phase U.4 — camera sticker inside the
-                // shutter. Decorative, hides during scan so the
-                // revolving arc + spinner read clearly. Same emoji
-                // sticker family as the cherries on the meal card.
-                Text("📷")
-                    .font(.system(size: 28))
-                    .rotationEffect(.degrees(-4))
-                    .opacity(isCapturing ? 0 : 1)
-                    .animation(.easeInOut(duration: 0.25), value: isCapturing)
-                    .accessibilityHidden(true)
+                .rotationEffect(.degrees(isCapturing && !reduceMotion ? scanAngle : 0))
+                .scaleEffect(shutterBreathing && !reduceMotion ? 1.02 : 1.0)
             }
             .contentShape(Circle())
         }
         .disabled(isCapturing || camera.permissionStatus != .authorized || !camera.isRunning)
         .accessibilityLabel(isCapturing ? "scanning" : "scan food")
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true)) {
+                shutterBreathing = true
+            }
+        }
     }
 
     // MARK: - Bottom toolbar (outside the frame)
@@ -890,18 +914,21 @@ public struct PhotoCaptureView: View {
         }
     }
 
-    /// Microcopy line above the shutter when idle. "*center* your
-    /// plate ♥" — italic-Fraunces on the punch word, heart as terminal
-    /// punctuation per voice locks. Glass blur backing keeps it
-    /// legible over any food.
+    /// v1.0.9 D2 — microcopy refresh per UX expert pick. The "your
+    /// moment ♥" framing leaves the instructional register (center
+    /// your plate) for an identity register that holds across any
+    /// composition. Italic-Fraunces 15pt + tracking(0.3) gives it
+    /// the polaroid-handwriting feel.
     @ViewBuilder private var microcopyText: some View {
         (
-            Text("")
-            + Text("center")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
-            + Text(" your plate ♥")
-                .font(.system(size: 14))
+            Text("your ")
+                .font(.system(size: 15))
+            + Text("moment")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
+            + Text(" ♥")
+                .font(.system(size: 15))
         )
+        .tracking(0.3)
         .foregroundStyle(.white)
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -955,11 +982,17 @@ public struct PhotoCaptureView: View {
     // outer wrap capsule were collapsing on width and rendering each
     // letter on its own line. This compresses cleanly even on the
     // smallest iPhone width.
+    // v1.0.9 D2 — bottom toolbar refresh per UX expert. Each chip
+    // carries an emoji sticker (camera / pencil / wine — i'm out
+    // renamed to "dining out" covers brunch + lunch + dinner not
+    // just nightlife). Active chip gets a 1pt rose border + hard
+    // offset shadow at chip scale = micro-scrapbook chrome that
+    // makes the toolbar feel JeniFit, not iOS-segmented-control.
     @ViewBuilder private var modeChips: some View {
         HStack(spacing: 4) {
-            modeChip("photo", .photo)
-            modeChip("quick add", .quickAdd)
-            modeChip("i'm out", .imOut)
+            modeChip("📷", "snap", .photo)
+            modeChip("✍︎", "quick log", .quickAdd)
+            modeChip("🍷", "dining out", .imOut)
         }
         .padding(4)
         .background(.ultraThinMaterial, in: Capsule())
@@ -967,28 +1000,37 @@ public struct PhotoCaptureView: View {
     }
 
     @ViewBuilder
-    private func modeChip(_ label: String, _ tab: CaptureTab) -> some View {
+    private func modeChip(_ emoji: String, _ label: String, _ tab: CaptureTab) -> some View {
         let isActive = captureTab == tab
         Button {
             captureTab = tab
-            // 2026-06-05: chips now route to peer phases via callbacks.
-            // CaptureFlowView swaps the active view; photo remains the
-            // default (this view) and re-selecting it is a no-op.
             switch tab {
             case .photo:    break
             case .quickAdd: onQuickAddTapped()
             case .imOut:    onImOutTapped()
             }
         } label: {
-            Text(label)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(isActive ? FoodTheme.textPrimary : Color.white.opacity(0.85))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(
-                    Capsule().fill(isActive ? Color.white : Color.clear)
-                )
-                .animation(.easeInOut(duration: 0.22), value: isActive)
+            HStack(spacing: 5) {
+                Text(emoji)
+                    .font(.system(size: 12))
+                Text(label)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(isActive ? FoodTheme.textPrimary : Color.white.opacity(0.85))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(
+                Capsule().fill(isActive ? Color.white : Color.clear)
+            )
+            .overlay(
+                Capsule()
+                    .stroke(FoodTheme.accent.opacity(isActive ? 0.7 : 0), lineWidth: 1)
+            )
+            .shadow(
+                color: FoodTheme.textPrimary.opacity(isActive ? 0.15 : 0),
+                radius: 0, x: 2, y: 2
+            )
+            .animation(.spring(response: 0.45, dampingFraction: 0.82), value: isActive)
         }
     }
 

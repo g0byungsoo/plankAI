@@ -35,7 +35,11 @@ import UIKit
 // border in the same ZStack as the clipped camera content with the
 // same corner radius.
 
-private let hotPink = Color(red: 1.0, green: 0.075, blue: 0.94)  // #FF13F0
+// v1.0.9 D2 — split-role pink per expert pick. Idle uses the softer
+// FoodTheme.cameraIdlePink (#FF7AD9) so the resting frame reads
+// coquette; scanning jolts to FoodTheme.cameraScanPink (#FF13F0)
+// for the energy beat. Border base color picks the right token
+// based on `isScanning`.
 
 struct RotatingScanBorder: View {
     let isScanning: Bool
@@ -63,7 +67,10 @@ struct RotatingScanBorder: View {
             // (lower saturation) when not actively scanning so the
             // scanning state has clear "energy bump" visual contrast.
             RoundedRectangle(cornerRadius: cornerRadius)
-                .strokeBorder(hotPink, lineWidth: lineWidth)
+                .strokeBorder(
+                    isScanning ? FoodTheme.cameraScanPink : FoodTheme.cameraIdlePink,
+                    lineWidth: lineWidth
+                )
 
             // Shimmer overlay: a single bright stop that sweeps around
             // the border during scan. Mostly-transparent gradient so

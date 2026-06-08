@@ -37,6 +37,17 @@ public enum FoodTheme {
     public static let stateGood    = Color(hex: "#5F7345")  // sage — success
     public static let stateWarn    = Color(hex: "#8D6A2E")  // amber — error/warning
 
+    // v1.0.9 D2 — split-role camera pinks per expert recommendation.
+    // The camera surface keeps a distinctive pink wedge (the recognizable
+    // "scan mode" signal) but warms it at rest so the screen doesn't
+    // shout when nothing's happening. Resting state reads coquette;
+    // capture moment jolts to neon for the energy beat.
+    public static let cameraIdlePink = Color(hex: "#FF7AD9")  // softened neon, 60% saturation
+    public static let cameraScanPink = Color(hex: "#FF13F0")  // neon hot pink — capture only
+    /// Inner shutter disc tint during active scan — sugar-pink hint
+    /// so the disc reads warm without going saturated.
+    public static let cameraScanDisc = Color(hex: "#FFE7F7")
+
     // Spacing — minimal set used by food rail views.
     public enum Space {
         public static let sm: CGFloat = 8
