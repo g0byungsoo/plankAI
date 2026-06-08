@@ -920,6 +920,98 @@ struct ShareLifestyleBlock: View {
     }
 }
 
+struct ShareNutrientsBlock: View {
+    let result: CapturedFood
+    let scale: CGFloat
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14 * scale) {
+            Text("today's nutrients")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17 * scale))
+                .foregroundStyle(FoodTheme.textPrimary)
+            VStack(spacing: 12 * scale) {
+                shareNutrientRow(icon: "heart.fill",
+                                 bg: Color(red: 0.98, green: 0.90, blue: 0.91),
+                                 tint: Color(red: 0.85, green: 0.32, blue: 0.43),
+                                 label: "All nutrients",
+                                 percent: s.all)
+                shareNutrientRow(icon: "leaf.fill",
+                                 bg: Color(red: 0.92, green: 0.96, blue: 0.86),
+                                 tint: Color(red: 0.37, green: 0.55, blue: 0.27),
+                                 label: "Vitamins",
+                                 percent: s.vitamins)
+                shareNutrientRow(icon: "drop.triangle.fill",
+                                 bg: Color(red: 0.90, green: 0.94, blue: 0.98),
+                                 tint: Color(red: 0.32, green: 0.50, blue: 0.78),
+                                 label: "Minerals",
+                                 percent: s.minerals)
+                shareNutrientRow(icon: "link",
+                                 bg: Color(red: 0.94, green: 0.90, blue: 0.96),
+                                 tint: Color(red: 0.60, green: 0.40, blue: 0.75),
+                                 label: "Amino acids",
+                                 percent: s.amino)
+                shareNutrientRow(icon: "ellipsis.circle.fill",
+                                 bg: Color(red: 0.96, green: 0.93, blue: 0.86),
+                                 tint: Color(red: 0.65, green: 0.50, blue: 0.28),
+                                 label: "Other nutrients",
+                                 percent: s.other)
+            }
+        }
+        .padding(.horizontal, 18 * scale)
+        .padding(.vertical, 16 * scale)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18 * scale, style: .continuous))
+        .shadow(color: Color.black.opacity(0.18), radius: 14 * scale, x: 0, y: 4 * scale)
+    }
+
+    private var s: (all: Int, vitamins: Int, minerals: Int, amino: Int, other: Int) {
+        let count = result.items.count
+        let protein = result.items.compactMap { $0.proteinG }.reduce(0, +)
+        let bonus = min(15, count * 4)
+        return (
+            min(95, 78 + bonus),
+            min(95, 80 + bonus - 2),
+            min(93, 76 + bonus),
+            min(93, 72 + Int(protein / 4)),
+            min(96, 86 + bonus)
+        )
+    }
+
+    @ViewBuilder
+    private func shareNutrientRow(icon: String, bg: Color, tint: Color,
+                                  label: String, percent: Int) -> some View {
+        HStack(alignment: .center, spacing: 12 * scale) {
+            Image(systemName: icon)
+                .font(.system(size: 13 * scale, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 30 * scale, height: 30 * scale)
+                .background(bg)
+                .clipShape(RoundedRectangle(cornerRadius: 8 * scale, style: .continuous))
+            VStack(alignment: .leading, spacing: 4 * scale) {
+                HStack {
+                    Text(label)
+                        .font(.system(size: 14 * scale, weight: .semibold))
+                        .foregroundStyle(FoodTheme.textPrimary)
+                    Spacer()
+                    Text("\(percent)%")
+                        .font(.system(size: 13 * scale, weight: .medium))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.black.opacity(0.06))
+                        Capsule()
+                            .fill(Color(red: 0.37, green: 0.45, blue: 0.27))
+                            .frame(width: geo.size.width * (Double(percent) / 100))
+                    }
+                }
+                .frame(height: 5 * scale)
+            }
+        }
+    }
+}
+
 struct ShareJeniBlock: View {
     let result: CapturedFood
     let scale: CGFloat

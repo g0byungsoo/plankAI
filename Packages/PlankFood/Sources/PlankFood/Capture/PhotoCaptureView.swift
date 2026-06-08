@@ -1612,19 +1612,29 @@ struct ShareablePackedDailyView: View {
             )
             .frame(width: 1080, height: 1080)
 
-            VStack(spacing: 28) {
-                Spacer().frame(height: 1920 * 0.10)
+            VStack(spacing: 20) {
+                Spacer().frame(height: 1920 * 0.05)
 
+                // v1.0.8 Phase R.6 — all 3 cards composed on the
+                // shareable, matching the in-camera slide 2 layout.
+                // Scale dropped 2.4 → 1.9 to fit DailyTotals +
+                // Lifestyle + Nutrients comfortably within the 1920pt
+                // canvas height (3 cards × ~280pt scaled + gaps +
+                // top/bottom spacers ≈ 1620pt, leaves room for the
+                // JeniFit watermark + breathing room above/below).
                 ShareDailyTotalsBlock(
                     result: result,
                     kcalTarget: kcalTarget,
                     proteinTarget: proteinTarget,
-                    scale: 2.4
+                    scale: 1.9
                 )
-                .padding(.horizontal, 100)
+                .padding(.horizontal, 80)
 
-                ShareLifestyleBlock(result: result, scale: 2.4)
-                    .padding(.horizontal, 100)
+                ShareLifestyleBlock(result: result, scale: 1.9)
+                    .padding(.horizontal, 80)
+
+                ShareNutrientsBlock(result: result, scale: 1.9)
+                    .padding(.horizontal, 80)
 
                 Spacer()
 
@@ -1632,7 +1642,7 @@ struct ShareablePackedDailyView: View {
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 56))
                     .foregroundStyle(Color.white)
                     .shadow(color: Color.black.opacity(0.5), radius: 8, x: 0, y: 2)
-                    .padding(.bottom, 80)
+                    .padding(.bottom, 60)
             }
             .frame(width: 1080, height: 1920)
         }
