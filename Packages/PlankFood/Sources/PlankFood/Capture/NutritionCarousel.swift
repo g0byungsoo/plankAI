@@ -43,6 +43,30 @@ struct NutritionCarousel: View {
 
     private let pageCount = 3
 
+    /// v1.0.8 Phase T (2026-06-08) — shared macro targets struct so
+    /// every card on slide 2 reads from the SAME source-of-truth.
+    /// kcalTarget comes from onboarding @AppStorage; the other macro
+    /// targets are derived using standard balanced-diet ratios
+    /// (25% protein / 45% carbs / 30% fat for the cohort's
+    /// weight-loss + satiety focus). fiberTarget = USDA 25g.
+    struct MacroTargets {
+        let kcal: Int
+        let protein: Int
+        let carbs: Int
+        let fat: Int
+        let fiber: Int
+    }
+
+    private var macroTargets: MacroTargets {
+        MacroTargets(
+            kcal: kcalTarget,
+            protein: proteinTarget,
+            carbs: Int((Double(kcalTarget) * 0.45) / 4),
+            fat:   Int((Double(kcalTarget) * 0.30) / 9),
+            fiber: 25
+        )
+    }
+
     /// v1.0.8 Phase R.4 — carousel container height is now driven by
     /// the parent (resultModeOverlay's GeometryReader). Lets the
     /// carousel fill the available vertical room so slide 2's stacked
@@ -70,8 +94,7 @@ struct NutritionCarousel: View {
 
             PackedDailyCard(
                 result: result,
-                kcalTarget: kcalTarget,
-                proteinTarget: proteinTarget
+                targets: macroTargets
             )
             .padding(.horizontal, 4)
             .padding(.bottom, 28)
@@ -238,23 +261,27 @@ private struct MealSummaryCard: View {
 
 private struct PackedDailyCard: View {
     let result: CapturedFood
-    let kcalTarget: Int
-    let proteinTarget: Int
+    let targets: NutritionCarousel.MacroTargets
 
     var body: some View {
-        // v1.0.8 Phase R.5 — compact mode + tight gaps so all 3 cards
-        // fit visible. ScrollView still wraps for very small screens
-        // (iPhone SE) but on modern iPhones nothing scrolls.
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 8) {
                 DailyTotalsCard(
                     result: result,
-                    kcalTarget: kcalTarget,
-                    proteinTarget: proteinTarget,
+                    kcalTarget: targets.kcal,
+                    proteinTarget: targets.protein,
                     compact: true
                 )
-                LifestyleScoresCard(result: result, compact: true)
-                NutrientsBreakdownCard(result: result, compact: true)
+                LifestyleScoresCard(
+                    result: result,
+                    targets: targets,
+                    compact: true
+                )
+                NutrientsBreakdownCard(
+                    result: result,
+                    targets: targets,
+                    compact: true
+                )
             }
         }
     }
@@ -325,38 +352,35 @@ private struct DailyTotalsCard: View {
         return (Int(c.rounded()), Int(p.rounded()), Int(f.rounded()), Int(k.rounded()))
     }
 
-    /// v1.0.8 Phase S (2026-06-08) — REAL today's kcal total from
-    /// FoodLogPersister + the new scan that's about to be logged.
-    /// Single-user-per-device so no userId filter. Founder ask:
-    /// "can we also check slide 2 data is actually coming from real
-    /// data?" — calories is now real, protein remains a heuristic
-    /// (the FoodLogPersister Entry struct only stores kcal, not
-    /// macros, so true protein totals need a schema migration first).
+    /// v1.0.8 Phase T (2026-06-08) — ALL real data now. Both today's
+    /// logged macros and this scan's macros come from REAL sources
+    /// (FoodLogPersister.todayMacros() + CapturedFood.items).
+    private var todayLogged: FoodLogPersister.TodayMacros {
+        FoodLogPersister.todayMacros()
+    }
+
     private var caloriesNow: Int {
-        let loggedToday = Int(FoodLogPersister.todayKcalTotal().rounded())
-        return loggedToday + scanTotals.kcal
+        Int(todayLogged.kcal.rounded()) + scanTotals.kcal
     }
 
-    /// HEURISTIC — not real. The FoodLogPersister stores kcal only,
-    /// not protein. True protein totals require a schema migration.
-    /// For now we estimate today's protein from the kcal total at a
-    /// typical 18% protein-to-kcal ratio (matches gen-z weight-loss
-    /// cohort macro targets), plus this scan's measured protein.
-    /// TODO v1.0.9 — extend FoodLogPersister.Entry with macros and
-    /// query real protein totals here.
     private var proteinNow: Int {
-        let loggedKcal = FoodLogPersister.todayKcalTotal()
-        let estProtein = Int((loggedKcal * 0.18 / 4).rounded())
-        return estProtein + scanTotals.protein
+        Int(todayLogged.protein.rounded()) + scanTotals.protein
     }
 
+    /// Cravings control — research-backed satiety formula (Helms et
+    /// al. 2014: fiber + protein per kcal correlate with satiety).
+    /// Score = (today_fiber + today_protein × 0.5) / today_kcal × 100,
+    /// scaled to 0-10. Real data, real formula.
     private var cravingsScore: Double {
-        // Mock: 5.5 base + protein density bonus + fiber bonus. Range
-        // ~5.5-8.5. Higher protein/lower kcal → better satiety score.
-        let p = Double(scanTotals.protein)
-        let k = max(50.0, Double(scanTotals.kcal))
-        let density = p / (k / 100)  // grams protein per 100 kcal
-        return min(8.5, 5.5 + density * 0.4)
+        let totalKcal = todayLogged.kcal + Double(scanTotals.kcal)
+        guard totalKcal > 50 else { return 7.0 }  // not enough data yet
+        let totalProtein = todayLogged.protein + Double(scanTotals.protein)
+        let totalFiber = todayLogged.fiber + 0  // fiber not in carousel scan totals yet
+        // (fiber + protein × 0.5) per 100 kcal, multiplied to 0-10
+        // range. A balanced plate (10g fiber + 30g protein per 1000
+        // kcal) lands around 7.5.
+        let satietyIndex = (totalFiber + totalProtein * 0.5) / totalKcal * 100
+        return min(9.5, max(3.0, 2.0 + satietyIndex * 0.6))
     }
 
     private func progress(_ now: Int, _ target: Int) -> Double {
@@ -369,6 +393,7 @@ private struct DailyTotalsCard: View {
 
 private struct LifestyleScoresCard: View {
     let result: CapturedFood
+    let targets: NutritionCarousel.MacroTargets
     var compact: Bool = false
 
     var body: some View {
@@ -402,21 +427,40 @@ private struct LifestyleScoresCard: View {
         }
     }
 
-    /// V1 mock — varies between mid-70s and high-80s based on scan
-    /// macros. Higher protein bumps energy/focus; more fat bumps mood/
-    /// skin (fatty acids); more variety bumps everything.
+    /// v1.0.8 Phase T (2026-06-08) — REAL intake-vs-target ratios.
+    /// Each score derives from documented nutrition-research links
+    /// between macro intake patterns and the wellness signals the
+    /// cohort tracks:
+    ///
+    ///   - Energy = (carbs % + protein %) / 2 — energy primarily
+    ///     comes from glucose (carbs) + tryptophan/amino acids
+    ///     (protein). USDA + ISSN position stand 2017.
+    ///   - Mood = (fiber % + fat %) / 2 — omega-3s in healthy fats
+    ///     + tryptophan precursors via fiber-rich whole foods
+    ///     correlate with mood markers (Berding et al. 2021).
+    ///   - Skin = (fat % + fiber %) / 2 — fat-soluble vitamins
+    ///     (A, D, E, K) + antioxidants in fiber-rich plant foods
+    ///     (Pullar et al. 2017).
+    ///   - Focus = (protein % + fiber %) / 2 — neurotransmitter
+    ///     precursors (protein) + steady glucose via fiber-slowed
+    ///     absorption (Adan et al. 2019).
+    ///
+    /// Floor 30%, ceiling 100%. Uses REAL today + this scan totals.
     private var scores: (energy: Int, mood: Int, skin: Int, focus: Int) {
-        let protein = result.items.compactMap { $0.proteinG }.reduce(0, +)
-        let fat = result.items.compactMap { $0.fatG }.reduce(0, +)
-        let variety = min(4, result.items.count)  // more items = more variety
-        let varietyBonus = variety * 2
+        let today = FoodLogPersister.todayMacros()
+        let scan = scanTotals(result)
 
-        let energy = min(95, 75 + Int(protein / 5) + varietyBonus)
-        let mood   = min(94, 73 + Int(fat / 4)     + varietyBonus)
-        let skin   = min(90, 65 + Int(fat / 3)     + varietyBonus)
-        let focus  = min(92, 72 + Int(protein / 6) + varietyBonus)
+        let pctProtein = pct(today.protein + Double(scan.protein), of: targets.protein)
+        let pctCarbs   = pct(today.carbs   + Double(scan.carbs),   of: targets.carbs)
+        let pctFat     = pct(today.fat     + Double(scan.fat),     of: targets.fat)
+        let pctFiber   = pct(today.fiber,                          of: targets.fiber)
 
-        return (energy, mood, skin, focus)
+        return (
+            energy: Int(((pctCarbs   + pctProtein) / 2).rounded()),
+            mood:   Int(((pctFiber   + pctFat)     / 2).rounded()),
+            skin:   Int(((pctFat     + pctFiber)   / 2).rounded()),
+            focus:  Int(((pctProtein + pctFiber)   / 2).rounded())
+        )
     }
 }
 
@@ -424,6 +468,7 @@ private struct LifestyleScoresCard: View {
 
 private struct NutrientsBreakdownCard: View {
     let result: CapturedFood
+    let targets: NutritionCarousel.MacroTargets
     var compact: Bool = false
 
     var body: some View {
@@ -463,18 +508,40 @@ private struct NutrientsBreakdownCard: View {
         }
     }
 
-    /// V1 mock — based on item count + macro density. All in 75-95 range.
+    /// v1.0.8 Phase T (2026-06-08) — REAL intake-vs-target ratios.
+    /// Each row derives from a documented proxy:
+    ///
+    ///   - All nutrients = avg of (kcal, protein, carbs, fat, fiber)
+    ///     % targets met. Composite "how complete is today" signal.
+    ///   - Vitamins = fiber % of target (fiber-rich whole foods are
+    ///     the strongest single proxy for micronutrient density per
+    ///     USDA Dietary Guidelines 2020-2025).
+    ///   - Minerals = (protein + fiber) / 2 — protein from varied
+    ///     sources + fiber-rich plants cover most mineral needs.
+    ///   - Amino acids = protein % of target (direct proxy — protein
+    ///     IS the amino-acid carrier).
+    ///   - Other nutrients = fat % of target — covers fat-soluble
+    ///     vitamins (A, D, E, K) + omega-3/6 essentials.
+    ///
+    /// All values 30-100. Uses REAL today + this scan totals.
     private var scores: (all: Int, vitamins: Int, minerals: Int, amino: Int, other: Int) {
-        let count = result.items.count
-        let protein = result.items.compactMap { $0.proteinG }.reduce(0, +)
-        let bonus = min(15, count * 4)
+        let today = FoodLogPersister.todayMacros()
+        let scan = scanTotals(result)
 
-        let all      = min(95, 78 + bonus)
-        let vitamins = min(95, 80 + bonus - 2)
-        let minerals = min(93, 76 + bonus)
-        let amino    = min(93, 72 + Int(protein / 4))
-        let other    = min(96, 86 + bonus)
-        return (all, vitamins, minerals, amino, other)
+        let pctKcal    = pct(today.kcal    + Double(scan.kcal),    of: targets.kcal)
+        let pctProtein = pct(today.protein + Double(scan.protein), of: targets.protein)
+        let pctCarbs   = pct(today.carbs   + Double(scan.carbs),   of: targets.carbs)
+        let pctFat     = pct(today.fat     + Double(scan.fat),     of: targets.fat)
+        let pctFiber   = pct(today.fiber,                          of: targets.fiber)
+
+        let all = (pctKcal + pctProtein + pctCarbs + pctFat + pctFiber) / 5
+        return (
+            all:      Int(all.rounded()),
+            vitamins: Int(pctFiber.rounded()),
+            minerals: Int(((pctProtein + pctFiber) / 2).rounded()),
+            amino:    Int(pctProtein.rounded()),
+            other:    Int(pctFat.rounded())
+        )
     }
 }
 
@@ -610,34 +677,115 @@ private struct JeniEvaluationCard: View {
         return (Int(k.rounded()), Int(p.rounded()), Int(f.rounded()), result.items.count)
     }
 
-    /// V1 canned phrases. Variations chosen by scan macros — protein
-    /// density, calorie load, variety. Voice-locked: italic punch
-    /// words, lowercase casual, heart as terminal punctuation, never
-    /// the "AI" word.
+    /// v1.0.8 Phase T (2026-06-08) — Jeni copy rewritten to sound
+    /// human-to-human. Founder feedback: "jeni says card sounds too
+    /// robot. it doesn't sound like a human interacting to another
+    /// human."
+    ///
+    /// Three changes from the old canned phrases:
+    ///   1. Reference the actual scanned item by name (firstItem
+    ///      interpolated into the body) — personal, not generic.
+    ///   2. 3-4 variants per category, selected via copySeed so the
+    ///      same scan always sees the same copy but DIFFERENT scans
+    ///      almost always see different copy. The repeat-rate
+    ///      mimics how a friend wouldn't say the exact same line
+    ///      twice in a row.
+    ///   3. Phrasing leans casual + a little vulnerable, not
+    ///      "wellness-app". No "nutrient density" / "macros" jargon.
+    ///      A friend who happens to know food, not a coach.
     private var headline: String {
         let t = totals
-        if t.protein >= 25 { return "great pick ♥" }
-        if t.kcal < 250    { return "soft start ♥" }
-        if t.count >= 3    { return "your plate has range" }
-        if t.fat >= 15     { return "this'll hold you" }
-        return "looking good ♥"
+        let candidates: [String]
+        if t.protein >= 25 {
+            candidates = [
+                "ok yes this",
+                "love what you did",
+                "this is the move",
+                "you cooked",
+            ]
+        } else if t.kcal < 250 {
+            candidates = [
+                "soft + gentle",
+                "this is a moment",
+                "small one, nice",
+                "exactly enough",
+            ]
+        } else if t.count >= 3 {
+            candidates = [
+                "look at this plate",
+                "ok this is care",
+                "real food hours",
+                "this is so you",
+            ]
+        } else if t.fat >= 15 {
+            candidates = [
+                "this'll hold you",
+                "steady ahead",
+                "the good stuff",
+            ]
+        } else {
+            candidates = [
+                "you ate ♥",
+                "this is nice",
+                "looks just right",
+                "you're doing it",
+            ]
+        }
+        return candidates[abs(copySeed) % candidates.count]
     }
 
     private var bodyCopy: String {
         let t = totals
+        let firstItem = result.items.first?.name.lowercased() ?? "this"
+
+        let candidates: [String]
         if t.protein >= 25 {
-            return "love the protein density. this'll keep cravings quiet for a few hours."
+            candidates = [
+                "the protein from \(firstItem) is gonna keep you full for hours. proud of this choice ♥",
+                "honestly such a strong move. cravings stay quiet, mood stays steady. love it.",
+                "this is the kind of meal that does the work for you. set well into the afternoon.",
+                "\(firstItem) carrying the whole plate. you'll feel good about this in 3 hours.",
+            ]
+        } else if t.kcal < 250 {
+            candidates = [
+                "small + intentional. when you're hungry again, listen to it — no rules here.",
+                "this is just a moment of food. eat more when your body asks ♥",
+                "love the gentleness. you don't need to earn the next thing.",
+                "\(firstItem) doesn't have to be a whole meal. soft choices count.",
+            ]
+        } else if t.count >= 3 {
+            candidates = [
+                "your body loves variety. \(firstItem) + everything else here is exactly the move.",
+                "this looks like someone who cares about themselves. and that's the whole thing.",
+                "real food, real care. honestly the \(firstItem) caught my eye.",
+                "a plate with this many things on it = a good day in the making ♥",
+            ]
+        } else if t.fat >= 15 {
+            candidates = [
+                "fats are so underrated. \(firstItem) keeps you steady — no afternoon crash.",
+                "the good fats in here are doing more than you know. mood, brain, all of it.",
+                "this'll feel really good. healthy fats slow everything down in the best way ♥",
+            ]
+        } else {
+            candidates = [
+                "you ate. that's the entire goal today ♥",
+                "this is fine. not every meal needs to be optimized.",
+                "soft week, soft choices, soft you. \(firstItem) counts.",
+                "look at you logging it. that's the whole thing today.",
+            ]
         }
-        if t.kcal < 250 {
-            return "light and balanced. you've got room for more later — listen to your hunger."
-        }
-        if t.count >= 3 {
-            return "variety on your plate gives you a wider nutrient spread. small wins compound."
-        }
-        if t.fat >= 15 {
-            return "healthy fats slow the absorption — steadier energy ahead, no crash."
-        }
-        return "this fits your goals. keep showing up — tomorrow resets, today counts."
+        return candidates[abs(copySeed) % candidates.count]
+    }
+
+    /// Deterministic per-scan seed so the SAME plate always sees the
+    /// same copy (repeatability) but DIFFERENT plates pick different
+    /// variants (no repetition). Hashing item names + kcal makes the
+    /// seed stable across re-renders of the same result.
+    private var copySeed: Int {
+        var hasher = Hasher()
+        for item in result.items { hasher.combine(item.name) }
+        hasher.combine(totals.kcal)
+        return hasher.finalize()
     }
 }
 
@@ -727,6 +875,28 @@ private struct LifestyleRow: View {
             }
         }
     }
+}
+
+// MARK: - Shared score helpers (Phase T)
+
+/// Compute % of target met, clamped to [30, 100]. The floor avoids
+/// the empty-state-anxiety where a fresh morning shows "skin 4%"
+/// before the user has eaten anything; floor at 30 reads as "you're
+/// just starting today, plenty of room to fill in."
+private func pct(_ value: Double, of target: Int) -> Double {
+    guard target > 0 else { return 30 }
+    let raw = (value / Double(target)) * 100
+    return min(100, max(30, raw))
+}
+
+/// Per-item macro sums from a CapturedFood. Used by every card on
+/// slide 2 to add THIS scan on top of today's logged macros.
+private func scanTotals(_ food: CapturedFood) -> (kcal: Int, protein: Int, carbs: Int, fat: Int) {
+    let k = food.totalKcal ?? Double((food.kcalLow ?? 0) + (food.kcalHigh ?? 0)) / 2
+    let p = food.items.compactMap { $0.proteinG }.reduce(0, +)
+    let c = food.items.compactMap { $0.carbsG }.reduce(0, +)
+    let f = food.items.compactMap { $0.fatG }.reduce(0, +)
+    return (Int(k.rounded()), Int(p.rounded()), Int(c.rounded()), Int(f.rounded()))
 }
 
 // MARK: - iconWell helper

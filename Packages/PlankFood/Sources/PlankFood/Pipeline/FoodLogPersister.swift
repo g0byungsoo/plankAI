@@ -51,10 +51,67 @@ public enum FoodLogPersister {
     /// Codable entry — serializes to JSON for UserDefaults storage.
     /// Decoupled from the public API so we can swap to SwiftData in
     /// v1.0.8 without breaking the on-disk format readers.
+    ///
+    /// v1.0.8 Phase T (2026-06-08) — extended with macros so the
+    /// NutritionCarousel's daily-totals card can show REAL today's
+    /// protein/carbs/fat/fiber instead of heuristic estimates.
+    /// Backwards-compatible: old v1 entries (kcal only) decode with
+    /// macros defaulted to 0.
     private struct Entry: Codable {
         let userId: String
         let loggedAt: Date
         let kcal: Double
+        let protein: Double
+        let carbs: Double
+        let fat: Double
+        let fiber: Double
+
+        init(
+            userId: String,
+            loggedAt: Date,
+            kcal: Double,
+            protein: Double = 0,
+            carbs: Double = 0,
+            fat: Double = 0,
+            fiber: Double = 0
+        ) {
+            self.userId = userId
+            self.loggedAt = loggedAt
+            self.kcal = kcal
+            self.protein = protein
+            self.carbs = carbs
+            self.fat = fat
+            self.fiber = fiber
+        }
+
+        // Backwards-compatible decode — entries written before macros
+        // were added decode with 0 for each missing field.
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            userId = try c.decode(String.self, forKey: .userId)
+            loggedAt = try c.decode(Date.self, forKey: .loggedAt)
+            kcal = try c.decode(Double.self, forKey: .kcal)
+            protein = (try? c.decode(Double.self, forKey: .protein)) ?? 0
+            carbs = (try? c.decode(Double.self, forKey: .carbs)) ?? 0
+            fat = (try? c.decode(Double.self, forKey: .fat)) ?? 0
+            fiber = (try? c.decode(Double.self, forKey: .fiber)) ?? 0
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case userId, loggedAt, kcal, protein, carbs, fat, fiber
+        }
+    }
+
+    /// v1.0.8 Phase T — today's macro totals at a glance. All values
+    /// reflect REAL logged macros, defaulting to 0 for old entries
+    /// without macro data. Returned as a struct so callers grab all
+    /// macros in a single store-walk.
+    public struct TodayMacros: Sendable {
+        public let kcal: Double
+        public let protein: Double
+        public let carbs: Double
+        public let fat: Double
+        public let fiber: Double
     }
 
     /// Lazy hydrate from UserDefaults on first read after a cold
@@ -120,6 +177,23 @@ public enum FoodLogPersister {
         return inMemoryEntries.filter { $0.loggedAt >= startOfDay }.count
     }
 
+    /// v1.0.8 Phase T — sum of TODAY's kcal + macros from real
+    /// persisted entries. Drives the NutritionCarousel daily-totals
+    /// card; every percentage on slide 2 now traces to a number
+    /// here, not a heuristic.
+    public static func todayMacros() -> TodayMacros {
+        hydrateIfNeeded()
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        let todays = inMemoryEntries.filter { $0.loggedAt >= startOfDay }
+        return TodayMacros(
+            kcal:    todays.reduce(0.0) { $0 + $1.kcal },
+            protein: todays.reduce(0.0) { $0 + $1.protein },
+            carbs:   todays.reduce(0.0) { $0 + $1.carbs },
+            fat:     todays.reduce(0.0) { $0 + $1.fat },
+            fiber:   todays.reduce(0.0) { $0 + $1.fiber }
+        )
+    }
+
     // MARK: - Public API
 
     /// Insert a CapturedFood. Returns a placeholder FoodLogRecord
@@ -142,12 +216,28 @@ public enum FoodLogPersister {
                 .reduce(0, +)
         }
 
+        // v1.0.8 Phase T — sum macros across items so today's totals
+        // are REAL. compactMap skips items missing a given macro
+        // (which can happen on the .imOut restaurant-range path or
+        // when the LLM omits a value); contributing items add their
+        // value, missing items add 0. This is the source-of-truth for
+        // every "today's protein/carbs/fat/fiber" number across the
+        // app, including the carousel daily-totals card.
+        let plateProtein = food.items.compactMap { $0.proteinG }.reduce(0, +)
+        let plateCarbs   = food.items.compactMap { $0.carbsG }.reduce(0, +)
+        let plateFat     = food.items.compactMap { $0.fatG }.reduce(0, +)
+        let plateFiber   = food.items.compactMap { $0.fiberG }.reduce(0, +)
+
         hydrateIfNeeded()
         let loggedAt = Date()
         inMemoryEntries.append(Entry(
             userId: userId,
             loggedAt: loggedAt,
-            kcal: plateKcal
+            kcal: plateKcal,
+            protein: plateProtein,
+            carbs: plateCarbs,
+            fat: plateFat,
+            fiber: plateFiber
         ))
         writeToUserDefaults()
 
