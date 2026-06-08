@@ -53,6 +53,37 @@ public enum CalorieMathService {
         /// in expanded view in NutrientGrid).
         public let saturatedFatPer100g: Double
 
+        // MARK: - v1.0.9 Theme A — micronutrient panel
+        //
+        // 10 cohort-relevant nutrients pulled from USDA FDC. All
+        // values default to 0 when the lookup source doesn't have
+        // them (USDA Foundation typically has all 10; Survey has
+        // most; SR Legacy has fewer; canonical_pantry overrides may
+        // populate only the ones a brand publishes).
+        //
+        // Units per USDA standard nutrient list:
+        //   Vitamin A — µg RAE (retinol activity equivalent)
+        //   Vitamin C — mg
+        //   Vitamin D — µg
+        //   Vitamin E — mg (alpha-tocopherol)
+        //   Vitamin B12 — µg
+        //   Calcium — mg
+        //   Iron — mg
+        //   Magnesium — mg
+        //   Potassium — mg
+        //   Zinc — mg
+
+        public let vitaminAUgPer100g: Double      // 1106
+        public let vitaminCMgPer100g: Double      // 1162
+        public let vitaminDUgPer100g: Double      // 1114
+        public let vitaminEMgPer100g: Double      // 1109
+        public let vitaminB12UgPer100g: Double    // 1178
+        public let calciumMgPer100g: Double       // 1087
+        public let ironMgPer100g: Double          // 1089
+        public let magnesiumMgPer100g: Double     // 1090
+        public let potassiumMgPer100g: Double     // 1092
+        public let zincMgPer100g: Double          // 1095
+
         public init(
             kcalPer100g: Double,
             proteinPer100g: Double = 0,
@@ -61,7 +92,17 @@ public enum CalorieMathService {
             fiberPer100g: Double = 0,
             sugarPer100g: Double = 0,
             sodiumMgPer100g: Double = 0,
-            saturatedFatPer100g: Double = 0
+            saturatedFatPer100g: Double = 0,
+            vitaminAUgPer100g: Double = 0,
+            vitaminCMgPer100g: Double = 0,
+            vitaminDUgPer100g: Double = 0,
+            vitaminEMgPer100g: Double = 0,
+            vitaminB12UgPer100g: Double = 0,
+            calciumMgPer100g: Double = 0,
+            ironMgPer100g: Double = 0,
+            magnesiumMgPer100g: Double = 0,
+            potassiumMgPer100g: Double = 0,
+            zincMgPer100g: Double = 0
         ) {
             self.kcalPer100g = kcalPer100g
             self.proteinPer100g = proteinPer100g
@@ -71,6 +112,50 @@ public enum CalorieMathService {
             self.sugarPer100g = sugarPer100g
             self.sodiumMgPer100g = sodiumMgPer100g
             self.saturatedFatPer100g = saturatedFatPer100g
+            self.vitaminAUgPer100g = vitaminAUgPer100g
+            self.vitaminCMgPer100g = vitaminCMgPer100g
+            self.vitaminDUgPer100g = vitaminDUgPer100g
+            self.vitaminEMgPer100g = vitaminEMgPer100g
+            self.vitaminB12UgPer100g = vitaminB12UgPer100g
+            self.calciumMgPer100g = calciumMgPer100g
+            self.ironMgPer100g = ironMgPer100g
+            self.magnesiumMgPer100g = magnesiumMgPer100g
+            self.potassiumMgPer100g = potassiumMgPer100g
+            self.zincMgPer100g = zincMgPer100g
+        }
+
+        // v1.0.9 Theme A — backwards-compat Codable. Entries written
+        // before micronutrient fields existed decode with 0 for each
+        // missing key. Same pattern as FoodLogPersister.Entry.
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            kcalPer100g    = try c.decode(Double.self, forKey: .kcalPer100g)
+            proteinPer100g = (try? c.decode(Double.self, forKey: .proteinPer100g)) ?? 0
+            carbsPer100g   = (try? c.decode(Double.self, forKey: .carbsPer100g)) ?? 0
+            fatPer100g     = (try? c.decode(Double.self, forKey: .fatPer100g)) ?? 0
+            fiberPer100g   = (try? c.decode(Double.self, forKey: .fiberPer100g)) ?? 0
+            sugarPer100g   = (try? c.decode(Double.self, forKey: .sugarPer100g)) ?? 0
+            sodiumMgPer100g = (try? c.decode(Double.self, forKey: .sodiumMgPer100g)) ?? 0
+            saturatedFatPer100g = (try? c.decode(Double.self, forKey: .saturatedFatPer100g)) ?? 0
+            vitaminAUgPer100g = (try? c.decode(Double.self, forKey: .vitaminAUgPer100g)) ?? 0
+            vitaminCMgPer100g = (try? c.decode(Double.self, forKey: .vitaminCMgPer100g)) ?? 0
+            vitaminDUgPer100g = (try? c.decode(Double.self, forKey: .vitaminDUgPer100g)) ?? 0
+            vitaminEMgPer100g = (try? c.decode(Double.self, forKey: .vitaminEMgPer100g)) ?? 0
+            vitaminB12UgPer100g = (try? c.decode(Double.self, forKey: .vitaminB12UgPer100g)) ?? 0
+            calciumMgPer100g = (try? c.decode(Double.self, forKey: .calciumMgPer100g)) ?? 0
+            ironMgPer100g = (try? c.decode(Double.self, forKey: .ironMgPer100g)) ?? 0
+            magnesiumMgPer100g = (try? c.decode(Double.self, forKey: .magnesiumMgPer100g)) ?? 0
+            potassiumMgPer100g = (try? c.decode(Double.self, forKey: .potassiumMgPer100g)) ?? 0
+            zincMgPer100g = (try? c.decode(Double.self, forKey: .zincMgPer100g)) ?? 0
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case kcalPer100g, proteinPer100g, carbsPer100g, fatPer100g
+            case fiberPer100g, sugarPer100g, sodiumMgPer100g, saturatedFatPer100g
+            case vitaminAUgPer100g, vitaminCMgPer100g, vitaminDUgPer100g
+            case vitaminEMgPer100g, vitaminB12UgPer100g
+            case calciumMgPer100g, ironMgPer100g, magnesiumMgPer100g
+            case potassiumMgPer100g, zincMgPer100g
         }
     }
 

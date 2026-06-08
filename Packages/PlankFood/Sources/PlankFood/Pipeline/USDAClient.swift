@@ -114,7 +114,9 @@ public struct USDAClient: Sendable {
 
     private static func map(_ food: SearchResponse.Food) -> NutritionLookupResult {
         // USDA returns nutrients per 100g for most foods. The nutrient
-        // IDs we care about (per USDA's FDC nutrient ID catalog):
+        // IDs we care about (per USDA's FDC nutrient ID catalog).
+        //
+        // Macros (existing 8):
         //   1008 = Energy (kcal)
         //   1003 = Protein (g)
         //   1005 = Carbohydrates (g)
@@ -123,6 +125,18 @@ public struct USDAClient: Sendable {
         //   2000 = Sugars, total (g)               ← 2026-06-05 added
         //   1093 = Sodium, Na (mg)                  ← 2026-06-05 added
         //   1258 = Fatty acids, total saturated (g) ← 2026-06-05 added
+        //
+        // v1.0.9 Theme A — micronutrient panel (10):
+        //   1106 = Vitamin A, RAE (µg)
+        //   1162 = Vitamin C, total ascorbic acid (mg)
+        //   1114 = Vitamin D (D2+D3) (µg)
+        //   1109 = Vitamin E (alpha-tocopherol) (mg)
+        //   1178 = Vitamin B-12 (µg)
+        //   1087 = Calcium, Ca (mg)
+        //   1089 = Iron, Fe (mg)
+        //   1090 = Magnesium, Mg (mg)
+        //   1092 = Potassium, K (mg)
+        //   1095 = Zinc, Zn (mg)
         var kcal: Double = 0
         var protein: Double = 0
         var carbs: Double = 0
@@ -131,6 +145,16 @@ public struct USDAClient: Sendable {
         var sugar: Double = 0
         var sodiumMg: Double = 0
         var saturatedFat: Double = 0
+        var vitA: Double = 0
+        var vitC: Double = 0
+        var vitD: Double = 0
+        var vitE: Double = 0
+        var vitB12: Double = 0
+        var calcium: Double = 0
+        var iron: Double = 0
+        var magnesium: Double = 0
+        var potassium: Double = 0
+        var zinc: Double = 0
 
         for nutrient in food.foodNutrients {
             switch nutrient.nutrientId {
@@ -142,6 +166,16 @@ public struct USDAClient: Sendable {
             case 2000: sugar = nutrient.value ?? 0
             case 1093: sodiumMg = nutrient.value ?? 0
             case 1258: saturatedFat = nutrient.value ?? 0
+            case 1106: vitA = nutrient.value ?? 0
+            case 1162: vitC = nutrient.value ?? 0
+            case 1114: vitD = nutrient.value ?? 0
+            case 1109: vitE = nutrient.value ?? 0
+            case 1178: vitB12 = nutrient.value ?? 0
+            case 1087: calcium = nutrient.value ?? 0
+            case 1089: iron = nutrient.value ?? 0
+            case 1090: magnesium = nutrient.value ?? 0
+            case 1092: potassium = nutrient.value ?? 0
+            case 1095: zinc = nutrient.value ?? 0
             default: break
             }
         }
@@ -154,7 +188,17 @@ public struct USDAClient: Sendable {
             fiberPer100g: fiber,
             sugarPer100g: sugar,
             sodiumMgPer100g: sodiumMg,
-            saturatedFatPer100g: saturatedFat
+            saturatedFatPer100g: saturatedFat,
+            vitaminAUgPer100g: vitA,
+            vitaminCMgPer100g: vitC,
+            vitaminDUgPer100g: vitD,
+            vitaminEMgPer100g: vitE,
+            vitaminB12UgPer100g: vitB12,
+            calciumMgPer100g: calcium,
+            ironMgPer100g: iron,
+            magnesiumMgPer100g: magnesium,
+            potassiumMgPer100g: potassium,
+            zincMgPer100g: zinc
         )
 
         return NutritionLookupResult(
