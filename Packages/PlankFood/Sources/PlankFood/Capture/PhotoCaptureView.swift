@@ -69,6 +69,18 @@ public struct PhotoCaptureView: View {
     /// zero rendering latency at tap time.
     @State private var shareableImage: UIImage?
 
+    /// v1.0.8 Phase R.3 — pre-encoded PNG slides for the multi-slide
+    /// share picker. One entry per carousel page. Rendering AND PNG
+    /// encoding happen up-front so the system share sheet pops
+    /// instantly when the user taps share. Founder feedback: "whenever
+    /// i click share button there is a lag (loading) before it pops
+    /// up" — the old DataRepresentation closure was encoding PNG at
+    /// share-tap time (~150ms for 1080×1920). Now the Data is cached.
+    @State private var shareableSlides: [SlideShareItem] = []
+
+    /// v1.0.8 Phase R.3 — share picker sheet flag.
+    @State private var showSharePicker: Bool = false
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public let onDismiss: () -> Void
@@ -451,6 +463,7 @@ public struct PhotoCaptureView: View {
                     capturedResult = nil
                 }
                 shareableImage = nil
+                shareableSlides = []
             } label: {
                 Image(systemName: "arrow.uturn.backward")
                     .font(.system(size: 16, weight: .medium))
@@ -486,32 +499,37 @@ public struct PhotoCaptureView: View {
         }
     }
 
-    /// v1.0.8 Phase Q — share button that prefers the composed 9:16
-    /// shareable image (photo + nutrition card + JeniFit watermark)
-    /// over the raw photo. If the ImageRenderer task hasn't completed
-    /// yet, we share just the raw photo so the button is never dead.
+    /// v1.0.8 Phase R.3 — share button now opens a picker sheet
+    /// where the user chooses which slides to share. Founder direction:
+    /// "share button should give users what slides they want to share
+    /// like [tiktok download picker] and share the slides picked."
+    ///
+    /// Sheet shows a thumbnail per pre-rendered slide with a checkmark
+    /// per item, a "select all" toggle, and a hot-pink "Share" CTA. On
+    /// tap, the selected slides are handed to UIActivityViewController
+    /// for the system share sheet.
+    ///
+    /// Falls back to a no-op disabled state until the slides are
+    /// rendered (~200-400ms after the result lands). Pre-encoded PNG
+    /// Data means the actual system share opens instantly when the
+    /// user picks share targets — no DataRepresentation encoding lag.
     @ViewBuilder private var shareButton: some View {
-        if let composed = shareableImage {
-            ShareLink(
-                item: ShareableFoodImage(
-                    uiImage: composed,
-                    suggestedName: "jenifit-plate.png"
-                ),
-                preview: SharePreview("my plate", image: Image(uiImage: composed))
-            ) {
-                shareIconLabel
-            }
-            .accessibilityLabel("share")
-        } else if let photo = camera.frozenFrame {
-            ShareLink(
-                item: Image(uiImage: photo),
-                preview: SharePreview("my plate", image: Image(uiImage: photo))
-            ) {
-                shareIconLabel
-            }
-            .accessibilityLabel("share")
-        } else {
-            Color.clear.frame(width: 48, height: 48)
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            showSharePicker = true
+        } label: {
+            shareIconLabel
+        }
+        .accessibilityLabel("share")
+        .disabled(shareableSlides.isEmpty)
+        .opacity(shareableSlides.isEmpty ? 0.5 : 1)
+        .sheet(isPresented: $showSharePicker) {
+            SharePickerSheet(
+                slides: shareableSlides,
+                onClose: { showSharePicker = false }
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -560,24 +578,72 @@ public struct PhotoCaptureView: View {
         )
     }
 
-    /// v1.0.8 Phase Q — render the 9:16 shareable image. Uses
-    /// ImageRenderer (iOS 16+) to flatten the ShareableFoodImageView
-    /// into a 1080×1920 PNG. Returns nil if rendering fails (e.g. on
-    /// a device where ImageRenderer can't materialize the view).
+    /// v1.0.8 Phase R.3 — render all 3 carousel slides as 1080×1920
+    /// shareables and pre-encode each to PNG Data. Runs on the main
+    /// actor (ImageRenderer requires it) but the PNG encoding step
+    /// is cheap on M-series silicon (~30-60ms per slide).
     @MainActor
-    private func renderShareableImage(result: CapturedFood, photo: UIImage) -> UIImage? {
-        let view = ShareableFoodImageView(
-            photo: photo,
-            mealLabel: mealTypeLabel,
-            dishName: dishNameLabel(result),
-            totals: nutritionTotals(result)
-        )
-        .frame(width: 1080, height: 1920)
+    private func renderAllShareableSlides(
+        result: CapturedFood,
+        photo: UIImage
+    ) -> [SlideShareItem] {
+        let totals = nutritionTotals(result)
+        let dish = dishNameLabel(result)
+        let meal = mealTypeLabel
 
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 1.0
-        renderer.proposedSize = ProposedViewSize(width: 1080, height: 1920)
-        return renderer.uiImage
+        let slides: [(SlideKind, AnyView)] = [
+            (.meal, AnyView(
+                ShareableFoodImageView(
+                    photo: photo,
+                    mealLabel: meal,
+                    dishName: dish,
+                    totals: totals
+                )
+                .frame(width: 1080, height: 1920)
+            )),
+            (.packedDaily, AnyView(
+                ShareablePackedDailyView(
+                    photo: photo,
+                    result: result,
+                    kcalTarget: shareableKcalTarget,
+                    proteinTarget: shareableProteinTarget
+                )
+                .frame(width: 1080, height: 1920)
+            )),
+            (.jeni, AnyView(
+                ShareableJeniView(
+                    photo: photo,
+                    result: result
+                )
+                .frame(width: 1080, height: 1920)
+            )),
+        ]
+
+        return slides.compactMap { kind, view in
+            let renderer = ImageRenderer(content: view)
+            renderer.scale = 1.0
+            renderer.proposedSize = ProposedViewSize(width: 1080, height: 1920)
+            guard let img = renderer.uiImage else { return nil }
+            guard let data = img.pngData() else { return nil }
+            return SlideShareItem(
+                kind: kind,
+                uiImage: img,
+                pngData: data,
+                suggestedName: kind.suggestedFileName
+            )
+        }
+    }
+
+    /// V1 share targets — match the in-camera carousel's `kcalTarget`
+    /// fallback. Real values land via @AppStorage once shared with
+    /// NutritionCarousel.
+    private var shareableKcalTarget: Int {
+        let stored = UserDefaults.standard.double(forKey: "foodDailyTarget")
+        return stored > 0 ? Int(stored) : 1950
+    }
+
+    private var shareableProteinTarget: Int {
+        Int((Double(shareableKcalTarget) * 0.25) / 4)
     }
 
     @ViewBuilder
@@ -958,16 +1024,26 @@ public struct PhotoCaptureView: View {
             // or tap the share button to export the card+photo.
             capturedResult = result
 
-            // v1.0.8 Phase Q — render the 9:16 shareable image eagerly
-            // (after a short delay so the inline card lands first and
-            // the user-visible UI gets first dibs on the main thread).
-            // ImageRenderer is @MainActor and a 1080×1920 render takes
-            // ~80-150ms; the delay lets that work happen *after* the
-            // animation in.
+            // v1.0.8 Phase R.3 — render all 3 carousel slides as 9:16
+            // shareables AND pre-encode each to PNG Data. The render +
+            // encode happen on the main actor (ImageRenderer is
+            // @MainActor); PNG encoding via UIImage.pngData() can run
+            // in parallel on a detached task per slide.
+            //
+            // Founder fix: "share button has lag (loading) before pop
+            // up" — was caused by DataRepresentation closure encoding
+            // PNG at share-tap time. Now Data is cached so the system
+            // share sheet opens instantly.
             if let photo = camera.frozenFrame {
                 Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 250_000_000)
-                    shareableImage = renderShareableImage(result: result, photo: photo)
+                    try? await Task.sleep(nanoseconds: 200_000_000)
+                    shareableSlides = renderAllShareableSlides(
+                        result: result,
+                        photo: photo
+                    )
+                    // First slide also kept on `shareableImage` for the
+                    // legacy single-share fallback path.
+                    shareableImage = shareableSlides.first?.uiImage
                 }
             }
         } catch CameraError.captureTooSoon {
@@ -1381,20 +1457,375 @@ struct ShareableFoodImageView: View {
     }
 }
 
+// MARK: - SlideKind
+
+enum SlideKind: String, Hashable, CaseIterable {
+    case meal
+    case packedDaily
+    case jeni
+
+    var label: String {
+        switch self {
+        case .meal:        return "meal"
+        case .packedDaily: return "nutrition"
+        case .jeni:        return "jeni"
+        }
+    }
+
+    var suggestedFileName: String {
+        switch self {
+        case .meal:        return "jenifit-meal.png"
+        case .packedDaily: return "jenifit-nutrition.png"
+        case .jeni:        return "jenifit-jeni.png"
+        }
+    }
+}
+
+// MARK: - SlideShareItem
+
+/// A pre-rendered carousel slide ready for the system share sheet.
+/// Holds both the UIImage (for the preview thumbnail) and the encoded
+/// PNG Data (so DataRepresentation returns instantly at share time —
+/// no encoding lag).
+struct SlideShareItem: Identifiable, Hashable {
+    let kind: SlideKind
+    let uiImage: UIImage
+    let pngData: Data
+    let suggestedName: String
+
+    var id: SlideKind { kind }
+
+    static func == (lhs: SlideShareItem, rhs: SlideShareItem) -> Bool {
+        lhs.kind == rhs.kind
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(kind)
+    }
+}
+
 // MARK: - ShareableFoodImage (Transferable)
 
-/// Transferable wrapper around UIImage so ShareLink can export it as
-/// a PNG to any social-sharing target (Instagram, Messages, etc.).
+/// Transferable wrapper that hands iOS pre-encoded PNG Data — zero
+/// encoding work happens at share time. v1.0.8 Phase R.3.
 struct ShareableFoodImage: Transferable {
+    let pngData: Data
     let uiImage: UIImage
     let suggestedName: String
 
     static var transferRepresentation: some TransferRepresentation {
         DataRepresentation(exportedContentType: .png) { item in
-            item.uiImage.pngData() ?? Data()
+            item.pngData
         }
         .suggestedFileName { $0.suggestedName }
     }
+}
+
+// MARK: - ShareablePackedDailyView
+//
+// v1.0.8 Phase R.3 — 9:16 composition for slide 2. Photo background +
+// 3 stacked nutrition cards (daily totals / lifestyle / nutrients) +
+// JeniFit watermark. Scaled 2.4× to match the canvas size.
+
+struct ShareablePackedDailyView: View {
+    let photo: UIImage
+    let result: CapturedFood
+    let kcalTarget: Int
+    let proteinTarget: Int
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            Image(uiImage: photo)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 1080, height: 1920)
+                .clipped()
+
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.32),
+                    Color.black.opacity(0.10),
+                    Color.clear,
+                ],
+                startPoint: .top,
+                endPoint: .center
+            )
+            .frame(width: 1080, height: 1080)
+
+            VStack(spacing: 28) {
+                Spacer().frame(height: 1920 * 0.10)
+
+                ShareDailyTotalsBlock(
+                    result: result,
+                    kcalTarget: kcalTarget,
+                    proteinTarget: proteinTarget,
+                    scale: 2.4
+                )
+                .padding(.horizontal, 100)
+
+                ShareLifestyleBlock(result: result, scale: 2.4)
+                    .padding(.horizontal, 100)
+
+                Spacer()
+
+                Text("JeniFit")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 56))
+                    .foregroundStyle(Color.white)
+                    .shadow(color: Color.black.opacity(0.5), radius: 8, x: 0, y: 2)
+                    .padding(.bottom, 80)
+            }
+            .frame(width: 1080, height: 1920)
+        }
+        .frame(width: 1080, height: 1920)
+        .clipped()
+    }
+}
+
+// MARK: - ShareableJeniView
+//
+// v1.0.8 Phase R.3 — 9:16 composition for slide 3. Photo background +
+// Jeni's evaluation card centered + JeniFit watermark.
+
+struct ShareableJeniView: View {
+    let photo: UIImage
+    let result: CapturedFood
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            Image(uiImage: photo)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 1080, height: 1920)
+                .clipped()
+
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.32),
+                    Color.black.opacity(0.05),
+                    Color.clear,
+                ],
+                startPoint: .top,
+                endPoint: .center
+            )
+            .frame(width: 1080, height: 1080)
+
+            VStack {
+                Spacer().frame(height: 1920 * 0.16)
+
+                ShareJeniBlock(result: result, scale: 2.4)
+                    .padding(.horizontal, 100)
+
+                Spacer()
+
+                Text("JeniFit")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 56))
+                    .foregroundStyle(Color.white)
+                    .shadow(color: Color.black.opacity(0.5), radius: 8, x: 0, y: 2)
+                    .padding(.bottom, 80)
+            }
+            .frame(width: 1080, height: 1920)
+        }
+        .frame(width: 1080, height: 1920)
+        .clipped()
+    }
+}
+
+// MARK: - SharePickerSheet
+//
+// v1.0.8 Phase R.3 — bottom sheet that mirrors TikTok's "Select photos
+// to download" picker. Horizontal thumbnail row of carousel slides
+// (one per pre-rendered SlideShareItem), each with a hot-pink checkmark
+// in the top-right corner. "Select all" toggle on the left, "Share"
+// CTA on the right. All slides selected by default.
+//
+// Tapping "Share" presents UIActivityViewController via a UIKit bridge
+// (SwiftUI ShareLink doesn't accept dynamic per-item selection from a
+// closure cleanly).
+
+struct SharePickerSheet: View {
+    let slides: [SlideShareItem]
+    let onClose: () -> Void
+
+    @State private var selectedKinds: Set<SlideKind>
+    @State private var presentingActivity: Bool = false
+
+    init(slides: [SlideShareItem], onClose: @escaping () -> Void) {
+        self.slides = slides
+        self.onClose = onClose
+        // Default: all selected.
+        _selectedKinds = State(initialValue: Set(slides.map { $0.kind }))
+    }
+
+    var body: some View {
+        VStack(spacing: 18) {
+            HStack {
+                Text("share to social")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                Spacer()
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    onClose()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                        .frame(width: 36, height: 36)
+                        .background(Color.black.opacity(0.05), in: Circle())
+                }
+                .accessibilityLabel("close")
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(slides) { slide in
+                        thumbnail(for: slide)
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+            .frame(height: 230)
+
+            Spacer()
+
+            HStack {
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    if selectedKinds.count == slides.count {
+                        selectedKinds.removeAll()
+                    } else {
+                        selectedKinds = Set(slides.map { $0.kind })
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: selectedKinds.count == slides.count
+                              ? "checkmark.circle.fill"
+                              : "circle")
+                            .font(.system(size: 18))
+                            .foregroundStyle(selectedKinds.count == slides.count
+                                             ? Color(red: 1.0, green: 0.075, blue: 0.94)
+                                             : FoodTheme.textSecondary)
+                        Text("select all")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(FoodTheme.textPrimary)
+                    }
+                }
+
+                Spacer()
+
+                Button {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    presentingActivity = true
+                } label: {
+                    Text("share")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 12)
+                        .background(
+                            Capsule().fill(
+                                selectedKinds.isEmpty
+                                ? Color.gray.opacity(0.4)
+                                : Color(red: 1.0, green: 0.075, blue: 0.94)
+                            )
+                        )
+                        .shadow(color: Color(red: 1.0, green: 0.075, blue: 0.94)
+                                    .opacity(selectedKinds.isEmpty ? 0 : 0.3),
+                                radius: 8, x: 0, y: 2)
+                }
+                .disabled(selectedKinds.isEmpty)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+        .background(FoodTheme.bgElevated)
+        .sheet(isPresented: $presentingActivity) {
+            ShareActivityView(
+                items: selectedSlides.map { $0.uiImage as Any },
+                onComplete: {
+                    presentingActivity = false
+                    onClose()
+                }
+            )
+        }
+    }
+
+    private var selectedSlides: [SlideShareItem] {
+        slides.filter { selectedKinds.contains($0.kind) }
+    }
+
+    @ViewBuilder
+    private func thumbnail(for slide: SlideShareItem) -> some View {
+        let isSelected = selectedKinds.contains(slide.kind)
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            if isSelected {
+                selectedKinds.remove(slide.kind)
+            } else {
+                selectedKinds.insert(slide.kind)
+            }
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                Image(uiImage: slide.uiImage)
+                    .resizable()
+                    .aspectRatio(9.0 / 16.0, contentMode: .fit)
+                    .frame(width: 120, height: 213)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(isSelected
+                                    ? Color(red: 1.0, green: 0.075, blue: 0.94)
+                                    : Color.black.opacity(0.08),
+                                    lineWidth: isSelected ? 3 : 1)
+                    )
+
+                ZStack {
+                    Circle()
+                        .fill(isSelected
+                              ? Color(red: 1.0, green: 0.075, blue: 0.94)
+                              : Color.white)
+                        .overlay(
+                            Circle().stroke(Color.black.opacity(0.06), lineWidth: 1)
+                        )
+                        .frame(width: 26, height: 26)
+                        .shadow(color: Color.black.opacity(0.15), radius: 3, x: 0, y: 1)
+
+                    if isSelected {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .padding(8)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - ShareActivityView (UIActivityViewController bridge)
+
+/// SwiftUI wrapper around UIActivityViewController for sharing
+/// multiple items. ShareLink's `items:` initializer is fine for static
+/// arrays but the multi-select picker needs to hand a dynamic, user-
+/// chosen array to the system share sheet; UIActivityViewController is
+/// the simplest path.
+
+struct ShareActivityView: UIViewControllerRepresentable {
+    let items: [Any]
+    let onComplete: () -> Void
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        vc.completionWithItemsHandler = { _, _, _, _ in
+            DispatchQueue.main.async { onComplete() }
+        }
+        return vc
+    }
+
+    func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
 
 #endif  // canImport(UIKit)

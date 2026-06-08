@@ -41,7 +41,7 @@ struct NutritionCarousel: View {
     @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let pageCount = 5
+    private let pageCount = 3
 
     var body: some View {
         VStack(spacing: 12) {
@@ -50,7 +50,13 @@ struct NutritionCarousel: View {
                     .padding(.horizontal, 4)
                     .tag(0)
 
-                DailyTotalsCard(
+                // v1.0.8 Phase R.2 — slide 2 is now a SCROLLABLE
+                // packed card containing 3 stacked sections (daily
+                // totals, lifestyle scores, nutrient breakdown) per
+                // founder direction: "the second slide packed like
+                // this." Vertical drag scrolls the sections; horizontal
+                // drag still swipes the carousel.
+                PackedDailyCard(
                     result: result,
                     kcalTarget: kcalTarget,
                     proteinTarget: proteinTarget
@@ -58,20 +64,12 @@ struct NutritionCarousel: View {
                 .padding(.horizontal, 4)
                 .tag(1)
 
-                LifestyleScoresCard(result: result)
-                    .padding(.horizontal, 4)
-                    .tag(2)
-
-                NutrientsBreakdownCard(result: result)
-                    .padding(.horizontal, 4)
-                    .tag(3)
-
                 JeniEvaluationCard(result: result)
                     .padding(.horizontal, 4)
-                    .tag(4)
+                    .tag(2)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 320)
+            .frame(height: 360)
 
             PageDotsIndicator(
                 count: pageCount,
@@ -204,6 +202,34 @@ private struct MealSummaryCard: View {
         let f = result.items.compactMap { $0.fatG }.reduce(0, +)
         let k = result.totalKcal ?? Double((result.kcalLow ?? 0) + (result.kcalHigh ?? 0)) / 2
         return (Int(c.rounded()), Int(p.rounded()), Int(f.rounded()), Int(k.rounded()))
+    }
+}
+
+// MARK: - Packed daily nutrition card (page 2)
+//
+// v1.0.8 Phase R.2 — three stacked sections (daily totals, lifestyle
+// scores, nutrients breakdown) inside a vertical ScrollView. Horizontal
+// drag inside the carousel TabView still moves between pages; vertical
+// drag here scrolls through the sections.
+
+private struct PackedDailyCard: View {
+    let result: CapturedFood
+    let kcalTarget: Int
+    let proteinTarget: Int
+
+    var body: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 12) {
+                DailyTotalsCard(
+                    result: result,
+                    kcalTarget: kcalTarget,
+                    proteinTarget: proteinTarget
+                )
+                LifestyleScoresCard(result: result)
+                NutrientsBreakdownCard(result: result)
+            }
+            .padding(.bottom, 8)
+        }
     }
 }
 
@@ -403,34 +429,125 @@ private struct JeniEvaluationCard: View {
     let result: CapturedFood
 
     var body: some View {
-        CarouselCardShell(title: nil) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkle")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color(red: 1.0, green: 0.075, blue: 0.94))
-                    Text("jeni says")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                        .foregroundStyle(Color(red: 1.0, green: 0.075, blue: 0.94))
+        ZStack(alignment: .topTrailing) {
+            CarouselCardShell(title: nil) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkle")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color(red: 1.0, green: 0.075, blue: 0.94))
+                        Text("jeni says")
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                            .foregroundStyle(Color(red: 1.0, green: 0.075, blue: 0.94))
+                    }
+
+                    Text(headline)
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 24))
+                        .foregroundStyle(FoodTheme.textPrimary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(bodyCopy)
+                        .font(.system(size: 14))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                        .lineLimit(4)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Rectangle()
+                        .fill(Color.black.opacity(0.06))
+                        .frame(height: 1)
+                        .padding(.vertical, 2)
+
+                    // v1.0.8 Phase R.2 — richer last slide. List the
+                    // scanned items so the card carries real recall:
+                    // "what's on my plate today" — voice signal +
+                    // ownership reinforce. Plus a vibe-tag pill
+                    // (warming / energizing / comforting) derived from
+                    // macro signature.
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("on your plate")
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                            .foregroundStyle(FoodTheme.textSecondary)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(displayItems, id: \.self) { item in
+                                HStack(spacing: 8) {
+                                    Circle()
+                                        .fill(Color(red: 1.0, green: 0.075, blue: 0.94)
+                                            .opacity(0.55))
+                                        .frame(width: 4, height: 4)
+                                    Text(item)
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(FoodTheme.textPrimary)
+                                        .lineLimit(1)
+                                }
+                            }
+                        }
+                    }
+
+                    HStack {
+                        Spacer()
+                        vibeTag
+                    }
+                    .padding(.top, 4)
                 }
-
-                Text(headline)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
-                    .foregroundStyle(FoodTheme.textPrimary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-
-                Text(bodyCopy)
-                    .font(.system(size: 14))
-                    .foregroundStyle(FoodTheme.textSecondary)
-                    .lineLimit(4)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Spacer(minLength: 0)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Small decorative sticker — flower3D, slight rotation,
+            // overhanging the top-right corner per the scrapbook chrome
+            // family. Falls back to a sparkle SF Symbol if the asset
+            // isn't bundled.
+            decorativeSticker
+                .offset(x: 8, y: -8)
         }
+    }
+
+    @ViewBuilder
+    private var decorativeSticker: some View {
+        if UIImage(named: "sticker_flower_3d") != nil {
+            Image("sticker_flower_3d", bundle: .main)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 44, height: 44)
+                .rotationEffect(.degrees(-12))
+                .shadow(color: Color.black.opacity(0.08), radius: 0, x: 1, y: 1)
+        } else {
+            Image(systemName: "sparkles")
+                .font(.system(size: 20))
+                .foregroundStyle(Color(red: 1.0, green: 0.075, blue: 0.94))
+                .rotationEffect(.degrees(-12))
+        }
+    }
+
+    @ViewBuilder
+    private var vibeTag: some View {
+        Text(vibeLabel)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(Color(red: 0.37, green: 0.45, blue: 0.27))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(
+                Capsule().fill(Color(red: 0.92, green: 0.96, blue: 0.86))
+            )
+    }
+
+    private var displayItems: [String] {
+        if result.items.isEmpty {
+            return ["your plate"]
+        }
+        return result.items.prefix(4).map { $0.name.lowercased() }
+    }
+
+    private var vibeLabel: String {
+        let t = totals
+        if t.protein >= 25 { return "energizing" }
+        if t.fat >= 15     { return "satisfying" }
+        if t.kcal < 250    { return "light + bright" }
+        if t.count >= 3    { return "balanced" }
+        return "nourishing"
     }
 
     private var totals: (kcal: Int, protein: Int, fat: Int, count: Int) {
@@ -567,6 +684,313 @@ private func iconWell(systemName: String, tint: Color) -> some View {
         .frame(width: 32, height: 32)
         .background(tint.opacity(0.14))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+}
+
+// MARK: - Shareable section blocks (used by the 9:16 image renderer)
+//
+// v1.0.8 Phase R.3 — scaled-up versions of the carousel sections that
+// render into the 1080×1920 shareable canvases for slides 2 and 3.
+// Internal so PhotoCaptureView's ShareablePackedDailyView /
+// ShareableJeniView can compose them.
+
+struct ShareDailyTotalsBlock: View {
+    let result: CapturedFood
+    let kcalTarget: Int
+    let proteinTarget: Int
+    let scale: CGFloat
+
+    var body: some View {
+        VStack(spacing: 16 * scale) {
+            shareRow(
+                icon: "flame.fill",
+                tint: Color(red: 0.75, green: 0.45, blue: 0.92),
+                label: "Calories",
+                value: "\(caloriesNow) / \(kcalTarget)",
+                progress: progress(caloriesNow, kcalTarget),
+                bar: Color(red: 0.75, green: 0.45, blue: 0.92)
+            )
+            shareRow(
+                icon: "drop.fill",
+                tint: Color(red: 0.39, green: 0.61, blue: 0.85),
+                label: "Protein",
+                value: "\(proteinNow) / \(proteinTarget)g",
+                progress: progress(proteinNow, proteinTarget),
+                bar: Color(red: 0.39, green: 0.61, blue: 0.85)
+            )
+            HStack(alignment: .center, spacing: 12 * scale) {
+                Image(systemName: "circle.hexagonpath.fill")
+                    .font(.system(size: 13 * scale, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.4, green: 0.62, blue: 0.95))
+                    .frame(width: 32 * scale, height: 32 * scale)
+                    .background(Color(red: 0.4, green: 0.62, blue: 0.95).opacity(0.14))
+                    .clipShape(RoundedRectangle(cornerRadius: 8 * scale, style: .continuous))
+                VStack(alignment: .leading, spacing: 2 * scale) {
+                    Text("Cravings control")
+                        .font(.system(size: 14 * scale, weight: .semibold))
+                        .foregroundStyle(FoodTheme.textPrimary)
+                    Text("Daily fullness score")
+                        .font(.system(size: 11 * scale))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                }
+                Spacer()
+                Text(String(format: "%.1f", cravingsScore))
+                    .font(.system(size: 15 * scale, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.37, green: 0.45, blue: 0.27))
+                    .padding(.horizontal, 12 * scale)
+                    .padding(.vertical, 5 * scale)
+                    .background(Capsule().fill(Color(red: 0.92, green: 0.96, blue: 0.86)))
+            }
+        }
+        .padding(.horizontal, 18 * scale)
+        .padding(.vertical, 16 * scale)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18 * scale, style: .continuous))
+        .shadow(color: Color.black.opacity(0.18), radius: 14 * scale, x: 0, y: 4 * scale)
+    }
+
+    private func progress(_ now: Int, _ target: Int) -> Double {
+        guard target > 0 else { return 0 }
+        return min(1.0, Double(now) / Double(target))
+    }
+
+    private var scanTotals: (carbs: Int, protein: Int, fat: Int, kcal: Int) {
+        let c = result.items.compactMap { $0.carbsG }.reduce(0, +)
+        let p = result.items.compactMap { $0.proteinG }.reduce(0, +)
+        let f = result.items.compactMap { $0.fatG }.reduce(0, +)
+        let k = result.totalKcal ?? Double((result.kcalLow ?? 0) + (result.kcalHigh ?? 0)) / 2
+        return (Int(c.rounded()), Int(p.rounded()), Int(f.rounded()), Int(k.rounded()))
+    }
+
+    private var caloriesNow: Int {
+        let baseline = Int(Double(kcalTarget) * 0.62)
+        return baseline + scanTotals.kcal
+    }
+    private var proteinNow: Int {
+        let baseline = Int(Double(proteinTarget) * 0.55)
+        return baseline + scanTotals.protein
+    }
+    private var cravingsScore: Double {
+        let p = Double(scanTotals.protein)
+        let k = max(50.0, Double(scanTotals.kcal))
+        let density = p / (k / 100)
+        return min(8.5, 5.5 + density * 0.4)
+    }
+
+    @ViewBuilder
+    private func shareRow(icon: String, tint: Color, label: String, value: String,
+                          progress: Double, bar: Color) -> some View {
+        HStack(alignment: .center, spacing: 12 * scale) {
+            Image(systemName: icon)
+                .font(.system(size: 13 * scale, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 32 * scale, height: 32 * scale)
+                .background(tint.opacity(0.14))
+                .clipShape(RoundedRectangle(cornerRadius: 8 * scale, style: .continuous))
+            VStack(alignment: .leading, spacing: 4 * scale) {
+                HStack {
+                    Text(label)
+                        .font(.system(size: 14 * scale, weight: .semibold))
+                        .foregroundStyle(FoodTheme.textPrimary)
+                    Spacer()
+                    Text(value)
+                        .font(.system(size: 13 * scale))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.black.opacity(0.06))
+                        Capsule().fill(bar).frame(width: geo.size.width * progress)
+                    }
+                }
+                .frame(height: 6 * scale)
+            }
+        }
+    }
+}
+
+struct ShareLifestyleBlock: View {
+    let result: CapturedFood
+    let scale: CGFloat
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14 * scale) {
+            Text("today's nutrients for")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17 * scale))
+                .foregroundStyle(FoodTheme.textPrimary)
+            VStack(spacing: 12 * scale) {
+                shareLifestyleRow(icon: "lightbulb.fill", label: "Energy", percent: s.energy)
+                shareLifestyleRow(icon: "face.smiling.fill", label: "Mood", percent: s.mood)
+                shareLifestyleRow(icon: "sparkles", label: "Skin", percent: s.skin)
+                shareLifestyleRow(icon: "brain.head.profile", label: "Focus", percent: s.focus)
+            }
+        }
+        .padding(.horizontal, 18 * scale)
+        .padding(.vertical, 16 * scale)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18 * scale, style: .continuous))
+        .shadow(color: Color.black.opacity(0.18), radius: 14 * scale, x: 0, y: 4 * scale)
+    }
+
+    private var s: (energy: Int, mood: Int, skin: Int, focus: Int) {
+        let protein = result.items.compactMap { $0.proteinG }.reduce(0, +)
+        let fat = result.items.compactMap { $0.fatG }.reduce(0, +)
+        let variety = min(4, result.items.count)
+        let bonus = variety * 2
+        return (
+            min(95, 75 + Int(protein / 5) + bonus),
+            min(94, 73 + Int(fat / 4)     + bonus),
+            min(90, 65 + Int(fat / 3)     + bonus),
+            min(92, 72 + Int(protein / 6) + bonus)
+        )
+    }
+
+    @ViewBuilder
+    private func shareLifestyleRow(icon: String, label: String, percent: Int) -> some View {
+        HStack(alignment: .center, spacing: 12 * scale) {
+            Image(systemName: icon)
+                .font(.system(size: 13 * scale, weight: .semibold))
+                .foregroundStyle(Color(red: 0.37, green: 0.55, blue: 0.27))
+                .frame(width: 30 * scale, height: 30 * scale)
+                .background(Color(red: 0.92, green: 0.96, blue: 0.86))
+                .clipShape(RoundedRectangle(cornerRadius: 8 * scale, style: .continuous))
+            VStack(alignment: .leading, spacing: 4 * scale) {
+                HStack {
+                    Text(label)
+                        .font(.system(size: 14 * scale, weight: .semibold))
+                        .foregroundStyle(FoodTheme.textPrimary)
+                    Spacer()
+                    Text("\(percent)%")
+                        .font(.system(size: 13 * scale, weight: .medium))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.black.opacity(0.06))
+                        Capsule()
+                            .fill(Color(red: 0.37, green: 0.45, blue: 0.27))
+                            .frame(width: geo.size.width * (Double(percent) / 100))
+                    }
+                }
+                .frame(height: 5 * scale)
+            }
+        }
+    }
+}
+
+struct ShareJeniBlock: View {
+    let result: CapturedFood
+    let scale: CGFloat
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12 * scale) {
+            HStack(spacing: 6 * scale) {
+                Image(systemName: "sparkle")
+                    .font(.system(size: 12 * scale))
+                    .foregroundStyle(Color(red: 1.0, green: 0.075, blue: 0.94))
+                Text("jeni says")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13 * scale))
+                    .foregroundStyle(Color(red: 1.0, green: 0.075, blue: 0.94))
+            }
+
+            Text(headline)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 24 * scale))
+                .foregroundStyle(FoodTheme.textPrimary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(bodyCopy)
+                .font(.system(size: 14 * scale))
+                .foregroundStyle(FoodTheme.textSecondary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Rectangle()
+                .fill(Color.black.opacity(0.06))
+                .frame(height: 1)
+                .padding(.vertical, 2 * scale)
+
+            Text("on your plate")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13 * scale))
+                .foregroundStyle(FoodTheme.textSecondary)
+
+            VStack(alignment: .leading, spacing: 4 * scale) {
+                ForEach(items, id: \.self) { item in
+                    HStack(spacing: 8 * scale) {
+                        Circle()
+                            .fill(Color(red: 1.0, green: 0.075, blue: 0.94).opacity(0.55))
+                            .frame(width: 4 * scale, height: 4 * scale)
+                        Text(item)
+                            .font(.system(size: 13 * scale))
+                            .foregroundStyle(FoodTheme.textPrimary)
+                    }
+                }
+            }
+
+            HStack {
+                Spacer()
+                Text(vibe)
+                    .font(.system(size: 11 * scale, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.37, green: 0.45, blue: 0.27))
+                    .padding(.horizontal, 10 * scale)
+                    .padding(.vertical, 4 * scale)
+                    .background(Capsule().fill(Color(red: 0.92, green: 0.96, blue: 0.86)))
+            }
+        }
+        .padding(.horizontal, 18 * scale)
+        .padding(.vertical, 16 * scale)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18 * scale, style: .continuous))
+        .shadow(color: Color.black.opacity(0.18), radius: 14 * scale, x: 0, y: 4 * scale)
+    }
+
+    private var totals: (kcal: Int, protein: Int, fat: Int, count: Int) {
+        let p = result.items.compactMap { $0.proteinG }.reduce(0, +)
+        let f = result.items.compactMap { $0.fatG }.reduce(0, +)
+        let k = result.totalKcal ?? 0
+        return (Int(k.rounded()), Int(p.rounded()), Int(f.rounded()), result.items.count)
+    }
+
+    private var headline: String {
+        let t = totals
+        if t.protein >= 25 { return "great pick ♥" }
+        if t.kcal < 250    { return "soft start ♥" }
+        if t.count >= 3    { return "your plate has range" }
+        if t.fat >= 15     { return "this'll hold you" }
+        return "looking good ♥"
+    }
+
+    private var bodyCopy: String {
+        let t = totals
+        if t.protein >= 25 {
+            return "love the protein density. this'll keep cravings quiet for a few hours."
+        }
+        if t.kcal < 250 {
+            return "light and balanced. you've got room for more later — listen to your hunger."
+        }
+        if t.count >= 3 {
+            return "variety on your plate gives you a wider nutrient spread. small wins compound."
+        }
+        if t.fat >= 15 {
+            return "healthy fats slow the absorption — steadier energy ahead, no crash."
+        }
+        return "this fits your goals. keep showing up — tomorrow resets, today counts."
+    }
+
+    private var items: [String] {
+        if result.items.isEmpty { return ["your plate"] }
+        return result.items.prefix(4).map { $0.name.lowercased() }
+    }
+
+    private var vibe: String {
+        let t = totals
+        if t.protein >= 25 { return "energizing" }
+        if t.fat >= 15     { return "satisfying" }
+        if t.kcal < 250    { return "light + bright" }
+        if t.count >= 3    { return "balanced" }
+        return "nourishing"
+    }
 }
 
 #endif  // canImport(UIKit)
