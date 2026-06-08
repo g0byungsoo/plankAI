@@ -57,6 +57,13 @@ public struct PhotoCaptureView: View {
     /// withAnimation. Reduce-motion users get a static shutter.
     @State private var shutterBreathing: Bool = false
 
+    /// v1.0.9 D2 round 2 — sticker confetti decoration that pops in
+    /// at the four corners around the carousel card when a result
+    /// lands. The wedge: Cal AI's reveal is a calorie number ticking
+    /// up. JeniFit's reveal is your plate becoming a scrapbook entry
+    /// in real time. Settles to 0.4 opacity as background decoration.
+    @State private var resultConfettiSettled: Bool = false
+
     @State private var baseZoom: CGFloat = 1.0
     @State private var liveZoom: CGFloat = 1.0
     @State private var zoomIndicatorVisible: Bool = false
@@ -316,21 +323,95 @@ public struct PhotoCaptureView: View {
                     .accessibilityHidden(true)
                     .transition(.opacity.combined(with: .scale(scale: 0.7)))
             }
+
+            // v1.0.9 D2 round 2 — sticker confetti on result-land.
+            // Four scrapbook stickers fade-in + scale + rotate at the
+            // carousel corners when capturedResult lands, then settle
+            // to 0.4 opacity as background decoration. The wedge.
+            if capturedResult != nil && !reduceMotion {
+                resultStickerConfetti
+            }
         }
         .contentShape(Rectangle())
         .gesture(pinchZoomGesture)
         .animation(.spring(response: 0.45, dampingFraction: 0.82), value: capturedResult != nil)
         .onChange(of: capturedResult != nil) { _, hasResult in
-            // v1.0.9 D2 — soft haptic at the moment the result card
-            // lands. Currently the scan-to-result transition is
-            // silent visually; the .soft haptic gives the cohort a
-            // tactile "got it ♥" confirmation. Only fires on the
-            // nil → present transition, not on dismiss.
+            // v1.0.9 D2 — soft haptic + sticker confetti at the
+            // moment the result card lands. Tactile + visual "got
+            // it ♥" beat. Resets on dismiss so the next scan
+            // re-fires the confetti.
             if hasResult {
                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                resultConfettiSettled = false
+                withAnimation(.spring(response: 0.7, dampingFraction: 0.65).delay(0.15)) {
+                    resultConfettiSettled = true
+                }
+            } else {
+                resultConfettiSettled = false
             }
         }
         .animation(.easeInOut(duration: 0.3), value: galleryPreviewMode)
+    }
+
+    // MARK: - Result sticker confetti (the wedge)
+
+    /// v1.0.9 D2 round 2 — four scrapbook stickers at the carousel
+    /// corners that fade-in + scale + rotate when capturedResult
+    /// lands, then settle to 0.4 opacity as background decoration.
+    /// Each gets a small per-sticker delay via the spring response
+    /// so they cascade rather than land in lockstep — feels like
+    /// stickers being placed by hand.
+    @ViewBuilder private var resultStickerConfetti: some View {
+        GeometryReader { geo in
+            ZStack {
+                stickerAt(emoji: "🍒",
+                          rotation: -12,
+                          settled: resultConfettiSettled,
+                          offset: CGSize(width: -geo.size.width * 0.42,
+                                         height: -geo.size.height * 0.22),
+                          delay: 0)
+                stickerAt(emoji: "🎀",
+                          rotation: 9,
+                          settled: resultConfettiSettled,
+                          offset: CGSize(width: geo.size.width * 0.42,
+                                         height: -geo.size.height * 0.22),
+                          delay: 0.06)
+                stickerAt(emoji: "🌸",
+                          rotation: 14,
+                          settled: resultConfettiSettled,
+                          offset: CGSize(width: -geo.size.width * 0.40,
+                                         height: geo.size.height * 0.32),
+                          delay: 0.12)
+                stickerAt(emoji: "🍓",
+                          rotation: -8,
+                          settled: resultConfettiSettled,
+                          offset: CGSize(width: geo.size.width * 0.40,
+                                         height: geo.size.height * 0.32),
+                          delay: 0.18)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private func stickerAt(
+        emoji: String,
+        rotation: Double,
+        settled: Bool,
+        offset: CGSize,
+        delay: Double
+    ) -> some View {
+        Text(emoji)
+            .font(.system(size: 34))
+            .rotationEffect(.degrees(settled ? rotation : 0))
+            .scaleEffect(settled ? 1.0 : 0.3)
+            .opacity(settled ? 0.55 : 0)
+            .offset(offset)
+            .shadow(color: Color.black.opacity(0.15), radius: 0, x: 1, y: 1)
+            .animation(.spring(response: 0.7, dampingFraction: 0.65).delay(delay),
+                       value: settled)
     }
 
     // MARK: - Camera layer
