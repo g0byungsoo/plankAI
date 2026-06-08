@@ -44,6 +44,8 @@ public struct PhotoCaptureView: View {
     @State private var isCapturing: Bool = false
     @State private var capturedResult: CapturedFood?
     @State private var errorMessage: String?
+    /// v1.0.8 Phase H — gallery upload sheet state.
+    @State private var showingLibraryPicker: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public let onDismiss: () -> Void
@@ -68,34 +70,34 @@ public struct PhotoCaptureView: View {
     // MARK: - Body
 
     public var body: some View {
+        // v1.0.8 Phase H (2026-06-08) — FULL-BLEED CAMERA refactor.
+        // Wife's target-audience feedback + competitor analysis:
+        // every modern camera-first app (Cal AI, Foodvisor, BeReal,
+        // Pinterest Lens, Snap) goes edge-to-edge. The old scrapbook-
+        // framed viewfinder read as "in-app feature," not "this is
+        // THE moment." Camera now ignores safe area; floating UI
+        // layers on top with glass-blur chrome.
+        //
+        // Brand identity preserved via:
+        //   - Corner brackets (CornerBrackets.swift) — JeniFit's
+        //     food-scan camera signature, distinct from plank's
+        //     rotating AngularGradient border.
+        //   - Microcopy above shutter ("*center* your plate ♥") —
+        //     italic-Fraunces punch word + heart, the actual brand
+        //     signature per UX-expert non-obvious finding.
+        //   - Gallery upload (PHPicker) sitting next to shutter, so
+        //     pre-shot photos from camera roll flow through the same
+        //     saliency + resize + EF pipeline.
         ZStack {
-            FoodTheme.bgPrimary
+            // Layer 1: full-bleed camera + frozen frame overlay.
+            cameraLayer
+
+            // Layer 2: state-driven corner brackets.
+            CornerBrackets(state: bracketState)
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                topBar
-                Spacer(minLength: FoodTheme.Space.md)
-                viewfinder
-                Spacer(minLength: FoodTheme.Space.sm)
-                // v1.0.7 — italic-Fraunces label rotator under the
-                // viewfinder during the scan. The user reads
-                // "*reading* your plate" → "*finding* ingredients" →
-                // "*tallying* portions" in sync with the scanline
-                // sweep above. Static empty slot when idle so layout
-                // doesn't shift on first capture.
-                ZStack {
-                    if isCapturing && !reduceMotion {
-                        ScanLabelRotator(isActive: isCapturing)
-                    }
-                }
-                .frame(height: 22)
-                .padding(.bottom, FoodTheme.Space.sm)
-                shutter
-                    .padding(.bottom, FoodTheme.Space.lg)
-                modeChips
-                    .padding(.bottom, FoodTheme.Space.md)
-            }
-            .padding(.horizontal, FoodTheme.Space.screenPadding)
+            // Layer 3: floating UI chrome.
+            floatingChrome
         }
         .task {
             await bootCamera()
@@ -106,157 +108,235 @@ public struct PhotoCaptureView: View {
         .overlay(alignment: .top) {
             if let errorMessage {
                 errorBanner(errorMessage)
+                    .padding(.horizontal, FoodTheme.Space.md)
+                    .padding(.top, FoodTheme.Space.md)
             }
         }
-        // v1.0.7 — full-screen FoodProcessingView removed. The scan
-        // now runs INSIDE the viewfinder on top of the frozen still
-        // (ScanningOverlay) with an italic-Fraunces label rotator
-        // below. Apple 5.1.2(i) AI-transparency disclosure stays on
-        // the FoodAIConsentSheet (one-time, before first scan); the
-        // ongoing per-scan transparency lives in the label rotator
-        // reading "*reading* your plate / *finding* ingredients /
-        // *tallying* portions" — same legibility, no spatial-context
-        // loss.
+        .sheet(isPresented: $showingLibraryPicker) {
+            PhotoLibraryPicker(
+                onPicked: { image in
+                    showingLibraryPicker = false
+                    Task { await libraryImagePicked(image) }
+                },
+                onCancel: { showingLibraryPicker = false }
+            )
+        }
+        .statusBarHidden(false)
+        .preferredColorScheme(.dark)
         .animation(.easeInOut(duration: 0.2), value: isCapturing)
+    }
+
+    // MARK: - Bracket state
+
+    /// Maps capture flow state → CornerBrackets state for the
+    /// adaptive bracket color/animation.
+    private var bracketState: CornerBrackets.State {
+        if isCapturing { return .scanning }
+        if errorMessage != nil { return .error }
+        return .idle
+    }
+
+    // MARK: - Camera layer
+
+    @ViewBuilder private var cameraLayer: some View {
+        ZStack {
+            // Dark base so a fraction-of-a-second of preview-load
+            // doesn't flash cream-pink. Cohort expects camera apps
+            // to start dark.
+            Color.black.ignoresSafeArea()
+
+            if camera.permissionStatus == .authorized {
+                FoodCameraPreviewView(previewLayer: camera.previewLayer)
+                    .ignoresSafeArea()
+
+                // v1.0.7 in-viewfinder scan magic. The decoded photo
+                // paints on top of the still-running preview layer
+                // (no preview stop, no flicker). The breathing-
+                // aperture scale per the iOS Swift brief makes the
+                // plate feel "alive" instead of frozen — subliminal.
+                if let frame = camera.frozenFrame {
+                    Image(uiImage: frame)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .ignoresSafeArea()
+                        .scaleEffect(isCapturing && !reduceMotion ? 1.012 : 1.0)
+                        .animation(
+                            .easeInOut(duration: 1.6).repeatForever(autoreverses: true),
+                            value: isCapturing
+                        )
+                        .transition(.opacity.animation(.linear(duration: 0.08)))
+
+                    if !reduceMotion {
+                        ScanningOverlay(isActive: isCapturing)
+                            .ignoresSafeArea()
+                    }
+                }
+            } else if camera.permissionStatus == .denied {
+                permissionDeniedPlaceholder
+            } else {
+                ProgressView()
+                    .tint(.white)
+            }
+        }
+        .clipped()
+    }
+
+    // MARK: - Floating chrome
+
+    @ViewBuilder private var floatingChrome: some View {
+        VStack(spacing: 0) {
+            // Top safe-area row: close X (left) + flash (right).
+            HStack {
+                glassButton(systemName: "xmark", action: onDismiss)
+                    .accessibilityLabel("cancel")
+                Spacer()
+                glassButton(systemName: "bolt.slash", action: { /* flash wiring later */ })
+                    .accessibilityLabel("flash")
+                    .opacity(0.5)
+            }
+            .padding(.horizontal, FoodTheme.Space.md)
+            .padding(.top, FoodTheme.Space.sm)
+
+            Spacer()
+
+            // v1.0.7 — italic-Fraunces label rotator during scan.
+            // Replaces the old fixed slot under the constrained
+            // viewfinder; now hovers above the shutter on the
+            // full-bleed camera with glass blur backing for
+            // legibility over any food background.
+            ZStack {
+                if isCapturing && !reduceMotion {
+                    ScanLabelRotator(isActive: isCapturing)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .colorScheme(.dark)
+                } else {
+                    microcopyText
+                }
+            }
+            .frame(height: 36)
+            .padding(.bottom, FoodTheme.Space.md)
+
+            // Mode chips strip with glass blur background.
+            modeChips
+                .padding(.horizontal, FoodTheme.Space.md)
+                .padding(.vertical, FoodTheme.Space.sm)
+                .background(.ultraThinMaterial, in: Capsule())
+                .colorScheme(.dark)
+                .padding(.bottom, FoodTheme.Space.md)
+
+            // Shutter row: gallery icon (left) — shutter (center) —
+            // 44pt spacer (right) for visual balance.
+            HStack(spacing: 0) {
+                galleryButton
+                Spacer()
+                shutter
+                Spacer()
+                Color.clear.frame(width: 44, height: 44)
+            }
+            .padding(.horizontal, FoodTheme.Space.lg)
+            .padding(.bottom, FoodTheme.Space.lg)
+        }
+    }
+
+    @ViewBuilder
+    private func glassButton(systemName: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(.ultraThinMaterial, in: Circle())
+        }
+    }
+
+    /// Microcopy line above the shutter when idle. "*center* your
+    /// plate ♥" — italic-Fraunces on the punch word, heart as terminal
+    /// punctuation per voice locks. Glass blur backing keeps it
+    /// legible over any food.
+    @ViewBuilder private var microcopyText: some View {
+        (
+            Text("")
+            + Text("center")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+            + Text(" your plate ♥")
+                .font(.system(size: 14))
+        )
+        .foregroundStyle(.white)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: Capsule())
+        .colorScheme(.dark)
+    }
+
+    /// Library upload entry point. Tap → PHPicker. Picker hands
+    /// back a UIImage which goes through the same saliency +
+    /// resize + EF pipeline as a camera capture.
+    @ViewBuilder private var galleryButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            showingLibraryPicker = true
+        } label: {
+            Image(systemName: "photo.on.rectangle.angled")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(.ultraThinMaterial, in: Circle())
+        }
+        .accessibilityLabel("upload photo")
+        .disabled(isCapturing)
     }
 
     // MARK: - Subviews
 
-    @ViewBuilder private var topBar: some View {
-        HStack {
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(FoodTheme.textPrimary)
-                    .frame(width: 44, height: 44)
-            }
-            .accessibilityLabel("cancel")
-
-            Spacer()
-
-            // Flash toggle — stub for W2-T2; live wiring in polish pass.
-            Button {
-                // No-op for now.
-            } label: {
-                Image(systemName: "bolt.slash")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(FoodTheme.textPrimary)
-                    .frame(width: 44, height: 44)
-            }
-            .accessibilityLabel("flash")
-            .opacity(0.5)  // visually subdued until wired
-        }
-        .padding(.top, FoodTheme.Space.sm)
-    }
-
-    @ViewBuilder private var viewfinder: some View {
-        // 2026-06-06 layout fix: GeometryReader pins the inner content
-        // (preview layer + frozen Image + ScanningOverlay) to the
-        // viewfinder's actual bounds. Without this, the Image's
-        // intrinsic photo dimensions propagate up the layout pass and
-        // the surrounding VStack reshuffles when frozenFrame appears,
-        // visibly growing the box mid-scan.
-        GeometryReader { geo in
-            ZStack {
-                if camera.permissionStatus == .authorized {
-                    FoodCameraPreviewView(previewLayer: camera.previewLayer)
-                        .frame(width: geo.size.width, height: geo.size.height)
-
-                    // v1.0.7 in-viewfinder scan magic. The decoded photo
-                    // paints on top of the still-running preview layer
-                    // (no preview stop, no flicker). The breathing-
-                    // aperture scale (1.0 → 1.012) per the iOS Swift
-                    // brief makes the plate feel "alive" instead of
-                    // frozen — almost subliminal.
-                    if let frame = camera.frozenFrame {
-                        Image(uiImage: frame)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: geo.size.width, height: geo.size.height)
-                            .clipped()
-                            .scaleEffect(isCapturing && !reduceMotion ? 1.012 : 1.0)
-                            .animation(
-                                .easeInOut(duration: 1.6).repeatForever(autoreverses: true),
-                                value: isCapturing
-                            )
-                            .transition(.opacity.animation(.linear(duration: 0.08)))
-
-                        if !reduceMotion {
-                            ScanningOverlay(isActive: isCapturing)
-                                .frame(width: geo.size.width, height: geo.size.height)
-                        }
-                    }
-                } else if camera.permissionStatus == .denied {
-                    permissionDeniedPlaceholder
-                        .frame(width: geo.size.width, height: geo.size.height)
-                } else {
-                    ProgressView()
-                        .tint(FoodTheme.accent)
-                        .frame(width: geo.size.width, height: geo.size.height)
-                }
-            }
-            .frame(width: geo.size.width, height: geo.size.height)
-            .clipShape(RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous))
-            .overlay(
-                // Scrapbook frame chrome — 1.5pt cocoa border per v5
-                // lock. During the scan, the stroke pulses 1.5 → 2.0pt
-                // on the same 1.6s breathing token as the aperture
-                // scale so the chrome feels alive in sync with the
-                // photo. Subliminal — under 0.5pt swing.
-                RoundedRectangle(cornerRadius: FoodTheme.Radius.card, style: .continuous)
-                    .stroke(
-                        FoodTheme.textPrimary,
-                        lineWidth: (isCapturing && !reduceMotion) ? 2.0 : FoodTheme.Stroke.scrapbook
-                    )
-                    .animation(
-                        .easeInOut(duration: 1.6).repeatForever(autoreverses: true),
-                        value: isCapturing
-                    )
-            )
-            .shadow(color: FoodTheme.textPrimary.opacity(0.25), radius: 0, x: 3, y: 3)
-        }
-        .frame(maxWidth: .infinity, minHeight: 320, maxHeight: .infinity)
-    }
-
+    /// Full-bleed permission-denied state. White copy on dark
+    /// camera background.
     @ViewBuilder private var permissionDeniedPlaceholder: some View {
         VStack(spacing: FoodTheme.Space.sm) {
             Image(systemName: "camera.fill")
                 .font(.system(size: 36))
-                .foregroundStyle(FoodTheme.textSecondary)
+                .foregroundStyle(.white.opacity(0.7))
             Text("camera access turned off")
                 .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(FoodTheme.textPrimary)
+                .foregroundStyle(.white)
             Text("enable in Settings → JeniFit")
                 .font(.system(size: 13))
-                .foregroundStyle(FoodTheme.textSecondary)
+                .foregroundStyle(.white.opacity(0.7))
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(FoodTheme.bgElevated)
     }
 
     @ViewBuilder private var shutter: some View {
+        // v1.0.8 Phase H — light pill against the dark full-bleed
+        // camera. Was dark cocoa on a cream card; on the new
+        // edge-to-edge camera background the dark fill blends into
+        // food photos. Light pill with cocoa text reads cleanly on
+        // any background. Same capture binding + accessibility as
+        // before.
         Button {
             Task { await captureTapped() }
         } label: {
             HStack(spacing: FoodTheme.Space.sm) {
                 if isCapturing {
                     ProgressView()
-                        .tint(FoodTheme.bgPrimary)
+                        .tint(FoodTheme.textPrimary)
                 } else {
                     Circle()
-                        .fill(FoodTheme.bgPrimary)
-                        .frame(width: 18, height: 18)
+                        .fill(FoodTheme.textPrimary)
+                        .frame(width: 14, height: 14)
                 }
                 Text(isCapturing ? "scanning…" : "tap to scan")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(FoodTheme.bgPrimary)
+                    .foregroundStyle(FoodTheme.textPrimary)
             }
             .padding(.horizontal, 28)
-            .padding(.vertical, 18)
+            .padding(.vertical, 16)
             .background(
-                Capsule().fill(FoodTheme.textPrimary)
+                Capsule().fill(Color.white.opacity(0.95))
             )
+            .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 2)
         }
         .disabled(isCapturing || camera.permissionStatus != .authorized || !camera.isRunning)
         .accessibilityLabel("scan food")
@@ -581,6 +661,105 @@ public struct PhotoCaptureView: View {
                 camera.clearFrozenFrame()
             }
             camera.recordCaptureFailed()
+        }
+    }
+
+    /// v1.0.8 Phase H — gallery upload handler. PHPicker returns a
+    /// UIImage; we run it through `FoodCameraManager.processUIImageForScan`
+    /// (same saliency + resize + JPEG-encode pipeline as a camera
+    /// capture) and dispatch to the same EF endpoint. Result lands
+    /// in the same polaroid develop-in flow with the user's picked
+    /// image as the hero.
+    ///
+    /// Duplicates some scaffolding from captureTapped (Live Activity,
+    /// retry helper, error handling) but the two paths are
+    /// intentionally distinct so the camera path stays optimized for
+    /// instant snap while the upload path skips the camera-specific
+    /// parts (haptic, shutter sound, debounce timestamp).
+    private func libraryImagePicked(_ image: UIImage) async {
+        guard !isCapturing else { return }
+        isCapturing = true
+        errorMessage = nil
+        defer { isCapturing = false }
+
+        FoodAnalytics.track(.scanStarted)
+        FoodAnalytics.firstScanStartedIfNeeded()
+
+        let name = UserDefaults.standard.string(forKey: "userName") ?? ""
+        let activityHandle: Any? = await Task.detached {
+            await FoodScanActivity.start(displayName: name)
+        }.value
+        let phaseTask: Task<Void, Never>? = activityHandle == nil ? nil : Task.detached {
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            await FoodScanActivity.update(handle: activityHandle, phase: "matching")
+            try? await Task.sleep(nanoseconds: 6_000_000_000)
+            await FoodScanActivity.update(handle: activityHandle, phase: "tallying")
+        }
+
+        do {
+            let jpeg = try await camera.processUIImageForScan(image)
+            let result = try await dispatchPhotoWithRetry(jpeg)
+
+            let noFood = result.items.isEmpty
+                && (result.kcalLow == nil || result.kcalLow == 0)
+            if noFood {
+                errorMessage = "didn't see food in that one. try a closer angle or more light?"
+                FoodAnalytics.track(.scanFallbackFired, properties: ["reason": "empty_items", "source": "library"])
+                phaseTask?.cancel()
+                FoodScanActivity.end(handle: activityHandle)
+                withAnimation(.easeOut(duration: 0.25)) {
+                    camera.clearFrozenFrame()
+                }
+                return
+            }
+
+            FoodAnalytics.track(.scanCompleted, properties: [
+                "items_count": result.items.count,
+                "has_restaurant_range": result.kcalLow != nil,
+                "source": "library",
+            ])
+            FoodAnalytics.firstScanCompletedIfNeeded()
+
+            phaseTask?.cancel()
+            Task.detached {
+                await FoodScanActivity.update(handle: activityHandle, phase: "ready")
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                await FoodScanActivity.end(handle: activityHandle)
+            }
+
+            capturedResult = result
+            onCaptured(result, camera.frozenFrame)
+        } catch let captureError as FoodCaptureError {
+            #if DEBUG
+            print("[PhotoCaptureView] library capture failed: \(captureError)")
+            #endif
+            errorMessage = captureError.errorDescription
+                ?? "couldn't read your plate just now. try again?"
+            FoodAnalytics.track(.scanFallbackFired, properties: [
+                "reason": "capture_error",
+                "source": "library",
+                "case": String(describing: captureError),
+            ])
+            phaseTask?.cancel()
+            FoodScanActivity.end(handle: activityHandle)
+            withAnimation(.easeOut(duration: 0.25)) {
+                camera.clearFrozenFrame()
+            }
+        } catch {
+            #if DEBUG
+            print("[PhotoCaptureView] library capture failed (unknown): \(error)")
+            #endif
+            errorMessage = (error as? LocalizedError)?.errorDescription
+                ?? "couldn't read your plate just now. try again?"
+            FoodAnalytics.track(.scanFallbackFired, properties: [
+                "reason": "capture_error",
+                "source": "library",
+            ])
+            phaseTask?.cancel()
+            FoodScanActivity.end(handle: activityHandle)
+            withAnimation(.easeOut(duration: 0.25)) {
+                camera.clearFrozenFrame()
+            }
         }
     }
 

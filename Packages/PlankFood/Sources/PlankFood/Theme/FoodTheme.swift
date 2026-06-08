@@ -28,6 +28,15 @@ public enum FoodTheme {
     public static let accentSubtle = Color(hex: "#F5D5D8")  // light pink
     public static let bgElevated   = Color(hex: "#FFFBF9")
 
+    // v1.0.8 Phase H — state tokens for the full-bleed camera's
+    // adaptive corner brackets. Matches PlankApp's WCAG-AA palette
+    // for state communication. Sage/amber chosen over neon (the
+    // plank coach's green/pink) because food scan is a one-shot
+    // calm-camera moment, not a continuous biomechanical feedback
+    // surface — clinical-calm beats high-saturation here.
+    public static let stateGood    = Color(hex: "#5F7345")  // sage — success
+    public static let stateWarn    = Color(hex: "#8D6A2E")  // amber — error/warning
+
     // Spacing — minimal set used by food rail views.
     public enum Space {
         public static let sm: CGFloat = 8

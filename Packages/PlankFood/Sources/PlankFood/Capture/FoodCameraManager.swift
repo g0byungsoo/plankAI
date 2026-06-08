@@ -339,6 +339,26 @@ public final class FoodCameraManager: NSObject {
         lastCaptureCompletedAt = nil
     }
 
+    /// v1.0.8 Phase H — process a UIImage from the photo library
+    /// through the same saliency + resize + JPEG-encode pipeline as
+    /// `captureStill()`. Used by the gallery upload path so picker-
+    /// sourced photos get identical preprocessing to camera-sourced
+    /// ones, and the EF sees a uniform request shape.
+    ///
+    /// Also sets `frozenFrame` to the source image so the result-
+    /// phase polaroid renders with the user's actual photo.
+    public func processUIImageForScan(_ image: UIImage) async throws -> Data {
+        self.frozenFrame = image
+        return try await Task.detached(priority: .userInitiated) {
+            let cropped = Self.centerCropToSaliency(image) ?? image
+            let resized = Self.resize(cropped, longestEdge: 768)
+            guard let jpeg = resized.jpegData(compressionQuality: 0.85) else {
+                throw CameraError.encodingFailed
+            }
+            return jpeg
+        }.value
+    }
+
     // MARK: - Helpers
 
     /// v1.0.8 Phase B (2026-06-07) — saliency-driven center crop.
