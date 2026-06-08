@@ -382,12 +382,22 @@ public struct PhotoCaptureView: View {
         // Any? handle so PlankFood stays ActivityKit-blind; the main
         // app's closure (registered in PlankAIApp.swift) holds the
         // real Activity instance.
+        //
+        // v1.0.8 Phase B (2026-06-07) — phase pacing rebalanced.
+        // The old 700ms/1400ms ticks fired "tallying" at 1.4s and
+        // then sat frozen for 25+s on slow scans, which created the
+        // exact "app froze" perception we were trying to avoid. New
+        // pacing: stay at "looking" for ~4s while the LLM is actually
+        // identifying items, then "tallying" once we're past the
+        // realistic-completion median. If the response lands before
+        // either tick, the success path immediately advances to
+        // "ready" via the catch-block-side update.
         let name = UserDefaults.standard.string(forKey: "userName") ?? ""
         let activityHandle = FoodScanActivity.start(displayName: name)
         let phaseTask: Task<Void, Never>? = activityHandle == nil ? nil : Task.detached {
-            try? await Task.sleep(nanoseconds: 700_000_000)
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
             await FoodScanActivity.update(handle: activityHandle, phase: "matching")
-            try? await Task.sleep(nanoseconds: 700_000_000)
+            try? await Task.sleep(nanoseconds: 6_000_000_000)
             await FoodScanActivity.update(handle: activityHandle, phase: "tallying")
         }
 
@@ -398,7 +408,18 @@ public struct PhotoCaptureView: View {
             // while the ScanningOverlay animates on top. No
             // FoodProcessingView takeover, no preview restart.
             let jpeg = try await camera.captureStillAndFreeze()
-            let result = try await dispatcher.dispatch(.photo(jpeg))
+            // v1.0.8 Phase B — silent auto-retry on transient errors.
+            // The dispatch helper handles up to 2 retries with 0.5s
+            // / 1s backoff on .networkError, .upstreamFailure(5xx),
+            // and .parseError. Permanent errors (rate-limited,
+            // invalid request, budget cap) throw immediately. The
+            // user sees a single "scanning…" state for the whole
+            // retry chain instead of seeing a flash of "couldn't
+            // reach us" between attempts. Founder's iced-latte
+            // 4-attempt loop was almost entirely transient errors
+            // (cafe wifi blips + EF cold-starts) — this turns that
+            // into a single perceived scan.
+            let result = try await dispatchPhotoWithRetry(jpeg)
 
             // Empty-identification guard: LLM returned 200 but with no
             // items AND no restaurant-range fallback. Common causes: no
@@ -540,6 +561,68 @@ public struct PhotoCaptureView: View {
                 camera.clearFrozenFrame()
             }
             camera.recordCaptureFailed()
+        }
+    }
+
+    // MARK: - Retry
+
+    /// v1.0.8 Phase B — silent auto-retry wrapper around the dispatcher.
+    /// Tries up to 3 times (initial + 2 retries), with 0s / 0.5s / 1s
+    /// pre-attempt sleep. Only transient errors trigger a retry;
+    /// permanent errors (rate limit, invalid request, budget cap,
+    /// not authenticated) throw on the first failure so the user
+    /// isn't kept waiting on something that won't succeed.
+    ///
+    /// The retries are SILENT — no banner, no haptic, no analytics
+    /// "error" event per attempt. A single `scan_retry_attempted`
+    /// telemetry event fires per retry so PostHog can show how often
+    /// the retry layer saves a scan. The result-or-throw outcome
+    /// reaches captureTapped's catch arms unchanged from the user's
+    /// perspective.
+    private func dispatchPhotoWithRetry(_ jpeg: Data) async throws -> CapturedFood {
+        let backoffsNs: [UInt64] = [0, 500_000_000, 1_000_000_000]
+        var lastError: Error?
+        for (attempt, backoff) in backoffsNs.enumerated() {
+            if backoff > 0 {
+                try? await Task.sleep(nanoseconds: backoff)
+            }
+            do {
+                return try await dispatcher.dispatch(.photo(jpeg))
+            } catch {
+                lastError = error
+                guard Self.isTransient(error) else {
+                    throw error
+                }
+                #if DEBUG
+                print("[PhotoCaptureView] transient retry \(attempt + 1)/\(backoffsNs.count - 1): \(error)")
+                #endif
+                FoodAnalytics.track(.scanFallbackFired, properties: [
+                    "reason": "transient_retry",
+                    "attempt": attempt + 1,
+                    "case": String(describing: error),
+                ])
+            }
+        }
+        throw lastError ?? FoodCaptureError.invalidInput(reason: "exhausted retries")
+    }
+
+    /// Classifies a dispatcher error as transient (retryable) vs
+    /// permanent. Transient: network blips, server 5xx, parse errors
+    /// (sometimes a partial response that succeeds on second attempt).
+    /// Permanent: rate limits, budget caps, invalid input, auth.
+    private static func isTransient(_ error: Error) -> Bool {
+        guard let cap = error as? FoodCaptureError,
+              case .pipeline(let underlying) = cap,
+              let vision = underlying as? VisionError else {
+            return false
+        }
+        switch vision {
+        case .networkError, .parseError:
+            return true
+        case .upstreamFailure(let status, _, _):
+            return (500...599).contains(status)
+        case .rateLimited, .budgetCapped, .invalidRequest, .notAuthenticated:
+            return false
         }
     }
 }
