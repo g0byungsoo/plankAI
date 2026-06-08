@@ -82,6 +82,38 @@ public final class FoodVisionService: Sendable {
         imageData: Data,
         cuisineProfile: String?
     ) async throws -> CapturedFood {
+        try await postAndDecode(
+            body: ScanRequestBody(
+                image_base64: imageData.base64EncodedString(),
+                text: nil,
+                cuisine_profile: cuisineProfile
+            )
+        )
+    }
+
+    /// v1.0.9 D1 — text-only quick-add. User types a free-text
+    /// description ("two slices of pepperoni pizza"); the EF runs
+    /// the same JSON schema as the photo path and returns kcal +
+    /// macros. Same FOOD_VISION_SCHEMA, same CapturedFood result,
+    /// same error mapping. ~5× cheaper than the photo path (no
+    /// vision-token cost).
+    public func scanText(
+        _ text: String,
+        cuisineProfile: String?
+    ) async throws -> CapturedFood {
+        try await postAndDecode(
+            body: ScanRequestBody(
+                image_base64: nil,
+                text: text,
+                cuisine_profile: cuisineProfile
+            )
+        )
+    }
+
+    /// Shared HTTP + decode path used by both `scan` (image) and
+    /// `scanText` (free-text). Same URL, same timeout, same status-
+    /// code → VisionError mapping.
+    private func postAndDecode(body: ScanRequestBody) async throws -> CapturedFood {
         guard let token = await config.tokenProvider() else {
             throw VisionError.notAuthenticated
         }
@@ -99,10 +131,6 @@ public final class FoodVisionService: Sendable {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(config.anonKey, forHTTPHeaderField: "apikey")
 
-        let body = ScanRequestBody(
-            image_base64: imageData.base64EncodedString(),
-            cuisine_profile: cuisineProfile
-        )
         request.httpBody = try JSONEncoder().encode(body)
 
         let data: Data
@@ -244,7 +272,8 @@ public final class FoodVisionService: Sendable {
 /// Request body shape. Field names match the Edge Function's expected
 /// JSON keys (snake_case for Python/JS interop tradition).
 private struct ScanRequestBody: Encodable {
-    let image_base64: String
+    let image_base64: String?
+    let text: String?
     let cuisine_profile: String?
 }
 

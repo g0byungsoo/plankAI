@@ -98,6 +98,29 @@ public final class FoodCaptureDispatcher {
                 context: .quickAdd(pantryItemID: pantryItemID)
             )
 
+        case .text(let description, let cuisineProfile):
+            // v1.0.9 D1 — free-text quick-add. Same FoodVisionService
+            // EF endpoint as the photo path, just routed through
+            // scanText. Same JSON schema, same CapturedFood result,
+            // same error handling. Cost: ~5× cheaper than vision
+            // since no image tokens.
+            guard let visionService = FoodModule.visionService else {
+                throw FoodCaptureError.notImplemented(
+                    ticket: "v1.0.9-D1",
+                    message: "FoodModule.configure(visionService:) never ran",
+                    context: .photo(byteCount: description.utf8.count)
+                )
+            }
+            do {
+                let identified = try await visionService.scanText(
+                    description,
+                    cuisineProfile: cuisineProfile
+                )
+                return await Self.enrich(identified, using: FoodModule.nutritionLookup)
+            } catch let visionError as VisionError {
+                throw FoodCaptureError.pipeline(underlying: visionError)
+            }
+
         case .imOutTonight(let cuisine):
             // D14 LOCKED — rule-based cuisine → (kcalLow, kcalHigh)
             // map. NO LLM call (cost saver per v3 §architecture-

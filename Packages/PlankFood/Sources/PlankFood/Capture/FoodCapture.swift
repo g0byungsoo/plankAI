@@ -20,6 +20,11 @@ public enum FoodCapture: Sendable {
     case photo(Data)
     case quickAdd(PantryItemID)
     case imOutTonight(cuisine: CuisineChip?)
+    /// v1.0.9 D1 — free-text quick-add. The user types a description
+    /// of what they ate ("two slices of pepperoni pizza"); EF routes
+    /// through the same JSON schema as the photo path. ~5× cheaper
+    /// than vision (no image tokens).
+    case text(String, cuisineProfile: String?)
 
     // Future plug-in slots — uncomment when shipping each. Adding a
     // case here will break the dispatcher's switch, surfacing every
@@ -27,7 +32,6 @@ public enum FoodCapture: Sendable {
     //
     // case barcode(String)
     // case voice(URL)
-    // case text(String)
     // case menu(Data)
 }
 

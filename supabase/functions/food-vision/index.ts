@@ -461,6 +461,7 @@ Deno.serve(async (req: Request) => {
 
   let body: {
     image_base64?: string;
+    text?: string;
     cuisine_profile?: string;
   };
   try {
@@ -472,10 +473,19 @@ Deno.serve(async (req: Request) => {
     );
   }
 
+  // v1.0.9 D1 — accept EITHER an image OR a free-text description.
+  // Text-only requests cost ~5× less than vision (no image tokens),
+  // route through the same JSON schema, and unlock the quick-add
+  // surface where the user types "two slices pepperoni pizza" and
+  // gets kcal + macros without taking a photo.
   const imageBase64 = body.image_base64;
-  if (!imageBase64 || imageBase64.length < 100) {
+  const textDescription = body.text?.trim();
+  const hasImage = imageBase64 && imageBase64.length >= 100;
+  const hasText = textDescription && textDescription.length >= 2;
+
+  if (!hasImage && !hasText) {
     return new Response(
-      JSON.stringify({ error: "missing_image" }),
+      JSON.stringify({ error: "missing_input", detail: "provide either image_base64 or text" }),
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -495,22 +505,47 @@ Deno.serve(async (req: Request) => {
 
   // GPT-5 reasoning models reject custom temperature; gpt-4o accepts
   // it. Drop temperature for gpt-5 to avoid API errors.
+  // v1.0.9 D1 — branch the user content based on input type.
+  // Image path stays unchanged. Text path drops image_url and sends
+  // the typed description as the only content. System prompt is the
+  // same — the model's macro-estimation rules apply identically to
+  // text-described foods as to photographed ones.
+  let userContent: unknown;
+  if (hasImage) {
+    userContent = [
+      { type: "text", text: "what is on this plate? estimate kcal + macros directly." },
+      {
+        type: "image_url",
+        image_url: {
+          url: `data:image/jpeg;base64,${imageBase64}`,
+          detail: "high",
+        },
+      },
+    ];
+  } else {
+    // Text-only quick-add. Anchor the prompt so the model treats
+    // the description as the SINGLE meal and returns one or more
+    // items reconstructed from the user's words.
+    userContent = [
+      {
+        type: "text",
+        text:
+          `the user ate: "${textDescription}". ` +
+          `estimate kcal + macros directly. ` +
+          `if the description is multi-item (e.g. "chicken bowl + iced latte"), ` +
+          `return one item per food. ` +
+          `if portion size isn't specified, assume one standard serving and reflect that in confidence + the kcal_low/high range.`,
+      },
+    ];
+  }
+
   const openaiRequest: Record<string, unknown> = {
     model: MODEL_NAME,
     messages: [
       { role: "system", content: systemPrompt },
       {
         role: "user",
-        content: [
-          { type: "text", text: "what is on this plate? estimate kcal + macros directly." },
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:image/jpeg;base64,${imageBase64}`,
-              detail: "high",
-            },
-          },
-        ],
+        content: userContent,
       },
     ],
     response_format: {
