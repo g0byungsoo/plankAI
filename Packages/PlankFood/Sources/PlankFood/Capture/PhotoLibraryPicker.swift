@@ -56,10 +56,19 @@ struct PhotoLibraryPicker: UIViewControllerRepresentable {
         }
 
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-            // Dismiss the picker immediately; image load happens off
-            // the main thread but the UI returns to the camera view
-            // in parallel.
-            picker.dismiss(animated: true)
+            // v1.0.8 Phase U.2 (2026-06-08) — DO NOT dismiss the picker
+            // here. Founder bug: "when i import photos, sometimes i
+            // get kicked out (usually the first time after i open the
+            // app)."
+            //
+            // Root cause: PHPicker.dismiss(animated:true) + SwiftUI's
+            // sheet binding flip (in onPicked) race each other. On
+            // first launch after permissions are granted, iOS can
+            // mis-route the dismiss and unwind the entire view stack
+            // including the parent fullScreenCover. Letting SwiftUI
+            // be the sole owner of the sheet binding eliminates the
+            // race — onPicked sets showingLibraryPicker=false, and
+            // SwiftUI does the dismissal cleanly.
 
             guard let provider = results.first?.itemProvider,
                   provider.canLoadObject(ofClass: UIImage.self) else {

@@ -248,21 +248,33 @@ private struct MealSummaryCard: View {
             // adjusters (smaller/bigger/+sauce/rename). The corrected
             // CapturedFood propagates via onCorrect → all 3 slides
             // re-render with the new numbers.
+            // v1.0.8 Phase U.1 — solid brand chip per founder direction:
+            // "tweak this chip needs to have solid jenifit background
+            // color with jenifit theme color font." Solid bgElevated
+            // cream + 1.5pt accent rose border + cocoa text reads as
+            // a clearly visible secondary CTA that matches the card's
+            // scrapbook chrome family.
             Button {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 showTweakSheet = true
             } label: {
-                HStack(spacing: 5) {
+                HStack(spacing: 6) {
                     Image(systemName: "pencil.line")
-                        .font(.system(size: 11, weight: .medium))
-                    (Text("tweak").font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                     + Text(" this ♥").font(.system(size: 13, weight: .medium)))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(FoodTheme.accent)
+                    (Text("tweak")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                        .foregroundStyle(FoodTheme.accent)
+                     + Text(" this ♥")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(FoodTheme.textPrimary))
                 }
-                .foregroundStyle(FoodTheme.accent)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(Capsule().fill(FoodTheme.accentSubtle.opacity(0.5)))
-                .overlay(Capsule().stroke(FoodTheme.accent.opacity(0.25), lineWidth: 0.5))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 9)
+                .background(Capsule().fill(FoodTheme.bgElevated))
+                .overlay(Capsule().stroke(FoodTheme.accent, lineWidth: 1.5))
+                .shadow(color: FoodTheme.textPrimary.opacity(0.12),
+                        radius: 0, x: 2, y: 2)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("adjust this meal's calories")
@@ -1445,6 +1457,10 @@ struct TweakSheet: View {
             Spacer()
         }
         .background(FoodTheme.bgElevated)
+        // v1.0.8 Phase U.1 — force light color scheme so the parent
+        // PhotoCaptureView's preferredColorScheme(.dark) doesn't
+        // bleed in and make TextField text invisible (white on cream).
+        .colorScheme(.light)
     }
 
     @ViewBuilder
@@ -1494,18 +1510,27 @@ struct TweakSheet: View {
              Text("? ♥").font(.system(size: 15)))
                 .foregroundStyle(FoodTheme.textPrimary)
 
-            TextField("e.g. tuna poke bowl", text: $renameText)
-                .focused($renameFocused)
-                .textFieldStyle(.plain)
-                .font(.system(size: 16))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(FoodTheme.accent.opacity(0.3), lineWidth: 1)
-                )
+            // v1.0.8 Phase U.1 — explicit cocoa text + accent cursor.
+            // Founder hit invisible text: PhotoCaptureView's
+            // .preferredColorScheme(.dark) was propagating into the
+            // sheet, making the default TextField text white on the
+            // white background. Explicit colors here override.
+            TextField("", text: $renameText, prompt:
+                Text("e.g. tuna poke bowl").foregroundStyle(FoodTheme.textSecondary)
+            )
+            .focused($renameFocused)
+            .textFieldStyle(.plain)
+            .font(.system(size: 16))
+            .foregroundStyle(FoodTheme.textPrimary)
+            .tint(FoodTheme.accent)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(FoodTheme.accent.opacity(0.3), lineWidth: 1)
+            )
 
             Button {
                 guard !renameText.trimmingCharacters(in: .whitespaces).isEmpty else { return }

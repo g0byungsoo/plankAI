@@ -213,13 +213,15 @@ public struct PhotoCaptureView: View {
             PhotoLibraryPicker(
                 onPicked: { image in
                     showingLibraryPicker = false
-                    // v1.0.8 Phase R.10 — defer state mutation 350ms
-                    // so the PHPicker sheet fully dismisses before
-                    // the confirm sheet tries to present (iOS won't
-                    // present sheet-on-top-of-sheet during the same
-                    // runloop tick).
+                    // v1.0.8 Phase U.2 (2026-06-08) — bumped 350ms →
+                    // 600ms to give first-launch PHPicker dismissal
+                    // animation extra room. PHPicker no longer self-
+                    // dismisses (see PhotoLibraryPicker.swift) so the
+                    // dismiss is fully SwiftUI-driven; this delay
+                    // covers the iOS sheet dismissal animation
+                    // (~300ms typical, up to 500ms cold).
                     Task { @MainActor in
-                        try? await Task.sleep(nanoseconds: 350_000_000)
+                        try? await Task.sleep(nanoseconds: 600_000_000)
                         #if DEBUG
                         print("[PhotoCaptureView] gallery picked → presenting confirm sheet")
                         #endif
@@ -1684,6 +1686,7 @@ struct NutritionCardView: View {
         .padding(.horizontal, 18 * scale)
         .padding(.vertical, 14 * scale)
         .background(FoodTheme.bgElevated)
+        .colorScheme(.light)
         .clipShape(RoundedRectangle(cornerRadius: 18 * scale, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18 * scale, style: .continuous)
@@ -2096,6 +2099,7 @@ struct SharePickerSheet: View {
             .padding(.bottom, 24)
         }
         .background(FoodTheme.bgElevated)
+        .colorScheme(.light)
         .sheet(isPresented: $presentingActivity) {
             ShareActivityView(
                 items: selectedSlides.map { $0.uiImage as Any },
@@ -2241,6 +2245,7 @@ struct TerminalErrorSheet: View {
             .padding(.bottom, 28)
         }
         .background(FoodTheme.bgElevated)
+        .colorScheme(.light)
     }
 }
 
@@ -2333,6 +2338,7 @@ struct GalleryConfirmSheet: View {
             .padding(.bottom, 24)
         }
         .background(FoodTheme.bgElevated)
+        .colorScheme(.light)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }
