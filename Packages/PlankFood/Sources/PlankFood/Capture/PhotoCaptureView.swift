@@ -173,9 +173,23 @@ public struct PhotoCaptureView: View {
 
     // MARK: - Camera layer
 
-    /// v1.0.8 Phase M — camera content inside the inset frame. Drops
-    /// the previous `.ignoresSafeArea()`; the parent cameraFrame now
-    /// handles bounds via VStack layout + horizontal padding.
+    /// v1.0.8 Phase N — camera content inside the inset frame.
+    /// Founder feedback on Phase M: "i don't know why it magnified
+    /// the photo and layout after clicking scan. can you keep
+    /// everything as same just revolving borderline + revolving
+    /// camera button?"
+    ///
+    /// Root cause: the frozen-frame UIImage from VideoDataOutput's
+    /// pixel buffer was displayed with `.aspectRatio(.fill)` while
+    /// the AVCaptureVideoPreviewLayer rendered via Metal — small
+    /// differences in their effective aspect handling produced a
+    /// visible "zoom" on swap. Fix: drop the Image overlay entirely.
+    /// The live preview keeps running during the scan, the scanning
+    /// overlay draws on TOP of live video, and `camera.frozenFrame`
+    /// is still captured under the hood for the downstream result-
+    /// phase polaroid. The user sees zero geometry change after tap —
+    /// only the border shimmer + revolving shutter signal that a
+    /// scan is in flight.
     @ViewBuilder private var cameraLayer: some View {
         ZStack {
             Color.black
@@ -183,14 +197,8 @@ public struct PhotoCaptureView: View {
             if camera.permissionStatus == .authorized {
                 FoodCameraPreviewView(previewLayer: camera.previewLayer)
 
-                if let frame = camera.frozenFrame {
-                    Image(uiImage: frame)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-
-                    if !reduceMotion {
-                        ScanningOverlay(isActive: isCapturing)
-                    }
+                if !reduceMotion {
+                    ScanningOverlay(isActive: isCapturing)
                 }
             } else if camera.permissionStatus == .denied {
                 permissionDeniedPlaceholder
@@ -275,26 +283,46 @@ public struct PhotoCaptureView: View {
             Task { await captureTapped() }
         } label: {
             ZStack {
-                // Outer ring: hot pink stroke.
+                // Static outer ring: hot pink stroke, always visible.
                 Circle()
-                    .stroke(Color(red: 1.0, green: 0.075, blue: 0.94), lineWidth: 4)
+                    .stroke(
+                        Color(red: 1.0, green: 0.075, blue: 0.94),
+                        lineWidth: 4
+                    )
                     .frame(width: 78, height: 78)
-                // Inner disc: white when idle, shrinks slightly during
-                // scan to communicate the disabled state without a
-                // hard chrome change.
+
+                // v1.0.8 Phase N — REVOLVING arc on the shutter.
+                // Founder direction: "revolving borderline + revolving
+                // camera button." A 30% white arc sweeps around the
+                // outer ring during scan, fading in/out smoothly when
+                // isCapturing flips. Same TimelineView-paused pattern
+                // as the border shimmer for guaranteed clean stop.
+                TimelineView(.animation(minimumInterval: 1.0 / 60.0,
+                                        paused: !(isCapturing && !reduceMotion))) { timeline in
+                    let elapsed = timeline.date.timeIntervalSinceReferenceDate
+                    let phase = (elapsed.truncatingRemainder(dividingBy: 1.4)) / 1.4
+                    let angle = phase * 360.0
+
+                    Circle()
+                        .trim(from: 0, to: 0.3)
+                        .stroke(
+                            Color.white,
+                            style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                        )
+                        .frame(width: 78, height: 78)
+                        .rotationEffect(.degrees(angle))
+                }
+                .opacity(isCapturing && !reduceMotion ? 1 : 0)
+                .animation(.easeInOut(duration: 0.35), value: isCapturing)
+
+                // Inner white disc. Stays the same size across scan
+                // states — founder wants the layout to NOT shift,
+                // including subtle size changes. The rotation arc
+                // does the "scanning" signaling on its own.
                 Circle()
                     .fill(Color.white)
-                    .frame(
-                        width: isCapturing ? 56 : 64,
-                        height: isCapturing ? 56 : 64
-                    )
+                    .frame(width: 64, height: 64)
                     .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 2)
-                    .animation(.easeInOut(duration: 0.3), value: isCapturing)
-                if isCapturing {
-                    ProgressView()
-                        .tint(Color(red: 1.0, green: 0.075, blue: 0.94))
-                        .transition(.opacity)
-                }
             }
             .contentShape(Circle())
         }
@@ -314,10 +342,6 @@ public struct PhotoCaptureView: View {
             Spacer()
 
             modeChips
-                .padding(.horizontal, FoodTheme.Space.md)
-                .padding(.vertical, FoodTheme.Space.sm)
-                .background(.ultraThinMaterial, in: Capsule())
-                .colorScheme(.dark)
                 .opacity(isCapturing ? 0.5 : 1)
 
             Spacer()
@@ -394,16 +418,28 @@ public struct PhotoCaptureView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    // v1.0.8 Phase N — iOS-segmented chip row mirroring the reference
+    // layout: ONE outer translucent capsule containing N tabs.
+    // Active tab gets a white inner capsule + cocoa text; inactive
+    // tabs are bare text on the translucent backing. Founder feedback
+    // on Phase M: 3 chips with their own individual capsules + an
+    // outer wrap capsule were collapsing on width and rendering each
+    // letter on its own line. This compresses cleanly even on the
+    // smallest iPhone width.
     @ViewBuilder private var modeChips: some View {
-        HStack(spacing: FoodTheme.Space.sm) {
-            modeChip("📷", "photo", .photo)
-            modeChip("🌸", "quick add", .quickAdd)
-            modeChip("🍽", "i'm out", .imOut)
+        HStack(spacing: 4) {
+            modeChip("photo", .photo)
+            modeChip("quick add", .quickAdd)
+            modeChip("i'm out", .imOut)
         }
+        .padding(4)
+        .background(.ultraThinMaterial, in: Capsule())
+        .colorScheme(.dark)
     }
 
     @ViewBuilder
-    private func modeChip(_ icon: String, _ label: String, _ tab: CaptureTab) -> some View {
+    private func modeChip(_ label: String, _ tab: CaptureTab) -> some View {
+        let isActive = captureTab == tab
         Button {
             captureTab = tab
             // 2026-06-05: chips now route to peer phases via callbacks.
@@ -415,20 +451,15 @@ public struct PhotoCaptureView: View {
             case .imOut:    onImOutTapped()
             }
         } label: {
-            HStack(spacing: 6) {
-                Text(icon)
-                    .font(.system(size: 16))
-                Text(label)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(captureTab == tab ? FoodTheme.textPrimary : FoodTheme.textSecondary)
-            }
-            .padding(.horizontal, FoodTheme.Space.md)
-            .padding(.vertical, 10)
-            .background(
-                Capsule().fill(
-                    captureTab == tab ? FoodTheme.accentSubtle : FoodTheme.bgElevated
+            Text(label)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(isActive ? FoodTheme.textPrimary : Color.white.opacity(0.85))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(
+                    Capsule().fill(isActive ? Color.white : Color.clear)
                 )
-            )
+                .animation(.easeInOut(duration: 0.22), value: isActive)
         }
     }
 
