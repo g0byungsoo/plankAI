@@ -360,7 +360,6 @@ Deno.serve(async (req: Request) => {
   // issue. Each await gets a console.log before AND after, so the
   // LAST log before a 504 timeout tells us exactly which step
   // stalled. Once scanning is healthy, these can come out.
-  console.log("[food-vision] STEP 0: handler entered");
 
   // CORS preflight — Supabase Edge Functions are called from the iOS
   // app, but a preflight from web/SwiftUI Previews shouldn't bomb.
@@ -380,7 +379,6 @@ Deno.serve(async (req: Request) => {
   }
 
   // ---------- Auth ----------
-  console.log("[food-vision] STEP 1: auth header check");
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return new Response(
@@ -389,16 +387,13 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  console.log("[food-vision] STEP 2: creating user client");
   const supabaseUserClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: authHeader } } },
   );
 
-  console.log("[food-vision] STEP 3: calling auth.getUser()");
   const { data: { user }, error: authErr } = await supabaseUserClient.auth.getUser();
-  console.log(`[food-vision] STEP 3 DONE: user=${user?.id ?? "null"}`);
   if (authErr || !user) {
     return new Response(
       JSON.stringify({ error: "invalid_auth" }),
@@ -409,7 +404,6 @@ Deno.serve(async (req: Request) => {
   const userId = user.id;
 
   // Admin client for telemetry + limit checks (bypasses RLS).
-  console.log("[food-vision] STEP 4: creating admin client");
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -417,9 +411,7 @@ Deno.serve(async (req: Request) => {
 
   // ---------- Limit checks ----------
 
-  console.log("[food-vision] STEP 5: checkPerUserLimit");
   const userLimit = await checkPerUserLimit(supabaseAdmin, userId);
-  console.log(`[food-vision] STEP 5 DONE: allowed=${userLimit.allowed}`);
   if (!userLimit.allowed) {
     logTelemetry(supabaseAdmin, {
       id: crypto.randomUUID(),
@@ -443,9 +435,7 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  console.log("[food-vision] STEP 6: checkDailyBudget");
   const budget = await checkDailyBudget(supabaseAdmin);
-  console.log(`[food-vision] STEP 6 DONE: allowed=${budget.allowed}`);
   if (!budget.allowed) {
     logTelemetry(supabaseAdmin, {
       id: crypto.randomUUID(),
@@ -469,14 +459,12 @@ Deno.serve(async (req: Request) => {
 
   // ---------- Parse request ----------
 
-  console.log("[food-vision] STEP 7: parsing request body");
   let body: {
     image_base64?: string;
     cuisine_profile?: string;
   };
   try {
     body = await req.json();
-    console.log(`[food-vision] STEP 7 DONE: body parsed, image_base64.length=${body.image_base64?.length ?? 0}`);
   } catch (_e) {
     return new Response(
       JSON.stringify({ error: "invalid_body" }),
@@ -573,7 +561,6 @@ Deno.serve(async (req: Request) => {
   // retry layer treats 502 as transient and re-attempts, so a one-off
   // slow OpenAI response doesn't kill the user's scan — they just see
   // "scanning..." for a beat longer.
-  console.log(`[food-vision] STEP 8: about to fetch OpenAI, model=${MODEL_NAME}`);
   const openaiAbort = new AbortController();
   const openaiTimer = setTimeout(() => openaiAbort.abort(), 90_000);
 
@@ -613,7 +600,6 @@ Deno.serve(async (req: Request) => {
     );
   }
   clearTimeout(openaiTimer);
-  console.log(`[food-vision] STEP 9: OpenAI returned status=${openaiResponse.status}`);
 
   if (!openaiResponse.ok) {
     const errorBody = await openaiResponse.text();

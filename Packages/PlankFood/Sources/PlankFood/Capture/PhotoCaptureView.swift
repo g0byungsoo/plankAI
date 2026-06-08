@@ -222,9 +222,6 @@ public struct PhotoCaptureView: View {
                     // (~300ms typical, up to 500ms cold).
                     Task { @MainActor in
                         try? await Task.sleep(nanoseconds: 600_000_000)
-                        #if DEBUG
-                        print("[PhotoCaptureView] gallery picked → presenting confirm sheet")
-                        #endif
                         pendingGalleryImage = PendingGallery(image: image)
                     }
                 },
@@ -237,9 +234,6 @@ public struct PhotoCaptureView: View {
                 onConfirm: {
                     let img = pending.image
                     pendingGalleryImage = nil
-                    #if DEBUG
-                    print("[PhotoCaptureView] gallery CONFIRMED → starting scan")
-                    #endif
                     Task { await libraryImagePicked(img) }
                 },
                 onCancel: {
@@ -1376,9 +1370,6 @@ public struct PhotoCaptureView: View {
     /// instant snap while the upload path skips the camera-specific
     /// parts (haptic, shutter sound, debounce timestamp).
     private func libraryImagePicked(_ image: UIImage) async {
-        #if DEBUG
-        print("[PhotoCaptureView] libraryImagePicked START — should NOT auto-dismiss")
-        #endif
         guard !isCapturing else { return }
 
         // v1.0.8 Phase R.5 — gallery upload now mirrors the camera
