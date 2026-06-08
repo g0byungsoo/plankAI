@@ -59,7 +59,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 // ---------- Config ----------
 
 const DAILY_BUDGET_USD = 50;        // global cap per v3 D26
-const PER_USER_DAILY_LIMIT = 30;    // per v3 D26
+// 2026-06-08 — bumped 30 → 200. Founder hit the 30/day cap during
+// device testing (each test scan counted against the limit, and
+// the `error` rows also counted — compounding the problem). 200
+// gives real headroom for testing + edge cases without softening
+// the budget cap (which is the real cost guardrail).
+const PER_USER_DAILY_LIMIT = 200;
 
 // Model name. v1.0.8 Phase G (2026-06-08) — default flipped back
 // from gpt-5 to gpt-4o after device testing showed real-world
@@ -266,18 +271,27 @@ interface TelemetryRow {
   status: "success" | "rate_limit" | "budget_cap" | "error";
 }
 
-async function logTelemetry(
+function logTelemetry(
   supabaseAdmin: ReturnType<typeof createClient>,
   row: TelemetryRow,
-): Promise<void> {
-  // Fire-and-forget; never block the response on telemetry write.
+): void {
+  // 2026-06-08 — ACTUALLY fire-and-forget. Previously this was
+  // `await`ed at every callsite — if the INSERT hung (slow table /
+  // RLS issue / connection stall), the whole function hung and
+  // surfaced as 504 Gateway Timeout. Now we drop the await: the
+  // INSERT runs as an unawaited Promise; the function returns
+  // immediately; any insert error logs to console but doesn't
+  // delay the response.
+  //
   // Use service-role client (bypasses RLS on food_vision_telemetry).
-  const { error } = await supabaseAdmin
+  supabaseAdmin
     .from("food_vision_telemetry")
-    .insert([row]);
-  if (error) {
-    console.error("[food-vision] telemetry write failed:", error.message);
-  }
+    .insert([row])
+    .then(({ error }: { error: { message: string } | null }) => {
+      if (error) {
+        console.error("[food-vision] telemetry write failed:", error.message);
+      }
+    });
 }
 
 // ---------- Limit checks ----------
@@ -289,10 +303,18 @@ async function checkPerUserLimit(
   const startOfDay = new Date();
   startOfDay.setUTCHours(0, 0, 0, 0);
 
+  // 2026-06-08 — only count SUCCESSFUL scans against the limit.
+  // Founder hit the cap during testing because errors + rate_limit
+  // rows were also counted, which compounded: once over the cap,
+  // every new request logged another "rate_limit" row, pushing the
+  // count further over. With this filter, only paid LLM calls
+  // (status=success) count — which is what the limit is intended
+  // to gate (LLM cost), not test failures.
   const { count, error } = await supabaseAdmin
     .from("food_vision_telemetry")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
+    .eq("status", "success")
     .gte("requested_at", startOfDay.toISOString());
 
   if (error) {
@@ -399,7 +421,7 @@ Deno.serve(async (req: Request) => {
   const userLimit = await checkPerUserLimit(supabaseAdmin, userId);
   console.log(`[food-vision] STEP 5 DONE: allowed=${userLimit.allowed}`);
   if (!userLimit.allowed) {
-    await logTelemetry(supabaseAdmin, {
+    logTelemetry(supabaseAdmin, {
       id: crypto.randomUUID(),
       user_id: userId,
       model: MODEL_NAME,
@@ -424,7 +446,7 @@ Deno.serve(async (req: Request) => {
   const budget = await checkDailyBudget(supabaseAdmin);
   console.log(`[food-vision] STEP 6 DONE: allowed=${budget.allowed}`);
   if (!budget.allowed) {
-    await logTelemetry(supabaseAdmin, {
+    logTelemetry(supabaseAdmin, {
       id: crypto.randomUUID(),
       user_id: userId,
       model: MODEL_NAME,
@@ -571,7 +593,7 @@ Deno.serve(async (req: Request) => {
     console.error(
       `[food-vision] OpenAI fetch ${isAbort ? "TIMEOUT (90s)" : "failed"}: ${String(e)}`,
     );
-    await logTelemetry(supabaseAdmin, {
+    logTelemetry(supabaseAdmin, {
       id: crypto.randomUUID(),
       user_id: userId,
       model: MODEL_NAME,
@@ -599,7 +621,7 @@ Deno.serve(async (req: Request) => {
     console.error(
       `[food-vision] OpenAI ${openaiResponse.status} for model=${MODEL_NAME}: ${errorBody}`,
     );
-    await logTelemetry(supabaseAdmin, {
+    logTelemetry(supabaseAdmin, {
       id: crypto.randomUUID(),
       user_id: userId,
       model: MODEL_NAME,
@@ -640,7 +662,7 @@ Deno.serve(async (req: Request) => {
   try {
     parsed = JSON.parse(openaiBody.choices[0].message.content);
   } catch (e) {
-    await logTelemetry(supabaseAdmin, {
+    logTelemetry(supabaseAdmin, {
       id: crypto.randomUUID(),
       user_id: userId,
       model: MODEL_NAME,
@@ -659,7 +681,7 @@ Deno.serve(async (req: Request) => {
   const cost = computeCost(openaiBody.usage);
   const durationMs = Math.round(performance.now() - t0);
 
-  await logTelemetry(supabaseAdmin, {
+  logTelemetry(supabaseAdmin, {
     id: crypto.randomUUID(),
     user_id: userId,
     model: MODEL_NAME,
