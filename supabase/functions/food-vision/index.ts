@@ -61,12 +61,19 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 const DAILY_BUDGET_USD = 50;        // global cap per v3 D26
 const PER_USER_DAILY_LIMIT = 30;    // per v3 D26
 
-// Model name. Defaults to gpt-5 per the direct-kcal rewrite.
-// FOOD_VISION_MODEL secret can override to gpt-4o if Tier 5 access
-// isn't granted; accuracy drops but the function still works
-// (CapturedItem.kcal will be the gpt-4o estimate, less reliable
-// for cohort drinks/restaurant items).
-const MODEL_NAME = Deno.env.get("FOOD_VISION_MODEL") ?? "gpt-5";
+// Model name. v1.0.8 Phase G (2026-06-08) — default flipped back
+// from gpt-5 to gpt-4o after device testing showed real-world
+// latency of 8-15s per scan with gpt-5 (reasoning tokens dominate
+// the wall-clock). gpt-4o lands at 3-5s with slightly lower
+// accuracy on transparent-cup drinks; the iOS saliency crop +
+// auto-retry + "correct me ♥" pill loop compensate for the
+// accuracy gap. Cohort patience > marginal accuracy lift.
+//
+// To re-test gpt-5 (or try gpt-5-mini) without a code change,
+// set FOOD_VISION_MODEL=gpt-5 in the Supabase Dashboard's Edge
+// Function secrets. The conditional max_completion_tokens /
+// max_tokens path below handles both model families correctly.
+const MODEL_NAME = Deno.env.get("FOOD_VISION_MODEL") ?? "gpt-4o";
 
 // Per-model pricing (USD per 1M tokens). Source: OpenAI pricing
 // docs as of 2026-06. Bias-conservative — if pricing drifts, the
