@@ -142,13 +142,30 @@ public final class FoodCameraManager: NSObject {
 
     // MARK: - Capture
 
-    /// Capture a single still photo. Returns 1024px JPEG @ q0.8 with
+    /// Capture a single still photo. Returns 768px JPEG @ q0.85 with
     /// EXIF stripped (the input shape food-vision Edge Function expects).
+    ///
+    /// v1.0.8 Phase A (2026-06-07):
+    /// - 1024px/q0.8 → 768px/q0.85. OpenAI's hi-res vision pipeline
+    ///   downsamples the short side to 768px regardless, so anything
+    ///   larger is wasted upload bytes (–30-50% upload size on slow
+    ///   networks). Quality bump to 0.85 retains ice/condensation detail
+    ///   on transparent drinks (the Starbucks iced latte failure mode).
+    /// - Image resize + JPEG encode moved OFF the main actor into a
+    ///   detached background task. Previously these CPU-bound steps ran
+    ///   synchronously on main and blocked the UI for 2-3s on older
+    ///   devices, which is what made the shutter feel laggy.
+    /// - Debounce timestamp moved AFTER the user has actually seen a
+    ///   result (or never set, if the pipeline throws). The new
+    ///   `recordCaptureFailed()` callback resets `lastCaptureCompletedAt`
+    ///   to nil so the next intentional tap goes through immediately —
+    ///   no more 3s wait after a network blip.
     ///
     /// Throws `CameraError.notReady` if called before `startSession()`,
     /// `CameraError.captureInProgress` if a capture is already in flight,
     /// `CameraError.captureTooSoon` if called within the debounce window
-    /// after the last completion (3s — protects against UI loops),
+    /// after a SUCCESSFUL capture (3s — protects against UI loops on the
+    /// happy path; cleared by recordCaptureFailed on the unhappy path),
     /// `CameraError.captureFailed` if the AVFoundation callback errors,
     /// `CameraError.encodingFailed` if image processing fails after capture.
     public func captureStill() async throws -> Data {
@@ -167,18 +184,27 @@ public final class FoodCameraManager: NSObject {
             photoOutput.capturePhoto(with: settings, delegate: self)
         }
 
-        // Stamp completion time before the resize work so the debounce
-        // window starts at "photo captured" not "JPEG re-encoded".
+        // v1.0.8 — resize + re-encode + EXIF strip OFF the main actor.
+        // UIGraphicsImageRenderer.image() + UIImage.jpegData() are both
+        // CPU-bound and previously blocked main for 2-3s on older
+        // devices. Captured-data → detached task → jpeg returns to caller.
+        let jpeg = try await Task.detached(priority: .userInitiated) {
+            guard let image = UIImage(data: rawData) else {
+                throw CameraError.encodingFailed
+            }
+            let resized = Self.resize(image, longestEdge: 768)
+            guard let jpeg = resized.jpegData(compressionQuality: 0.85) else {
+                throw CameraError.encodingFailed
+            }
+            return jpeg
+        }.value
+
+        // Stamp completion time AFTER the (successful) encode. If the
+        // dispatcher downstream throws, PhotoCaptureView calls
+        // recordCaptureFailed() to clear this so the user's next tap
+        // isn't blocked by the debounce.
         lastCaptureCompletedAt = Date()
 
-        // Resize + re-encode + EXIF strip.
-        guard let image = UIImage(data: rawData) else {
-            throw CameraError.encodingFailed
-        }
-        let resized = Self.resize(image, longestEdge: 1024)
-        guard let jpeg = resized.jpegData(compressionQuality: 0.8) else {
-            throw CameraError.encodingFailed
-        }
         return jpeg
     }
 
@@ -203,9 +229,22 @@ public final class FoodCameraManager: NSObject {
         self.frozenFrame = nil
     }
 
+    /// v1.0.8 — call after a failed scan (network blip, EF 5xx,
+    /// no-food-in-frame) to clear the post-completion debounce. Lets
+    /// the user immediately re-tap the shutter without waiting 3s.
+    /// Founder bug: tap → 502 → tap again → 3s wait was crushing the
+    /// retry loop on cafe wifi. No-op if there's no stamp to clear.
+    public func recordCaptureFailed() {
+        lastCaptureCompletedAt = nil
+    }
+
     // MARK: - Helpers
 
-    private static func resize(_ image: UIImage, longestEdge: CGFloat) -> UIImage {
+    // nonisolated so the v1.0.8 detached-task path in captureStill()
+    // can call it off the main actor (UIGraphicsImageRenderer is
+    // thread-safe; the only main-actor surface here was the @MainActor
+    // class isolation, which doesn't apply to pure-function statics).
+    private nonisolated static func resize(_ image: UIImage, longestEdge: CGFloat) -> UIImage {
         let longest = max(image.size.width, image.size.height)
         guard longest > longestEdge else { return image }
         let scale = longestEdge / longest

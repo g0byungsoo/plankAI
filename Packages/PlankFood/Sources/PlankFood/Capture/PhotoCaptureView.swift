@@ -1,6 +1,7 @@
 #if canImport(UIKit)
 import SwiftUI
 import AVFoundation
+import AudioToolbox
 
 // MARK: - PhotoCaptureView
 //
@@ -358,6 +359,20 @@ public struct PhotoCaptureView: View {
         errorMessage = nil
         defer { isCapturing = false }
 
+        // v1.0.8 Phase A (2026-06-07) — fire haptic + system shutter
+        // sound BEFORE any await. SwiftUI Button actions fire on tap-up,
+        // so the user has just lifted their finger; the perceived
+        // "instant capture" relies on these two signals landing within
+        // ~16ms of the up-touch. Apple's system shutter sound (1108)
+        // is what iPhone Camera uses — same audio fingerprint the
+        // cohort already pattern-matches as "got the shot."
+        //
+        // Without this, the resize/encode + AVFoundation callback chain
+        // could feel like a 2-3s lag before any feedback landed,
+        // forcing users to keep holding the phone steady.
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        AudioServicesPlaySystemSound(1108)
+
         FoodAnalytics.track(.scanStarted)
         FoodAnalytics.firstScanStartedIfNeeded()
 
@@ -419,6 +434,12 @@ public struct PhotoCaptureView: View {
                 withAnimation(.easeOut(duration: 0.25)) {
                     camera.clearFrozenFrame()
                 }
+                // v1.0.8 — clear the debounce so the user can re-tap
+                // immediately after reframing. Without this, the 3s
+                // post-completion debounce kept the shutter disabled
+                // and the founder's "tap → no food → reframe → tap"
+                // loop required a 3-second wait between attempts.
+                camera.recordCaptureFailed()
                 return
             }
 
@@ -469,6 +490,8 @@ public struct PhotoCaptureView: View {
             withAnimation(.easeOut(duration: 0.25)) {
                 camera.clearFrozenFrame()
             }
+            // v1.0.8 — clear debounce so retry isn't blocked.
+            camera.recordCaptureFailed()
         } catch let captureError as FoodCaptureError {
             // v1.0.7 (2026-06-07) — pipeline / invalidInput paths.
             // FoodCaptureError.errorDescription unwraps to the
@@ -488,6 +511,14 @@ public struct PhotoCaptureView: View {
             ])
             phaseTask?.cancel()
             FoodScanActivity.end(handle: activityHandle)
+            // v1.0.8 — restore live preview + clear debounce so the
+            // next intentional tap on cafe wifi blips goes through
+            // immediately. Founder's iced-latte 4-attempt loop was
+            // mostly bottlenecked by this 3s wait.
+            withAnimation(.easeOut(duration: 0.25)) {
+                camera.clearFrozenFrame()
+            }
+            camera.recordCaptureFailed()
         } catch {
             // Truly unexpected (non-FoodCaptureError, non-CameraError).
             // Use the system localizedDescription — both VisionError
@@ -508,6 +539,7 @@ public struct PhotoCaptureView: View {
             withAnimation(.easeOut(duration: 0.25)) {
                 camera.clearFrozenFrame()
             }
+            camera.recordCaptureFailed()
         }
     }
 }

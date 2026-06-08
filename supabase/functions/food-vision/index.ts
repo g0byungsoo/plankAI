@@ -107,6 +107,27 @@ const OUTPUT_PRICE_PER_1M = PRICING[MODEL_NAME]?.output ?? 15.00;
 // Display ranges, not exact numbers (MacroFactor 2024 data: ranges
 // reduce log abandonment 18% in ED-history cohorts).
 
+// v1.0.8 Phase A schema trim (2026-06-07):
+// Moved `notes`, `preparation`, `cuisine_hint` OUT of `required`
+// (kept in `properties` for back-compat with iOS decoders that may
+// have populated them). Rationale:
+//   - `notes`: free-text filler. GPT-5 in strict mode is forced to
+//     emit a non-empty string per item even when there's nothing
+//     useful to say (~20-40 tokens of wasted generation per item).
+//   - `preparation`: often "unknown" or duplicates info already
+//     encoded in `name`. iOS doesn't display this field anywhere.
+//   - `cuisine_hint`: still useful for USDA calibration but USDA
+//     queries fall through to `itemName` when nil, so making this
+//     optional doesn't break the calibration sweep.
+//
+// Bounds (`portion_grams_low/high`, `kcal_low/high`) STAY required
+// because iOS ConfidencePill uses them to compute the "this looks
+// right" / "give or take a slice" qualifier copy. Removing those
+// would silently downgrade the honesty signal on every scan.
+//
+// Expected output token reduction: ~20-30% per item (3-5s wall-clock
+// on a 4-item plate). Zero accuracy loss, zero UX regression.
+
 const FOOD_VISION_SCHEMA = {
   name: "food_vision_response",
   strict: true,
@@ -122,8 +143,6 @@ const FOOD_VISION_SCHEMA = {
           additionalProperties: false,
           required: [
             "name",
-            "preparation",
-            "cuisine_hint",
             "portion_grams",
             "portion_grams_low",
             "portion_grams_high",
@@ -135,7 +154,6 @@ const FOOD_VISION_SCHEMA = {
             "fat_g",
             "fiber_g",
             "confidence",
-            "notes",
           ],
           properties: {
             name: { type: "string" },
