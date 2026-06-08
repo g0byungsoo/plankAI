@@ -518,10 +518,29 @@ Deno.serve(async (req: Request) => {
     openaiRequest.temperature = 0.3;
   }
 
+  // 2026-06-08 — AbortController + 90s timeout on the OpenAI fetch.
+  // Without this, a slow OpenAI response (or a hung connection) keeps
+  // the EF blocked until Supabase's 150-160s hard kill, which surfaces
+  // as 504 Gateway Timeout to iOS and the app sees a 180s hang.
+  //
+  // 90s is the cutoff because:
+  //   - p99 gpt-4o vision response time is ~25s (per OpenAI status page)
+  //   - 90s gives headroom for retry-after-network-blip behavior
+  //   - leaves 60s budget for downstream parsing + supabase upserts
+  //     before Supabase's 150s kill ceiling
+  //
+  // On abort, we return 502 with code=openai_timeout. iOS dispatcher's
+  // retry layer treats 502 as transient and re-attempts, so a one-off
+  // slow OpenAI response doesn't kill the user's scan — they just see
+  // "scanning..." for a beat longer.
+  const openaiAbort = new AbortController();
+  const openaiTimer = setTimeout(() => openaiAbort.abort(), 90_000);
+
   let openaiResponse: Response;
   try {
     openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
+      signal: openaiAbort.signal,
       headers: {
         "Authorization": `Bearer ${Deno.env.get("OPENAI_API_KEY")!}`,
         "Content-Type": "application/json",
@@ -529,6 +548,11 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify(openaiRequest),
     });
   } catch (e) {
+    clearTimeout(openaiTimer);
+    const isAbort = (e as Error)?.name === "AbortError";
+    console.error(
+      `[food-vision] OpenAI fetch ${isAbort ? "TIMEOUT (90s)" : "failed"}: ${String(e)}`,
+    );
     await logTelemetry(supabaseAdmin, {
       id: crypto.randomUUID(),
       user_id: userId,
@@ -540,10 +564,14 @@ Deno.serve(async (req: Request) => {
       status: "error",
     });
     return new Response(
-      JSON.stringify({ error: "upstream_unreachable", detail: String(e) }),
+      JSON.stringify({
+        error: isAbort ? "openai_timeout" : "upstream_unreachable",
+        detail: String(e),
+      }),
       { status: 502, headers: { "Content-Type": "application/json" } },
     );
   }
+  clearTimeout(openaiTimer);
 
   if (!openaiResponse.ok) {
     const errorBody = await openaiResponse.text();
