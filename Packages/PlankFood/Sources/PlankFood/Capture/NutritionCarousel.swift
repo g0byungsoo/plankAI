@@ -748,7 +748,7 @@ private struct JeniEvaluationCard: View {
             ]
         } else if t.kcal < 250 {
             candidates = [
-                "small + intentional. when you're hungry again, listen to it — no rules here.",
+                "small + intentional. when you're hungry again, listen to it. no rules here.",
                 "this is just a moment of food. eat more when your body asks ♥",
                 "love the gentleness. you don't need to earn the next thing.",
                 "\(firstItem) doesn't have to be a whole meal. soft choices count.",
@@ -762,7 +762,7 @@ private struct JeniEvaluationCard: View {
             ]
         } else if t.fat >= 15 {
             candidates = [
-                "fats are so underrated. \(firstItem) keeps you steady — no afternoon crash.",
+                "fats are so underrated. \(firstItem) keeps you steady, no afternoon crash.",
                 "the good fats in here are doing more than you know. mood, brain, all of it.",
                 "this'll feel really good. healthy fats slow everything down in the best way ♥",
             ]
@@ -1284,15 +1284,15 @@ struct ShareJeniBlock: View {
             return "love the protein density. this'll keep cravings quiet for a few hours."
         }
         if t.kcal < 250 {
-            return "light and balanced. you've got room for more later — listen to your hunger."
+            return "light and balanced. you've got room for more later, listen to your hunger."
         }
         if t.count >= 3 {
             return "variety on your plate gives you a wider nutrient spread. small wins compound."
         }
         if t.fat >= 15 {
-            return "healthy fats slow the absorption — steadier energy ahead, no crash."
+            return "healthy fats slow the absorption. steadier energy ahead, no crash."
         }
-        return "this fits your goals. keep showing up — tomorrow resets, today counts."
+        return "this fits your goals. keep showing up. tomorrow resets, today counts."
     }
 
     private var items: [String] {
