@@ -154,9 +154,25 @@ public struct PhotoCaptureView: View {
             Color.black.ignoresSafeArea()
 
             VStack(spacing: 14) {
+                // v1.0.8 Phase R.11 (2026-06-08) — camera frame LOCKED
+                // to 9:16. Founder: "and when uploaded photo, it
+                // changes the layout. can you keep the 9:16 layout
+                // the same and never change the layout?"
+                //
+                // Three benefits of pinning to 9:16:
+                //   1. Live preview, gallery scan, and result modes
+                //      all share IDENTICAL geometry. No size shift on
+                //      photo upload.
+                //   2. Visual matches the 1080×1920 shareable export
+                //      exactly — what the user sees is what they share.
+                //   3. Crop is deterministic across iPhone sizes;
+                //      bottom toolbar position is consistent.
                 cameraFrame
+                    .aspectRatio(9.0 / 16.0, contentMode: .fit)
                     .padding(.horizontal, 12)
                     .padding(.top, 4)
+
+                Spacer(minLength: 0)
 
                 bottomToolbar
                     .padding(.horizontal, FoodTheme.Space.lg)
