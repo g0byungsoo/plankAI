@@ -248,7 +248,7 @@ public struct CaptureFlowView: View {
                     // morphs the photo from its full-screen position
                     // into this hero block instead of hard-cutting.
                     if let photo = capturedPhoto {
-                        polaroidHero(photo: photo)
+                        PolaroidHero(photo: photo)
                     }
 
                     ResultCard(
@@ -270,46 +270,10 @@ public struct CaptureFlowView: View {
         }
     }
 
-    /// Polaroid-style photo hero. Cream border (~12pt all around),
-    /// hard offset shadow, 1.5pt cocoa stroke — matches the scrapbook
-    /// chrome family. Photo clips to a 20pt inner radius so the
-    /// Polaroid frame reads as a sticker-stack layer, not a crop. The
-    /// caption row at the bottom carries italic-Fraunces "*just now*"
-    /// — locked voice signal making the moment feel curated, not just
-    /// logged.
-    @ViewBuilder
-    private func polaroidHero(photo: UIImage) -> some View {
-        VStack(spacing: 8) {
-            Image(uiImage: photo)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(height: 220)
-                .frame(maxWidth: .infinity)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-
-            HStack {
-                Text("just")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
-                    .foregroundStyle(FoodTheme.accent)
-                Text("now")
-                    .font(.custom("Fraunces72pt-Regular", size: 12))
-                    .foregroundStyle(FoodTheme.textSecondary)
-                Spacer()
-            }
-            .padding(.horizontal, 4)
-        }
-        .padding(12)
-        .background(FoodTheme.bgElevated)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(FoodTheme.textPrimary, lineWidth: 1.5)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: FoodTheme.textPrimary.opacity(0.22), radius: 0, x: 4, y: 4)
-        // Slight angle — Polaroid signature. Not too much, so it
-        // doesn't fight the underlying ResultCard.
-        .rotationEffect(.degrees(-1.2))
-    }
+    // PolaroidHero is now its own View struct (further down in this
+    // file) so it can manage internal animation state — the photo
+    // "develops" over 1.2s (saturation / blur / opacity ease in) and
+    // sticker scatter fades in around it after the develop completes.
 
     // MARK: - Persistence
 
@@ -366,6 +330,165 @@ private extension CapturedFood {
             kcalLow: kcalLow,
             kcalHigh: kcalHigh
         )
+    }
+}
+
+// MARK: - PolaroidHero
+//
+// v1.0.8 Phase D (2026-06-07) — the captured photo lands as a
+// polaroid that "develops" over ~1.2s (saturation / opacity / blur
+// ease in) while a sticker scatter floats in around it. Brand-
+// perfect cohort-fit: the same gesture as printing a polaroid +
+// pasting it into a scrapbook with washi tape stickers.
+//
+// Why this beats Cal AI's reveal: Cal AI shows a clinical result
+// number under a static thumbnail — the photo is just data. JeniFit
+// frames the same data as a curated memory. Per UX-2 research:
+// "the cohort's #1 organic acquisition channel is Pinterest +
+// TikTok screenshots — we are designing the screenshot."
+//
+// Animation timeline (per UX-2 recommendation):
+//   t = 0.00s — photo lands in polaroid frame (matchedGeometryEffect
+//               from the viewfinder, handled by parent). At this
+//               moment, saturation=0.4, opacity=0.4, blur=4pt.
+//   t = 0.60s — saturation reaches 1.0, blur clears (the "developing"
+//               effect — like a real polaroid coming out clear).
+//   t = 0.90s — sticker scatter (cherries, bowSatin, gummyBear,
+//               flower3D) springs in around the polaroid edges.
+//   t = 1.20s — develop animation fully settled.
+
+private struct PolaroidHero: View {
+    let photo: UIImage
+
+    /// Drives the develop-in: 0 = fresh polaroid (dim/desaturated/blurred),
+    /// 1 = fully developed. Animates from 0 → 1 on appear.
+    @State private var developed: Double = 0
+    /// Sticker scatter visibility. Fires after develop is mostly done
+    /// so the stickers feel like they were placed AFTER the photo
+    /// "appeared" — the order matches how a physical scrapbook moment
+    /// would unfold.
+    @State private var stickersIn: Bool = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            // The polaroid frame itself.
+            polaroidFrame
+                .saturation(0.4 + developed * 0.6)
+                .opacity(0.4 + developed * 0.6)
+                .blur(radius: (1.0 - developed) * 4.0)
+                .rotationEffect(.degrees(-1.2))
+
+            // Sticker scatter overlay — positioned at the corners of
+            // the polaroid using offsets relative to the photo's
+            // approximate visual bounds (220pt photo + 12pt padding
+            // ≈ 244pt tall, frame width determined by parent).
+            if stickersIn {
+                stickerOverlay
+            }
+        }
+        .onAppear {
+            // Reduce-motion: snap to final state, skip the develop
+            // beat. Stickers still appear (decorative, not motion).
+            if reduceMotion {
+                developed = 1.0
+                stickersIn = true
+                return
+            }
+            withAnimation(.easeOut(duration: 1.2)) {
+                developed = 1.0
+            }
+            // Spring the stickers in after the develop settles —
+            // 0.9s delay matches the moment the photo reads as
+            // "fully there," so the stickers feel intentional, not
+            // pre-loaded.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.72)) {
+                    stickersIn = true
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var polaroidFrame: some View {
+        VStack(spacing: 8) {
+            Image(uiImage: photo)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(height: 220)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+            HStack {
+                Text("just")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                    .foregroundStyle(FoodTheme.accent)
+                Text("now")
+                    .font(.custom("Fraunces72pt-Regular", size: 12))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                Spacer()
+            }
+            .padding(.horizontal, 4)
+        }
+        .padding(12)
+        .background(FoodTheme.bgElevated)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(FoodTheme.textPrimary, lineWidth: 1.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: FoodTheme.textPrimary.opacity(0.22), radius: 0, x: 4, y: 4)
+    }
+
+    /// Four stickers placed at the polaroid corners, overhanging the
+    /// frame edge so they read as "stuck on" rather than "drawn on."
+    /// Each gets a small rotation per the y2k coquette spec — never
+    /// perfectly aligned, never identical.
+    private var stickerOverlay: some View {
+        GeometryReader { geo in
+            ZStack {
+                // Top-right cherries — the food-rail signature sticker
+                Image("sticker_cherries", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 48, height: 48)
+                    .rotationEffect(.degrees(-14))
+                    .shadow(color: Color.black.opacity(0.1), radius: 0, x: 1, y: 1)
+                    .position(x: geo.size.width - 18, y: 12)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+
+                // Top-left bow — washi-tape energy
+                Image("sticker_bow_satin", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 40, height: 40)
+                    .rotationEffect(.degrees(10))
+                    .opacity(0.92)
+                    .position(x: 20, y: 14)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+
+                // Bottom-right gummy bear — playful corner anchor
+                Image("sticker_gummy_bear", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 36, height: 36)
+                    .rotationEffect(.degrees(15))
+                    .position(x: geo.size.width - 20, y: geo.size.height - 18)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+
+                // Bottom-left flower3D — softens the lower corner
+                Image("sticker_flower_3d", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 34, height: 34)
+                    .rotationEffect(.degrees(-8))
+                    .position(x: 18, y: geo.size.height - 20)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
