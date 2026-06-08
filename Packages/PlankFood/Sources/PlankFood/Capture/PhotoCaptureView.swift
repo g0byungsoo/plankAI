@@ -87,6 +87,15 @@ public struct PhotoCaptureView: View {
     /// to the camera path. nil during live camera mode.
     @State private var galleryImage: UIImage?
 
+    /// v1.0.8 Phase R.7 (2026-06-08) — gallery preview-confirm step.
+    /// True while showing the picked photo with "use this photo" /
+    /// "cancel" CTAs. Founder feedback: "when i select photo there is
+    /// no select button + i still get kicked out." Adding an explicit
+    /// confirm step gives the missing "select" affordance AND ensures
+    /// the scan only fires when the user explicitly taps "use this
+    /// photo" (no possibility of accidental dismiss).
+    @State private var galleryPreviewMode: Bool = false
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public let onDismiss: () -> Void
@@ -163,7 +172,12 @@ public struct PhotoCaptureView: View {
             PhotoLibraryPicker(
                 onPicked: { image in
                     showingLibraryPicker = false
-                    Task { await libraryImagePicked(image) }
+                    // v1.0.8 Phase R.7 — show in-app preview confirm
+                    // step instead of scanning immediately. Gives the
+                    // "select" affordance + checkpoint before the
+                    // EF dispatch fires.
+                    galleryImage = image
+                    galleryPreviewMode = true
                 },
                 onCancel: { showingLibraryPicker = false }
             )
@@ -193,18 +207,20 @@ public struct PhotoCaptureView: View {
                 lineWidth: 5
             )
 
-            // v1.0.8 Phase P — inline result overlay. When the scan
-            // returns, the floating nutrition card lands above the
-            // frozen photo. inFrameChrome hides the scan-time UI
-            // (flash, shutter, microcopy) since the user is reviewing,
-            // not capturing.
-            if let result = capturedResult {
+            // v1.0.8 Phase P/R.7 — three in-frame states:
+            //   1. preview-confirm (gallery photo just picked, awaiting
+            //      "use this photo" tap)
+            //   2. result (scan complete, carousel + log/skip/share)
+            //   3. capture (live camera, X + flash + shutter)
+            if galleryPreviewMode {
+                galleryPreviewChrome
+                    .padding(14)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
+            } else if let result = capturedResult {
                 resultModeOverlay(result: result)
                     .padding(14)
                     .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
             } else {
-                // In-frame floating chrome: X (top-right), flash (bottom-
-                // left), big circle shutter (bottom-center).
                 inFrameChrome
                     .padding(14)
             }
@@ -411,7 +427,10 @@ public struct PhotoCaptureView: View {
     /// camera frame. Mimics the reference layout: gallery icon left,
     /// mode chip row centered, 44pt clear balance spacer right.
     @ViewBuilder private var bottomToolbar: some View {
-        if let result = capturedResult {
+        if galleryPreviewMode {
+            galleryPreviewActions
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+        } else if let result = capturedResult {
             resultActions(result: result)
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
         } else {
@@ -428,6 +447,85 @@ public struct PhotoCaptureView: View {
                 Color.clear.frame(width: 44, height: 44)
             }
             .transition(.opacity)
+        }
+    }
+
+    // MARK: - Gallery preview chrome + actions
+
+    /// v1.0.8 Phase R.7 — in-frame overlay shown after the user picks
+    /// a photo, before the scan starts. X close (top-right) + a small
+    /// "ready?" prompt floating mid-screen. The actual confirm CTAs
+    /// live in the bottom toolbar (galleryPreviewActions).
+    @ViewBuilder private var galleryPreviewChrome: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                glassButton(systemName: "xmark", action: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        galleryPreviewMode = false
+                        galleryImage = nil
+                    }
+                })
+                .accessibilityLabel("cancel")
+            }
+
+            Spacer()
+
+            // Small floating prompt — matches the in-camera microcopy
+            // tone. Italic-Fraunces punch word per voice lock.
+            (
+                Text("ready to ") + Text("scan").font(.custom("Fraunces72pt-SemiBoldItalic", size: 14)) + Text(" this one ♥")
+            )
+            .font(.system(size: 14))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.ultraThinMaterial, in: Capsule())
+            .colorScheme(.dark)
+            .padding(.bottom, 14)
+        }
+    }
+
+    /// Bottom-toolbar variant for the preview-confirm step. "cancel"
+    /// returns to camera; "use this photo" kicks off the scan via
+    /// libraryImagePicked.
+    @ViewBuilder private var galleryPreviewActions: some View {
+        HStack(spacing: 12) {
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    galleryPreviewMode = false
+                    galleryImage = nil
+                }
+            } label: {
+                Image(systemName: "arrow.uturn.backward")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 48, height: 48)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .colorScheme(.dark)
+            }
+            .accessibilityLabel("cancel")
+
+            Button {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                guard let img = galleryImage else { return }
+                galleryPreviewMode = false
+                Task { await libraryImagePicked(img) }
+            } label: {
+                Text("use this photo")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(
+                        Capsule().fill(Color(red: 1.0, green: 0.075, blue: 0.94))
+                    )
+                    .shadow(color: Color(red: 1.0, green: 0.075, blue: 0.94).opacity(0.3),
+                            radius: 8, x: 0, y: 2)
+            }
+
+            Color.clear.frame(width: 48, height: 48)
         }
     }
 

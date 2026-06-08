@@ -46,11 +46,33 @@ public final class FoodVisionService: Sendable {
 
     public init(
         config: Config,
-        session: URLSession = .shared
+        session: URLSession? = nil
     ) {
         self.config = config
-        self.session = session
+        self.session = session ?? Self.defaultVisionSession
     }
+
+    /// v1.0.8 Phase R.8 (2026-06-08) — dedicated URLSession for the
+    /// food-vision EF call. URLSession.shared has a 60s
+    /// timeoutIntervalForRequest that the per-request timeoutInterval
+    /// can't override reliably on iOS — the founder's logs showed
+    /// chronic -1001 timeouts at ~37s even with request.timeoutInterval
+    /// set to 90s.
+    ///
+    /// This session sets a 180s request + resource timeout to give
+    /// the EF a real budget (Gemini pre-filter → GPT-5 vision → USDA
+    /// join can chain into 60-90s under load; cold-start adds more).
+    /// waitsForConnectivity = true also defers requests gracefully if
+    /// the device drops to no-network momentarily (common on TikTok
+    /// → app handoff with weak signal).
+    private static let defaultVisionSession: URLSession = {
+        let cfg = URLSessionConfiguration.default
+        cfg.timeoutIntervalForRequest = 180
+        cfg.timeoutIntervalForResource = 180
+        cfg.waitsForConnectivity = true
+        cfg.allowsCellularAccess = true
+        return URLSession(configuration: cfg)
+    }()
 
     // MARK: - Scan
 
@@ -67,15 +89,12 @@ public final class FoodVisionService: Sendable {
         let url = config.supabaseURL.appendingPathComponent("functions/v1/food-vision")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        // 2026-06-06 — bumped 30s → 90s. Founder hit chronic -1001
-        // timeouts. GPT-5 hi-res image scan is typically 2-4s, but
-        // the server-side pipeline may chain: Gemini Flash food-or-not
-        // pre-filter → GPT-5 → Opus 4.7 confidence-gated fallback +
-        // server-side nutrition lookup. A long chain plus cold-start
-        // edge function plus mobile network variance can easily eat
-        // the 30s budget. 90s gives the full chain headroom without
-        // making the iOS shutter feel broken.
-        request.timeoutInterval = 90
+        // 2026-06-06 — bumped 30s → 90s.
+        // 2026-06-08 (Phase R.8) — bumped 90s → 180s + matched to the
+        // dedicated visionSession's `timeoutIntervalForRequest`. The
+        // request-level value alone doesn't override URLSession.shared
+        // on iOS reliably; both have to match. See `defaultVisionSession`.
+        request.timeoutInterval = 180
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(config.anonKey, forHTTPHeaderField: "apikey")
