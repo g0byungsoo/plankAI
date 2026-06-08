@@ -376,24 +376,40 @@ public struct PhotoCaptureView: View {
         FoodAnalytics.track(.scanStarted)
         FoodAnalytics.firstScanStartedIfNeeded()
 
-        // v1.0.7 Phase F — Dynamic Island Live Activity. Starts on
-        // scan begin, runs through phase rotations driven by a
-        // detached Task, ends on success or failure. Uses opaque
-        // Any? handle so PlankFood stays ActivityKit-blind; the main
-        // app's closure (registered in PlankAIApp.swift) holds the
-        // real Activity instance.
+        // v1.0.8 Phase G (2026-06-08) — Live Activity creation
+        // moved OFF the critical path. FoodScanActivity.start runs
+        // synchronously on the main actor and ActivityKit's first-
+        // call cold-start can take 100-300ms on a real device.
+        // Previously that ran BETWEEN the haptic and the camera
+        // capture call — exactly the "lag after I tap scan" the
+        // founder reported (2026-06-08).
         //
-        // v1.0.8 Phase B (2026-06-07) — phase pacing rebalanced.
-        // The old 700ms/1400ms ticks fired "tallying" at 1.4s and
-        // then sat frozen for 25+s on slow scans, which created the
-        // exact "app froze" perception we were trying to avoid. New
-        // pacing: stay at "looking" for ~4s while the LLM is actually
-        // identifying items, then "tallying" once we're past the
-        // realistic-completion median. If the response lands before
-        // either tick, the success path immediately advances to
-        // "ready" via the catch-block-side update.
+        // New pattern: kick off the capture IMMEDIATELY via async
+        // let, and create the Live Activity in parallel on a
+        // detached Task. The phase-rotation task awaits the handle
+        // so it still fires correctly when the activity is up; the
+        // capture path doesn't wait on the activity at all.
         let name = UserDefaults.standard.string(forKey: "userName") ?? ""
-        let activityHandle = FoodScanActivity.start(displayName: name)
+
+        // Capture runs in parallel with Live Activity setup. The
+        // preview-layer snapshot inside captureStillAndFreeze() lands
+        // on the main actor within ~15ms of tap (synchronous render)
+        // BEFORE the async chain awaits anything else — so the user
+        // sees the viewfinder freeze even while ActivityKit is still
+        // bootstrapping in the background.
+        async let pendingJpeg: Data = camera.captureStillAndFreeze()
+
+        // Live Activity bootstrap on a detached Task. Its first-call
+        // cold-start (100-300ms on iPhone 13 Pro Max for the founder)
+        // no longer blocks the camera capture path.
+        let activityHandle: Any? = await Task.detached {
+            await FoodScanActivity.start(displayName: name)
+        }.value
+
+        // Phase-rotation timer. Pacing rebalanced 2026-06-07: "looking"
+        // (0-4s) → "matching" (4-10s) → "tallying" (10s+). On a fast
+        // scan the success path advances to "ready" before either tick
+        // (catch-block-side update).
         let phaseTask: Task<Void, Never>? = activityHandle == nil ? nil : Task.detached {
             try? await Task.sleep(nanoseconds: 4_000_000_000)
             await FoodScanActivity.update(handle: activityHandle, phase: "matching")
@@ -407,7 +423,11 @@ public struct PhotoCaptureView: View {
             // the SwiftUI overlay can paint it inside the viewfinder
             // while the ScanningOverlay animates on top. No
             // FoodProcessingView takeover, no preview restart.
-            let jpeg = try await camera.captureStillAndFreeze()
+            //
+            // v1.0.8 Phase G — the actual JPEG came from the parallel
+            // capture started above, so this await just collects its
+            // result instead of starting fresh work.
+            let jpeg = try await pendingJpeg
             // v1.0.8 Phase B — silent auto-retry on transient errors.
             // The dispatch helper handles up to 2 retries with 0.5s
             // / 1s backoff on .networkError, .upstreamFailure(5xx),
