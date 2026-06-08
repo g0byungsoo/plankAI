@@ -46,15 +46,6 @@ public struct PhotoCaptureView: View {
     @State private var errorMessage: String?
     /// v1.0.8 Phase H — gallery upload sheet state.
     @State private var showingLibraryPicker: Bool = false
-    /// v1.0.8 Phase I — iOS-Camera-style white shutter flash.
-    /// Briefly overlays the camera with full white opacity the
-    /// moment the user taps, fading out over ~180ms. Mirrors the
-    /// audio/visual "got the shot" beat of Apple's Camera app.
-    @State private var shutterFlash: Bool = false
-    /// v1.0.8 Phase J — rotating AngularGradient border angle, driven
-    /// by a `.task` repeatForever animation. Mirrors the plank coach
-    /// session signature per founder direction.
-    @State private var borderRotation: Double = 0
 
     /// v1.0.8 Phase K — pinch-to-zoom state. `baseZoom` snapshots the
     /// zoom at the moment a pinch begins so `currentZoom = baseZoom *
@@ -114,31 +105,22 @@ public struct PhotoCaptureView: View {
                 .contentShape(Rectangle())
                 .gesture(pinchZoomGesture)
 
-            // Layer 2: rotating brand-pink border (plank coach signature).
-            // Founder override 2026-06-07: drop corner brackets, use the
-            // revolving AngularGradient border so food + plank share the
-            // "scanning" motion language.
+            // Layer 2: hot-pink scan border. Static when idle, revolves
+            // when scanning. v1.0.8 Phase L per founder direction —
+            // mimics reference app: hot pink #FF13F0, motion only on
+            // active scan. Reduce-motion users automatically get the
+            // static border since RotatingScanBorder is paused by
+            // TimelineView when isScanning is false.
             RotatingScanBorder(
-                rotation: borderRotation,
-                isScanning: isCapturing,
+                isScanning: isCapturing && !reduceMotion,
                 isError: errorMessage != nil
             )
-            .allowsHitTesting(false)
 
             // Layer 3: floating UI chrome.
             floatingChrome
         }
         .task {
             await bootCamera()
-            // 6s per revolution, matches SessionView's plank-coach
-            // border speed. Reduce-motion users get a static border
-            // (no infinite spin) — accessibility win, and the brand
-            // gradient is still legible without rotation.
-            if !reduceMotion {
-                withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) {
-                    borderRotation = 360
-                }
-            }
         }
         .onDisappear {
             camera.stopSession()
@@ -198,16 +180,6 @@ public struct PhotoCaptureView: View {
             } else {
                 ProgressView()
                     .tint(.white)
-            }
-
-            // v1.0.8 Phase I — iOS-Camera-style shutter flash.
-            // Full-white overlay that pops at 1.0 opacity then
-            // fades to 0 over ~180ms. Reduce-motion users skip the
-            // flash (still get haptic + sound for confirmation).
-            if shutterFlash && !reduceMotion {
-                Color.white
-                    .allowsHitTesting(false)
-                    .transition(.opacity)
             }
         }
         .ignoresSafeArea()
@@ -375,12 +347,14 @@ public struct PhotoCaptureView: View {
             // (~16ms later), the user already sees the frozen frame +
             // hears the shutter + feels the haptic.
             guard !isCapturing else { return }
+            // v1.0.8 Phase L — freeze + haptic only. Founder dropped
+            // the white shutter flash: "i don't like the flash effect
+            // can we instantly start scanning animation?" Removing
+            // the flash lets the scanning overlay land immediately on
+            // the frozen frame, no white interlude.
             camera.freezeInstantly()
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             AudioServicesPlaySystemSound(1108)
-            if !reduceMotion {
-                triggerShutterFlash()
-            }
             Task { await captureTapped() }
         } label: {
             HStack(spacing: FoodTheme.Space.sm) {
@@ -548,26 +522,6 @@ public struct PhotoCaptureView: View {
     }
 
     // MARK: - Actions
-
-    /// v1.0.8 Phase J — iOS-Camera-style shutter flash that ACTUALLY
-    /// appears. The previous attempt set `shutterFlash = true` and
-    /// immediately followed with `withAnimation { shutterFlash = false }`
-    /// in the same synchronous block; SwiftUI batches state changes
-    /// per runloop tick, so the rendered value collapsed to `false` and
-    /// the flash was never visible.
-    ///
-    /// Fix: schedule the fade on the next runloop tick via a tiny
-    /// Task.sleep, so SwiftUI renders `true` first, then animates to
-    /// `false`. Net visible flash is ~200ms — same as iOS Camera.
-    private func triggerShutterFlash() {
-        shutterFlash = true
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 30_000_000)
-            withAnimation(.easeOut(duration: 0.18)) {
-                shutterFlash = false
-            }
-        }
-    }
 
     private func bootCamera() async {
         let status = await camera.requestPermission()

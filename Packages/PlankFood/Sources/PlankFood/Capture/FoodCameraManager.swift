@@ -1,5 +1,7 @@
 #if canImport(UIKit)
 import AVFoundation
+import CoreImage
+import CoreVideo
 import UIKit
 
 // MARK: - FoodCameraManager
@@ -58,6 +60,34 @@ public final class FoodCameraManager: NSObject {
     /// v1.0.8 Phase K — held reference to the active back camera so
     /// `setZoom` can lock it for configuration without re-querying.
     private var captureDevice: AVCaptureDevice?
+
+    // v1.0.8 Phase L (2026-06-08) — real instant freeze pipeline.
+    //
+    // The previous `previewLayer.render(in:)` trick was broken:
+    // AVCaptureVideoPreviewLayer renders video via IOSurface/Metal,
+    // not the CALayer backing store, so CALayer.render() returns a
+    // blank frame. The frozen-frame overlay was effectively
+    // transparent — the user saw the live preview keep moving for
+    // 1-2s until captureStill() finished and the JPEG decode landed.
+    //
+    // Fix: run AVCaptureVideoDataOutput alongside AVCapturePhotoOutput.
+    // Its sample buffer delegate updates `latestPixelBuffer` 30-60×
+    // per second; on tap, `freezeInstantly()` converts that buffer
+    // to a UIImage synchronously (~10ms) for an actually-visible
+    // frozen frame. The CIContext is held once at init so per-frame
+    // conversion doesn't pay the ~50ms first-create cost.
+    private let videoDataOutput = AVCaptureVideoDataOutput()
+    private let dataOutputQueue = DispatchQueue(
+        label: "food.camera.dataoutput",
+        qos: .userInteractive
+    )
+    /// nonisolated(unsafe) because the sample-buffer delegate writes
+    /// from `dataOutputQueue` while `freezeInstantly` reads from
+    /// MainActor. Reads/writes of a single pointer on ARM64 are
+    /// atomic; worst case the freeze grabs the frame from one tick
+    /// earlier (~16ms staleness) which is imperceptible.
+    private nonisolated(unsafe) var latestPixelBuffer: CVPixelBuffer?
+    private let ciContext = CIContext(options: nil)
     /// Holds the continuation so the async capture API can resume from
     /// the AVCapturePhotoCaptureDelegate callback.
     private var pendingCapture: CheckedContinuation<Data, Error>?
@@ -121,6 +151,26 @@ public final class FoodCameraManager: NSObject {
 
         if session.canAddOutput(photoOutput) {
             session.addOutput(photoOutput)
+        }
+
+        // v1.0.8 Phase L — video data output for instant freeze.
+        // alwaysDiscardsLateVideoFrames=true keeps memory bounded
+        // (we only need the most recent frame; missed frames are
+        // fine). 32BGRA = the iOS-native pixel format, no conversion
+        // overhead when CIImage reads the buffer.
+        videoDataOutput.videoSettings = [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
+        ]
+        videoDataOutput.alwaysDiscardsLateVideoFrames = true
+        videoDataOutput.setSampleBufferDelegate(self, queue: dataOutputQueue)
+        if session.canAddOutput(videoDataOutput) {
+            session.addOutput(videoDataOutput)
+        }
+        if let conn = videoDataOutput.connection(with: .video) {
+            // Match the preview layer's portrait rotation so the
+            // pixel buffer arrives in display orientation — no extra
+            // rotate step needed in freezeInstantly.
+            conn.videoRotationAngle = 90
         }
 
         // v1.0.8 Phase C (2026-06-07) — apply iOS 17 ZSL stack.
@@ -314,45 +364,23 @@ public final class FoodCameraManager: NSObject {
         return jpeg
     }
 
-    /// v1.0.8 Phase J (2026-06-07) — synchronous preview snapshot
-    /// callable from a SwiftUI Button closure. Founder feedback:
-    /// "there's still delay between the moment i click 'scan' button
-    /// and photo captured." Even with `async let` kicking off the
-    /// capture early, the snapshot lived two function calls deep — the
-    /// child task couldn't run until the parent task suspended, and
-    /// the parent did several main-actor mutations (isCapturing flip,
-    /// analytics track, defaults read) before suspending. That window
-    /// was the perceived lag.
-    ///
-    /// The fix: expose the snapshot publicly so the Button closure
-    /// can call it on the same synchronous runloop tick as the tap
-    /// itself. The frame appears in `frozenFrame` within ~10ms,
-    /// SwiftUI renders it on the next vsync (~16ms after tap), and
-    /// the captureStill() call proceeds in the background.
+    /// v1.0.8 Phase L (2026-06-08) — synchronous instant freeze
+    /// backed by `latestPixelBuffer`. The previous Phase J version
+    /// used `previewLayer.render(in:)`, which doesn't work for
+    /// AVCaptureVideoPreviewLayer (its content is GPU/IOSurface, not
+    /// CALayer backing store) — the resulting image was blank, the
+    /// overlay was invisible, and the user saw the live preview keep
+    /// moving for 1-2s until the JPEG decode landed. Now we convert
+    /// the most recent VideoDataOutput frame to a UIImage in ~10ms.
     @discardableResult
     public func freezeInstantly() -> Bool {
-        guard let image = snapshotPreviewLayer() else { return false }
-        self.frozenFrame = image
-        return true
-    }
-
-    /// v1.0.8 Phase C — render the current AVCaptureVideoPreviewLayer
-    /// into a UIImage. The same frames the user is looking at right
-    /// now, no AVFoundation pipeline involved. Used for the instant
-    /// freeze so the viewfinder appears to stop the moment of tap.
-    ///
-    /// Performance: ~5-10ms on iPhone 12+, well below the 16ms frame
-    /// budget. Returns nil if the layer hasn't yet drawn a frame
-    /// (only possible on the very first tap immediately after
-    /// startSession() — extremely rare since the user usually spends
-    /// 1-2s composing before tapping).
-    private func snapshotPreviewLayer() -> UIImage? {
-        let bounds = previewLayer.bounds
-        guard bounds.width > 0 && bounds.height > 0 else { return nil }
-        let renderer = UIGraphicsImageRenderer(bounds: bounds)
-        return renderer.image { ctx in
-            previewLayer.render(in: ctx.cgContext)
+        guard let pb = latestPixelBuffer else { return false }
+        let ciImage = CIImage(cvPixelBuffer: pb)
+        guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else {
+            return false
         }
+        self.frozenFrame = UIImage(cgImage: cgImage)
+        return true
     }
 
     /// Clear the frozen overlay. Called from CaptureFlowView when the
@@ -435,6 +463,23 @@ public final class FoodCameraManager: NSObject {
         return renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: newSize))
         }
+    }
+}
+
+// MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
+
+extension FoodCameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
+    /// v1.0.8 Phase L — keep the latest video frame's pixel buffer in
+    /// memory so `freezeInstantly()` can produce a real UIImage on
+    /// tap. Runs on `dataOutputQueue` 30-60× per second. The pointer
+    /// write is atomic on ARM64; readers may grab the previous tick's
+    /// buffer (~16ms staleness) which is below human perception.
+    public nonisolated func captureOutput(
+        _ output: AVCaptureOutput,
+        didOutput sampleBuffer: CMSampleBuffer,
+        from connection: AVCaptureConnection
+    ) {
+        latestPixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)
     }
 }
 
