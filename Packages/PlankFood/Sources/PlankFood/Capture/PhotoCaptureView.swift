@@ -1070,10 +1070,16 @@ public struct PhotoCaptureView: View {
     // offset shadow at chip scale = micro-scrapbook chrome that
     // makes the toolbar feel JeniFit, not iOS-segmented-control.
     @ViewBuilder private var modeChips: some View {
+        // v1.0.9 D2 hotfix — single-word labels + fixedSize prevent
+        // the chip text from wrapping into "sna\np / quic\nk log /
+        // dini\nng out" on narrow rows. "type" reads as "type your
+        // food" once the cohort sees the screen behind it; "dining"
+        // is clearer for the restaurant case than "dining out" at
+        // chip width.
         HStack(spacing: 4) {
             modeChip("📷", "snap", .photo)
-            modeChip("✍︎", "quick log", .quickAdd)
-            modeChip("🍷", "dining out", .imOut)
+            modeChip("✍", "type", .quickAdd)
+            modeChip("🍴", "dining", .imOut)
         }
         .padding(4)
         .background(.ultraThinMaterial, in: Capsule())
@@ -1097,8 +1103,10 @@ public struct PhotoCaptureView: View {
                 Text(label)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(isActive ? FoodTheme.textPrimary : Color.white.opacity(0.85))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 11)
             .padding(.vertical, 7)
             .background(
                 Capsule().fill(isActive ? Color.white : Color.clear)
