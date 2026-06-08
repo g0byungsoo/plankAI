@@ -1,7 +1,6 @@
 #if canImport(UIKit)
 import AVFoundation
 import UIKit
-import Vision
 
 // MARK: - FoodCameraManager
 //
@@ -233,25 +232,19 @@ public final class FoodCameraManager: NSObject {
         // CPU-bound and previously blocked main for 2-3s on older
         // devices. Captured-data → detached task → jpeg returns to caller.
         //
-        // v1.0.8 Phase B (2026-06-07) — saliency crop BEFORE resize.
-        // The original 4032×3024 still from AVCapturePhotoOutput has
-        // way more pixel detail than the 768px GPT-5 input. By running
-        // Vision's attention-based saliency detector on the full image
-        // and cropping to the most-salient region (with 15% padding)
-        // BEFORE we down-sample to 768px, the output JPEG contains a
-        // 768px-tall crop of just the cup/plate/bowl — 2-3× more
-        // pixels-on-food at the same token cost.
-        //
-        // Falls through to plain resize if saliency finds nothing
-        // useful (e.g., a very busy frame or a CIImage conversion
-        // failure). Adds ~80-150ms but that's compute we're already
-        // doing on a background queue.
+        // v1.0.8 Phase J (2026-06-07) — saliency crop REMOVED.
+        // Founder override: "the photo is still modified. (we need as it
+        // is to be captured)." The Phase B Vision-saliency crop was
+        // re-framing the photo to subject-tight bounds + 15% pad before
+        // the EF saw it — meaning the user composed shot A and the LLM
+        // analyzed shot B. For cohort trust on a calorie-counting app
+        // that's the wrong tradeoff: what they framed is what we score.
+        // Photo travels through plain resize + JPEG only, no auto-crop.
         let jpeg = try await Task.detached(priority: .userInitiated) {
             guard let image = UIImage(data: rawData) else {
                 throw CameraError.encodingFailed
             }
-            let cropped = Self.centerCropToSaliency(image) ?? image
-            let resized = Self.resize(cropped, longestEdge: 768)
+            let resized = Self.resize(image, longestEdge: 768)
             guard let jpeg = resized.jpegData(compressionQuality: 0.85) else {
                 throw CameraError.encodingFailed
             }
@@ -289,10 +282,12 @@ public final class FoodCameraManager: NSObject {
     /// images are pixel-similar (preview frame and ZSL photo come from
     /// adjacent moments in the same ring buffer).
     public func captureStillAndFreeze() async throws -> Data {
-        // INSTANT snapshot — synchronous, ~5-10ms.
-        if let instant = snapshotPreviewLayer() {
-            self.frozenFrame = instant
-        }
+        // v1.0.8 Phase J — the synchronous freeze now happens earlier,
+        // in the Button closure via `freezeInstantly()`. By the time
+        // this function runs, `frozenFrame` is already set from the
+        // preview snapshot. Re-snapping here would be wasted work
+        // (and possibly a stale frame, depending on how long the
+        // bookkeeping before this call took).
 
         // Real capture runs in background. Sub-300ms with the iOS 17
         // ZSL stack applied in startSession(); upgrades frozenFrame
@@ -303,6 +298,28 @@ public final class FoodCameraManager: NSObject {
         }.value
         self.frozenFrame = image
         return jpeg
+    }
+
+    /// v1.0.8 Phase J (2026-06-07) — synchronous preview snapshot
+    /// callable from a SwiftUI Button closure. Founder feedback:
+    /// "there's still delay between the moment i click 'scan' button
+    /// and photo captured." Even with `async let` kicking off the
+    /// capture early, the snapshot lived two function calls deep — the
+    /// child task couldn't run until the parent task suspended, and
+    /// the parent did several main-actor mutations (isCapturing flip,
+    /// analytics track, defaults read) before suspending. That window
+    /// was the perceived lag.
+    ///
+    /// The fix: expose the snapshot publicly so the Button closure
+    /// can call it on the same synchronous runloop tick as the tap
+    /// itself. The frame appears in `frozenFrame` within ~10ms,
+    /// SwiftUI renders it on the next vsync (~16ms after tap), and
+    /// the captureStill() call proceeds in the background.
+    @discardableResult
+    public func freezeInstantly() -> Bool {
+        guard let image = snapshotPreviewLayer() else { return false }
+        self.frozenFrame = image
+        return true
     }
 
     /// v1.0.8 Phase C — render the current AVCaptureVideoPreviewLayer
@@ -350,8 +367,9 @@ public final class FoodCameraManager: NSObject {
     public func processUIImageForScan(_ image: UIImage) async throws -> Data {
         self.frozenFrame = image
         return try await Task.detached(priority: .userInitiated) {
-            let cropped = Self.centerCropToSaliency(image) ?? image
-            let resized = Self.resize(cropped, longestEdge: 768)
+            // v1.0.8 Phase J — same "photo as it is" rule applies to
+            // gallery uploads. No saliency crop; resize + JPEG only.
+            let resized = Self.resize(image, longestEdge: 768)
             guard let jpeg = resized.jpegData(compressionQuality: 0.85) else {
                 throw CameraError.encodingFailed
             }
@@ -360,66 +378,6 @@ public final class FoodCameraManager: NSObject {
     }
 
     // MARK: - Helpers
-
-    /// v1.0.8 Phase B (2026-06-07) — saliency-driven center crop.
-    /// Runs Vision's attention-based saliency detector on `image` and
-    /// returns a crop tight on the most-salient region plus 15% padding.
-    /// Returns nil if saliency finds nothing (caller falls through to
-    /// the un-cropped image).
-    ///
-    /// Why attention-based, not objectness-based: VNGenerateAttentionBased
-    /// SaliencyImageRequest is calibrated for "what would a human look
-    /// at first" — for our cohort food photos that's almost always the
-    /// cup / plate / bowl. The objectness variant is calibrated for
-    /// generic object detection and tends to fragment a single plate
-    /// into several small bounding boxes.
-    ///
-    /// Padding rationale: 15% is enough to recover the cup rim,
-    /// straw, garnish, or surrounding plate edge that the saliency
-    /// box trims tightly. Without the pad, GPT-5 sometimes loses the
-    /// container-shape signal that disambiguates cold-brew-in-a-Venti
-    /// from cold-brew-in-a-rocks-glass.
-    ///
-    /// nonisolated so the detached-task path in captureStill() can
-    /// call it off the main actor.
-    private nonisolated static func centerCropToSaliency(_ image: UIImage) -> UIImage? {
-        guard let cgImage = image.cgImage else { return nil }
-        let request = VNGenerateAttentionBasedSaliencyImageRequest()
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        do {
-            try handler.perform([request])
-        } catch {
-            return nil
-        }
-        guard let observation = request.results?.first as? VNSaliencyImageObservation,
-              let salient = observation.salientObjects?.first else {
-            return nil
-        }
-        // Vision returns normalized coordinates in the standard Vision
-        // origin (lower-left). Convert to UIImage pixel coordinates
-        // (upper-left origin) at the original cgImage resolution.
-        let w = CGFloat(cgImage.width)
-        let h = CGFloat(cgImage.height)
-        let bbox = salient.boundingBox
-        var crop = CGRect(
-            x: bbox.minX * w,
-            y: (1 - bbox.maxY) * h,
-            width: bbox.width * w,
-            height: bbox.height * h
-        )
-        // Add 15% padding on each side, clamped to image bounds.
-        let padX = crop.width * 0.15
-        let padY = crop.height * 0.15
-        crop = crop.insetBy(dx: -padX, dy: -padY)
-        crop = crop.intersection(CGRect(x: 0, y: 0, width: w, height: h))
-        // Sanity floor: if the crop is too tiny (< 10% of image area),
-        // the saliency detector probably grabbed noise, not the subject.
-        let croppedArea = crop.width * crop.height
-        let fullArea = w * h
-        guard croppedArea / fullArea > 0.10 else { return nil }
-        guard let croppedCG = cgImage.cropping(to: crop) else { return nil }
-        return UIImage(cgImage: croppedCG, scale: image.scale, orientation: image.imageOrientation)
-    }
 
     // nonisolated so the v1.0.8 detached-task path in captureStill()
     // can call it off the main actor (UIGraphicsImageRenderer is

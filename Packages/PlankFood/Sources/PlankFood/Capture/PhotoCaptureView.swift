@@ -51,6 +51,10 @@ public struct PhotoCaptureView: View {
     /// moment the user taps, fading out over ~180ms. Mirrors the
     /// audio/visual "got the shot" beat of Apple's Camera app.
     @State private var shutterFlash: Bool = false
+    /// v1.0.8 Phase J — rotating AngularGradient border angle, driven
+    /// by a `.task` repeatForever animation. Mirrors the plank coach
+    /// session signature per founder direction.
+    @State private var borderRotation: Double = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public let onDismiss: () -> Void
@@ -97,15 +101,30 @@ public struct PhotoCaptureView: View {
             // Layer 1: full-bleed camera + frozen frame overlay.
             cameraLayer
 
-            // Layer 2: state-driven corner brackets.
-            CornerBrackets(state: bracketState)
-                .ignoresSafeArea()
+            // Layer 2: rotating brand-pink border (plank coach signature).
+            // Founder override 2026-06-07: drop corner brackets, use the
+            // revolving AngularGradient border so food + plank share the
+            // "scanning" motion language.
+            RotatingScanBorder(
+                rotation: borderRotation,
+                isScanning: isCapturing,
+                isError: errorMessage != nil
+            )
 
             // Layer 3: floating UI chrome.
             floatingChrome
         }
         .task {
             await bootCamera()
+            // 6s per revolution, matches SessionView's plank-coach
+            // border speed. Reduce-motion users get a static border
+            // (no infinite spin) — accessibility win, and the brand
+            // gradient is still legible without rotation.
+            if !reduceMotion {
+                withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) {
+                    borderRotation = 360
+                }
+            }
         }
         .onDisappear {
             camera.stopSession()
@@ -129,16 +148,6 @@ public struct PhotoCaptureView: View {
         .statusBarHidden(false)
         .preferredColorScheme(.dark)
         .animation(.easeInOut(duration: 0.2), value: isCapturing)
-    }
-
-    // MARK: - Bracket state
-
-    /// Maps capture flow state → CornerBrackets state for the
-    /// adaptive bracket color/animation.
-    private var bracketState: CornerBrackets.State {
-        if isCapturing { return .scanning }
-        if errorMessage != nil { return .error }
-        return .idle
     }
 
     // MARK: - Camera layer
@@ -330,6 +339,32 @@ public struct PhotoCaptureView: View {
         // any background. Same capture binding + accessibility as
         // before.
         Button {
+            // v1.0.8 Phase J (2026-06-07) — INSTANT capture beats fire
+            // synchronously in the Button closure, not inside the
+            // async captureTapped(). Founder feedback: "there's still
+            // delay between the moment i click 'scan' button and
+            // photo captured."
+            //
+            // Root cause: SwiftUI Button → Task { await captureTapped }
+            // introduced a runloop hop before the snapshot ran, plus
+            // captureTapped did several main-actor mutations
+            // (isCapturing flip, analytics, defaults read) before the
+            // `async let captureStillAndFreeze` child task could even
+            // start its synchronous-prefix work. The freeze landed
+            // ~100-200ms after tap on a real device — exactly the
+            // window the user was perceiving as lag.
+            //
+            // Fix: do the perceptible work HERE, in the same runloop
+            // tick as the tap. By the time SwiftUI's next vsync fires
+            // (~16ms later), the user already sees the frozen frame +
+            // hears the shutter + feels the haptic.
+            guard !isCapturing else { return }
+            camera.freezeInstantly()
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            AudioServicesPlaySystemSound(1108)
+            if !reduceMotion {
+                triggerShutterFlash()
+            }
             Task { await captureTapped() }
         } label: {
             HStack(spacing: FoodTheme.Space.sm) {
@@ -440,6 +475,26 @@ public struct PhotoCaptureView: View {
 
     // MARK: - Actions
 
+    /// v1.0.8 Phase J — iOS-Camera-style shutter flash that ACTUALLY
+    /// appears. The previous attempt set `shutterFlash = true` and
+    /// immediately followed with `withAnimation { shutterFlash = false }`
+    /// in the same synchronous block; SwiftUI batches state changes
+    /// per runloop tick, so the rendered value collapsed to `false` and
+    /// the flash was never visible.
+    ///
+    /// Fix: schedule the fade on the next runloop tick via a tiny
+    /// Task.sleep, so SwiftUI renders `true` first, then animates to
+    /// `false`. Net visible flash is ~200ms — same as iOS Camera.
+    private func triggerShutterFlash() {
+        shutterFlash = true
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 30_000_000)
+            withAnimation(.easeOut(duration: 0.18)) {
+                shutterFlash = false
+            }
+        }
+    }
+
     private func bootCamera() async {
         let status = await camera.requestPermission()
         if status == .authorized {
@@ -453,27 +508,11 @@ public struct PhotoCaptureView: View {
         errorMessage = nil
         defer { isCapturing = false }
 
-        // v1.0.8 Phase A (2026-06-07) — fire haptic + system shutter
-        // sound BEFORE any await. SwiftUI Button actions fire on tap-up,
-        // so the user has just lifted their finger; the perceived
-        // "instant capture" relies on these two signals landing within
-        // ~16ms of the up-touch. Apple's system shutter sound (1108)
-        // is what iPhone Camera uses — same audio fingerprint the
-        // cohort already pattern-matches as "got the shot."
-        //
-        // v1.0.8 Phase I (2026-06-08) — added the iOS-Camera-style
-        // white shutter flash. Pop to white at 1.0 opacity, fade
-        // back to 0 over ~180ms. Same beat as the haptic + sound, so
-        // all three signals land within ~16ms of tap-up: audio,
-        // tactile, visual.
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        AudioServicesPlaySystemSound(1108)
-        if !reduceMotion {
-            shutterFlash = true
-            withAnimation(.easeOut(duration: 0.18)) {
-                shutterFlash = false
-            }
-        }
+        // v1.0.8 Phase J — haptic/sound/flash/freeze moved to the Button
+        // closure to fire on the same synchronous runloop tick as the
+        // tap. By the time this async function runs, the user already
+        // sees the frozen frame + hears the shutter + feels the haptic.
+        // All this function does now is the heavyweight async work.
 
         FoodAnalytics.track(.scanStarted)
         FoodAnalytics.firstScanStartedIfNeeded()
