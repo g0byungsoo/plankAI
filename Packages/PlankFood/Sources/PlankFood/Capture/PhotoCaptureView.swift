@@ -62,6 +62,13 @@ public struct PhotoCaptureView: View {
     /// affordance; iOS handles the system share sheet from there.
     @State private var showShareSheet: Bool = false
 
+    /// v1.0.8 Phase Q (2026-06-08) — eagerly-rendered 1080×1920
+    /// shareable image (photo + nutrition card + JeniFit watermark).
+    /// Generated via ImageRenderer the moment the result lands, so
+    /// the ShareLink can hand iOS a ready-to-go Story-format PNG with
+    /// zero rendering latency at tap time.
+    @State private var shareableImage: UIImage?
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public let onDismiss: () -> Void
@@ -401,92 +408,42 @@ public struct PhotoCaptureView: View {
     /// row. Sits in the upper third of the camera frame.
     @ViewBuilder
     private func resultModeOverlay(result: CapturedFood) -> some View {
-        VStack(spacing: 0) {
-            HStack {
+        // v1.0.8 Phase Q — card sits at ~22% from the top of the
+        // camera frame, NOT at the very top. Founder direction:
+        // "make it near the food." In a portrait food photo the food
+        // typically lives in the center-to-lower portion of the frame;
+        // dropping the card down ~20% puts it just above the food
+        // instead of in dead headroom. Same vertical position the
+        // shareable 9:16 render uses, so the in-camera preview
+        // matches what gets exported.
+        GeometryReader { geo in
+            VStack(spacing: 0) {
+                HStack {
+                    Spacer()
+                    glassButton(systemName: "xmark", action: {
+                        camera.unfreezePreview()
+                        onDismiss()
+                    })
+                    .accessibilityLabel("close")
+                }
+
+                Spacer().frame(height: geo.size.height * 0.10)
+
+                nutritionCard(result: result)
+
                 Spacer()
-                glassButton(systemName: "xmark", action: {
-                    camera.unfreezePreview()
-                    onDismiss()
-                })
-                .accessibilityLabel("close")
             }
-
-            Spacer().frame(height: 20)
-
-            nutritionCard(result: result)
-
-            Spacer()
         }
     }
 
     @ViewBuilder
     private func nutritionCard(result: CapturedFood) -> some View {
-        let totals = nutritionTotals(result)
-        VStack(alignment: .leading, spacing: 10) {
-            // Meal type tag — derived from time of day.
-            Text(mealTypeLabel)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(FoodTheme.textSecondary)
-
-            // Dish name — joined item names, truncated if many.
-            Text(dishNameLabel(result))
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(FoodTheme.textPrimary)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-
-            Rectangle()
-                .fill(Color.black.opacity(0.08))
-                .frame(height: 1)
-                .padding(.vertical, 2)
-
-            HStack(spacing: 0) {
-                macroColumn(value: "\(totals.carbs)g", label: "Carbs")
-                macroDivider
-                macroColumn(value: "\(totals.protein)g", label: "Protein")
-                macroDivider
-                macroColumn(value: "\(totals.fat)g", label: "Fat")
-                macroDivider
-                kcalColumn(value: "\(totals.kcal)")
-            }
-        }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: Color.black.opacity(0.18), radius: 14, x: 0, y: 4)
-    }
-
-    @ViewBuilder
-    private func macroColumn(value: String, label: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(FoodTheme.textPrimary)
-            Text(label)
-                .font(.system(size: 11))
-                .foregroundStyle(FoodTheme.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    @ViewBuilder
-    private func kcalColumn(value: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Color(red: 0.37, green: 0.45, blue: 0.27))  // sage green
-            Text("kcal")
-                .font(.system(size: 11))
-                .foregroundStyle(FoodTheme.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var macroDivider: some View {
-        Rectangle()
-            .fill(Color.black.opacity(0.07))
-            .frame(width: 1, height: 22)
+        NutritionCardView(
+            mealLabel: mealTypeLabel,
+            dishName: dishNameLabel(result),
+            totals: nutritionTotals(result),
+            scale: 1.0
+        )
     }
 
     /// Bottom toolbar variant for result mode: skip ↶ — log it — share ↑.
@@ -500,6 +457,7 @@ public struct PhotoCaptureView: View {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     capturedResult = nil
                 }
+                shareableImage = nil
             } label: {
                 Image(systemName: "arrow.uturn.backward")
                     .font(.system(size: 16, weight: .medium))
@@ -527,26 +485,50 @@ public struct PhotoCaptureView: View {
                             radius: 8, x: 0, y: 2)
             }
 
-            // Share — exports the captured photo so the user can post
-            // it to social. v1: photo only; v2 will compose with the
-            // nutrition card via ImageRenderer.
-            if let photo = camera.frozenFrame {
-                ShareLink(
-                    item: Image(uiImage: photo),
-                    preview: SharePreview("my plate", image: Image(uiImage: photo))
-                ) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(.white)
-                        .frame(width: 48, height: 48)
-                        .background(.ultraThinMaterial, in: Circle())
-                        .colorScheme(.dark)
-                }
-                .accessibilityLabel("share")
-            } else {
-                Color.clear.frame(width: 48, height: 48)
-            }
+            // Share — v1.0.8 Phase Q exports the composed 9:16
+            // shareable (photo + nutrition card + JeniFit watermark)
+            // rendered via ImageRenderer when the result landed. Falls
+            // back to the raw photo if the render hasn't completed.
+            shareButton
         }
+    }
+
+    /// v1.0.8 Phase Q — share button that prefers the composed 9:16
+    /// shareable image (photo + nutrition card + JeniFit watermark)
+    /// over the raw photo. If the ImageRenderer task hasn't completed
+    /// yet, we share just the raw photo so the button is never dead.
+    @ViewBuilder private var shareButton: some View {
+        if let composed = shareableImage {
+            ShareLink(
+                item: ShareableFoodImage(
+                    uiImage: composed,
+                    suggestedName: "jenifit-plate.png"
+                ),
+                preview: SharePreview("my plate", image: Image(uiImage: composed))
+            ) {
+                shareIconLabel
+            }
+            .accessibilityLabel("share")
+        } else if let photo = camera.frozenFrame {
+            ShareLink(
+                item: Image(uiImage: photo),
+                preview: SharePreview("my plate", image: Image(uiImage: photo))
+            ) {
+                shareIconLabel
+            }
+            .accessibilityLabel("share")
+        } else {
+            Color.clear.frame(width: 48, height: 48)
+        }
+    }
+
+    @ViewBuilder private var shareIconLabel: some View {
+        Image(systemName: "square.and.arrow.up")
+            .font(.system(size: 16, weight: .medium))
+            .foregroundStyle(.white)
+            .frame(width: 48, height: 48)
+            .background(.ultraThinMaterial, in: Circle())
+            .colorScheme(.dark)
     }
 
     // MARK: - Result helpers
@@ -583,6 +565,26 @@ public struct PhotoCaptureView: View {
             fat:     Int(f.rounded()),
             kcal:    Int(k.rounded())
         )
+    }
+
+    /// v1.0.8 Phase Q — render the 9:16 shareable image. Uses
+    /// ImageRenderer (iOS 16+) to flatten the ShareableFoodImageView
+    /// into a 1080×1920 PNG. Returns nil if rendering fails (e.g. on
+    /// a device where ImageRenderer can't materialize the view).
+    @MainActor
+    private func renderShareableImage(result: CapturedFood, photo: UIImage) -> UIImage? {
+        let view = ShareableFoodImageView(
+            photo: photo,
+            mealLabel: mealTypeLabel,
+            dishName: dishNameLabel(result),
+            totals: nutritionTotals(result)
+        )
+        .frame(width: 1080, height: 1920)
+
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 1.0
+        renderer.proposedSize = ProposedViewSize(width: 1080, height: 1920)
+        return renderer.uiImage
     }
 
     @ViewBuilder
@@ -962,6 +964,19 @@ public struct PhotoCaptureView: View {
             // capturedResult and return to live-preview camera mode,
             // or tap the share button to export the card+photo.
             capturedResult = result
+
+            // v1.0.8 Phase Q — render the 9:16 shareable image eagerly
+            // (after a short delay so the inline card lands first and
+            // the user-visible UI gets first dibs on the main thread).
+            // ImageRenderer is @MainActor and a 1080×1920 render takes
+            // ~80-150ms; the delay lets that work happen *after* the
+            // animation in.
+            if let photo = camera.frozenFrame {
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 250_000_000)
+                    shareableImage = renderShareableImage(result: result, photo: photo)
+                }
+            }
         } catch CameraError.captureTooSoon {
             // v1.0.7 — silently ignore back-to-back shutter taps
             // within the 3s debounce window. No banner, no telemetry
@@ -1208,6 +1223,185 @@ private enum CaptureTab: Hashable {
     case photo
     case quickAdd
     case imOut
+}
+
+// MARK: - NutritionCardView
+//
+// v1.0.8 Phase Q (2026-06-08) — extracted from PhotoCaptureView so the
+// same card is used in two render contexts:
+//   - In-camera overlay (scale 1.0, ~340pt wide on iPhone)
+//   - Shareable image composition (scale 2.4, ~720pt on 1080×1920 canvas)
+//
+// `scale` multiplies font sizes, padding, corner radius, and shadow so
+// both versions render at identical visual proportions on their target
+// canvas. Default 1.0 = the in-camera render.
+
+struct NutritionCardView: View {
+    let mealLabel: String
+    let dishName: String
+    let totals: (carbs: Int, protein: Int, fat: Int, kcal: Int)
+    let scale: CGFloat
+
+    init(
+        mealLabel: String,
+        dishName: String,
+        totals: (carbs: Int, protein: Int, fat: Int, kcal: Int),
+        scale: CGFloat = 1.0
+    ) {
+        self.mealLabel = mealLabel
+        self.dishName = dishName
+        self.totals = totals
+        self.scale = scale
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10 * scale) {
+            Text(mealLabel)
+                .font(.system(size: 13 * scale, weight: .medium))
+                .foregroundStyle(FoodTheme.textSecondary)
+
+            Text(dishName)
+                .font(.system(size: 18 * scale, weight: .semibold))
+                .foregroundStyle(FoodTheme.textPrimary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+
+            Rectangle()
+                .fill(Color.black.opacity(0.08))
+                .frame(height: 1)
+                .padding(.vertical, 2 * scale)
+
+            HStack(spacing: 0) {
+                macroColumn(value: "\(totals.carbs)g", label: "Carbs")
+                macroDivider
+                macroColumn(value: "\(totals.protein)g", label: "Protein")
+                macroDivider
+                macroColumn(value: "\(totals.fat)g", label: "Fat")
+                macroDivider
+                kcalColumn(value: "\(totals.kcal)")
+            }
+        }
+        .padding(.horizontal, 18 * scale)
+        .padding(.vertical, 14 * scale)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18 * scale, style: .continuous))
+        .shadow(
+            color: Color.black.opacity(0.18),
+            radius: 14 * scale,
+            x: 0,
+            y: 4 * scale
+        )
+    }
+
+    @ViewBuilder
+    private func macroColumn(value: String, label: String) -> some View {
+        VStack(spacing: 2 * scale) {
+            Text(value)
+                .font(.system(size: 17 * scale, weight: .semibold))
+                .foregroundStyle(FoodTheme.textPrimary)
+            Text(label)
+                .font(.system(size: 11 * scale))
+                .foregroundStyle(FoodTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func kcalColumn(value: String) -> some View {
+        VStack(spacing: 2 * scale) {
+            Text(value)
+                .font(.system(size: 17 * scale, weight: .semibold))
+                .foregroundStyle(Color(red: 0.37, green: 0.45, blue: 0.27))
+            Text("kcal")
+                .font(.system(size: 11 * scale))
+                .foregroundStyle(FoodTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var macroDivider: some View {
+        Rectangle()
+            .fill(Color.black.opacity(0.07))
+            .frame(width: 1, height: 22 * scale)
+    }
+}
+
+// MARK: - ShareableFoodImageView
+//
+// v1.0.8 Phase Q — the 9:16 Instagram-Story canvas the share button
+// exports. Photo fills the 1080×1920 background; nutrition card lands
+// at ~22% from the top (where food typically sits in a portrait food
+// photo, per the founder's reference images); JeniFit watermark at
+// the bottom for organic acquisition. Rendered via ImageRenderer at
+// scale 1 so the math is exact: 1080×1920 px.
+
+struct ShareableFoodImageView: View {
+    let photo: UIImage
+    let mealLabel: String
+    let dishName: String
+    let totals: (carbs: Int, protein: Int, fat: Int, kcal: Int)
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            Image(uiImage: photo)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 1080, height: 1920)
+                .clipped()
+
+            // Soft top gradient for card legibility on bright photos.
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.25),
+                    Color.black.opacity(0.05),
+                    Color.clear,
+                ],
+                startPoint: .top,
+                endPoint: .center
+            )
+            .frame(width: 1080, height: 960)
+
+            VStack(spacing: 0) {
+                Spacer().frame(height: 1920 * 0.22)
+
+                NutritionCardView(
+                    mealLabel: mealLabel,
+                    dishName: dishName,
+                    totals: totals,
+                    scale: 2.4
+                )
+                .padding(.horizontal, 100)
+
+                Spacer()
+
+                // JeniFit watermark, italic-Fraunces.
+                Text("JeniFit")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 56))
+                    .foregroundStyle(Color.white)
+                    .shadow(color: Color.black.opacity(0.5), radius: 8, x: 0, y: 2)
+                    .padding(.bottom, 80)
+            }
+            .frame(width: 1080, height: 1920)
+        }
+        .frame(width: 1080, height: 1920)
+        .clipped()
+    }
+}
+
+// MARK: - ShareableFoodImage (Transferable)
+
+/// Transferable wrapper around UIImage so ShareLink can export it as
+/// a PNG to any social-sharing target (Instagram, Messages, etc.).
+struct ShareableFoodImage: Transferable {
+    let uiImage: UIImage
+    let suggestedName: String
+
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(exportedContentType: .png) { item in
+            item.uiImage.pngData() ?? Data()
+        }
+        .suggestedFileName { $0.suggestedName }
+    }
 }
 
 #endif  // canImport(UIKit)
