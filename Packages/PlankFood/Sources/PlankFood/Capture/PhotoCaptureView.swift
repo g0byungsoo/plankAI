@@ -81,43 +81,39 @@ public struct PhotoCaptureView: View {
     // MARK: - Body
 
     public var body: some View {
-        // v1.0.8 Phase H (2026-06-08) — FULL-BLEED CAMERA refactor.
-        // Wife's target-audience feedback + competitor analysis:
-        // every modern camera-first app (Cal AI, Foodvisor, BeReal,
-        // Pinterest Lens, Snap) goes edge-to-edge. The old scrapbook-
-        // framed viewfinder read as "in-app feature," not "this is
-        // THE moment." Camera now ignores safe area; floating UI
-        // layers on top with glass-blur chrome.
+        // v1.0.8 Phase M (2026-06-08) — INSET CAMERA FRAME refactor.
+        // Founder feedback after Phase L review: border was broken
+        // (only top + bottom edges visible in full-bleed mode), and
+        // founder wants the reference-app layout — camera in an inset
+        // rounded rectangle with a hot pink border, big circle shutter
+        // floating inside the frame, mode pills as a bottom toolbar
+        // outside the frame.
         //
-        // Brand identity preserved via:
-        //   - Corner brackets (CornerBrackets.swift) — JeniFit's
-        //     food-scan camera signature, distinct from plank's
-        //     rotating AngularGradient border.
-        //   - Microcopy above shutter ("*center* your plate ♥") —
-        //     italic-Fraunces punch word + heart, the actual brand
-        //     signature per UX-expert non-obvious finding.
-        //   - Gallery upload (PHPicker) sitting next to shutter, so
-        //     pre-shot photos from camera roll flow through the same
-        //     saliency + resize + EF pipeline.
+        // Layout structure:
+        //   - Color.black backdrop (status bar + home indicator)
+        //   - VStack:
+        //       cameraFrame (RoundedRectangle 28pt corners, inset 12pt
+        //         from horizontal edges, hot pink border, contains
+        //         camera/frozen/scanning + X close + flash + big
+        //         circle shutter)
+        //       bottomToolbar (gallery icon left, mode chip row
+        //         centered, 44pt balance spacer right)
+        //
+        // Border is now bounded BY the inset RoundedRectangle's frame,
+        // so it can't get clipped or rendered weirdly — strokeBorder
+        // draws cleanly inside a known rect.
         ZStack {
-            // Layer 1: full-bleed camera + frozen frame overlay.
-            cameraLayer
-                .contentShape(Rectangle())
-                .gesture(pinchZoomGesture)
+            Color.black.ignoresSafeArea()
 
-            // Layer 2: hot-pink scan border. Static when idle, revolves
-            // when scanning. v1.0.8 Phase L per founder direction —
-            // mimics reference app: hot pink #FF13F0, motion only on
-            // active scan. Reduce-motion users automatically get the
-            // static border since RotatingScanBorder is paused by
-            // TimelineView when isScanning is false.
-            RotatingScanBorder(
-                isScanning: isCapturing && !reduceMotion,
-                isError: errorMessage != nil
-            )
+            VStack(spacing: 14) {
+                cameraFrame
+                    .padding(.horizontal, 12)
+                    .padding(.top, 4)
 
-            // Layer 3: floating UI chrome.
-            floatingChrome
+                bottomToolbar
+                    .padding(.horizontal, FoodTheme.Space.lg)
+                    .padding(.bottom, 4)
+            }
         }
         .task {
             await bootCamera()
@@ -141,26 +137,47 @@ public struct PhotoCaptureView: View {
                 onCancel: { showingLibraryPicker = false }
             )
         }
-        .statusBarHidden(false)
         .preferredColorScheme(.dark)
-        .animation(.easeInOut(duration: 0.2), value: isCapturing)
+        .animation(.easeInOut(duration: 0.35), value: isCapturing)
+    }
+
+    // MARK: - Camera frame (inset rounded rect)
+
+    /// v1.0.8 Phase M — the camera viewport itself. Camera content is
+    /// clipped to a RoundedRectangle, the hot pink border draws on top
+    /// at the same corner radius, and in-frame chrome (X, flash, big
+    /// shutter) sits over the camera content with padded insets.
+    @ViewBuilder private var cameraFrame: some View {
+        ZStack {
+            // Camera + frozen + scanning, clipped to rounded frame.
+            cameraLayer
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+
+            // Hot pink border — uniform at rest, shimmer revolves
+            // during scan.
+            RotatingScanBorder(
+                isScanning: isCapturing && !reduceMotion,
+                isError: errorMessage != nil,
+                cornerRadius: 28,
+                lineWidth: 5
+            )
+
+            // In-frame floating chrome: X (top-right), flash (bottom-
+            // left), big circle shutter (bottom-center).
+            inFrameChrome
+                .padding(14)
+        }
+        .contentShape(Rectangle())
+        .gesture(pinchZoomGesture)
     }
 
     // MARK: - Camera layer
 
+    /// v1.0.8 Phase M — camera content inside the inset frame. Drops
+    /// the previous `.ignoresSafeArea()`; the parent cameraFrame now
+    /// handles bounds via VStack layout + horizontal padding.
     @ViewBuilder private var cameraLayer: some View {
-        // v1.0.8 Phase J followup (2026-06-07) — `.ignoresSafeArea()`
-        // is on the OUTER ZStack, not individual children. Previously
-        // each child carried its own `.ignoresSafeArea()` and the ZStack
-        // had a trailing `.clipped()` — which clipped the contents back
-        // to the ZStack's own safe-area-respected bounds, undoing the
-        // child-level extensions. Net effect: a white letterbox bar at
-        // the status bar + home indicator. Now the whole ZStack
-        // extends edge-to-edge; the system white never shows through.
         ZStack {
-            // Dark base so a fraction-of-a-second of preview-load
-            // doesn't flash cream-pink. Cohort expects camera apps
-            // to start dark.
             Color.black
 
             if camera.permissionStatus == .authorized {
@@ -182,72 +199,130 @@ public struct PhotoCaptureView: View {
                     .tint(.white)
             }
         }
-        .ignoresSafeArea()
     }
 
-    // MARK: - Floating chrome
+    // MARK: - In-frame chrome (X / flash / big shutter)
 
-    @ViewBuilder private var floatingChrome: some View {
+    /// v1.0.8 Phase M — chrome that floats over the camera content
+    /// inside the inset frame, mimicking the reference layout:
+    ///   - X close (top-right corner)
+    ///   - Zoom indicator (mid-screen during pinch, auto-hides)
+    ///   - Microcopy / scan label (above shutter, crossfades)
+    ///   - Flash icon (bottom-left)
+    ///   - Big circle shutter (bottom-center)
+    ///   - 44pt balance spacer (bottom-right)
+    @ViewBuilder private var inFrameChrome: some View {
         VStack(spacing: 0) {
-            // Top safe-area row: close X (left) + flash (right).
             HStack {
+                Spacer()
                 glassButton(systemName: "xmark", action: onDismiss)
                     .accessibilityLabel("cancel")
-                Spacer()
-                glassButton(systemName: "bolt.slash", action: { /* flash wiring later */ })
-                    .accessibilityLabel("flash")
-                    .opacity(0.5)
             }
-            .padding(.horizontal, FoodTheme.Space.md)
-            .padding(.top, FoodTheme.Space.sm)
 
             Spacer()
 
-            // v1.0.8 Phase K — zoom indicator during pinch. Sits above
-            // the microcopy/label slot so it doesn't fight the scan
-            // status text for screen real estate. Auto-hides 800ms
-            // after pinch release via zoomHideTask.
             zoomIndicator
-                .padding(.bottom, FoodTheme.Space.sm)
+                .padding(.bottom, 6)
 
-            // v1.0.7 — italic-Fraunces label rotator during scan.
-            // Replaces the old fixed slot under the constrained
-            // viewfinder; now hovers above the shutter on the
-            // full-bleed camera with glass blur backing for
-            // legibility over any food background.
+            // Microcopy ↔ scan label crossfade. Both views are always
+            // mounted; opacity drives visibility so the change is a
+            // smooth fade, not a hard view swap.
             ZStack {
-                if isCapturing && !reduceMotion {
-                    ScanLabelRotator(isActive: isCapturing)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(.ultraThinMaterial, in: Capsule())
-                        .colorScheme(.dark)
-                } else {
-                    microcopyText
-                }
+                microcopyText
+                    .opacity(isCapturing ? 0 : 1)
+                ScanLabelRotator(isActive: isCapturing)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .colorScheme(.dark)
+                    .opacity(isCapturing && !reduceMotion ? 1 : 0)
             }
             .frame(height: 36)
-            .padding(.bottom, FoodTheme.Space.md)
+            .padding(.bottom, 14)
 
-            // Mode chips strip with glass blur background.
+            HStack(alignment: .center, spacing: 0) {
+                glassButton(systemName: "bolt.slash", action: { /* flash wiring later */ })
+                    .accessibilityLabel("flash")
+                    .opacity(0.55)
+
+                Spacer()
+
+                bigShutterButton
+
+                Spacer()
+
+                Color.clear.frame(width: 44, height: 44)
+            }
+        }
+    }
+
+    // MARK: - Big circle shutter
+
+    /// v1.0.8 Phase M — iOS-Camera-style big circle shutter. Hot pink
+    /// outer ring, white inner disc with a soft drop shadow. During
+    /// scan, the inner disc transitions to a hot pink spinner via
+    /// contentTransition so the state change is a crossfade rather
+    /// than a hard swap.
+    @ViewBuilder private var bigShutterButton: some View {
+        Button {
+            guard !isCapturing else { return }
+            // v1.0.8 Phase J — synchronous capture beats in the Button
+            // closure so the freeze + haptic + sound land within the
+            // same runloop tick as the tap.
+            camera.freezeInstantly()
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            AudioServicesPlaySystemSound(1108)
+            Task { await captureTapped() }
+        } label: {
+            ZStack {
+                // Outer ring: hot pink stroke.
+                Circle()
+                    .stroke(Color(red: 1.0, green: 0.075, blue: 0.94), lineWidth: 4)
+                    .frame(width: 78, height: 78)
+                // Inner disc: white when idle, shrinks slightly during
+                // scan to communicate the disabled state without a
+                // hard chrome change.
+                Circle()
+                    .fill(Color.white)
+                    .frame(
+                        width: isCapturing ? 56 : 64,
+                        height: isCapturing ? 56 : 64
+                    )
+                    .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 2)
+                    .animation(.easeInOut(duration: 0.3), value: isCapturing)
+                if isCapturing {
+                    ProgressView()
+                        .tint(Color(red: 1.0, green: 0.075, blue: 0.94))
+                        .transition(.opacity)
+                }
+            }
+            .contentShape(Circle())
+        }
+        .disabled(isCapturing || camera.permissionStatus != .authorized || !camera.isRunning)
+        .accessibilityLabel(isCapturing ? "scanning" : "scan food")
+    }
+
+    // MARK: - Bottom toolbar (outside the frame)
+
+    /// v1.0.8 Phase M — toolbar that sits in the black area below the
+    /// camera frame. Mimics the reference layout: gallery icon left,
+    /// mode chip row centered, 44pt clear balance spacer right.
+    @ViewBuilder private var bottomToolbar: some View {
+        HStack(spacing: 0) {
+            galleryButton
+
+            Spacer()
+
             modeChips
                 .padding(.horizontal, FoodTheme.Space.md)
                 .padding(.vertical, FoodTheme.Space.sm)
                 .background(.ultraThinMaterial, in: Capsule())
                 .colorScheme(.dark)
-                .padding(.bottom, FoodTheme.Space.md)
+                .opacity(isCapturing ? 0.5 : 1)
 
-            // Shutter row: gallery icon (left) — shutter (center) —
-            // 44pt spacer (right) for visual balance.
-            HStack(spacing: 0) {
-                galleryButton
-                Spacer()
-                shutter
-                Spacer()
-                Color.clear.frame(width: 44, height: 44)
-            }
-            .padding(.horizontal, FoodTheme.Space.lg)
-            .padding(.bottom, FoodTheme.Space.lg)
+            Spacer()
+
+            Color.clear.frame(width: 44, height: 44)
         }
     }
 
@@ -317,68 +392,6 @@ public struct PhotoCaptureView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    @ViewBuilder private var shutter: some View {
-        // v1.0.8 Phase H — light pill against the dark full-bleed
-        // camera. Was dark cocoa on a cream card; on the new
-        // edge-to-edge camera background the dark fill blends into
-        // food photos. Light pill with cocoa text reads cleanly on
-        // any background. Same capture binding + accessibility as
-        // before.
-        Button {
-            // v1.0.8 Phase J (2026-06-07) — INSTANT capture beats fire
-            // synchronously in the Button closure, not inside the
-            // async captureTapped(). Founder feedback: "there's still
-            // delay between the moment i click 'scan' button and
-            // photo captured."
-            //
-            // Root cause: SwiftUI Button → Task { await captureTapped }
-            // introduced a runloop hop before the snapshot ran, plus
-            // captureTapped did several main-actor mutations
-            // (isCapturing flip, analytics, defaults read) before the
-            // `async let captureStillAndFreeze` child task could even
-            // start its synchronous-prefix work. The freeze landed
-            // ~100-200ms after tap on a real device — exactly the
-            // window the user was perceiving as lag.
-            //
-            // Fix: do the perceptible work HERE, in the same runloop
-            // tick as the tap. By the time SwiftUI's next vsync fires
-            // (~16ms later), the user already sees the frozen frame +
-            // hears the shutter + feels the haptic.
-            guard !isCapturing else { return }
-            // v1.0.8 Phase L — freeze + haptic only. Founder dropped
-            // the white shutter flash: "i don't like the flash effect
-            // can we instantly start scanning animation?" Removing
-            // the flash lets the scanning overlay land immediately on
-            // the frozen frame, no white interlude.
-            camera.freezeInstantly()
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            AudioServicesPlaySystemSound(1108)
-            Task { await captureTapped() }
-        } label: {
-            HStack(spacing: FoodTheme.Space.sm) {
-                if isCapturing {
-                    ProgressView()
-                        .tint(FoodTheme.textPrimary)
-                } else {
-                    Circle()
-                        .fill(FoodTheme.textPrimary)
-                        .frame(width: 14, height: 14)
-                }
-                Text(isCapturing ? "scanning…" : "tap to scan")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(FoodTheme.textPrimary)
-            }
-            .padding(.horizontal, 28)
-            .padding(.vertical, 16)
-            .background(
-                Capsule().fill(Color.white.opacity(0.95))
-            )
-            .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 2)
-        }
-        .disabled(isCapturing || camera.permissionStatus != .authorized || !camera.isRunning)
-        .accessibilityLabel("scan food")
     }
 
     @ViewBuilder private var modeChips: some View {
