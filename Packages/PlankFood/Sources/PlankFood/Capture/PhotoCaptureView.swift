@@ -641,7 +641,25 @@ public struct PhotoCaptureView: View {
 
                     NutritionCarousel(
                         result: result,
-                        carouselHeight: max(380, geo.size.height - 24)
+                        carouselHeight: max(380, geo.size.height - 24),
+                        onCorrect: { corrected in
+                            // v1.0.8 Phase U — tweak applied. Update
+                            // capturedResult so all 3 slides + the
+                            // shareable export pick up the new
+                            // numbers, then re-render the shareables
+                            // off the new data.
+                            capturedResult = corrected
+                            if let photo = galleryImage ?? camera.frozenFrame {
+                                Task { @MainActor in
+                                    try? await Task.sleep(nanoseconds: 100_000_000)
+                                    shareableSlides = renderAllShareableSlides(
+                                        result: corrected,
+                                        photo: photo
+                                    )
+                                    shareableImage = shareableSlides.first?.uiImage
+                                }
+                            }
+                        }
                     )
 
                     Spacer(minLength: 0)
@@ -1631,42 +1649,62 @@ struct NutritionCardView: View {
     }
 
     var body: some View {
+        // v1.0.8 Phase U (2026-06-08) — JeniFit-themed beautification.
+        // Italic-Fraunces on the meal label + dish name (the brand
+        // voice signal). Cream bgElevated background instead of pure
+        // white. Cherry sticker overhanging the top-right corner per
+        // the scrapbook chrome family. 1.5pt accent-rose border for
+        // soft definition without going neon.
         VStack(alignment: .leading, spacing: 10 * scale) {
-            Text(mealLabel)
-                .font(.system(size: 13 * scale, weight: .medium))
-                .foregroundStyle(FoodTheme.textSecondary)
+            Text(mealLabel.lowercased())
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13 * scale))
+                .foregroundStyle(FoodTheme.accent)
 
             Text(dishName)
-                .font(.system(size: 18 * scale, weight: .semibold))
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 20 * scale))
                 .foregroundStyle(FoodTheme.textPrimary)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
 
             Rectangle()
-                .fill(Color.black.opacity(0.08))
+                .fill(FoodTheme.accent.opacity(0.18))
                 .frame(height: 1)
                 .padding(.vertical, 2 * scale)
 
             HStack(spacing: 0) {
-                macroColumn(value: "\(totals.carbs)g", label: "Carbs")
+                macroColumn(value: "\(totals.carbs)g", label: "carbs")
                 macroDivider
-                macroColumn(value: "\(totals.protein)g", label: "Protein")
+                macroColumn(value: "\(totals.protein)g", label: "protein")
                 macroDivider
-                macroColumn(value: "\(totals.fat)g", label: "Fat")
+                macroColumn(value: "\(totals.fat)g", label: "fat")
                 macroDivider
                 kcalColumn(value: "\(totals.kcal)")
             }
         }
         .padding(.horizontal, 18 * scale)
         .padding(.vertical, 14 * scale)
-        .background(Color.white)
+        .background(FoodTheme.bgElevated)
         .clipShape(RoundedRectangle(cornerRadius: 18 * scale, style: .continuous))
-        .shadow(
-            color: Color.black.opacity(0.18),
-            radius: 14 * scale,
-            x: 0,
-            y: 4 * scale
+        .overlay(
+            RoundedRectangle(cornerRadius: 18 * scale, style: .continuous)
+                .stroke(FoodTheme.accent.opacity(0.4), lineWidth: 1.5)
         )
+        .shadow(
+            color: FoodTheme.textPrimary.opacity(0.18),
+            radius: 0,
+            x: 3 * scale,
+            y: 3 * scale
+        )
+        .overlay(alignment: .topTrailing) {
+            // Cherries sticker — scrapbook chrome signature. Decorative
+            // only, accessibility hidden. Same emoji + rotation band
+            // as SingleDishCard's chrome.
+            Text("🍒")
+                .font(.system(size: 26 * scale))
+                .rotationEffect(.degrees(12))
+                .offset(x: 8 * scale, y: -12 * scale)
+                .accessibilityHidden(true)
+        }
     }
 
     @ViewBuilder

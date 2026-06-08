@@ -36,6 +36,12 @@ import SwiftUI
 struct NutritionCarousel: View {
 
     let result: CapturedFood
+    /// v1.0.8 Phase U — callback fires when the user applies a tweak
+    /// on slide 1 (smaller / bigger / +sauce / rename). Parent updates
+    /// capturedResult, all 3 slides re-render with the new numbers.
+    /// Defaults to a no-op so existing call-sites don't need to pass
+    /// it.
+    let onCorrect: (CapturedFood) -> Void
 
     @State private var currentPage: Int = 0
     @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 0
@@ -74,9 +80,14 @@ struct NutritionCarousel: View {
     /// 500pt if no explicit height passed.
     let carouselHeight: CGFloat
 
-    init(result: CapturedFood, carouselHeight: CGFloat = 500) {
+    init(
+        result: CapturedFood,
+        carouselHeight: CGFloat = 500,
+        onCorrect: @escaping (CapturedFood) -> Void = { _ in }
+    ) {
         self.result = result
         self.carouselHeight = carouselHeight
+        self.onCorrect = onCorrect
     }
 
     var body: some View {
@@ -87,7 +98,7 @@ struct NutritionCarousel: View {
         // bottom edge regardless of card content size, so all 3 slides
         // show dots at the exact same vertical position.
         TabView(selection: $currentPage) {
-            MealSummaryCard(result: result)
+            MealSummaryCard(result: result, onCorrect: onCorrect)
                 .padding(.horizontal, 4)
                 .padding(.bottom, 28)  // room for dots overlay
                 .tag(0)
@@ -201,10 +212,17 @@ private struct CarouselCardShell<Content: View>: View {
         .padding(.horizontal, compact ? 14 : 18)
         .padding(.vertical, compact ? 12 : 16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
+        // v1.0.8 Phase U — JeniFit scrapbook chrome on every section
+        // card: cream background, 1.5pt accent-rose border, hard
+        // offset shadow. Matches the SingleDishCard family.
+        .background(FoodTheme.bgElevated)
         .clipShape(RoundedRectangle(cornerRadius: compact ? 16 : 18, style: .continuous))
-        .shadow(color: Color.black.opacity(0.18),
-                radius: compact ? 10 : 14, x: 0, y: 4)
+        .overlay(
+            RoundedRectangle(cornerRadius: compact ? 16 : 18, style: .continuous)
+                .stroke(FoodTheme.accent.opacity(0.35), lineWidth: 1.5)
+        )
+        .shadow(color: FoodTheme.textPrimary.opacity(0.15),
+                radius: 0, x: 3, y: 3)
     }
 }
 
@@ -212,14 +230,51 @@ private struct CarouselCardShell<Content: View>: View {
 
 private struct MealSummaryCard: View {
     let result: CapturedFood
+    let onCorrect: (CapturedFood) -> Void
+
+    @State private var showTweakSheet: Bool = false
 
     var body: some View {
-        NutritionCardView(
-            mealLabel: mealTypeLabel,
-            dishName: dishNameLabel,
-            totals: nutritionTotals,
-            scale: 1.0
-        )
+        VStack(spacing: 12) {
+            NutritionCardView(
+                mealLabel: mealTypeLabel,
+                dishName: dishNameLabel,
+                totals: nutritionTotals,
+                scale: 1.0
+            )
+
+            // v1.0.8 Phase U — "tweak it ♥" pill brings back the
+            // correction feature. Tap opens a sheet with quick
+            // adjusters (smaller/bigger/+sauce/rename). The corrected
+            // CapturedFood propagates via onCorrect → all 3 slides
+            // re-render with the new numbers.
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                showTweakSheet = true
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "pencil.line")
+                        .font(.system(size: 11, weight: .medium))
+                    (Text("tweak").font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                     + Text(" this ♥").font(.system(size: 13, weight: .medium)))
+                }
+                .foregroundStyle(FoodTheme.accent)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(Capsule().fill(FoodTheme.accentSubtle.opacity(0.5)))
+                .overlay(Capsule().stroke(FoodTheme.accent.opacity(0.25), lineWidth: 0.5))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("adjust this meal's calories")
+        }
+        .sheet(isPresented: $showTweakSheet) {
+            TweakSheet(result: result, onApply: { corrected in
+                showTweakSheet = false
+                onCorrect(corrected)
+            })
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     private var mealTypeLabel: String {
@@ -1307,6 +1362,265 @@ struct ShareJeniBlock: View {
         if t.kcal < 250    { return "light + bright" }
         if t.count >= 3    { return "balanced" }
         return "nourishing"
+    }
+}
+
+// MARK: - TweakSheet (correction UX)
+//
+// v1.0.8 Phase U (2026-06-08) — quick-correction sheet that replaces
+// the SingleDishCard-era "more sauce / bigger / not this" inline
+// pill row. Founder ask: "bring back the feature where user can put
+// more inputs to the result."
+//
+// 4 options:
+//   - "smaller portion" → ×0.75 across all macros
+//   - "bigger portion"  → ×1.25
+//   - "+ sauce / dressing" → +120 kcal, +12g fat (sauce typical)
+//   - "different item"  → free-text rename (uses dishName as the
+//     new item.name on the first item)
+//
+// Each tap returns a corrected CapturedFood via `onApply`; parent
+// (PhotoCaptureView) sets capturedResult to the new value, which
+// re-renders all 3 slides + the shareable export.
+
+struct TweakSheet: View {
+    let result: CapturedFood
+    let onApply: (CapturedFood) -> Void
+
+    @State private var renameText: String = ""
+    @State private var showingRename: Bool = false
+    @FocusState private var renameFocused: Bool
+
+    var body: some View {
+        VStack(spacing: 18) {
+            HStack {
+                (Text("tweak").font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                 + Text(" this ♥").font(.system(size: 22, weight: .semibold)))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                Spacer()
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 14)
+
+            if showingRename {
+                renameRow
+            } else {
+                VStack(spacing: 10) {
+                    tweakRow(
+                        icon: "arrow.down.right.and.arrow.up.left",
+                        title: "smaller portion",
+                        sub: "scale down 25%",
+                        action: { onApply(result.applyTweak(scale: 0.75, addKcal: 0, addFat: 0)) }
+                    )
+                    tweakRow(
+                        icon: "arrow.up.left.and.arrow.down.right",
+                        title: "bigger portion",
+                        sub: "scale up 25%",
+                        action: { onApply(result.applyTweak(scale: 1.25, addKcal: 0, addFat: 0)) }
+                    )
+                    tweakRow(
+                        icon: "drop.fill",
+                        title: "+ sauce or dressing",
+                        sub: "add ~120 kcal of fat",
+                        action: { onApply(result.applyTweak(scale: 1.0, addKcal: 120, addFat: 12)) }
+                    )
+                    tweakRow(
+                        icon: "pencil",
+                        title: "different food",
+                        sub: "tell me what it actually is",
+                        action: {
+                            renameText = result.items.first?.name ?? ""
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                showingRename = true
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                renameFocused = true
+                            }
+                        }
+                    )
+                }
+                .padding(.horizontal, 18)
+            }
+
+            Spacer()
+        }
+        .background(FoodTheme.bgElevated)
+    }
+
+    @ViewBuilder
+    private func tweakRow(icon: String, title: String, sub: String,
+                          action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(FoodTheme.accent)
+                    .frame(width: 40, height: 40)
+                    .background(FoodTheme.accentSubtle.opacity(0.6))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(FoodTheme.textPrimary)
+                    Text(sub)
+                        .font(.system(size: 12))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(FoodTheme.textSecondary.opacity(0.5))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(FoodTheme.accent.opacity(0.18), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var renameRow: some View {
+        VStack(spacing: 14) {
+            (Text("what is this ").font(.system(size: 15)) +
+             Text("really").font(.custom("Fraunces72pt-SemiBoldItalic", size: 15)) +
+             Text("? ♥").font(.system(size: 15)))
+                .foregroundStyle(FoodTheme.textPrimary)
+
+            TextField("e.g. tuna poke bowl", text: $renameText)
+                .focused($renameFocused)
+                .textFieldStyle(.plain)
+                .font(.system(size: 16))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(FoodTheme.accent.opacity(0.3), lineWidth: 1)
+                )
+
+            Button {
+                guard !renameText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+                onApply(result.applyRename(to: renameText))
+            } label: {
+                Text("got it ♥")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(Capsule().fill(FoodTheme.accent))
+            }
+            .disabled(renameText.trimmingCharacters(in: .whitespaces).isEmpty)
+
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    showingRename = false
+                }
+            }) {
+                Text("back")
+                    .font(.system(size: 13))
+                    .foregroundStyle(FoodTheme.textSecondary)
+            }
+        }
+        .padding(.horizontal, 24)
+    }
+}
+
+// MARK: - CapturedFood corrections
+
+extension CapturedFood {
+    /// Apply a multiplicative scale (smaller/bigger) and/or an absolute
+    /// add (sauce / dressing). Distributes add evenly across items so
+    /// the per-item kcal stays proportional.
+    func applyTweak(scale: Double, addKcal: Double, addFat: Double) -> CapturedFood {
+        guard !items.isEmpty else { return self }
+        let perItemAddKcal = addKcal / Double(items.count)
+        let perItemAddFat  = addFat  / Double(items.count)
+
+        let newItems = items.map { item -> CapturedItem in
+            CapturedItem(
+                id: item.id,
+                name: item.name,
+                portionGrams: item.portionGrams * scale,
+                portionGramsLow: item.portionGramsLow * scale,
+                portionGramsHigh: item.portionGramsHigh * scale,
+                usdaSearchTerms: item.usdaSearchTerms,
+                preparation: item.preparation,
+                cuisineHint: item.cuisineHint,
+                confidence: item.confidence,
+                notes: item.notes,
+                kcal:     item.kcal.map     { $0 * scale + perItemAddKcal },
+                proteinG: item.proteinG.map { $0 * scale },
+                carbsG:   item.carbsG.map   { $0 * scale },
+                fatG:     item.fatG.map     { $0 * scale + perItemAddFat },
+                fiberG:   item.fiberG.map   { $0 * scale },
+                nutritionSource: item.nutritionSource,
+                sugarG: item.sugarG.map { $0 * scale },
+                sodiumMg: item.sodiumMg.map { $0 * scale },
+                saturatedFatG: item.saturatedFatG.map { $0 * scale }
+            )
+        }
+        let newKcalLow  = kcalLow.map  { $0 * scale + addKcal }
+        let newKcalHigh = kcalHigh.map { $0 * scale + addKcal }
+        return CapturedFood(
+            items: newItems,
+            plateType: plateType,
+            source: source,
+            confidence: confidence,
+            needsSecondPhoto: needsSecondPhoto,
+            secondPhotoHint: secondPhotoHint,
+            kcalLow: newKcalLow,
+            kcalHigh: newKcalHigh
+        )
+    }
+
+    /// Rename the first item (the dish hero). The macros stay — only
+    /// the name changes. Useful when the LLM misidentified the food
+    /// but the calorie estimate is close (often true for portion-
+    /// matched substitutions like "tuna poke" vs "salmon poke").
+    func applyRename(to newName: String) -> CapturedFood {
+        guard let first = items.first else { return self }
+        let renamed = CapturedItem(
+            id: first.id,
+            name: newName.trimmingCharacters(in: .whitespacesAndNewlines),
+            portionGrams: first.portionGrams,
+            portionGramsLow: first.portionGramsLow,
+            portionGramsHigh: first.portionGramsHigh,
+            usdaSearchTerms: first.usdaSearchTerms,
+            preparation: first.preparation,
+            cuisineHint: first.cuisineHint,
+            confidence: first.confidence,
+            notes: first.notes,
+            kcal: first.kcal,
+            proteinG: first.proteinG,
+            carbsG: first.carbsG,
+            fatG: first.fatG,
+            fiberG: first.fiberG,
+            nutritionSource: first.nutritionSource,
+            sugarG: first.sugarG,
+            sodiumMg: first.sodiumMg,
+            saturatedFatG: first.saturatedFatG
+        )
+        var newItems = items
+        newItems[0] = renamed
+        return CapturedFood(
+            items: newItems,
+            plateType: plateType,
+            source: source,
+            confidence: confidence,
+            needsSecondPhoto: needsSecondPhoto,
+            secondPhotoHint: secondPhotoHint,
+            kcalLow: kcalLow,
+            kcalHigh: kcalHigh
+        )
     }
 }
 
