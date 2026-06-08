@@ -498,6 +498,17 @@ public struct PhotoCaptureView: View {
                     .fill(Color.white)
                     .frame(width: 64, height: 64)
                     .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 2)
+
+                // v1.0.8 Phase U.4 — camera sticker inside the
+                // shutter. Decorative, hides during scan so the
+                // revolving arc + spinner read clearly. Same emoji
+                // sticker family as the cherries on the meal card.
+                Text("📷")
+                    .font(.system(size: 28))
+                    .rotationEffect(.degrees(-4))
+                    .opacity(isCapturing ? 0 : 1)
+                    .animation(.easeInOut(duration: 0.25), value: isCapturing)
+                    .accessibilityHidden(true)
             }
             .contentShape(Circle())
         }
