@@ -172,12 +172,22 @@ public struct PhotoCaptureView: View {
             PhotoLibraryPicker(
                 onPicked: { image in
                     showingLibraryPicker = false
-                    // v1.0.8 Phase R.7 — show in-app preview confirm
-                    // step instead of scanning immediately. Gives the
-                    // "select" affordance + checkpoint before the
-                    // EF dispatch fires.
-                    galleryImage = image
-                    galleryPreviewMode = true
+                    // v1.0.8 Phase R.9 (2026-06-08) — defer the state
+                    // mutation a small amount so the sheet dismiss
+                    // animation completes first. Without this, on
+                    // some iOS versions SwiftUI batches the sheet
+                    // dismiss + state change in a way that the
+                    // preview overlay doesn't appear visibly.
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 250_000_000)
+                        #if DEBUG
+                        print("[PhotoCaptureView] gallery onPicked → preview mode (galleryPreviewMode=true)")
+                        #endif
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            galleryImage = image
+                            galleryPreviewMode = true
+                        }
+                    }
                 },
                 onCancel: { showingLibraryPicker = false }
             )
@@ -228,6 +238,7 @@ public struct PhotoCaptureView: View {
         .contentShape(Rectangle())
         .gesture(pinchZoomGesture)
         .animation(.spring(response: 0.45, dampingFraction: 0.82), value: capturedResult != nil)
+        .animation(.easeInOut(duration: 0.3), value: galleryPreviewMode)
     }
 
     // MARK: - Camera layer
@@ -1261,6 +1272,9 @@ public struct PhotoCaptureView: View {
     /// instant snap while the upload path skips the camera-specific
     /// parts (haptic, shutter sound, debounce timestamp).
     private func libraryImagePicked(_ image: UIImage) async {
+        #if DEBUG
+        print("[PhotoCaptureView] libraryImagePicked START — should NOT auto-dismiss")
+        #endif
         guard !isCapturing else { return }
 
         // v1.0.8 Phase R.5 — gallery upload now mirrors the camera
