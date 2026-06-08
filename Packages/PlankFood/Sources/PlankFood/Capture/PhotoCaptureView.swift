@@ -565,34 +565,28 @@ public struct PhotoCaptureView: View {
             AudioServicesPlaySystemSound(1108)
             Task { await captureTapped() }
         } label: {
-            // v1.0.9 D2 round 3 — rotation dropped. Founder feedback:
-            // "camera sticking revolving doesn't look that pretty.
-            // maybe we can keep the camera sticker the same but some
-            // rapid color changes of pink border line of camera button
-            // during scan?"
+            // v1.0.9 D2 — shutter revolves as a UNIT per founder + UX
+            // expert. The ring + disc + 📷 sticker rotate together as
+            // one sticker-on-spinning-coin object (NOT a white arc
+            // swirling around a static button — that's dropped).
             //
-            // New motion language:
-            //   - idle: subtle 6s breathe (scale 1.0 ↔ 1.02), static
-            //     sticker, solid hot pink ring
-            //   - scanning: rapid pink pulse on the ring (~0.6s/cycle),
-            //     interpolating between cameraScanPink (#FF13F0) and
-            //     cameraIdlePink (#FF7AD9). Disc still tints to
-            //     cameraScanDisc. 📷 sticker stays at its -4° tilt
-            //     completely still — no rotation, no spin.
-            //   - reduce-motion: no pulse, no breathe; ring stays
-            //     solid scan-pink during capture
+            // Motion language:
+            //   - idle: subtle 6s breathe (scale 1.0 ↔ 1.02) for
+            //     alive-ness without dizziness
+            //   - scanning: full 3.0s/revolution rotation, CCW
+            //     (opposite of border's CW shimmer → parallax)
+            //   - 📷 keeps its -4° tilt INSIDE the spinning parent so
+            //     it reads as a sticker stuck to a coin, not a logo
+            //   - reduce-motion: no rotation, no breathe
             TimelineView(.animation(minimumInterval: 1.0 / 60.0,
                                     paused: !(isCapturing && !reduceMotion))) { timeline in
                 let elapsed = timeline.date.timeIntervalSinceReferenceDate
-                // 0.6s pulse cycle. sin(2π·phase) gives a -1..1 wave;
-                // map to 0..1 for color mix. At t=0 → cameraScanPink,
-                // at t=0.5 → cameraIdlePink, sine-eased between.
-                let phase = (elapsed.truncatingRemainder(dividingBy: 0.6)) / 0.6
-                let pulse = sin(phase * .pi * 2) * 0.5 + 0.5
+                let phase = (elapsed.truncatingRemainder(dividingBy: 3.0)) / 3.0
+                let scanAngle = -phase * 360.0  // CCW
 
                 ZStack {
                     Circle()
-                        .stroke(ringColor(pulse: pulse), lineWidth: 4)
+                        .stroke(FoodTheme.cameraScanPink, lineWidth: 4)
                         .frame(width: 78, height: 78)
 
                     Circle()
@@ -603,9 +597,10 @@ public struct PhotoCaptureView: View {
 
                     Text("📷")
                         .font(.system(size: 28))
-                        .rotationEffect(.degrees(-4))  // static sticker tilt
+                        .rotationEffect(.degrees(-4))  // baked sticker tilt
                         .accessibilityHidden(true)
                 }
+                .rotationEffect(.degrees(isCapturing && !reduceMotion ? scanAngle : 0))
                 .scaleEffect(shutterBreathing && !reduceMotion ? 1.02 : 1.0)
             }
             .contentShape(Circle())
@@ -618,23 +613,6 @@ public struct PhotoCaptureView: View {
                 shutterBreathing = true
             }
         }
-    }
-
-    /// v1.0.9 D2 round 3 — interpolate between the hot scan pink and
-    /// the softer idle pink for the rapid border pulse. When not
-    /// capturing OR reduce-motion is on, return solid scan pink so
-    /// the ring stays its full-saturation state.
-    private func ringColor(pulse: Double) -> Color {
-        guard isCapturing, !reduceMotion else {
-            return FoodTheme.cameraScanPink
-        }
-        // RGB lerp between the two named tokens at the given pulse.
-        // cameraScanPink = #FF13F0 = (1.0, 0.075, 0.94)
-        // cameraIdlePink = #FF7AD9 = (1.0, 0.478, 0.851)
-        let r = 1.0 * pulse + 1.0 * (1 - pulse)
-        let g = 0.075 * pulse + 0.478 * (1 - pulse)
-        let b = 0.94 * pulse + 0.851 * (1 - pulse)
-        return Color(red: r, green: g, blue: b)
     }
 
     // MARK: - Bottom toolbar (outside the frame)
