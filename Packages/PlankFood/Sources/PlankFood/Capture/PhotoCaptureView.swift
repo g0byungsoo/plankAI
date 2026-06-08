@@ -81,6 +81,12 @@ public struct PhotoCaptureView: View {
     /// v1.0.8 Phase R.3 — share picker sheet flag.
     @State private var showSharePicker: Bool = false
 
+    /// v1.0.8 Phase R.5 — gallery-upload photo. When the user picks
+    /// from the photo library, this UIImage replaces the live preview
+    /// as the camera content so the scan + result phase behave identical
+    /// to the camera path. nil during live camera mode.
+    @State private var galleryImage: UIImage?
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public let onDismiss: () -> Void
@@ -231,7 +237,20 @@ public struct PhotoCaptureView: View {
         ZStack {
             Color.black
 
-            if camera.permissionStatus == .authorized {
+            // v1.0.8 Phase R.5 — gallery uploads display the picked
+            // photo as the camera content (no live preview to freeze
+            // for a library photo). Both camera path and gallery path
+            // see the same scanning overlay + carousel result UI on
+            // top — identical experience.
+            if let galleryImage {
+                Image(uiImage: galleryImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+
+                if !reduceMotion {
+                    ScanningOverlay(isActive: isCapturing)
+                }
+            } else if camera.permissionStatus == .authorized {
                 FoodCameraPreviewView(
                     previewLayer: camera.previewLayer,
                     isFrozen: camera.isPreviewFrozen
@@ -465,6 +484,7 @@ public struct PhotoCaptureView: View {
                 camera.unfreezePreview()
                 withAnimation(.easeInOut(duration: 0.3)) {
                     capturedResult = nil
+                    galleryImage = nil
                 }
                 shareableImage = nil
                 shareableSlides = []
@@ -478,10 +498,12 @@ public struct PhotoCaptureView: View {
             }
             .accessibilityLabel("retake")
 
-            // Log it — primary CTA, hot pink.
+            // Log it — primary CTA, hot pink. v1.0.8 Phase R.5 — use
+            // galleryImage when present (gallery upload path), fall
+            // back to frozenFrame for camera captures.
             Button {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                onCaptured(result, camera.frozenFrame)
+                onCaptured(result, galleryImage ?? camera.frozenFrame)
             } label: {
                 Text("log it")
                     .font(.system(size: 16, weight: .semibold))
@@ -1142,6 +1164,25 @@ public struct PhotoCaptureView: View {
     /// parts (haptic, shutter sound, debounce timestamp).
     private func libraryImagePicked(_ image: UIImage) async {
         guard !isCapturing else { return }
+
+        // v1.0.8 Phase R.5 — gallery upload now mirrors the camera
+        // flow exactly. Founder bug: "when i upload a photo using
+        // upload photo option, it doesn't show me the post-capture
+        // screen or scanning process and instantly adds some calories
+        // and kicks me back home."
+        //
+        // Three fixes wrapped in here:
+        //   1. galleryImage = image — replaces the live preview with
+        //      the picked photo, so the user sees what they uploaded.
+        //   2. isCapturing = true — triggers the border shimmer +
+        //      revolving shutter arc + scanning overlay, identical to
+        //      the camera capture visual.
+        //   3. capturedResult = result is set BUT onCaptured is NOT
+        //      called — the user reviews the result inline, exactly
+        //      like the camera path. Tapping "log it" fires the
+        //      onCaptured callback; "skip" clears everything and
+        //      returns to live camera.
+        galleryImage = image
         isCapturing = true
         errorMessage = nil
         defer { isCapturing = false }
@@ -1172,6 +1213,7 @@ public struct PhotoCaptureView: View {
                 phaseTask?.cancel()
                 FoodScanActivity.end(handle: activityHandle)
                 withAnimation(.easeOut(duration: 0.25)) {
+                    galleryImage = nil
                     camera.clearFrozenFrame()
                 }
                 return
@@ -1191,8 +1233,20 @@ public struct PhotoCaptureView: View {
                 await FoodScanActivity.end(handle: activityHandle)
             }
 
+            // v1.0.8 Phase R.5 — set capturedResult to trigger the
+            // inline carousel + result actions, render shareables off
+            // the gallery photo, but DO NOT call onCaptured here. User
+            // taps "log it" to actually persist.
             capturedResult = result
-            onCaptured(result, camera.frozenFrame)
+
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 200_000_000)
+                shareableSlides = renderAllShareableSlides(
+                    result: result,
+                    photo: image
+                )
+                shareableImage = shareableSlides.first?.uiImage
+            }
         } catch let captureError as FoodCaptureError {
             #if DEBUG
             print("[PhotoCaptureView] library capture failed: \(captureError)")
@@ -1207,6 +1261,7 @@ public struct PhotoCaptureView: View {
             phaseTask?.cancel()
             FoodScanActivity.end(handle: activityHandle)
             withAnimation(.easeOut(duration: 0.25)) {
+                galleryImage = nil
                 camera.clearFrozenFrame()
             }
         } catch {
@@ -1222,6 +1277,7 @@ public struct PhotoCaptureView: View {
             phaseTask?.cancel()
             FoodScanActivity.end(handle: activityHandle)
             withAnimation(.easeOut(duration: 0.25)) {
+                galleryImage = nil
                 camera.clearFrozenFrame()
             }
         }

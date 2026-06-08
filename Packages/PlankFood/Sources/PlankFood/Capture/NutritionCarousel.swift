@@ -140,39 +140,48 @@ struct PageDotsIndicator: View {
 private struct CarouselCardShell<Content: View>: View {
     let title: String?
     let titleItalic: Bool
+    let compact: Bool
     @ViewBuilder let content: () -> Content
 
     init(
         title: String? = nil,
         titleItalic: Bool = false,
+        compact: Bool = false,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
         self.titleItalic = titleItalic
+        self.compact = compact
         self.content = content
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        // v1.0.8 Phase R.5 — compact mode shrinks padding + title size
+        // so all 3 PackedDailyCard sections fit visible without
+        // scrolling. Per founder direction: "can you try to fit all 3
+        // cards onto screen visible?"
+        VStack(alignment: .leading, spacing: compact ? 8 : 14) {
             if let title {
                 if titleItalic {
                     Text(title)
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
+                        .font(.custom("Fraunces72pt-SemiBoldItalic",
+                                      size: compact ? 15 : 17))
                         .foregroundStyle(FoodTheme.textPrimary)
                 } else {
                     Text(title)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: compact ? 14 : 16, weight: .semibold))
                         .foregroundStyle(FoodTheme.textPrimary)
                 }
             }
             content()
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 16)
+        .padding(.horizontal, compact ? 14 : 18)
+        .padding(.vertical, compact ? 12 : 16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: Color.black.opacity(0.18), radius: 14, x: 0, y: 4)
+        .clipShape(RoundedRectangle(cornerRadius: compact ? 16 : 18, style: .continuous))
+        .shadow(color: Color.black.opacity(0.18),
+                radius: compact ? 10 : 14, x: 0, y: 4)
     }
 }
 
@@ -233,17 +242,20 @@ private struct PackedDailyCard: View {
     let proteinTarget: Int
 
     var body: some View {
+        // v1.0.8 Phase R.5 — compact mode + tight gaps so all 3 cards
+        // fit visible. ScrollView still wraps for very small screens
+        // (iPhone SE) but on modern iPhones nothing scrolls.
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 DailyTotalsCard(
                     result: result,
                     kcalTarget: kcalTarget,
-                    proteinTarget: proteinTarget
+                    proteinTarget: proteinTarget,
+                    compact: true
                 )
-                LifestyleScoresCard(result: result)
-                NutrientsBreakdownCard(result: result)
+                LifestyleScoresCard(result: result, compact: true)
+                NutrientsBreakdownCard(result: result, compact: true)
             }
-            .padding(.bottom, 8)
         }
     }
 }
@@ -254,45 +266,49 @@ private struct DailyTotalsCard: View {
     let result: CapturedFood
     let kcalTarget: Int
     let proteinTarget: Int
+    var compact: Bool = false
 
     var body: some View {
-        CarouselCardShell(title: nil) {
-            VStack(spacing: 16) {
+        CarouselCardShell(title: nil, compact: compact) {
+            VStack(spacing: compact ? 10 : 16) {
                 ProgressRow(
                     icon: "flame.fill",
-                    iconColor: Color(red: 0.75, green: 0.45, blue: 0.92),  // soft purple
+                    iconColor: Color(red: 0.75, green: 0.45, blue: 0.92),
                     label: "Calories",
                     value: "\(caloriesNow) / \(kcalTarget)",
                     progress: progress(caloriesNow, kcalTarget),
-                    barColor: Color(red: 0.75, green: 0.45, blue: 0.92)
+                    barColor: Color(red: 0.75, green: 0.45, blue: 0.92),
+                    compact: compact
                 )
 
                 ProgressRow(
                     icon: "drop.fill",
-                    iconColor: Color(red: 0.39, green: 0.61, blue: 0.85),  // soft blue
+                    iconColor: Color(red: 0.39, green: 0.61, blue: 0.85),
                     label: "Protein",
                     value: "\(proteinNow) / \(proteinTarget)g",
                     progress: progress(proteinNow, proteinTarget),
-                    barColor: Color(red: 0.39, green: 0.61, blue: 0.85)
+                    barColor: Color(red: 0.39, green: 0.61, blue: 0.85),
+                    compact: compact
                 )
 
-                HStack(alignment: .center, spacing: 12) {
+                HStack(alignment: .center, spacing: compact ? 10 : 12) {
                     iconWell(systemName: "circle.hexagonpath.fill",
-                             tint: Color(red: 0.4, green: 0.62, blue: 0.95))
+                             tint: Color(red: 0.4, green: 0.62, blue: 0.95),
+                             compact: compact)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Cravings control")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: compact ? 13 : 14, weight: .semibold))
                             .foregroundStyle(FoodTheme.textPrimary)
                         Text("Daily fullness score")
-                            .font(.system(size: 11))
+                            .font(.system(size: compact ? 10 : 11))
                             .foregroundStyle(FoodTheme.textSecondary)
                     }
                     Spacer()
                     Text(String(format: "%.1f", cravingsScore))
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: compact ? 14 : 15, weight: .semibold))
                         .foregroundStyle(Color(red: 0.37, green: 0.45, blue: 0.27))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
+                        .padding(.horizontal, compact ? 10 : 12)
+                        .padding(.vertical, compact ? 4 : 5)
                         .background(
                             Capsule().fill(Color(red: 0.92, green: 0.96, blue: 0.86))
                         )
@@ -340,30 +356,35 @@ private struct DailyTotalsCard: View {
 
 private struct LifestyleScoresCard: View {
     let result: CapturedFood
+    var compact: Bool = false
 
     var body: some View {
-        CarouselCardShell(title: "today's nutrients for", titleItalic: true) {
-            VStack(spacing: 12) {
+        CarouselCardShell(title: "today's nutrients for", titleItalic: true, compact: compact) {
+            VStack(spacing: compact ? 6 : 12) {
                 LifestyleRow(icon: "lightbulb.fill",
                              iconBg: Color(red: 0.98, green: 0.96, blue: 0.86),
                              iconTint: Color(red: 0.85, green: 0.65, blue: 0.18),
                              label: "Energy",
-                             percent: scores.energy)
+                             percent: scores.energy,
+                             compact: compact)
                 LifestyleRow(icon: "face.smiling.fill",
                              iconBg: Color(red: 0.92, green: 0.96, blue: 0.86),
                              iconTint: Color(red: 0.37, green: 0.55, blue: 0.27),
                              label: "Mood",
-                             percent: scores.mood)
+                             percent: scores.mood,
+                             compact: compact)
                 LifestyleRow(icon: "sparkles",
                              iconBg: Color(red: 0.98, green: 0.91, blue: 0.95),
                              iconTint: Color(red: 0.77, green: 0.40, blue: 0.55),
                              label: "Skin",
-                             percent: scores.skin)
+                             percent: scores.skin,
+                             compact: compact)
                 LifestyleRow(icon: "brain.head.profile",
                              iconBg: Color(red: 0.91, green: 0.94, blue: 0.98),
                              iconTint: Color(red: 0.39, green: 0.55, blue: 0.78),
                              label: "Focus",
-                             percent: scores.focus)
+                             percent: scores.focus,
+                             compact: compact)
             }
         }
     }
@@ -390,35 +411,41 @@ private struct LifestyleScoresCard: View {
 
 private struct NutrientsBreakdownCard: View {
     let result: CapturedFood
+    var compact: Bool = false
 
     var body: some View {
-        CarouselCardShell(title: "today's nutrients", titleItalic: true) {
-            VStack(spacing: 10) {
+        CarouselCardShell(title: "today's nutrients", titleItalic: true, compact: compact) {
+            VStack(spacing: compact ? 6 : 10) {
                 LifestyleRow(icon: "heart.fill",
                              iconBg: Color(red: 0.98, green: 0.90, blue: 0.91),
                              iconTint: Color(red: 0.85, green: 0.32, blue: 0.43),
                              label: "All nutrients",
-                             percent: scores.all)
+                             percent: scores.all,
+                             compact: compact)
                 LifestyleRow(icon: "leaf.fill",
                              iconBg: Color(red: 0.92, green: 0.96, blue: 0.86),
                              iconTint: Color(red: 0.37, green: 0.55, blue: 0.27),
                              label: "Vitamins",
-                             percent: scores.vitamins)
+                             percent: scores.vitamins,
+                             compact: compact)
                 LifestyleRow(icon: "drop.triangle.fill",
                              iconBg: Color(red: 0.90, green: 0.94, blue: 0.98),
                              iconTint: Color(red: 0.32, green: 0.50, blue: 0.78),
                              label: "Minerals",
-                             percent: scores.minerals)
+                             percent: scores.minerals,
+                             compact: compact)
                 LifestyleRow(icon: "link",
                              iconBg: Color(red: 0.94, green: 0.90, blue: 0.96),
                              iconTint: Color(red: 0.60, green: 0.40, blue: 0.75),
                              label: "Amino acids",
-                             percent: scores.amino)
+                             percent: scores.amino,
+                             compact: compact)
                 LifestyleRow(icon: "ellipsis.circle.fill",
                              iconBg: Color(red: 0.96, green: 0.93, blue: 0.86),
                              iconTint: Color(red: 0.65, green: 0.50, blue: 0.28),
                              label: "Other nutrients",
-                             percent: scores.other)
+                             percent: scores.other,
+                             compact: compact)
             }
         }
     }
@@ -610,19 +637,20 @@ private struct ProgressRow: View {
     let value: String
     let progress: Double
     let barColor: Color
+    var compact: Bool = false
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            iconWell(systemName: icon, tint: iconColor)
+        HStack(alignment: .center, spacing: compact ? 10 : 12) {
+            iconWell(systemName: icon, tint: iconColor, compact: compact)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: compact ? 2 : 4) {
                 HStack {
                     Text(label)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: compact ? 13 : 14, weight: .semibold))
                         .foregroundStyle(FoodTheme.textPrimary)
                     Spacer()
                     Text(value)
-                        .font(.system(size: 13))
+                        .font(.system(size: compact ? 12 : 13))
                         .foregroundStyle(FoodTheme.textSecondary)
                 }
                 progressBar
@@ -640,7 +668,7 @@ private struct ProgressRow: View {
                     .frame(width: geo.size.width * progress)
             }
         }
-        .frame(height: 6)
+        .frame(height: compact ? 4 : 6)
     }
 }
 
@@ -652,24 +680,25 @@ private struct LifestyleRow: View {
     let iconTint: Color
     let label: String
     let percent: Int
+    var compact: Bool = false
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: compact ? 10 : 12) {
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: compact ? 11 : 13, weight: .semibold))
                 .foregroundStyle(iconTint)
-                .frame(width: 30, height: 30)
+                .frame(width: compact ? 24 : 30, height: compact ? 24 : 30)
                 .background(iconBg)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: compact ? 6 : 8, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: compact ? 2 : 4) {
                 HStack {
                     Text(label)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: compact ? 13 : 14, weight: .semibold))
                         .foregroundStyle(FoodTheme.textPrimary)
                     Spacer()
                     Text("\(percent)%")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: compact ? 12 : 13, weight: .medium))
                         .foregroundStyle(FoodTheme.textSecondary)
                 }
                 GeometryReader { geo in
@@ -677,11 +706,11 @@ private struct LifestyleRow: View {
                         Capsule()
                             .fill(Color.black.opacity(0.06))
                         Capsule()
-                            .fill(Color(red: 0.37, green: 0.45, blue: 0.27))  // sage
+                            .fill(Color(red: 0.37, green: 0.45, blue: 0.27))
                             .frame(width: geo.size.width * (Double(percent) / 100))
                     }
                 }
-                .frame(height: 5)
+                .frame(height: compact ? 4 : 5)
             }
         }
     }
@@ -690,13 +719,13 @@ private struct LifestyleRow: View {
 // MARK: - iconWell helper
 
 @ViewBuilder
-private func iconWell(systemName: String, tint: Color) -> some View {
+private func iconWell(systemName: String, tint: Color, compact: Bool = false) -> some View {
     Image(systemName: systemName)
-        .font(.system(size: 13, weight: .semibold))
+        .font(.system(size: compact ? 11 : 13, weight: .semibold))
         .foregroundStyle(tint)
-        .frame(width: 32, height: 32)
+        .frame(width: compact ? 26 : 32, height: compact ? 26 : 32)
         .background(tint.opacity(0.14))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: compact ? 6 : 8, style: .continuous))
 }
 
 // MARK: - Shareable section blocks (used by the 9:16 image renderer)
