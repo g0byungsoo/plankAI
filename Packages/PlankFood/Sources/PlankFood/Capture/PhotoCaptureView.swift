@@ -1070,16 +1070,20 @@ public struct PhotoCaptureView: View {
     // offset shadow at chip scale = micro-scrapbook chrome that
     // makes the toolbar feel JeniFit, not iOS-segmented-control.
     @ViewBuilder private var modeChips: some View {
-        // v1.0.9 D2 hotfix — single-word labels + fixedSize prevent
-        // the chip text from wrapping into "sna\np / quic\nk log /
-        // dini\nng out" on narrow rows. "type" reads as "type your
-        // food" once the cohort sees the screen behind it; "dining"
-        // is clearer for the restaurant case than "dining out" at
-        // chip width.
+        // v1.0.9 D2 — dining-out chip removed. Founder: "you can say
+        // whatever in quicklog. we can bring back dining out when
+        // product is more matured." The quick-log text path handles
+        // restaurant orders (user types "chipotle chicken bowl" or
+        // "starbucks iced latte"), so the standalone restaurant-
+        // range estimator is dormant.
+        //
+        // Code preserved: ImOutTonightView, FoodCapture.imOutTonight,
+        // FoodCaptureDispatcher arm, CaptureTab.imOut — all stay in
+        // place so re-enabling later is a one-chip-add, not a
+        // re-implementation.
         HStack(spacing: 4) {
             modeChip("📷", "snap", .photo)
-            modeChip("✍", "type", .quickAdd)
-            modeChip("🍴", "dining", .imOut)
+            modeChip("✍", "quick log", .quickAdd)
         }
         .padding(4)
         .background(.ultraThinMaterial, in: Capsule())
