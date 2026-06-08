@@ -427,23 +427,16 @@ public struct PhotoCaptureView: View {
                     .accessibilityLabel("close")
                 }
 
-                Spacer().frame(height: geo.size.height * 0.10)
+                Spacer().frame(height: geo.size.height * 0.06)
 
-                nutritionCard(result: result)
+                // v1.0.8 Phase R — single card → 5-page TikTok-style
+                // carousel. Each card sits in the same vertical slot
+                // over the captured photo; dots indicator below.
+                NutritionCarousel(result: result)
 
                 Spacer()
             }
         }
-    }
-
-    @ViewBuilder
-    private func nutritionCard(result: CapturedFood) -> some View {
-        NutritionCardView(
-            mealLabel: mealTypeLabel,
-            dishName: dishNameLabel(result),
-            totals: nutritionTotals(result),
-            scale: 1.0
-        )
     }
 
     /// Bottom toolbar variant for result mode: skip ↶ — log it — share ↑.
