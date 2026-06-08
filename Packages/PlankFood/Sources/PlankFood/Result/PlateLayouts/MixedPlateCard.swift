@@ -18,13 +18,17 @@ import SwiftUI
 public struct MixedPlateCard: View {
 
     public let food: CapturedFood
-    public let primaryAction: () -> Void
+    /// v1.0.8 Phase E — signature parity with SingleDishCard. The
+    /// mixed-plate path doesn't yet ship per-item corrections, so we
+    /// pass the food through unchanged on log tap. v1.0.9 adds
+    /// per-item correction pills on tap of each ItemRow.
+    public let primaryAction: (CapturedFood) -> Void
     public let secondaryAction: () -> Void
     public let onItemTap: (CapturedItem) -> Void
 
     public init(
         food: CapturedFood,
-        primaryAction: @escaping () -> Void,
+        primaryAction: @escaping (CapturedFood) -> Void,
         secondaryAction: @escaping () -> Void,
         onItemTap: @escaping (CapturedItem) -> Void
     ) {
@@ -290,7 +294,7 @@ public struct MixedPlateCard: View {
 
     @ViewBuilder private var actionButtons: some View {
         VStack(spacing: FoodTheme.Space.sm) {
-            Button(action: primaryAction) {
+            Button { primaryAction(food) } label: {
                 Text("log it")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(FoodTheme.bgPrimary)
@@ -342,7 +346,7 @@ private extension Double {
 #Preview("MixedPlateCard — multiple items") {
     MixedPlateCard(
         food: .previewMixed(),
-        primaryAction: { print("log") },
+        primaryAction: { _ in print("log") },
         secondaryAction: { print("skip") },
         onItemTap: { _ in print("tap") }
     )
@@ -353,7 +357,7 @@ private extension Double {
 #Preview("MixedPlateCard — restaurant range") {
     MixedPlateCard(
         food: .previewRestaurantRange(),
-        primaryAction: { },
+        primaryAction: { _ in },
         secondaryAction: { },
         onItemTap: { _ in }
     )
@@ -364,7 +368,7 @@ private extension Double {
 #Preview("MixedPlateCard — needs second photo") {
     MixedPlateCard(
         food: .previewNeedsSecondPhoto(),
-        primaryAction: { },
+        primaryAction: { _ in },
         secondaryAction: { },
         onItemTap: { _ in }
     )

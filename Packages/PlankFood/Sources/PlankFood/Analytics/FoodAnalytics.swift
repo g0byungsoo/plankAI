@@ -34,6 +34,9 @@ public enum FoodAnalytics {
         case scanFallbackFired     = "food_scan_fallback_fired"
         case scanCorrectionOpened  = "food_scan_correction_opened"
         case scanCorrectionSaved   = "food_scan_correction_saved"
+        /// v1.0.8 Phase E — quick-correction pill tap. Properties:
+        /// correction (sauce / bigger), multiplier, add_kcal.
+        case scanCorrectionApplied = "food_scan_correction_applied"
         case logSaved              = "food_log_saved"
         // Mode-specific
         case quickAddTapped        = "food_quick_add_tapped"

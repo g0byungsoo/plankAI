@@ -16,13 +16,18 @@ import SwiftUI
 public struct ResultCard: View {
 
     public let food: CapturedFood
-    public let primaryAction: () -> Void
+    /// v1.0.8 Phase E (2026-06-07) — primaryAction now receives the
+    /// (potentially corrected) food. SingleDishCard supports in-place
+    /// calorie corrections via the "correct me ♥" pill row; tapping
+    /// "log it" persists the CORRECTED CapturedFood, not the original.
+    /// MixedPlateCard passes the food through unchanged.
+    public let primaryAction: (CapturedFood) -> Void
     public let secondaryAction: () -> Void
     public let onItemTap: (CapturedItem) -> Void
 
     public init(
         food: CapturedFood,
-        primaryAction: @escaping () -> Void,
+        primaryAction: @escaping (CapturedFood) -> Void,
         secondaryAction: @escaping () -> Void,
         onItemTap: @escaping (CapturedItem) -> Void
     ) {

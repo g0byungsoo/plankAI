@@ -17,13 +17,17 @@ import SwiftUI
 public struct SingleDishCard: View {
 
     public let food: CapturedFood
-    public let primaryAction: () -> Void
+    /// v1.0.8 Phase E — receives the (potentially corrected) food on
+    /// log tap. Quick-correction pills below the calorie pill adjust
+    /// `correctionMultiplier` / `correctionAddKcal`; the corrected
+    /// CapturedFood is what gets persisted.
+    public let primaryAction: (CapturedFood) -> Void
     public let secondaryAction: () -> Void
     public let onItemTap: (CapturedItem) -> Void
 
     public init(
         food: CapturedFood,
-        primaryAction: @escaping () -> Void,
+        primaryAction: @escaping (CapturedFood) -> Void,
         secondaryAction: @escaping () -> Void,
         onItemTap: @escaping (CapturedItem) -> Void
     ) {
@@ -34,6 +38,16 @@ public struct SingleDishCard: View {
     }
 
     @State private var showMacros: Bool = false
+    /// v1.0.8 Phase E (2026-06-07) — quick-correction state.
+    /// `correctionMultiplier` scales the kcal (e.g. 1.25 = +25% for
+    /// "bigger portion"). `correctionAddKcal` adds an absolute
+    /// amount (e.g. +120 kcal for "more sauce"). Resets each scan.
+    @State private var correctionMultiplier: Double = 1.0
+    @State private var correctionAddKcal: Double = 0
+    /// Drives the soft calorie-pill jiggle on each correction tap.
+    @State private var jigglePhase: Int = 0
+    /// "got it ♥" sticker pop after a successful correction.
+    @State private var lastCorrectionLabel: String? = nil
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FoodTheme.Space.lg) {
@@ -57,11 +71,26 @@ public struct SingleDishCard: View {
             // the Home decision (different surface, different need).
             // Macros-behind-disclosure + tell-me-more ♥ kept from A.4.
             if let item = food.items.first, let kcal = item.kcal {
-                ConfidencePill(
-                    kcal: kcal,
-                    kcalLow: nil,
-                    kcalHigh: nil
-                )
+                // v1.0.8 Phase E — calorie-pill jiggle on correction.
+                // The displayedKcal computed property applies the
+                // current correction multiplier + add. Wrapped in a
+                // ZStack so the "got it ♥" sticker can pop over the
+                // pill on each correction without disturbing layout.
+                ZStack(alignment: .topTrailing) {
+                    ConfidencePill(
+                        kcal: displayedKcal(original: kcal),
+                        kcalLow: nil,
+                        kcalHigh: nil
+                    )
+                    .scaleEffect(jigglePhase > 0 ? 1.05 : 1.0)
+                    .animation(.spring(response: 0.32, dampingFraction: 0.5), value: jigglePhase)
+
+                    if let label = lastCorrectionLabel {
+                        gotItSticker(label: label)
+                            .offset(x: 16, y: -10)
+                            .transition(.scale(scale: 0.4).combined(with: .opacity))
+                    }
+                }
             } else if food.totalKcal == nil {
                 // USDA join pending — show name only, kcal lands when it does.
                 if let item = food.items.first {
@@ -96,11 +125,22 @@ public struct SingleDishCard: View {
                 JeniLine(jeniCopy)
             }
 
-            // "tell me more ♥" inline — corrections-as-moat surface per
-            // the Cal AI teardown brief. v1.0.7 wires this to the
-            // existing FoodCorrectionSheet (portion + name edit) for
-            // the speed of the patch; v1.0.8 will swap it for the
-            // inline chat conversation that the brief recommended.
+            // v1.0.8 Phase E — "correct me ♥" quick-correction row.
+            // Three soft pills that recalibrate the calorie pill in
+            // place. Attacks Cal AI's #1 complaint head-on: "guessed
+            // wrong, can't fix without rage." Each tap fires a small
+            // jiggle on the calorie pill + a "got it ♥" sticker pop
+            // for tactile feedback. The corrections-as-moat lever —
+            // every tap is private telemetry for v1.0.9 per-user
+            // model tuning.
+            if food.items.first?.kcal != nil {
+                correctionRow
+            }
+
+            // "tell me more ♥" inline — deeper correction surface
+            // (full item-name + portion edit via FoodCorrectionSheet).
+            // Kept alongside the quick pills for users who need to
+            // change the item itself, not just the calorie scale.
             if let item = food.items.first {
                 tellMeMoreLink(item: item)
             }
@@ -312,6 +352,173 @@ public struct SingleDishCard: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: - Phase E corrections
+
+    /// "more sauce" / "bigger portion" / "nope, not this" row. Each
+    /// pill applies its correction in-place and fires telemetry; the
+    /// "got it ♥" sticker pops over the calorie pill for ~1s after
+    /// each tap so the user gets clear "i heard you" feedback.
+    @ViewBuilder private var correctionRow: some View {
+        HStack(spacing: 8) {
+            correctionPill(
+                label: "more sauce",
+                icon: "drop.fill"
+            ) {
+                applyCorrection(label: "sauce", addKcal: 120)
+            }
+            correctionPill(
+                label: "bigger",
+                icon: "arrow.up.right"
+            ) {
+                applyCorrection(label: "bigger", multiplier: 1.25)
+            }
+            correctionPill(
+                label: "not this",
+                icon: "questionmark.circle"
+            ) {
+                // Routes to the existing FoodCorrectionSheet via the
+                // tellMeMoreLink mechanism — same surface, faster
+                // entry point. Founder bug to revisit in Phase F:
+                // surface this as inline text input per UX-2 spec.
+                if let item = food.items.first {
+                    onItemTap(item)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    @ViewBuilder
+    private func correctionPill(
+        label: String,
+        icon: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .medium))
+                Text(label)
+                    .font(.custom("DMSans-Medium", size: 12))
+            }
+            .padding(.horizontal, 11)
+            .padding(.vertical, 7)
+            .foregroundStyle(FoodTheme.accent)
+            .background(
+                Capsule().fill(FoodTheme.accentSubtle.opacity(0.45))
+            )
+            .overlay(
+                Capsule().stroke(FoodTheme.accent.opacity(0.18), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("correct: \(label)")
+    }
+
+    /// "got it ♥" sticker pop — fires after each correction so the
+    /// user gets tactile + visual feedback that the correction
+    /// landed. Auto-clears via the same animation block.
+    @ViewBuilder
+    private func gotItSticker(label: String) -> some View {
+        HStack(spacing: 3) {
+            Text("got it")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11))
+            Text("♥")
+                .font(.system(size: 11))
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .foregroundStyle(.white)
+        .background(Capsule().fill(FoodTheme.accent))
+        .shadow(color: FoodTheme.accent.opacity(0.3), radius: 4, x: 0, y: 2)
+    }
+
+    /// Apply a correction: bump the multiplier/add, fire jiggle on
+    /// the calorie pill, pop the "got it ♥" sticker for ~1s, log
+    /// telemetry. The displayed kcal updates immediately via the
+    /// `displayedKcal(original:)` computed value.
+    private func applyCorrection(
+        label: String,
+        multiplier: Double? = nil,
+        addKcal: Double? = nil
+    ) {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        if let m = multiplier { correctionMultiplier *= m }
+        if let a = addKcal { correctionAddKcal += a }
+        jigglePhase &+= 1
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.55)) {
+            lastCorrectionLabel = label
+        }
+        // Clear the sticker pop after ~1s. Subsequent corrections
+        // re-fire withAnimation so the sticker stays visible if the
+        // user is rapid-tapping.
+        let stamp = label  // capture for the async closure's equality check
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if lastCorrectionLabel == stamp {
+                withAnimation(.easeOut(duration: 0.35)) {
+                    lastCorrectionLabel = nil
+                }
+            }
+        }
+        FoodAnalytics.track(.scanCorrectionApplied, properties: [
+            "correction": label,
+            "multiplier": correctionMultiplier,
+            "add_kcal": Int(correctionAddKcal.rounded()),
+        ])
+    }
+
+    /// Current displayed kcal after corrections.
+    private func displayedKcal(original: Double) -> Double {
+        max(0, original * correctionMultiplier + correctionAddKcal)
+    }
+
+    /// Build the CapturedFood that should actually get persisted —
+    /// the original food's first item with kcal + macros scaled by
+    /// the corrections. Macros scale by the multiplier only (the
+    /// addKcal is sauce/fat-heavy on average, but we don't have a
+    /// per-macro split for it; v1.0.9 telemetry will tell us if this
+    /// is meaningful enough to model precisely).
+    private func correctedFood() -> CapturedFood {
+        guard correctionMultiplier != 1.0 || correctionAddKcal != 0,
+              let item = food.items.first,
+              let originalKcal = item.kcal else {
+            return food
+        }
+        let newKcal = displayedKcal(original: originalKcal)
+        let scale = correctionMultiplier
+        let correctedItem = CapturedItem(
+            id: item.id,
+            name: item.name,
+            portionGrams: item.portionGrams * scale,
+            portionGramsLow: item.portionGramsLow * scale,
+            portionGramsHigh: item.portionGramsHigh * scale,
+            usdaSearchTerms: item.usdaSearchTerms,
+            preparation: item.preparation,
+            cuisineHint: item.cuisineHint,
+            confidence: item.confidence,
+            notes: item.notes,
+            kcal: newKcal,
+            proteinG: item.proteinG.map { $0 * scale },
+            carbsG: item.carbsG.map { $0 * scale },
+            fatG: item.fatG.map { $0 * scale },
+            fiberG: item.fiberG.map { $0 * scale },
+            nutritionSource: item.nutritionSource,
+            sugarG: item.sugarG.map { $0 * scale },
+            sodiumMg: item.sodiumMg.map { $0 * scale },
+            saturatedFatG: item.saturatedFatG.map { $0 * scale }
+        )
+        return CapturedFood(
+            items: [correctedItem],
+            plateType: food.plateType,
+            source: food.source,
+            confidence: food.confidence,
+            needsSecondPhoto: food.needsSecondPhoto,
+            secondPhotoHint: food.secondPhotoHint,
+            kcalLow: food.kcalLow.map { displayedKcal(original: $0) },
+            kcalHigh: food.kcalHigh.map { displayedKcal(original: $0) }
+        )
+    }
+
     // MARK: - Action buttons
 
     // MARK: - Empty state
@@ -342,7 +549,12 @@ public struct SingleDishCard: View {
 
     @ViewBuilder private var actionButtons: some View {
         VStack(spacing: FoodTheme.Space.sm) {
-            Button(action: primaryAction) {
+            Button {
+                // v1.0.8 Phase E — pass the corrected food so the
+                // log persists what the user actually saw, not the
+                // raw LLM output.
+                primaryAction(correctedFood())
+            } label: {
                 Text("log it")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(FoodTheme.bgPrimary)
@@ -392,7 +604,7 @@ public struct SingleDishCard: View {
 #Preview("SingleDishCard — logged data") {
     SingleDishCard(
         food: .preview(),
-        primaryAction: { print("log it") },
+        primaryAction: { _ in print("log it") },
         secondaryAction: { print("actually skip") },
         onItemTap: { _ in print("tap item") }
     )
@@ -403,7 +615,7 @@ public struct SingleDishCard: View {
 #Preview("SingleDishCard — USDA pending") {
     SingleDishCard(
         food: .previewPending(),
-        primaryAction: { },
+        primaryAction: { _ in },
         secondaryAction: { },
         onItemTap: { _ in }
     )

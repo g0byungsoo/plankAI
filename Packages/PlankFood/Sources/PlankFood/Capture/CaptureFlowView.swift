@@ -253,7 +253,12 @@ public struct CaptureFlowView: View {
 
                     ResultCard(
                         food: food,
-                        primaryAction: { logTapped(food) },
+                        // v1.0.8 Phase E — the (potentially corrected)
+                        // food comes back from the card so any
+                        // "more sauce" / "bigger" pill taps in
+                        // SingleDishCard end up persisted to the food
+                        // log, not just shown on screen.
+                        primaryAction: { logTapped($0) },
                         // "actually skip" on a populated card OR "retake →"
                         // on an empty-items defensive fallback — both bounce
                         // back to camera so the user can correct course.
