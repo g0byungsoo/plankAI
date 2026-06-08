@@ -451,6 +451,33 @@ public final class FoodCameraManager: NSObject {
         }
     }
 
+    /// v1.0.8 Phase P (2026-06-08) — torch / flashlight state. The
+    /// flash button in PhotoCaptureView was a no-op placeholder
+    /// before; now it toggles the back camera's torch via
+    /// AVCaptureDevice.torchMode. Read by the chrome to swap the
+    /// bolt.fill / bolt.slash glyph and accent the icon when on.
+    public private(set) var torchOn: Bool = false
+
+    public var hasTorch: Bool { captureDevice?.hasTorch ?? false }
+
+    @discardableResult
+    public func toggleTorch() -> Bool {
+        guard let device = captureDevice, device.hasTorch else { return false }
+        do {
+            try device.lockForConfiguration()
+            let newMode: AVCaptureDevice.TorchMode = device.torchMode == .on ? .off : .on
+            device.torchMode = newMode
+            device.unlockForConfiguration()
+            torchOn = newMode == .on
+            return torchOn
+        } catch {
+            #if DEBUG
+            print("[FoodCameraManager] toggleTorch failed: \(error)")
+            #endif
+            return torchOn
+        }
+    }
+
     /// v1.0.8 Phase H — process a UIImage from the photo library
     /// through the same saliency + resize + JPEG-encode pipeline as
     /// `captureStill()`. Used by the gallery upload path so picker-

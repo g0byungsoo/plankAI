@@ -57,6 +57,11 @@ public struct PhotoCaptureView: View {
     @State private var zoomIndicatorVisible: Bool = false
     @State private var zoomHideTask: Task<Void, Never>?
 
+    /// v1.0.8 Phase P — share sheet flag for the result mode share
+    /// button. Wraps the frozen photo in a SwiftUI ShareLink-like
+    /// affordance; iOS handles the system share sheet from there.
+    @State private var showShareSheet: Bool = false
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public let onDismiss: () -> Void
@@ -163,13 +168,25 @@ public struct PhotoCaptureView: View {
                 lineWidth: 5
             )
 
-            // In-frame floating chrome: X (top-right), flash (bottom-
-            // left), big circle shutter (bottom-center).
-            inFrameChrome
-                .padding(14)
+            // v1.0.8 Phase P — inline result overlay. When the scan
+            // returns, the floating nutrition card lands above the
+            // frozen photo. inFrameChrome hides the scan-time UI
+            // (flash, shutter, microcopy) since the user is reviewing,
+            // not capturing.
+            if let result = capturedResult {
+                resultModeOverlay(result: result)
+                    .padding(14)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
+            } else {
+                // In-frame floating chrome: X (top-right), flash (bottom-
+                // left), big circle shutter (bottom-center).
+                inFrameChrome
+                    .padding(14)
+            }
         }
         .contentShape(Rectangle())
         .gesture(pinchZoomGesture)
+        .animation(.spring(response: 0.45, dampingFraction: 0.82), value: capturedResult != nil)
     }
 
     // MARK: - Camera layer
@@ -253,9 +270,23 @@ public struct PhotoCaptureView: View {
             .padding(.bottom, 14)
 
             HStack(alignment: .center, spacing: 0) {
-                glassButton(systemName: "bolt.slash", action: { /* flash wiring later */ })
-                    .accessibilityLabel("flash")
-                    .opacity(0.55)
+                // v1.0.8 Phase P — actual torch toggle (was a no-op
+                // placeholder). Icon swaps to `bolt.fill` + the icon
+                // tints to soft warm yellow when on so the state is
+                // visible against any food background.
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    _ = camera.toggleTorch()
+                } label: {
+                    Image(systemName: camera.torchOn ? "bolt.fill" : "bolt.slash")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(camera.torchOn ? Color(red: 1.0, green: 0.85, blue: 0.3) : .white)
+                        .frame(width: 44, height: 44)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                .accessibilityLabel(camera.torchOn ? "turn off flashlight" : "turn on flashlight")
+                .opacity(camera.hasTorch ? 1 : 0.4)
+                .disabled(!camera.hasTorch)
 
                 Spacer()
 
@@ -342,18 +373,216 @@ public struct PhotoCaptureView: View {
     /// camera frame. Mimics the reference layout: gallery icon left,
     /// mode chip row centered, 44pt clear balance spacer right.
     @ViewBuilder private var bottomToolbar: some View {
-        HStack(spacing: 0) {
-            galleryButton
+        if let result = capturedResult {
+            resultActions(result: result)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+        } else {
+            HStack(spacing: 0) {
+                galleryButton
 
-            Spacer()
+                Spacer()
 
-            modeChips
-                .opacity(isCapturing ? 0.5 : 1)
+                modeChips
+                    .opacity(isCapturing ? 0.5 : 1)
 
-            Spacer()
+                Spacer()
 
-            Color.clear.frame(width: 44, height: 44)
+                Color.clear.frame(width: 44, height: 44)
+            }
+            .transition(.opacity)
         }
+    }
+
+    // MARK: - Result mode overlay + actions
+
+    /// v1.0.8 Phase P — floating nutrition card that lands over the
+    /// frozen captured photo. Mirrors the reference layout: white
+    /// rounded rectangle, soft shadow, meal label + dish name + macro
+    /// row. Sits in the upper third of the camera frame.
+    @ViewBuilder
+    private func resultModeOverlay(result: CapturedFood) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                glassButton(systemName: "xmark", action: {
+                    camera.unfreezePreview()
+                    onDismiss()
+                })
+                .accessibilityLabel("close")
+            }
+
+            Spacer().frame(height: 20)
+
+            nutritionCard(result: result)
+
+            Spacer()
+        }
+    }
+
+    @ViewBuilder
+    private func nutritionCard(result: CapturedFood) -> some View {
+        let totals = nutritionTotals(result)
+        VStack(alignment: .leading, spacing: 10) {
+            // Meal type tag — derived from time of day.
+            Text(mealTypeLabel)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(FoodTheme.textSecondary)
+
+            // Dish name — joined item names, truncated if many.
+            Text(dishNameLabel(result))
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(FoodTheme.textPrimary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+
+            Rectangle()
+                .fill(Color.black.opacity(0.08))
+                .frame(height: 1)
+                .padding(.vertical, 2)
+
+            HStack(spacing: 0) {
+                macroColumn(value: "\(totals.carbs)g", label: "Carbs")
+                macroDivider
+                macroColumn(value: "\(totals.protein)g", label: "Protein")
+                macroDivider
+                macroColumn(value: "\(totals.fat)g", label: "Fat")
+                macroDivider
+                kcalColumn(value: "\(totals.kcal)")
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: Color.black.opacity(0.18), radius: 14, x: 0, y: 4)
+    }
+
+    @ViewBuilder
+    private func macroColumn(value: String, label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(FoodTheme.textPrimary)
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundStyle(FoodTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func kcalColumn(value: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Color(red: 0.37, green: 0.45, blue: 0.27))  // sage green
+            Text("kcal")
+                .font(.system(size: 11))
+                .foregroundStyle(FoodTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var macroDivider: some View {
+        Rectangle()
+            .fill(Color.black.opacity(0.07))
+            .frame(width: 1, height: 22)
+    }
+
+    /// Bottom toolbar variant for result mode: skip ↶ — log it — share ↑.
+    @ViewBuilder
+    private func resultActions(result: CapturedFood) -> some View {
+        HStack(spacing: 12) {
+            // Skip → back to live camera.
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                camera.unfreezePreview()
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    capturedResult = nil
+                }
+            } label: {
+                Image(systemName: "arrow.uturn.backward")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 48, height: 48)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .colorScheme(.dark)
+            }
+            .accessibilityLabel("retake")
+
+            // Log it — primary CTA, hot pink.
+            Button {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                onCaptured(result, camera.frozenFrame)
+            } label: {
+                Text("log it")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(
+                        Capsule().fill(Color(red: 1.0, green: 0.075, blue: 0.94))
+                    )
+                    .shadow(color: Color(red: 1.0, green: 0.075, blue: 0.94).opacity(0.3),
+                            radius: 8, x: 0, y: 2)
+            }
+
+            // Share — exports the captured photo so the user can post
+            // it to social. v1: photo only; v2 will compose with the
+            // nutrition card via ImageRenderer.
+            if let photo = camera.frozenFrame {
+                ShareLink(
+                    item: Image(uiImage: photo),
+                    preview: SharePreview("my plate", image: Image(uiImage: photo))
+                ) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 48, height: 48)
+                        .background(.ultraThinMaterial, in: Circle())
+                        .colorScheme(.dark)
+                }
+                .accessibilityLabel("share")
+            } else {
+                Color.clear.frame(width: 48, height: 48)
+            }
+        }
+    }
+
+    // MARK: - Result helpers
+
+    private var mealTypeLabel: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<11: return "Breakfast"
+        case 11..<15: return "Lunch"
+        case 15..<18: return "Snack"
+        case 18..<22: return "Dinner"
+        default:      return "Snack"
+        }
+    }
+
+    private func dishNameLabel(_ food: CapturedFood) -> String {
+        if food.items.isEmpty { return "your plate" }
+        if food.items.count == 1 { return food.items[0].name }
+        if food.items.count == 2 {
+            return "\(food.items[0].name) + \(food.items[1].name)"
+        }
+        return food.items.prefix(2).map { $0.name }.joined(separator: " + ")
+            + " +\(food.items.count - 2)"
+    }
+
+    private func nutritionTotals(_ food: CapturedFood) -> (carbs: Int, protein: Int, fat: Int, kcal: Int) {
+        let c = food.items.compactMap { $0.carbsG }.reduce(0, +)
+        let p = food.items.compactMap { $0.proteinG }.reduce(0, +)
+        let f = food.items.compactMap { $0.fatG }.reduce(0, +)
+        let k = food.totalKcal ?? Double((food.kcalLow ?? 0) + (food.kcalHigh ?? 0)) / 2
+        return (
+            carbs:   Int(c.rounded()),
+            protein: Int(p.rounded()),
+            fat:     Int(f.rounded()),
+            kcal:    Int(k.rounded())
+        )
     }
 
     @ViewBuilder
@@ -720,11 +949,19 @@ public struct PhotoCaptureView: View {
                 await FoodScanActivity.end(handle: activityHandle)
             }
 
+            // v1.0.8 Phase P (2026-06-08) — RESULT IS SHOWN INLINE.
+            // Founder direction: "don't change the design framework
+            // and captured screen. just [these cards] on the same
+            // captured photo screen + log/skip/share buttons."
+            //
+            // capturedResult drives the inline overlay (nutrition card
+            // on top of the frozen photo) + the result-mode bottom
+            // toolbar. onCaptured is deferred until the user explicitly
+            // taps "log it" — at which point CaptureFlowView persists
+            // and dismisses. The user can also tap "skip" to clear
+            // capturedResult and return to live-preview camera mode,
+            // or tap the share button to export the card+photo.
             capturedResult = result
-            // v1.0.7 — pass the frozen photo to the result phase so it
-            // can scaffold the photo as a Polaroid hero with
-            // matchedGeometryEffect from the viewfinder bounds.
-            onCaptured(result, camera.frozenFrame)
         } catch CameraError.captureTooSoon {
             // v1.0.7 — silently ignore back-to-back shutter taps
             // within the 3s debounce window. No banner, no telemetry

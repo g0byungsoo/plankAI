@@ -98,32 +98,17 @@ public struct CaptureFlowView: View {
                 PhotoCaptureView(
                     onDismiss: onDismiss,
                     onCaptured: { food, photo in
-                        // v1.0.7 — smooth magical camera→result
-                        // transition. Hold the photo, kick off the
-                        // sparkle bloom, then animate the phase
-                        // change. The Polaroid hero on resultPhase
-                        // uses matchedGeometryEffect from the same
-                        // photoTransition namespace so the still
-                        // morphs from the viewfinder bounds into the
-                        // result-card hero block instead of hard cut.
+                        // v1.0.8 Phase P (2026-06-08) — photo path
+                        // reviews INLINE in PhotoCaptureView. onCaptured
+                        // now fires only when the user has explicitly
+                        // tapped "log it" on the inline result card,
+                        // so we persist + dismiss directly here. No
+                        // .result phase transition for the photo path
+                        // (quickAdd + imOut still use .result since
+                        // they have no photo to overlay a card on).
                         capturedFood = food
                         capturedPhoto = photo
-                        withAnimation(.easeOut(duration: 0.35)) {
-                            transitionBloom = true
-                        }
-                        withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
-                            phase = .result
-                        }
-                        // Fade the bloom back out after the transition
-                        // settles. Independent timing from the spring
-                        // so the bloom outlasts the phase change by a
-                        // beat — "the photo arrived" cue.
-                        Task { @MainActor in
-                            try? await Task.sleep(nanoseconds: 600_000_000)
-                            withAnimation(.easeIn(duration: 0.45)) {
-                                transitionBloom = false
-                            }
-                        }
+                        logTapped(food)
                     },
                     onQuickAddTapped: { phase = .quickAdd },
                     onImOutTapped: { phase = .imOut }
