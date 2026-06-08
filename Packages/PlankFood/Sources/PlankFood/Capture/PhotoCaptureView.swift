@@ -153,34 +153,30 @@ public struct PhotoCaptureView: View {
     // MARK: - Camera layer
 
     @ViewBuilder private var cameraLayer: some View {
+        // v1.0.8 Phase J followup (2026-06-07) — `.ignoresSafeArea()`
+        // is on the OUTER ZStack, not individual children. Previously
+        // each child carried its own `.ignoresSafeArea()` and the ZStack
+        // had a trailing `.clipped()` — which clipped the contents back
+        // to the ZStack's own safe-area-respected bounds, undoing the
+        // child-level extensions. Net effect: a white letterbox bar at
+        // the status bar + home indicator. Now the whole ZStack
+        // extends edge-to-edge; the system white never shows through.
         ZStack {
             // Dark base so a fraction-of-a-second of preview-load
             // doesn't flash cream-pink. Cohort expects camera apps
             // to start dark.
-            Color.black.ignoresSafeArea()
+            Color.black
 
             if camera.permissionStatus == .authorized {
                 FoodCameraPreviewView(previewLayer: camera.previewLayer)
-                    .ignoresSafeArea()
 
-                // v1.0.8 Phase I (2026-06-08) — embrace the still
-                // as-is, iOS-Camera-style. The breathing-aperture
-                // scale + 1.6s repeating animation that made the
-                // plate feel "alive" was fighting the cohort's
-                // instinct after a capture: iOS Camera snaps and
-                // the still just SITS there. Frame appears
-                // instantly via the synchronous snapshotPreviewLayer
-                // path, no fade-in, no scale, no transition. The
-                // user sees the moment they tapped, period.
                 if let frame = camera.frozenFrame {
                     Image(uiImage: frame)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .ignoresSafeArea()
 
                     if !reduceMotion {
                         ScanningOverlay(isActive: isCapturing)
-                            .ignoresSafeArea()
                     }
                 }
             } else if camera.permissionStatus == .denied {
@@ -196,12 +192,11 @@ public struct PhotoCaptureView: View {
             // flash (still get haptic + sound for confirmation).
             if shutterFlash && !reduceMotion {
                 Color.white
-                    .ignoresSafeArea()
                     .allowsHitTesting(false)
                     .transition(.opacity)
             }
         }
-        .clipped()
+        .ignoresSafeArea()
     }
 
     // MARK: - Floating chrome
