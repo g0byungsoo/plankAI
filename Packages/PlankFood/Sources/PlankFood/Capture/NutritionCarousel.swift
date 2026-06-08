@@ -258,12 +258,18 @@ private struct MealSummaryCard: View {
             // in accent rose on a cream pill with a thin accent
             // border. Treats the chip as a voice-signal label rather
             // than a chrome CTA.
+            // v1.0.8 Phase U.5 — chip text switched to SF system per
+            // founder direction. Fraunces-Italic at 14pt rendered too
+            // ornamental for a small chip; system semibold reads as a
+            // clean utility label, leaves italic-Fraunces reserved for
+            // hero copy (dish name, "today's nutrients for", "jeni
+            // says").
             Button {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 showTweakSheet = true
             } label: {
                 Text("tweak this ♥")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(FoodTheme.accent)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
