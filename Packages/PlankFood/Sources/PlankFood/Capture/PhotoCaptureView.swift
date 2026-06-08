@@ -46,6 +46,11 @@ public struct PhotoCaptureView: View {
     @State private var errorMessage: String?
     /// v1.0.8 Phase H — gallery upload sheet state.
     @State private var showingLibraryPicker: Bool = false
+    /// v1.0.8 Phase I — iOS-Camera-style white shutter flash.
+    /// Briefly overlays the camera with full white opacity the
+    /// moment the user taps, fading out over ~180ms. Mirrors the
+    /// audio/visual "got the shot" beat of Apple's Camera app.
+    @State private var shutterFlash: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public let onDismiss: () -> Void
@@ -149,22 +154,20 @@ public struct PhotoCaptureView: View {
                 FoodCameraPreviewView(previewLayer: camera.previewLayer)
                     .ignoresSafeArea()
 
-                // v1.0.7 in-viewfinder scan magic. The decoded photo
-                // paints on top of the still-running preview layer
-                // (no preview stop, no flicker). The breathing-
-                // aperture scale per the iOS Swift brief makes the
-                // plate feel "alive" instead of frozen — subliminal.
+                // v1.0.8 Phase I (2026-06-08) — embrace the still
+                // as-is, iOS-Camera-style. The breathing-aperture
+                // scale + 1.6s repeating animation that made the
+                // plate feel "alive" was fighting the cohort's
+                // instinct after a capture: iOS Camera snaps and
+                // the still just SITS there. Frame appears
+                // instantly via the synchronous snapshotPreviewLayer
+                // path, no fade-in, no scale, no transition. The
+                // user sees the moment they tapped, period.
                 if let frame = camera.frozenFrame {
                     Image(uiImage: frame)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .ignoresSafeArea()
-                        .scaleEffect(isCapturing && !reduceMotion ? 1.012 : 1.0)
-                        .animation(
-                            .easeInOut(duration: 1.6).repeatForever(autoreverses: true),
-                            value: isCapturing
-                        )
-                        .transition(.opacity.animation(.linear(duration: 0.08)))
 
                     if !reduceMotion {
                         ScanningOverlay(isActive: isCapturing)
@@ -176,6 +179,17 @@ public struct PhotoCaptureView: View {
             } else {
                 ProgressView()
                     .tint(.white)
+            }
+
+            // v1.0.8 Phase I — iOS-Camera-style shutter flash.
+            // Full-white overlay that pops at 1.0 opacity then
+            // fades to 0 over ~180ms. Reduce-motion users skip the
+            // flash (still get haptic + sound for confirmation).
+            if shutterFlash && !reduceMotion {
+                Color.white
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
             }
         }
         .clipped()
@@ -447,11 +461,19 @@ public struct PhotoCaptureView: View {
         // is what iPhone Camera uses — same audio fingerprint the
         // cohort already pattern-matches as "got the shot."
         //
-        // Without this, the resize/encode + AVFoundation callback chain
-        // could feel like a 2-3s lag before any feedback landed,
-        // forcing users to keep holding the phone steady.
+        // v1.0.8 Phase I (2026-06-08) — added the iOS-Camera-style
+        // white shutter flash. Pop to white at 1.0 opacity, fade
+        // back to 0 over ~180ms. Same beat as the haptic + sound, so
+        // all three signals land within ~16ms of tap-up: audio,
+        // tactile, visual.
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         AudioServicesPlaySystemSound(1108)
+        if !reduceMotion {
+            shutterFlash = true
+            withAnimation(.easeOut(duration: 0.18)) {
+                shutterFlash = false
+            }
+        }
 
         FoodAnalytics.track(.scanStarted)
         FoodAnalytics.firstScanStartedIfNeeded()
