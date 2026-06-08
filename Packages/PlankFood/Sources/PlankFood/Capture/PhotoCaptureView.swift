@@ -55,6 +55,17 @@ public struct PhotoCaptureView: View {
     /// by a `.task` repeatForever animation. Mirrors the plank coach
     /// session signature per founder direction.
     @State private var borderRotation: Double = 0
+
+    /// v1.0.8 Phase K — pinch-to-zoom state. `baseZoom` snapshots the
+    /// zoom at the moment a pinch begins so `currentZoom = baseZoom *
+    /// gestureScale` matches what the user expects (iPhone Camera
+    /// semantics — pinch from current state, not from 1.0). The
+    /// indicator pill auto-hides 800ms after the pinch releases.
+    @State private var baseZoom: CGFloat = 1.0
+    @State private var liveZoom: CGFloat = 1.0
+    @State private var zoomIndicatorVisible: Bool = false
+    @State private var zoomHideTask: Task<Void, Never>?
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public let onDismiss: () -> Void
@@ -100,6 +111,8 @@ public struct PhotoCaptureView: View {
         ZStack {
             // Layer 1: full-bleed camera + frozen frame overlay.
             cameraLayer
+                .contentShape(Rectangle())
+                .gesture(pinchZoomGesture)
 
             // Layer 2: rotating brand-pink border (plank coach signature).
             // Founder override 2026-06-07: drop corner brackets, use the
@@ -110,6 +123,7 @@ public struct PhotoCaptureView: View {
                 isScanning: isCapturing,
                 isError: errorMessage != nil
             )
+            .allowsHitTesting(false)
 
             // Layer 3: floating UI chrome.
             floatingChrome
@@ -216,6 +230,13 @@ public struct PhotoCaptureView: View {
             .padding(.top, FoodTheme.Space.sm)
 
             Spacer()
+
+            // v1.0.8 Phase K — zoom indicator during pinch. Sits above
+            // the microcopy/label slot so it doesn't fight the scan
+            // status text for screen real estate. Auto-hides 800ms
+            // after pinch release via zoomHideTask.
+            zoomIndicator
+                .padding(.bottom, FoodTheme.Space.sm)
 
             // v1.0.7 — italic-Fraunces label rotator during scan.
             // Replaces the old fixed slot under the constrained
@@ -466,6 +487,64 @@ public struct PhotoCaptureView: View {
         .padding(.top, 60)
         .transition(.move(edge: .top).combined(with: .opacity))
         .accessibilityLabel("error: \(message). tap to dismiss.")
+    }
+
+    // MARK: - Zoom
+
+    /// v1.0.8 Phase K (2026-06-08) — iPhone-Camera-style pinch zoom.
+    /// `baseZoom` snapshots the live zoom when the pinch begins so the
+    /// scaling math is `base * gesture`, not `1.0 * gesture` — this
+    /// matches what users expect from any modern camera app (pinch
+    /// from where you are, not from default). On release, baseZoom
+    /// catches up to wherever liveZoom ended.
+    ///
+    /// Pinch is disabled while a scan is in flight (the frozen frame
+    /// is showing; zooming the live camera underneath would do
+    /// nothing visible until the scan completes and the live preview
+    /// returns).
+    private var pinchZoomGesture: some Gesture {
+        MagnificationGesture()
+            .onChanged { scale in
+                guard !isCapturing else { return }
+                let target = baseZoom * scale
+                let clamped = max(1.0, min(target, camera.maxZoom))
+                camera.setZoom(clamped)
+                liveZoom = clamped
+                if !zoomIndicatorVisible {
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        zoomIndicatorVisible = true
+                    }
+                }
+                zoomHideTask?.cancel()
+            }
+            .onEnded { _ in
+                baseZoom = liveZoom
+                zoomHideTask?.cancel()
+                zoomHideTask = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 800_000_000)
+                    if Task.isCancelled { return }
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        zoomIndicatorVisible = false
+                    }
+                }
+            }
+    }
+
+    /// Floating zoom indicator pill — appears on pinch, auto-hides
+    /// after release. iPhone Camera shows "1.5×" mid-screen during a
+    /// pinch; we use the same affordance, glass-blur backing so it
+    /// reads on any food background.
+    @ViewBuilder private var zoomIndicator: some View {
+        if zoomIndicatorVisible {
+            Text(String(format: "%.1f×", liveZoom))
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background(.ultraThinMaterial, in: Capsule())
+                .colorScheme(.dark)
+                .transition(.opacity)
+        }
     }
 
     // MARK: - Actions

@@ -8,74 +8,80 @@ import SwiftUI
 //   docs/camera_magic_research_calai_teardown_2026_06_06.md
 //   docs/camera_magic_research_ios_swift_2026_06_06.md
 //
-// Three-layer composition that gives JeniFit-register magic without
-// going AR-clinical (the trap Cal AI / SnapCalorie fell into):
+// v1.0.8 Phase K (2026-06-08) — smoothness pass. Founder feedback:
+// "the scan animations are flickering — it's much better — but let's
+// make a lot more smooth transition animation."
 //
-//   1. Cocoa scanline sweep — 2pt height, 12pt halo, gradient cocoa
-//      → transparent. Sweeps top→bottom on a 1.4s smoothstep loop.
-//      Cocoa not laser-green = coquette-not-clinical register.
-//   2. Subtle aperture breathing (1.0 → 1.012 on 1.6s) — the frozen
-//      still feels "alive" rather than locked. Almost subliminal.
-//   3. Italic-Fraunces label rotator — "*reading* your plate" →
-//      "*finding* ingredients" → "*tallying* portions" — every 700ms.
-//      Italic-Fraunces punch word per locked voice signal.
+// Two root-cause fixes:
 //
-// Sits INSIDE the viewfinder bounds, on top of the frozenFrame
-// Image. The AVCaptureVideoPreviewLayer keeps running underneath
-// (covered by the still), so when the call returns we can clear
-// the frozenFrame and the live preview is back without a hitch.
+// 1. SWEEP LOOP BOUNDARY SNAP. The previous sweep used
+//    `(t mod sweepDuration) / sweepDuration` for phase and drew the
+//    scanline at `phase * height`. At each loop boundary the scanline
+//    instantly teleported from the bottom of the frame back to the
+//    top — a one-frame snap that read as a flicker. Now multiplied by
+//    a sin alpha gate `sin(phase * π)` so the scanline fades IN at
+//    the top, peaks at mid-frame, and fades OUT at the bottom before
+//    the loop restarts. No visible snap.
 //
-// TimelineView(.animation(paused:)) drives both layers — flipping
-// isActive=false freezes the sweep mid-stride for clean cancellation.
-// Reduce-motion gate replaces the moving bar with a static still +
-// labels only (kept by the caller).
+// 2. PLUS-LIGHTER BLEND MODE on bright food photos was washing the
+//    scanline to near-invisible on white plates and oversaturating it
+//    on dark backgrounds — visible flicker as the camera auto-exposed
+//    between frames. Dropped in favor of normal compositing; the
+//    cocoa + rose gradient colors already carry enough contrast.
+//
+// Also lengthened the sweep cycle (1.4s → 2.2s) since the new
+// fade-in/fade-out at the edges already adds visual time. A slower,
+// more deliberate sweep reads as "carefully reading" — the right
+// emotional register for a one-shot food capture.
 
 @MainActor
 struct ScanningOverlay: View {
 
     let isActive: Bool
 
-    /// 1.4s sweep loop. Fast enough to feel alive, slow enough to read.
-    private let sweepDuration: Double = 1.4
+    /// 2.2s sweep loop. Slower than before because the sin alpha gate
+    /// already adds breathing room; a fast sweep on top of the fade
+    /// looked anxious.
+    private let sweepDuration: Double = 2.2
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0,
                                 paused: !isActive)) { timeline in
             let t = timeline.date.timeIntervalSinceReferenceDate
-            let phase = (t.truncatingRemainder(dividingBy: sweepDuration))
-                        / sweepDuration
+            let raw = (t.truncatingRemainder(dividingBy: sweepDuration))
+                      / sweepDuration
 
             Canvas { context, size in
                 drawScanline(
                     in: context,
                     size: size,
-                    phase: CGFloat(smoothstep(phase))
+                    phase: CGFloat(smoothstep(raw)),
+                    gate: CGFloat(sin(raw * .pi))
                 )
             }
         }
-        .compositingGroup()
-        .blendMode(.plusLighter)
         .allowsHitTesting(false)
+        .opacity(isActive ? 1 : 0)
+        .animation(.easeInOut(duration: 0.35), value: isActive)
     }
 
     /// Two-layer JeniFit scanline: a SOFT ROSE outer halo (44pt) +
     /// COCOA core (1.5pt) with a slim cocoa halo (20pt) in between.
-    /// Rose-on-cocoa keeps the coquette-not-clinical register — pure
-    /// cocoa read as too utility, pure rose read as too femtech. Both
-    /// layers are GPU-backed linear gradients.
+    /// Rose-on-cocoa keeps the coquette-not-clinical register.
+    ///
+    /// `gate` is the sin-π alpha multiplier — 0 at the loop boundary,
+    /// 1 at mid-cycle — that hides the y=0 / y=height teleport.
     private func drawScanline(
         in context: GraphicsContext,
         size: CGSize,
-        phase: CGFloat
+        phase: CGFloat,
+        gate: CGFloat
     ) {
         let y = phase * size.height
         let cocoaHalo: CGFloat = 20
         let roseHalo: CGFloat = 44
         let core: CGFloat = 1.5
 
-        // Outer rose halo — softens the cocoa scanline into the
-        // coquette voice. JeniFit accent rose, low alpha so it
-        // washes the photo with warmth rather than tinting it.
         let rose = Color(red: 0.77, green: 0.40, blue: 0.48)  // #C4677A
         let roseRect = CGRect(
             x: 0, y: y - roseHalo,
@@ -83,7 +89,7 @@ struct ScanningOverlay: View {
         )
         let roseGradient = Gradient(stops: [
             .init(color: .clear, location: 0.0),
-            .init(color: rose.opacity(0.10), location: 0.5),
+            .init(color: rose.opacity(0.10 * Double(gate)), location: 0.5),
             .init(color: .clear, location: 1.0),
         ])
         context.fill(
@@ -95,7 +101,6 @@ struct ScanningOverlay: View {
             )
         )
 
-        // Inner cocoa halo — the "reading" mark proper.
         let cocoa = Color(red: 0.24, green: 0.16, blue: 0.16)  // #3D2A2A
         let cocoaRect = CGRect(
             x: 0, y: y - cocoaHalo,
@@ -103,7 +108,7 @@ struct ScanningOverlay: View {
         )
         let cocoaGradient = Gradient(stops: [
             .init(color: .clear, location: 0.0),
-            .init(color: cocoa.opacity(0.18), location: 0.5),
+            .init(color: cocoa.opacity(0.18 * Double(gate)), location: 0.5),
             .init(color: .clear, location: 1.0),
         ])
         context.fill(
@@ -115,14 +120,13 @@ struct ScanningOverlay: View {
             )
         )
 
-        // Core line — crisp cocoa thread.
         let coreRect = CGRect(
             x: 0, y: y - core / 2,
             width: size.width, height: core
         )
         context.fill(
             Path(coreRect),
-            with: .color(cocoa.opacity(0.55))
+            with: .color(cocoa.opacity(0.55 * Double(gate)))
         )
     }
 
@@ -136,65 +140,63 @@ struct ScanningOverlay: View {
 
 // MARK: - ScanLabelRotator
 //
-// Italic-Fraunces label that rotates between three states every 700ms
-// while isActive. PhaseAnimator alternative: TimelineView(.periodic)
-// drives the index, which forces a SwiftUI body re-render with .id()
-// so the .transition fires per swap. Italic-Fraunces on the verb only
-// per the voice signal lock.
+// v1.0.8 Phase K (2026-06-08) — rewritten for smoothness. The previous
+// version used `.id(idx) + .transition` driven by a TimelineView body
+// re-render. SwiftUI doesn't fire `.transition` reliably when the
+// driver is a TimelineView (the body re-runs every tick without going
+// through the animation system), so the label was hard-cutting on each
+// 0.9s rotate instead of crossfading.
+//
+// New approach:
+//   - @State index driven by a `.task(id:)` async loop with explicit
+//     `withAnimation(.easeInOut(duration: 0.55))` per phase swap
+//   - `.contentTransition(.opacity)` on the Text so the content
+//     change cross-fades smoothly without remounting the view
+//   - Cadence bumped 0.9s → 1.6s so each phrase has time to BE read
+//     before the next one starts fading in — the previous pace was
+//     racing the reader
 
 @MainActor
 struct ScanLabelRotator: View {
 
     let isActive: Bool
 
-    private enum Phase: Int, CaseIterable {
-        case reading, finding, tallying
+    @State private var idx: Int = 0
 
-        var verb: String {
-            switch self {
-            case .reading:  return "reading"
-            case .finding:  return "finding"
-            case .tallying: return "tallying"
-            }
-        }
-        var tail: String {
-            switch self {
-            case .reading:  return " your plate"
-            case .finding:  return " ingredients"
-            case .tallying: return " portions"
-            }
-        }
+    private struct Phrase {
+        let verb: String
+        let tail: String
     }
+    private static let phrases: [Phrase] = [
+        .init(verb: "reading",  tail: " your plate"),
+        .init(verb: "finding",  tail: " ingredients"),
+        .init(verb: "tallying", tail: " portions"),
+    ]
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 0.9)) { ctx in
-            let elapsed = ctx.date.timeIntervalSinceReferenceDate
-            let idx = max(0, Int(elapsed / 0.9)) % Phase.allCases.count
-            let phase = Phase.allCases[idx]
-
-            // .id(idx) forces SwiftUI to mount a fresh subtree per
-            // phase change so the transition actually fires. Cleaner
-            // resolve: opacity + slight blur fade-in (no slide — the
-            // slide-from-bottom was the part that read clinical).
-            HStack(spacing: 0) {
-                Text(phase.verb)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                Text(phase.tail)
-                    .font(.custom("Fraunces72pt-Regular", size: 16))
-            }
-            .foregroundStyle(FoodTheme.textPrimary)
-            .id(idx)
-            .transition(
-                .asymmetric(
-                    insertion: .opacity.animation(.easeOut(duration: 0.45)),
-                    removal:   .opacity.animation(.easeIn(duration: 0.25))
-                )
-            )
+        let phrase = Self.phrases[idx]
+        HStack(spacing: 0) {
+            Text(phrase.verb)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+            Text(phrase.tail)
+                .font(.custom("Fraunces72pt-Regular", size: 16))
         }
+        .foregroundStyle(FoodTheme.textPrimary)
+        .contentTransition(.opacity)
+        .animation(.easeInOut(duration: 0.55), value: idx)
         .opacity(isActive ? 1 : 0)
-        .animation(.easeInOut(duration: 0.25), value: isActive)
+        .animation(.easeInOut(duration: 0.35), value: isActive)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("looking at your plate")
+        .task(id: isActive) {
+            guard isActive else { return }
+            idx = 0
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_600_000_000)
+                if Task.isCancelled { return }
+                idx = (idx + 1) % Self.phrases.count
+            }
+        }
     }
 }
 

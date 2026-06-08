@@ -41,10 +41,23 @@ public final class FoodCameraManager: NSObject {
     /// Surfaced for `FoodCameraPreviewView` (UIViewRepresentable).
     public let previewLayer = AVCaptureVideoPreviewLayer()
 
+    /// v1.0.8 Phase K (2026-06-07) — current zoom factor. 1.0 = no
+    /// zoom, capped at `maxZoom`. Updated synchronously by `setZoom`
+    /// so the pinch gesture in PhotoCaptureView can render an indicator.
+    public private(set) var currentZoom: CGFloat = 1.0
+
+    /// Practical zoom ceiling for food photos. AVCaptureDevice can
+    /// report 10×+ on Pro phones but the image quality past 5× on
+    /// digital zoom is poor enough that the EF starts losing the plate.
+    public let maxZoom: CGFloat = 5.0
+
     // MARK: - Private
 
     private let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
+    /// v1.0.8 Phase K — held reference to the active back camera so
+    /// `setZoom` can lock it for configuration without re-querying.
+    private var captureDevice: AVCaptureDevice?
     /// Holds the continuation so the async capture API can resume from
     /// the AVCapturePhotoCaptureDelegate callback.
     private var pendingCapture: CheckedContinuation<Data, Error>?
@@ -104,6 +117,7 @@ public final class FoodCameraManager: NSObject {
         if session.canAddInput(input) {
             session.addInput(input)
         }
+        captureDevice = camera
 
         if session.canAddOutput(photoOutput) {
             session.addOutput(photoOutput)
@@ -354,6 +368,32 @@ public final class FoodCameraManager: NSObject {
     /// retry loop on cafe wifi. No-op if there's no stamp to clear.
     public func recordCaptureFailed() {
         lastCaptureCompletedAt = nil
+    }
+
+    /// v1.0.8 Phase K (2026-06-08) — iPhone-Camera-style pinch zoom.
+    /// `factor` is clamped to [1.0, `maxZoom`] and applied directly to
+    /// the active back camera. Both the live preview and the eventual
+    /// AVCapturePhotoOutput capture honor the zoom — so what the user
+    /// pinched is what the EF sees.
+    ///
+    /// We set videoZoomFactor directly (no `ramp(toVideoZoomFactor:)`)
+    /// because pinch gestures need synchronous feedback. The ramp API
+    /// is for tap-to-2x style animations where the user expects a
+    /// smooth lerp; for finger-driven scaling the immediate value
+    /// matches the gesture frame-by-frame.
+    public func setZoom(_ factor: CGFloat) {
+        guard let device = captureDevice else { return }
+        let clamped = max(1.0, min(factor, maxZoom))
+        do {
+            try device.lockForConfiguration()
+            device.videoZoomFactor = clamped
+            device.unlockForConfiguration()
+            currentZoom = clamped
+        } catch {
+            #if DEBUG
+            print("[FoodCameraManager] setZoom failed: \(error)")
+            #endif
+        }
     }
 
     /// v1.0.8 Phase H — process a UIImage from the photo library
