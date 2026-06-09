@@ -27,13 +27,19 @@ struct ProgramLockSheet: View {
     let onDismiss: () -> Void
 
     var body: some View {
+        // Layout fills the entire .medium-detent sheet area so the
+        // system container background (which can render as dim/grey
+        // on iOS 17+) never bleeds through at the top or bottom edges.
+        // Spacer between content and CTA pushes the button to the
+        // bottom of the available sheet height.
         VStack(alignment: .leading, spacing: 0) {
             handle
             content
+            Spacer(minLength: 24)
             cta
         }
-        .frame(maxWidth: .infinity)
-        .background(Palette.programCard.ignoresSafeArea(edges: .bottom))
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Palette.programCard)
     }
 
     private var handle: some View {

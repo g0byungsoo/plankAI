@@ -93,6 +93,11 @@ struct PlanView: View {
             )
             .presentationDetents([.medium])
             .presentationDragIndicator(.hidden)
+            // Force the entire sheet container background to white
+            // (iOS 16.4+). Without this the system uses .systemBackground
+            // which on dark-mode-ish overlay renders as a grey bleed at
+            // the top/bottom edges of the .medium detent.
+            .presentationBackground(Palette.programCard)
         }
     }
 
