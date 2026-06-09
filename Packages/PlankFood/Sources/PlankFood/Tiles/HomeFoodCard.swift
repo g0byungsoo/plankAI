@@ -136,41 +136,13 @@ public struct HomeFoodCard: View {
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
-            // v1.0.7 round 14: realistic wholefoods photo (TikTok
-            // creator-plate aesthetic). Top-down shot of avocado
-            // toast + tomato-feta yogurt toast + banana + cherry
-            // tomatoes + blueberries + soft-boiled egg.
-            //
-            // v1.0.7 round 15 (founder 2026-06-07): the 220×200
-            // illustration was overlapping the WeeklyAvgBar caption
-            // ("averaging 40 — your body needs more") in the filled
-            // state, making the text unreadable. Now state-aware:
-            //   - Empty state: 220×200, full opacity. The plate IS
-            //     the "what you ate" semantic cue when there's no
-            //     data to compete with.
-            //   - Filled state: 110×100, 0.35 opacity, tucked tight
-            //     into the corner. The bar + caption + count carry
-            //     meaning; the illustration becomes a small accent
-            //     anchor that doesn't fight for legibility.
-            .overlay(alignment: .bottomTrailing) {
-                if UIImage(named: "illustration_food_phone_plate") != nil {
-                    let isFilled = todayKcal > 0
-                    Image("illustration_food_phone_plate", bundle: .main)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(
-                            width: isFilled ? 110 : 220,
-                            height: isFilled ? 100 : 200
-                        )
-                        .opacity(isFilled ? 0.35 : 1.0)
-                        .offset(
-                            x: isFilled ? 8 : 20,
-                            y: isFilled ? 12 : 28
-                        )
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                }
-            }
+            // v1.0.9 D3.A (2026-06-08) — illustration_food_phone_plate
+            // removed per founder feedback. With the macro micro-bars
+            // now sitting under the kcal bar, the card carries
+            // enough visual + data weight on its own. The plate
+            // illustration was competing with the macro readout for
+            // attention; the cherries sticker (top-right) + glossy
+            // sparkle (bottom-left) carry the food semantic cue.
             // Hard offset shadow — Lasta's "scrapbook chrome on the
             // visual signature card" — adds dimensionality + makes
             // the card feel like a sticker the user could peel off.
