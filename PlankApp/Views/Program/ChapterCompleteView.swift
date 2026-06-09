@@ -4,24 +4,28 @@ import PlankSync
 
 // MARK: - ChapterCompleteView
 //
-// v1.1 program pivot. Day-75 graduation sentinel — fires once when
+// v1.1 program pivot. Graduation sentinel — fires once when
 // `ProgramService.isPostGoal(userId:in:) == true` on first home open
 // after the user crosses goalDate. Free emotional moment + 4-card
 // next-program picker.
+//
+// Per [[project-program-duration-custom]] the hero shows the user's
+// actual totalDays from their plan, not a hardcoded 75. Two users
+// might graduate on day 28 (Soft + small goal) and day 175 (Hard +
+// big goal) and both deserve the same emotional moment.
 //
 // Founder decision 2026-06-09: the celebration is a free moment;
 // enrollment in the next program is a separate tap (Phase 5 wires
 // the actual transitions for Maintenance 30 / Recomp 60 / New Goal 75
 // / Soft Pause). Phase 1 ships the picker UI with ONE working option
-// (re-running 75-day with a new goal weight) so the sentinel doesn't
-// trap the user.
-//
-// Anti-shame body copy locked: "30% of women who finish stop here.
-// They regain within a year. Stay with us — pick what's next."
-// Cited from Wing & Phelan 2005 NWCR (maintenance-phase pattern).
+// (re-running with a new goal weight) so the sentinel doesn't trap
+// the user.
 
 struct ChapterCompleteView: View {
 
+    /// Duration of the just-completed plan. Drives the dynamic
+    /// "day {totalDays}." hero — never hardcoded.
+    let totalDays: Int
     let userId: String
     let onDismiss: () -> Void
     let onPickNextProgram: (NextProgramKind) -> Void
@@ -93,7 +97,7 @@ struct ChapterCompleteView: View {
 
     private var hero: some View {
         VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
-            Text("day 75.")
+            Text("day \(totalDays).")
                 .font(Typo.programHeroDisplay)
                 .foregroundStyle(Palette.cocoaPrimary)
                 .accessibilityFocused($titleFocused)

@@ -68,10 +68,17 @@ public enum ProgramScheduleCalculator {
         }
     }
 
-    /// Default total days for the standard plan. Per the founder-
-    /// locked plan, the standard is 75 days but the marketing
-    /// surface never says "75 days" — it leads with "custom".
-    public static let standardTotalDays: Int = 75
+    /// **Defensive fallback only** — NOT a user-facing default duration.
+    /// Every active ProgramPlanRecord carries its own totalDays computed
+    /// from ProgramGoalCalculator window × picked intensity, so callers
+    /// MUST read `plan.totalDays` directly when a plan exists. This
+    /// constant exists for the rare path where the program designer
+    /// errored out (corrupt save, missing weight inputs, etc.) and we
+    /// need *something* non-zero to render the UI without a crash or
+    /// "day 0 of 0" glitch. Founder direction 2026-06-09: 75 is fine
+    /// as a fallback; never as a default. See
+    /// [[project-program-duration-custom]].
+    public static let fallbackTotalDays: Int = 75
 
     public static func compute(_ inputs: Inputs) -> Result {
         let calendar = Calendar(identifier: .gregorian)
