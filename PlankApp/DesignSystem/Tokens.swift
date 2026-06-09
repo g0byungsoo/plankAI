@@ -141,8 +141,12 @@ enum Typo {
     /// Recommended negative spacing for a 2-line her75-style hero
     /// VStack at programHeroDisplay/Italic size. Brings the two
     /// lines visually together so the block reads as a single
-    /// editorial unit instead of two stacked sentences.
-    static let programHeroLineGap: CGFloat = -10
+    /// editorial unit instead of two stacked sentences. **Founder
+    /// QA 2026-06-09:** tightened from -10 to -16 after the second
+    /// pass showed lines still felt separated. -16 is the her75
+    /// "lines almost touch" register; pair with single-line VStack
+    /// rows (no internal wrap) so the gap is uniform throughout.
+    static let programHeroLineGap: CGFloat = -16
 
     /// Numeral on ProgramStickyNote — the 1-5 row markers on
     /// DailyChecklistCard. Italic Fraunces 28pt. Hand-cut paper

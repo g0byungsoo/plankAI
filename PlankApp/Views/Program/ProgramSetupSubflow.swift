@@ -158,18 +158,12 @@ struct ProgramSetupSubflow: View {
     private var pageGoalDateReveal: some View {
         VStack(alignment: .leading, spacing: 28) {
             VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
-                Text("your plan,")
+                Text("your")
                     .font(Typo.programHeroDisplay)
                     .foregroundStyle(Palette.cocoaPrimary)
-                (
-                    Text("built ")
-                        .font(Typo.programHeroDisplay)
-                        .foregroundStyle(Palette.cocoaPrimary)
-                    +
-                    Text("around you.")
-                        .font(Typo.programHeroItalic)
-                        .foregroundStyle(Palette.cocoaPrimary)
-                )
+                Text("plan.")
+                    .font(Typo.programHeroItalic)
+                    .foregroundStyle(Palette.cocoaPrimary)
             }
             .fixedSize(horizontal: false, vertical: true)
 
@@ -304,22 +298,16 @@ struct ProgramSetupSubflow: View {
     private var pageIntensityPick: some View {
         VStack(alignment: .leading, spacing: 28) {
             VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
-                Text("how do you")
+                Text("your")
                     .font(Typo.programHeroDisplay)
                     .foregroundStyle(Palette.cocoaPrimary)
-                (
-                    Text("want ")
-                        .font(Typo.programHeroItalic)
-                        .foregroundStyle(Palette.cocoaPrimary)
-                    +
-                    Text("to get there?")
-                        .font(Typo.programHeroDisplay)
-                        .foregroundStyle(Palette.cocoaPrimary)
-                )
+                Text("pace.")
+                    .font(Typo.programHeroItalic)
+                    .foregroundStyle(Palette.cocoaPrimary)
             }
             .fixedSize(horizontal: false, vertical: true)
 
-            Text("pick a pace. you can change it later.")
+            Text("pick the rhythm. you can change it later.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.cocoaSecondary)
 
