@@ -116,6 +116,29 @@ enum Typo {
     /// (Penguin Classics convention). Apply `.kerning(0.3)` at
     /// the call site.
     static let romanOrnament = font("Fraunces72pt-SemiBold", size: 11, relativeTo: .caption2)
+
+    // MARK: - v1.1 program-surface tokens (Her75 register)
+    //
+    // Program surfaces (PlanView, ProgramHomeView, IntensityPickerView,
+    // ProgressGridView, ProgramDayShareCard) get a parallel typographic
+    // layer that's louder than the existing display/title cuts and
+    // amplifies the italic-Fraunces voice signal to every program
+    // header. NOT used on existing celebration surfaces.
+
+    /// Program-surface hero header — "follow your routine",
+    /// "start your program", "day one". Fraunces Light 48pt with
+    /// tight leading. Apply italic on the punch word via
+    /// programHeroItalic at the same size.
+    static let programHeroDisplay = font("Fraunces72pt-Light", size: 48, relativeTo: .largeTitle).leading(.tight)
+
+    /// Italic accent at the program-hero size. Pair with
+    /// programHeroDisplay on the same Text via inline +.
+    static let programHeroItalic = font("Fraunces72pt-SemiBoldItalic", size: 48, relativeTo: .largeTitle).leading(.tight)
+
+    /// Numeral on ProgramStickyNote — the 1-5 row markers on
+    /// DailyChecklistCard. Italic Fraunces 28pt. Hand-cut paper
+    /// register; the ONE craft signal per program screen.
+    static let stickyNumeral = font("Fraunces72pt-SemiBoldItalic", size: 28, relativeTo: .title2)
 }
 
 // MARK: - Spacing (4pt base)
@@ -130,6 +153,22 @@ enum Space {
     static let screenPadding: CGFloat = md
     static let cardPadding: CGFloat = md
     static let minTapTarget: CGFloat = 44
+
+    // MARK: - v1.1 program-surface spacing (Her75 whitespace rhythm)
+    //
+    // Her75's actual luxury signal is radical vertical whitespace —
+    // ~80pt below status bar before hero, ~64pt between major sections.
+    // Most apps ship 24pt for both; Her75 doubles/triples it.
+    // Program surfaces only — existing screens keep lg=24.
+
+    /// Top inset before program greeting on PlanView / ProgramHomeView
+    /// / IntensityPickerView. 80pt vs the typical 24pt — the screen
+    /// breathes before it speaks.
+    static let hero: CGFloat = 80
+
+    /// Vertical gutter between major program blocks (photo-mosaic →
+    /// checklist card → friends row). 64pt — generous editorial gutter.
+    static let section: CGFloat = 64
 }
 
 // MARK: - Colors
@@ -209,6 +248,28 @@ enum Palette {
     /// calendar reads cohesive with the rest of the palette. Promoted from
     /// the inline `Color(hex: "#D6EBF5")` literal noted in the screen audit.
     static let frozenDay = accentSubtle
+
+    // MARK: - v1.1 program-surface palette (Her75 register)
+    //
+    // bgPrimary #FDF6F4 stays the locked scroll background. Program
+    // surfaces layer a TRUE WHITE card on top of the pink — closest
+    // we can get to Her75 paperwhite without dropping the brand
+    // pink. ProgramPaperShadow (defined below) replaces .plankShadow()
+    // on program surfaces only.
+
+    /// Card surface for program rows (PlanView, ProgressGridView,
+    /// IntensityPickerView). True white #FFFFFF — layers on top of
+    /// bgPrimary #FDF6F4 with a soft 4% shadow.
+    static let programCard = Color(hex: "#FFFFFF")
+
+    /// Sticky-note row marker pastels. Cycled by row index on
+    /// ProgramStickyNote — the ONE craft signal per program screen.
+    /// Mint → Butter → Rose → Olive, repeat. Sourced from Her75's
+    /// hand-cut paper register.
+    static let stickyMint   = Color(hex: "#C8E6CB")
+    static let stickyButter = Color(hex: "#FFE7A8")
+    static let stickyRose   = Color(hex: "#F4D1D1")
+    static let stickyOlive  = Color(hex: "#D9DBA8")
 }
 
 // MARK: - Corner Radius
@@ -217,6 +278,11 @@ enum Radius {
     static let sm: CGFloat = 8
     static let md: CGFloat = 14
     static let lg: CGFloat = 24
+
+    /// v1.1 program-card radius. Slightly tighter than `lg=24` —
+    /// Her75 cards sit at ~20pt for the photo-mosaic / checklist
+    /// register. Existing surfaces keep `lg`.
+    static let programCard: CGFloat = 20
 }
 
 // MARK: - Motion (calm, mindful, magical defaults)
@@ -297,6 +363,31 @@ struct PlankShadow: ViewModifier {
 extension View {
     func plankShadow() -> some View {
         modifier(PlankShadow())
+    }
+}
+
+// MARK: - Program paper shadow (v1.1, Her75 register)
+//
+// Replaces `.plankShadow()` on program surfaces only. Her75 cards
+// have an almost-imperceptible drop — rgba(0,0,0,0.04) at y=4 with
+// 20pt blur. No rose tint (that's PlankShadow's job for celebration
+// surfaces). The card-on-pink layering does most of the work; the
+// shadow just lifts it a hair.
+
+struct ProgramPaperShadow: ViewModifier {
+    func body(content: Content) -> some View {
+        content.shadow(
+            color: Color.black.opacity(0.04),
+            radius: 20,
+            x: 0,
+            y: 4
+        )
+    }
+}
+
+extension View {
+    func programPaperShadow() -> some View {
+        modifier(ProgramPaperShadow())
     }
 }
 
