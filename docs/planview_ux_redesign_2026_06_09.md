@@ -581,3 +581,243 @@ No migration needed — these were write-only flags that gated a UI hint. Cleani
 
 3. **Eyebrow during scrapbook mode — does it read `day 8 of 75` (clean) or `day 8 of 75 ·   viewing` (explicit)?** v3 spec says clean (the scrapbook pill below the strip carries the "viewing" signal). Want founder confirm before code lands — if she wants belt + suspenders, we add the suffix.
 
+---
+
+# Revision v4 (2026-06-09 evening) — PlanRow anatomy: drop chevron, type-aware leading icon, progress rows split out
+
+## v4.1 What changed and why
+
+Three v3-shipped problems caught in founder QA on the row pattern itself (strip + composition + outer card all stay locked):
+
+1. **Every row used the same chevron + checkbox trailing.** Five rows × two-affordance trailing module reads as "spreadsheet of pending tasks" — exactly the productivity-app register PlanView was supposed to escape. Worse: the steps row, which can't be checked off because it's HealthKit-driven, was rendering an inert disabled checkbox + a `sparkle` glyph that fired *only after* the goal was hit. Pre-goal state was a non-tappable empty circle that looked broken.
+2. **56pt sticky-notes dominate.** They were the v2 craft signal when each row had less trailing weight. v3 piled a chevron + checkbox into the trailing region and the sticky-note's visual mass collided with that — now both sides shout, the title text gets squeezed, and the row stops feeling like a list and starts feeling like a row of cards.
+3. **Chevron 13pt + checkbox 26pt at 8pt apart fails the thumb test.** I called this out softly in v2 (§3 "small enough to feel like one trailing module, big enough that thumb taps don't fight") and it was wrong. The 8pt gap is not big enough. BetterMe (the reference I anchored on) puts them on OPPOSITE ENDS of the row — checkbox far left, chevron far right — and that spatial separation is doing 90% of the ergonomics work. Forcing both to the right was a misread.
+
+The intent I'm reading now: each row should declare its own *kind* on first glance. A lesson is a thing-to-tap-and-read. A snap-meal is a thing-to-tap-and-capture. Steps are a thing-the-phone-is-doing-for-you. Weigh-in is a Sunday ritual. A uniform row template flattens those into one ambient surface and loses the per-row affordance literacy the cohort needs to feel the program working.
+
+## v4.2 The decision matrix — pick (a) BetterMe-pattern (drop chevron, keep checkbox, split out progress rows)
+
+Walked through all four:
+
+- **(a) drop chevron, keep checkbox, row IS the module-launcher** — what BetterMe does. Single primary affordance on the row body. Checkbox is a small explicit secondary on the right. Progress rows replace the checkbox with a thin bar + numeric label, no checkbox at all. **Picked.**
+- **(b) drop checkbox, keep chevron, auto-complete only** — pure telemetry trust + hidden swipe action for manual override. Beautiful in theory. Wrong for this cohort. The user *needs* to feel agency over the checklist; an empty row that filled itself "because the phone saw you opened the lesson" is opaque and uncontrollable. Also: lesson + breath + meal capture all need user-explicit confirmation moments today because telemetry isn't 100% reliable (offline use, app-switching mid-session, etc.). Manual checkbox is load-bearing.
+- **(c) checkbox left + chevron right (full BetterMe trailing-region split)** — solves ergonomics, but doubles the chrome per row (we'd have leading sticky + leading checkbox + center text + trailing chevron = four columns of affordance). Reads as gym-app density. Also forces a 2x leading-region rework when the steps row replaces the left checkbox with something else. The cost-benefit doesn't land.
+- **(d) something else** — nothing better surfaced.
+
+Why (a) over (c) specifically: **the chevron in v3 was never carrying its weight.** It was a visual hint that the row was tappable, but the entire row body is already tappable, the sticky-note pulls the eye, the title sits at the top of a v-stack — the row reads as tappable without the glyph. Removing the chevron sheds chrome without removing affordance. BetterMe ships their chevron because their rows host *both* photo-thumbnail content (which reads as media, not as a button) AND module-launching; the chevron compensates for the photo's button-uncertainty. Our sticky-note reads as marker, not media, so the row is unambiguously a button without help.
+
+Founder ref-tier check: her75 ships zero chevrons, zero progress bars, zero auto-rows. We're going *further* than her75 here, not copying — because her75 doesn't have telemetry-backed rows or HealthKit-backed rows, and we do. The pattern is: her75 chrome restraint + BetterMe row mechanic + a JeniFit-specific third pattern (progress row) the references don't have.
+
+## v4.3 Leading element redesign — shrink sticky-note 56→40 AND add a type glyph
+
+Picked: **40pt sticky-note, numeral shrunk proportionally, with a small SF symbol type-icon centered on the sticky's face instead of the integer.**
+
+The numeral 1-2-3-4-5 in v3 carried no information — row order is already conveyed by row position. The sticky's *job* was the craft signal (paper square, warm pastel, hand-rotated). The integer was filler. Replacing the integer with a per-row-type SF symbol turns the sticky into BOTH craft signal AND type identifier in the same 40×40pt — net win, no extra chrome.
+
+### Sticky-note v4 spec
+
+- **Size**: 40pt × 40pt (down from 56pt — 29% area reduction)
+- **Corner radius**: 5pt (down from 6pt, proportional)
+- **Rotation**: ±1.5° alternating by index (down from ±2° — smaller note, lower rotation reads as more controlled)
+- **Shadow**: unchanged — `Color.black.opacity(0.06), radius 3, x 0, y 1`
+- **Fill**: same `stickyMint/Butter/Rose/Olive` cycle BUT now keyed by **row type**, not row index. Lesson = mint, snap = butter, move = rose, steps = olive, breath = mint, weigh-in = butter, water = rose, measurements = olive. Type-consistent color across days = users learn to recognize the row at a glance. (This is the BetterMe thumbnail-recognition pattern done in 40pt sticker form.)
+- **Center glyph**: SF symbol at 16pt, weight `.medium`, color `Palette.cocoaPrimary`. Per type:
+  - **today's lesson** → `book.closed`
+  - **snap a meal** → `camera`
+  - **move** → `figure.run` (works; existing JeniFit asset register uses this)
+  - **steps** → `figure.walk`
+  - **breath** → `leaf` (matches Becoming tab breathwork tile precedent)
+  - **weigh-in** → `scalemass`
+  - **water** (Phase 3) → `drop`
+  - **measurements** (Phase 2) → `ruler`
+
+### What this preserves of her75 craft register
+
+- The pastel paper-square *shape* and *rotation* and *shadow* are intact. That's what made the sticky read as craft, not the integer. The 40pt size is still distinctly hand-cut sticky-note, not iOS app-icon.
+- The font that carried craft in v3 (Fraunces SBItalic numeral) is *not* gone from PlanView — it lives in the micro-caption italic punch word and the strip's `── today ──` marker (both locked from v3.6). The Fraunces voice signal didn't depend on the sticky; the sticky was just one of three places it lived.
+- The 56pt v3 sticky was honestly a *bit* of a brand cosplay — her75's stickies are 56pt because her75 has no other content in the row. Once we added title + subtitle + chevron + checkbox, the 56pt was over-allocation. 40pt is the right size for OUR row composition, not theirs.
+
+### What we lose
+
+- Numerical ordering glyph. Trade is fine: row position conveys order, the integer was redundant in v3, and SF symbols give us per-type identity which is more functional. If founder wants to keep a *trace* of the numeric register, we can put a tiny 8pt index numeral in the top-right corner of the sticky in Fraunces SBItalic — that preserves the "five-thing checklist" feel without the integer dominating. **Default ship: no corner numeral.** Add only if founder requests after seeing the render.
+
+## v4.4 Progress-row pattern (new — steps, water, anywhere with auto numeric target)
+
+Steps was the row that broke the v3 spec. v3 said "auto-completed rows show a half-circle progress glyph in the checkbox slot." But steps is auto-progressing *all day*, not auto-completing at a discrete moment. The half-circle was static (rendered once at 50% regardless of actual progress) and the actual completion ratio lived only in the subtitle as text. Both were wrong.
+
+v4 splits progress rows into a fully separate pattern:
+
+### Progress-row trailing region
+
+```
+[ 4,820 / 7,500  ▭▭▭▭▭▭▱▱▱▱ ]
+   numeric label    thin bar
+```
+
+- **Bar**: 64pt wide, 3pt tall, fully rounded ends (1.5pt corner radius). Background fill `Palette.hairlineCocoa` (12% cocoa, same hairline color the dividers use). Filled portion uses `Palette.stateGood` (sage green) at the user's actual progress fraction.
+- **Numeric label**: directly LEFT of the bar with 8pt gap. `Typo.caption` (DM Sans Medium 13pt), `Palette.cocoaSecondary`. Format: `4,820 / 7,500` — slash separator (not "of"), no unit appended for steps (the row title says "steps"). For water: `6 / 8 cups` — slash + unit, because "6 / 8" alone is ambiguous.
+- **No checkbox.** Period. There's nothing to check.
+- **No chevron.** Already dropped per §v4.2 for all rows.
+- **No sparkle until 100%.** Pre-100, the row just looks like itself — bar filling, label updating. The savvy user recognizes this *is* auto from the absence of a checkbox.
+- **Subtitle in the row's center v-stack**: rendered slightly differently — instead of progress text (which now lives trailing as the numeric label), the subtitle carries *context* copy. For steps: "your daily walk" or "7,500 is your target." For water: "small sips throughout the day." Quiet supporting copy, not progress data.
+
+### Progress-row complete state
+
+When `progress >= target`:
+
+- Bar fills 100% in `Palette.stateGood`.
+- Numeric label flips to italic-Fraunces: `7,500 / 7,500` becomes `*reached* · 7,500`. Italic punch on "reached" is the JeniFit voice signal honoring [[feedback-voice-signals]] (the same italic Fraunces SBItalic rule the micro-caption uses). 13pt.
+- Small `sparkle` glyph (SF symbol, 8pt, `Palette.cocoaTertiary`) appears to the immediate right of the bar. This is the v2/v3-spec "system did this for you" signal — *only fires when auto completion has actually completed*, not pre-completion.
+- Row remains non-interactive (tap is noop with light haptic + 600ms tooltip "syncs from your steps" via popover if the user taps the bar — see §v4.6).
+
+### "Does the progress bar look like a gym-tracker bar?"
+
+Risk acknowledged. Mitigations:
+
+- 3pt height (not 6, not 8) — reads as hairline, not gym-app fitness bar.
+- 64pt width, no rounded-rect outer chrome, no gradient fill, no percentage label. Just the bar + the count.
+- Sage `stateGood` color, not lime/electric green. Same `stateGood` used for the checkmark fill on binary rows, so the visual language is unified.
+- Sits next to a *numeric* label (4,820 / 7,500), not a *percentage* label. Avoids "60%" productivity-tracker register per [[v2 §8 anti-patterns]].
+- her75 has no progress bars because they have no auto-tracked rows. BetterMe's progress treatment is a 1pt full-row-width green underline at the bottom edge of the row — too gym-app-coded for us. Our 3pt 64pt inline bar is the cleaner-register cousin.
+
+## v4.5 Per-row-type affordance table
+
+```
+ROW              LEADING            CENTER (title / sub)            TRAILING
+─────────────────────────────────────────────────────────────────────────────
+today's lesson   📖 sticky-mint     today's lesson                  ◯ checkbox
+                                    why protein keeps you full · 2m
+─────────────────────────────────────────────────────────────────────────────
+snap a meal      📷 sticky-butter   snap a meal                     ◯ checkbox
+                                    2 logged today
+─────────────────────────────────────────────────────────────────────────────
+move             🏃 sticky-rose     move                            ◯ checkbox
+                                    18 min, gentle today
+─────────────────────────────────────────────────────────────────────────────
+steps            🚶 sticky-olive    steps                           4,820 / 7,500 ▭▭▭▭▭▱▱
+                                    your daily walk
+─────────────────────────────────────────────────────────────────────────────
+breath           🍃 sticky-mint     breath                          ◯ checkbox
+                                    1 min, calming
+─────────────────────────────────────────────────────────────────────────────
+weigh-in         ⚖ sticky-butter   weigh-in                        ◯ checkbox
+                                    sunday check
+─────────────────────────────────────────────────────────────────────────────
+water            💧 sticky-rose     water                           6 / 8 cups ▭▭▭▭▭▭▱▱
+   (Phase 3)                        small sips throughout the day
+─────────────────────────────────────────────────────────────────────────────
+measurements     📏 sticky-olive    measurements                    ◯ checkbox
+   (Phase 2)                        monthly check
+─────────────────────────────────────────────────────────────────────────────
+```
+
+Two trailing patterns total:
+- **Binary** (lesson / snap / move / breath / weigh-in / measurements): 26pt circle checkbox, right-aligned, 20pt from row edge. Empty = 1.5pt cocoa-tertiary stroke. User-marked complete = `checkmark.circle.fill` in `stateGood`. Auto-marked complete (telemetry, e.g. snap-meal auto-fires on FoodScanRecord insert) = `checkmark.circle.fill` in `stateGood` + 8pt `sparkle` glyph 4pt to the left.
+- **Progress** (steps / water): numeric label + 64pt × 3pt bar, right-aligned, 20pt from row edge. No checkbox. Complete state per §v4.4.
+
+The `in-progress` half-circle from v3 is **deleted entirely.** Binary rows are either empty or complete — there's no "started but not done" because the action that triggers them (read lesson, open camera, finish session, log weight) is atomic and the telemetry fires once.
+
+The `.skipped` and `.restDay` states from v3 also lose their checkboxes (em-dash glyph stays, sized to align with the 26pt checkbox column). They're shipping-locked for v2/v3 future scope so the spec keeps them, just rendered without the chevron column.
+
+## v4.6 Tap-zone separation — the new gesture model
+
+With chevron gone and progress rows separated out, the tap zones get dramatically simpler than v3:
+
+### Binary rows
+
+- **Row body tap** (sticky + center v-stack + the trailing region MINUS the checkbox 44pt zone) → enters the module. `contentShape(Rectangle())` on the row body Button. Hit area = ~340pt × 76pt minus the 44pt checkbox.
+- **Checkbox tap** (44pt hit zone, top-right of row, padded around 26pt visual) → toggles `onCheckToggle`. Uses `simultaneousGesture` / split-button pattern from v3 so it doesn't propagate to row tap. Already wired correctly in v3 `PlanRow.swift` — the checkbox is its own Button outside the row-body Button.
+- **Long-press on row body** → no-op for v4 (future scope: "mark skipped" sheet, currently not in scope).
+- **Long-press on checkbox** → no-op (future scope: hidden swipe-action to mark skipped).
+
+### Progress rows
+
+- **Row body tap** (sticky + center v-stack + numeric label + bar) → opens a small `.height(280)` bottom sheet with: the day's step graph (or water cups grid for water), the target, a "change target" link routing to existing `StepsDetailView` / `WaterDetailView`. Not a noop — but not a primary navigation either. Light haptic only.
+- **Tap on the bar specifically** → same as row body. Don't fragment the affordance.
+- **No tap target on a "complete" state** that differs from in-progress — same sheet either way. Once at 100%, the sheet also shows the small "you reached today's target" line.
+
+The reason progress rows DO have a tap target (vs being fully inert):
+- Founder's instinct in the brief was "tappable progress bar opens StepsDetailView? noop? popover?" — noop is too cold, full nav to StepsDetailView is too heavy (kicks user out of PlanView, and StepsDetailView is becoming-tab-coded). A small sheet with the day's detail is the middle path. Lets the curious user check the hourly distribution without leaving Plan.
+- It also gives a controlled answer to "what happens if I tap the row that has no chevron and no checkbox?" — the screen does *something*, just something lightweight.
+
+### Steps tap-handler precedent (existing code)
+
+Reuse the SheetPresenter pattern from `HomeView` for the StepsBottomSheet. Don't build a new modal harness.
+
+## v4.7 Updated row ASCII mockup — 5 rows, mixed types
+
+iPhone 15 width: 393pt. Card horizontal padding 20pt → row width ~353pt.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │ ← 14pt top pad
+│  ┌──┐                                                       │
+│  │📖│  today's lesson                              ◯        │ ← binary, empty
+│  └──┘  why protein keeps you full · 2 min                   │
+│                                                             │
+│  ───────────────────────────────────────────────────        │ ← 0.5pt hairline, leading 80pt indent
+│                                                             │
+│  ┌──┐                                                       │
+│  │📷│  snap a meal                                ✓✨       │ ← binary, auto-complete
+│  └──┘  2 logged today · auto                                │
+│                                                             │
+│  ───────────────────────────────────────────────────        │
+│                                                             │
+│  ┌──┐                                                       │
+│  │🏃│  move                                        ◯        │ ← binary, empty
+│  └──┘  18 min, gentle today                                 │
+│                                                             │
+│  ───────────────────────────────────────────────────        │
+│                                                             │
+│  ┌──┐                                                       │
+│  │🚶│  steps                       4,820 / 7,500 ▭▭▭▭▭▭▱▱▱ │ ← progress, in-progress
+│  └──┘  your daily walk                                      │
+│                                                             │
+│  ───────────────────────────────────────────────────        │
+│                                                             │
+│  ┌──┐                                                       │
+│  │⚖│  weigh-in                                    ◯        │ ← binary, empty
+│  └──┘  sunday check                                         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘ ← 14pt bottom pad
+```
+
+Visual contrast notes:
+- The two patterns sit comfortably in the same card. The steps row has more horizontal trailing content (label + bar) but the *visual weight* matches a checkbox because the bar is 3pt and the label is `caption`-sized. The row doesn't feel taller or busier than the binary rows.
+- Sticky-notes at 40pt sit tight to the title baseline — feels like a marker beside the line, not a tile. Compare v3 where the 56pt sticky was as tall as both lines of text combined and read as a "card within the row."
+- The empty checkbox + the progress bar both terminate at the same 20pt trailing margin. The vertical alignment column on the right edge is preserved — the user's eye tracks a clean right edge down the card.
+- Total card height with 5 rows + 14pt top + 14pt bottom + 4 hairline dividers ≈ 410pt (down from v3's ~440pt at 76pt rows × 5). The row height target stays ~76pt but the leading element shrinking gives back ~6pt of internal vertical air per row.
+
+## v4.8 What this changes in code (≤200 words)
+
+**`PlanRow.RowState` enum:**
+- Delete `.inProgress(currentValue: String?)` — half-circle pattern killed.
+- Keep `.empty`, `.completeUser(completedAt: String?)`, `.completeAuto`, `.skipped`, `.restDay`.
+- Add `.progress(current: Int, target: Int, label: String)` — `label` is the unit suffix (`""` for steps, `"cups"` for water). State carries enough to render the bar + numeric label.
+
+**`PlanRow.swift` body:**
+- Delete the chevron `Image(systemName: "chevron.right")` block entirely.
+- Replace checkbox switch with a `trailing` ViewBuilder that branches: `.progress` → `ProgressTrail(current, target, label)` view, all other states → existing checkbox switch.
+- Update `state.hidesChevron` → delete (no chevron at all). Rename `state.rowIsInteractive` semantics: `.progress` is interactive (opens sheet), `.restDay` stays non-interactive.
+- Row body Button onAction: for `.progress`, call new `onProgressTap` closure → opens sheet. For all others, existing `onEnter`.
+
+**`ProgramStickyNote.swift`:**
+- New API: `ProgramStickyNote(rowType: ProgramRowType)`. Takes a type enum (lesson/snap/move/steps/breath/weighIn/water/measurements), not an index.
+- Render: 40×40pt fill keyed by type → color, SF symbol centered keyed by type → glyph, ±1.5° rotation alternating by type's `index` in the row order (deterministic per day).
+- Delete `index: Int` param + numeric `Text("\(index)")` render.
+
+**`PlanView.swift`:**
+- StepsBottomSheet wiring + `onProgressTap` closure per progress row.
+
+**Sparkle relocation:**
+- Stays in place on `.completeAuto` binary rows (4pt left of checkmark, 8pt size).
+- Adds to `.progress` rows when `current >= target` (4pt right of bar). Same glyph, same size, same color.
+
+## v4.9 Open questions
+
+1. **Type-keyed sticky color vs index-keyed sticky color** — I picked type-keyed (lesson always mint, snap always butter) for recognition. Founder may prefer index-keyed (preserves the v2/v3 cycling pattern, no "lesson = mint" semantic to remember). Trade is recognition speed vs visual variety per day. **My vote: type-keyed. The cohort opens this screen 30+ times in 75 days; consistent type-color halves the cognitive load by day 10.**
+
+2. **Tiny 8pt corner numeral on the sticky (preserve the "1/2/3/4/5" trace) or no?** v4 default is no. If founder misses the "5 things" countability, the 8pt Fraunces SBItalic top-right corner numeral is a 5-minute add. **My vote: ship without; if founder requests after seeing the render, add.**
+
+3. **Progress-row tap behavior — small sheet vs noop vs route to StepsDetailView in becoming tab?** Spec says small sheet (the middle path). The noop option is cleaner-register but reads as broken on a non-trivial percentage of attempts. Routing to StepsDetailView crosses the tab boundary which is wrong. **My vote: small sheet. Build StepsBottomSheet as a new component; reuse the data layer from StepsDetailView.**
+

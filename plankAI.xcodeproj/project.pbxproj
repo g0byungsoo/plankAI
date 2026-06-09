@@ -419,6 +419,7 @@
 		6C53B71525BD3E3BBA3B911A /* prep_full_dead_bug.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 1A32740717473561A0FF3FB8 /* prep_full_dead_bug.m4a */; };
 		6C61342F07A25D2F42441E88 /* prep_full_standing_quad_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 31BE568439A65FC0463F6FDC /* prep_full_standing_quad_stretch.m4a */; };
 		6C61EC2487774EBDEBD63C62 /* prep_full_dead_bug_leg_lower.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F7DF71B207F02EA52D68AD83 /* prep_full_dead_bug_leg_lower.m4a */; };
+		6C63B744D8D3BEF985097B69 /* MarkAsDoneSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9430AB51CA21083FA715BB07 /* MarkAsDoneSheet.swift */; };
 		6C7FB823F0BB0A19B2047975 /* matson_prep_full_plank_jacks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9D26C783C6B531620EED78F1 /* matson_prep_full_plank_jacks.m4a */; };
 		6CF925B5C26999181BF80D7B /* prep_short_boat_flutters.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 5CF4D824D121F9D839E622C7 /* prep_short_boat_flutters.m4a */; };
 		6D2E42E6457297F11621DB28 /* prep_full_cocoon_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 178CDBA69CFBCCEB798D379B /* prep_full_cocoon_crunch.m4a */; };
@@ -1935,6 +1936,7 @@
 		929F1C6F5163AAB74A041814 /* jeni_prep_short_good_morning.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_good_morning.m4a; sourceTree = "<group>"; };
 		92FAFD0A2EC88018DB1B0644 /* matson_prep_full_standing_side_bend.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_standing_side_bend.m4a; sourceTree = "<group>"; };
 		93B173DB9D00F658077AF5C1 /* jeni_prep_full_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_squat.m4a; sourceTree = "<group>"; };
+		9430AB51CA21083FA715BB07 /* MarkAsDoneSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MarkAsDoneSheet.swift; sourceTree = "<group>"; };
 		94B7A4430CA1ECEA22D36781 /* jeni_prep_short_cat_cow.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_cat_cow.m4a; sourceTree = "<group>"; };
 		94DB748019B577BC9E2A83E4 /* jeni_prep_short_forward_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_forward_lunge.m4a; sourceTree = "<group>"; };
 		954C8E4B9E25594D48DAD55A /* jeni_prep_full_good_morning.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_good_morning.m4a; sourceTree = "<group>"; };
@@ -2699,6 +2701,7 @@
 				1562E5C047BD2B32336DB0E4 /* ProgramLockSheet.swift */,
 				6CACF807231025C8FC071D79 /* PlanViewMicroCaption.swift */,
 				2F6BAECE66DDE57586209EF9 /* PlanRow.swift */,
+				9430AB51CA21083FA715BB07 /* MarkAsDoneSheet.swift */,
 			);
 			name = Plan;
 			path = Plan;
@@ -5624,6 +5627,7 @@
 				2E7D43CAD1CBBD97D590D42B /* ProgramLockSheet.swift in Sources */,
 				D192BE3F4213BD74A9306AC7 /* PlanViewMicroCaption.swift in Sources */,
 				7CD7D8BD50AB28439D473C08 /* PlanRow.swift in Sources */,
+				6C63B744D8D3BEF985097B69 /* MarkAsDoneSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

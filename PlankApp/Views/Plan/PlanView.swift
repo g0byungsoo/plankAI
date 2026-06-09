@@ -46,6 +46,10 @@ struct PlanView: View {
     @State private var showLockSheet: Bool = false
     @State private var lockedDayTapped: Int = 1
 
+    // Mark-as-done sheet (long-press override)
+    @State private var showMarkAsDoneSheet: Bool = false
+    @State private var markAsDonePrescription: ProgramDayPrescription? = nil
+
     var body: some View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
@@ -98,6 +102,21 @@ struct PlanView: View {
             // which on dark-mode-ish overlay renders as a grey bleed at
             // the top/bottom edges of the .medium detent.
             .presentationBackground(Palette.programCard)
+        }
+        .sheet(isPresented: $showMarkAsDoneSheet) {
+            if let prescription = markAsDonePrescription {
+                MarkAsDoneSheet(
+                    prescription: prescription,
+                    onConfirm: {
+                        handleMarkAsDoneConfirm(prescription)
+                        showMarkAsDoneSheet = false
+                    },
+                    onDismiss: { showMarkAsDoneSheet = false }
+                )
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.hidden)
+                .presentationBackground(Palette.programCard)
+            }
         }
     }
 
@@ -173,18 +192,17 @@ struct PlanView: View {
         VStack(spacing: 0) {
             ForEach(Array(todayPrescriptions.enumerated()), id: \.offset) { idx, prescription in
                 PlanRow(
-                    index: idx + 1,
                     prescription: prescription,
                     state: rowState(for: prescription),
-                    onEnter: { handleEnter(prescription) },
-                    onCheckToggle: { handleCheckToggle(prescription) }
+                    onTap: { handleRowTap(prescription) },
+                    onLongPress: { handleLongPress(prescription) }
                 )
                 .modernEntrance(animateIn, delay: 0.16 + Double(idx) * 0.06)
 
                 if idx < todayPrescriptions.count - 1 {
                     Divider()
                         .background(Palette.hairlineCocoa)
-                        .padding(.leading, 88)
+                        .padding(.leading, 72)
                         .padding(.trailing, 20)
                 }
             }
@@ -206,17 +224,40 @@ struct PlanView: View {
     }
 
     private func rowState(for prescription: ProgramDayPrescription) -> PlanRow.RowState {
+        // Progress rows (steps, water) compute their own state from
+        // live data, never from program_day_checks. Per
+        // [[feedback-no-checkbox-circle]] §progress.
+        if prescription.isProgressRow {
+            return progressRowState(for: prescription)
+        }
+
         let state = checkStateByKey[prescription.itemKey] ?? .empty
         let isPastView = viewingDay != nil
         switch state {
         case .complete:
-            return .completeUser(completedAt: nil)
+            return .binaryComplete(isAuto: false)
         case .autoCompleted:
-            return .completeAuto
+            return .binaryComplete(isAuto: true)
         case .skipped:
             return .skipped
         case .empty:
-            return isPastView ? .skipped : .empty
+            return isPastView ? .skipped : .binaryEmpty
+        }
+    }
+
+    /// Progress-row state derived from live telemetry. Steps reads
+    /// StepsService.shared.todayCount + profile.stepsDailyGoal.
+    /// Water defers to Phase 3 — currently returns (0, 8, "cups").
+    private func progressRowState(for prescription: ProgramDayPrescription) -> PlanRow.RowState {
+        switch prescription {
+        case .steps(let goal):
+            let current = StepsService.shared.todayCount
+            return .progress(current: current, target: goal, unit: "")
+        case .water(let ml):
+            // Phase 3 wires HydrationService; v1 stub.
+            return .progress(current: 0, target: max(1, ml / 250), unit: "cups")
+        default:
+            return .binaryEmpty
         }
     }
 
@@ -348,22 +389,50 @@ struct PlanView: View {
         }
     }
 
-    // MARK: - Row tap handlers
+    // MARK: - Row tap handlers (v4 — retention pattern)
 
-    private func handleEnter(_ prescription: ProgramDayPrescription) {
+    /// Row body tap → enters the module. Progress rows (steps, water)
+    /// open a detail sheet; binary rows open their respective module
+    /// players. Phase 1 stub: routing wires to actual modules in
+    /// Phase 1.B; for now binary tap toggles complete as fallback so
+    /// the user can close the day.
+    private func handleRowTap(_ prescription: ProgramDayPrescription) {
+        guard viewingDay == nil else { return }
         Haptics.light()
-        // Phase 1 stub: routing to actual modules wires in Phase 1.B.
-        // For now, tapping the row toggles complete as a fallback so
-        // the user can still close the day.
-        handleCheckToggle(prescription)
+
+        if prescription.isProgressRow {
+            // Phase 1.B will open a StepsBottomSheet / WaterBottomSheet.
+            // For now no-op so the row doesn't feel inert.
+            return
+        }
+
+        // Phase 1 stub: toggle complete as fallback until module
+        // routing lands. Setting state to .complete (NOT .autoCompleted)
+        // so it reads as user-marked.
+        markComplete(prescription, isAuto: false)
     }
 
-    private func handleCheckToggle(_ prescription: ProgramDayPrescription) {
+    /// Long-press override per [[feedback-no-checkbox-circle]].
+    /// Manual "I did it offline" escape hatch — presents
+    /// MarkAsDoneSheet. Only fires on binary-empty rows.
+    private func handleLongPress(_ prescription: ProgramDayPrescription) {
         guard viewingDay == nil else { return }
+        guard !prescription.isProgressRow else { return }
+        Haptics.medium()
+        markAsDonePrescription = prescription
+        showMarkAsDoneSheet = true
+    }
 
-        Haptics.light()
-        let current = checkStateByKey[prescription.itemKey] ?? .empty
-        let next: ProgramService.ChecklistState = current.isCompleted ? .empty : .complete
+    /// User confirmed manual mark-as-done from the long-press sheet.
+    /// Writes .complete state (NOT .autoCompleted — preserves provenance
+    /// so the sparkle glyph only fires on system-detected completions).
+    private func handleMarkAsDoneConfirm(_ prescription: ProgramDayPrescription) {
+        Haptics.success()
+        markComplete(prescription, isAuto: false)
+    }
+
+    private func markComplete(_ prescription: ProgramDayPrescription, isAuto: Bool) {
+        let next: ProgramService.ChecklistState = isAuto ? .autoCompleted : .complete
 
         withAnimation(Motion.gentleSpring) {
             checkStateByKey[prescription.itemKey] = next
@@ -378,8 +447,7 @@ struct PlanView: View {
 
         if let schedule {
             let key = schedule.programDay
-            let newCount = next.isCompleted ? (completionByDay[key] ?? 0) + 1 : max(0, (completionByDay[key] ?? 1) - 1)
-            completionByDay[key] = newCount
+            completionByDay[key] = (completionByDay[key] ?? 0) + 1
         }
 
         Task {

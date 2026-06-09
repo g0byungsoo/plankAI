@@ -86,6 +86,52 @@ public extension ProgramDayPrescription {
         }
     }
 
+    /// SF Symbol name rendered inside the 40pt sticky-note. Per
+    /// [[feedback-no-checkbox-circle]] v4 sticky redesign: integer
+    /// numeral → type-glyph for per-row identity.
+    var stickyGlyph: String {
+        switch self {
+        case .lesson:       return "book.closed"
+        case .snapMeal:     return "camera"
+        case .workout:      return "figure.run"
+        case .plank:        return "figure.core.training"
+        case .breath:       return "leaf"
+        case .steps:        return "figure.walk"
+        case .water:        return "drop"
+        case .weighIn:      return "scalemass"
+        case .measurements: return "ruler"
+        }
+    }
+
+    /// Sticky-note palette token name. Type-keyed (founder pick):
+    /// same type = same color across days for cohort recognition.
+    /// 4 pastels cycle across the 8 types in calm→data→action→growth pairs.
+    var stickyColorKind: StickyColor {
+        switch self {
+        case .lesson, .breath:           return .mint    // calm / mindful
+        case .snapMeal, .weighIn:        return .butter  // data / check-in
+        case .workout, .water, .plank:   return .rose    // active / hydrate
+        case .steps, .measurements:      return .olive   // ambient / growth
+        }
+    }
+
+    enum StickyColor {
+        case mint
+        case butter
+        case rose
+        case olive
+    }
+
+    /// True when this row is a numeric-progress row (steps, water).
+    /// PlanRow renders these with the 64pt × 3pt bar trailing pattern
+    /// instead of the binary state indicator.
+    var isProgressRow: Bool {
+        switch self {
+        case .steps, .water: return true
+        default:             return false
+        }
+    }
+
     /// Row title — lowercase casual register per voice rules.
     var rowTitle: String {
         switch self {
