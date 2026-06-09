@@ -62,12 +62,22 @@ struct ScanningOverlay: View {
         }
         .allowsHitTesting(false)
         .opacity(isActive ? 1 : 0)
-        .animation(.easeInOut(duration: 0.35), value: isActive)
+        // v1.0.9 D2 polish round 2 — was 0.35s ease, perceived as
+        // delay after the user tapped scan. 0.12s linear lands
+        // immediately while still avoiding a hard cut.
+        .animation(.linear(duration: 0.12), value: isActive)
     }
 
-    /// Two-layer JeniFit scanline: a SOFT ROSE outer halo (44pt) +
-    /// COCOA core (1.5pt) with a slim cocoa halo (20pt) in between.
-    /// Rose-on-cocoa keeps the coquette-not-clinical register.
+    /// v1.0.9 D2 polish — re-coloured for brand. Founder feedback:
+    /// "improve the scan (the grey line) animation." The cocoa-on-rose
+    /// stack was reading grey on busy food photos. New stack uses the
+    /// FoodTheme camera-pink pair so the sweep pops as a JeniFit
+    /// "magic line" instead of a dim shadow:
+    ///   - outer halo: cameraIdlePink #FF7AD9 @ 16% (a 56pt soft glow)
+    ///   - inner halo: bright rose #FF4FA8 @ 26% (28pt)
+    ///   - core: white-hot pink #FF7AD9 @ 85% (2pt — slightly thicker
+    ///     than before so the line stays visible against red/orange
+    ///     food)
     ///
     /// `gate` is the sin-π alpha multiplier — 0 at the loop boundary,
     /// 1 at mid-cycle — that hides the y=0 / y=height teleport.
@@ -78,45 +88,45 @@ struct ScanningOverlay: View {
         gate: CGFloat
     ) {
         let y = phase * size.height
-        let cocoaHalo: CGFloat = 20
-        let roseHalo: CGFloat = 44
-        let core: CGFloat = 1.5
+        let innerHalo: CGFloat = 28
+        let outerHalo: CGFloat = 56
+        let core: CGFloat = 2.0
 
-        let rose = Color(red: 0.77, green: 0.40, blue: 0.48)  // #C4677A
-        let roseRect = CGRect(
-            x: 0, y: y - roseHalo,
-            width: size.width, height: roseHalo * 2
+        let outerPink = Color(red: 1.00, green: 0.48, blue: 0.85)  // #FF7AD9
+        let outerRect = CGRect(
+            x: 0, y: y - outerHalo,
+            width: size.width, height: outerHalo * 2
         )
-        let roseGradient = Gradient(stops: [
+        let outerGradient = Gradient(stops: [
             .init(color: .clear, location: 0.0),
-            .init(color: rose.opacity(0.10 * Double(gate)), location: 0.5),
+            .init(color: outerPink.opacity(0.16 * Double(gate)), location: 0.5),
             .init(color: .clear, location: 1.0),
         ])
         context.fill(
-            Path(roseRect),
+            Path(outerRect),
             with: .linearGradient(
-                roseGradient,
-                startPoint: CGPoint(x: 0, y: roseRect.minY),
-                endPoint:   CGPoint(x: 0, y: roseRect.maxY)
+                outerGradient,
+                startPoint: CGPoint(x: 0, y: outerRect.minY),
+                endPoint:   CGPoint(x: 0, y: outerRect.maxY)
             )
         )
 
-        let cocoa = Color(red: 0.24, green: 0.16, blue: 0.16)  // #3D2A2A
-        let cocoaRect = CGRect(
-            x: 0, y: y - cocoaHalo,
-            width: size.width, height: cocoaHalo * 2
+        let innerPink = Color(red: 1.00, green: 0.31, blue: 0.66)  // #FF4FA8
+        let innerRect = CGRect(
+            x: 0, y: y - innerHalo,
+            width: size.width, height: innerHalo * 2
         )
-        let cocoaGradient = Gradient(stops: [
+        let innerGradient = Gradient(stops: [
             .init(color: .clear, location: 0.0),
-            .init(color: cocoa.opacity(0.18 * Double(gate)), location: 0.5),
+            .init(color: innerPink.opacity(0.26 * Double(gate)), location: 0.5),
             .init(color: .clear, location: 1.0),
         ])
         context.fill(
-            Path(cocoaRect),
+            Path(innerRect),
             with: .linearGradient(
-                cocoaGradient,
-                startPoint: CGPoint(x: 0, y: cocoaRect.minY),
-                endPoint:   CGPoint(x: 0, y: cocoaRect.maxY)
+                innerGradient,
+                startPoint: CGPoint(x: 0, y: innerRect.minY),
+                endPoint:   CGPoint(x: 0, y: innerRect.maxY)
             )
         )
 
@@ -126,7 +136,7 @@ struct ScanningOverlay: View {
         )
         context.fill(
             Path(coreRect),
-            with: .color(cocoa.opacity(0.55 * Double(gate)))
+            with: .color(outerPink.opacity(0.85 * Double(gate)))
         )
     }
 

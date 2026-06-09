@@ -56,13 +56,47 @@ public struct PhotoCaptureView: View {
     /// when nothing's happening. Started in onAppear with a repeating
     /// withAnimation. Reduce-motion users get a static shutter.
     @State private var shutterBreathing: Bool = false
+    /// v1.0.9 D2 — scanning pill breathing pulse (replaces dim-state chip).
+    @State private var scanPillBreathing: Bool = false
+
+    /// v1.0.9 D2 polish round 3 (2026-06-08) — Canvas Metal-pipeline
+    /// prewarm. Founder feedback: "the lag is happening in the first
+    /// attempt and there is less lag from the second try." Classic
+    /// cold-start signature.
+    ///
+    /// Root cause: `ScanningOverlay`'s `TimelineView { Canvas { ... } }`
+    /// triggers a Metal shader compile + driver registration the first
+    /// time `isActive` flips false → true. That's a one-time 40-80ms
+    /// hit visible as "delay before scan line appears" on the first
+    /// scan only. Subsequent scans run the cached pipeline and feel
+    /// instant.
+    ///
+    /// Fix: mount an invisible 1×1 ScanningOverlay during the first
+    /// 200ms after view appear, driven by this flag (starts true,
+    /// flipped false after a brief warmup window inside .task). The
+    /// 1×1 size makes the GPU work trivially cheap, but the Metal
+    /// pipeline compile still happens — so the first real tap finds
+    /// the pipeline already cached. User never sees the prewarm
+    /// (opacity 0, 1×1, accessibility-hidden).
+    @State private var prewarmingScanCanvas: Bool = true
+
+    /// v1.0.9 D2 polish (2026-06-08) — pre-warmed Taptic Engine
+    /// generator for the shutter tap. Founder feedback: "the lag is
+    /// happening right after i click the scan button." Each time you
+    /// instantiate UIImpactFeedbackGenerator and call .impactOccurred(),
+    /// the Taptic Engine cold-starts (~30-50ms). Holding a single
+    /// generator and calling .prepare() in onAppear keeps the engine
+    /// warm so the impact fires on the very next runloop tick after
+    /// tap. After firing we re-prepare so a follow-up scan is also
+    /// instant. UIFeedbackGenerator is main-actor-bound, matching this
+    /// view.
+    @State private var shutterHaptic = UIImpactFeedbackGenerator(style: .medium)
 
     /// v1.0.9 D2 round 2 — sticker confetti decoration that pops in
     /// at the four corners around the carousel card when a result
     /// lands. The wedge: Cal AI's reveal is a calorie number ticking
     /// up. JeniFit's reveal is your plate becoming a scrapbook entry
     /// in real time. Settles to 0.4 opacity as background decoration.
-    @State private var resultConfettiSettled: Bool = false
 
     @State private var baseZoom: CGFloat = 1.0
     @State private var liveZoom: CGFloat = 1.0
@@ -173,6 +207,17 @@ public struct PhotoCaptureView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
+            // v1.0.9 D2 polish round 3 — invisible 1×1 ScanningOverlay
+            // prewarm. See `prewarmingScanCanvas` doc comment. Compiles
+            // the Canvas Metal pipeline during the first 200ms after
+            // appear so the user's first real scan tap doesn't pay the
+            // cold-start cost.
+            ScanningOverlay(isActive: prewarmingScanCanvas)
+                .frame(width: 1, height: 1)
+                .opacity(0)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+
             // v1.0.8 Phase R.12 (2026-06-08) — frame size is now EXPLICITLY
             // computed via GeometryReader, not derived from .aspectRatio.
             // The .aspectRatio approach was being bypassed (photo extended
@@ -209,6 +254,16 @@ public struct PhotoCaptureView: View {
         }
         .task {
             await bootCamera()
+            // v1.0.9 D2 polish round 3 — close the Canvas prewarm
+            // window. By now SwiftUI has rendered ≥10 frames with
+            // the invisible 1×1 ScanningOverlay active, so its Metal
+            // pipeline + TimelineView driver are compiled and cached.
+            // Flipping to false pauses the TimelineView (zero ongoing
+            // cost). Wrapped in Task.sleep so the prewarm actually
+            // gets multiple render frames even on fast cold-launch
+            // before bootCamera resolves.
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            prewarmingScanCanvas = false
         }
         .onDisappear {
             camera.unfreezePreview()
@@ -306,112 +361,45 @@ public struct PhotoCaptureView: View {
                     .padding(14)
             }
 
-            // v1.0.9 D2 — cherries idle sticker. Coquette signal
-            // pinned to the top-left of the camera frame, only
-            // visible when nothing's happening (idle + not in result
-            // mode + no gallery preview). Disappears the moment a
-            // scan starts so it doesn't compete with the scanning
-            // overlay or label rotator.
+            // v1.0.9 D2 — cherries idle sticker. Now uses the real
+            // bundled asset from PlankApp/Assets.xcassets/Stickers
+            // (sticker_cherries.png) via Bundle.main, matching the
+            // sticker-discipline pattern in NutritionCarousel's
+            // JeniEvaluationCard.
             if !isCapturing && capturedResult == nil && !galleryPreviewMode {
-                Text("🍒")
-                    .font(.system(size: 36))
+                Image("sticker_cherries", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 56, height: 56)
                     .rotationEffect(.degrees(-8))
-                    .padding(.top, 22)
-                    .padding(.leading, 22)
+                    .padding(.top, 18)
+                    .padding(.leading, 18)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
                     .transition(.opacity.combined(with: .scale(scale: 0.7)))
             }
 
-            // v1.0.9 D2 round 2 — sticker confetti on result-land.
-            // Four scrapbook stickers fade-in + scale + rotate at the
-            // carousel corners when capturedResult lands, then settle
-            // to 0.4 opacity as background decoration. The wedge.
-            if capturedResult != nil && !reduceMotion {
-                resultStickerConfetti
-            }
         }
         .contentShape(Rectangle())
         .gesture(pinchZoomGesture)
         .animation(.spring(response: 0.45, dampingFraction: 0.82), value: capturedResult != nil)
         .onChange(of: capturedResult != nil) { _, hasResult in
-            // v1.0.9 D2 — soft haptic + sticker confetti at the
-            // moment the result card lands. Tactile + visual "got
-            // it ♥" beat. Resets on dismiss so the next scan
-            // re-fires the confetti.
+            // v1.0.9 D2 round 3 — soft haptic only on result-land.
+            // The four-sticker confetti was removed because it
+            // overlapped the carousel result card without adding
+            // value (founder feedback 2026-06-08: "sticker placement
+            // doesn't look so great, it's overlapping with cards,
+            // and doesn't add any value"). The result card already
+            // carries its own coquette chrome (cherries top-right
+            // via the share card path); a second decoration layer
+            // muddied the read instead of celebrating the moment.
+            // The soft haptic alone is enough of a "got it ♥" beat.
             if hasResult {
                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                resultConfettiSettled = false
-                withAnimation(.spring(response: 0.7, dampingFraction: 0.65).delay(0.15)) {
-                    resultConfettiSettled = true
-                }
-            } else {
-                resultConfettiSettled = false
             }
         }
         .animation(.easeInOut(duration: 0.3), value: galleryPreviewMode)
-    }
-
-    // MARK: - Result sticker confetti (the wedge)
-
-    /// v1.0.9 D2 round 2 — four scrapbook stickers at the carousel
-    /// corners that fade-in + scale + rotate when capturedResult
-    /// lands, then settle to 0.4 opacity as background decoration.
-    /// Each gets a small per-sticker delay via the spring response
-    /// so they cascade rather than land in lockstep — feels like
-    /// stickers being placed by hand.
-    @ViewBuilder private var resultStickerConfetti: some View {
-        GeometryReader { geo in
-            ZStack {
-                stickerAt(emoji: "🍒",
-                          rotation: -12,
-                          settled: resultConfettiSettled,
-                          offset: CGSize(width: -geo.size.width * 0.42,
-                                         height: -geo.size.height * 0.22),
-                          delay: 0)
-                stickerAt(emoji: "🎀",
-                          rotation: 9,
-                          settled: resultConfettiSettled,
-                          offset: CGSize(width: geo.size.width * 0.42,
-                                         height: -geo.size.height * 0.22),
-                          delay: 0.06)
-                stickerAt(emoji: "🌸",
-                          rotation: 14,
-                          settled: resultConfettiSettled,
-                          offset: CGSize(width: -geo.size.width * 0.40,
-                                         height: geo.size.height * 0.32),
-                          delay: 0.12)
-                stickerAt(emoji: "🍓",
-                          rotation: -8,
-                          settled: resultConfettiSettled,
-                          offset: CGSize(width: geo.size.width * 0.40,
-                                         height: geo.size.height * 0.32),
-                          delay: 0.18)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-
-    @ViewBuilder
-    private func stickerAt(
-        emoji: String,
-        rotation: Double,
-        settled: Bool,
-        offset: CGSize,
-        delay: Double
-    ) -> some View {
-        Text(emoji)
-            .font(.system(size: 34))
-            .rotationEffect(.degrees(settled ? rotation : 0))
-            .scaleEffect(settled ? 1.0 : 0.3)
-            .opacity(settled ? 0.55 : 0)
-            .offset(offset)
-            .shadow(color: Color.black.opacity(0.15), radius: 0, x: 1, y: 1)
-            .animation(.spring(response: 0.7, dampingFraction: 0.65).delay(delay),
-                       value: settled)
     }
 
     // MARK: - Camera layer
@@ -555,13 +543,25 @@ public struct PhotoCaptureView: View {
     @ViewBuilder private var bigShutterButton: some View {
         Button {
             guard !isCapturing else { return }
-            // v1.0.8 Phase O — synchronous capture beats. Snapshot
-            // freeze the visible preview pixels (zero geometry shift)
-            // AND store the captured pixel buffer for the result
-            // phase polaroid.
+            // v1.0.9 D2 polish (2026-06-08) — hoist isCapturing = true
+            // into the Button closure synchronously. Previously it lived
+            // inside captureTapped() which runs on the next runloop hop
+            // via Task { await ... }. That meant `freezePreview()`
+            // (synchronous @Observable flip) landed in frame N but
+            // `isCapturing` only landed in frame N+1 — the viewfinder
+            // froze a frame BEFORE the scanning chrome (pill, ring
+            // colour, scan-line overlay) appeared. Hoisting collapses
+            // both into the same render so the user sees freeze +
+            // scanning UI in a single visual beat.
+            isCapturing = true
+            errorMessage = nil
             camera.freezePreview()
             camera.freezeInstantly()
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            // v1.0.9 D2 polish — pre-warmed Taptic Engine. See
+            // `shutterHaptic` doc comment. Re-prepare so the next tap
+            // is also instant.
+            shutterHaptic.impactOccurred()
+            shutterHaptic.prepare()
             AudioServicesPlaySystemSound(1108)
             Task { await captureTapped() }
         } label: {
@@ -593,11 +593,24 @@ public struct PhotoCaptureView: View {
                         .fill(isCapturing ? FoodTheme.cameraScanDisc : Color.white)
                         .frame(width: 64, height: 64)
                         .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 2)
-                        .animation(.easeInOut(duration: 0.3), value: isCapturing)
+                        // v1.0.9 D2 polish round 2 — snap the disc
+                        // colour. Was 0.3s easeInOut; the soft fade
+                        // delayed the visible "I'm scanning" signal
+                        // by ~150ms after tap (perceived lag). The
+                        // simultaneous TimelineView rotation + ring
+                        // pink + scanning pill all change in the
+                        // same frame so the moment lands together.
+                        .animation(.linear(duration: 0.08), value: isCapturing)
 
-                    Text("📷")
-                        .font(.system(size: 28))
-                        .rotationEffect(.degrees(-4))  // baked sticker tilt
+                    // v1.0.9 D2 — bundled camera lineart sticker
+                    // (PlankApp/Assets.xcassets/Stickers/sticker_camera_lineart.png)
+                    // replaces the 📷 emoji. Same -4° baked tilt so it
+                    // reads as a sticker stuck to the spinning disc.
+                    Image("sticker_camera_lineart", bundle: .main)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 34, height: 34)
+                        .rotationEffect(.degrees(-4))
                         .accessibilityHidden(true)
                 }
                 .rotationEffect(.degrees(isCapturing && !reduceMotion ? scanAngle : 0))
@@ -605,9 +618,29 @@ public struct PhotoCaptureView: View {
             }
             .contentShape(Circle())
         }
+        // v1.0.9 D2 polish round 2 — `.buttonStyle(.plain)` removes
+        // the default Button press-dim animation (~100ms opacity
+        // fade) that ran AHEAD of our state changes after tap. With
+        // the system style, the user saw the shutter dim first and
+        // the scanning chrome (ring colour swap, pill, scan line)
+        // arrive a beat later — reading as "lag." With .plain, our
+        // own scale/rotation/colour state changes are the only
+        // visual response, all landing in the same render as the
+        // freeze.
+        .buttonStyle(.plain)
         .disabled(isCapturing || camera.permissionStatus != .authorized || !camera.isRunning)
         .accessibilityLabel(isCapturing ? "scanning" : "scan food")
         .onAppear {
+            // v1.0.9 D2 polish — warm the Taptic Engine on view appear
+            // so the first shutter tap fires the haptic without the
+            // ~30-50ms cold-start hitch. Also warms the shutter sound.
+            shutterHaptic.prepare()
+            // Cold-priming AudioServices system sound — the OS lazily
+            // loads the audio data on first call. A silent dry-run at
+            // 0 volume isn't an option, but the first real-tap cost is
+            // small and only happens once per process. Documented here
+            // for posterity.
+
             guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true)) {
                 shutterBreathing = true
@@ -630,18 +663,82 @@ public struct PhotoCaptureView: View {
         } else {
             HStack(spacing: 0) {
                 galleryButton
+                    .opacity(isCapturing ? 0.35 : 1)
+                    .allowsHitTesting(!isCapturing)
 
                 Spacer()
 
-                modeChips
-                    .opacity(isCapturing ? 0.5 : 1)
+                // v1.0.9 D2 polish — during scan, swap the chip cluster
+                // for a JeniFit "scanning ♥" pill (accent rose fill +
+                // italic-Fraunces punch word). Previously the chips
+                // dimmed to 0.5 opacity which read as flat grey;
+                // founder feedback: "chip loading state — grey
+                // background needs to be improved with colors and
+                // within jenifit." The pill signals progress and
+                // carries brand voice instead of disabled state.
+                if isCapturing {
+                    scanningPill
+                        .transition(.opacity)
+                } else {
+                    modeChips
+                        .transition(.opacity)
+                }
 
                 Spacer()
 
                 Color.clear.frame(width: 44, height: 44)
             }
+            // v1.0.9 D2 polish round 2 (2026-06-08) — snap the toolbar
+            // swap. 0.22s easeInOut + scale on both branches added
+            // perceptual lag: founder saw a soft fade before the
+            // scanning chrome arrived. 0.10s straight opacity reads
+            // as "instant change" without a jarring cut, and the
+            // shutter's own ring/disc swap (now also snapped below)
+            // covers the same frame so the moment lands together.
+            .animation(.easeInOut(duration: 0.10), value: isCapturing)
             .transition(.opacity)
         }
+    }
+
+    /// v1.0.9 D2 polish — replaces the dimmed mode-chip cluster while
+    /// a scan is in flight. Accent rose fill + white italic-Fraunces
+    /// "scanning" punch word + terminal heart. Subtle breathing pulse
+    /// (1.4s, scale 1.0↔1.04) reads as "thinking" without spinner
+    /// noise. Reduce-motion safe (no breathe).
+    @ViewBuilder private var scanningPill: some View {
+        HStack(spacing: 6) {
+            (
+                Text(Image(systemName: "sparkle"))
+                + Text(" ")
+                + Text("scanning").font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                + Text(" ♥")
+            )
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(
+            Capsule().fill(FoodTheme.accent)
+        )
+        .overlay(
+            Capsule().stroke(Color.white.opacity(0.35), lineWidth: 1)
+        )
+        .shadow(
+            color: FoodTheme.accent.opacity(0.35),
+            radius: 8, x: 0, y: 2
+        )
+        .scaleEffect(scanPillBreathing && !reduceMotion ? 1.04 : 1.0)
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                scanPillBreathing = true
+            }
+        }
+        .onDisappear { scanPillBreathing = false }
+        .accessibilityLabel("scanning")
     }
 
     // MARK: - Gallery preview chrome + actions
@@ -1239,9 +1336,12 @@ public struct PhotoCaptureView: View {
     }
 
     private func captureTapped() async {
-        guard !isCapturing else { return }
-        isCapturing = true
-        errorMessage = nil
+        // v1.0.9 D2 polish (2026-06-08) — `isCapturing = true` +
+        // `errorMessage = nil` now happen synchronously in the
+        // Button closure (same runloop tick as freezePreview). The
+        // re-tap guard is no longer needed here because the shutter
+        // Button's `.disabled(isCapturing || ...)` modifier already
+        // prevents a second tap while a scan is in flight.
         defer { isCapturing = false }
 
         // v1.0.8 Phase J — haptic/sound/flash/freeze moved to the Button
@@ -1836,11 +1936,14 @@ struct NutritionCardView: View {
             y: 3 * scale
         )
         .overlay(alignment: .topTrailing) {
-            // Cherries sticker — scrapbook chrome signature. Decorative
-            // only, accessibility hidden. Same emoji + rotation band
-            // as SingleDishCard's chrome.
-            Text("🍒")
-                .font(.system(size: 26 * scale))
+            // Cherries sticker — scrapbook chrome signature. Real
+            // bundled asset (sticker_cherries.png from
+            // PlankApp/Assets.xcassets/Stickers) to match the rest
+            // of the v1.0.9 D2 theming pass.
+            Image("sticker_cherries", bundle: .main)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 40 * scale, height: 40 * scale)
                 .rotationEffect(.degrees(12))
                 .offset(x: 8 * scale, y: -12 * scale)
                 .accessibilityHidden(true)
