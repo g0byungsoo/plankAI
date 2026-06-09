@@ -547,6 +547,201 @@ public actor SyncService {
         }
     }
 
+    // MARK: - Program plan upsert / fetch (v1.1 program pivot)
+
+    public func upsertProgramPlan(_ plan: ProgramPlanRecord) async {
+        let planId = plan.id
+        guard !plan.userId.isEmpty else { return }
+
+        let isoStartDate = ISO8601DateFormatter.dateOnly.string(from: plan.startDate)
+        let isoGoalDate = ISO8601DateFormatter.dateOnly.string(from: plan.goalDate)
+        let payload = SupabaseProgramPlanUpsert(
+            id: plan.id,
+            user_id: plan.userId,
+            started_at: ISO8601DateFormatter().string(from: plan.createdAt),
+            start_date: isoStartDate,
+            goal_date: isoGoalDate,
+            total_days: plan.totalDays,
+            current_weight_kg: plan.currentWeightKg,
+            goal_weight_kg: plan.goalWeightKg,
+            intensity_tier: plan.intensityTier,
+            phase: plan.phase,
+            parent_plan_id: plan.parentPlanId,
+            archived_at: plan.archivedAt.map { ISO8601DateFormatter().string(from: $0) },
+            completed_at: plan.completedAt.map { ISO8601DateFormatter().string(from: $0) }
+        )
+
+        do {
+            try await supabase.from("program_plans")
+                .upsert(payload)
+                .execute()
+
+            await MainActor.run {
+                let descriptor = FetchDescriptor<ProgramPlanRecord>(
+                    predicate: #Predicate { $0.id == planId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[SyncService] upsertProgramPlan FAILED for \(planId): \(error)")
+            #endif
+        }
+    }
+
+    @MainActor
+    public func hydrateProgramPlans(userId: String) async {
+        struct Row: Decodable {
+            let id: String
+            let user_id: String
+            let start_date: String
+            let goal_date: String
+            let total_days: Int
+            let current_weight_kg: Double?
+            let goal_weight_kg: Double?
+            let intensity_tier: String
+            let phase: String
+            let parent_plan_id: String?
+            let archived_at: String?
+            let completed_at: String?
+        }
+
+        do {
+            let rows: [Row] = try await supabase.from("program_plans")
+                .select()
+                .eq("user_id", value: userId)
+                .order("started_at", ascending: false)
+                .execute()
+                .value
+
+            let context = modelContainer.mainContext
+
+            for row in rows {
+                let rowId = row.id
+                let descriptor = FetchDescriptor<ProgramPlanRecord>(
+                    predicate: #Predicate { $0.id == rowId }
+                )
+                if (try? context.fetch(descriptor).first) != nil {
+                    continue   // already local
+                }
+                let startDate = ISO8601DateFormatter.dateOnly.date(from: row.start_date) ?? .now
+                let goalDate = ISO8601DateFormatter.dateOnly.date(from: row.goal_date) ?? .now
+                let plan = ProgramPlanRecord(
+                    id: row.id,
+                    userId: row.user_id,
+                    startDate: startDate,
+                    goalDate: goalDate,
+                    totalDays: row.total_days,
+                    currentWeightKg: row.current_weight_kg,
+                    goalWeightKg: row.goal_weight_kg,
+                    intensityTier: row.intensity_tier,
+                    phase: row.phase,
+                    parentPlanId: row.parent_plan_id
+                )
+                plan.archivedAt = row.archived_at.flatMap { ISO8601DateFormatter().date(from: $0) }
+                plan.completedAt = row.completed_at.flatMap { ISO8601DateFormatter().date(from: $0) }
+                plan.pendingUpsert = false
+                context.insert(plan)
+            }
+            try? context.save()
+        } catch {
+            #if DEBUG
+            print("[SyncService] hydrateProgramPlans FAILED: \(error)")
+            #endif
+        }
+    }
+
+    // MARK: - Program day check upsert / fetch (v1.1 program pivot)
+
+    public func upsertProgramDayCheck(_ check: ProgramDayCheckRecord) async {
+        let checkId = check.id
+        guard !check.userId.isEmpty else { return }
+
+        let payload = SupabaseProgramDayCheckUpsert(
+            id: check.id,
+            user_id: check.userId,
+            program_plan_id: check.programPlanId,
+            program_day: check.programDay,
+            item_key: check.itemKey,
+            state: check.state,
+            completed_at: check.completedAt.map { ISO8601DateFormatter().string(from: $0) }
+        )
+
+        do {
+            try await supabase.from("program_day_checks")
+                .upsert(payload)
+                .execute()
+
+            await MainActor.run {
+                let descriptor = FetchDescriptor<ProgramDayCheckRecord>(
+                    predicate: #Predicate { $0.id == checkId }
+                )
+                if let refetched = try? modelContainer.mainContext.fetch(descriptor).first {
+                    refetched.pendingUpsert = false
+                    try? modelContainer.mainContext.save()
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[SyncService] upsertProgramDayCheck FAILED for \(checkId): \(error)")
+            #endif
+        }
+    }
+
+    @MainActor
+    public func hydrateProgramDayChecks(userId: String) async {
+        struct Row: Decodable {
+            let id: String
+            let user_id: String
+            let program_plan_id: String
+            let program_day: Int
+            let item_key: String
+            let state: String
+            let completed_at: String?
+        }
+
+        do {
+            let rows: [Row] = try await supabase.from("program_day_checks")
+                .select()
+                .eq("user_id", value: userId)
+                .order("program_day", ascending: true)
+                .execute()
+                .value
+
+            let context = modelContainer.mainContext
+
+            for row in rows {
+                let rowId = row.id
+                let descriptor = FetchDescriptor<ProgramDayCheckRecord>(
+                    predicate: #Predicate { $0.id == rowId }
+                )
+                if (try? context.fetch(descriptor).first) != nil {
+                    continue
+                }
+                let check = ProgramDayCheckRecord(
+                    id: row.id,
+                    userId: row.user_id,
+                    programPlanId: row.program_plan_id,
+                    programDay: row.program_day,
+                    itemKey: row.item_key,
+                    state: row.state,
+                    payload: nil
+                )
+                check.completedAt = row.completed_at.flatMap { ISO8601DateFormatter().date(from: $0) }
+                check.pendingUpsert = false
+                context.insert(check)
+            }
+            try? context.save()
+        } catch {
+            #if DEBUG
+            print("[SyncService] hydrateProgramDayChecks FAILED: \(error)")
+            #endif
+        }
+    }
+
     /// Pull the user's full weight history from Supabase. Used during
     /// hydrate-on-sign-in so the trend chart renders immediately on a
     /// fresh device install.
@@ -637,6 +832,50 @@ private struct SupabaseWeightLogUpsert: Encodable {
     let weight_kg: Double
     let logged_at: String
     let source: String
+}
+
+/// Typed upsert payload for public.program_plans. v1.1 program pivot.
+/// dates are pre-formatted strings — start_date / goal_date are
+/// yyyy-MM-dd (date column), the rest are ISO8601 timestamps.
+private struct SupabaseProgramPlanUpsert: Encodable {
+    let id: String
+    let user_id: String
+    let started_at: String
+    let start_date: String
+    let goal_date: String
+    let total_days: Int
+    let current_weight_kg: Double?
+    let goal_weight_kg: Double?
+    let intensity_tier: String
+    let phase: String
+    let parent_plan_id: String?
+    let archived_at: String?
+    let completed_at: String?
+}
+
+/// Typed upsert payload for public.program_day_checks. v1.1 program pivot.
+/// Phase 1 sends payload as nil; Phase 2 will populate it with the
+/// resolved WorkoutPreset to kill WorkoutGenerator non-determinism.
+private struct SupabaseProgramDayCheckUpsert: Encodable {
+    let id: String
+    let user_id: String
+    let program_plan_id: String
+    let program_day: Int
+    let item_key: String
+    let state: String
+    let completed_at: String?
+}
+
+/// Date-only formatter for Postgres `date` columns (yyyy-MM-dd, UTC).
+/// Used by ProgramPlan upsert/hydrate where start_date + goal_date
+/// are calendar dates, not timestamps.
+extension ISO8601DateFormatter {
+    fileprivate static let dateOnly: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withYear, .withMonth, .withDay, .withDashSeparatorInDate]
+        f.timeZone = TimeZone(identifier: "UTC")
+        return f
+    }()
 }
 
 /// Typed upsert payload for public.day_progress. Composite primary key

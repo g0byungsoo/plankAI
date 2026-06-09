@@ -342,3 +342,138 @@ public final class ExerciseCalibrationRecord {
         self.calibratedAt = .now
     }
 }
+
+// MARK: - Program Plan (v1.1 program pivot)
+//
+// One row per program enrollment. The header row that gates whether
+// PlanView's DailyChecklistCard renders + drives the IntensityProfile
+// lookup. ProgramService enforces "one active per user" client-side;
+// graduation transitions write (old.phase='completed', new active row)
+// in one async block.
+//
+// Mirrors the public.program_plans schema. Client-generated id so
+// crash retries idempotently upsert.
+
+@Model
+public final class ProgramPlanRecord {
+    @Attribute(.unique) public var id: String   // client-generated UUID
+
+    public var userId: String
+
+    public var startDate: Date
+
+    public var goalDate: Date
+
+    public var totalDays: Int
+
+    /// Snapshot at enrollment. May go stale if user logs new weight
+    /// mid-program — that's fine; analytics/cohort recovery use these
+    /// to know the starting context.
+    public var currentWeightKg: Double?
+    public var goalWeightKg: Double?
+
+    /// "soft" | "medium" | "hard" (IntensityTier raw)
+    public var intensityTier: String
+
+    /// "active" | "maintenance" | "recomp" | "pause" | "completed" | "abandoned"
+    public var phase: String
+
+    public var parentPlanId: String?
+
+    public var archivedAt: Date?
+
+    public var completedAt: Date?
+
+    public var createdAt: Date
+    public var updatedAt: Date
+
+    public var pendingUpsert: Bool
+
+    public init(
+        id: String = UUID().uuidString,
+        userId: String,
+        startDate: Date,
+        goalDate: Date,
+        totalDays: Int,
+        currentWeightKg: Double? = nil,
+        goalWeightKg: Double? = nil,
+        intensityTier: String,
+        phase: String = "active",
+        parentPlanId: String? = nil
+    ) {
+        self.id = id
+        self.userId = userId
+        self.startDate = startDate
+        self.goalDate = goalDate
+        self.totalDays = totalDays
+        self.currentWeightKg = currentWeightKg
+        self.goalWeightKg = goalWeightKg
+        self.intensityTier = intensityTier
+        self.phase = phase
+        self.parentPlanId = parentPlanId
+        self.archivedAt = nil
+        self.completedAt = nil
+        self.createdAt = .now
+        self.updatedAt = .now
+        self.pendingUpsert = true
+    }
+}
+
+// MARK: - Program Day Check (v1.1 program pivot)
+//
+// Per-day-per-row checklist state. Auto-completed rows insert when the
+// telemetry fires; self-check rows insert on user tap. UNIQUE on
+// (userId, programPlanId, programDay, itemKey) prevents duplicate
+// checks for the same item on the same day. Client-generated id so
+// retries idempotently upsert.
+
+@Model
+public final class ProgramDayCheckRecord {
+    @Attribute(.unique) public var id: String   // client-generated UUID
+
+    public var userId: String
+
+    public var programPlanId: String
+
+    public var programDay: Int
+
+    /// Matches ProgramDayPrescription.itemKey. Keep in sync.
+    public var itemKey: String
+
+    /// "empty" | "complete" | "skipped" | "autoCompleted"
+    public var state: String
+
+    public var completedAt: Date?
+
+    /// Optional payload — caches resolved WorkoutPreset on first
+    /// render of the day (Phase 2). Stored as JSON-encoded Data
+    /// locally; bridges to jsonb on the server.
+    public var payload: Data?
+
+    public var createdAt: Date
+    public var updatedAt: Date
+
+    public var pendingUpsert: Bool
+
+    public init(
+        id: String = UUID().uuidString,
+        userId: String,
+        programPlanId: String,
+        programDay: Int,
+        itemKey: String,
+        state: String = "empty",
+        payload: Data? = nil
+    ) {
+        self.id = id
+        self.userId = userId
+        self.programPlanId = programPlanId
+        self.programDay = programDay
+        self.itemKey = itemKey
+        self.state = state
+        self.completedAt = nil
+        self.payload = payload
+        self.createdAt = .now
+        self.updatedAt = .now
+        self.pendingUpsert = true
+    }
+}

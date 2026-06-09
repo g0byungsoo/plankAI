@@ -369,6 +369,15 @@ struct PlankAIApp: App {
             ExerciseCalibrationRecord.self,
             SessionRatingRecord.self,
             WeightLogRecord.self,
+            // v1.1 program pivot. Both @Models lightweight-migrate
+            // on first launch; existing users get empty stores until
+            // they opt in via the full-screen cover. Reads are
+            // gated by ProgramService.activePlan != nil, so an
+            // empty store is a clean "no program yet" state, never
+            // a crash. Per docs/program_pivot_v1_1_plan_2026_06_09.md
+            // §"Data model diff" — migration safety notes.
+            ProgramPlanRecord.self,
+            ProgramDayCheckRecord.self,
             // W3-T6 food rail SwiftData @Models removed from the
             // container 2026-06-04 — caused the app to hang on launch
             // (black/white screen, main thread blocked, persists across

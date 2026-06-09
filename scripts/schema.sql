@@ -562,6 +562,128 @@ ALTER TABLE public.food_vision_telemetry ENABLE ROW LEVEL SECURITY;
 -- No policies defined = no authenticated access. service_role still works.
 
 -- =====================================================================
+-- v1.1 program pivot — additive
+-- =====================================================================
+--
+-- 2026-06-09: JeniFit pivots to "custom weight-loss program". The
+-- ProgramPlan layer is purely additive: 3 nullable columns on
+-- public.users + 2 new tables (program_plans, program_day_checks).
+--
+-- ZERO impact on existing users:
+--   - Every new column is NULL DEFAULT NULL
+--   - Every new table is CREATE IF NOT EXISTS with RLS own-row
+--   - No ALTER on existing columns, no NOT NULL adds, no DROP
+--
+-- Follows the 2026-05-04 11-column migration template line-for-line.
+-- Per docs/program_pivot_v1_1_plan_2026_06_09.md §"Data model diff".
+
+-- ---------- public.users — program contract columns ----------
+-- 3 nullable columns denormalized from the active program_plans row.
+-- Lets queries (analytics, paywall personalization, JenisNote copy)
+-- skip a join when they only need the active tier / goal date / status.
+-- Source of truth = program_plans; these columns are kept in sync by
+-- ProgramService.startProgram + transition. Existing users get all-NULL
+-- and skip the program features until they opt in.
+
+ALTER TABLE public.users
+    -- 'soft' | 'medium' | 'hard' — matches IntensityProfile.tier raw value
+    ADD COLUMN IF NOT EXISTS program_intensity_tier text
+        CHECK (program_intensity_tier IS NULL OR program_intensity_tier IN ('soft','medium','hard')),
+    -- Derived from start_date + IntensityProfile.weeks(for:). NEVER hand-picked.
+    ADD COLUMN IF NOT EXISTS program_goal_date date,
+    -- 'inactive' | 'active' | 'paused' | 'completed' | 'abandoned'
+    ADD COLUMN IF NOT EXISTS program_status text
+        DEFAULT 'inactive'
+        CHECK (program_status IS NULL OR program_status IN ('inactive','active','paused','completed','abandoned'));
+
+-- ---------- public.program_plans ----------
+-- One row per program enrollment. Append-only-per-run: when a user
+-- graduates Day 75 + picks Maintenance 30, the old row is UPDATEd
+-- (status='completed', completed_at=now()) and a new row is INSERTed
+-- with parent_plan_id pointing back. ProgramService enforces "one
+-- active per user" client-side; no partial unique index because the
+-- graduation transition needs to atomically write completed + active
+-- in any order.
+
+CREATE TABLE IF NOT EXISTS public.program_plans (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    -- Day 1 anchor. programDay derives from this + Calendar offset
+    -- at read time via ProgramScheduleCalculator. NEVER stored.
+    started_at timestamptz NOT NULL DEFAULT now(),
+    start_date date NOT NULL,
+    -- Last active day = start_date + (total_days - 1). After goal_date
+    -- the user enters post-goal state (ChapterCompleteView fires).
+    goal_date date NOT NULL,
+    total_days int NOT NULL,
+    -- Snapshot of the enrollment context. Useful for analytics +
+    -- cohort recovery if user changes intensity mid-program (we know
+    -- where they started). All nullable to keep migration trivial.
+    current_weight_kg numeric(5,2),
+    goal_weight_kg numeric(5,2),
+    intensity_tier text NOT NULL
+        CHECK (intensity_tier IN ('soft','medium','hard')),
+    -- 'active' | 'maintenance' | 'recomp' | 'pause' | 'completed' | 'abandoned'
+    phase text NOT NULL DEFAULT 'active'
+        CHECK (phase IN ('active','maintenance','recomp','pause','completed','abandoned')),
+    -- Self-FK for chaining plans (Maintenance 30 follows the original
+    -- 75-day plan; Recomp 60 follows a completed one, etc.). NULL on
+    -- the first plan in a chain.
+    parent_plan_id uuid REFERENCES public.program_plans(id),
+    -- Soft-archive timestamp for plans the user moved away from.
+    archived_at timestamptz,
+    -- Day-75 (or whatever total_days) completion stamp. NULL while active.
+    completed_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS program_plans_user_active_idx
+    ON public.program_plans (user_id, phase, started_at DESC);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.program_plans TO authenticated;
+
+-- ---------- public.program_day_checks ----------
+-- One row per (user, program_plan, program_day, item_key). Tracks the
+-- 5-row daily checklist state — auto-completed rows insert when the
+-- corresponding telemetry fires (FoodScanRecord, SessionLogRecord,
+-- WeightLogRecord, HealthKit steps); self-check rows insert when the
+-- user taps the row.
+--
+-- Client-generated text PK so crash retries idempotently upsert
+-- (mirrors weight_logs convention). The UNIQUE constraint on
+-- (user_id, program_plan_id, program_day, item_key) prevents
+-- duplicate checks for the same item on the same day; ProgramService
+-- uses it for ON CONFLICT upsert.
+--
+-- payload jsonb caches the resolved WorkoutPreset on first render of
+-- the day (Phase 2) — kills the WorkoutGenerator non-determinism risk
+-- noted in the agent research.
+
+CREATE TABLE IF NOT EXISTS public.program_day_checks (
+    id text PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    program_plan_id uuid NOT NULL REFERENCES public.program_plans(id) ON DELETE CASCADE,
+    program_day int NOT NULL CHECK (program_day >= 1),
+    -- Matches ProgramDayPrescription.itemKey. Keep enum in sync.
+    item_key text NOT NULL
+        CHECK (item_key IN ('lesson','snap_meal','move','plank','breath','steps','water','weigh_in','measurements')),
+    -- 'empty' | 'complete' | 'skipped' | 'autoCompleted'
+    state text NOT NULL DEFAULT 'empty'
+        CHECK (state IN ('empty','complete','skipped','autoCompleted')),
+    completed_at timestamptz,
+    payload jsonb,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (user_id, program_plan_id, program_day, item_key)
+);
+
+CREATE INDEX IF NOT EXISTS program_day_checks_user_day_idx
+    ON public.program_day_checks (user_id, program_day);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.program_day_checks TO authenticated;
+
+-- =====================================================================
 -- Next step
 -- =====================================================================
 --

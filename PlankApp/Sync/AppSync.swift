@@ -170,6 +170,12 @@ final class AppSync {
 
         await service.hydrateFromCloud(userId: userId)
         await service.hydrateWeightLogs(userId: userId)
+        // v1.1 program pivot — pulls active + archived plans + per-day
+        // checks so PlanView renders the right state immediately on a
+        // fresh device install. Both hydrate paths are no-ops when the
+        // user has no enrollment.
+        await service.hydrateProgramPlans(userId: userId)
+        await service.hydrateProgramDayChecks(userId: userId)
         syncUserDefaultsFromUserRecord(context: container.mainContext, userId: userId)
     }
 
@@ -286,6 +292,20 @@ final class AppSync {
         guard let service = syncService else { return }
         guard !log.userId.isEmpty else { return }
         await service.upsertWeightLog(log)
+    }
+
+    // MARK: - Program (v1.1 program pivot)
+
+    func upsertProgramPlan(_ plan: ProgramPlanRecord) async {
+        guard let service = syncService else { return }
+        guard !plan.userId.isEmpty else { return }
+        await service.upsertProgramPlan(plan)
+    }
+
+    func upsertProgramDayCheck(_ check: ProgramDayCheckRecord) async {
+        guard let service = syncService else { return }
+        guard !check.userId.isEmpty else { return }
+        await service.upsertProgramDayCheck(check)
     }
 
     // MARK: Delete account
