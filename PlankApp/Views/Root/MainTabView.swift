@@ -23,35 +23,85 @@ struct MainTabView: View {
     @State private var selectedTab: AppTab = .workout
     @State private var showCaptureFlow = false
 
+    // v1.1 program pivot — gates the program-era home (PlanView) vs
+    // legacy HomeView. Default false; flipped to true when the user
+    // commits to a program (ProgramSetupSubflow sets it directly).
+    @AppStorage("programEraEnabled") private var programEraEnabled: Bool = false
+    @AppStorage("progressGridEnabled") private var progressGridEnabled: Bool = false
+
+    // Founder-locked: existing users see a full-screen "your program
+    // is ready" cover once on first launch post-v1.1. Cover sets
+    // hasSeenProgramIntro=true on dismiss so we never show it twice.
+    @AppStorage("hasSeenProgramIntro") private var hasSeenProgramIntro: Bool = false
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
+    @AppStorage("hasEnrolledInProgram") private var hasEnrolledInProgram: Bool = false
+
+    /// One-shot trigger for the program intro cover. Initialized from
+    /// the AppStorage flags on first body eval; flipped to false when
+    /// the cover dismisses (success or skip). Keeping this as @State
+    /// — not derived — is what lets the cover dismiss cleanly. A
+    /// computed binding off @AppStorage doesn't re-render fast enough
+    /// in iOS 17/18 to drive a fullScreenCover.
+    @State private var showProgramIntro: Bool = false
+
     var body: some View {
         ZStack(alignment: .bottom) {
             TabView(selection: $selectedTab) {
-                // Mindful naming: "present" for today's plan + active state,
-                // "past" for the log of what's already happened. The pair reads
-                // as a meditation cue, not a feature menu, which fits the
-                // JeniFit voice better than "Workout / Log".
-                HomeView()
-                    .tabBloom(isActive: selectedTab == .workout)
-                    .tabItem {
-                        Label("present", systemImage: "sparkles")
+                // v1.1 program pivot: "today" replaces "present" — points
+                // explicitly at the daily checklist now that PlanView is
+                // the surface here. "becoming" stays as the analytics
+                // tab name (founder decision 2026-06-09: minimal rename
+                // for Phase 1; 5-tab BetterMe IA deferred to Phase 6).
+                //
+                // Flag gate: when programEraEnabled (set by the program
+                // subflow commit) PlanView replaces HomeView for this
+                // tab. Flag false = existing render path, zero impact.
+                Group {
+                    if programEraEnabled {
+                        PlanView()
+                    } else {
+                        HomeView()
                     }
-                    .tag(AppTab.workout)
+                }
+                .tabBloom(isActive: selectedTab == .workout)
+                .tabItem {
+                    Label("today", systemImage: "sparkles")
+                }
+                .tag(AppTab.workout)
 
-                AnalyticsView()
-                    .tabBloom(isActive: selectedTab == .log)
-                    .tabItem {
-                        // "becoming" leans into Dweck/Burnette growth-mindset
-                        // research — present-progressive framing accommodates
-                        // plateaus better than the static "past" frame did.
-                        Label("becoming", systemImage: "book.closed.fill")
+                Group {
+                    if progressGridEnabled {
+                        ProgressGridView()
+                    } else {
+                        AnalyticsView()
                     }
-                    .tag(AppTab.log)
+                }
+                .tabBloom(isActive: selectedTab == .log)
+                .tabItem {
+                    // "becoming" leans into Dweck/Burnette growth-mindset
+                    // research — present-progressive framing accommodates
+                    // plateaus better than the static "past" frame did.
+                    Label("becoming", systemImage: "book.closed.fill")
+                }
+                .tag(AppTab.log)
             }
             .tint(Palette.accent)
             .onAppear {
                 #if DEBUG
                 print("[FUNNEL] main_tab_appeared | paywall cover dismissed, user is now in the app")
                 #endif
+                // Evaluate one-shot program intro on first tab appear.
+                // Same trigger conditions every time the tab gains focus
+                // — re-firing is fine because hasSeenProgramIntro flips
+                // to true the moment the cover dismisses, preventing
+                // a second show.
+                if hasCompletedOnboarding
+                    && !hasEnrolledInProgram
+                    && !hasSeenProgramIntro
+                    && !programEraEnabled
+                {
+                    showProgramIntro = true
+                }
             }
 
             // Central camera FAB per delta v7 D57. Visible only when
@@ -71,6 +121,19 @@ struct MainTabView: View {
                     .string(forKey: "onboardingCuisinePreference"),
                 onDismiss: { showCaptureFlow = false }
             )
+        }
+        // v1.1 program pivot — existing-user opt-in. Fires once for
+        // users who completed v1.0 onboarding pre-v1.1, before they
+        // see PlanView (or stay on HomeView if they decline). Founder
+        // locked the full-screen cover (commitment device) over the
+        // quieter home-card approach 2026-06-09.
+        .fullScreenCover(isPresented: $showProgramIntro) {
+            ProgramIntroFullScreenCover {
+                showProgramIntro = false
+                // hasSeenProgramIntro is flipped by the cover internally
+                // on dismiss. If user committed, programEraEnabled is
+                // also true → next tab render shows PlanView.
+            }
         }
     }
 
