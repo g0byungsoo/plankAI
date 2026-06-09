@@ -49,7 +49,7 @@ struct ChapterCompleteView: View {
             switch self {
             case .maintenance30: return "keep what you built. 30 days."
             case .recomp60:      return "build the shape. 60 days."
-            case .newGoal75:     return "go again — same vibe, new target."
+            case .newGoal75:     return "go again. same vibe, new target."
             case .softPause:     return "just walks, just lessons. 4 weeks."
             }
         }
@@ -67,92 +67,98 @@ struct ChapterCompleteView: View {
     }
 
     var body: some View {
-        ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
-
+        VStack(spacing: 0) {
             ScrollView {
-                VStack(spacing: Space.section) {
-                    Spacer().frame(height: Space.hero)
-
-                    // Hero: "day 75. you became her." Italic on became.
-                    VStack(spacing: 16) {
-                        Text("day 75.")
-                            .font(Typo.programHeroDisplay)
-                            .foregroundStyle(Palette.cocoaPrimary)
-                            .accessibilityFocused($titleFocused)
-                        (
-                            Text("you ")
-                                .font(Typo.programHeroDisplay)
-                                .foregroundStyle(Palette.cocoaPrimary)
-                            +
-                            Text("became")
-                                .font(Typo.programHeroItalic)
-                                .foregroundStyle(Palette.cocoaPrimary)
-                            +
-                            Text(" her.")
-                                .font(Typo.programHeroDisplay)
-                                .foregroundStyle(Palette.cocoaPrimary)
-                        )
-                        .multilineTextAlignment(.center)
-                    }
-                    .padding(.horizontal, Space.lg)
-                    .opacity(animateIn ? 1 : 0)
-                    .offset(y: animateIn ? 0 : 18)
-                    .animation(Motion.entrance, value: animateIn)
-
-                    // Anti-shame body — evidence-aligned, NWCR-cited.
-                    Text("30% of women who finish stop here. they regain within a year. stay with us — pick what's next.")
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.cocoaSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Space.lg + 8)
-                        .opacity(animateIn ? 1 : 0)
-                        .animation(Motion.entrance.delay(0.18), value: animateIn)
-
-                    // 4-card next-program picker.
-                    VStack(spacing: 14) {
-                        ForEach(Array(NextProgramKind.allCases.enumerated()), id: \.element) { idx, kind in
-                            ChapterCompleteCard(kind: kind) {
-                                if kind.isAvailableInPhase1 {
-                                    onPickNextProgram(kind)
-                                }
-                                // Phase 1: locked tracks show no-op; the
-                                // card paints itself as "coming soon" so
-                                // user knows.
-                            }
-                            .opacity(animateIn ? 1 : 0)
-                            .offset(y: animateIn ? 0 : 12)
-                            .animation(
-                                Motion.entrance.delay(0.30 + Double(idx) * Motion.stagger),
-                                value: animateIn
-                            )
-                        }
-                    }
-                    .padding(.horizontal, Space.lg)
-
-                    // Quiet dismiss — celebration is free, enrollment is opt-in.
-                    Button {
-                        onDismiss()
-                    } label: {
-                        Text("not yet — let me sit with this")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.cocoaSecondary)
-                            .padding(.vertical, 12)
-                    }
-                    .opacity(animateIn ? 1 : 0)
-                    .animation(Motion.entrance.delay(0.7), value: animateIn)
-
-                    Spacer().frame(height: Space.xl)
+                VStack(alignment: .leading, spacing: Space.section) {
+                    hero
+                    body
+                    picker
                 }
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.hero)
+                .padding(.bottom, 24)
             }
+            footer
         }
+        .background(Palette.bgPrimary.ignoresSafeArea())
         .onAppear {
-            animateIn = true
-            // VoiceOver lands on the hero
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                animateIn = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 titleFocused = true
             }
         }
+    }
+
+    private var hero: some View {
+        VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
+            Text("day 75.")
+                .font(Typo.programHeroDisplay)
+                .foregroundStyle(Palette.cocoaPrimary)
+                .accessibilityFocused($titleFocused)
+            (
+                Text("you ")
+                    .font(Typo.programHeroDisplay)
+                    .foregroundStyle(Palette.cocoaPrimary)
+                +
+                Text("became")
+                    .font(Typo.programHeroItalic)
+                    .foregroundStyle(Palette.cocoaPrimary)
+                +
+                Text(" her.")
+                    .font(Typo.programHeroDisplay)
+                    .foregroundStyle(Palette.cocoaPrimary)
+            )
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .modernEntrance(animateIn)
+    }
+
+    private var body: some View {
+        // Anti-shame body, NWCR-cited. Two short sentences instead
+        // of an em-dash phrase. Founder voice rule 2026-06-09.
+        Text("30% of women who finish stop here. they regain within a year. stay with us. pick what's next.")
+            .font(Typo.body)
+            .foregroundStyle(Palette.cocoaSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .modernEntrance(animateIn, delay: 0.08)
+    }
+
+    private var picker: some View {
+        VStack(spacing: 12) {
+            ForEach(Array(NextProgramKind.allCases.enumerated()), id: \.element) { idx, kind in
+                ChapterCompleteCard(kind: kind) {
+                    if kind.isAvailableInPhase1 {
+                        onPickNextProgram(kind)
+                    }
+                }
+                .modernEntrance(animateIn, delay: 0.16 + Double(idx) * 0.06)
+            }
+        }
+    }
+
+    private var footer: some View {
+        VStack {
+            Button { onDismiss() } label: {
+                Text("give me a beat")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 8)
+        .background(
+            Palette.bgPrimary
+                .overlay(
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5),
+                    alignment: .top
+                )
+        )
+        .modernEntrance(animateIn, delay: 0.45)
     }
 }
 

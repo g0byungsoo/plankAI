@@ -43,46 +43,48 @@ struct ProgressGridView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.section) {
-                    Spacer().frame(height: Space.hero)
                     header
                     grid
                     Spacer().frame(height: 60)
                 }
                 .padding(.horizontal, Space.lg)
+                .padding(.top, Space.hero)
             }
         }
         .onAppear {
             userId = AppSync.shared.currentUserId ?? ""
-            animateIn = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                animateIn = true
+            }
         }
     }
 
     // MARK: - Header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 14) {
             Text("the journey")
                 .font(Typo.editorialEyebrow)
                 .foregroundStyle(Palette.cocoaTertiary)
                 .textCase(.uppercase)
                 .kerning(0.66)
-            (
-                Text("you, ")
+            VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
+                Text("you,")
                     .font(Typo.programHeroDisplay)
                     .foregroundStyle(Palette.cocoaPrimary)
-                +
-                Text("becoming")
-                    .font(Typo.programHeroItalic)
-                    .foregroundStyle(Palette.cocoaPrimary)
-                +
-                Text(".")
-                    .font(Typo.programHeroDisplay)
-                    .foregroundStyle(Palette.cocoaPrimary)
-            )
+                (
+                    Text("becoming")
+                        .font(Typo.programHeroItalic)
+                        .foregroundStyle(Palette.cocoaPrimary)
+                    +
+                    Text(".")
+                        .font(Typo.programHeroDisplay)
+                        .foregroundStyle(Palette.cocoaPrimary)
+                )
+            }
+            .fixedSize(horizontal: false, vertical: true)
         }
-        .opacity(animateIn ? 1 : 0)
-        .offset(y: animateIn ? 0 : 12)
-        .animation(Motion.entrance, value: animateIn)
+        .modernEntrance(animateIn)
     }
 
     // MARK: - Grid
@@ -95,8 +97,7 @@ struct ProgressGridView: View {
                 subtitle: stepsSubtitle,
                 isAvailable: true
             )
-            .opacity(animateIn ? 1 : 0)
-            .animation(Motion.entrance.delay(0.10), value: animateIn)
+            .modernEntrance(animateIn, delay: 0.06)
 
             ProgressTile(
                 label: "Weight",
@@ -104,8 +105,7 @@ struct ProgressGridView: View {
                 subtitle: weightSubtitle,
                 isAvailable: !allWeightLogs.isEmpty
             )
-            .opacity(animateIn ? 1 : 0)
-            .animation(Motion.entrance.delay(0.16), value: animateIn)
+            .modernEntrance(animateIn, delay: 0.12)
 
             ProgressTile(
                 label: "Workouts",
@@ -113,8 +113,7 @@ struct ProgressGridView: View {
                 subtitle: "this week",
                 isAvailable: true
             )
-            .opacity(animateIn ? 1 : 0)
-            .animation(Motion.entrance.delay(0.22), value: animateIn)
+            .modernEntrance(animateIn, delay: 0.18)
 
             ProgressTile(
                 label: "Plank PR",
@@ -122,8 +121,7 @@ struct ProgressGridView: View {
                 subtitle: plankPRSubtitle,
                 isAvailable: plankPRSeconds > 0
             )
-            .opacity(animateIn ? 1 : 0)
-            .animation(Motion.entrance.delay(0.28), value: animateIn)
+            .modernEntrance(animateIn, delay: 0.24)
 
             ProgressTile(
                 label: "Program Day",
@@ -131,12 +129,10 @@ struct ProgressGridView: View {
                 subtitle: programDaySubtitle,
                 isAvailable: programDayValue != "—"
             )
-            .opacity(animateIn ? 1 : 0)
-            .animation(Motion.entrance.delay(0.34), value: animateIn)
+            .modernEntrance(animateIn, delay: 0.30)
 
             measurementsOptInTile
-                .opacity(animateIn ? 1 : 0)
-                .animation(Motion.entrance.delay(0.40), value: animateIn)
+                .modernEntrance(animateIn, delay: 0.36)
         }
     }
 

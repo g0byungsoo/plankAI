@@ -157,21 +157,21 @@ struct ProgramSetupSubflow: View {
 
     private var pageGoalDateReveal: some View {
         VStack(alignment: .leading, spacing: 28) {
-            (
-                Text("your plan, ")
-                    .font(Typo.title)
+            VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
+                Text("your plan,")
+                    .font(Typo.programHeroDisplay)
                     .foregroundStyle(Palette.cocoaPrimary)
-                +
-                Text("built around")
-                    .font(Typo.titleItalic)
-                    .foregroundStyle(Palette.cocoaPrimary)
-                +
-                Text(" you.")
-                    .font(Typo.title)
-                    .foregroundStyle(Palette.cocoaPrimary)
-            )
-            .multilineTextAlignment(.leading)
-            .padding(.top, 8)
+                (
+                    Text("built ")
+                        .font(Typo.programHeroDisplay)
+                        .foregroundStyle(Palette.cocoaPrimary)
+                    +
+                    Text("around you.")
+                        .font(Typo.programHeroItalic)
+                        .foregroundStyle(Palette.cocoaPrimary)
+                )
+            }
+            .fixedSize(horizontal: false, vertical: true)
 
             // Window display: "12 to 25 weeks · realistic glide"
             VStack(alignment: .leading, spacing: 12) {
@@ -303,19 +303,21 @@ struct ProgramSetupSubflow: View {
 
     private var pageIntensityPick: some View {
         VStack(alignment: .leading, spacing: 28) {
-            (
-                Text("how do you ")
-                    .font(Typo.title)
+            VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
+                Text("how do you")
+                    .font(Typo.programHeroDisplay)
                     .foregroundStyle(Palette.cocoaPrimary)
-                +
-                Text("want")
-                    .font(Typo.titleItalic)
-                    .foregroundStyle(Palette.cocoaPrimary)
-                +
-                Text(" to get there?")
-                    .font(Typo.title)
-                    .foregroundStyle(Palette.cocoaPrimary)
-            )
+                (
+                    Text("want ")
+                        .font(Typo.programHeroItalic)
+                        .foregroundStyle(Palette.cocoaPrimary)
+                    +
+                    Text("to get there?")
+                        .font(Typo.programHeroDisplay)
+                        .foregroundStyle(Palette.cocoaPrimary)
+                )
+            }
+            .fixedSize(horizontal: false, vertical: true)
 
             Text("pick a pace. you can change it later.")
                 .font(Typo.body)
@@ -411,7 +413,7 @@ struct ProgramSetupSubflow: View {
                 .font(Typo.body)
                 .foregroundStyle(Palette.cocoaSecondary)
 
-            Text("you can unlock Hard anytime in settings — but Soft + Medium are what we'd recommend right now.")
+            Text("you can unlock Hard anytime in settings. Soft and Medium are what we'd recommend for now.")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaTertiary)
 
@@ -440,20 +442,21 @@ struct ProgramSetupSubflow: View {
 
     private var pageCommitment: some View {
         VStack(alignment: .leading, spacing: 28) {
-            (
-                Text("make ")
+            VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
+                (
+                    Text("make ")
+                        .font(Typo.programHeroDisplay)
+                        .foregroundStyle(Palette.cocoaPrimary)
+                    +
+                    Text("it")
+                        .font(Typo.programHeroItalic)
+                        .foregroundStyle(Palette.cocoaPrimary)
+                )
+                Text("official.")
                     .font(Typo.programHeroDisplay)
                     .foregroundStyle(Palette.cocoaPrimary)
-                +
-                Text("it")
-                    .font(Typo.programHeroItalic)
-                    .foregroundStyle(Palette.cocoaPrimary)
-                +
-                Text(" official.")
-                    .font(Typo.programHeroDisplay)
-                    .foregroundStyle(Palette.cocoaPrimary)
-            )
-            .multilineTextAlignment(.leading)
+            }
+            .fixedSize(horizontal: false, vertical: true)
 
             Text("we'll start your program tomorrow. day one.")
                 .font(Typo.body)

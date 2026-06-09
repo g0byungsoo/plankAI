@@ -125,15 +125,24 @@ enum Typo {
     // amplifies the italic-Fraunces voice signal to every program
     // header. NOT used on existing celebration surfaces.
 
-    /// Program-surface hero header — "follow your routine",
-    /// "start your program", "day one". Fraunces Light 48pt with
-    /// tight leading. Apply italic on the punch word via
-    /// programHeroItalic at the same size.
-    static let programHeroDisplay = font("Fraunces72pt-Light", size: 48, relativeTo: .largeTitle).leading(.tight)
+    /// Program-surface hero header — "follow your routine", "your
+    /// program is ready". Fraunces Light 52pt with `.leading(.tight)`.
+    /// Pair with a manually 2-line `VStack(spacing: -10)` of Text
+    /// components so the line gap is hand-controlled instead of
+    /// natural-wrapped (which left a fat 56pt gutter between lines
+    /// on the 48pt size). Founder direction 2026-06-09: "like her75,
+    /// reduce line heights and make texts bigger throughout."
+    static let programHeroDisplay = font("Fraunces72pt-Light", size: 52, relativeTo: .largeTitle).leading(.tight)
 
     /// Italic accent at the program-hero size. Pair with
     /// programHeroDisplay on the same Text via inline +.
-    static let programHeroItalic = font("Fraunces72pt-SemiBoldItalic", size: 48, relativeTo: .largeTitle).leading(.tight)
+    static let programHeroItalic = font("Fraunces72pt-SemiBoldItalic", size: 52, relativeTo: .largeTitle).leading(.tight)
+
+    /// Recommended negative spacing for a 2-line her75-style hero
+    /// VStack at programHeroDisplay/Italic size. Brings the two
+    /// lines visually together so the block reads as a single
+    /// editorial unit instead of two stacked sentences.
+    static let programHeroLineGap: CGFloat = -10
 
     /// Numeral on ProgramStickyNote — the 1-5 row markers on
     /// DailyChecklistCard. Italic Fraunces 28pt. Hand-cut paper
@@ -162,13 +171,16 @@ enum Space {
     // Program surfaces only — existing screens keep lg=24.
 
     /// Top inset before program greeting on PlanView / ProgramHomeView
-    /// / IntensityPickerView. 80pt vs the typical 24pt — the screen
-    /// breathes before it speaks.
-    static let hero: CGFloat = 80
+    /// / IntensityPickerView. 40pt — tightened from 80pt 2026-06-09
+    /// after founder review: 80pt pushed bodies below the fold on
+    /// iPhone 15 and made every screen feel half-empty. 40pt still
+    /// breathes well above safeArea without over-asserting.
+    static let hero: CGFloat = 40
 
-    /// Vertical gutter between major program blocks (photo-mosaic →
-    /// checklist card → friends row). 64pt — generous editorial gutter.
-    static let section: CGFloat = 64
+    /// Vertical gutter between major program blocks (hero → card →
+    /// footer). 36pt — tightened from 64pt 2026-06-09 along with
+    /// Space.hero. Pairs cleanly with Space.lg=24 row paddings.
+    static let section: CGFloat = 36
 }
 
 // MARK: - Colors
@@ -341,6 +353,53 @@ enum Motion {
     /// 2.4s refresh window (HomeView Phase 19) so any new loading
     /// surface stays consistent without re-deriving the constant.
     static let loadingTotalSeconds: Double = 2.4
+
+    // MARK: - v1.1 program-surface entrance (2026-06-09)
+    //
+    // Modern minimalist pop: opacity 0→1 + scale 0.96→1.0 with a
+    // mild high-damping spring (no overshoot, no bounce). Replaces
+    // the older `entrance: .easeOut(0.55)` on program surfaces so
+    // every reveal feels tactile but never theatrical. Tuned for
+    // 60fps on iPhone 12+ — no blur, no per-frame layout math.
+
+    /// The spring program-surface elements animate IN with. response
+    /// 0.45 + damping 0.86 = settles in one frame past the target,
+    /// no visible bounce.
+    static let modernPop: Animation = .spring(response: 0.45, dampingFraction: 0.86)
+}
+
+// MARK: - Modern entrance modifier
+//
+// Reusable per-element entrance animation for program surfaces.
+// Hooks an `appeared: Bool` @State on the call site — flip it to
+// true in `.onAppear { appeared = true }`. With `delay:` to stagger
+// cascades. No expensive effects (blur/shadow on animation are
+// 1080p framebuffer-cost on iOS; we only animate opacity + scale).
+
+struct ModernEntrance: ViewModifier {
+    let appeared: Bool
+    let delay: Double
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(appeared ? 1 : 0)
+            .scaleEffect(appeared ? 1.0 : 0.96, anchor: .center)
+            .animation(
+                reduceMotion ? .none : Motion.modernPop.delay(delay),
+                value: appeared
+            )
+    }
+}
+
+extension View {
+    /// Mild spring entrance for program surfaces. `appeared`
+    /// drives the animation; flip to true in `.onAppear`. `delay`
+    /// indexes cascades — pair with `Double(index) * 0.06` for
+    /// row staggers.
+    func modernEntrance(_ appeared: Bool, delay: Double = 0) -> some View {
+        modifier(ModernEntrance(appeared: appeared, delay: delay))
+    }
 }
 
 // MARK: - Shadow

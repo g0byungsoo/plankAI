@@ -44,12 +44,12 @@ struct PlanView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.section) {
-                    Spacer().frame(height: Space.hero)
                     greeting
                     checklistCard
                     Spacer().frame(height: 60)
                 }
                 .padding(.horizontal, Space.lg)
+                .padding(.top, Space.hero)
             }
         }
         .onAppear { onAppear() }
@@ -73,7 +73,7 @@ struct PlanView: View {
     // MARK: - Greeting
 
     private var greeting: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 14) {
             if let schedule {
                 Text(ProgramScheduleCalculator.dayOfTotalLabel(
                     programDay: schedule.programDay,
@@ -84,23 +84,23 @@ struct PlanView: View {
                 .textCase(.uppercase)
                 .kerning(0.66)
             }
-            (
-                Text("today, ")
+            VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
+                Text("today,")
                     .font(Typo.programHeroDisplay)
                     .foregroundStyle(Palette.cocoaPrimary)
-                +
-                Text("gently")
-                    .font(Typo.programHeroItalic)
-                    .foregroundStyle(Palette.cocoaPrimary)
-                +
-                Text(".")
-                    .font(Typo.programHeroDisplay)
-                    .foregroundStyle(Palette.cocoaPrimary)
-            )
+                (
+                    Text("gently")
+                        .font(Typo.programHeroItalic)
+                        .foregroundStyle(Palette.cocoaPrimary)
+                    +
+                    Text(".")
+                        .font(Typo.programHeroDisplay)
+                        .foregroundStyle(Palette.cocoaPrimary)
+                )
+            }
+            .fixedSize(horizontal: false, vertical: true)
         }
-        .opacity(animateIn ? 1 : 0)
-        .offset(y: animateIn ? 0 : 12)
-        .animation(Motion.entrance, value: animateIn)
+        .modernEntrance(animateIn)
     }
 
     // MARK: - Checklist card
@@ -114,12 +114,7 @@ struct PlanView: View {
                     state: checkStateByKey[prescription.itemKey] ?? .empty,
                     onTap: { handleTap(prescription) }
                 )
-                .opacity(animateIn ? 1 : 0)
-                .offset(y: animateIn ? 0 : 10)
-                .animation(
-                    Motion.entrance.delay(0.10 + Double(idx) * Motion.stagger),
-                    value: animateIn
-                )
+                .modernEntrance(animateIn, delay: 0.08 + Double(idx) * 0.06)
                 if idx < todayPrescriptions.count - 1 {
                     Divider()
                         .background(Palette.hairlineCocoa)
@@ -169,7 +164,9 @@ struct PlanView: View {
             programDay: computed.programDay
         )
 
-        animateIn = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            animateIn = true
+        }
     }
 
     /// Composes today's 5-row checklist from the active intensity
