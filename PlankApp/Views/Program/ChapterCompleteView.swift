@@ -71,7 +71,7 @@ struct ChapterCompleteView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.section) {
                     hero
-                    body
+                    manifesto
                     picker
                 }
                 .padding(.horizontal, Space.lg)
@@ -116,9 +116,11 @@ struct ChapterCompleteView: View {
         .modernEntrance(animateIn)
     }
 
-    private var body: some View {
+    private var manifesto: some View {
         // Anti-shame body, NWCR-cited. Two short sentences instead
         // of an em-dash phrase. Founder voice rule 2026-06-09.
+        // Renamed from `body` (collides with View protocol's required
+        // `var body: some View`, causes recursive-getter compile error).
         Text("30% of women who finish stop here. they regain within a year. stay with us. pick what's next.")
             .font(Typo.body)
             .foregroundStyle(Palette.cocoaSecondary)
