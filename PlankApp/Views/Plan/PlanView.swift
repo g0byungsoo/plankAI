@@ -2,34 +2,30 @@ import SwiftUI
 import SwiftData
 import PlankSync
 
-// MARK: - PlanView (v2 — UX redesign 2026-06-09)
+// MARK: - PlanView (v3 — UX redesign 2026-06-09 evening)
 //
-// v1.1 program pivot. The new "today" tab content for program-enrolled
-// users. Replaces HomeView's card stack with a Her75-style 5-row
-// daily checklist anchored by ProgramStickyNote markers + a BetterMe-
-// style horizontal day-pill strip on top.
+// v1.1 program pivot. The "today" tab content for program-enrolled
+// users. v3 drops the 52pt italic-Fraunces hero entirely — the
+// program structure (strip + checklist) becomes the screen's first
+// read, and the JeniFit voice signature relocates to two quieter
+// places below the fold (strip center marker + micro-caption).
 //
-// Layout (UX spec §4):
-//   - eyebrow "day N of totalDays"
-//   - hero "today, *gently*."
-//   - ProgramDayStrip (7-cell window, snap-aligned, lock affordance)
-//   - first-launch hint "← swipe to see all N days →"
-//   - white checklist card (5 PlanRows with module-bound rows)
-//   - PlanViewMicroCaption (6 completion buckets)
+// Layout (UX spec §v3.7):
+//   24pt → eyebrow "day N of totalDays"
+//   18pt → ProgramDayStrip (42pt cells, today pinned center, snap-back)
+//    4pt → strip's own center marker "── today ──"
+//   16pt → optional scrapbook pill "*viewing* day 8 ×"
+//   22pt → white checklist card
+//   24pt → PlanViewMicroCaption (italic punch word)
+//   60pt → tab bar clearance
 //
 // Scrapbook mode (founder picked Phase 1 2026-06-09):
-//   Tapping a past day on the strip swaps the checklist to that day's
-//   snapshot. CTAs hide, rows render in their final state, a pink
-//   "viewing day N" pill appears under the hero; tap the pill to
-//   return to today. No separate screen, no back button.
+//   Tapping a past day on the strip swaps the checklist to that
+//   day's snapshot. Strip auto-centers on the viewing day. Eyebrow
+//   reflects the viewing day. Pill appears under the strip; tap to
+//   return to today.
 //
-// Lock affordance (founder rule):
-//   Tapping a future cell presents ProgramLockSheet with wistful copy.
-//   No paywall CTA — the lock is structural, not commercial.
-//
-// Sentinel:
-//   When ProgramScheduleCalculator.isPostGoal == true on appear,
-//   ChapterCompleteView fires as fullScreenCover.
+// Lock affordance: tapping a future cell presents ProgramLockSheet.
 
 struct PlanView: View {
 
@@ -39,20 +35,16 @@ struct PlanView: View {
     @State private var profile: IntensityProfile = .medium
     @State private var todayPrescriptions: [ProgramDayPrescription] = []
     @State private var checkStateByKey: [String: ProgramService.ChecklistState] = [:]
-    @State private var completionByDay: [Int: Int] = [:]   // day → completed-row count
+    @State private var completionByDay: [Int: Int] = [:]
     @State private var showChapterComplete: Bool = false
     @State private var animateIn: Bool = false
 
-    // Scrapbook mode: nil = viewing today; Int = viewing snapshot of past day.
+    // Scrapbook mode: nil = today; Int = viewing snapshot of past day.
     @State private var viewingDay: Int? = nil
 
     // Lock sheet
     @State private var showLockSheet: Bool = false
     @State private var lockedDayTapped: Int = 1
-
-    // First-launch hint (UX spec §5 + §7)
-    @AppStorage("planview_strip_hint_dismissed_count") private var stripHintDismissedCount: Int = 0
-    @AppStorage("planview_strip_user_scrolled") private var stripUserScrolled: Bool = false
 
     var body: some View {
         ZStack {
@@ -60,28 +52,22 @@ struct PlanView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Spacer().frame(height: 28)
+                    Spacer().frame(height: 24)
                     eyebrow
-                    Spacer().frame(height: 12)
-                    hero
+                    Spacer().frame(height: 18)
+                    dayStrip
                     if viewingDay != nil {
                         Spacer().frame(height: 16)
                         viewingPastPill
                     }
-                    Spacer().frame(height: 28)
-                    dayStrip
-                    if shouldShowStripHint {
-                        Spacer().frame(height: 8)
-                        stripHint
-                    }
-                    Spacer().frame(height: 24)
+                    Spacer().frame(height: 22)
                     checklistCard
-                    Spacer().frame(height: 28)
+                    Spacer().frame(height: 24)
                     PlanViewMicroCaption(
                         completed: completedRowCount,
                         total: todayPrescriptions.count
                     )
-                    .modernEntrance(animateIn, delay: 0.5)
+                    .modernEntrance(animateIn, delay: 0.4)
                     Spacer().frame(height: 60)
                 }
                 .padding(.horizontal, Space.lg)
@@ -94,7 +80,6 @@ struct PlanView: View {
                 userId: userId,
                 onDismiss: { showChapterComplete = false },
                 onPickNextProgram: { _ in
-                    // Phase 5 wires real transitions. Phase 1 just dismisses.
                     showChapterComplete = false
                 }
             )
@@ -115,6 +100,8 @@ struct PlanView: View {
 
     @ViewBuilder private var eyebrow: some View {
         if let schedule {
+            // v3 founder pick: clean eyebrow even in scrapbook mode.
+            // Pill below the strip carries the "viewing past" signal.
             Text(ProgramScheduleCalculator.dayOfTotalLabel(
                 programDay: viewingDay ?? schedule.programDay,
                 totalDays: schedule.totalDays
@@ -127,41 +114,41 @@ struct PlanView: View {
         }
     }
 
-    // MARK: - Hero
+    // MARK: - Day strip
 
-    private var hero: some View {
-        VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
-            Text("today,")
-                .font(Typo.programHeroDisplay)
-                .foregroundStyle(Palette.cocoaPrimary)
-            (
-                Text("gently")
-                    .font(Typo.programHeroItalic)
-                    .foregroundStyle(Palette.cocoaPrimary)
-                +
-                Text(".")
-                    .font(Typo.programHeroDisplay)
-                    .foregroundStyle(Palette.cocoaPrimary)
+    @ViewBuilder private var dayStrip: some View {
+        if let schedule {
+            ProgramDayStrip(
+                programDay: schedule.programDay,
+                totalDays: schedule.totalDays,
+                completionByDay: completionByDay,
+                centeredDay: viewingDay ?? schedule.programDay,
+                onTap: { day in handleStripTap(day) }
             )
+            .modernEntrance(animateIn, delay: 0.08)
         }
-        .fixedSize(horizontal: false, vertical: true)
-        .modernEntrance(animateIn, delay: 0.05)
     }
 
-    // MARK: - Viewing-past pill (scrapbook mode)
+    // MARK: - Scrapbook pill
 
     private var viewingPastPill: some View {
         Button {
             Haptics.light()
-            withAnimation(Motion.modernPop) {
+            withAnimation(Motion.snapBack) {
                 viewingDay = nil
                 refreshTodayChecks()
             }
         } label: {
             HStack(spacing: 8) {
-                Text("viewing day \(viewingDay ?? 0)")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaPrimary)
+                (
+                    Text("viewing")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13, relativeTo: .caption))
+                        .foregroundStyle(Palette.cocoaPrimary)
+                    +
+                    Text(" day \(viewingDay ?? 0)")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.cocoaPrimary)
+                )
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Palette.cocoaSecondary)
@@ -173,34 +160,6 @@ struct PlanView: View {
         .buttonStyle(.plain)
         .transition(.scale(scale: 0.9).combined(with: .opacity))
         .accessibilityLabel("Viewing day \(viewingDay ?? 0). Tap to return to today.")
-    }
-
-    // MARK: - Day strip
-
-    @ViewBuilder private var dayStrip: some View {
-        if let schedule {
-            ProgramDayStrip(
-                programDay: schedule.programDay,
-                totalDays: schedule.totalDays,
-                completionByDay: completionByDay,
-                onTap: { day in handleStripTap(day) }
-            )
-            .modernEntrance(animateIn, delay: 0.12)
-        }
-    }
-
-    private var shouldShowStripHint: Bool {
-        !stripUserScrolled && stripHintDismissedCount < 3
-    }
-
-    @ViewBuilder private var stripHint: some View {
-        if let schedule {
-            Text("← swipe to see all \(schedule.totalDays) days →")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.cocoaTertiary)
-                .frame(maxWidth: .infinity)
-                .modernEntrance(animateIn, delay: 0.6)
-        }
     }
 
     // MARK: - Checklist card
@@ -215,7 +174,7 @@ struct PlanView: View {
                     onEnter: { handleEnter(prescription) },
                     onCheckToggle: { handleCheckToggle(prescription) }
                 )
-                .modernEntrance(animateIn, delay: 0.20 + Double(idx) * 0.06)
+                .modernEntrance(animateIn, delay: 0.16 + Double(idx) * 0.06)
 
                 if idx < todayPrescriptions.count - 1 {
                     Divider()
@@ -241,10 +200,6 @@ struct PlanView: View {
         }
     }
 
-    /// Maps ProgramService.ChecklistState → PlanRow.RowState.
-    /// In scrapbook mode (viewing past), incomplete rows render as
-    /// .skipped instead of .empty so the row doesn't look like
-    /// "still actionable" on a past day.
     private func rowState(for prescription: ProgramDayPrescription) -> PlanRow.RowState {
         let state = checkStateByKey[prescription.itemKey] ?? .empty
         let isPastView = viewingDay != nil
@@ -296,11 +251,6 @@ struct PlanView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
             animateIn = true
         }
-
-        // Increment first-launch hint counter, hide after 3 opens.
-        if shouldShowStripHint {
-            stripHintDismissedCount += 1
-        }
     }
 
     private func refreshTodayChecks() {
@@ -310,8 +260,6 @@ struct PlanView: View {
         checkStateByKey = hydrateChecks(planId: plan.id, programDay: schedule.programDay)
     }
 
-    /// Composes the 5-row checklist for any program day. Same rules
-    /// as today's composition — Sunday = weighIn else breath.
     private func composeTodaysChecklist(
         profile: IntensityProfile,
         programDay: Int
@@ -348,8 +296,6 @@ struct PlanView: View {
         return map
     }
 
-    /// Per-day completion counts across the whole plan. Read once on
-    /// appear; powers the day-strip's per-cell visual state.
     private func hydrateCompletionByDay(planId: String, totalDays: Int) -> [Int: Int] {
         let descriptor = FetchDescriptor<ProgramDayCheckRecord>(
             predicate: #Predicate { check in
@@ -375,16 +321,15 @@ struct PlanView: View {
         case .today:
             Haptics.light()
             if viewingDay != nil {
-                withAnimation(Motion.modernPop) {
+                withAnimation(Motion.snapBack) {
                     viewingDay = nil
                     refreshTodayChecks()
                 }
             }
         case .past(let d):
             Haptics.light()
-            stripUserScrolled = true
             guard let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext) else { return }
-            withAnimation(Motion.modernPop) {
+            withAnimation(Motion.snapBack) {
                 viewingDay = d
                 checkStateByKey = hydrateChecks(planId: plan.id, programDay: d)
             }
@@ -392,7 +337,6 @@ struct PlanView: View {
             Haptics.medium()
             lockedDayTapped = d
             showLockSheet = true
-            stripUserScrolled = true
         case .newProgram:
             Haptics.light()
             showChapterComplete = true
@@ -405,13 +349,11 @@ struct PlanView: View {
         Haptics.light()
         // Phase 1 stub: routing to actual modules wires in Phase 1.B.
         // For now, tapping the row toggles complete as a fallback so
-        // the user can still close the day. Future: route to lesson
-        // player / food camera / SessionPreView / weight sheet etc.
+        // the user can still close the day.
         handleCheckToggle(prescription)
     }
 
     private func handleCheckToggle(_ prescription: ProgramDayPrescription) {
-        // Disable interaction in scrapbook mode — read-only past days.
         guard viewingDay == nil else { return }
 
         Haptics.light()
@@ -429,7 +371,6 @@ struct PlanView: View {
             in: modelContext
         ) else { return }
 
-        // Refresh completionByDay if today's count changed.
         if let schedule {
             let key = schedule.programDay
             let newCount = next.isCompleted ? (completionByDay[key] ?? 0) + 1 : max(0, (completionByDay[key] ?? 1) - 1)

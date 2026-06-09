@@ -370,6 +370,12 @@ enum Motion {
     /// 0.45 + damping 0.86 = settles in one frame past the target,
     /// no visible bounce.
     static let modernPop: Animation = .spring(response: 0.45, dampingFraction: 0.86)
+
+    /// Drag-release snap-back for the day-strip. Founder picked
+    /// "slightly springier" over gentle 2026-06-09 — 0.78 damping
+    /// gives one subtle bounce on settle that reads as "today is
+    /// gravity, the strip wants to return here."
+    static let snapBack: Animation = .spring(response: 0.45, dampingFraction: 0.78)
 }
 
 // MARK: - Modern entrance modifier
