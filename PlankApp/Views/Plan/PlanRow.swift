@@ -32,6 +32,14 @@ struct PlanRow: View {
     let onTap: () -> Void
     let onLongPress: () -> Void
 
+    /// Live data overrides for rows that derive their subtitle from
+    /// telemetry rather than the prescription's static rowSubtitle.
+    /// Specifically: snap meal pulls today's calorie total from
+    /// FoodLogPersister via this param when non-nil. Defaults to nil
+    /// so non-snap rows keep their prescription-driven copy.
+    var liveCaloriesToday: Int? = nil
+    var liveMealsLoggedToday: Int? = nil
+
     enum RowState {
         /// Binary row, not yet complete.
         case binaryEmpty
@@ -62,23 +70,34 @@ struct PlanRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 16) {
-            ProgramStickyNote(prescription: prescription)
+        VStack(spacing: 0) {
+            HStack(spacing: 16) {
+                ProgramStickyNote(prescription: prescription)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(prescription.rowTitle)
-                    .font(Typo.body)
-                    .foregroundStyle(titleColor)
-                Text(subtitleCopy)
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaSecondary)
-                    .lineLimit(2)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(prescription.rowTitle)
+                        .font(Typo.body)
+                        .foregroundStyle(titleColor)
+                        .lineLimit(1)
+                    Text(subtitleCopy)
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .lineLimit(2)
+                }
+                Spacer(minLength: 8)
+                trailing
             }
-            Spacer(minLength: 0)
-            trailing
+            .padding(.vertical, 14)
+            .padding(.horizontal, 20)
+
+            // Progress rows render a BetterMe-style thin bar under
+            // the row content, full-width inside the card. Avoids
+            // cramming the bar into the trailing region (which
+            // crowded the numeric label and broke the layout v4-1).
+            if case .progress(let current, let target, _) = state {
+                progressUnderbar(current: current, target: target)
+            }
         }
-        .padding(.vertical, 14)
-        .padding(.horizontal, 20)
         .contentShape(Rectangle())
         .onTapGesture {
             guard state.isInteractive else { return }
@@ -95,6 +114,25 @@ struct PlanRow: View {
         .accessibilityHint(a11yHint)
     }
 
+    /// Full-width thin progress bar under the row content (BetterMe
+    /// pattern). 2pt tall hairline track with sage filled fraction.
+    /// Sits between the row content and the divider below.
+    private func progressUnderbar(current: Int, target: Int) -> some View {
+        let fraction = target > 0 ? min(1.0, max(0.0, Double(current) / Double(target))) : 0.0
+        return GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(Palette.hairlineCocoa)
+                    .frame(width: geo.size.width, height: 2)
+                Rectangle()
+                    .fill(Palette.stateGood)
+                    .frame(width: geo.size.width * CGFloat(fraction), height: 2)
+            }
+        }
+        .frame(height: 2)
+        .padding(.top, 2)
+    }
+
     // MARK: - Title + subtitle
 
     private var titleColor: Color {
@@ -105,17 +143,25 @@ struct PlanRow: View {
     }
 
     private var subtitleCopy: String {
+        // Live override: snap meal shows today's calorie total when
+        // FoodLogPersister has any meals logged. Falls back to the
+        // prescription's static "one photo · we read the plate".
+        if case .snapMeal = prescription {
+            if let kcal = liveCaloriesToday, kcal > 0 {
+                let count = liveMealsLoggedToday ?? 0
+                if count >= 2 {
+                    return "\(kcal) cal · \(count) meals today"
+                }
+                return "\(kcal) cal today"
+            }
+        }
+
         switch state {
         case .binaryEmpty:
             return prescription.rowSubtitle
         case .binaryComplete:
             return prescription.rowSubtitle
-        case .progress(let current, let target, let unit):
-            // Subtitle carries the context line; numeric goes trailing.
-            // For steps: "your daily walk". For water: "small sips throughout the day".
-            if unit.isEmpty {
-                return progressContextCopy
-            }
+        case .progress:
             return progressContextCopy
         case .skipped:
             return "skipped today"
@@ -188,16 +234,17 @@ struct PlanRow: View {
         .accessibilityHidden(true)
     }
 
-    /// Progress row (steps, water). Numeric label + 64pt × 3pt bar +
-    /// sparkle when 100%. Per [[feedback-no-checkbox-circle]] §progress.
+    /// Progress row trailing — JUST the numeric label + sparkle when
+    /// 100%. The bar moved UNDER the row content (BetterMe pattern,
+    /// see progressUnderbar above). Avoids cramming a bar into the
+    /// trailing region which forced the title + label to wrap.
     private func progressTrailing(current: Int, target: Int, unit: String) -> some View {
         let isComplete = current >= target
-        let fraction = target > 0 ? min(1.0, max(0.0, Double(current) / Double(target))) : 0.0
         let label = unit.isEmpty
             ? "\(current.formatted(.number.grouping(.automatic))) / \(target.formatted(.number.grouping(.automatic)))"
             : "\(current) / \(target) \(unit)"
 
-        return HStack(spacing: 8) {
+        return HStack(spacing: 4) {
             if isComplete {
                 (
                     Text("reached")
@@ -208,24 +255,18 @@ struct PlanRow: View {
                         .font(Typo.caption)
                         .foregroundStyle(Palette.cocoaSecondary)
                 )
+                .lineLimit(1)
+                .fixedSize()
+                Image(systemName: "sparkle")
+                    .font(.system(size: 8, weight: .medium))
+                    .foregroundStyle(Palette.cocoaTertiary)
             } else {
                 Text(label)
                     .font(Typo.caption)
                     .foregroundStyle(Palette.cocoaSecondary)
                     .monospacedDigit()
-            }
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Palette.hairlineCocoa)
-                    .frame(width: 64, height: 3)
-                Capsule()
-                    .fill(Palette.stateGood)
-                    .frame(width: 64 * CGFloat(fraction), height: 3)
-            }
-            if isComplete {
-                Image(systemName: "sparkle")
-                    .font(.system(size: 8, weight: .medium))
-                    .foregroundStyle(Palette.cocoaTertiary)
+                    .lineLimit(1)
+                    .fixedSize()
             }
         }
         .accessibilityHidden(true)

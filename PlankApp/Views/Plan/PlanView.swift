@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import PlankSync
+import PlankFood
 
 // MARK: - PlanView (v3 — UX redesign 2026-06-09 evening)
 //
@@ -49,6 +50,11 @@ struct PlanView: View {
     // Mark-as-done sheet (long-press override)
     @State private var showMarkAsDoneSheet: Bool = false
     @State private var markAsDonePrescription: ProgramDayPrescription? = nil
+
+    // Live data for snap-meal subtitle (today's calorie total +
+    // meal count from FoodLogPersister's in-memory store).
+    @State private var todayKcal: Int = 0
+    @State private var todayMealsLogged: Int = 0
 
     var body: some View {
         ZStack {
@@ -195,7 +201,9 @@ struct PlanView: View {
                     prescription: prescription,
                     state: rowState(for: prescription),
                     onTap: { handleRowTap(prescription) },
-                    onLongPress: { handleLongPress(prescription) }
+                    onLongPress: { handleLongPress(prescription) },
+                    liveCaloriesToday: prescription.isSnapMeal ? todayKcal : nil,
+                    liveMealsLoggedToday: prescription.isSnapMeal ? todayMealsLogged : nil
                 )
                 .modernEntrance(animateIn, delay: 0.16 + Double(idx) * 0.06)
 
@@ -294,9 +302,21 @@ struct PlanView: View {
             totalDays: plan.totalDays
         )
 
+        // Live food data for the snap-meal subtitle. Reads from
+        // FoodLogPersister's in-memory store (the v1.0.7 stop-gap
+        // documented in PlankAIApp). Refreshed every PlanView appear
+        // since the user may have logged a meal in another tab.
+        refreshTodayFood()
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
             animateIn = true
         }
+    }
+
+    private func refreshTodayFood() {
+        let macros = FoodLogPersister.todayMacros()
+        todayKcal = Int(macros.kcal.rounded())
+        todayMealsLogged = FoodLogPersister.todayLogCount()
     }
 
     private func refreshTodayChecks() {

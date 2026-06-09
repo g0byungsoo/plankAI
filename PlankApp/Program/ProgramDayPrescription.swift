@@ -132,18 +132,28 @@ public extension ProgramDayPrescription {
         }
     }
 
+    /// True when this row is the snap-meal row. PlanView reads this
+    /// to inject live calorie data into the subtitle.
+    var isSnapMeal: Bool {
+        if case .snapMeal = self { return true }
+        return false
+    }
+
     /// Row title — lowercase casual register per voice rules.
+    /// Shortened to her75-style single-noun where possible per
+    /// founder QA 2026-06-09 (long titles wrap and crowd the
+    /// trailing region).
     var rowTitle: String {
         switch self {
         case .lesson: return "today's lesson"
         case .snapMeal: return "snap a meal"
-        case .workout: return "move your body"
-        case .plank: return "plank check-in"
+        case .workout: return "move"
+        case .plank: return "plank"
         case .breath: return "breathe"
-        case .steps: return "hit your step goal"
-        case .water: return "drink water"
-        case .weighIn: return "log your weight"
-        case .measurements: return "update measurements"
+        case .steps: return "steps"
+        case .water: return "water"
+        case .weighIn: return "weigh in"
+        case .measurements: return "measurements"
         }
     }
 
