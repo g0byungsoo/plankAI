@@ -64,6 +64,11 @@ struct HomeView: View {
     @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 1650
 
     @State private var showCaptureFlow = false
+    /// v1.0.9 D3.B — food log timeline. HomeFoodCard tap opens this
+    /// (was: opened CaptureFlow directly). The log's floating + button
+    /// closes the log AND opens the camera via a short chained
+    /// dismissal so we don't stack two fullScreenCovers.
+    @State private var showFoodLog = false
 
     /// Persistent baseline level (-1 gentle · 0 steady · +1 a little more),
     /// set in "my plan" and nudged by the post-session feedback loop. The
@@ -1224,6 +1229,27 @@ struct HomeView: View {
             )
             .presentationBackground(Palette.bgPrimary)
         }
+        // v1.0.9 D3.B — food log timeline (chronological scroll). The
+        // floating + button inside the log fires onAddTapped: we
+        // dismiss the log, then briefly delay so the dismissal animates
+        // before kicking off CaptureFlow's fullScreenCover (stacking
+        // two fullScreenCovers immediately reads as a hitch in iOS).
+        // The 320ms delay matches the system sheet dismissal curve.
+        .fullScreenCover(isPresented: $showFoodLog) {
+            FoodLogTimelineView(
+                userId: AuthService.shared.currentUser?.id.uuidString ?? "",
+                dailyTarget: foodDailyTarget,
+                onAddTapped: {
+                    showFoodLog = false
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 320_000_000)
+                        showCaptureFlow = true
+                    }
+                },
+                onDismiss: { showFoodLog = false }
+            )
+            .presentationBackground(Palette.bgPrimary)
+        }
         .sheet(isPresented: $showStreakReviewSheet) {
             PreReviewSentimentSheet(
                 title: "showing up",
@@ -1378,8 +1404,14 @@ struct HomeView: View {
                 userId: AuthService.shared.currentUser?.id.uuidString ?? "",
                 dailyTarget: foodDailyTarget,
                 onTap: {
+                    // v1.0.9 D3.B — card tap now opens the food log
+                    // timeline (Cal AI / MacroFactor pattern: card on
+                    // home is summary, tap drills in to the receipt).
+                    // The log's floating + button is the way to the
+                    // camera from this entry; that flow is wired
+                    // below in the .fullScreenCover.
                     Analytics.track(.foodCardTapped, properties: ["source": "home_food_card"])
-                    showCaptureFlow = true
+                    showFoodLog = true
                 }
             )
         }

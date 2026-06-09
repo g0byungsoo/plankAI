@@ -58,6 +58,7 @@ public enum FoodLogPersister {
     /// Backwards-compatible: old v1 entries (kcal only) decode with
     /// macros defaulted to 0.
     private struct Entry: Codable {
+        let id: String
         let userId: String
         let loggedAt: Date
         let kcal: Double
@@ -65,16 +66,31 @@ public enum FoodLogPersister {
         let carbs: Double
         let fat: Double
         let fiber: Double
+        /// v1.0.9 D3.B — short human-readable label for the timeline
+        /// row (e.g. "scrambled eggs", "chipotle chicken bowl").
+        /// Derived from CapturedFood.items[0].name at persist time.
+        /// Empty for old entries written before this field existed
+        /// (backwards-compat decode supplies "" — the timeline row
+        /// renders "scanned plate" as a fallback).
+        let title: String
+        /// v1.0.9 D3.B — capture source tag ("photo" / "quick add" /
+        /// "dining out"). Drives the row icon. nil/missing for old
+        /// entries.
+        let source: String?
 
         init(
+            id: String = UUID().uuidString,
             userId: String,
             loggedAt: Date,
             kcal: Double,
             protein: Double = 0,
             carbs: Double = 0,
             fat: Double = 0,
-            fiber: Double = 0
+            fiber: Double = 0,
+            title: String = "",
+            source: String? = nil
         ) {
+            self.id = id
             self.userId = userId
             self.loggedAt = loggedAt
             self.kcal = kcal
@@ -82,12 +98,16 @@ public enum FoodLogPersister {
             self.carbs = carbs
             self.fat = fat
             self.fiber = fiber
+            self.title = title
+            self.source = source
         }
 
         // Backwards-compatible decode — entries written before macros
-        // were added decode with 0 for each missing field.
+        // were added decode with 0 for each missing field. Same for
+        // title/source/id added in D3.B (2026-06-08).
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = (try? c.decode(String.self, forKey: .id)) ?? UUID().uuidString
             userId = try c.decode(String.self, forKey: .userId)
             loggedAt = try c.decode(Date.self, forKey: .loggedAt)
             kcal = try c.decode(Double.self, forKey: .kcal)
@@ -95,11 +115,31 @@ public enum FoodLogPersister {
             carbs = (try? c.decode(Double.self, forKey: .carbs)) ?? 0
             fat = (try? c.decode(Double.self, forKey: .fat)) ?? 0
             fiber = (try? c.decode(Double.self, forKey: .fiber)) ?? 0
+            title = (try? c.decode(String.self, forKey: .title)) ?? ""
+            source = try? c.decode(String.self, forKey: .source)
         }
 
         enum CodingKeys: String, CodingKey {
-            case userId, loggedAt, kcal, protein, carbs, fat, fiber
+            case id, userId, loggedAt, kcal, protein, carbs, fat, fiber, title, source
         }
+    }
+
+    // MARK: - Public DTO (D3.B timeline)
+
+    /// v1.0.9 D3.B — public per-entry DTO surfaced to the food log
+    /// timeline screen. Identifiable so SwiftUI's ForEach works
+    /// without a wrapper. All fields are populated from the in-memory
+    /// store; old entries (pre-D3.B) ship with synthesized ids +
+    /// empty titles, which the timeline row handles via fallback copy.
+    public struct FoodLogEntry: Sendable, Identifiable {
+        public let id: String
+        public let loggedAt: Date
+        public let title: String
+        public let kcal: Double
+        public let protein: Double
+        public let carbs: Double
+        public let fat: Double
+        public let source: String?
     }
 
     /// v1.0.8 Phase T — today's macro totals at a glance. All values
@@ -230,6 +270,19 @@ public enum FoodLogPersister {
 
         hydrateIfNeeded()
         let loggedAt = Date()
+        // v1.0.9 D3.B — derive a short title for the timeline row.
+        // Heuristic: first item's name, plus "+ N more" if multiple
+        // items. Empty items (restaurant-range / .imOutTonight path)
+        // falls back to "dining out" so the row reads meaningfully.
+        let title: String
+        if let first = food.items.first {
+            let more = food.items.count - 1
+            title = more > 0 ? "\(first.name) + \(more) more" : first.name
+        } else if food.source == .imOut {
+            title = "dining out"
+        } else {
+            title = "scanned plate"
+        }
         inMemoryEntries.append(Entry(
             userId: userId,
             loggedAt: loggedAt,
@@ -237,7 +290,9 @@ public enum FoodLogPersister {
             protein: plateProtein,
             carbs: plateCarbs,
             fat: plateFat,
-            fiber: plateFiber
+            fiber: plateFiber,
+            title: title,
+            source: food.source.rawValue
         ))
         writeToUserDefaults()
 
@@ -319,5 +374,44 @@ public enum FoodLogPersister {
             result.append((day, byDay[day] ?? 0))
         }
         return result
+    }
+
+    // MARK: - D3.B timeline reads
+
+    /// v1.0.9 D3.B — every entry for this user, ordered newest first.
+    /// Drives the chronological food log timeline screen. Returns all
+    /// retained entries (up to retentionDays, currently 14d). Cheap
+    /// since the store is in-memory after hydrate.
+    public static func allEntries(userId: String) -> [FoodLogEntry] {
+        hydrateIfNeeded()
+        return inMemoryEntries
+            .filter { $0.userId == userId }
+            .sorted { $0.loggedAt > $1.loggedAt }
+            .map {
+                FoodLogEntry(
+                    id: $0.id,
+                    loggedAt: $0.loggedAt,
+                    title: $0.title,
+                    kcal: $0.kcal,
+                    protein: $0.protein,
+                    carbs: $0.carbs,
+                    fat: $0.fat,
+                    source: $0.source
+                )
+            }
+    }
+
+    /// v1.0.9 D3.B — remove a single entry by id. Used by the
+    /// timeline's swipe-to-delete affordance. Fires changeNotifier
+    /// so HomeFoodCard's bars refresh after a delete. Silent no-op
+    /// if the id doesn't match (user could have force-quit between
+    /// list render and tap).
+    public static func deleteEntry(id: String) {
+        hydrateIfNeeded()
+        let before = inMemoryEntries.count
+        inMemoryEntries.removeAll { $0.id == id }
+        guard inMemoryEntries.count != before else { return }
+        writeToUserDefaults()
+        changeNotifier.send(())
     }
 }
