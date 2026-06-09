@@ -157,14 +157,18 @@ struct ProgramSetupSubflow: View {
 
     private var pageGoalDateReveal: some View {
         VStack(alignment: .leading, spacing: 28) {
-            VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
-                Text("your")
+            // 1-line hero — short possessive phrases shouldn't be
+            // split across 2 lines; orphans the adjective. her75's
+            // 2-line pattern needs substance on both halves.
+            (
+                Text("your ")
                     .font(Typo.programHeroDisplay)
                     .foregroundStyle(Palette.cocoaPrimary)
+                +
                 Text("plan.")
                     .font(Typo.programHeroItalic)
                     .foregroundStyle(Palette.cocoaPrimary)
-            }
+            )
             .fixedSize(horizontal: false, vertical: true)
 
             // Window display: "12 to 25 weeks · realistic glide"
@@ -297,14 +301,15 @@ struct ProgramSetupSubflow: View {
 
     private var pageIntensityPick: some View {
         VStack(alignment: .leading, spacing: 28) {
-            VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
-                Text("your")
+            (
+                Text("your ")
                     .font(Typo.programHeroDisplay)
                     .foregroundStyle(Palette.cocoaPrimary)
+                +
                 Text("pace.")
                     .font(Typo.programHeroItalic)
                     .foregroundStyle(Palette.cocoaPrimary)
-            }
+            )
             .fixedSize(horizontal: false, vertical: true)
 
             Text("pick the rhythm. you can change it later.")
