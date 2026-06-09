@@ -24,6 +24,12 @@ public struct HomeFoodCard: View {
 
     @State private var todayKcal: Double = 0
     @State private var weeklyAvg: Double? = nil
+    /// v1.0.9 D3.A — today's macro totals (protein/carbs/fat), read
+    /// from FoodLogPersister.todayMacros(). Drives the 3 micro-bars
+    /// rendered under the kcal bar when there's data.
+    @State private var todayProtein: Double = 0
+    @State private var todayCarbs: Double = 0
+    @State private var todayFat: Double = 0
 
     public init(
         userId: String,
@@ -47,6 +53,24 @@ public struct HomeFoodCard: View {
                         todayKcal: todayKcal,
                         dailyTarget: dailyTarget,
                         weeklyAvgKcal: weeklyAvg
+                    )
+
+                    // v1.0.9 D3.A — three thin macro micro-bars
+                    // (protein / carbs / fat) under the kcal bar. Each
+                    // has a small tick at the daily-target position so
+                    // the user reads it as "I'm at X of where I'm
+                    // headed" without a "remaining: N" number anywhere
+                    // (anti-MFP per plan synthesis §D3 + voice lock
+                    // [[feedback-food-ux-antishame]]). Cocoa fill
+                    // matches WeeklyAvgBar; desaturates over-target,
+                    // never red.
+                    MacroMicroBars(
+                        protein: todayProtein,
+                        carbs: todayCarbs,
+                        fat: todayFat,
+                        proteinTarget: proteinTargetG,
+                        carbsTarget: carbsTargetG,
+                        fatTarget: fatTargetG
                     )
 
                     if isEveningReviewWindow {
@@ -285,13 +309,156 @@ public struct HomeFoodCard: View {
         let (today, weekly) = FoodLogPersister.todayAndWeekly(userId: userId)
         todayKcal = today
         weeklyAvg = weekly
+        // v1.0.9 D3.A — pull today's macros from the same store so
+        // the bars are kept in lockstep with the kcal hero number.
+        // todayMacros() is single-walk over the in-memory store
+        // (already O(n) per call, n ≤ 14 days × few logs/day).
+        let macros = FoodLogPersister.todayMacros()
+        todayProtein = macros.protein
+        todayCarbs = macros.carbs
+        todayFat = macros.fat
+    }
+
+    // MARK: - Macro targets (D3.A)
+
+    /// Macro targets are derived from kcal at standard ratios — same
+    /// formula NutritionCarousel uses for slide 2. Locked at 25% P /
+    /// 45% C / 30% F per cohort weight-loss + satiety profile. When
+    /// onboarding adds explicit macro Qs in v1.1, swap this for the
+    /// user-set values; the call sites won't change.
+    private var proteinTargetG: Double {
+        guard dailyTarget > 0 else { return 0 }
+        return (dailyTarget * 0.25) / 4   // 4 kcal per gram protein
+    }
+    private var carbsTargetG: Double {
+        guard dailyTarget > 0 else { return 0 }
+        return (dailyTarget * 0.45) / 4   // 4 kcal per gram carb
+    }
+    private var fatTargetG: Double {
+        guard dailyTarget > 0 else { return 0 }
+        return (dailyTarget * 0.30) / 9   // 9 kcal per gram fat
     }
 
     private var accessibilityLabel: String {
         if todayKcal == 0 {
             return "today's plate. the table is set. tap the camera to begin."
         }
-        return "today's plate, \(Int(todayKcal.rounded())) calories logged today"
+        let p = Int(todayProtein.rounded())
+        let c = Int(todayCarbs.rounded())
+        let f = Int(todayFat.rounded())
+        return "today's plate, \(Int(todayKcal.rounded())) calories. protein \(p)g, carbs \(c)g, fat \(f)g."
     }
 }
+
+// MARK: - MacroMicroBars
+//
+// v1.0.9 D3.A — three thin bars (protein / carbs / fat) sitting under
+// the kcal hero bar on HomeFoodCard. Per plan synthesis §D3 + voice
+// lock [[feedback-food-ux-antishame]]:
+//   - Bar fills with TODAY's grams; tick marks the daily target
+//   - NO "remaining" number anywhere (anti-MFP — that frame triggers
+//     restriction anxiety in the cohort)
+//   - Cocoa fill, desaturated cocoa when over-target. Never red.
+//   - Lowercase casual labels (DM Sans 11pt); current grams on the
+//     right (DM Sans Medium 11pt)
+//
+// Layout per row: [label, 50pt] [bar, fills] [value, 36pt right-aligned]
+
+private struct MacroMicroBars: View {
+
+    let protein: Double
+    let carbs: Double
+    let fat: Double
+    let proteinTarget: Double
+    let carbsTarget: Double
+    let fatTarget: Double
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            MacroMicroBarRow(label: "protein", current: protein, target: proteinTarget)
+            MacroMicroBarRow(label: "carbs",   current: carbs,   target: carbsTarget)
+            MacroMicroBarRow(label: "fat",     current: fat,     target: fatTarget)
+        }
+        .padding(.top, 4)
+    }
+}
+
+private struct MacroMicroBarRow: View {
+
+    let label: String
+    let current: Double
+    let target: Double
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundStyle(FoodTheme.textSecondary)
+                .frame(width: 50, alignment: .leading)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    // Track
+                    Capsule()
+                        .fill(FoodTheme.accentSubtle.opacity(0.45))
+                        .frame(height: 6)
+
+                    // Fill — capped to 1.0 width-wise so over-target
+                    // bars don't extend past the track (same closure-
+                    // debt mitigation as WeeklyAvgBar).
+                    Capsule()
+                        .fill(barColor)
+                        .frame(width: geo.size.width * fillRatio, height: 6)
+                        .animation(.easeInOut(duration: 0.4), value: current)
+
+                    // Target tick — small 1pt vertical mark at the
+                    // target position. Always at the right edge (1.0
+                    // of bar width) since fill caps at 1.0; serves as
+                    // a "you're heading here" reference without a
+                    // remaining-number nag.
+                    // Hidden when target = 0 (e.g. dailyTarget unset).
+                    if target > 0 {
+                        Rectangle()
+                            .fill(FoodTheme.textPrimary.opacity(0.35))
+                            .frame(width: 1.5, height: 10)
+                            .offset(x: geo.size.width - 1.5)
+                    }
+                }
+            }
+            .frame(height: 10)
+
+            Text("\(Int(current.rounded()))g")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(FoodTheme.textPrimary)
+                .frame(width: 36, alignment: .trailing)
+                .monospacedDigit()
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var fillRatio: Double {
+        guard target > 0 else { return 0 }
+        return min(1.0, current / target)
+    }
+
+    private var barColor: Color {
+        guard target > 0 else { return FoodTheme.textPrimary }
+        let ratio = current / target
+        if ratio > 1.0 {
+            return FoodTheme.textPrimary.opacity(0.55)
+        }
+        return FoodTheme.textPrimary
+    }
+
+    private var accessibilityLabel: String {
+        let cur = Int(current.rounded())
+        let tgt = Int(target.rounded())
+        if tgt == 0 {
+            return "\(label) \(cur) grams"
+        }
+        return "\(label) \(cur) of \(tgt) grams"
+    }
+}
+
 #endif  // canImport(UIKit)
