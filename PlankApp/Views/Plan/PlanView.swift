@@ -415,25 +415,40 @@ struct PlanView: View {
 
     // MARK: - Row tap handlers (v4 — retention pattern)
 
-    /// Row body tap → enters the module. Progress rows (steps, water)
-    /// open a detail sheet; binary rows open their respective module
-    /// players. Phase 1 stub: routing wires to actual modules in
-    /// Phase 1.B; for now binary tap toggles complete as fallback so
-    /// the user can close the day.
+    /// Row body tap. Phase 1 (modules unwired): routes to the same
+    /// MarkAsDoneSheet as long-press, so users who tap discover the
+    /// explicit confirmation and we never accidentally mark a row
+    /// complete from a stray tap. Phase 1.B will swap this to route
+    /// to the actual module player (lesson / food camera /
+    /// SessionPreView / breath / weight sheet); long-press will
+    /// remain the manual override.
+    ///
+    /// Founder QA 2026-06-09: "how come those checkboxes are green
+    /// now? the user didn't finish them. let's get rid of the
+    /// ambiguity." → no tap-to-toggle.
     private func handleRowTap(_ prescription: ProgramDayPrescription) {
         guard viewingDay == nil else { return }
-        Haptics.light()
 
+        // Progress rows (steps, water): silent for now. Phase 1.B
+        // will open a StepsBottomSheet / WaterBottomSheet here.
         if prescription.isProgressRow {
-            // Phase 1.B will open a StepsBottomSheet / WaterBottomSheet.
-            // For now no-op so the row doesn't feel inert.
+            Haptics.light()
             return
         }
 
-        // Phase 1 stub: toggle complete as fallback until module
-        // routing lands. Setting state to .complete (NOT .autoCompleted)
-        // so it reads as user-marked.
-        markComplete(prescription, isAuto: false)
+        // Already-complete binary row: tap is a noop (don't re-prompt
+        // a sheet to confirm something already done).
+        let current = checkStateByKey[prescription.itemKey] ?? .empty
+        guard !current.isCompleted else {
+            Haptics.light()
+            return
+        }
+
+        // Open the same MarkAsDoneSheet as long-press. Phase 1.B will
+        // replace this with module routing.
+        Haptics.light()
+        markAsDonePrescription = prescription
+        showMarkAsDoneSheet = true
     }
 
     /// Long-press override per [[feedback-no-checkbox-circle]].

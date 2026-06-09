@@ -278,13 +278,16 @@ struct PlanRow: View {
     }
 
     private var a11yHint: String {
+        // Phase 1 (modules unwired): tap + long-press both open the
+        // MarkAsDoneSheet for binary rows. Phase 1.B will swap tap
+        // to route to the actual module player.
         switch state {
         case .binaryEmpty:
-            return "Tap to begin. Long-press to mark done."
+            return "Tap to mark done."
         case .binaryComplete:
-            return "Tap to re-open."
+            return ""
         case .progress:
-            return "Tap to see today's detail."
+            return ""
         case .skipped, .restDay:
             return ""
         }
