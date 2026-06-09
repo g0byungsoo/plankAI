@@ -70,34 +70,24 @@ struct PlanRow: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 16) {
-                ProgramStickyNote(prescription: prescription)
+        HStack(spacing: 16) {
+            ProgramStickyNote(prescription: prescription)
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(prescription.rowTitle)
-                        .font(Typo.body)
-                        .foregroundStyle(titleColor)
-                        .lineLimit(1)
-                    Text(subtitleCopy)
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.cocoaSecondary)
-                        .lineLimit(2)
-                }
-                Spacer(minLength: 8)
-                trailing
+            VStack(alignment: .leading, spacing: 3) {
+                Text(prescription.rowTitle)
+                    .font(Typo.body)
+                    .foregroundStyle(titleColor)
+                    .lineLimit(1)
+                Text(subtitleCopy)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .lineLimit(2)
             }
-            .padding(.vertical, 14)
-            .padding(.horizontal, 20)
-
-            // Progress rows render a BetterMe-style thin bar under
-            // the row content, full-width inside the card. Avoids
-            // cramming the bar into the trailing region (which
-            // crowded the numeric label and broke the layout v4-1).
-            if case .progress(let current, let target, _) = state {
-                progressUnderbar(current: current, target: target)
-            }
+            Spacer(minLength: 8)
+            trailing
         }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 20)
         .contentShape(Rectangle())
         .onTapGesture {
             guard state.isInteractive else { return }
@@ -114,24 +104,13 @@ struct PlanRow: View {
         .accessibilityHint(a11yHint)
     }
 
-    /// Full-width thin progress bar under the row content (BetterMe
-    /// pattern). 2pt tall hairline track with sage filled fraction.
-    /// Sits between the row content and the divider below.
-    private func progressUnderbar(current: Int, target: Int) -> some View {
-        let fraction = target > 0 ? min(1.0, max(0.0, Double(current) / Double(target))) : 0.0
-        return GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(Palette.hairlineCocoa)
-                    .frame(width: geo.size.width, height: 2)
-                Rectangle()
-                    .fill(Palette.stateGood)
-                    .frame(width: geo.size.width * CGFloat(fraction), height: 2)
-            }
-        }
-        .frame(height: 2)
-        .padding(.top, 2)
-    }
+    // Progress underbar removed 2026-06-09 per founder QA: the 2pt
+    // full-width sage line broke the card's 0.5pt indented-hairline
+    // divider rhythm and read as a "double-line glitch" stacked
+    // above the row divider below. The trailing numeric label
+    // ("4,820 / 7,500" → "*reached* · 7,500" at 100%) carries the
+    // progress information on its own; her75's reference register
+    // ships no progress bars at all.
 
     // MARK: - Title + subtitle
 
@@ -219,7 +198,12 @@ struct PlanRow: View {
             .accessibilityHidden(true)
     }
 
-    /// 14pt sage check. Sparkle (8pt) when telemetry-fired.
+    /// 22pt filled sage circle with white check inside. OS-standard
+    /// "completed" badge — obvious at a glance. Founder QA 2026-06-09:
+    /// the prior bare 14pt check glyph read as a tick mark, not a
+    /// DONE state. We avoid the empty-circle chore-list register by
+    /// keeping the EMPTY state minimal (6pt dot); only the COMPLETE
+    /// state gets the substantial badge.
     private func stateIndicatorComplete(isAuto: Bool) -> some View {
         HStack(spacing: 4) {
             if isAuto {
@@ -227,8 +211,8 @@ struct PlanRow: View {
                     .font(.system(size: 8, weight: .medium))
                     .foregroundStyle(Palette.cocoaTertiary)
             }
-            Image(systemName: "checkmark")
-                .font(.system(size: 14, weight: .semibold))
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 22, weight: .medium))
                 .foregroundStyle(Palette.stateGood)
         }
         .accessibilityHidden(true)

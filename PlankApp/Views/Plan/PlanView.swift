@@ -207,11 +207,11 @@ struct PlanView: View {
                 )
                 .modernEntrance(animateIn, delay: 0.16 + Double(idx) * 0.06)
 
-                // Skip the indented divider AFTER a progress row — its
-                // full-width underbar already separates it visually
-                // from the next row, and stacking the two hairlines
-                // creates a double-line glitch (founder QA 2026-06-09).
-                if idx < todayPrescriptions.count - 1, !prescription.isProgressRow {
+                // Standard indented hairline divider between all rows.
+                // Progress rows no longer have an underbar (founder QA
+                // 2026-06-09 — broke the divider rhythm), so the
+                // skip-after-progress workaround is gone too.
+                if idx < todayPrescriptions.count - 1 {
                     Divider()
                         .background(Palette.hairlineCocoa)
                         .padding(.leading, 72)
