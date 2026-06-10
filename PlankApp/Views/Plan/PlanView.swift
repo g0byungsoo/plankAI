@@ -203,6 +203,11 @@ struct PlanView: View {
             )
 
         case .breathSession:
+            // BreathworkSessionView intentionally has no background of
+            // its own (lifted to its original PostPurchaseFlowView host
+            // to avoid phase-swap flicker). When presented from here,
+            // we need to set the cover's container background so the
+            // breath bloom isn't floating on system black.
             BreathworkSessionView(
                 onReadyToMove: {
                     markAutoCompleted(.breath(minutes: 1, style: .calming))
@@ -214,6 +219,8 @@ struct PlanView: View {
                 },
                 onDismiss: { activeCover = nil }
             )
+            .background(Palette.programBgPrimary.ignoresSafeArea())
+            .presentationBackground(Palette.programBgPrimary)
 
         case .chapterComplete:
             ChapterCompleteView(
