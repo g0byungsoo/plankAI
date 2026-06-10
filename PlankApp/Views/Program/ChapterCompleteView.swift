@@ -84,7 +84,7 @@ struct ChapterCompleteView: View {
             }
             footer
         }
-        .background(Palette.bgPrimary.ignoresSafeArea())
+        .background(Palette.programBgPrimary.ignoresSafeArea())
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
                 animateIn = true
@@ -158,7 +158,7 @@ struct ChapterCompleteView: View {
         .frame(maxWidth: .infinity)
         .padding(.bottom, 8)
         .background(
-            Palette.bgPrimary
+            Palette.programBgPrimary
                 .overlay(
                     Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5),
                     alignment: .top

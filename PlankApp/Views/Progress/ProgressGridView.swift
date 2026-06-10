@@ -39,7 +39,8 @@ struct ProgressGridView: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            // v6: same pink background as PlanView for program-tab cohesion.
+            Palette.programBgPrimary.ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.section) {
@@ -92,42 +93,47 @@ struct ProgressGridView: View {
     private var grid: some View {
         LazyVGrid(columns: columns, spacing: 14) {
             ProgressTile(
-                label: "Steps",
+                label: "steps",
                 value: stepsValue,
                 subtitle: stepsSubtitle,
-                isAvailable: true
+                isAvailable: true,
+                emphasis: .live   // today's data → pink accent
             )
             .modernEntrance(animateIn, delay: 0.06)
 
             ProgressTile(
-                label: "Weight",
+                label: "weight",
                 value: weightValue,
                 subtitle: weightSubtitle,
-                isAvailable: !allWeightLogs.isEmpty
+                isAvailable: !allWeightLogs.isEmpty,
+                emphasis: .live
             )
             .modernEntrance(animateIn, delay: 0.12)
 
             ProgressTile(
-                label: "Workouts",
+                label: "workouts",
                 value: workoutsValue,
                 subtitle: "this week",
-                isAvailable: true
+                isAvailable: true,
+                emphasis: .historical   // historical → cocoa
             )
             .modernEntrance(animateIn, delay: 0.18)
 
             ProgressTile(
-                label: "Plank PR",
+                label: "plank pr",
                 value: plankPRValue,
                 subtitle: plankPRSubtitle,
-                isAvailable: plankPRSeconds > 0
+                isAvailable: plankPRSeconds > 0,
+                emphasis: .historical
             )
             .modernEntrance(animateIn, delay: 0.24)
 
             ProgressTile(
-                label: "Program Day",
+                label: "program day",
                 value: programDayValue,
                 subtitle: programDaySubtitle,
-                isAvailable: programDayValue != "—"
+                isAvailable: programDayValue != "—",
+                emphasis: .live
             )
             .modernEntrance(animateIn, delay: 0.30)
 
@@ -210,10 +216,9 @@ struct ProgressGridView: View {
             Haptics.light()
         } label: {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Measure")
+                Text("measure")
                     .font(Typo.statLabel)
                     .foregroundStyle(Palette.cocoaTertiary)
-                    .textCase(.uppercase)
                     .kerning(0.66)
                 Spacer()
                 Image(systemName: "plus.circle")
@@ -252,17 +257,31 @@ struct ProgressTile: View {
     let value: String
     let subtitle: String
     let isAvailable: Bool
+    /// .live = today's number, value renders in accent rose (pink
+    /// brand pop). .historical = past data, value stays cocoa.
+    /// Founder direction 2026-06-09: keep JeniFit pink identity
+    /// visible on data tiles, not just on chrome.
+    var emphasis: ProgressTile.Emphasis = .historical
+
+    enum Emphasis {
+        case live
+        case historical
+    }
+
+    private var valueColor: Color {
+        guard isAvailable else { return Palette.cocoaTertiary }
+        return emphasis == .live ? Palette.accent : Palette.cocoaPrimary
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
                 .font(Typo.statLabel)
                 .foregroundStyle(Palette.cocoaTertiary)
-                .textCase(.uppercase)
                 .kerning(0.66)
             Text(value)
                 .font(.custom("Fraunces72pt-Light", size: 32, relativeTo: .title))
-                .foregroundStyle(isAvailable ? Palette.cocoaPrimary : Palette.cocoaTertiary)
+                .foregroundStyle(valueColor)
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)

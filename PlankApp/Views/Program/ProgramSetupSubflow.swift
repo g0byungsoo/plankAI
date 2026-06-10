@@ -65,7 +65,7 @@ struct ProgramSetupSubflow: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            Palette.programBgPrimary.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 header
@@ -539,7 +539,7 @@ struct ProgramSetupSubflow: View {
         .padding(.horizontal, Space.lg)
         .padding(.bottom, Space.lg)
         .padding(.top, 12)
-        .background(Palette.bgPrimary)
+        .background(Palette.programBgPrimary)
     }
 
     private var ctaTitle: String {

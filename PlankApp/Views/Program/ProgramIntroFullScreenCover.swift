@@ -70,7 +70,7 @@ struct ProgramIntroFullScreenCover: View {
             }
             footer
         }
-        .background(Palette.bgPrimary.ignoresSafeArea())
+        .background(Palette.programBgPrimary.ignoresSafeArea())
     }
 
     private var content: some View {
@@ -179,7 +179,7 @@ struct ProgramIntroFullScreenCover: View {
         .padding(.top, 12)
         .padding(.bottom, 12)
         .background(
-            Palette.bgPrimary
+            Palette.programBgPrimary
                 .overlay(
                     // Hairline divider above the footer so the
                     // scrollable content reads as a separate
