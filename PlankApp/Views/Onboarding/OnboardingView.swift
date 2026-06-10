@@ -982,22 +982,24 @@ struct OnboardingView: View {
                 jfQuestion(
                     // v3 P11.1 deferred (BetterMe A2 + her75 register):
                     // lowercased headline, dropped Title-Case sub, and
-                    // converted the 1-word labels into self-narration
-                    // ("calm · at home in my own skin") so each tap
-                    // commits the user to the identity per Bem 1972.
-                    // Italic punch deferred — jfQuestion headline path
-                    // doesn't accept italicWords yet; a future refactor
-                    // could swap to ItalicAccentText. Per [[feedback-
-                    // no-italic-markdown-markers]] NEVER use `*word*`
-                    // literals here.
+                    // converted the 1-word labels into title + descriptor
+                    // (Bem 1972 self-perception). Italic punch deferred
+                    // — jfQuestion headline path doesn't accept
+                    // italicWords yet. Per [[feedback-no-italic-
+                    // markdown-markers]] NEVER use `*word*` literals.
+                    //
+                    // v3 P11.8 density audit (2026-06-10) — split
+                    // "keyword · descriptor" titles into (title,
+                    // subtitle) tuple so 5-row picker stays under
+                    // viewport on iPhone 13 mini.
                     "which one is the new you?",
                     sub: nil,
                     opts: [
-                        ("powerful", "powerful · confident, undeniable",   nil, nil),
-                        ("calm",     "calm · at home in my own skin",      nil, nil),
-                        ("light",    "light · free, unburdened",           nil, nil),
-                        ("strong",   "strong · capable, grounded",         nil, nil),
-                        ("radiant",  "radiant · glowing from the inside",  nil, nil),
+                        ("powerful", "powerful", "confident, undeniable",   nil),
+                        ("calm",     "calm",     "at home in my own skin",  nil),
+                        ("light",    "light",    "free, unburdened",        nil),
+                        ("strong",   "strong",   "capable, grounded",       nil),
+                        ("radiant",  "radiant",  "glowing from the inside", nil),
                     ],
                     // Routes to E1-d (case 233, cycle awareness) →
                     // N1 (235, "this month signals") → 141 reward Q.
@@ -1340,16 +1342,23 @@ struct OnboardingView: View {
             "what is food, mostly?",
             sub: nil,  // v3 her75 editorial register
             // v3 P11.1 deferred (BetterMe A2) — self-narration option
-            // labels. The user hears "I am someone who..." in her head
-            // as she taps. Self-perception theory (Bem 1972) — naming
-            // the relationship commits to it. Each label is a complete
-            // first-person sentence the user can imagine saying out loud.
+            // labels. Title stays one-word so the row reads at a glance;
+            // subtitle carries the first-person commitment line.
+            // Self-perception theory (Bem 1972) — naming the
+            // relationship commits to it.
+            //
+            // v3 P11.8 density audit (2026-06-10) — restructured from
+            // single-string "keyword · descriptor" titles (which
+            // wrapped to 2 lines at iPhone 13 mini width + pushed
+            // card height to ~96pt × 5 = overflow) to (title, subtitle)
+            // tuple so each row stays ~72pt + the descriptor still
+            // reads as the self-narration commitment line.
             opts: [
-                ("fuel",         "fuel · i eat to function",                       nil, "bolt"),
-                ("comfort",      "comfort · food is how i decompress",             nil, "heart"),
-                ("love",         "love · cooking + sharing is the joy",            nil, "heart.text.square"),
-                ("control",      "control · i over-monitor, then crash",           nil, "slider.horizontal.3"),
-                ("complicated",  "complicated · it's not a clean answer",          nil, "circle.dashed"),
+                ("fuel",         "fuel",         "i eat to function",        "bolt"),
+                ("comfort",      "comfort",      "food is how i decompress", "heart"),
+                ("love",         "love",         "cooking + sharing is joy", "heart.text.square"),
+                ("control",      "control",      "over-monitor, then crash", "slider.horizontal.3"),
+                ("complicated",  "complicated",  "not a clean answer",       "circle.dashed"),
             ],
             // Delta v7 — routes to the new pre-eat permission wedge
             // (case 166) instead of the sleep Q. The food block now
