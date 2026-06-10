@@ -617,15 +617,13 @@ struct PlanView: View {
         #endif
         guard viewingDay == nil else { return }
 
-        // Already-complete row: tap re-opens the module so user can
-        // review (lessons / past meal logs / etc.) — Phase 1 keeps
-        // this as a noop haptic. Future: route to detail view.
-        let current = checkStateByKey[prescription.itemKey] ?? .empty
-        guard !current.isCompleted else {
-            Haptics.light()
-            return
-        }
-
+        // Tap ALWAYS routes to the module — including for already-
+        // completed rows. Users expect to re-read a lesson, log
+        // another meal, do another workout, etc. The "noop on
+        // complete" guard from the prior commit was silently
+        // swallowing taps and feeling broken. To UNMARK a completed
+        // row, long-press it (handleLongPress now toggles complete
+        // states off).
         Haptics.light()
 
         switch prescription {
@@ -723,8 +721,39 @@ struct PlanView: View {
         #endif
         guard viewingDay == nil else { return }
         guard !prescription.isProgressRow else { return }
+
+        // On a COMPLETED row, long-press toggles back to empty
+        // ("I tapped this by mistake" undo). On an EMPTY row,
+        // long-press shows the MarkAsDoneSheet (the offline
+        // "I did it without the phone" manual mark).
+        let current = checkStateByKey[prescription.itemKey] ?? .empty
         Haptics.medium()
-        activeSheet = .markAsDone(prescription)
+        if current.isCompleted {
+            unmarkRow(prescription)
+        } else {
+            activeSheet = .markAsDone(prescription)
+        }
+    }
+
+    /// Reset a row to .empty. Mirrors markComplete's persistence
+    /// path but writes the .empty state and decrements the per-day
+    /// completion count.
+    private func unmarkRow(_ prescription: ProgramDayPrescription) {
+        withAnimation(Motion.gentleSpring) {
+            checkStateByKey[prescription.itemKey] = .empty
+        }
+        guard let record = ProgramService.shared.markChecklistItem(
+            prescription: prescription,
+            state: .empty,
+            userId: userId,
+            in: modelContext
+        ) else { return }
+
+        if let schedule {
+            let key = schedule.programDay
+            completionByDay[key] = max(0, (completionByDay[key] ?? 1) - 1)
+        }
+        Task { await AppSync.shared.upsertProgramDayCheck(record) }
     }
 
     /// User confirmed manual mark-as-done from the long-press sheet.

@@ -233,13 +233,13 @@ struct PlanRow: View {
         }
     }
 
-    /// Long-press override only applies to binary rows. Progress rows
-    /// don't accept manual override (HealthKit is canonical for steps;
-    /// water is multi-tap by design).
+    /// Long-press fires on any binary row state (empty → mark-as-done
+    /// sheet, complete → unmark). Progress rows don't accept long-
+    /// press (HealthKit is canonical for steps; water is multi-tap).
     private var canLongPress: Bool {
         switch state {
-        case .binaryEmpty:    return true
-        default:              return false
+        case .binaryEmpty, .binaryComplete:  return true
+        default:                              return false
         }
     }
 
