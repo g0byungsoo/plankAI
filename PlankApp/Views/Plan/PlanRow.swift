@@ -99,16 +99,10 @@ struct PlanRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .onTapGesture {
-            #if DEBUG
-            print("[PlanRow] TAP fired key=\(prescription.itemKey) interactive=\(state.isInteractive)")
-            #endif
             guard state.isInteractive else { return }
             onTap()
         }
         .onLongPressGesture(minimumDuration: 0.5) {
-            #if DEBUG
-            print("[PlanRow] LONG-PRESS fired key=\(prescription.itemKey) interactive=\(state.isInteractive) canLP=\(canLongPress)")
-            #endif
             guard state.isInteractive else { return }
             guard canLongPress else { return }
             onLongPress()

@@ -115,6 +115,15 @@ struct PlanView: View {
     @State private var todayFatG: Int = 0
     @State private var todayStepCount: Int = 0
 
+    /// One-time cleanup: prior buggy "tap = mark complete" code wrote
+    /// .complete records for every test tap. Those stale records
+    /// persist in SwiftData and make every PlanView open show all
+    /// rows already checked, which the founder rightly flagged as
+    /// broken: "each row needs to be unchecked as default and once
+    /// user completes the module or long press the check, it's shown
+    /// as checked." This flag fires the wipe once per install.
+    @AppStorage("planChecksMigratedV1") private var planChecksMigratedV1: Bool = false
+
     var body: some View {
         ZStack {
             // v5: program home gets its own pink-tinted background
@@ -452,6 +461,13 @@ struct PlanView: View {
             return
         }
 
+        // One-time stale-check wipe before hydration. See the
+        // planChecksMigratedV1 property for the bug history.
+        if !planChecksMigratedV1 {
+            wipeStaleChecks(for: plan.id)
+            planChecksMigratedV1 = true
+        }
+
         let computed = ProgramScheduleCalculator.compute(
             .init(startDate: plan.startDate, totalDays: plan.totalDays)
         )
@@ -546,6 +562,20 @@ struct PlanView: View {
         return rows
     }
 
+    /// One-time wipe of ALL ProgramDayCheckRecord rows for the
+    /// active plan. Bug-recovery migration only; runs once per
+    /// install via planChecksMigratedV1.
+    private func wipeStaleChecks(for planId: String) {
+        let descriptor = FetchDescriptor<ProgramDayCheckRecord>(
+            predicate: #Predicate { $0.programPlanId == planId }
+        )
+        guard let rows = try? modelContext.fetch(descriptor) else { return }
+        for row in rows {
+            modelContext.delete(row)
+        }
+        try? modelContext.save()
+    }
+
     private func hydrateChecks(planId: String, programDay: Int) -> [String: ProgramService.ChecklistState] {
         let descriptor = FetchDescriptor<ProgramDayCheckRecord>(
             predicate: #Predicate { check in
@@ -612,35 +642,21 @@ struct PlanView: View {
     /// type (Phase 1.B). Long-press remains the manual override
     /// (MarkAsDoneSheet) for the offline edge case.
     private func handleRowTap(_ prescription: ProgramDayPrescription) {
-        #if DEBUG
-        print("[PlanView] handleRowTap entered key=\(prescription.itemKey) viewingDay=\(String(describing: viewingDay))")
-        #endif
         guard viewingDay == nil else { return }
 
         // Tap ALWAYS routes to the module — including for already-
         // completed rows. Users expect to re-read a lesson, log
-        // another meal, do another workout, etc. The "noop on
-        // complete" guard from the prior commit was silently
-        // swallowing taps and feeling broken. To UNMARK a completed
-        // row, long-press it (handleLongPress now toggles complete
-        // states off).
+        // another meal, do another workout, etc. To UNMARK a
+        // completed row, long-press it (handleLongPress toggles
+        // complete states off).
         Haptics.light()
 
         switch prescription {
         case .lesson:
-            #if DEBUG
-            print("[PlanView] dispatching → openLesson")
-            #endif
             openLesson()
         case .snapMeal:
-            #if DEBUG
-            print("[PlanView] dispatching → activeCover = .captureFlow")
-            #endif
             activeCover = .captureFlow
         case .workout(let tier, let minutes, let bodyFocus):
-            #if DEBUG
-            print("[PlanView] dispatching → openWorkout")
-            #endif
             openWorkout(tier: tier, minutes: minutes, bodyFocus: bodyFocus)
         case .steps:
             // No standalone steps module; HealthKit auto-fires when
@@ -648,14 +664,8 @@ struct PlanView: View {
             // a steps detail sheet here).
             return
         case .breath:
-            #if DEBUG
-            print("[PlanView] dispatching → activeCover = .breathSession")
-            #endif
             activeCover = .breathSession
         case .weighIn:
-            #if DEBUG
-            print("[PlanView] dispatching → activeSheet = .logWeight")
-            #endif
             activeSheet = .logWeight
         case .plank, .water, .measurements:
             // Phase 2 will wire dedicated modules. For now fall back
@@ -716,9 +726,6 @@ struct PlanView: View {
     /// Manual "I did it offline" escape hatch — presents
     /// MarkAsDoneSheet. Only fires on binary-empty rows.
     private func handleLongPress(_ prescription: ProgramDayPrescription) {
-        #if DEBUG
-        print("[PlanView] handleLongPress entered key=\(prescription.itemKey) isProgress=\(prescription.isProgressRow)")
-        #endif
         guard viewingDay == nil else { return }
         guard !prescription.isProgressRow else { return }
 
