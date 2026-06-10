@@ -236,6 +236,128 @@ struct ItalicAccentText: View {
     }
 }
 
+// MARK: - LineCascadeText (v9 P9.6 — her75 hero reveal)
+//
+// Reveals a stacked hero phrase one LINE at a time, with a soft
+// `Haptics.soft()` tap firing the moment each line starts animating
+// in. Founder pattern via her75 reference (2026-06-10): the line-
+// by-line cadence + paired haptic is what reads as "luxurious."
+//
+// Usage:
+//   LineCascadeText(
+//       lines: [
+//           .plain("you'll get there by"),
+//           .italic("september 12.")
+//       ],
+//       baseFont: Typo.questionHero,
+//       italicFont: Typo.questionHeroItalic,
+//       color: Palette.textPrimary,
+//       perLineDelay: 0.42
+//   )
+//
+// Reduce-motion gate: when `accessibilityReduceMotion` is true, all
+// lines render at full opacity immediately + the haptic is skipped.
+// Apply ONLY to hero moments — overuse kills the luxury signal per
+// [[feedback-her75-line-cascade]]. Cap at 3-4 lines per hero.
+
+struct LineCascadeText: View {
+
+    enum Line: Hashable {
+        case plain(String)
+        case italic(String)
+        /// v3 (2026-06-10) — composite line with mid-line italic
+        /// accent ("you *became* her."). `base` is the full sentence
+        /// as it should render; `italic` is the substring set to
+        /// switch to the italic font. Rendered via ItalicAccentText
+        /// per [[feedback-no-italic-markdown-markers]]. Use for hero
+        /// beats where the italic punch sits inside the line, not
+        /// as its own line.
+        case composite(base: String, italic: [String])
+
+        var text: String {
+            switch self {
+            case .plain(let s), .italic(let s): return s
+            case .composite(let base, _):       return base
+            }
+        }
+    }
+
+    let lines: [Line]
+    var baseFont: Font = Typo.questionHero
+    var italicFont: Font = Typo.questionHeroItalic
+    var color: Color = Palette.textPrimary
+    var alignment: HorizontalAlignment = .leading
+    var lineSpacing: CGFloat = Typo.questionHeroLineGap
+    /// Delay between consecutive line reveals. Default 0.42s is the
+    /// her75 cadence — slow enough that the haptic taps land
+    /// distinctly, fast enough that a 3-line hero finishes inside
+    /// 1.3s.
+    var perLineDelay: Double = 0.42
+    /// True after the screen's primary reveal has fired upstream.
+    /// Pass an external @State Bool so the cascade can be coordinated
+    /// with other entrance choreography. Defaults to true (cascade
+    /// starts on appear).
+    var trigger: Bool = true
+
+    @State private var revealedCount: Int = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        VStack(alignment: alignment, spacing: 0) {
+            ForEach(Array(lines.enumerated()), id: \.offset) { idx, line in
+                lineView(for: line)
+                    .lineSpacing(lineSpacing)
+                    .opacity(reduceMotion || idx < revealedCount ? 1 : 0)
+                    .offset(y: reduceMotion || idx < revealedCount ? 0 : 8)
+                    .animation(.easeOut(duration: 0.35), value: revealedCount)
+            }
+        }
+        .multilineTextAlignment(alignment == .center ? .center : .leading)
+        .frame(maxWidth: .infinity, alignment: alignment == .center ? .center : .leading)
+        .onAppear { runCascade() }
+        .onChange(of: trigger) { _, newValue in
+            if newValue { runCascade() }
+        }
+    }
+
+    private func runCascade() {
+        guard revealedCount == 0 else { return }
+        if reduceMotion {
+            revealedCount = lines.count
+            return
+        }
+        for i in 0..<lines.count {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * perLineDelay) {
+                Haptics.soft()
+                revealedCount = i + 1
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func lineView(for line: Line) -> some View {
+        switch line {
+        case .plain(let s):
+            Text(s)
+                .font(baseFont)
+                .foregroundStyle(color)
+        case .italic(let s):
+            Text(s)
+                .font(italicFont)
+                .foregroundStyle(color)
+        case .composite(let base, let italics):
+            ItalicAccentText(
+                base,
+                italic: italics,
+                baseFont: baseFont,
+                italicFont: italicFont,
+                color: color,
+                alignment: alignment == .center ? .center : .leading
+            )
+        }
+    }
+}
+
 // MARK: - OnboardingOptionCard
 //
 // Tappable row used in onboarding multi-choice screens. Layout:
@@ -661,51 +783,113 @@ struct SectionDividerScreen: View {
     let supporting: String
     let dwellSeconds: Double
     let onAdvance: () -> Void
+    /// v9 P9.8 — legacy 4-5 scatter is OFF the bridges per her75 closing
+    /// pass. A single sticker carries the warmth signal without competing
+    /// with the line-cascade reveal that's the new focal point. Callers
+    /// can still pass the legacy scatter (kept for back-compat); if
+    /// `singleSticker` is set it overrides + we render only that one.
     var stickerPlacements: [StickerPlacement] = []
+    var singleSticker: StickerName? = nil
 
-    @State private var visible = false
+    @State private var subVisible = false
 
     var body: some View {
         ZStack {
-            if !stickerPlacements.isEmpty {
+            // Single sticker overrides scatter (her75 closing-pass spec).
+            if let single = singleSticker {
+                Image(single.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 80, height: 80)
+                    .rotationEffect(.degrees(-8))
+                    .opacity(single.style.opacity)
+                    .position(x: UIScreen.main.bounds.width - 70, y: 150)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            } else if !stickerPlacements.isEmpty {
+                // Legacy callers — not used in v9 bridges but kept for
+                // back-compat until the migration sweep finishes.
                 StickerScatter(placements: stickerPlacements)
             }
 
-            VStack(spacing: Space.md) {
+            VStack(spacing: Space.lg) {
                 Spacer()
 
-                Text("PART \(partNumber)")
+                // Lowercase eyebrow per her75 closing-pass rule — was
+                // "PART 1" upper-case which broke the all-lowercase
+                // voice register the rest of the flow ships.
+                Text("part \(spelledPart(partNumber))")
                     .font(Typo.eyebrow)
                     .tracking(2)
+                    .textCase(.uppercase)
                     .foregroundStyle(Palette.accent)
-                    .opacity(visible ? 1 : 0)
-                    .offset(y: visible ? 0 : 12)
 
-                Text(title)
-                    .font(Typo.title)
-                    .foregroundStyle(Palette.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Space.lg)
-                    .opacity(visible ? 1 : 0)
-                    .offset(y: visible ? 0 : 16)
+                Spacer().frame(height: 4)
+
+                // Line-cascade with `.soft` haptic per line. Bridges
+                // use questionHero 34pt (NOT displayHero — reserved
+                // for plan-reveal beats per designer spec).
+                LineCascadeText(
+                    lines: cascadeLines,
+                    baseFont: Typo.questionHero,
+                    italicFont: Typo.questionHeroItalic,
+                    color: Palette.textPrimary,
+                    alignment: .center,
+                    lineSpacing: Typo.questionHeroLineGap,
+                    perLineDelay: 0.42
+                )
+                .padding(.horizontal, Space.lg)
+
+                Spacer().frame(height: 8)
 
                 Text(supporting)
                     .font(Typo.body)
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, Space.xl)
-                    .opacity(visible ? 1 : 0)
-                    .offset(y: visible ? 0 : 16)
+                    .opacity(subVisible ? 1 : 0)
+                    .offset(y: subVisible ? 0 : 8)
 
                 Spacer()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
-            withAnimation(.easeOut(duration: 0.5)) { visible = true }
+            // Subhead fades in after the cascade's final line lands
+            // (cascadeLines.count * 0.42s + 0.15s breathing room).
+            let subDelay = Double(cascadeLines.count) * 0.42 + 0.15
+            DispatchQueue.main.asyncAfter(deadline: .now() + subDelay) {
+                withAnimation(.easeOut(duration: 0.4)) { subVisible = true }
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + dwellSeconds) {
                 onAdvance()
             }
+        }
+    }
+
+    /// Splits the title into 1-2 cascade lines on a natural break
+    /// (`/`, ` / `, or single line if no marker). Authors can write
+    /// `"your story"` for single-line OR `"the version / you're becoming"`
+    /// for 2-line stacked. Designer-locked: 2-line bridges only when
+    /// both halves carry semantic substance (per
+    /// [[feedback-hero-typography-rule]]).
+    private var cascadeLines: [LineCascadeText.Line] {
+        if title.contains("/") {
+            let parts = title.split(separator: "/").map { $0.trimmingCharacters(in: .whitespaces) }
+            return parts.map { LineCascadeText.Line.plain($0) }
+        }
+        return [.plain(title)]
+    }
+
+    private func spelledPart(_ n: Int) -> String {
+        switch n {
+        case 1: return "one"
+        case 2: return "two"
+        case 3: return "three"
+        case 4: return "four"
+        case 5: return "five"
+        case 6: return "six"
+        default: return "\(n)"
         }
     }
 }

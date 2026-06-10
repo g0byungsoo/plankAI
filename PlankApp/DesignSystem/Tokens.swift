@@ -148,10 +148,121 @@ enum Typo {
     /// rows (no internal wrap) so the gap is uniform throughout.
     static let programHeroLineGap: CGFloat = -16
 
+    // MARK: - Question hero (v8 P8.9 typography insights)
+    //
+    // Her75 typography reference set (2026-06-10): in-app question
+    // screens (not App Store / marketing heroes) render their hero
+    // copy in Fraunces SemiBold at ~38pt with tight negative leading
+    // and a hanging italic punch when desired. ONE register lighter
+    // than programHero (52pt Light): question heroes carry decision
+    // intent, not the editorial-display weight of a chapter beat.
+    //
+    // The pair below is the canonical token for OnboardingView's
+    // jfHeader and any other in-app question-class hero. Use
+    // ItalicAccentText directly when a screen needs the italic punch
+    // — no markdown `*word*` markers per [[feedback-no-italic-
+    // markdown-markers]].
+
+    /// Upright display Fraunces at the question-hero size.
+    ///
+    /// **Re-tuned 2026-06-10 (third pass):** 40pt was still spilling
+    /// on questions like "any weight-related medication right now?"
+    /// which wrap to 4 lines and crowd out the option pills + CTA.
+    /// 34pt is the right register — slightly bigger than the original
+    /// 32pt `Typo.title` (which used to drive jfHeader before the
+    /// her75 push), keeps her75's display-heavy register, and fits
+    /// the longest medical-phrase questions on 2 lines.
+    static let questionHero = font("Fraunces72pt-SemiBold", size: 34, relativeTo: .largeTitle)
+
+    /// Italic accent at the question-hero size. Pair with
+    /// `questionHero` inline (`Text(base).font(.questionHero) + Text(punch).font(.questionHeroItalic)`)
+    /// or via `ItalicAccentText(... baseFont: .questionHero, italicFont: .questionHeroItalic)`.
+    static let questionHeroItalic = font("Fraunces72pt-SemiBoldItalic", size: 34, relativeTo: .largeTitle)
+
+    /// `.lineSpacing(_)` for question-hero stacks. Founder reference
+    /// (her75 App Store screens 2026-06-10): lines visually TOUCH on
+    /// 2-line heroes like "Become / that girl". -14 at 34pt produces
+    /// the same clamp — lines almost overlap at descenders/ascenders
+    /// without becoming illegible. This is the "luxurious" her75
+    /// signature; don't loosen past -12.
+    static let questionHeroLineGap: CGFloat = -14
+
+    /// Display hero — the BIGGEST register. Re-tuned 2026-06-10:
+    /// 44pt was clipping pinned CTAs on the goal-date reveal +
+    /// paywall heroes that have stacked content below. 38pt Light
+    /// still reads as chapter-cover scale at her75's cadence, just
+    /// shorter — pairs with the much tighter -16 lineGap below so
+    /// the visual weight is preserved.
+    static let displayHero = font("Fraunces72pt-Light", size: 38, relativeTo: .largeTitle).leading(.tight)
+
+    /// Italic accent at the display-hero size. Heavy weight against
+    /// the upright Light creates the her75 weight juxtaposition.
+    static let displayHeroItalic = font("Fraunces72pt-SemiBoldItalic", size: 38, relativeTo: .largeTitle).leading(.tight)
+
+    /// Negative leading for display-hero stacks. -16 at 38pt = the
+    /// her75 "lines touch" cadence on the App Store hero shots
+    /// (founder reference 2026-06-10).
+    static let displayHeroLineGap: CGFloat = -16
+
     /// Numeral on ProgramStickyNote — the 1-5 row markers on
     /// DailyChecklistCard. Italic Fraunces 28pt. Hand-cut paper
     /// register; the ONE craft signal per program screen.
     static let stickyNumeral = font("Fraunces72pt-SemiBoldItalic", size: 28, relativeTo: .title2)
+
+    // MARK: - v3 her75 typography (2026-06-10)
+    //
+    // Five tokens extracted from the her75 8-screen App Store reference
+    // set (IMG_6275–IMG_6282). Adds the missing +1 register above
+    // `displayHero` (38pt) — her75's silent brand-statement screens
+    // (IMG_6275 / IMG_6280) sit at ~42pt. Plus the social-proof pill,
+    // masthead-sticker numeral, and luxury-tracked editorial caption
+    // they use as supporting typography. Apply `.kerning(-0.4)` at the
+    // call site for the hero size to match her75's measured -1%
+    // tracking. See `docs/her75_design_extraction_2026_06_10.md`.
+
+    /// `heroHeadline` — the missing +1 register above displayHero.
+    /// Fraunces SemiBold 42pt. The IMG_6275 / IMG_6280 single-line
+    /// scale used on silent brand-statement screens (paywall hero,
+    /// ProgramIntroFullScreenCover, the post-reveal "ready" beat).
+    /// Pair with `heroHeadlineItalic` for the italic punch word.
+    /// Apply `.kerning(-0.4)` at the call site.
+    static let heroHeadline = font("Fraunces72pt-SemiBold", size: 42, relativeTo: .largeTitle)
+
+    /// Italic accent at the hero-headline size. Same -0.4 kerning rule.
+    static let heroHeadlineItalic = font("Fraunces72pt-SemiBoldItalic", size: 42, relativeTo: .largeTitle)
+
+    /// `.lineSpacing()` for hero-headline stacks. Founder QA
+    /// 2026-06-10: -16 was too loose at 42pt; her75 IMG_6281
+    /// ("Congrats. You're ready to start your challenge") visually
+    /// has the lines almost touching at descenders/ascenders. -22
+    /// at 42pt = -52% of font size, matching her75's measured ratio.
+    /// Holding the rule: NEVER loosen past -18 at this register.
+    static let heroHeadlineLineGap: CGFloat = -22
+
+    /// `heroSubpill` — DM Sans SemiBold 13pt for the cocoa-fill
+    /// social-proof pill that sits BELOW (never above) the hero
+    /// headline. The IMG_6275 "Among 24,000+ women" / IMG_6277
+    /// "+30% success with friends" slot. Always anchored to a real
+    /// number per the data-provenance rule; use `SocialProofPill`
+    /// component when wiring. Apply `.kerning(0.2)` at call site.
+    static let heroSubpill = font("DMSans-SemiBold", size: 13, relativeTo: .caption)
+
+    /// `mastheadSticker` italic register — Fraunces SemiBoldItalic
+    /// 30pt for the italic word in a 2-tone sticker masthead
+    /// ("*day* one" — `mastheadStickerItalic` on "day",
+    /// `mastheadSticker` upright on "one"). The IMG_6279 sticker
+    /// masthead. Differs from `stickyNumeral` (28pt, for row
+    /// numerals on DailyChecklistCard); this is for screen-level
+    /// titles like ProgramStickyNoteHeader.
+    static let mastheadSticker = font("Fraunces72pt-SemiBold", size: 30, relativeTo: .title2)
+    static let mastheadStickerItalic = font("Fraunces72pt-SemiBoldItalic", size: 30, relativeTo: .title2)
+
+    /// `captionTracked` — DM Sans Medium 11pt with `+0.18em` wider
+    /// tracking than `statLabel` (which uses `+0.06em`). Luxury-
+    /// magazine eyebrow convention; the IMG_6279 footer "HER 75
+    /// CHALLENGE • BY HER 75" register. Apply `.textCase(.uppercase)`
+    /// + `.kerning(0.18 * 11)` (~1.98pt) at call site.
+    static let captionTracked = font("DMSans-Medium", size: 11, relativeTo: .caption2)
 }
 
 // MARK: - Spacing (4pt base)
@@ -273,20 +384,33 @@ enum Palette {
     // pink. ProgramPaperShadow (defined below) replaces .plankShadow()
     // on program surfaces only.
 
-    /// Program home (PlanView) background. Founder direction
-    /// 2026-06-09: bgPrimary #FDF6F4 reads too neutral on most
-    /// displays; PlanView is the most-opened JeniFit surface and
-    /// needs the brand pink identity to show clearly. This token
-    /// is ~30% accentSubtle blended over bgPrimary — clearly pink-
-    /// tinted without going pastel-saturated. PlanView only; other
-    /// screens keep bgPrimary so this change doesn't ripple.
-    static let programBgPrimary = Color(hex: "#FBECEC")
+    /// Program home (PlanView) background.
+    ///
+    /// **Rolled back 2026-06-10 (founder QA):** previously rendered
+    /// the saturated pink #FBECEC across program surfaces. Founder
+    /// re-locked the canonical Color tokens (bgPrimary cream #FDF6F4
+    /// is the app's only background). Kept as an alias to bgPrimary
+    /// so existing program-surface call sites compile + render the
+    /// correct cream without a wholesale per-file sweep. Future
+    /// refactors should resolve this directly to `bgPrimary`.
+    static let programBgPrimary: Color = bgPrimary
+
+    /// Conditional background — was pink for program-era users, cream
+    /// for legacy. **Rolled back 2026-06-10:** founder unified to the
+    /// canonical bgPrimary regardless of enrollment state. Alias kept
+    /// for the same compile-safety reason as `programBgPrimary` above.
+    static var programEraBg: Color { bgPrimary }
 
     /// Card surface for program rows (PlanView, ProgressGridView,
-    /// IntensityPickerView). True white #FFFFFF — layers on top of
-    /// programBgPrimary with a soft 4% shadow. Crisp white-on-pink
-    /// is the JeniFit brand register.
-    static let programCard = Color(hex: "#FFFFFF")
+    /// IntensityPickerView).
+    ///
+    /// **Rolled back 2026-06-10 (founder QA):** previously rendered
+    /// pure white #FFFFFF to crisp against the program-pink bg. Now
+    /// that the bg is back to the canonical cream `bgPrimary`, pure
+    /// white reads off-spec — founder relocked the color tokens with
+    /// `bgElevated #FFFAF8` as the only elevated surface. Aliased so
+    /// call sites stay compile-safe.
+    static let programCard: Color = bgElevated
 
     /// Sticky-note row marker pastels. Cycled by row index on
     /// ProgramStickyNote — the ONE craft signal per program screen.
@@ -386,6 +510,77 @@ enum Motion {
     /// gives one subtle bounce on settle that reads as "today is
     /// gravity, the strip wants to return here."
     static let snapBack: Animation = .spring(response: 0.45, dampingFraction: 0.78)
+
+    // MARK: - v3 P11.3 her75 motion vocabulary (2026-06-10)
+    //
+    // The "breath between screens" pattern her75 ships on its 8 App
+    // Store screenshots reads as luxury because it has 3 distinct
+    // beats per page change:
+    //   1) Current page fades out FAST (~200ms easeIn).
+    //   2) Brief silent gap (~60ms) — eyes settle, no visible
+    //      element. The brain reads it as decision space.
+    //   3) New page eases in SLOW (~350ms easeOut) — fully formed
+    //      when it lands.
+    //
+    // Compare the existing `.transition(.opacity)` cross-fade: both
+    // pages are alive simultaneously for ~250ms, which reads as
+    // tumbling not deliberate. Apply `JFPageTransition` to anywhere
+    // a screen swap should feel like turning a magazine page.
+
+    /// Fast exit phase of the her75 page-turn. Pairs with `pageEntrance`.
+    static let pageExit: Animation = .easeIn(duration: 0.20)
+
+    /// Slow entrance phase of the her75 page-turn. Lands ~60ms after
+    /// the exit completes (per `pageGap`), so the new screen reads
+    /// as fully arriving rather than crossing the old one.
+    static let pageEntrance: Animation = .easeOut(duration: 0.35)
+
+    /// Inter-page breath window in seconds. 0.06s = the exact gap
+    /// the her75 reference shipped; anything under 0.04 reads as
+    /// crossfade, anything over 0.10 reads as latency.
+    static let pageGap: Double = 0.06
+
+    /// Tile / card expansion animation — proof tiles on the plan
+    /// reveal, social-proof pill on the cohort screen. Spring with
+    /// medium damping so the tile feels physical without bouncing
+    /// past the target.
+    static let bloom: Animation = .spring(response: 0.42, dampingFraction: 0.82)
+
+    /// Chip / badge heartbeat — the cocoa "now" pill, accent dot on
+    /// the goal-weight reframe, the small "live" indicator. Soft
+    /// repeat-forever 0.9s sine to draw attention without being
+    /// loud. Pair with `.repeatForever(autoreverses: true)`.
+    static let chipPulse: Animation = .easeInOut(duration: 0.9)
+
+    /// Tighter stagger for grouped-element reveals — the 4-6 tiles
+    /// on the plan-reveal card, the 3-pace selector. 0.06s lands
+    /// the cluster as ONE moment with a hint of order, vs the
+    /// default 0.10s which reads as a list animation.
+    static let cascadeTight: Double = 0.06
+}
+
+// MARK: - JFPageTransition (v3 P11.3 — her75 page-turn breath)
+//
+// AnyTransition that composes the fast-exit + silent-gap + slow-
+// entrance trio. Apply via `.transition(JFPageTransition.standard)`
+// on a screen-level container that uses `.id(screen)` to trigger
+// the swap. The 60ms gap is encoded as the insertion animation's
+// `.delay(Motion.pageGap)` — SwiftUI handles the timing without an
+// intermediate state machine.
+//
+// Reduce-motion: the modifier still respects the env value via the
+// underlying `.opacity` transition. No extra gate needed here; the
+// shorter durations + delay still read OK without springs.
+
+enum JFPageTransition {
+    /// Asymmetric opacity: exit fast (easeIn 0.20s) → 60ms gap →
+    /// entrance slow (easeOut 0.35s). Net 0.55s per turn but feels
+    /// like 0.35 because the user only sees the entrance phase
+    /// "actively arriving."
+    static let standard: AnyTransition = .asymmetric(
+        insertion: .opacity.animation(Motion.pageEntrance.delay(Motion.pageGap)),
+        removal: .opacity.animation(Motion.pageExit)
+    )
 }
 
 // MARK: - Modern entrance modifier
@@ -467,6 +662,46 @@ struct ProgramPaperShadow: ViewModifier {
 extension View {
     func programPaperShadow() -> some View {
         modifier(ProgramPaperShadow())
+    }
+}
+
+// MARK: - ScrapbookCard (v8 P8.10, unified chrome)
+//
+// Single source-of-truth for the program-era card chrome that PlanView,
+// ProgramSetup, ChapterComplete, and every settings sub-screen ship.
+// Designer audit (her75 closing pass) flagged 6+ duplicated private
+// `scrapbookChrome` helpers in the Settings folder rendering cream
+// `bgElevated` inside what should be pure white `programCard` — on the
+// pink program-era canvas the cream cards read muddy. This modifier
+// locks the (`programCard` fill, 24pt corners, accent border, paper
+// shadow) decision in one place so flipping to pink anywhere never
+// surfaces the muddy state again.
+
+struct ScrapbookCard: ViewModifier {
+    var tint: Color = Palette.accent
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Palette.programCard)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(tint.opacity(0.5), lineWidth: 1.5)
+            )
+            .programPaperShadow()
+    }
+}
+
+extension View {
+    /// Wraps the receiver in the program-era scrapbook chrome: 24pt
+    /// corners + pure white `programCard` fill + 1.5pt accent border +
+    /// soft her75 paper shadow. Use on any card-class container that
+    /// sits on `programBgPrimary` or `programEraBg`. Default tint =
+    /// `Palette.accent`; pass a state color (e.g. `Palette.stateGood`)
+    /// for callout cards.
+    func scrapbookCard(tint: Color = Palette.accent) -> some View {
+        modifier(ScrapbookCard(tint: tint))
     }
 }
 
