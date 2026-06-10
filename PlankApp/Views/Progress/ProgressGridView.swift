@@ -32,6 +32,9 @@ struct ProgressGridView: View {
     @State private var userId: String = ""
     @State private var animateIn: Bool = false
 
+    // v6 audit: settings entry parity with PlanView.
+    @State private var showProfileHub: Bool = false
+
     private let columns: [GridItem] = [
         GridItem(.flexible(), spacing: 14),
         GridItem(.flexible(), spacing: 14),
@@ -58,17 +61,46 @@ struct ProgressGridView: View {
                 animateIn = true
             }
         }
+        .sheet(isPresented: $showProfileHub) {
+            ProfileHubView(onClose: {
+                var t = Transaction()
+                t.disablesAnimations = true
+                withTransaction(t) { showProfileHub = false }
+            })
+            .presentationDetents([.large])
+            .presentationBackground(Palette.programBgPrimary)
+        }
     }
 
     // MARK: - Header
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("the journey")
-                .font(Typo.editorialEyebrow)
-                .foregroundStyle(Palette.cocoaTertiary)
-                .textCase(.uppercase)
-                .kerning(0.66)
+            // v6 audit: settings ellipsis right-aligned in the eyebrow
+            // row, parity with PlanView.
+            HStack(alignment: .center) {
+                Text("the journey")
+                    .font(Typo.editorialEyebrow)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .textCase(.uppercase)
+                    .kerning(0.66)
+                Spacer()
+                Button {
+                    Haptics.light()
+                    var t = Transaction()
+                    t.disablesAnimations = true
+                    withTransaction(t) { showProfileHub = true }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .frame(width: 44, height: 44, alignment: .trailing)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Settings")
+            }
+
             VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
                 Text("you,")
                     .font(Typo.programHeroDisplay)

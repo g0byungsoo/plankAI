@@ -87,12 +87,14 @@ struct PlanView: View {
         case lock(day: Int)
         case markAsDone(ProgramDayPrescription)
         case logWeight
+        case profileHub   // v6 settings entry via ellipsis on eyebrow row
 
         var id: String {
             switch self {
             case .lock(let day): return "lock-\(day)"
             case .markAsDone(let p): return "markAsDone-\(p.itemKey)"
             case .logWeight:     return "logWeight"
+            case .profileHub:    return "profileHub"
             }
         }
     }
@@ -272,6 +274,11 @@ struct PlanView: View {
             )
             .presentationDetents([.medium, .large])
             .presentationBackground(Palette.programCard)
+
+        case .profileHub:
+            ProfileHubView(onClose: { dismissSheet() })
+                .presentationDetents([.large])
+                .presentationBackground(Palette.programBgPrimary)
         }
     }
 
@@ -308,16 +315,37 @@ struct PlanView: View {
 
     @ViewBuilder private var eyebrow: some View {
         if let schedule {
-            // v3 founder pick: clean eyebrow even in scrapbook mode.
-            // Pill below the strip carries the "viewing past" signal.
-            Text(ProgramScheduleCalculator.dayOfTotalLabel(
-                programDay: viewingDay ?? schedule.programDay,
-                totalDays: schedule.totalDays
-            ))
-            .font(Typo.editorialEyebrow)
-            .foregroundStyle(Palette.cocoaTertiary)
-            .textCase(.uppercase)
-            .kerning(0.66)
+            // v6 audit: settings ellipsis on the right of the eyebrow
+            // row. PlanView previously had no settings entry — launch
+            // blocker. Founder approved both-tabs scope (Today + Becoming
+            // both get the ellipsis).
+            HStack(alignment: .center) {
+                // v3 founder pick: clean eyebrow even in scrapbook mode.
+                // Pill below the strip carries the "viewing past" signal.
+                Text(ProgramScheduleCalculator.dayOfTotalLabel(
+                    programDay: viewingDay ?? schedule.programDay,
+                    totalDays: schedule.totalDays
+                ))
+                .font(Typo.editorialEyebrow)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .textCase(.uppercase)
+                .kerning(0.66)
+
+                Spacer()
+
+                Button {
+                    Haptics.light()
+                    present(sheet: .profileHub)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .frame(width: 44, height: 44, alignment: .trailing)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Settings")
+            }
             .modernEntrance(animateIn)
         }
     }
