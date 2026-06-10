@@ -352,6 +352,8 @@ struct AnalyticsView: View {
         guard !ratings.isEmpty else { return 0 }
         return Double(ratings.map(\.rating).reduce(0, +)) / Double(ratings.count)
     }
+    // (coach note trigger removed 2026-06-10 — feature shelved for
+    // v1.0.8+; see comment at AnalyticsView body line ~520)
 
 
     // Grouped sessions
@@ -447,6 +449,14 @@ struct AnalyticsView: View {
                         .opacity(sectionOpacity[0])
                         .offset(y: sectionOffset[0])
                         .blur(radius: headerBlur)
+
+                    // v3 P11.5 (2026-06-10) — coach note SHELVED 2026-06-10.
+                    // Founder call: not core to the v1.0.7 redesign + the
+                    // "AI coach note" surface conflicts with the no-"AI"
+                    // voice. Scaffolding (CoachNoteService /
+                    // CoachNoteAPIClient / CoachNoteCard) stays on disk
+                    // unwired for possible v1.0.8+ revival when the
+                    // long-term AI coach agent vision is ready to ship.
 
                     if FoodFlags.isEnabled {
                         becomingStack
@@ -2415,7 +2425,7 @@ struct AnalyticsView: View {
         VStack(alignment: .leading, spacing: 12) {
             stackChapterHeader(
                 eyebrow: "II.",
-                title: "what you *ate*",
+                title: "what you ate",
                 italic: ["ate"],
                 sticker: .cherries,
                 pullCaption: "rhythm, not rules."
@@ -2450,7 +2460,7 @@ struct AnalyticsView: View {
         VStack(alignment: .leading, spacing: 12) {
             stackChapterHeader(
                 eyebrow: "III.",
-                title: "how you *moved*",
+                title: "how you moved",
                 italic: ["moved"],
                 sticker: .sparkleGlossy,
                 pullCaption: "any movement counts."
@@ -2494,7 +2504,7 @@ struct AnalyticsView: View {
         VStack(alignment: .leading, spacing: 12) {
             stackChapterHeader(
                 eyebrow: "IV.",
-                title: "what's *changing*",
+                title: "what's changing",
                 italic: ["changing"],
                 sticker: .bowSatin,
                 pullCaption: "the shape of becoming."
@@ -2525,7 +2535,7 @@ struct AnalyticsView: View {
         VStack(alignment: .leading, spacing: 12) {
             stackChapterHeader(
                 eyebrow: "V.",
-                title: "what's *worked*",
+                title: "what's worked",
                 italic: ["worked"],
                 sticker: .heartGlossy,
                 pullCaption: "wins the scale can't see."
@@ -2902,7 +2912,7 @@ struct AnalyticsView: View {
                 .textCase(.uppercase)
                 .foregroundStyle(Palette.cocoaTertiary)
             ItalicAccentText(
-                "the work *under* the surface",
+                "the work under the surface",
                 italic: ["under"],
                 baseFont: .custom("Fraunces72pt-SemiBold", size: 22),
                 italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
