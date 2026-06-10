@@ -1,5 +1,4 @@
 import SwiftUI
-import AVFoundation
 import PlankSync
 
 /// Shown after the user taps Start on the Home card and before the live
@@ -11,13 +10,6 @@ struct PreRoutineView: View {
     let onStart: () -> Void
     let onCancel: () -> Void
 
-    /// Holds the welcome clip player so it doesn't get cut off if SwiftUI
-    /// recreates the body. Single playback per presentation — guarded by
-    /// `didPlayIntro`. Recorded coach voice (one of the `routine_start_*`
-    /// clips for the selected trainer) — replaces the prior robotic
-    /// AVSpeechSynthesizer intro.
-    @State private var introPlayer: AVAudioPlayer?
-    @State private var didPlayIntro = false
     /// Phase 9.26 — content opacity for the fade-in appear animation.
     /// The fullScreenCover binding is set with `Transaction.disablesAnimations`
     /// upstream (HomeView), so the cover materializes instantly with
@@ -71,7 +63,8 @@ struct PreRoutineView: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            // v8 P8.4: program-era pink continuity from PlanView → workout brief.
+            Palette.programEraBg.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 topBar
@@ -104,102 +97,11 @@ struct PreRoutineView: View {
             withAnimation(.easeInOut(duration: 0.6)) {
                 contentOpacity = 1
             }
-            playIntroIfNeeded()
+            // v8: voice intro (chained focus_intro → duration_intro)
+            // removed from the workout preview per founder direction.
+            // The screen is a reading beat now — voice resumes once
+            // the user taps in and RoutineAudioManager takes over.
         }
-        .onDisappear {
-            introPlayer?.stop()
-            introPlayer = nil
-        }
-    }
-
-    /// Play a recorded coach voice clip after a short delay. Picks a
-    /// random `routine_start_<n>` from the trainer the user selected
-    /// (Kira / Jeni / Sam), so the welcome is on-brand instead of
-    /// robotic system TTS. Guarded by `didPlayIntro` so a SwiftUI
-    /// re-render doesn't restart playback. The 1.5s delay lets the
-    /// screen finish its appearance animation and gives the user a
-    /// moment to start reading before the voice lands — firing
-    /// immediately on appear felt rushed and the brief clip ended
-    /// before the user had absorbed the screen.
-    private func playIntroIfNeeded() {
-        guard !didPlayIntro else { return }
-        didPlayIntro = true
-
-        // Activate the audio session in playback mode so the clip
-        // plays even with the device on silent. Without this, the
-        // default ambient category respects the silent switch and the
-        // welcome clip fires inaudibly. Idempotent — RoutineAudioManager
-        // re-activates with the same category once the session starts.
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            // Continue regardless — playback can still work in audible mode
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            // Trainer prefix — empty for Kira, "jeni_" for Jeni, "matson_"
-            // for Sam (kept internal; user-facing display is "Sam").
-            // Mirrors RoutineAudioManager.prefix.
-            let prefix: String
-            switch UserDefaults.standard.string(forKey: "voicePreference") ?? "encouraging" {
-            case "encouraging": prefix = "jeni_"
-            case "balanced":    prefix = "matson_"
-            default:            prefix = ""
-            }
-
-            // Chained welcome: focus_intro (focus + benefit) →
-            // duration_intro (length + "tap start" CTA). The pair
-            // gives the user the workout's purpose AND duration in
-            // the coach's voice, replacing the generic single-clip
-            // welcome.
-            let focusKey = UserDefaults.standard.string(forKey: "bodyFocus") ?? ""
-            let focusBase = focusKey.isEmpty ? nil : "focus_intro_\(focusKey)"
-            let durationBase = "duration_intro_\(Self.nearestDurationKey(workout.estimatedDuration))"
-            let routineStartBase = "routine_start_\(Int.random(in: 1...3))"
-
-            func resolveURL(_ base: String) -> URL? {
-                let trainerName = prefix.isEmpty ? base : "\(prefix)\(base)"
-                return Bundle.main.url(forResource: trainerName, withExtension: "m4a")
-                    ?? Bundle.main.url(forResource: base, withExtension: "m4a")
-            }
-
-            // First clip — focus_intro if user has a focus set, else
-            // the generic routine_start fallback.
-            let firstURL = focusBase.flatMap(resolveURL) ?? resolveURL(routineStartBase)
-            guard let firstURL else { return }
-            do {
-                introPlayer = try AVAudioPlayer(contentsOf: firstURL)
-                introPlayer?.volume = 1.0
-                introPlayer?.play()
-            } catch {
-                return
-            }
-
-            // Chain the duration_intro after the first clip finishes
-            // + 0.4s breathing room. Uses the loaded player's
-            // duration so we don't hard-code a length per clip.
-            let firstDuration = introPlayer?.duration ?? 8.0
-            guard let secondURL = resolveURL(durationBase) else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + firstDuration + 0.4) {
-                guard didPlayIntro else { return }   // view still alive
-                do {
-                    introPlayer = try AVAudioPlayer(contentsOf: secondURL)
-                    introPlayer?.volume = 1.0
-                    introPlayer?.play()
-                } catch {
-                    // duration_intro failure is non-fatal
-                }
-            }
-        }
-    }
-
-    /// Snap workout duration to the nearest pre-recorded duration_intro
-    /// bucket: {5, 10, 15, 20}.
-    private static func nearestDurationKey(_ minutes: Int) -> String {
-        let options = [5, 10, 15, 20]
-        let nearest = options.min(by: { abs($0 - minutes) < abs($1 - minutes) }) ?? 10
-        return "\(nearest)"
     }
 
     // MARK: - Top bar

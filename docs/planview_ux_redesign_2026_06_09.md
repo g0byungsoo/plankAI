@@ -1155,3 +1155,197 @@ Above the fold:
 2. **Snap-meal thumb on text-only entries — show the camera-icon placeholder thumb, or show a different glyph (`text.alignleft`?) so the user knows the log was text-not-photo?** Spec says camera placeholder regardless. My vote: camera placeholder. Differentiating text-vs-photo at this density is fine-grained and probably illegible at 48pt; the user's mental model is "I logged that meal" not "I logged that meal with a photo vs without." Phase 2 if we add a text-icon variant, do it then.
 
 3. **Move exercise tiles — should the tile FILL be type-keyed (mint for warmups, rose for cardio, etc.) to match the sticky-note color system?** Tempting because it would visually link the embedded tiles to the sticky-note craft signal. My vote: no — keep all tiles cream `Palette.bgPrimary`. The sticky-note carries the type identity ONCE per row. Repeating it on the 3 exercise tiles would import too much pastel into the card and break the white-card visual restraint. Tile chrome stays neutral.
+
+---
+
+# Revision v6 (2026-06-09 late) — rest-of-app audit + sequencing
+
+## v6.1 Why this revision exists
+
+PlanView, ProgressGridView, the program enrollment subflow, ChapterCompleteView and the program intro cover are all now in the v1.1 register (pink `programBgPrimary`, italic-Fraunces voice signals, sticky-note craft, accent-rose live values). The rest of the app is not. A user who completes onboarding, hits the paywall, lands on PlanView, then taps the move row to start a session is currently walking through three different visual eras in 90 seconds. The cohesion gap is the next thing to close.
+
+This revision walks every other surface the user can reach in the v1.1-enrolled flow, calls each one as `aligned / minor polish / meaningful redesign / leave alone`, picks the top 5 to tackle, and writes per-priority mini-specs.
+
+Scope rule I'm holding to: **no new tokens.** Everything in this v6 plan reuses `programBgPrimary`, `programCard`, `accent`, `accentSubtle`, `stickyMint/Butter/Rose/Olive`, `hairlineCocoa`, the existing Fraunces + DM Sans Typo ladder, and `Motion.modernPop` / `Motion.snapBack`. If a surface needs something new, it goes to the open-questions section, not the spec.
+
+## v6.2 Surface audit — 16 surfaces
+
+Backgrounds verified by source-reading each file's `Palette.*` calls. "Cream" below = `Palette.bgPrimary` (#FFF7F0). "Pink" = `Palette.programBgPrimary` (#FBECEC). "Pink+gradient" = the JeniMethodRitualView accentSubtle-mat treatment.
+
+| Surface | Current background | Verdict | Reason |
+|---|---|---|---|
+| **MainTabView tab bar** | system liquid glass, `.tint(accent)` | **minor polish** | Tab background reads as cream in light mode regardless of which tab is selected, even when PlanView is pink underneath. Causes a faint visual edge between the pink scroll and the cream tab bar. Worth tinting the tab bar pink so the surface reads continuous. |
+| **MainTabView camera FAB** | cocoa circle + accent border + hard-offset shadow | **aligned** | Already in v1.1 register. The cocoa+accent combo composes correctly on both pink (PlanView) and cream (legacy) backdrops. Don't touch. |
+| **PlanView** | pink, v5 spec | **aligned (locked)** | v2-v5 ship spec. |
+| **ProgressGridView** | pink, 2×3 tiles, accent-rose live values | **aligned (locked)** | Shipped 2026-06-09 morning. |
+| **ProgramSetupSubflow** | pink, 3-page enrollment | **aligned (locked)** | Shipped. |
+| **ProgramIntroFullScreenCover** | pink | **aligned (locked)** | Shipped. |
+| **ChapterCompleteView** | pink, dynamic totalDays hero | **aligned (locked)** | Shipped. |
+| **ProgramLockSheet / MarkAsDoneSheet** | white card on pink presentation | **aligned (locked)** | v2 spec. |
+| **OnboardingView (29 screens)** | cream `bgPrimary` throughout | **leave alone (mostly)** | Onboarding is the pre-purchase commitment frame; cream is the established register and shipping flag is `onboarding_v2_enabled = true` in production. Rebrushing it pink risks regressing the conversion funnel and re-runs A/B work. Exception: the final "your program is being built" + "plan reveal" screens deserve pink continuity because they're the bridge into the program era — see v6.4 priority #4. |
+| **PaywallView** | cream | **leave alone (conversion-critical)** | Locked per `project_paywall_v107_single_screen`. Pink-shift would invalidate the projection-as-hero comp and force a re-anchor of the entire single-screen layout. Paywall is the single highest-leverage screen for revenue; the v1.0.6 launch finding (US trials 7-14% vs international 33-100%) means we touch this surface ONLY through conversion experiments, not aesthetic alignment. |
+| **DownsellPaywallView** | cream | **leave alone (conversion-critical)** | Same logic as PaywallView. |
+| **HomeView (legacy)** | cream + `pageIvory` cards | **leave alone** | Gated by `programEraEnabled = false`. v1.1 cohort never sees it. Touching it spends engineering time on a code path that will be deleted in v1.2 or v1.3 once program adoption is universal. Mark for removal, not polish. |
+| **AnalyticsView (legacy Becoming)** | cream + `pageIvory` cards | **leave alone** | Same logic — gated by `progressGridEnabled = false`. Deletion candidate. |
+| **SettingsView host + 6 sub-pages** (ProfileHub, Account, ChangeTrainer, Feedback, EditProfile, NotificationSettings, FoodSettings) | cream `bgPrimary`, accent-coral CTAs, scrapbookChrome cards | **minor polish** | Backgrounds are consistent and the scrapbook card treatment is already on-brand for JeniFit v1.0. The mismatch with v1.1 is small: settings is a utility surface (~3% of opens) and not in the "make me feel the program" cohort. **Don't pink-shift the settings tree.** What matters: the entry point from PlanView (currently doesn't exist) needs to land — see priority #3. |
+| **PreSessionView / SessionView / PostSessionView** | cream `bgPrimary`, scrapbookChrome cards | **meaningful redesign** | This is the workout module the program now routes users into via the move fat row. Users tap "move" on the pink PlanView, get a cover sheet over the pink scrim, then land on a cream session preview. The visual whiplash is real and high-traffic (every workout day = every program day). Top priority — see v6.4 priority #1. |
+| **PreRoutineView / RoutineSessionView / PostRoutineView** (the routine variant) | cream + workoutCardChrome | **meaningful redesign** | Same problem as PreSessionView, same routing path. Roll into priority #1. |
+| **PostPurchaseFlowView + PremiumWelcomeScreen + CoachIntroView + AffirmationScreen + ForceFirstActionView** | cream `bgPrimary`, accent rose orbs, scatter | **meaningful redesign** | The post-paywall ritual. Users land here exactly once, but it's the FIRST screen they see as paying users. v1.1 program ought to start its identity here, not on PlanView two screens later. Priority #5. |
+| **JeniMethodRitualView** (lesson player) | `accentSubtle.opacity(0.4)` pink-tinted mat + white card | **minor polish** | The pink mat already gets us 80% of the way to program register. The lesson card chrome is cream-on-pink; the pink intensity is lighter than `programBgPrimary` so the lesson reads as a quieter sibling of PlanView rather than the same surface. Acceptable but slightly drift-y. One token swap closes the gap — see priority #2. |
+| **BreathworkSessionView / BreathworkPrimerView / BreathLibraryView** | cream + various | **minor polish** | Breath is a ritual the user opens from the compact breath row. Cream-on-pink visual transition happens but the breath UI is so visually quiet (circle animation, single line of text) that the register mismatch is muted. Lower priority than lesson player or session module. Batch with the session redesign as a "ritual surfaces sweep" later. |
+| **LogWeightSheet (in Analytics dir)** | sheet with scrapbookChrome | **minor polish** | The compact weigh-in row taps to this sheet. Sheet chrome is cream + scrapbook. Pink-presentation-background swap is a one-line fix — pair with priority #2. |
+| **CaptureFlowView** (food camera) | full-screen cover, dark camera UI | **leave alone** | Camera UI is its own visual register (dark, full-bleed photo). Not a brand surface. The result card (`CalAIResultCard`) is the brand surface and ships its own cream chrome — could be polished but it's already getting its own treatment per the food rail roadmap. Out of scope for this audit. |
+
+## v6.3 Top 5 priority order
+
+Ranked by **(cohesion impact) × (per-user frequency)** ÷ **(engineering cost)**:
+
+| Rank | Surface | Why this rank |
+|---|---|---|
+| **1** | **PreSessionView / PreRoutineView / SessionView / PostSessionView** (workout module) | Every program day with a workout (≥5/wk) routes the user through this surface. Highest per-user frequency on this list and the LARGEST visual gap (cream cards + bgInverse cocoa buttons vs pink program chrome). Fixing this single module closes the cohesion gap for the daily ritual. ~6-8 hours total. |
+| **2** | **JeniMethodRitualView + LogWeightSheet** (the two ritual sheets PlanView routes to) | Lesson is daily (every program day). Weigh-in is weekly. Both currently land on cream-tinted surfaces that don't compose with the pink scroll behind them. Token swap from `bgPrimary` → `programBgPrimary` for the mat + presentation background. ~2 hours combined. |
+| **3** | **Settings entry point on PlanView** (top-right ellipsis → ProfileHubView modal) | PlanView currently has NO way to reach settings. Users on PlanView who want to log out, change trainer, or open notifications have to switch to the becoming tab (where it doesn't exist either if `progressGridEnabled = true`) or rely on the legacy HomeView gear. This is a v1.1 program adoption blocker the founder hasn't flagged yet but TestFlight QA will. ~1.5 hours. |
+| **4** | **Onboarding closer screens** (BuildingPlanLoadingView + OnboardingRevealView) | The last 2 screens of the 29-screen onboarding flow are the bridge from "we're getting to know you" into "your program is built." Currently both cream. Pink-shifting JUST these two (not the rest of onboarding) signals the program-era arrival at the right moment without touching the 27 conversion-tuned screens before them. ~2 hours. |
+| **5** | **PostPurchaseFlowView + PremiumWelcomeScreen + CoachIntroView** (post-paywall ritual) | First surface a paid user sees. Currently cream. Pink-shifting + adding the `dayN of 75` eyebrow somewhere in this flow plants the program identity flag the moment payment converts. Lower priority than #1-4 because user only sees it ONCE, but high-leverage for first-impression. ~3-4 hours. |
+
+What dropped off the top 5 and why:
+- **MainTabView tab-bar tint**: technically the cleanest cohesion fix but the visual gap is genuinely 1-2pt of edge mismatch and iOS 26 liquid-glass means tinting is fragile. Defer — if priority #1 lands and the workout module also becomes pink, the tab bar's cream-against-pink-content artifact extends to every screen the user sees, which makes the case stronger. Revisit then.
+- **BreathworkSessionView**: breath UI is too visually quiet for register mismatch to matter. The circle pulse + single line of text don't read as "cream-coded." Batch later.
+- **Settings sub-pages pink-shift**: utility surface. Don't spend engineering on a surface used 3% of opens. Settings staying cream-and-coral is its own visual register and that's fine — the ENTRY to settings is what matters (priority #3).
+
+## v6.4 Per-priority mini-specs
+
+### Priority #1: Workout module (PreSessionView + PreRoutineView + SessionView + PostSessionView + PostRoutineView) — ~6-8h
+
+**Current state.** User taps the move fat row on PlanView (pink). A full-screen cover opens to PreRoutineView (cream `bgPrimary` + `workoutCardChrome` cards). User taps start, transitions to RoutineSessionView (cream, exercise illustration, cocoa controls). On finish, lands on PostRoutineView (cream + scrapbookChrome). Whole module = cream. Same module also reachable via the legacy HomeView's "start workout" CTA. Two entry points, one cream module.
+
+**Desired state.** When entered from PlanView (program era), the module reads as pink. When entered from HomeView (legacy), the module stays cream. The module is the same code; the background is conditional on `programEraEnabled`.
+
+**Concrete changes.**
+
+1. **Background swap (PreSessionView line 44, PreRoutineView equivalent, PostSessionView line 50, PostRoutineView equivalent)**: replace `Palette.bgPrimary.ignoresSafeArea()` with a computed `@AppStorage("programEraEnabled")`-gated branch. Pink in program era, cream otherwise. One-line ternary per file.
+2. **Card chrome (`workoutCardChrome`, `scrapbookChrome` in these files)**: cards stay white (`programCard` = `#FFFFFF` = current behavior, no change). The accent-rose 1.5pt border treatment from PlanView's card chrome can be reused — already in `Tokens.swift` accent token. Where the existing chrome uses `Palette.divider` (cocoa hairline) for borders, swap to `Palette.accent.opacity(0.5)` on program-era. Same change as the PlanView card chrome from v2.
+3. **CTA buttons**. PreSessionView's "start workout" CTA is currently `Palette.bgInverse` (cocoa fill) with `textInverse` (cream) label. This composes correctly on both cream and pink backgrounds. **Don't touch the CTA.** The cocoa pill IS the JeniFit primary-action signature.
+4. **Eyebrow injection**. When entered from PlanView in program era, render a `day N of 75` eyebrow at the top of PreSessionView/PreRoutineView in the same Fraunces SB 11pt uppercase cocoaTertiary spec PlanView uses. Pulls from `ProgramScheduleCalculator.compute()`. Anchors the workout to the program day. ~10 lines of code. Hide when entered from legacy HomeView.
+5. **PostSessionView completion frame**. Currently reads "great work." → score breakdown → "back to home." In program era, swap the closing line to italic-Fraunces punch-word: "day 12 · *closed*." Pulls from program day. One copy edit + Text composition. Doesn't disturb the score breakdown chrome.
+6. **Modern pop motion on completion**. PostSessionView's celebration animation already uses springs; verify it uses `Motion.modernPop` (v1.1 token) not bespoke timing. If bespoke, swap to token.
+
+**What to NOT change.** The exercise illustration / Lottie. The timer chrome. The form-score / time-score circles (these are functional data viz, not brand chrome — leave alone). The bottom rest-controls. RoutineSessionView's full-bleed dark mode (existing — it stays dark to match the focused-workout register).
+
+**Estimated impact.** 6-8 hours engineering. Background + card chrome are ~30 min per file × 4 files = 2h. Eyebrow + day-from-program plumbing = 2h. Copy edits + punch-word composition = 1h. QA across program / non-program / cold-start states = 1-2h.
+
+---
+
+### Priority #2: JeniMethodRitualView + LogWeightSheet token swap — ~2h combined
+
+**Current state.** JeniMethodRitualView uses `Palette.accentSubtle.opacity(0.4)` as a pink-tinted mat (line 157). That's a paler pink than `programBgPrimary` (`#FBECEC` × 1.0). LogWeightSheet uses cream `bgPrimary` for its sheet background. Both compose on top of PlanView's pink scroll but feel like different rooms.
+
+**Desired state.** Both surfaces read as the same pink as PlanView so the user feels they're staying IN the program when they tap a lesson or weigh-in row.
+
+**Concrete changes.**
+
+1. **JeniMethodRitualView**: change `Palette.accentSubtle.opacity(0.4)` → `Palette.programBgPrimary`. Single token swap. The video player chrome (clipped to `accentSubtle.opacity(0.4)` mat per line 157) stays as is — the lesson video pocket IS a distinct visual element and the slightly lighter pink mat around it is correct contrast against the new fuller-pink page background.
+2. **LogWeightSheet**: change presentation background to `Palette.programBgPrimary`. Sheet content already uses scrapbookChrome white cards which compose correctly on pink (verified — same pattern PlanView uses).
+3. **Verify cross-fade transitions** between PlanView and lesson cover don't cause a brief flash of cream. The fullScreenCover transition is currently `Motion.crossFade` — fine.
+
+**What to NOT change.** Lesson page typography (Fraunces titles already in spec). Tappable page advancement chrome. Music player chrome. The lesson illustrations (Grok-pipeline assets, already on-brand). LogWeightSheet's kg/lb toggle pill (functional, on-brand).
+
+**Estimated impact.** 2 hours. 30 min for token swaps. 1 hour for visual QA across all 30+ lessons (verify no lesson's illustration accidentally clashes with the new pink background — Grok illustrations were designed on pink mats, should be fine). 30 min for LogWeightSheet QA.
+
+---
+
+### Priority #3: Settings entry from PlanView — ~1.5h
+
+**Current state.** PlanView has no toolbar, no top-right ellipsis, no settings entry. Users on PlanView who want to log out, change notification preferences, or access account settings have to manually navigate to the legacy HomeView (if they can) or there's no path. This is a v1.1 launch blocker.
+
+**Desired state.** A quiet top-right ellipsis (`ellipsis` SF symbol, 18pt, `cocoaSecondary`) in the PlanView header row, sitting at the same baseline as the `day N of 75` eyebrow. Tap opens a sheet (not full-screen cover) routing to ProfileHubView.
+
+**Concrete changes.**
+
+1. **Eyebrow row layout**: PlanView's `eyebrow` view is currently a single `Text(...)`. Wrap in an `HStack { Text(eyebrow); Spacer(); Button(ellipsis) }` with the ellipsis as a 44pt-tappable-area-padded button. The eyebrow stays leading-aligned, ellipsis trailing-aligned. Per the v3.2 ASCII mockup (line 369): `│  day 12 of 75                                  ⋯            │` — the ellipsis was already in the spec, just never wired.
+2. **Sheet routing**: new `PlanSheet` case `.profileHub`. Handler opens ProfileHubView in a `.large` detent sheet. ProfileHubView already exists in `/PlankApp/Views/Settings/ProfileHubView.swift`. No new screen needed.
+3. **ProfileHubView background**: if `programEraEnabled` is true, present with `programBgPrimary` presentation background; else `bgPrimary`. Same conditional pattern as priority #1. Settings sub-pages remain cream (the hub IS the bridge between pink home and cream utility tree — its top portion can be pink, sub-page nav stays cream).
+4. **Accessibility label**: ellipsis button gets `accessibilityLabel("settings")` `accessibilityHint("open profile and settings")`.
+
+**What to NOT change.** Settings sub-pages (verdict: leave alone, see audit). ProfileHubView's existing list / nav structure. The ellipsis is the only visual addition.
+
+**Estimated impact.** 1.5 hours. 30 min for layout + sheet wiring. 30 min for ProfileHubView pink-shift conditional. 30 min for accessibility + QA.
+
+---
+
+### Priority #4: Onboarding closer screens (BuildingPlanLoadingView + OnboardingRevealView) — ~2h
+
+**Current state.** Both screens use `Palette.bgPrimary` (cream). They sit at the end of the 29-screen onboarding flow — the user has just answered the last question, the loader analyzes their inputs (~12s with the "analyzing..." percentage), then the reveal screen shows the plan summary and CTAs into the paywall.
+
+**Desired state.** These two screens read as the FIRST glimpse of the program era. Pink background, italic-Fraunces hero on the reveal copy, signal "this is no longer the questionnaire — this is YOUR program being born."
+
+**Concrete changes.**
+
+1. **BuildingPlanLoadingView background**: swap `bgPrimary` → `programBgPrimary`. Loader percentage chrome (the "analyzing..." typewriter) stays — it's brand-coded already.
+2. **OnboardingRevealView background**: swap `bgPrimary` → `programBgPrimary`.
+3. **OnboardingRevealView hero copy**: currently a plain "your jenifit plan" or similar. Promote to the v3.6 voice signal: `your *plan*, ready.` — italic Fraunces on "plan." 32pt Fraunces Light + Fraunces SBItalic mix. Smaller than the 52pt `programHeroDisplay` because this is a transitional screen, not a daily-ritual hero.
+4. **CTA button**: stays cocoa pill (composes on pink).
+5. **Reveal cards (the bento tiles showing tier, duration, body focus from onboarding answers)**: swap card backgrounds from any cream to white (`programCard`) with the accent-rose border treatment from PlanView's cards. Visual cohesion with PlanView's checklist card.
+
+**What to NOT change.** Onboarding questions 1-27 (cream, locked, conversion-tuned). The transition timing between loader → reveal. The paywall handoff (next screen is PaywallView, stays cream — register break is intentional at the paywall boundary because paywall is its own conversion surface).
+
+**Estimated impact.** 2 hours. 30 min for background + hero swap. 30 min for card chrome. 30 min for the visual A/B sanity check (ensure the cream → pink jump on screen 28 doesn't feel jarring — should feel like arriving, not like a different app). 30 min for QA.
+
+---
+
+### Priority #5: Post-paywall ritual (PostPurchaseFlowView + PremiumWelcomeScreen + CoachIntroView + AffirmationScreen + ForceFirstActionView) — ~3-4h
+
+**Current state.** After paywall purchase, the user goes through a 4-5 screen welcome ritual: PremiumWelcomeScreen (cream + accent orb), CoachIntroView (cream + accent subtle backdrop), AffirmationScreen (cream + affirmation text), AffirmationLoaderScreen, ForceFirstActionView (cream + the first action prompt). All cream. Then the user lands on PlanView (pink). The visual whiplash is at the most-leverage moment in the funnel — the first ritual as a paying member.
+
+**Desired state.** The post-paywall ritual reads as the program era beginning. Pink throughout. The "your program starts now" signal lives HERE, before PlanView, so the user's first time seeing the pink isn't on PlanView day 1 — it's on the welcome ritual that signals they crossed the line.
+
+**Concrete changes.**
+
+1. **All 5 screens background swap**: `bgPrimary` → `programBgPrimary`. Single token swap per file.
+2. **PremiumWelcomeScreen accent orb**: currently `Palette.accent.opacity(0.10)` fill (line 112). Composes correctly on both cream and pink. No change needed.
+3. **CoachIntroView coach photo treatment**: the avatar is currently wrapped in a 5pt `bgPrimary` cream ring (line 165). Swap to `programBgPrimary` ring so the avatar still reads as "lifted off the page" but in the new register.
+4. **AffirmationScreen typography**: if the affirmation text isn't already in italic Fraunces on the punch word, promote it. e.g. "this is your *beginning*." italic on "beginning." Honors v3.6 voice signal rule.
+5. **ForceFirstActionView CTA**: currently routes to lesson or first action. After the program-era flip, route to PlanView day 1 directly. The first action IS opening today's checklist — let the program speak for itself rather than forcing a coached first move. (Optional. Founder call on whether to keep the force-first-action ritual or simplify into "you're in" → PlanView.)
+6. **Day N eyebrow seeding**: PremiumWelcomeScreen subtitle can include `day 1 of 75 starts now` in Fraunces SB 11pt. Plants the program scale signal at first paid-user impression.
+
+**What to NOT change.** The screen sequencing (5 screens, in current order). The affirmation copy itself (already on-brand). The AffirmationLoaderScreen's loading rhythm. Coach photo asset.
+
+**Estimated impact.** 3-4 hours. 1h for background swaps across 5 files. 1h for typography promotion to italic Fraunces punch words on the 2 hero copy moments. 30 min for the ring-color swap on CoachIntroView. 30-60 min for QA across the full purchase → welcome → PlanView flow.
+
+## v6.5 What NOT to touch
+
+Recapping verdicts that should be honored even when they're tempting:
+
+- **PaywallView + DownsellPaywallView**: locked. Conversion-critical, single-screen comp tuned per research briefs, US conversion gap is the open lever and aesthetic changes here cost A/B work, not save it. Pink-shift would create false-positive signal in the next paywall experiment because we'd be confounding aesthetic change with copy/structure change.
+- **HomeView (legacy)**: deletion candidate. Gated by `programEraEnabled = false`. Don't polish what's getting removed.
+- **AnalyticsView (legacy Becoming)**: same. Deletion candidate.
+- **OnboardingView screens 1-27**: cream, locked, conversion-tuned. Pink-shifting the whole onboarding undoes A/B work and changes the funnel's first impression unnecessarily. Only the closer screens (28-29) earn the program-era flip per priority #4.
+- **Settings sub-pages** (Account, ChangeTrainer, Feedback, EditProfile, NotificationSettings, FoodSettings): utility surfaces. Cream-and-coral scrapbookChrome register is the established v1.0 settings language and re-painting it doesn't make the program feel more cohesive, just makes settings feel oddly festive. Only the ENTRY point to settings (priority #3) needs work.
+- **MainTabView camera FAB**: already in v1.1 register, composes on both backdrops. Leave.
+- **CaptureFlowView (food camera)**: dark camera UI. Not a brand surface.
+- **BreathworkSessionView circle / pulse**: too visually quiet for register mismatch to matter. Defer.
+- **The cocoa CTA button**: every screen that uses cocoa-fill primary CTA composes correctly on both cream and pink. The cocoa pill IS the program-era primary action signal already. Don't accidentally accent-rose-ify CTAs to "match" the new pink — that would dilute the signal.
+
+## v6.6 Sequencing recommendation
+
+Ship in this order, one PR per priority:
+
+1. **Priority #1 first (workout module).** Highest per-user frequency. Most visible cohesion win. ~1 day of engineering. Validates the program-era / non-program-era conditional pattern that priorities #3-5 reuse.
+2. **Priority #2 (lesson + weigh-in token swap).** Quick win, ~2h, locks down the two ritual sheets PlanView routes to. Ship same week as priority #1.
+3. **Priority #3 (settings entry).** Launch blocker for v1.1. Ship before TestFlight push.
+4. **Priority #4 (onboarding closers).** Touches the funnel — ship in a window where you can monitor the next 24-48h conversion data to catch regression. Don't bundle with paywall experiments.
+5. **Priority #5 (post-paywall ritual).** Ship after #1-4 are landed and stable. Lower urgency because user sees it once; higher craft value because it's first-impression.
+
+Total engineering envelope across all 5: **~14-18 hours**. Spread across ~1 week of focused work with QA + screenshot verification between each.
+
+## v6.7 Open questions for founder (3)
+
+1. **Does the workout module pink-shift apply only when entered from PlanView, or globally for `programEraEnabled = true` users regardless of entry point?** My vote: globally. Simpler conditional, no per-entry-point state to thread through, and any program-era user opening a session "from anywhere" (browse, deeplink, notification) should see the program register. Founder may want the more conservative per-entry-point gating — flag this before priority #1 lands.
+
+2. **OnboardingRevealView hero copy — promote to italic-Fraunces voice signal, or hold the brand discipline that voice signals appear only on screens the user opens repeatedly?** v3.6 rule says italic Fraunces lives on punch words in daily surfaces. The reveal is a once-per-lifetime screen. Promoting it here is a one-time exception that says "this moment matters." My vote: promote (the moment earns it). Founder may want to keep voice signals to repeated surfaces only.
+
+3. **Should priority #3's settings ellipsis appear on the BECOMING tab (ProgressGridView) too, or only on PlanView?** ProgressGridView currently also has no settings entry. Consistent treatment says yes — same ellipsis, same sheet, same hub. My vote: ship to both tabs in the same PR. Trivial extra cost, half the cognitive load for users learning the new IA.
+
+---
+
+End of v6 audit.

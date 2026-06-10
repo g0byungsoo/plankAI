@@ -214,21 +214,28 @@ struct DownsellPaywallView: View {
 
     private var headlineBlock: some View {
         VStack(spacing: Space.sm) {
-            Text("LIMITED-TIME OFFER")
+            // v8 P8.10 voice pass: lowercase + softer eyebrow.
+            // "LIMITED-TIME OFFER" reads cold-call; the brand register
+            // is quieter than that.
+            Text("a quieter offer")
                 .font(Typo.eyebrow)
                 .tracking(1.5)
+                .textCase(.uppercase)
                 .foregroundStyle(Palette.accent)
                 .opacity(eyebrowVisible ? 1 : 0)
                 .offset(y: eyebrowVisible ? 0 : 8)
 
-            ItalicAccentText("Half off, just for you.",
+            ItalicAccentText("half off, just for you.",
                              italic: ["just for you."],
                              alignment: .center)
                 .padding(.horizontal, Space.sm)
                 .opacity(headlineVisible ? 1 : 0)
                 .offset(y: headlineVisible ? 0 : 12)
 
-            Text("One year of JeniFit at half price. Your plan, your coach, every workout.")
+            // v8 P8.10: lowercase + "session" replaces "workout"
+            // (labor-coded) per the program-era language we use across
+            // PlanView. "JeniFit" → "jeni" (peer register).
+            Text("one year of jeni at half price. your plan, your coach, every session.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
@@ -244,7 +251,7 @@ struct DownsellPaywallView: View {
         let hasPricing = discountPackage != nil
         return ZStack(alignment: .topTrailing) {
             VStack(spacing: 8) {
-                Text("YEARLY · BEST VALUE")
+                Text("YEARLY · MOST PICKED")
                     .font(Typo.eyebrow)
                     .tracking(1.5)
                     .foregroundStyle(Palette.textSecondary)
@@ -335,7 +342,7 @@ struct DownsellPaywallView: View {
                 Task { await purchase() }
             } label: {
                 ZStack {
-                    Text("Claim 50% off")
+                    Text("keep my half-off")
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(Palette.textInverse)
                         .opacity(working ? 0 : 1)
@@ -356,7 +363,7 @@ struct DownsellPaywallView: View {
                 Haptics.light()
                 onDismiss()
             } label: {
-                Text("Maybe later")
+                Text("maybe later")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Palette.textSecondary)
                     .padding(.vertical, 6)

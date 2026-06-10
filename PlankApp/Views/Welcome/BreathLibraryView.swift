@@ -52,7 +52,9 @@ struct BreathLibraryView: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            // v8 P8.6: re-entry surface from Home — conditional helper
+            // keeps cream for legacy users, pink for program-era.
+            Palette.programEraBg.ignoresSafeArea()
             StickerScatter(placements: Self.libraryScatter)
                 .allowsHitTesting(false)
 

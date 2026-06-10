@@ -79,7 +79,7 @@ enum FutureRail: String, Identifiable {
         // Body scan is body-image sensitive — framed private, on-device, and
         // NSV ("the progress the scale misses"), never a score or comparison.
         case .bodyScan:
-            return "a private body read you can take at home, whenever you want. it stays on your phone. jeni uses it to see how your shape is changing — the progress the scale can miss — never a score, never a comparison."
+            return "a private body read you can take at home, whenever you want. it stays on your phone. jeni uses it to see how your shape is changing. the progress the scale can miss. never a score, never a comparison."
         case .weeklyCheckIn:
             return "one photo a week, just for you. stays on your phone. jeni references the cadence so you can see how far you've come, without the before-and-after grid."
         }

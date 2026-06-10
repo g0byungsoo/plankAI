@@ -47,10 +47,23 @@ struct MarkAsDoneSheet: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Image(systemName: prescription.stickyGlyph)
-                .font(.system(size: 26, weight: .regular))
-                .foregroundStyle(Palette.cocoaSecondary)
-                .frame(maxWidth: .infinity, alignment: .center)
+            // v8: pull the row's JeniFit sticker into the confirm
+            // sheet so the long-press destination is visually anchored
+            // to the same scrapbook mark the user just pressed. Falls
+            // back to the SF symbol for rows without a sticker.
+            Group {
+                if let asset = prescription.stickerAsset {
+                    Image(asset)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 56, height: 56)
+                } else {
+                    Image(systemName: prescription.stickyGlyph)
+                        .font(.system(size: 26, weight: .regular))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
 
             // Pull-quote register — italic Fraunces 22pt.
             Text(headlineCopy)

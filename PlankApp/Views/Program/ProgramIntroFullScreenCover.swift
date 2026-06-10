@@ -70,7 +70,25 @@ struct ProgramIntroFullScreenCover: View {
             }
             footer
         }
-        .background(Palette.programBgPrimary.ignoresSafeArea())
+        // v8 P8.8: single iridescent gummy-bear sticker behind the
+        // hero block — matches PremiumWelcomeScreen register and gives
+        // the cover a brand identity beat before the user reads.
+        .background(
+            ZStack(alignment: .topTrailing) {
+                Palette.programBgPrimary
+                Image(StickerName.gummyBear.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 96, height: 96)
+                    .rotationEffect(.degrees(-6))
+                    .opacity(StickerName.gummyBear.style.opacity)
+                    .padding(.top, Space.xl)
+                    .padding(.trailing, Space.lg)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+            .ignoresSafeArea()
+        )
     }
 
     private var content: some View {
@@ -101,10 +119,18 @@ struct ProgramIntroFullScreenCover: View {
             }
             .fixedSize(horizontal: false, vertical: true)
 
-            Text("we used what you told us in onboarding to build your plan. you'll get a daily checklist, paced for where you actually are.")
-                .font(Typo.body)
-                .foregroundStyle(Palette.cocoaSecondary)
-                .padding(.top, 4)
+            // v8 P8.8: "daily checklist" swapped to "daily ritual" so
+            // the language matches what users see on PlanView + the
+            // teaser row below. Italic punch on "actually".
+            ItalicAccentText(
+                "we used what you told us in onboarding to build your plan. you'll get a daily ritual, paced for where you actually are.",
+                italic: ["actually"],
+                baseFont: Typo.body,
+                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+                color: Palette.cocoaSecondary,
+                alignment: .leading
+            )
+            .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .modernEntrance(appeared)
@@ -128,6 +154,12 @@ struct ProgramIntroFullScreenCover: View {
         .background(
             RoundedRectangle(cornerRadius: Radius.programCard)
                 .fill(Palette.programCard)
+        )
+        // v8 P8.8: complete the scrapbook chrome — accent border
+        // matches PlanView + Subflow.
+        .overlay(
+            RoundedRectangle(cornerRadius: Radius.programCard)
+                .stroke(Palette.accent.opacity(0.5), lineWidth: 1.5)
         )
         .programPaperShadow()
         .modernEntrance(appeared, delay: 0.10)

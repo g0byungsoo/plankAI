@@ -56,7 +56,11 @@ struct PremiumWelcomeScreen: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary
+            // v8 P8.6: PostPurchaseFlowView already paints the pink
+            // canvas; this local layer just stays for the bgVisible
+            // cross-fade choreography. Routed through programBgPrimary
+            // so the fade-in matches what the user lands on.
+            Palette.programBgPrimary
                 .ignoresSafeArea()
                 .opacity(bgVisible ? 1 : 0)
 
@@ -127,20 +131,24 @@ struct PremiumWelcomeScreen: View {
 
     private var headline: some View {
         VStack(spacing: Space.sm) {
-            Text("JENIFIT PREMIUM")
+            Text("jenifit premium")
                 .font(Typo.eyebrow)
                 .tracking(1.5)
+                .textCase(.uppercase)
                 .foregroundStyle(Palette.accent)
                 .opacity(eyebrowVisible ? 1 : 0)
                 .offset(y: eyebrowVisible ? 0 : 8)
 
-            ItalicAccentText("Welcome to your plan.",
+            // v8 P8.6: lowercase voice register.
+            ItalicAccentText("welcome to your plan.",
                              italic: ["plan."],
                              alignment: .center)
                 .opacity(headlineVisible ? 1 : 0)
                 .offset(y: headlineVisible ? 0 : 12)
 
-            Text("Your coach is ready. Let's get to work.")
+            // v8 P8.6 — anti-shame, peer register. "Let's get to work"
+            // reads as labor-verb diet-culture; this lands as alongside.
+            Text("your coach is ready. so are you.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)

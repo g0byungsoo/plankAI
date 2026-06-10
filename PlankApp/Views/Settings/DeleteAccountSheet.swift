@@ -41,7 +41,7 @@ struct DeleteAccountSheet: View {
         .padding(.horizontal, Space.lg)
         .padding(.top, Space.lg)
         .padding(.bottom, Space.xl)
-        .background(Palette.bgPrimary)
+        .background(Palette.programEraBg)
     }
 
     // MARK: - Confirm content

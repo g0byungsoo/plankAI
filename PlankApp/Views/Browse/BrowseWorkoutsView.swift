@@ -29,7 +29,10 @@ struct BrowseWorkoutsView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            Palette.bgPrimary.ignoresSafeArea()
+            // v8 P8.10: Browse is reached from PlanView (program-era
+            // surface), so use programBgPrimary directly — pink
+            // continuity from the home rail into the workout library.
+            Palette.programBgPrimary.ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: Space.lg) {

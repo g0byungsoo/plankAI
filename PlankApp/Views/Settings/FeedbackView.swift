@@ -34,7 +34,7 @@ struct FeedbackView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, Space.xl)
                     .padding(Space.md)
-                    .background(scrapbookChrome(tint: Palette.stateGood))
+                    .scrapbookCard(tint: Palette.stateGood)
                     .transition(.scale.combined(with: .opacity))
                 } else {
                     TextEditor(text: $feedbackText)
@@ -44,7 +44,7 @@ struct FeedbackView: View {
                         .frame(minHeight: 160)
                         .scrollContentBackground(.hidden)
                         .padding(Space.md)
-                        .background(scrapbookChrome())
+                        .scrapbookCard()
 
                     sendButton
 
@@ -61,7 +61,7 @@ struct FeedbackView: View {
             .padding(.horizontal, Space.screenPadding)
             .padding(.top, Space.md)
         }
-        .background(Palette.bgPrimary)
+        .background(Palette.programEraBg)
         .onAppear { focused = true }
     }
 
@@ -137,15 +137,6 @@ struct FeedbackView: View {
         }
     }
 
-    private func scrapbookChrome(tint: Color = Palette.accent) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(tint.opacity(0.15))
-                .offset(x: 4, y: 4)
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Palette.bgElevated)
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(tint, lineWidth: 1.5)
-        }
-    }
+    // v8 P8.10: local scrapbookChrome removed — unified to
+    // `View.scrapbookCard(tint:)` in DesignSystem/Tokens.swift.
 }

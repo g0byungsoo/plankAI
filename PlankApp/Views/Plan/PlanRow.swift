@@ -361,13 +361,17 @@ struct PlanRow: View {
     }
 }
 
-// MARK: - ProgramStickyNote (v4 — type-keyed, 40pt, SF glyph)
+// MARK: - ProgramStickyNote (v8 — sticker over pastel paper)
 //
-// The Her75 paper-square row marker. 40×40pt rounded-5pt, type-glyph
-// centered (replaces the v3 integer numeral), pastel fill keyed by
-// row TYPE (lesson always mint, snap always butter, etc.) for cohort
-// recognition. ±1.5° alternating rotation by type's natural order.
-// The ONE craft signal per program screen.
+// The Her75 paper-square row marker. 40×40pt rounded-5pt, pastel fill
+// keyed by row TYPE (lesson always mint, snap always butter, etc.) for
+// cohort recognition. ±1.5° alternating rotation by type's natural
+// order. The ONE craft signal per program screen.
+//
+// v8 (2026-06-09, founder direction): the centered glyph is a JeniFit
+// iridescent sticker (gummy-bear-vibe scrapbook pack) when the row has
+// one. Rows without a sticker (plank / weigh-in / measurements) fall
+// back to the v4 cocoa SF symbol so the row never goes blank.
 
 struct ProgramStickyNote: View {
 
@@ -380,9 +384,22 @@ struct ProgramStickyNote: View {
                 .frame(width: 40, height: 40)
                 .rotationEffect(.degrees(rotation))
                 .shadow(color: Color.black.opacity(0.06), radius: 3, x: 0, y: 1)
-            Image(systemName: prescription.stickyGlyph)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(Palette.cocoaPrimary)
+            if let asset = prescription.stickerAsset {
+                // Sticker centered slightly larger than the SF glyph (32pt
+                // vs 16pt) so the iridescent silhouette reads from across
+                // the row. Counter-rotated so the sticker itself stays
+                // visually upright while the paper square keeps its
+                // hand-cut tilt.
+                Image(asset)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 32, height: 32)
+                    .rotationEffect(.degrees(-rotation))
+            } else {
+                Image(systemName: prescription.stickyGlyph)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Palette.cocoaPrimary)
+            }
         }
         .accessibilityHidden(true)
     }

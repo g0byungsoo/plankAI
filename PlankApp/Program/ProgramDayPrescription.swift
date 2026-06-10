@@ -86,9 +86,12 @@ public extension ProgramDayPrescription {
         }
     }
 
-    /// SF Symbol name rendered inside the 40pt sticky-note. Per
-    /// [[feedback-no-checkbox-circle]] v4 sticky redesign: integer
-    /// numeral → type-glyph for per-row identity.
+    /// SF Symbol name rendered inside the 40pt sticky-note when
+    /// `stickerAsset` is nil. Per [[feedback-no-checkbox-circle]]
+    /// v4 sticky redesign: integer numeral → type-glyph for per-row
+    /// identity. v8 (2026-06-09): most rows now ship a JeniFit
+    /// sticker via `stickerAsset` — the SF symbol is the fallback
+    /// for the unspecified rows (plank / weigh-in / measurements).
     var stickyGlyph: String {
         switch self {
         case .lesson:       return "book.closed"
@@ -100,6 +103,26 @@ public extension ProgramDayPrescription {
         case .water:        return "drop"
         case .weighIn:      return "scalemass"
         case .measurements: return "ruler"
+        }
+    }
+
+    /// JeniFit sticker asset rendered IN PLACE of `stickyGlyph` when
+    /// non-nil. Per founder direction 2026-06-09 ("clean her75 layout
+    /// over JeniFit color + sticker pack"): the row markers carry the
+    /// brand identity, not the SF symbol. Rows without a sticker fall
+    /// back to `stickyGlyph` (plank / weigh-in / measurements).
+    /// Sticker → row mapping locked with founder.
+    var stickerAsset: String? {
+        switch self {
+        case .lesson:       return "sticker_candy_iridescent"
+        case .snapMeal:     return "sticker_peach"
+        case .workout:      return "sticker_balloon_dog"
+        case .breath:       return "sticker_breath_ring"
+        case .steps:        return "sticker_shoe_iridescent"
+        case .water:        return "sticker_teacup"
+        case .plank,
+             .weighIn,
+             .measurements: return nil
         }
     }
 

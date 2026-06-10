@@ -148,7 +148,11 @@ struct RoutineSessionView: View {
 
     private var sessionContent: some View {
         ZStack(alignment: .topTrailing) {
-            Palette.bgPrimary.ignoresSafeArea()
+            // v8 P8.4: portrait/in-rest UI inherits PlanView's pink.
+            // The fullScreenLayout below KEEPS Palette.bgPrimary —
+            // designer call: immersive timer stays neutral so the
+            // exercise illustration carries the screen.
+            Palette.programEraBg.ignoresSafeArea()
 
             if isFullScreen {
                 fullScreenLayout

@@ -542,7 +542,7 @@ struct SignUpView: View {
                 case .userBanned:
                     return "This account is locked. Contact support@jenifit.app."
                 case .emailNotConfirmed:
-                    return "Confirm your email first — check your inbox."
+                    return "Confirm your email first. check your inbox."
                 default:
                     break
                 }

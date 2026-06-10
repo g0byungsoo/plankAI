@@ -41,7 +41,10 @@ struct PreSessionView: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            // v8 P8.4: program-era users land on the pink home rail
+            // (PlanView). The plank check-in inherits that pink for
+            // visual continuity. Legacy users keep the cream bg.
+            Palette.programEraBg.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 topBar

@@ -114,7 +114,10 @@ struct ProfileHubView: View {
             .animation(slow, value: route)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Palette.bgPrimary)
+        // v8 P8.10: programEraBg keeps cream for legacy users + pink
+        // for program-era. Hub is reached from PlanView + ProgressGrid
+        // ellipsis on every session so the canvas must flip.
+        .background(Palette.programEraBg)
         .onAppear {
             Analytics.track(.settingsHubOpened)
             withAnimation { revealed = true }
@@ -220,7 +223,7 @@ struct ProfileHubView: View {
         }
         .padding(Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(scrapbookChrome())
+        .scrapbookCard()
     }
 
     private func statPill(_ text: String) -> some View {
@@ -251,7 +254,7 @@ struct ProfileHubView: View {
             }
             .padding(Space.md)
             .frame(maxWidth: .infinity)
-            .background(scrapbookChrome())
+            .scrapbookCard()
         }
         .buttonStyle(.plain)
         .reveal(index, revealed)
@@ -312,7 +315,7 @@ struct ProfileHubView: View {
             }
             .padding(Space.md)
             .frame(maxWidth: .infinity)
-            .background(scrapbookChrome())
+            .scrapbookCard()
         }
         .buttonStyle(.plain)
         .reveal(index, revealed)
@@ -338,7 +341,7 @@ struct ProfileHubView: View {
             }
             .padding(Space.md)
             .frame(maxWidth: .infinity)
-            .background(scrapbookChrome())
+            .scrapbookCard()
         }
         .buttonStyle(.plain)
         .reveal(index, revealed)
@@ -361,17 +364,11 @@ struct ProfileHubView: View {
             .foregroundStyle(Palette.textSecondary.opacity(0.6))
     }
 
-    private func scrapbookChrome(tint: Color = Palette.accent) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(tint.opacity(0.15))
-                .offset(x: 4, y: 4)
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Palette.bgElevated)
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(tint, lineWidth: 1.5)
-        }
-    }
+    // v8 P8.10: local scrapbookChrome helper removed — unified into
+    // `View.scrapbookCard(tint:)` in DesignSystem/Tokens.swift. The
+    // shared version uses `Palette.programCard` (#FFFFFF) instead of
+    // the old `bgElevated` cream, which fixes the muddy-cream-on-pink
+    // look once the hub flipped to programEraBg.
 }
 
 // MARK: - Staggered reveal

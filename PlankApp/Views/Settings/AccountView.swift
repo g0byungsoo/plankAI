@@ -71,7 +71,7 @@ struct AccountView: View {
             .padding(.horizontal, Space.screenPadding)
             .padding(.top, Space.md)
         }
-        .background(Palette.bgPrimary)
+        .background(Palette.programEraBg)
         .onAppear { editName = userName }
         .onDisappear { saveName() }
     }
@@ -98,7 +98,7 @@ struct AccountView: View {
                 .onSubmit { saveName() }
                 .padding(Space.md)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(scrapbookChrome())
+                .scrapbookCard()
         }
     }
 
@@ -189,7 +189,7 @@ struct AccountView: View {
                 }
             }
             .padding(Space.md)
-            .background(scrapbookChrome())
+            .scrapbookCard()
         }
     }
 
@@ -238,12 +238,12 @@ struct AccountView: View {
                 restorePurchasesButton
             }
             .padding(Space.md)
-            .background(scrapbookChrome())
+            .scrapbookCard()
         }
         .sheet(isPresented: $showSignInSheet) {
             NavigationStack {
                 SignInPromptView { showSignInSheet = false }
-                    .background(Palette.bgPrimary)
+                    .background(Palette.programEraBg)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button {
@@ -308,7 +308,7 @@ struct AccountView: View {
                 restorePurchasesButton
             }
             .padding(Space.md)
-            .background(scrapbookChrome())
+            .scrapbookCard()
 
             // Delete Account — Apple App Store Review Guideline 5.1.1(v)
             // requires every account-creating app to expose this in-app.
@@ -545,15 +545,6 @@ struct AccountView: View {
         }
     }
 
-    private func scrapbookChrome(tint: Color = Palette.accent) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(tint.opacity(0.15))
-                .offset(x: 4, y: 4)
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Palette.bgElevated)
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(tint, lineWidth: 1.5)
-        }
-    }
+    // v8 P8.10: local scrapbookChrome removed — unified to
+    // `View.scrapbookCard(tint:)` in DesignSystem/Tokens.swift.
 }

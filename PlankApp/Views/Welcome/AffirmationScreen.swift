@@ -9,9 +9,13 @@ import SwiftUI
 // Text view with its own visibility state so the choreography can
 // land them as three distinct beats.
 
-private let kAffirmationLine1 = "You made it here."
-private let kAffirmationLine2 = "That already means something."
-private let kAffirmationLine3 = "Let's go."
+// v8 P8.6: lowercase voice register per
+// [[feedback-voice-signals-locked]]. Capitalized strings broke the
+// JeniFit voice the rest of the app uses (lowercase casual + italic
+// Fraunces on the punch word).
+private let kAffirmationLine1 = "you made it here."
+private let kAffirmationLine2 = "that already means something."
+private let kAffirmationLine3 = "let's go."
 
 // MARK: - AffirmationScreen
 //
@@ -92,7 +96,10 @@ struct AffirmationScreen: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary
+            // v8 P8.6: first-launch affirmation fires before flag flips,
+            // so use programBgPrimary directly. Greets every v1.1 user
+            // in pink as they cross into the program era.
+            Palette.programBgPrimary
                 .ignoresSafeArea()
                 .opacity(bgVisible ? 1 : 0)
 
@@ -112,27 +119,29 @@ struct AffirmationScreen: View {
             }
             .allowsHitTesting(false)
 
+            // v9 P9.7 — her75 hero scale (52pt displayHero). 28pt was
+            // undersized; this is a first-launch peak moment that
+            // deserves the biggest register. Three staggered lines
+            // with paired haptics (existing line1/2/3Visible chain
+            // continues to gate so the choreography matches).
             VStack(spacing: 16) {
                 Text(kAffirmationLine1)
-                    .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                    .font(Typo.displayHero)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
                     .opacity(line1Visible ? 1 : 0)
                     .scaleEffect(line1Visible ? 1.0 : 0.95)
 
                 Text(kAffirmationLine2)
-                    .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                    .font(Typo.displayHero)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
                     .opacity(line2Visible ? 1 : 0)
                     .scaleEffect(line2Visible ? 1.0 : 0.95)
 
-                // Line 3 promoted to italic — JeniFit voice signal
-                // (italic = the punch). Matches the becoming-tab + home
-                // greeting + welcome screen patterns where the closer
-                // line lands in italic Fraunces.
+                // Line 3 promoted to italic — JeniFit voice signal.
                 Text(kAffirmationLine3)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
+                    .font(Typo.displayHeroItalic)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
                     .opacity(line3Visible ? 1 : 0)

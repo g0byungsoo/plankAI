@@ -95,7 +95,7 @@ struct EditProfileView: View {
             .padding(.horizontal, Space.screenPadding)
             .padding(.top, Space.md)
         }
-        .background(Palette.bgPrimary)
+        .background(Palette.programEraBg)
     }
 
     // MARK: - Header
@@ -201,17 +201,9 @@ struct EditProfileView: View {
         .buttonStyle(SettingsPressStyle())
     }
 
-    private func scrapbookChrome(tint: Color) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(tint.opacity(0.15))
-                .offset(x: 4, y: 4)
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Palette.bgElevated)
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(tint, lineWidth: 1.5)
-        }
-    }
+    // v8 P8.10: local scrapbookChrome removed (was unused — the
+    // pickerCard above inlines its own selected-state chrome).
+    // Unified scrapbook surface: `View.scrapbookCard(tint:)`.
 
     /// Persist session length to AppStorage + UserRecord + Supabase.
     /// pendingUpsert guarantees the cloud push happens even if the

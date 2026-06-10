@@ -164,7 +164,7 @@ struct MusicSourceSheet: View {
             VStack(spacing: 0) {
                 row(value: "jenifit", label: "jenifit's playlist", caption: "calm tracks mastered to sit under the voice")
                 Divider().background(Palette.divider)
-                row(value: "none", label: "no music", caption: "voice only — play your own from another app")
+                row(value: "none", label: "no music", caption: "voice only. play your own from another app")
             }
             .background(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)

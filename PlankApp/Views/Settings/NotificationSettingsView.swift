@@ -36,7 +36,7 @@ struct NotificationSettingsView: View {
                         .labelsHidden()
                 }
                 .padding(Space.md)
-                .background(scrapbookChrome())
+                .scrapbookCard()
                 .onChange(of: notificationsEnabled) { _, enabled in
                     if enabled {
                         requestPermission()
@@ -98,7 +98,7 @@ struct NotificationSettingsView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, Space.xs)
                         .padding(.horizontal, Space.sm)
-                        .background(scrapbookChrome())
+                        .scrapbookCard()
 
                         saveButton
 
@@ -138,7 +138,7 @@ struct NotificationSettingsView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(Space.md)
-                    .background(scrapbookChrome(tint: Palette.stateWarn))
+                    .scrapbookCard(tint: Palette.stateWarn)
                 }
 
                 Spacer().frame(height: Space.xl)
@@ -146,7 +146,7 @@ struct NotificationSettingsView: View {
             .padding(.horizontal, Space.screenPadding)
             .padding(.top, Space.md)
         }
-        .background(Palette.bgPrimary)
+        .background(Palette.programEraBg)
         .onAppear {
             pickerTime = Calendar.current.date(from: DateComponents(hour: notificationHour, minute: notificationMinute)) ?? Date()
         }
@@ -263,7 +263,7 @@ struct NotificationSettingsView: View {
                 Spacer(minLength: 0)
             }
             .padding(Space.md)
-            .background(scrapbookChrome())
+            .scrapbookCard()
         }
     }
 
@@ -284,24 +284,15 @@ struct NotificationSettingsView: View {
                 .labelsHidden()
         }
         .padding(Space.md)
-        .background(scrapbookChrome())
+        .scrapbookCard()
         .onChange(of: isOn.wrappedValue) { _, enabled in
             if enabled { requestPermission() }
             RetentionNotifications.applyTogglesChanged()
         }
     }
 
-    private func scrapbookChrome(tint: Color = Palette.accent) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(tint.opacity(0.15))
-                .offset(x: 4, y: 4)
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Palette.bgElevated)
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(tint, lineWidth: 1.5)
-        }
-    }
+    // v8 P8.10: local scrapbookChrome removed — unified to
+    // `View.scrapbookCard(tint:)` in DesignSystem/Tokens.swift.
 
     private func saveTime() {
         let components = Calendar.current.dateComponents([.hour, .minute], from: pickerTime)

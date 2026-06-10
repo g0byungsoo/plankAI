@@ -100,7 +100,12 @@ struct BuildingPlanLoadingView: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            // v8 P8.5: onboarding closer for the v1.1 program era. Uses
+            // programBgPrimary directly (not the conditional helper) —
+            // the user is crossing INTO the program here, so pink is
+            // the welcome before the programEraEnabled flag flips on
+            // enrollment commit.
+            Palette.programBgPrimary.ignoresSafeArea()
             centralBloom
 
             GeometryReader { geo in
@@ -155,7 +160,7 @@ struct BuildingPlanLoadingView: View {
                 }
 
                 ItalicAccentText(
-                    showCompletionFrame ? "your *becoming* plan" : "building your becoming plan",
+                    showCompletionFrame ? "your becoming plan" : "building your becoming plan",
                     italic: showCompletionFrame ? ["becoming"] : ["becoming"],
                     baseFont: .custom("Fraunces72pt-SemiBold", size: 22),
                     italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
@@ -276,11 +281,11 @@ struct BuildingPlanLoadingView: View {
     // advances. Each item fires at its threshold percent. Voice-locked
     // copy with italic-Fraunces punch words.
     private static let milestones: [(threshold: Double, label: String, italic: [String])] = [
-        (0.20, "your *eating* story ♥",       ["eating"]),
+        (0.20, "your eating story ♥",         ["eating"]),
         (0.40, "cuisine match",                []),
         (0.60, "calorie window",               []),
         (0.80, "movement floor",               []),
-        (1.00, "your *becoming* arc",          ["becoming"]),
+        (1.00, "your becoming arc",            ["becoming"]),
     ]
 
     @ViewBuilder private var milestoneChecklist: some View {

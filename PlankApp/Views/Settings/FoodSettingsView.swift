@@ -187,7 +187,7 @@ struct FoodSettingsView: View {
 
                 Toggle(isOn: $eveningCheckInEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("evening *check-in* ♥")
+                        Text("evening check-in ♥")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(Palette.textPrimary)
                         Text("one soft look back at today's plate. 8:30pm.")
@@ -240,7 +240,7 @@ struct FoodSettingsView: View {
                             .foregroundStyle(Palette.textPrimary)
                         Text(aiConsentAccepted
                              ? "accepted \(formattedConsentDate)"
-                             : "not yet — you'll see the disclosure on your next scan.")
+                             : "not yet. you'll see the disclosure on your next scan.")
                             .font(.system(size: 11))
                             .foregroundStyle(Palette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)

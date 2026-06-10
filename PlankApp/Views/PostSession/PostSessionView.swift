@@ -47,7 +47,9 @@ struct PostSessionView: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            // v8 P8.4: post-plank celebration screen aligns with the
+            // pink home rail. Scrapbook sticker scatter sits on top.
+            Palette.programEraBg.ignoresSafeArea()
 
             StickerScatter(placements: Self.celebrationPlacements)
 

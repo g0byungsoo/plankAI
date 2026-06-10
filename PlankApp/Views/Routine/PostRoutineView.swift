@@ -73,7 +73,7 @@ struct PostRoutineView: View {
 
     private var partialCompletionBody: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            Palette.programEraBg.ignoresSafeArea()
 
             VStack(spacing: Space.lg) {
                 Spacer()
@@ -113,7 +113,7 @@ struct PostRoutineView: View {
 
     private var celebrationBody: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            Palette.programEraBg.ignoresSafeArea()
 
             StickerScatter(placements: Self.celebrationPlacements)
 

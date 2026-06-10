@@ -155,7 +155,7 @@ enum JeniMethodRitualContent {
         switch day % 4 {
         case 2:  return "first, two soft breaths in. one long breath out."
         case 3:  return "first, in for five, out for five. find the even line."
-        case 0:  return "first, slow it down — in for four, out for seven."
+        case 0:  return "first, slow it down. in for four, out for seven."
         default: return "first, one slow breath. make the exhale the long part."
         }
     }
@@ -177,7 +177,7 @@ enum JeniMethodRitualContent {
                 eyebrow: "day 1 · welcome",
                 headline: "\(namedPrefix(for: user))you're in.",
                 italic: ["in"],
-                body: "i'm jeni, and i'll be right here every day. five minutes a day — that's all i'm asking. each day i'll teach you one true thing about your body. then we move. that's the whole method.",
+                body: "i'm jeni, and i'll be right here every day. five minutes a day. that's all i'm asking. each day i'll teach you one true thing about your body. then we move. that's the whole method.",
                 breathLine: "before we start: one slow breath. make the exhale the long part.",
                 ctaLabel: "continue"
             ),
