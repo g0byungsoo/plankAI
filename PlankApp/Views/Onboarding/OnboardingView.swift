@@ -976,10 +976,12 @@ struct OnboardingView: View {
         }
 
         // ─── Part 4 — How you want to feel ──────────────────────
+        // v3 P11.9 (2026-06-10) — StickerScatter removed for her75
+        // editorial restraint. her75 question screens have ZERO
+        // sticker scatter; the brand moments (welcome + plan reveal +
+        // celebration) keep theirs. Question screens stay clean.
         case 140:
-            ZStack {
-                StickerScatter(placements: Self.identityPlacements)
-                jfQuestion(
+            jfQuestion(
                     // v3 P11.1 deferred (BetterMe A2 + her75 register):
                     // lowercased headline, dropped Title-Case sub, and
                     // converted the 1-word labels into title + descriptor
@@ -1018,7 +1020,6 @@ struct OnboardingView: View {
                         "radiant":  .sparkleGlossy,
                     ]
                 )
-            }
 
         case 141: jfQuestion(
             "What's the reward when you hit the goal?",
@@ -1710,10 +1711,10 @@ struct OnboardingView: View {
         )
 
         // ─── Part 6 — Ready to start ────────────────────────────
+        // v3 P11.9 (2026-06-10) — StickerScatter removed; her75
+        // editorial restraint on question screens.
         case 3:
-            ZStack {
-                StickerScatter(placements: Self.baselinePlacements)
-                jfQuestion(
+            jfQuestion(
                     "how long can you hold a plank?",
                     sub: "your starting benchmark. \"no idea\" is also an answer.",
                     opts: [
@@ -1725,7 +1726,6 @@ struct OnboardingView: View {
                     ],
                     sel: $baseline, next: 11
                 )
-            }
 
         // v3 P11.1.C (2026-06-10) — Cal AI A8 notification pre-prime.
         // Was: "When should we send your daily reminder?" — labor-coded.
@@ -2148,14 +2148,23 @@ struct OnboardingView: View {
                 }
                 .accessibilityLabel("Back")
 
+                // v3 P11.9 (2026-06-10) — progress bar slimmed 6pt → 2pt
+                // per the her75 IMG_6280 hairline reference. The 6pt
+                // capsule read as JeniFit-coquette chunky; her75's
+                // editorial register uses a near-invisible hairline that
+                // ONLY signals progress when filled. Track opacity also
+                // bumped from 0.12 → 0.08 so the empty rail almost
+                // disappears against cream — the user reads "I'm
+                // advancing through a magazine," not "I'm 12% through
+                // a survey."
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Palette.cocoaPrimary.opacity(0.12))
-                            .frame(height: 6)
+                            .fill(Palette.cocoaPrimary.opacity(0.08))
+                            .frame(height: 2)
                         Capsule()
                             .fill(Palette.cocoaPrimary)
-                            .frame(width: max(8, geo.size.width * progressFraction), height: 6)
+                            .frame(width: max(4, geo.size.width * progressFraction), height: 2)
                             .animation(Motion.entrance, value: screen)
                     }
                     .frame(maxHeight: .infinity, alignment: .center)
