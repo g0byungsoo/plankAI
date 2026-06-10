@@ -612,6 +612,9 @@ struct PlanView: View {
     /// type (Phase 1.B). Long-press remains the manual override
     /// (MarkAsDoneSheet) for the offline edge case.
     private func handleRowTap(_ prescription: ProgramDayPrescription) {
+        #if DEBUG
+        print("[PlanView] handleRowTap entered key=\(prescription.itemKey) viewingDay=\(String(describing: viewingDay))")
+        #endif
         guard viewingDay == nil else { return }
 
         // Already-complete row: tap re-opens the module so user can
@@ -627,10 +630,19 @@ struct PlanView: View {
 
         switch prescription {
         case .lesson:
+            #if DEBUG
+            print("[PlanView] dispatching → openLesson")
+            #endif
             openLesson()
         case .snapMeal:
+            #if DEBUG
+            print("[PlanView] dispatching → activeCover = .captureFlow")
+            #endif
             activeCover = .captureFlow
         case .workout(let tier, let minutes, let bodyFocus):
+            #if DEBUG
+            print("[PlanView] dispatching → openWorkout")
+            #endif
             openWorkout(tier: tier, minutes: minutes, bodyFocus: bodyFocus)
         case .steps:
             // No standalone steps module; HealthKit auto-fires when
@@ -638,8 +650,14 @@ struct PlanView: View {
             // a steps detail sheet here).
             return
         case .breath:
+            #if DEBUG
+            print("[PlanView] dispatching → activeCover = .breathSession")
+            #endif
             activeCover = .breathSession
         case .weighIn:
+            #if DEBUG
+            print("[PlanView] dispatching → activeSheet = .logWeight")
+            #endif
             activeSheet = .logWeight
         case .plank, .water, .measurements:
             // Phase 2 will wire dedicated modules. For now fall back
@@ -700,6 +718,9 @@ struct PlanView: View {
     /// Manual "I did it offline" escape hatch — presents
     /// MarkAsDoneSheet. Only fires on binary-empty rows.
     private func handleLongPress(_ prescription: ProgramDayPrescription) {
+        #if DEBUG
+        print("[PlanView] handleLongPress entered key=\(prescription.itemKey) isProgress=\(prescription.isProgressRow)")
+        #endif
         guard viewingDay == nil else { return }
         guard !prescription.isProgressRow else { return }
         Haptics.medium()

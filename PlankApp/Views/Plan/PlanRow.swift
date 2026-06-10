@@ -81,36 +81,38 @@ struct PlanRow: View {
     }
 
     var body: some View {
-        // Button + simultaneousGesture is the iOS-standard pattern
-        // for "tappable + long-press fallback inside a ScrollView".
-        // The earlier .onTapGesture + .onLongPressGesture combo
-        // didn't reliably resolve inside PlanView's scroll — the
-        // scroll gesture intercepted both. Founder QA 2026-06-09:
-        // "long-pressing, press to open module are[n't] working."
-        Button {
+        // Stripped to the simplest possible gesture stack — plain
+        // VStack + .onTapGesture + .onLongPressGesture. Debug-print
+        // tagging so we can verify in Xcode console whether the
+        // gesture is firing. Founder QA 2026-06-09: "nothing really
+        // happens when i click each row or nothing happens when i
+        // press long any of them" — even after Button + simultaneous
+        // gesture + modal-router refactor.
+        VStack(alignment: .leading, spacing: 10) {
+            headerLine
+            if prescription.isFatRow {
+                fatEmbed
+            }
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            #if DEBUG
+            print("[PlanRow] TAP fired key=\(prescription.itemKey) interactive=\(state.isInteractive)")
+            #endif
             guard state.isInteractive else { return }
             onTap()
-        } label: {
-            VStack(alignment: .leading, spacing: 10) {
-                headerLine
-                if prescription.isFatRow {
-                    fatEmbed
-                }
-            }
-            .padding(.vertical, 14)
-            .padding(.horizontal, 20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.5)
-                .onEnded { _ in
-                    guard state.isInteractive else { return }
-                    guard canLongPress else { return }
-                    onLongPress()
-                }
-        )
+        .onLongPressGesture(minimumDuration: 0.5) {
+            #if DEBUG
+            print("[PlanRow] LONG-PRESS fired key=\(prescription.itemKey) interactive=\(state.isInteractive) canLP=\(canLongPress)")
+            #endif
+            guard state.isInteractive else { return }
+            guard canLongPress else { return }
+            onLongPress()
+        }
         .opacity(state.isInteractive ? 1.0 : 0.5)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(a11yLabel)
