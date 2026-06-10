@@ -43,12 +43,28 @@ struct ProgramSetupSubflow: View {
     @AppStorage("onboardingActivityLevel") private var activityLevel: String = ""
     @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
     @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
+    // v3 P11.2 (2026-06-10) — sleep load-bearing in engine.
+    @AppStorage("onboardingSleepHours")    private var sleepHours: String = ""
 
     // Authenticated user id used by ProgramService.startProgram.
     // Read from the same source other AppSync calls use (AppSync.shared.currentUserId).
     @State private var userId: String = ""
 
-    // Subflow page state.
+    // v9 P9.4 — Subflow page state.
+    //
+    // The page LAYOUT still has 3 phases for existing-user opt-in
+    // (via ProgramIntroFullScreenCover), but new users coming through
+    // the v9 onboarding flow have ALREADY picked their pace + seen
+    // their derived date in OnboardingRevealView's PacePicker +
+    // GoalDateReveal steps. For those users we skip straight to the
+    // commitment page so the post-paywall beat is a single celebratory
+    // confirmation, not a re-pick.
+    //
+    // Source of truth: `onboardingPickedTier` AppStorage. If set,
+    // hydrate `pickedTier` from it + start on `.commitment`. If unset
+    // (existing-user opt-in path), keep the full 3-page flow.
+    @AppStorage("onboardingPickedTier") private var onboardingPickedTierRaw: String = ""
+
     @State private var page: Page = .goalDateReveal
     @State private var pickedTier: IntensityTier = .medium
     @State private var commitWorking: Bool = false
@@ -86,6 +102,14 @@ struct ProgramSetupSubflow: View {
         }
         .onAppear {
             userId = AppSync.shared.currentUserId ?? ""
+            // v9 P9.4: if onboarding already collected pace + derived
+            // date, jump straight to the commit page. Existing users
+            // (onboardingPickedTier empty) still walk the full 3-page
+            // flow.
+            if let tier = IntensityTier(rawValue: onboardingPickedTierRaw) {
+                pickedTier = tier
+                page = .commitment
+            }
         }
     }
 
@@ -139,8 +163,15 @@ struct ProgramSetupSubflow: View {
             goalWeightKg: goalWeightKg,
             sex: .female,  // JeniFit cohort default; will read profile-sex when added
             age: parsedAge,
-            isGLP1User: glp1Status == "current",
-            isPerimenopausal: hormonalStage == "perimenopause" || hormonalStage == "menopause"
+            // v3 P11.2 (2026-06-10) — routed through engine-v2 helpers.
+            // NB: ProgramSetupSubflow's old check accepted both
+            // "perimenopause" and "menopause"; the helper is stricter
+            // (perimenopause only). That matches the case 163 option
+            // keys (no "menopause" option exists; "postmenopause" has
+            // different physiology and stays at default rate).
+            isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
+            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
+            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours)
         )
     }
 
@@ -199,7 +230,12 @@ struct ProgramSetupSubflow: View {
                             .padding(.leading, 6)
                     }
 
-                    Text("you're aiming to lose **\(String(format: "%.0f", pctOfWeight))%** of your weight. that's where doctors call it sustainable.")
+                    // v8 P8.8: markdown bold `**...**` was rendering
+                    // literally inside Typo.body (SwiftUI Text needs
+                    // Text(.init(...)) for markdown). Use AttributedString
+                    // so the percent stays the visual punch without
+                    // changing copy intent.
+                    Text(boldedPercentLine(pct: pctOfWeight))
                         .font(Typo.body)
                         .foregroundStyle(Palette.cocoaSecondary)
                 }
@@ -209,6 +245,10 @@ struct ProgramSetupSubflow: View {
             .background(
                 RoundedRectangle(cornerRadius: Radius.programCard)
                     .fill(Palette.programCard)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Radius.programCard)
+                    .stroke(Palette.accent.opacity(0.5), lineWidth: 1.5)
             )
             .programPaperShadow()
 
@@ -252,9 +292,26 @@ struct ProgramSetupSubflow: View {
                     RoundedRectangle(cornerRadius: Radius.programCard)
                         .fill(Palette.programCard)
                 )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Radius.programCard)
+                        .stroke(Palette.accent.opacity(0.5), lineWidth: 1.5)
+                )
                 .programPaperShadow()
             }
         }
+    }
+
+    /// Builds the percent sentence as an AttributedString so the
+    /// number renders bold inside body copy — SwiftUI's Text(_:String)
+    /// strips markdown unless wrapped this way.
+    private func boldedPercentLine(pct: Double) -> AttributedString {
+        var attr = AttributedString("you're aiming to lose ")
+        var percent = AttributedString("\(String(format: "%.0f", pct))%")
+        percent.font = .custom("Fraunces72pt-SemiBold", size: 16)
+        let tail = AttributedString(" of your weight. that's where doctors call it sustainable.")
+        attr.append(percent)
+        attr.append(tail)
+        return attr
     }
 
     private func benefitRow(_ text: String) -> some View {
@@ -277,8 +334,12 @@ struct ProgramSetupSubflow: View {
 
     private var hardGateInputs: HardTierGate.Inputs {
         .init(
-            isGLP1User: glp1Status == "current",
-            isPerimenopausal: hormonalStage == "perimenopause" || hormonalStage == "menopause",
+            // v3 P11.2 (2026-06-10) — DRY via engine-v2 helpers.
+            // HardTierGate doesn't need short-sleep gating (separate
+            // gate policy from goal-rate computation), but the GLP-1 +
+            // peri mapping benefits from the shared source of truth.
+            isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
+            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
             age: parsedAge,
             activityLevel: mappedActivity
         )
@@ -378,9 +439,15 @@ struct ProgramSetupSubflow: View {
                 RoundedRectangle(cornerRadius: Radius.programCard)
                     .fill(isSelected ? Palette.accentSubtle.opacity(0.4) : Palette.programCard)
             )
+            // v8 P8.8: selection state stroke wins (cocoaPrimary 1.5pt);
+            // unselected state gets the scrapbook accent border so it
+            // still reads as the same family as PlanView rows.
             .overlay(
                 RoundedRectangle(cornerRadius: Radius.programCard)
-                    .stroke(isSelected ? Palette.cocoaPrimary : Color.clear, lineWidth: 1.5)
+                    .stroke(
+                        isSelected ? Palette.cocoaPrimary : Palette.accent.opacity(0.5),
+                        lineWidth: 1.5
+                    )
             )
             .programPaperShadow()
             .opacity(isLocked ? 0.6 : 1.0)
@@ -435,25 +502,32 @@ struct ProgramSetupSubflow: View {
 
     private var pageCommitment: some View {
         VStack(alignment: .leading, spacing: 28) {
-            VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
-                (
-                    Text("make ")
-                        .font(Typo.programHeroDisplay)
-                        .foregroundStyle(Palette.cocoaPrimary)
-                    +
-                    Text("it")
-                        .font(Typo.programHeroItalic)
-                        .foregroundStyle(Palette.cocoaPrimary)
-                )
-                Text("official.")
+            // v8 P8.8: hero collapsed to single line per
+            // [[feedback-hero-typography-rule]] — 2-letter "it" as
+            // the italic punch was orphaned. "official" carries the
+            // intent + the visual weight.
+            (
+                Text("make it ")
                     .font(Typo.programHeroDisplay)
                     .foregroundStyle(Palette.cocoaPrimary)
-            }
+                +
+                Text("official.")
+                    .font(Typo.programHeroItalic)
+                    .foregroundStyle(Palette.cocoaPrimary)
+            )
             .fixedSize(horizontal: false, vertical: true)
 
-            Text("we'll start your program tomorrow. day one.")
-                .font(Typo.body)
-                .foregroundStyle(Palette.cocoaSecondary)
+            // v8 P8.8: collapsed from "we'll start your program tomorrow.
+            // day one." (read doubled). Italic punch on the temporal word.
+            (
+                Text("your program starts ")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.cocoaSecondary)
+                +
+                Text("tomorrow.")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                    .foregroundStyle(Palette.cocoaSecondary)
+            )
 
             // Day 1 preview card — what tomorrow looks like.
             VStack(alignment: .leading, spacing: 14) {
@@ -475,6 +549,10 @@ struct ProgramSetupSubflow: View {
             .background(
                 RoundedRectangle(cornerRadius: Radius.programCard)
                     .fill(Palette.programCard)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Radius.programCard)
+                    .stroke(Palette.accent.opacity(0.5), lineWidth: 1.5)
             )
             .programPaperShadow()
         }
@@ -570,7 +648,15 @@ struct ProgramSetupSubflow: View {
         case .intensityPick:
             withAnimation(Motion.crossFade) { page = .goalDateReveal }
         case .commitment:
-            withAnimation(Motion.crossFade) { page = .intensityPick }
+            // v9 P9.4: when onboarding has already collected the pace
+            // (onboardingPickedTier set), commitment IS the only page,
+            // so "back" means dismiss. Existing-user opt-in path walks
+            // back to intensityPick as before.
+            if onboardingPickedTierRaw.isEmpty {
+                withAnimation(Motion.crossFade) { page = .intensityPick }
+            } else {
+                onComplete(false)
+            }
         }
     }
 

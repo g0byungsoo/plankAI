@@ -40,6 +40,14 @@ struct OnboardingRevealView: View {
     private enum Step: Int {
         case building
         case projection
+        // v9 P9.1/P9.2 (her75 onboarding restructure): the user holds
+        // her plan BEFORE paywall. pacePicker → goalDate → firstWeek
+        // form the Program Design chapter. Pace persists via AppStorage
+        // so the (eventually trimmed) ProgramSetup post-paywall just
+        // reads it back — no second pick.
+        case pacePicker
+        case goalDate
+        case firstWeek
         case permissions
     }
 
@@ -67,6 +75,27 @@ struct OnboardingRevealView: View {
                     currentWeightKg: currentWeightKg,
                     goalWeightKg: goalWeightKg,
                     voicePreference: voicePreference,
+                    onContinue: { withAnimation(Motion.crossFade) { step = .pacePicker } }
+                )
+                .transition(.opacity)
+            case .pacePicker:
+                PacePickerPresentation(
+                    currentWeightKg: currentWeightKg ?? 65,
+                    goalWeightKg: goalWeightKg ?? 60,
+                    onContinue: { withAnimation(Motion.crossFade) { step = .goalDate } }
+                )
+                .transition(.opacity)
+            case .goalDate:
+                GoalDateRevealPresentation(
+                    currentWeightKg: currentWeightKg ?? 65,
+                    goalWeightKg: goalWeightKg ?? 60,
+                    onContinue: { withAnimation(Motion.crossFade) { step = .firstWeek } }
+                )
+                .transition(.opacity)
+            case .firstWeek:
+                FirstWeekPresentation(
+                    bodyFocus: bodyFocus,
+                    sessionLengthKey: sessionLengthKey,
                     onContinue: { withAnimation(Motion.crossFade) { step = .permissions } }
                 )
                 .transition(.opacity)
@@ -78,8 +107,12 @@ struct OnboardingRevealView: View {
     }
 
     private func advanceFromBuilding() {
+        // v9 P9.1/P9.2: building → projection → pacePicker → goalDate
+        // → firstWeek → permissions when we have weight data; without
+        // weight, skip all derivation-dependent steps and land on
+        // firstWeek directly (it still renders with default tier).
         withAnimation(Motion.crossFade) {
-            step = hasProjection ? .projection : .permissions
+            step = hasProjection ? .projection : .firstWeek
         }
     }
 }
@@ -103,6 +136,15 @@ private struct ProjectionPresentation: View {
     @State private var cardVisible = false
     @State private var contextVisible = false
     @State private var ctaVisible = false
+    // v3 P11.6+ (2026-06-10) — per-tile cascade counter for the 6
+    // proof tiles. Driven by an async chain that fires after
+    // calorieVisible flips true; uses `Motion.cascadeTight = 0.06s`
+    // per [[feedback-her75-motion-vocabulary]] so the cluster reads
+    // as one moment with a hint of order, not a list animation.
+    // Reduce-motion gate: when env value is true, all 6 land
+    // immediately (revealedTiles set to 6 in the body's task).
+    @State private var revealedTiles: Int = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // Delta v7 D68 — diet-first reveal: calorie target hero, weight
     // curve secondary, workout tertiary. Calorie estimate is a rough
@@ -124,7 +166,10 @@ private struct ProjectionPresentation: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            // v8 P8.5: reveal hero — the moment the program clicks
+            // into focus. Pink directly (not the conditional helper)
+            // so the user crosses INTO the program era visually here.
+            Palette.programBgPrimary.ignoresSafeArea()
 
             // Delta v8 (2026-06-06) — wrapped scrollable content with
             // pinned CTA. Adding the 5-tile multi-proof grid (D74)
@@ -136,14 +181,21 @@ private struct ProjectionPresentation: View {
                     VStack(spacing: Space.lg) {
                         Spacer().frame(height: Space.md)
 
+                        // v3 P11.6 (2026-06-10) — promoted to heroHeadline
+                        // (42pt SemiBold). Plan reveal is THE hero
+                        // moment of onboarding; questionHero (34pt)
+                        // read as too small after the her75
+                        // standardization pass.
                         ItalicAccentText(
                             "your becoming, plotted",
                             italic: ["plotted"],
-                            baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
-                            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
+                            baseFont: Typo.heroHeadline,
+                            italicFont: Typo.heroHeadlineItalic,
                             color: Palette.textPrimary,
                             alignment: .center
                         )
+                        .kerning(-0.4)
+                        .lineSpacing(Typo.heroHeadlineLineGap)
                         .opacity(heroVisible ? 1 : 0)
                         .scaleEffect(heroVisible ? 1.0 : 0.96)
 
@@ -203,7 +255,7 @@ private struct ProjectionPresentation: View {
                 .padding(.horizontal, Space.lg)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
-                .background(Palette.bgPrimary)
+                .background(Palette.programBgPrimary)
                 .opacity(ctaVisible ? 1 : 0)
             }
         }
@@ -219,6 +271,21 @@ private struct ProjectionPresentation: View {
             // moment on first Home open).
             if let kcal = estimatedCalorieTarget, foodDailyTarget == 0 {
                 foodDailyTarget = Double(kcal)
+            }
+            // v3 P11.6+ — fire the per-tile cascade. Tiles 0-5 land
+            // 0.06s apart starting from when the card itself appears,
+            // so the cluster reveal feels choreographed instead of
+            // a bulk fade. Reduce-motion: snap to 6 immediately.
+            if reduceMotion {
+                revealedTiles = 6
+            } else {
+                for i in 0..<6 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * Motion.cascadeTight) {
+                        withAnimation(Motion.entranceSoft) {
+                            revealedTiles = i + 1
+                        }
+                    }
+                }
             }
             try? await Task.sleep(nanoseconds: 450_000_000)
             withAnimation(Motion.entrance) { cardVisible = true }
@@ -287,43 +354,75 @@ private struct ProjectionPresentation: View {
     /// that Cal AI structurally cannot show.
     @ViewBuilder
     private func calorieTargetHero(kcal: Int) -> some View {
+        // v3 P11.6+ — each tile wrapped in `staggeredTile(at:)` so
+        // the 6 proof tiles cascade in 0.06s apart instead of all
+        // fading together. Driven by `revealedTiles` 0-5 counter
+        // that the parent's task animates on reveal.
         VStack(alignment: .leading, spacing: 12) {
-            // Top row: calorie + date — the two anchors of the program.
             HStack(alignment: .top, spacing: 10) {
-                proofTile(
-                    eyebrow: "calories",
-                    value: "\(kcal)",
-                    valueFont: .custom("Fraunces72pt-SemiBold", size: 36),
-                    sub: estimatedProteinFloor.map { "\($0)g protein floor" } ?? "starting target"
-                )
-                if let date = goalDateText {
+                staggeredTile(at: 0) {
                     proofTile(
-                        eyebrow: "by",
-                        value: date,
-                        valueFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
-                        sub: "your becoming date"
+                        eyebrow: "calories",
+                        value: "\(kcal)",
+                        valueFont: .custom("Fraunces72pt-SemiBold", size: 36),
+                        sub: estimatedProteinFloor.map { "\($0)g protein floor" } ?? "starting target"
                     )
-                    .frame(width: 130)
+                }
+                if let date = goalDateText {
+                    staggeredTile(at: 1) {
+                        proofTile(
+                            eyebrow: "by",
+                            value: date,
+                            valueFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
+                            sub: "your becoming date"
+                        )
+                        .frame(width: 130)
+                    }
                 }
             }
 
-            // Bottom row: program proofs Cal AI can't show.
             HStack(spacing: 10) {
-                proofTile(
-                    eyebrow: "ritual",
-                    value: "5-min",
-                    valueFont: .custom("Fraunces72pt-SemiBold", size: 22),
-                    sub: "plank a day"
-                )
-                proofTile(
-                    eyebrow: "method",
-                    value: "14-day",
-                    valueFont: .custom("Fraunces72pt-SemiBold", size: 22),
-                    sub: "becoming arc"
-                )
+                staggeredTile(at: 2) {
+                    proofTile(
+                        eyebrow: "ritual",
+                        value: "5-min",
+                        valueFont: .custom("Fraunces72pt-SemiBold", size: 22),
+                        sub: "plank a day"
+                    )
+                }
+                staggeredTile(at: 3) {
+                    proofTile(
+                        eyebrow: "method",
+                        value: "14-day",
+                        valueFont: .custom("Fraunces72pt-SemiBold", size: 22),
+                        sub: "becoming arc"
+                    )
+                }
             }
 
-            Text("a starting plan — we'll tune yours over the first few weeks ♥")
+            // v3 P11.1.C — BetterMe S5 5-rail expansion (now 6 with
+            // movement + breath). Multi-anchor reveal: every prior
+            // Q pays off in a number she can see.
+            HStack(spacing: 10) {
+                staggeredTile(at: 4) {
+                    proofTile(
+                        eyebrow: "movement",
+                        value: "7,500",
+                        valueFont: .custom("Fraunces72pt-SemiBold", size: 22),
+                        sub: "steps anchor"
+                    )
+                }
+                staggeredTile(at: 5) {
+                    proofTile(
+                        eyebrow: "evenings",
+                        value: "5-min",
+                        valueFont: .custom("Fraunces72pt-SemiBold", size: 22),
+                        sub: "breath reset"
+                    )
+                }
+            }
+
+            Text("a starting plan. we'll tune yours over the first few weeks ♥")
                 .font(.system(size: 12))
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -342,6 +441,19 @@ private struct ProjectionPresentation: View {
                     .stroke(Palette.accent, lineWidth: 1.5)
             }
         )
+    }
+
+    /// v3 P11.6+ (2026-06-10) — per-tile cascade wrapper. Tile at
+    /// `index` shows once `revealedTiles > index`; off-state is
+    /// opacity 0 + 8pt y-offset (matches LineCascadeText's settle).
+    /// Animation tied to `revealedTiles` so the parent's stepwise
+    /// counter advances drive the per-tile reveal.
+    @ViewBuilder
+    private func staggeredTile<Content: View>(at index: Int, @ViewBuilder content: () -> Content) -> some View {
+        content()
+            .opacity(reduceMotion || index < revealedTiles ? 1 : 0)
+            .offset(y: reduceMotion || index < revealedTiles ? 0 : 8)
+            .animation(.easeOut(duration: 0.32), value: revealedTiles)
     }
 
     @ViewBuilder
@@ -467,13 +579,21 @@ private struct PairedPermissionsAsk: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            // v8 P8.5: permissions screen ships at the tail of the
+            // reveal cascade — keep the pink continuity through to
+            // the paywall handoff.
+            Palette.programBgPrimary.ignoresSafeArea()
 
             VStack(spacing: Space.lg) {
                 Spacer(minLength: Space.xl)
 
+                // v3 P11.1.C (2026-06-10) — HK ask moved to mid-
+                // onboarding (case 285, Cal AI S5). This screen is now
+                // notifications-only. Headline updated from "two quiet
+                // things" → "one quiet ritual ping ♥" per her75 editorial
+                // register (silent sub, single hero).
                 ItalicAccentText(
-                    "two quiet things to switch on",
+                    "one quiet ritual ping.",
                     italic: ["quiet"],
                     baseFont: .custom("Fraunces72pt-SemiBold", size: 26),
                     italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 26),
@@ -483,21 +603,7 @@ private struct PairedPermissionsAsk: View {
                 .opacity(heroVisible ? 1 : 0)
                 .scaleEffect(heroVisible ? 1.0 : 0.96)
 
-                Text("optional. you can change either later in settings.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Space.lg)
-                    .opacity(heroVisible ? 1 : 0)
-
                 VStack(spacing: Space.md) {
-                    permissionRow(
-                        title: "steps from health",
-                        body: "we read your step count to show one calm tile, never to score you.",
-                        requested: healthRequested,
-                        loading: requestingHealth,
-                        action: requestHealthAccess
-                    )
                     permissionRow(
                         title: "a daily ritual ping",
                         body: "one gentle nudge a day. no streak-loss threats.",
@@ -623,4 +729,445 @@ private struct PairedPermissionsAsk: View {
         goalWeightKg: 65,
         onRevealComplete: {}
     )
+}
+
+// MARK: - FirstWeekPresentation
+//
+// v9 P9.1 (her75 onboarding restructure). The "your first week" beat
+// that lands between the weight projection and the paired permissions
+// ask. Surfaces 7 tiles — actual workouts generated from her bodyFocus
+// + sessionLengthPref — so the user holds her plan before the paywall.
+//
+// Tier defaults to .medium until the inline pace picker ships in
+// P9.2 (designer-recommended). Once that screen lands, the picked
+// tier is wired through here instead of the constant.
+
+private struct FirstWeekPresentation: View {
+
+    let bodyFocus: Set<String>
+    let sessionLengthKey: String
+    let onContinue: () -> Void
+
+    // v9 P9.2: tier is now read from AppStorage so the week reflects
+    // whatever the user just picked on PacePicker. The pickedTier
+    // value also persists across to ProgramSetup post-paywall (one
+    // pick, two consumers).
+    @AppStorage("onboardingPickedTier") private var pickedTierRaw: String = "medium"
+
+    @State private var heroVisible = false
+    @State private var weekVisible = false
+    @State private var ctaVisible = false
+
+    var body: some View {
+        ZStack {
+            // Same pink canvas as the projection step — continuity into
+            // the next reveal beat.
+            Palette.programBgPrimary.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: Space.lg) {
+                        Spacer().frame(height: Space.xl)
+
+                        // v3 P11.6 — promoted to heroHeadline 42pt.
+                        ItalicAccentText(
+                            "your first week.",
+                            italic: ["first"],
+                            baseFont: Typo.heroHeadline,
+                            italicFont: Typo.heroHeadlineItalic,
+                            color: Palette.textPrimary,
+                            alignment: .center
+                        )
+                        .kerning(-0.4)
+                        .lineSpacing(Typo.heroHeadlineLineGap)
+                        .opacity(heroVisible ? 1 : 0)
+                        .scaleEffect(heroVisible ? 1.0 : 0.96)
+
+                        Text("seven days, built around what you told us.")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Palette.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, Space.lg)
+                            .opacity(heroVisible ? 1 : 0)
+
+                        FirstWeekPreview(
+                            tier: IntensityTier(rawValue: pickedTierRaw) ?? .medium,
+                            bodyFocus: parsedFocus,
+                            sessionLengthMinutes: parsedSessionLength
+                        )
+                        .opacity(weekVisible ? 1 : 0)
+                        .offset(y: weekVisible ? 0 : 12)
+
+                        Text("you can change pace or rest days anytime.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Palette.textSecondary.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, Space.lg)
+                            .opacity(weekVisible ? 1 : 0)
+
+                        Spacer().frame(height: Space.lg)
+                    }
+                }
+
+                Button(action: onContinue) {
+                    Text("continue")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                        .foregroundStyle(Palette.textInverse)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(Palette.bgInverse)
+                        .clipShape(Capsule())
+                }
+                .padding(.horizontal, Space.lg)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+                .background(Palette.programBgPrimary)
+                .opacity(ctaVisible ? 1 : 0)
+            }
+        }
+        .task {
+            withAnimation(Motion.entrance) { heroVisible = true }
+            try? await Task.sleep(nanoseconds: 280_000_000)
+            withAnimation(Motion.entrance) { weekVisible = true }
+            try? await Task.sleep(nanoseconds: 320_000_000)
+            withAnimation(Motion.entranceSoft) { ctaVisible = true }
+        }
+    }
+
+    private var parsedFocus: [BodyFocus] {
+        bodyFocus.compactMap { BodyFocus(rawValue: $0) }
+    }
+
+    private var parsedSessionLength: Int {
+        switch sessionLengthKey {
+        case "five":    return 5
+        case "ten":     return 10
+        case "fifteen": return 15
+        case "twenty":  return 20
+        default:        return 7
+        }
+    }
+}
+
+// MARK: - PacePickerPresentation (v9 P9.2)
+//
+// "how fast feels right?" — the her75-onboarding-register intensity
+// picker. Three scrapbookCards stacked (NOT pills; pills compress
+// too much for first contact). Per-tier subtitle pulls from
+// ProgramGoalCalculator.Window so the user sees their actual derived
+// week count inline. Selection writes onboardingPickedTier; both
+// FirstWeekPresentation and (eventually) ProgramSetupSubflow read
+// from the same key — one pick, every downstream consumer respects it.
+
+private struct PacePickerPresentation: View {
+
+    let currentWeightKg: Double
+    let goalWeightKg: Double
+    let onContinue: () -> Void
+
+    @AppStorage("onboardingPickedTier") private var pickedTierRaw: String = "medium"
+    @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
+    @AppStorage("onboarding_glp1_status")  private var glp1Status: String = ""
+    // v3 P11.2 (2026-06-10) — sleep now load-bearing in the engine.
+    @AppStorage("onboardingSleepHours")    private var sleepHours: String = ""
+
+    @State private var heroVisible = false
+    @State private var rowsVisible = false
+    @State private var ctaVisible = false
+
+    private var window: ProgramGoalCalculator.Window {
+        ProgramGoalCalculator.compute(.init(
+            currentWeightKg: currentWeightKg,
+            goalWeightKg: goalWeightKg,
+            sex: .female,
+            age: nil,
+            // v3 P11.2 (2026-06-10) — routed through engine-v2 helpers
+            // so cohort-flag mappings stay DRY. Sleep now adjusts the
+            // window per Nedeltcheva 2010 (~55% fat-loss penalty at
+            // <6h, mostly traded for lean-mass cost).
+            isGLP1User:        ProgramGoalCalculator.isGLP1User(from: glp1Status),
+            isPerimenopausal:  ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
+            isShortSleeper:    ProgramGoalCalculator.isShortSleeper(from: sleepHours)
+        ))
+    }
+
+    var body: some View {
+        ZStack {
+            Palette.programBgPrimary.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: Space.lg) {
+                        Spacer().frame(height: Space.xl)
+
+                        // v3 P11.6 — promoted to heroHeadline 42pt.
+                        ItalicAccentText(
+                            "how fast feels right?",
+                            italic: ["right"],
+                            baseFont: Typo.heroHeadline,
+                            italicFont: Typo.heroHeadlineItalic,
+                            color: Palette.textPrimary,
+                            alignment: .center
+                        )
+                        .kerning(-0.4)
+                        .lineSpacing(Typo.heroHeadlineLineGap)
+                        .opacity(heroVisible ? 1 : 0)
+                        .scaleEffect(heroVisible ? 1.0 : 0.96)
+
+                        Text("ACSM-safe range. you can change this later.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Palette.textSecondary.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, Space.lg)
+                            .opacity(heroVisible ? 1 : 0)
+
+                        VStack(spacing: 12) {
+                            paceRow(tier: .soft,   title: "soft",   tagline: "0.5% a week. room for life.")
+                            paceRow(tier: .medium, title: "steady", tagline: "0.75% a week. most chosen.")
+                            paceRow(tier: .hard,   title: "focused", tagline: "1% a week. you've got time.")
+                        }
+                        .padding(.horizontal, Space.lg)
+                        .opacity(rowsVisible ? 1 : 0)
+                        .offset(y: rowsVisible ? 0 : 12)
+
+                        Spacer().frame(height: Space.lg)
+                    }
+                }
+
+                Button(action: onContinue) {
+                    Text("continue")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                        .foregroundStyle(Palette.textInverse)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(Palette.bgInverse)
+                        .clipShape(Capsule())
+                }
+                .padding(.horizontal, Space.lg)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+                .background(Palette.programBgPrimary)
+                .opacity(ctaVisible ? 1 : 0)
+            }
+        }
+        .task {
+            withAnimation(Motion.entrance) { heroVisible = true }
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            withAnimation(Motion.entrance) { rowsVisible = true }
+            try? await Task.sleep(nanoseconds: 280_000_000)
+            withAnimation(Motion.entranceSoft) { ctaVisible = true }
+        }
+    }
+
+    private func paceRow(tier: IntensityTier, title: String, tagline: String) -> some View {
+        let selected = pickedTierRaw == tier.rawValue
+        let weeks = window.weeks(for: tier)
+        return Button {
+            Haptics.light()
+            pickedTierRaw = tier.rawValue
+        } label: {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(Typo.heading)
+                        .foregroundStyle(Palette.cocoaPrimary)
+                    Text(tagline)
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.cocoaSecondary)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(weeks)")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                        .foregroundStyle(Palette.accent)
+                    Text("weeks")
+                        .font(Typo.eyebrow)
+                        .tracking(1.4)
+                        .textCase(.uppercase)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(selected ? Palette.accentSubtle.opacity(0.45) : Palette.programCard)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(
+                        selected ? Palette.cocoaPrimary : Palette.accent.opacity(0.5),
+                        lineWidth: 1.5
+                    )
+            )
+            .programPaperShadow()
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title) pace, \(weeks) weeks, \(tagline)\(selected ? ", selected" : "")")
+    }
+}
+
+// MARK: - GoalDateRevealPresentation (v9 P9.2)
+//
+// "you'll get there by {Month Day}." — derived from picked tier +
+// ProgramGoalCalculator.Window. Read-only on purpose; the designer
+// rejected a free scrubber because the math is the trust, not the
+// editability.
+
+private struct GoalDateRevealPresentation: View {
+
+    let currentWeightKg: Double
+    let goalWeightKg: Double
+    let onContinue: () -> Void
+
+    @AppStorage("onboardingPickedTier") private var pickedTierRaw: String = "medium"
+    @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
+    @AppStorage("onboarding_glp1_status")  private var glp1Status: String = ""
+    // v3 P11.2 (2026-06-10) — sleep load-bearing in engine.
+    @AppStorage("onboardingSleepHours")    private var sleepHours: String = ""
+
+    @State private var heroVisible = false
+    @State private var dateVisible = false
+    @State private var ctaVisible = false
+
+    private var tier: IntensityTier {
+        IntensityTier(rawValue: pickedTierRaw) ?? .medium
+    }
+
+    /// v3 P11.2 (2026-06-10) — single source of truth for the
+    /// window. Was inlined twice (goalDate + totalWeeks computed it
+    /// separately). Now both share one Inputs construction so a
+    /// future signal addition only touches one place.
+    private var window: ProgramGoalCalculator.Window {
+        ProgramGoalCalculator.compute(.init(
+            currentWeightKg: currentWeightKg,
+            goalWeightKg: goalWeightKg,
+            sex: .female,
+            age: nil,
+            isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
+            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
+            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours)
+        ))
+    }
+
+    private var goalDate: Date {
+        window.goalDate(from: Date(), tier: tier)
+    }
+
+    private var goalDateFormatted: String {
+        let f = DateFormatter()
+        f.dateFormat = "MMMM d"
+        return f.string(from: goalDate).lowercased()
+    }
+
+    private var totalWeeks: Int {
+        window.weeks(for: tier)
+    }
+
+    var body: some View {
+        ZStack {
+            Palette.programBgPrimary.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                Spacer()
+
+                // v9 P9.7 — her75 line-cascade reveal at displayHero
+                // scale (52pt). Lead-in body line sets the prompt; the
+                // date lands as the main beat with a paired haptic.
+                LineCascadeText(
+                    lines: [
+                        .plain("you'll get there by"),
+                        .italic(goalDateFormatted)
+                    ],
+                    baseFont: Typo.body,
+                    italicFont: Typo.displayHeroItalic,
+                    color: Palette.cocoaPrimary,
+                    alignment: .center,
+                    lineSpacing: Typo.displayHeroLineGap,
+                    perLineDelay: 0.55
+                )
+                .padding(.horizontal, Space.lg)
+
+                Spacer().frame(height: Space.xl)
+
+                miniTimeline
+                    .padding(.horizontal, Space.xl)
+                    .opacity(dateVisible ? 1 : 0)
+
+                Spacer()
+
+                Button(action: onContinue) {
+                    Text("continue")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                        .foregroundStyle(Palette.textInverse)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(Palette.bgInverse)
+                        .clipShape(Capsule())
+                }
+                .padding(.horizontal, Space.lg)
+                .padding(.bottom, 24)
+                .opacity(ctaVisible ? 1 : 0)
+            }
+        }
+        .task {
+            withAnimation(Motion.entrance) { heroVisible = true }
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            withAnimation(Motion.entrance) { dateVisible = true }
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            withAnimation(Motion.entranceSoft) { ctaVisible = true }
+        }
+    }
+
+    /// Five dots Today → 25% → 50% → 75% → Goal. Today + Goal are
+    /// emphasized; the three quarter ticks are quiet markers so the
+    /// horizon reads as substantial without being a literal ruler.
+    private var miniTimeline: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Text("today")
+                    .font(Typo.eyebrow)
+                    .tracking(1.4)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer()
+                Text("\(totalWeeks) weeks")
+                    .font(Typo.eyebrow)
+                    .tracking(1.4)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer()
+                Text("goal")
+                    .font(Typo.eyebrow)
+                    .tracking(1.4)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            HStack(spacing: 0) {
+                dot(big: true)
+                Spacer()
+                dot(big: false)
+                Spacer()
+                dot(big: false)
+                Spacer()
+                dot(big: false)
+                Spacer()
+                dot(big: true, tinted: true)
+            }
+            .overlay(
+                Rectangle()
+                    .fill(Palette.cocoaPrimary.opacity(0.12))
+                    .frame(height: 1.5)
+                    .padding(.horizontal, 6),
+                alignment: .center
+            )
+        }
+    }
+
+    private func dot(big: Bool, tinted: Bool = false) -> some View {
+        Circle()
+            .fill(tinted ? Palette.accent : Palette.cocoaPrimary)
+            .frame(width: big ? 12 : 6, height: big ? 12 : 6)
+    }
 }

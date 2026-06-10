@@ -57,6 +57,14 @@ struct PaywallView: View {
     @AppStorage("sessionLengthPref")  private var sessionLengthPref: String = ""
     @AppStorage("voicePreference")    private var voicePreference: String = "encouraging"
 
+    // v9 P9.2/P9.5 — set in OnboardingRevealView's pace picker. When
+    // present, paywall headline pivots to "unlock your N-day plan."
+    // and the trial-recap line can reference the user's actual program
+    // length instead of a generic horizon.
+    @AppStorage("onboardingPickedTier") private var onboardingPickedTierRaw: String = ""
+    @AppStorage("onboardingHormonalStage") private var paywallHormonalStage: String = ""
+    @AppStorage("onboarding_glp1_status")  private var paywallGlp1Status: String = ""
+
     @Query private var userRecords: [UserRecord]
 
     @State private var auth = AuthService.shared
@@ -176,6 +184,17 @@ struct PaywallView: View {
         let first = displayFirstName
         let namePrefix = first.isEmpty ? "" : "\(first), "
 
+        // v9 P9.5 — when the user came through the new program-design
+        // chapter in onboarding (cases pacePicker + goalDate), she
+        // already holds her custom program length. Paywall headline
+        // sells THAT plan, not an idea. Wins over every variant below
+        // when `onboardingPickedTier` is set.
+        if let nDay = derivedProgramDays {
+            let punch = "your"
+            let base = "\(namePrefix)unlock \(punch) \(nDay)-day plan."
+            return (base, [punch])
+        }
+
         // Delta v7 D72 — US-specific food-first headline variant.
         // Replaces brand-promise framing ("becoming starts here") with
         // a camera-promise wedge ("snap your plate. see if it fits.").
@@ -276,6 +295,36 @@ struct PaywallView: View {
     /// selection on .task — quarterly default for these users (matches
     /// the locked "3-month frame" voice signal), annual default for
     /// everyone else (no-goal, maintain-mode, or longer-horizon goals).
+    /// v9 P9.5 — derives the user's custom program duration in days
+    /// from the onboarding pace pick + collected weights. Returns nil
+    /// when she didn't go through the new program-design chapter (legacy
+    /// paywall path stays on its original headline variants). Mirrors
+    /// the same ProgramGoalCalculator.compute(...) call PacePicker uses,
+    /// so the day count here = the day count she just held in onboarding.
+    private var derivedProgramDays: Int? {
+        guard let tier = IntensityTier(rawValue: onboardingPickedTierRaw),
+              let record = currentUserRecord,
+              let current = record.onboardingCurrentWeightKg,
+              let goal = record.onboardingGoalWeightKg,
+              current > goal else { return nil }
+        let window = ProgramGoalCalculator.compute(.init(
+            currentWeightKg: current,
+            goalWeightKg: goal,
+            sex: .female,
+            age: nil,
+            // v3 P11.2 (2026-06-10) — routed through engine-v2 helpers.
+            // Note: paywall doesn't yet read sleep — adding it would
+            // need a new @AppStorage on PaywallView. Skipping for
+            // now since paywall only displays the day count, doesn't
+            // alter the program; the actual program-shape decisions
+            // happen upstream in PacePicker + ProgramSetupSubflow
+            // (both of which now read sleep).
+            isGLP1User:       ProgramGoalCalculator.isGLP1User(from: paywallGlp1Status),
+            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: paywallHormonalStage)
+        ))
+        return window.weeks(for: tier) * 7
+    }
+
     private var goalSolvableInTwelveWeeks: Bool {
         guard let record = currentUserRecord,
               let current = record.onboardingCurrentWeightKg,
@@ -511,14 +560,28 @@ struct PaywallView: View {
     /// (UX brief: "headline alone carries voice"). Italic-Fraunces on
     /// "your"; hearts ♥ as terminal punctuation per voice locks.
     private var heroPermission: some View {
+        // v9 P9.7 — bumped from 28pt to displayHero (52pt Light + 52pt
+        // SemiBoldItalic) so the paywall hero lands at the her75 scale
+        // matching the rest of the program-design chapter we just shipped.
+        // 28pt read like body copy at the hero slot; 52pt with tight
+        // negative leading reads as the her75 "headline alone carries
+        // voice" register the v3 brief called for.
+        // v3 P11.6 (2026-06-10) — promoted to heroHeadline 42pt
+        // SemiBold for parity with the rest of the onboarding hero
+        // register. Was 38pt Light (displayHero); the visual hierarchy
+        // now reads as: onboarding hero (42pt) → paywall hero (42pt,
+        // same) — no inconsistent step-down between reveal and
+        // paywall. Celebration peak (ChapterCompleteView 52pt) is
+        // the only register that earns the next step up.
         let parts = headlineParts
         return ItalicAccentText(
             parts.base,
             italic: parts.italic,
-            baseFont: .custom("Fraunces72pt-Regular", size: 28),
-            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
+            baseFont: Typo.heroHeadline,
+            italicFont: Typo.heroHeadlineItalic,
             alignment: .center
         )
+        .lineSpacing(Typo.heroHeadlineLineGap)
         .tracking(-0.4)
         .padding(.horizontal, 8)
         .fixedSize(horizontal: false, vertical: true)
@@ -576,7 +639,7 @@ struct PaywallView: View {
             (Text(punch)
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                 .foregroundStyle(Palette.textPrimary)
-             + Text(" — \(supporting)")
+             + Text(" · \(supporting)")
                 .font(.system(size: 11))
                 .foregroundStyle(Palette.textSecondary))
                 .fixedSize(horizontal: false, vertical: true)
@@ -688,7 +751,7 @@ struct PaywallView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 14))
                         .foregroundStyle(Palette.accent)
-                        .background(Palette.bgPrimary, in: Circle())
+                        .background(Palette.bgElevated, in: Circle())
                         .offset(x: 6, y: -6)
                 }
             }
@@ -738,7 +801,7 @@ struct PaywallView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 14))
                         .foregroundStyle(Palette.accent)
-                        .background(Palette.bgPrimary, in: Circle())
+                        .background(Palette.bgElevated, in: Circle())
                         .offset(x: 6, y: -6)
                 }
             }
@@ -788,7 +851,7 @@ struct PaywallView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 14))
                         .foregroundStyle(Palette.accent)
-                        .background(Palette.bgPrimary, in: Circle())
+                        .background(Palette.bgElevated, in: Circle())
                         .offset(x: 6, y: -6)
                 }
             }

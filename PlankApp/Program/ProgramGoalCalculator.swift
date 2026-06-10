@@ -29,6 +29,15 @@ public enum ProgramGoalCalculator {
         public let age: Int?
         public let isGLP1User: Bool
         public let isPerimenopausal: Bool
+        /// v3 P11.2 (2026-06-10) — short-sleep flag (<6h habitual).
+        /// Nedeltcheva 2010 (Annals of Internal Med, n=10 RCT crossover):
+        /// 5.5h sleep vs 8.5h sleep on the same kcal deficit cuts
+        /// fat-loss rate by ~55% while keeping total weight loss the
+        /// same — extra loss comes from lean mass, exactly what
+        /// JeniFit's voice promises to protect. So short-sleep users
+        /// get a wider window (slower expected pace) to keep the goal
+        /// date honest.
+        public let isShortSleeper: Bool
 
         public init(
             currentWeightKg: Double,
@@ -36,7 +45,8 @@ public enum ProgramGoalCalculator {
             sex: Sex,
             age: Int?,
             isGLP1User: Bool = false,
-            isPerimenopausal: Bool = false
+            isPerimenopausal: Bool = false,
+            isShortSleeper: Bool = false
         ) {
             self.currentWeightKg = currentWeightKg
             self.goalWeightKg = goalWeightKg
@@ -44,6 +54,7 @@ public enum ProgramGoalCalculator {
             self.age = age
             self.isGLP1User = isGLP1User
             self.isPerimenopausal = isPerimenopausal
+            self.isShortSleeper = isShortSleeper
         }
 
         public enum Sex: String, Codable, Sendable {
@@ -114,6 +125,14 @@ public enum ProgramGoalCalculator {
     /// compensation.
     private static let cautiousLossRateFloor = 0.003
 
+    /// v3 P11.2 (2026-06-10) — middle-tier 0.4%/wk floor for short
+    /// sleepers (<6h). Between default 0.5% and cautious 0.3% —
+    /// reflects the Nedeltcheva 2010 fat-loss penalty without
+    /// over-correcting into the GLP-1/peri band. Stacks with the
+    /// cautious floor: a short-sleeping GLP-1 user gets the slower
+    /// 0.3% rate (already maximally cautious).
+    private static let shortSleeperLossRateFloor = 0.004
+
     /// Top of the ACSM band — used for minWeeks (Hard tier).
     private static let maxLossRate = 0.01
 
@@ -129,11 +148,18 @@ public enum ProgramGoalCalculator {
             )
         }
 
-        // Pick floor rate based on cohort flags. GLP-1 or perimenopause
-        // → 0.3%/wk floor (slower-is-safer band).
+        // Pick floor rate based on cohort flags. Cohort cascade:
+        //   GLP-1 / perimenopause → 0.3%/wk (cautious)
+        //   short sleeper (no GLP-1/peri) → 0.4%/wk (Nedeltcheva 2010)
+        //   default → 0.5%/wk (Wing & Phelan NWCR)
+        // GLP-1/peri wins over short-sleep when both are true — the
+        // physiological reason for slowness is the dominant one.
         let floor: Double = {
             if inputs.isGLP1User || inputs.isPerimenopausal {
                 return cautiousLossRateFloor
+            }
+            if inputs.isShortSleeper {
+                return shortSleeperLossRateFloor
             }
             return defaultLossRateFloor
         }()
@@ -201,5 +227,41 @@ public enum ProgramGoalCalculator {
         case 25..<30: return .overweight
         default: return .obese
         }
+    }
+
+    // MARK: - AppStorage value mappers
+    //
+    // Thin helpers that translate raw onboarding AppStorage strings
+    // into the boolean cohort flags `Inputs` expects. Call sites read
+    // the AppStorage value + pass it through these so the option-key
+    // → flag mapping stays in ONE place and changes to onboarding
+    // option keys only break one site instead of N.
+
+    /// v3 P11.2 (2026-06-10) — case 158 (sleep hours) options:
+    /// under5 / five6 / six7 / seven8 / eightPlus / (empty). Short
+    /// sleeper = the two lower buckets, which clinical literature
+    /// (Nedeltcheva 2010, Walker 2017) classifies as habitually
+    /// sleep-restricted with measurable fat-loss penalty.
+    public static func isShortSleeper(from sleepHoursKey: String) -> Bool {
+        sleepHoursKey == "under5" || sleepHoursKey == "five6"
+    }
+
+    /// v3 P11.2 (2026-06-10) — case 164 (GLP-1 status) option keys:
+    /// none / considering / past / current / prefer_not_say. Only
+    /// `current` triggers the cautious 0.3%/wk floor; `past` users
+    /// are post-meds and back to default rate. Replaces 4 bug-prone
+    /// `glp1Status == "current"` literals (formerly `"current_user"`)
+    /// scattered across PacePicker + Paywall + ProgramSetup.
+    public static func isGLP1User(from glp1StatusKey: String) -> Bool {
+        glp1StatusKey == "current"
+    }
+
+    /// v3 P11.2 (2026-06-10) — case 163 (hormonal stage) option key.
+    /// Only `perimenopause` triggers the cautious floor; postpartum
+    /// + postmenopause have different cohort handling (postpartum
+    /// gets duty-of-care plank gating; postmenopause is essentially
+    /// default rate per the literature).
+    public static func isPerimenopausal(from hormonalStageKey: String) -> Bool {
+        hormonalStageKey == "perimenopause"
     }
 }
