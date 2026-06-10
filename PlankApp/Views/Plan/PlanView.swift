@@ -171,9 +171,9 @@ struct PlanView: View {
                 user: JeniMethodUserContext.fromAppStorage(),
                 onComplete: {
                     markAutoCompleted(.lesson(lessonId: String(lessonId.rawValue)))
-                    activeCover = nil
+                    dismissCover()
                 },
-                onSkip: { _ in activeCover = nil }
+                onSkip: { _ in dismissCover() }
             )
 
         case .captureFlow:
@@ -181,7 +181,7 @@ struct PlanView: View {
                 userId: userId,
                 cuisineProfile: cuisineProfileCSV.isEmpty ? nil : cuisineProfileCSV,
                 onDismiss: {
-                    activeCover = nil
+                    dismissCover()
                     refreshTodayFood()
                     if todayKcal > 0 {
                         markAutoCompleted(.snapMeal)
@@ -197,9 +197,9 @@ struct PlanView: View {
                     // wires the full SessionView chain + SessionLogRecord
                     // auto-detection.
                     markAutoCompleted(.workout(tier: .medium, minutes: 0, bodyFocus: nil))
-                    activeCover = nil
+                    dismissCover()
                 },
-                onCancel: { activeCover = nil }
+                onCancel: { dismissCover() }
             )
 
         case .breathSession:
@@ -211,13 +211,13 @@ struct PlanView: View {
             BreathworkSessionView(
                 onReadyToMove: {
                     markAutoCompleted(.breath(minutes: 1, style: .calming))
-                    activeCover = nil
+                    dismissCover()
                 },
                 onLater: {
                     markAutoCompleted(.breath(minutes: 1, style: .calming))
-                    activeCover = nil
+                    dismissCover()
                 },
-                onDismiss: { activeCover = nil }
+                onDismiss: { dismissCover() }
             )
             .background(Palette.programBgPrimary.ignoresSafeArea())
             .presentationBackground(Palette.programBgPrimary)
@@ -226,8 +226,8 @@ struct PlanView: View {
             ChapterCompleteView(
                 totalDays: schedule?.totalDays ?? ProgramScheduleCalculator.fallbackTotalDays,
                 userId: userId,
-                onDismiss: { activeCover = nil },
-                onPickNextProgram: { _ in activeCover = nil }
+                onDismiss: { dismissCover() },
+                onPickNextProgram: { _ in dismissCover() }
             )
         }
     }
@@ -240,7 +240,7 @@ struct PlanView: View {
                 lockedDay: day,
                 currentDay: schedule?.programDay ?? 1,
                 totalDays: schedule?.totalDays ?? ProgramScheduleCalculator.fallbackTotalDays,
-                onDismiss: { activeSheet = nil }
+                onDismiss: { dismissSheet() }
             )
             .presentationDetents([.medium])
             .presentationDragIndicator(.hidden)
@@ -251,9 +251,9 @@ struct PlanView: View {
                 prescription: prescription,
                 onConfirm: {
                     handleMarkAsDoneConfirm(prescription)
-                    activeSheet = nil
+                    dismissSheet()
                 },
-                onDismiss: { activeSheet = nil }
+                onDismiss: { dismissSheet() }
             )
             .presentationDetents([.medium])
             .presentationDragIndicator(.hidden)
@@ -266,9 +266,9 @@ struct PlanView: View {
                 onSave: { newKg in
                     persistWeight(kg: newKg)
                     markAutoCompleted(.weighIn)
-                    activeSheet = nil
+                    dismissSheet()
                 },
-                onCancel: { activeSheet = nil }
+                onCancel: { dismissSheet() }
             )
             .presentationDetents([.medium, .large])
             .presentationBackground(Palette.programCard)
@@ -482,7 +482,7 @@ struct PlanView: View {
         profile = ProgramService.shared.currentProfile(userId: userId, in: modelContext)
 
         if computed.isPostGoal {
-            DispatchQueue.main.async { activeCover = .chapterComplete }
+            DispatchQueue.main.async { present(cover: .chapterComplete) }
         }
 
         todayPrescriptions = composeTodaysChecklist(
@@ -636,10 +636,10 @@ struct PlanView: View {
             }
         case .locked(let d):
             Haptics.medium()
-            activeSheet = .lock(day: d)
+            present(sheet: .lock(day: d))
         case .newProgram:
             Haptics.light()
-            activeCover = .chapterComplete
+            present(cover: .chapterComplete)
         }
     }
 
@@ -662,7 +662,7 @@ struct PlanView: View {
         case .lesson:
             openLesson()
         case .snapMeal:
-            activeCover = .captureFlow
+            present(cover: .captureFlow)
         case .workout(let tier, let minutes, let bodyFocus):
             openWorkout(tier: tier, minutes: minutes, bodyFocus: bodyFocus)
         case .steps:
@@ -671,14 +671,54 @@ struct PlanView: View {
             // a steps detail sheet here).
             return
         case .breath:
-            activeCover = .breathSession
+            present(cover: .breathSession)
         case .weighIn:
-            activeSheet = .logWeight
+            present(sheet: .logWeight)
         case .plank, .water, .measurements:
             // Phase 2 will wire dedicated modules. For now fall back
             // to the manual mark-as-done sheet.
-            activeSheet = .markAsDone(prescription)
+            present(sheet: .markAsDone(prescription))
         }
+    }
+
+    // MARK: - Modal present/dismiss helpers (snappy transitions)
+    //
+    // Wrapping the activeCover/activeSheet assignment in a
+    // `Transaction(animation: nil)` disables the system slide-up
+    // animation on .fullScreenCover and .sheet — same pattern
+    // HomeView uses for PreSessionView and PreRoutineView. The
+    // module materializes instantly; the destination's own
+    // onAppear fade/spring carries the motion. Net feel: snappy
+    // pop instead of laggy slide. Founder QA 2026-06-09: "the
+    // transition when you click each row and module pops is kind
+    // of laggy."
+
+    private func present(cover: PlanCover) {
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) {
+            activeCover = cover
+        }
+    }
+
+    private func present(sheet: PlanSheet) {
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) {
+            activeSheet = sheet
+        }
+    }
+
+    private func dismissCover() {
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) { activeCover = nil }
+    }
+
+    private func dismissSheet() {
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) { activeSheet = nil }
     }
 
     private func openLesson() {
@@ -687,7 +727,7 @@ struct PlanView: View {
         // 1-to-1 (program day 1 → lesson 1, etc.).
         let day = schedule?.programDay ?? 1
         if let lessonId = JeniMethodState.lessonForCard(currentDay: day) {
-            activeCover = .lesson(lessonId)
+            present(cover: .lesson(lessonId))
         }
     }
 
@@ -718,7 +758,7 @@ struct PlanView: View {
             intensityOffset: workoutLevel + todaysEnergy
         )
         let workout = WorkoutGenerator.generate(from: input)
-        activeCover = .preRoutine(workout)
+        present(cover: .preRoutine(workout))
     }
 
     /// Called by module callbacks when a session/log fires successfully.
@@ -745,7 +785,7 @@ struct PlanView: View {
         if current.isCompleted {
             unmarkRow(prescription)
         } else {
-            activeSheet = .markAsDone(prescription)
+            present(sheet: .markAsDone(prescription))
         }
     }
 
