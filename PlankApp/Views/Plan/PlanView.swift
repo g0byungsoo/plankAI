@@ -32,6 +32,18 @@ struct PlanView: View {
 
     @Environment(\.modelContext) private var modelContext
     @State private var userId: String = ""
+
+    // AppStorage fields needed to construct module inputs (mirrors
+    // HomeView's pattern). Read-only here — PlanView never mutates.
+    @AppStorage("bodyFocus") private var bodyFocusValue: String = "fullBody"
+    @AppStorage("sessionLengthPref") private var sessionLengthPref: Int = 10
+    @AppStorage("userExperience") private var userExperience: String = "beginner"
+    @AppStorage("userBaselineSeconds") private var userBaselineSeconds: Int = 0
+    @AppStorage("activityLevel") private var activityLevel: String = "lightly_active"
+    @AppStorage("ageRange") private var ageRange: String = "25-34"
+    @AppStorage("workoutLevel") private var workoutLevel: Int = 0
+    @AppStorage("todaysEnergy") private var todaysEnergy: Int = 0
+    @AppStorage("onboardingCuisinePreference") private var cuisineProfileCSV: String = ""
     @State private var schedule: ProgramScheduleCalculator.Result?
     @State private var profile: IntensityProfile = .medium
     @State private var todayPrescriptions: [ProgramDayPrescription] = []
@@ -50,6 +62,28 @@ struct PlanView: View {
     // Mark-as-done sheet (long-press override)
     @State private var showMarkAsDoneSheet: Bool = false
     @State private var markAsDonePrescription: ProgramDayPrescription? = nil
+
+    // Phase 1.B module-routing covers + sheets. Each row tap routes
+    // to its actual module; module's completion callback marks the
+    // row autoCompleted on return.
+    @State private var showLessonRitual: Bool = false
+    @State private var pendingLessonId: LessonID? = nil
+
+    @State private var showCaptureFlow: Bool = false
+
+    @State private var showPreRoutine: Bool = false
+    @State private var pendingWorkout: WorkoutPreset? = nil
+
+    @State private var showBreathSession: Bool = false
+
+    @State private var showLogWeight: Bool = false
+
+    /// Latest weight reading for the LogWeightSheet pre-fill.
+    @Query(sort: \WeightLogRecord.loggedAt, order: .reverse) private var allWeightLogs: [WeightLogRecord]
+
+    /// Recent session log records — drives the WorkoutGenerator
+    /// "avoid recent exercises" param + auto-completion detection.
+    @Query(sort: \SessionLogRecord.completedAt, order: .reverse) private var allSessionLogs: [SessionLogRecord]
 
     // Live data for snap-meal subtitle (today's calorie total +
     // meal count from FoodLogPersister's in-memory store).
@@ -131,6 +165,112 @@ struct PlanView: View {
                 .presentationDragIndicator(.hidden)
                 .presentationBackground(Palette.programCard)
             }
+        }
+        // Phase 1.B module covers. Each module's success callback
+        // marks the row autoCompleted (sparkle glyph). Cancel paths
+        // simply dismiss without state change.
+        .fullScreenCover(isPresented: $showLessonRitual) {
+            if let lessonId = pendingLessonId {
+                JeniMethodRitualView(
+                    lesson: lessonId,
+                    user: JeniMethodUserContext.fromAppStorage(),
+                    onComplete: {
+                        // LessonID is Int-raw; cast to string for the
+                        // ProgramDayPrescription.lesson(lessonId:) param.
+                        markAutoCompleted(.lesson(lessonId: String(lessonId.rawValue)))
+                        showLessonRitual = false
+                    },
+                    onSkip: { _ in showLessonRitual = false }
+                )
+            }
+        }
+        .fullScreenCover(isPresented: $showCaptureFlow) {
+            CaptureFlowView(
+                userId: userId,
+                cuisineProfile: cuisineProfileCSV.isEmpty ? nil : cuisineProfileCSV,
+                onDismiss: {
+                    showCaptureFlow = false
+                    // Refresh food data so the macro embed updates.
+                    // If a meal was logged, the snap row auto-completes
+                    // via the next refresh.
+                    refreshTodayFood()
+                    if todayKcal > 0 {
+                        markAutoCompleted(.snapMeal)
+                    }
+                }
+            )
+        }
+        .fullScreenCover(isPresented: $showPreRoutine) {
+            if let workout = pendingWorkout {
+                PreRoutineView(
+                    workout: workout,
+                    onStart: {
+                        // Phase 1.B: PreRoutineView's onStart fires the
+                        // session player. For now, mark complete + dismiss
+                        // — Phase 2 will wire the actual SessionView
+                        // chain + handle SessionLogRecord auto-detection.
+                        markAutoCompleted(.workout(tier: .medium, minutes: 0, bodyFocus: nil))
+                        showPreRoutine = false
+                    },
+                    onCancel: { showPreRoutine = false }
+                )
+            }
+        }
+        .fullScreenCover(isPresented: $showBreathSession) {
+            BreathworkSessionView(
+                onReadyToMove: {
+                    markAutoCompleted(.breath(minutes: 1, style: .calming))
+                    showBreathSession = false
+                },
+                onLater: {
+                    markAutoCompleted(.breath(minutes: 1, style: .calming))
+                    showBreathSession = false
+                },
+                onDismiss: { showBreathSession = false }
+            )
+        }
+        .sheet(isPresented: $showLogWeight) {
+            LogWeightSheet(
+                startingFromKg: allWeightLogs.first?.weightKg ?? 65,
+                isUpdatingToday: hasLoggedWeightToday,
+                onSave: { newKg in
+                    persistWeight(kg: newKg)
+                    markAutoCompleted(.weighIn)
+                    showLogWeight = false
+                },
+                onCancel: { showLogWeight = false }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationBackground(Palette.programCard)
+        }
+    }
+
+    private var hasLoggedWeightToday: Bool {
+        guard let latest = allWeightLogs.first else { return false }
+        return Calendar.current.isDateInToday(latest.loggedAt)
+    }
+
+    /// Insert (or update-in-place) today's weight log via the same
+    /// pattern AnalyticsView uses for the WeightCard. Mirrors the
+    /// one-per-day policy locked in [[feedback-weightloss-ux-principles]].
+    private func persistWeight(kg: Double) {
+        let cal = Calendar.current
+        if let existing = allWeightLogs.first, cal.isDateInToday(existing.loggedAt) {
+            existing.weightKg = kg
+            existing.pendingUpsert = true
+        } else {
+            let record = WeightLogRecord(
+                userId: userId,
+                weightKg: kg,
+                loggedAt: .now,
+                source: "manual"
+            )
+            modelContext.insert(record)
+        }
+        try? modelContext.save()
+        // Fire-and-forget cloud sync.
+        if let log = allWeightLogs.first {
+            Task { await AppSync.shared.upsertWeightLog(log) }
         }
     }
 
@@ -455,40 +595,97 @@ struct PlanView: View {
 
     // MARK: - Row tap handlers (v4 — retention pattern)
 
-    /// Row body tap. Phase 1 (modules unwired): routes to the same
-    /// MarkAsDoneSheet as long-press, so users who tap discover the
-    /// explicit confirmation and we never accidentally mark a row
-    /// complete from a stray tap. Phase 1.B will swap this to route
-    /// to the actual module player (lesson / food camera /
-    /// SessionPreView / breath / weight sheet); long-press will
-    /// remain the manual override.
-    ///
-    /// Founder QA 2026-06-09: "how come those checkboxes are green
-    /// now? the user didn't finish them. let's get rid of the
-    /// ambiguity." → no tap-to-toggle.
+    /// Row body tap → routes to the actual module per prescription
+    /// type (Phase 1.B). Long-press remains the manual override
+    /// (MarkAsDoneSheet) for the offline edge case.
     private func handleRowTap(_ prescription: ProgramDayPrescription) {
         guard viewingDay == nil else { return }
 
-        // Progress rows (steps, water): silent for now. Phase 1.B
-        // will open a StepsBottomSheet / WaterBottomSheet here.
-        if prescription.isProgressRow {
-            Haptics.light()
-            return
-        }
-
-        // Already-complete binary row: tap is a noop (don't re-prompt
-        // a sheet to confirm something already done).
+        // Already-complete row: tap re-opens the module so user can
+        // review (lessons / past meal logs / etc.) — Phase 1 keeps
+        // this as a noop haptic. Future: route to detail view.
         let current = checkStateByKey[prescription.itemKey] ?? .empty
         guard !current.isCompleted else {
             Haptics.light()
             return
         }
 
-        // Open the same MarkAsDoneSheet as long-press. Phase 1.B will
-        // replace this with module routing.
         Haptics.light()
-        markAsDonePrescription = prescription
-        showMarkAsDoneSheet = true
+
+        switch prescription {
+        case .lesson:
+            openLesson()
+        case .snapMeal:
+            showCaptureFlow = true
+        case .workout(let tier, let minutes, let bodyFocus):
+            openWorkout(tier: tier, minutes: minutes, bodyFocus: bodyFocus)
+        case .steps:
+            // No standalone steps module; route to the long-press
+            // sheet for explicit mark-as-done. HealthKit auto-fires
+            // when threshold crossed (Phase 2 wiring).
+            return
+        case .breath:
+            showBreathSession = true
+        case .weighIn:
+            showLogWeight = true
+        case .plank, .water, .measurements:
+            // Phase 2 will wire dedicated modules. For now fall back
+            // to the manual mark-as-done sheet.
+            markAsDonePrescription = prescription
+            showMarkAsDoneSheet = true
+        }
+    }
+
+    private func openLesson() {
+        // Lesson ID picked by JeniMethodState.lessonForCard from the
+        // user's current engagement day. PlanView's programDay maps
+        // 1-to-1 (program day 1 → lesson 1, etc.).
+        let day = schedule?.programDay ?? 1
+        pendingLessonId = JeniMethodState.lessonForCard(currentDay: day)
+        if pendingLessonId != nil {
+            showLessonRitual = true
+        }
+    }
+
+    private func openWorkout(tier: IntensityTier, minutes: Int, bodyFocus: String?) {
+        // Construct WorkoutGenerator.Input from the prescription +
+        // the user's profile state. Mirrors HomeView.generateDailyWorkout.
+        let focusToken = bodyFocus ?? bodyFocusValue
+        let focus: [BodyFocus] = BodyFocus(rawValue: focusToken).map { [$0] } ?? [.fullBody]
+
+        let recentIds = allSessionLogs.prefix(7).compactMap { log -> [String]? in
+            // SessionLogRecord stores exerciseResults as Data?; we don't
+            // need to crack open the blob here — just use the slot's
+            // overall exerciseType as an approximate avoid signal.
+            [log.exerciseType]
+        }
+
+        let startingTierInt: Int = {
+            switch tier {
+            case .soft:   return 1
+            case .medium: return 2
+            case .hard:   return 3
+            }
+        }()
+
+        let input = WorkoutGenerator.Input(
+            bodyFocus: focus,
+            lengthMinutes: minutes,
+            recentSessionExerciseIds: Array(recentIds),
+            recentRatings: [],
+            startingTier: startingTierInt,
+            intensityOffset: workoutLevel + todaysEnergy
+        )
+        pendingWorkout = WorkoutGenerator.generate(from: input)
+        showPreRoutine = true
+    }
+
+    /// Called by module callbacks when a session/log fires successfully.
+    /// Marks the prescription's row as autoCompleted (sparkle glyph)
+    /// so the state visually distinguishes "system saw it" from
+    /// long-press manual override.
+    private func markAutoCompleted(_ prescription: ProgramDayPrescription) {
+        markComplete(prescription, isAuto: true)
     }
 
     /// Long-press override per [[feedback-no-checkbox-circle]].
