@@ -56,12 +56,11 @@ struct PlanView: View {
     @State private var todayKcal: Int = 0
     @State private var todayMealsLogged: Int = 0
 
-    // v5 fat-row embed data
+    // v6 fat-row embed data (simplified from v5 per founder QA)
     @State private var todayProteinG: Int = 0
     @State private var todayCarbsG: Int = 0
     @State private var todayFatG: Int = 0
-    @State private var stepsHourly: [Int] = Array(repeating: 0, count: 24)
-    @State private var currentHour: Int = 0
+    @State private var todayStepCount: Int = 0
 
     var body: some View {
         ZStack {
@@ -213,13 +212,13 @@ struct PlanView: View {
                     onLongPress: { handleLongPress(prescription) },
                     liveCaloriesToday: prescription.isSnapMeal ? todayKcal : nil,
                     liveMealsLoggedToday: prescription.isSnapMeal ? todayMealsLogged : nil,
-                    stepsHourlyCounts: stepsHourly,
-                    stepsCurrentHour: currentHour,
+                    stepsCurrent: todayStepCount,
+                    stepsTarget: profile.stepsDailyGoal,
                     snapMealProteinG: todayProteinG,
                     snapMealCarbsG: todayCarbsG,
                     snapMealFatG: todayFatG,
-                    moveExercises: nil,         // Phase 1.B wires real WorkoutGenerator preview
-                    moveMoreCount: 0
+                    moveTotalMinutes: moveTotalMinutes(for: prescription),
+                    moveExercises: nil   // Phase 1.B wires real WorkoutGenerator preview
                 )
                 .modernEntrance(animateIn, delay: 0.16 + Double(idx) * 0.06)
 
@@ -328,8 +327,8 @@ struct PlanView: View {
         // PlanView appear since the user may have logged in another tab.
         refreshTodayFood()
 
-        // Hourly steps for the fat-row 24-bar chart (v5).
-        refreshStepsHourly()
+        // Today's step count for the fat-row progress bar (v6).
+        refreshStepsCount()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
             animateIn = true
@@ -345,15 +344,20 @@ struct PlanView: View {
         todayMealsLogged = FoodLogPersister.todayLogCount()
     }
 
-    /// Pull today's hourly step distribution for the fat-row chart.
-    /// Async; updates State on completion. Falls back to all-zeros
-    /// on permission denied / HealthKit unavailable.
-    private func refreshStepsHourly() {
-        currentHour = Calendar.current.component(.hour, from: .now)
-        Task {
-            let hourly = await StepsService.shared.hourlyBreakdown()
-            await MainActor.run { stepsHourly = hourly }
+    /// Pull today's step count for the fat-row progress bar.
+    /// v6 simplified — single value instead of v5's 24-bar hourly.
+    private func refreshStepsCount() {
+        todayStepCount = StepsService.shared.todayCount
+    }
+
+    /// Extract the prescription's workout minutes for the move row's
+    /// totalMinutes display in the embed. Falls back to 0 for non-
+    /// workout rows.
+    private func moveTotalMinutes(for prescription: ProgramDayPrescription) -> Int {
+        if case .workout(_, let minutes, _) = prescription {
+            return minutes
         }
+        return 0
     }
 
     private func refreshTodayChecks() {

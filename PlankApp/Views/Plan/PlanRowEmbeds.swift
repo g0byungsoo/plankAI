@@ -1,255 +1,235 @@
 import SwiftUI
 import PlankFood
 
-// MARK: - PlanRow fat-row embeds (v5 per UX spec)
+// MARK: - PlanRow fat-row embeds (v6 per founder QA 2026-06-09 evening)
 //
-// Three mini-components that render INSIDE fat PlanRows:
-//   - StepsHourChartEmbed: 24-bar hourly distribution chart, peak-scaled,
-//     pink palette (accent past + accentSubtle future + solid accent current)
-//   - SnapMealEmbed: 48pt meal thumb + macro strip (kcal in accent rose)
-//   - MoveExerciseEmbed: 3 × 56pt exercise tiles + "+N more" affordance
+// Three mini-components that render INSIDE fat PlanRows. v6 simplified
+// per founder feedback on v5:
+//   - StepsHourChartEmbed: ONE full-width bar with % completion
+//     (replaced v5's 24-bar hourly chart — too complex)
+//   - SnapMealEmbed: consumed kcal + 3 macro completion bars (replaced
+//     v5's thumb + macro strip). NO burned-calorie deficit math per
+//     [[feedback-post-ozempic-vocabulary]] — would surface to founder if
+//     burned framing is wanted.
+//   - MoveExerciseEmbed: text-only workout preview (replaced v5's 3
+//     mini-tiles — "doesn't need graphics, just preview")
 //
-// All embeds sit BELOW the row header line (sticky + title + subtitle +
-// trailing). They start at the same 40pt left indent as the title text
-// for visual cohesion — single column down the row.
+// All embeds sit BELOW the row header line. Indent matches title column.
 
-// MARK: - Steps hourly chart embed
+// MARK: - Steps progress embed (v6 — single bar + %)
 
-struct StepsHourChartEmbed: View {
+struct StepsProgressEmbed: View {
 
-    /// 24 ints, oldest → newest (hour 0–23 local). All zeros for
-    /// empty / morning state — renders as 1pt min-height bars
-    /// (chart skeleton) so the row doesn't reflow when data arrives.
-    let hourlyCounts: [Int]
+    let current: Int
+    let target: Int
 
-    /// Current hour 0–23 local. Drives the solid-accent "this hour"
-    /// cell + the past/future color split.
-    let currentHour: Int
+    private var fraction: Double {
+        guard target > 0 else { return 0 }
+        return min(1.0, max(0.0, Double(current) / Double(target)))
+    }
+
+    private var percent: Int {
+        Int((fraction * 100).rounded())
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            chart
-            axis
-        }
-    }
-
-    // MARK: Chart
-
-    private var chart: some View {
-        GeometryReader { geo in
-            let barCount = 24
-            let totalGap = CGFloat(barCount - 1) * 2
-            let barWidth = max(2, (geo.size.width - totalGap) / CGFloat(barCount))
-
-            HStack(alignment: .bottom, spacing: 2) {
-                ForEach(0..<barCount, id: \.self) { hour in
+        VStack(alignment: .leading, spacing: 8) {
+            // Single full-width bar — accentSubtle track + accent
+            // rose filled portion. 6pt tall, more visually present
+            // than v4's 3pt micro-bar but still hairline-coded.
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(barColor(for: hour))
-                        .frame(width: barWidth, height: barHeight(for: hour, maxHeight: geo.size.height))
+                        .fill(Palette.accentSubtle)
+                        .frame(width: geo.size.width, height: 6)
+                    Capsule()
+                        .fill(Palette.accent)
+                        .frame(width: geo.size.width * CGFloat(fraction), height: 6)
                 }
             }
-            .frame(width: geo.size.width, height: geo.size.height, alignment: .bottomLeading)
-        }
-        .frame(height: 44)
-        .accessibilityHidden(true)
-    }
+            .frame(height: 6)
 
-    private func barHeight(for hour: Int, maxHeight: CGFloat) -> CGFloat {
-        let peak = max(hourlyCounts.max() ?? 0, 1)   // avoid /0
-        let value = hourlyCounts[hour]
-        // 1pt min so the skeleton is always visible
-        let fraction = Double(value) / Double(peak)
-        return max(1, maxHeight * CGFloat(fraction))
-    }
-
-    /// Founder direction 2026-06-09: pink-first palette over the
-    /// cocoa designer-spec default. Brand identity > register-purity.
-    /// past = accent rose @ 100%, future = accentSubtle pale pink,
-    /// current = solid accent (brightest).
-    private func barColor(for hour: Int) -> Color {
-        if hour == currentHour { return Palette.accent }
-        if hour < currentHour { return Palette.accent.opacity(0.7) }
-        return Palette.accentSubtle
-    }
-
-    // MARK: Axis labels
-
-    private var axis: some View {
-        HStack {
-            axisLabel("6a", hour: 6)
-            Spacer()
-            axisLabel("9a", hour: 9)
-            Spacer()
-            axisLabel("12p", hour: 12)
-            Spacer()
-            axisLabel("3p", hour: 15)
-            Spacer()
-            axisLabel("6p", hour: 18)
-            Spacer()
-            axisLabel("9p", hour: 21)
+            // Percent label aligned right under the bar.
+            HStack {
+                Spacer()
+                Text("\(percent)%")
+                    .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .caption))
+                    .foregroundStyle(fraction >= 1.0 ? Palette.accent : Palette.cocoaSecondary)
+                    .monospacedDigit()
+            }
         }
         .accessibilityHidden(true)
-    }
-
-    private func axisLabel(_ text: String, hour: Int) -> some View {
-        Text(text)
-            .font(.system(size: 9, weight: .regular))
-            .foregroundStyle(Palette.cocoaTertiary)
     }
 }
 
-// MARK: - Snap meal embed
+// MARK: - Snap meal embed (v6 — consumed + macro bars)
+//
+// Founder direction 2026-06-09 evening: "snap a meal just need total
+// calories (gained + burned) management chart + macros (completion)."
+//
+// IMPLEMENTATION NOTE: shipping with consumed-kcal only (no burned).
+// Brand voice rules `feedback_post_ozempic_vocabulary` ("avoid: burn,
+// earn, deficit") + `feedback_anti_shame_food_ux` ("no red bars,
+// uncertainty-in-language not %") explicitly avoid the deficit math
+// frame. AnalyticsView comments document the same rule: "NEVER shows
+// calories-burned per the cohort we burnt out on."
+//
+// Flagged to founder — if they want the burned/net deficit math
+// despite the prior brand rule, this is a small follow-up: add a
+// burned-kcal HealthKit query + a third numeric line. Otherwise we
+// keep consumed-only + macros completion.
 
 struct SnapMealEmbed: View {
 
-    /// Total kcal for today from FoodLogPersister.todayMacros().
     let kcal: Int
-    /// Total protein g from FoodLogPersister.todayMacros().
     let proteinG: Int
-    /// Total carbs g.
     let carbsG: Int
-    /// Total fat g.
     let fatG: Int
-    /// Today's most recent meal photo, if any. Phase 1.B can wire
-    /// FoodLogRecord image data; for Phase 1 ship we render the
-    /// placeholder unless `image != nil`.
-    let mostRecentMealImage: UIImage?
+
+    // Macro targets — Phase 1 ship uses simple defaults. Phase 2
+    // derives from the user's weight + activity profile.
+    private static let proteinTargetG: Int = 100
+    private static let carbsTargetG: Int = 200
+    private static let fatTargetG: Int = 70
 
     private var isEmpty: Bool { kcal == 0 }
 
     var body: some View {
-        HStack(spacing: 12) {
-            thumbnail
-            if isEmpty {
-                emptyCopy
-            } else {
-                macroStrip
-                Spacer(minLength: 0)
+        if isEmpty {
+            emptyState
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                consumedLine
+                macroBars
             }
         }
     }
 
-    // MARK: Thumbnail (48pt)
+    // MARK: Empty state
 
-    private var thumbnail: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 6)
-                .fill(Palette.bgPrimary)
-            if let image = mostRecentMealImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-            } else {
-                Image(systemName: "camera")
-                    .font(.system(size: 22, weight: .regular))
-                    .foregroundStyle(Palette.cocoaTertiary)
-            }
-        }
-        .frame(width: 48, height: 48)
-        .overlay(
-            RoundedRectangle(cornerRadius: 6)
-                .stroke(Palette.hairlineCocoa, lineWidth: 1)
-        )
-        .accessibilityHidden(true)
-    }
-
-    // MARK: Empty-state copy (italic Fraunces full-phrase exception)
-
-    private var emptyCopy: some View {
-        // v5 §v5.7 sanctioned the full-phrase italic Fraunces here
-        // as the empty-state CTA — the only spot on PlanView where
-        // italic Fraunces runs a full sentence (vs punch word only).
+    private var emptyState: some View {
+        // v5 §v5.7 sanctioned italic Fraunces full-phrase here as
+        // the empty-state CTA (the only spot on PlanView where italic
+        // runs a full sentence vs punch word only).
         Text("tap to snap your first")
             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13, relativeTo: .caption))
             .foregroundStyle(Palette.cocoaSecondary)
     }
 
-    // MARK: Macro strip — kcal in accent rose, macros in cocoaSecondary
+    // MARK: Consumed kcal line — accent rose pop
 
-    private var macroStrip: some View {
-        (
-            Text("\(kcal.formatted(.number.grouping(.automatic))) cal")
-                .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .caption))
+    private var consumedLine: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text("\(kcal.formatted(.number.grouping(.automatic)))")
+                .font(.custom("Fraunces72pt-Light", size: 28, relativeTo: .title2))
                 .foregroundStyle(Palette.accent)
-            +
-            Text("  ·  \(proteinG)p  ·  \(carbsG)c  ·  \(fatG)f")
+                .monospacedDigit()
+            Text("cal today")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaSecondary)
-        )
-        .monospacedDigit()
-        .lineLimit(1)
-        .minimumScaleFactor(0.85)
+            Spacer()
+        }
+    }
+
+    // MARK: 3 macro completion bars
+
+    private var macroBars: some View {
+        HStack(spacing: 16) {
+            macroBar(label: "protein", current: proteinG, target: Self.proteinTargetG)
+            macroBar(label: "carbs", current: carbsG, target: Self.carbsTargetG)
+            macroBar(label: "fat", current: fatG, target: Self.fatTargetG)
+        }
+    }
+
+    private func macroBar(label: String, current: Int, target: Int) -> some View {
+        let fraction = target > 0 ? min(1.0, max(0.0, Double(current) / Double(target))) : 0.0
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Text(label)
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 0)
+                Text("\(current)g")
+                    .font(.custom("DMSans-Medium", size: 11, relativeTo: .caption2))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .monospacedDigit()
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Palette.accentSubtle)
+                        .frame(width: geo.size.width, height: 4)
+                    Capsule()
+                        .fill(Palette.accent)
+                        .frame(width: geo.size.width * CGFloat(fraction), height: 4)
+                }
+            }
+            .frame(height: 4)
+        }
     }
 }
 
-// MARK: - Move exercise preview embed
+// MARK: - Move workout preview embed (v6 — text-only)
+//
+// Founder direction 2026-06-09: "preview of workout for move
+// doesn't need graphics, i guess it needs to just preview the
+// workout of that day." Replaces v5's 3 mini-tiles. Just a clean
+// text list — total + exercise names.
 
 struct MoveExerciseEmbed: View {
 
-    /// 3-tile preview of today's workout. Static placeholders for
-    /// Phase 1 ship; Phase 1.B will wire WorkoutGenerator's actual
-    /// previewExercises(profile:bodyFocus:limit:) here.
     struct Exercise {
-        let displayNumber: Int   // 1, 2, 3
-        let name: String         // truncated single line
+        let name: String
+        let durationLabel: String   // e.g. "2 min" or "30s"
     }
 
-    let exercises: [Exercise]
-    let moreCount: Int   // 0 = hide "+N more"
+    let totalMinutes: Int
+    let exercises: [Exercise]   // ordered list of today's session
 
-    /// Phase 1 ship placeholder — three generic session phases until
-    /// Phase 1.B wires WorkoutGenerator.previewExercises with the
-    /// actual exercise IDs for today's prescription.
+    /// Phase 1 placeholder list until Phase 1.B wires
+    /// WorkoutGenerator.previewExercises.
     static let placeholder: [Exercise] = [
-        .init(displayNumber: 1, name: "warm-up"),
-        .init(displayNumber: 2, name: "main set"),
-        .init(displayNumber: 3, name: "stretch"),
+        .init(name: "warm-up",    durationLabel: "2 min"),
+        .init(name: "main set",   durationLabel: "6 min"),
+        .init(name: "stretch",    durationLabel: "2 min"),
     ]
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            ForEach(exercises.prefix(3), id: \.displayNumber) { exercise in
-                tile(for: exercise)
-            }
-            if moreCount > 0 {
-                moreIndicator
-            }
-            Spacer(minLength: 0)
-        }
-    }
-
-    private func tile(for exercise: Exercise) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 6)
-                    // Founder direction 2026-06-09: pink-first palette.
-                    // accentSubtle fill + accent rose display numeral.
-                    .fill(Palette.accentSubtle)
-                Text("\(exercise.displayNumber)")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22, relativeTo: .title3))
+        VStack(alignment: .leading, spacing: 8) {
+            // Summary line: total minutes + exercise count.
+            HStack(spacing: 6) {
+                Text("\(totalMinutes) min")
+                    .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .caption))
                     .foregroundStyle(Palette.accent)
-                    .padding(.top, 6)
-                    .padding(.leading, 8)
+                Text("·")
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Text("\(exercises.count) \(exercises.count == 1 ? "exercise" : "exercises")")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaSecondary)
+                Spacer()
             }
-            .frame(width: 56, height: 56)
 
-            Text(exercise.name)
-                .font(.system(size: 10, weight: .regular))
-                .foregroundStyle(Palette.cocoaSecondary)
-                .lineLimit(1)
-                .frame(width: 56, alignment: .leading)
+            // Exercise list — name + duration per line.
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(Array(exercises.prefix(4).enumerated()), id: \.offset) { _, ex in
+                    HStack(spacing: 6) {
+                        Text(ex.name)
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.cocoaSecondary)
+                        Text("·")
+                            .foregroundStyle(Palette.cocoaTertiary)
+                        Text(ex.durationLabel)
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .monospacedDigit()
+                    }
+                }
+                if exercises.count > 4 {
+                    Text("+ \(exercises.count - 4) more")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+            }
         }
-    }
-
-    private var moreIndicator: some View {
-        HStack(spacing: 4) {
-            Text("·")
-                .foregroundStyle(Palette.cocoaTertiary)
-            Text("+ \(moreCount) more")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.cocoaSecondary)
-        }
-        .padding(.top, 18)   // vertically center on the 56pt tile row
     }
 }

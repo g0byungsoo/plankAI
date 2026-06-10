@@ -40,15 +40,16 @@ struct PlanRow: View {
     var liveCaloriesToday: Int? = nil
     var liveMealsLoggedToday: Int? = nil
 
-    // v5 fat-row embed data — flows down from PlanView. nil for
-    // non-fat rows.
-    var stepsHourlyCounts: [Int]? = nil
-    var stepsCurrentHour: Int = 0
+    // v6 fat-row embed data — flows down from PlanView. nil for
+    // non-fat rows. v6 simplified the steps + move embeds; no more
+    // hourly chart, no more mini-tiles.
+    var stepsCurrent: Int = 0
+    var stepsTarget: Int = 7500
     var snapMealProteinG: Int = 0
     var snapMealCarbsG: Int = 0
     var snapMealFatG: Int = 0
+    var moveTotalMinutes: Int = 0
     var moveExercises: [MoveExerciseEmbed.Exercise]? = nil
-    var moveMoreCount: Int = 0
 
     enum RowState {
         /// Binary row, not yet complete.
@@ -132,9 +133,9 @@ struct PlanRow: View {
     @ViewBuilder private var fatEmbed: some View {
         switch prescription {
         case .steps:
-            StepsHourChartEmbed(
-                hourlyCounts: stepsHourlyCounts ?? Array(repeating: 0, count: 24),
-                currentHour: stepsCurrentHour
+            StepsProgressEmbed(
+                current: stepsCurrent,
+                target: stepsTarget
             )
             .padding(.leading, 56)
             .padding(.trailing, 4)
@@ -144,16 +145,15 @@ struct PlanRow: View {
                 kcal: liveCaloriesToday ?? 0,
                 proteinG: snapMealProteinG,
                 carbsG: snapMealCarbsG,
-                fatG: snapMealFatG,
-                mostRecentMealImage: nil   // Phase 1.B wires
+                fatG: snapMealFatG
             )
             .padding(.leading, 56)
             .padding(.trailing, 4)
 
         case .workout:
             MoveExerciseEmbed(
-                exercises: moveExercises ?? MoveExerciseEmbed.placeholder,
-                moreCount: moveMoreCount
+                totalMinutes: moveTotalMinutes,
+                exercises: moveExercises ?? MoveExerciseEmbed.placeholder
             )
             .padding(.leading, 56)
             .padding(.trailing, 4)
