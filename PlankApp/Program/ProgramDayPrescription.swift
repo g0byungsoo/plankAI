@@ -139,6 +139,17 @@ public extension ProgramDayPrescription {
         return false
     }
 
+    /// True when this row uses the v5 fat-row pattern (an embedded
+    /// mini-component below the header line). Snap/move/steps load-
+    /// bear daily decisions; the other rows stay compact at 76pt.
+    /// Per UX spec §v5.2.
+    var isFatRow: Bool {
+        switch self {
+        case .snapMeal, .workout, .steps: return true
+        default:                          return false
+        }
+    }
+
     /// Row title — lowercase casual register per voice rules.
     /// Shortened to her75-style single-noun where possible per
     /// founder QA 2026-06-09 (long titles wrap and crowd the

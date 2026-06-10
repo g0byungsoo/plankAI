@@ -40,6 +40,16 @@ struct PlanRow: View {
     var liveCaloriesToday: Int? = nil
     var liveMealsLoggedToday: Int? = nil
 
+    // v5 fat-row embed data — flows down from PlanView. nil for
+    // non-fat rows.
+    var stepsHourlyCounts: [Int]? = nil
+    var stepsCurrentHour: Int = 0
+    var snapMealProteinG: Int = 0
+    var snapMealCarbsG: Int = 0
+    var snapMealFatG: Int = 0
+    var moveExercises: [MoveExerciseEmbed.Exercise]? = nil
+    var moveMoreCount: Int = 0
+
     enum RowState {
         /// Binary row, not yet complete.
         case binaryEmpty
@@ -70,21 +80,11 @@ struct PlanRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 16) {
-            ProgramStickyNote(prescription: prescription)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(prescription.rowTitle)
-                    .font(Typo.body)
-                    .foregroundStyle(titleColor)
-                    .lineLimit(1)
-                Text(subtitleCopy)
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaSecondary)
-                    .lineLimit(2)
+        VStack(alignment: .leading, spacing: 10) {
+            headerLine
+            if prescription.isFatRow {
+                fatEmbed
             }
-            Spacer(minLength: 8)
-            trailing
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 20)
@@ -102,6 +102,65 @@ struct PlanRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(a11yLabel)
         .accessibilityHint(a11yHint)
+    }
+
+    /// Header line: sticky + title + subtitle + trailing. Identical
+    /// composition for compact and fat rows — fat rows just add the
+    /// embed underneath.
+    private var headerLine: some View {
+        HStack(spacing: 16) {
+            ProgramStickyNote(prescription: prescription)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(prescription.rowTitle)
+                    .font(Typo.body)
+                    .foregroundStyle(titleColor)
+                    .lineLimit(1)
+                Text(subtitleCopy)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 8)
+            trailing
+        }
+    }
+
+    /// Fat-row embed area — picks the right mini-component per row
+    /// type. Indented 56pt (sticky + 16pt gap) so it lines up with
+    /// the title column for single-column visual cohesion.
+    @ViewBuilder private var fatEmbed: some View {
+        switch prescription {
+        case .steps:
+            StepsHourChartEmbed(
+                hourlyCounts: stepsHourlyCounts ?? Array(repeating: 0, count: 24),
+                currentHour: stepsCurrentHour
+            )
+            .padding(.leading, 56)
+            .padding(.trailing, 4)
+
+        case .snapMeal:
+            SnapMealEmbed(
+                kcal: liveCaloriesToday ?? 0,
+                proteinG: snapMealProteinG,
+                carbsG: snapMealCarbsG,
+                fatG: snapMealFatG,
+                mostRecentMealImage: nil   // Phase 1.B wires
+            )
+            .padding(.leading, 56)
+            .padding(.trailing, 4)
+
+        case .workout:
+            MoveExerciseEmbed(
+                exercises: moveExercises ?? MoveExerciseEmbed.placeholder,
+                moreCount: moveMoreCount
+            )
+            .padding(.leading, 56)
+            .padding(.trailing, 4)
+
+        default:
+            EmptyView()
+        }
     }
 
     // Progress underbar removed 2026-06-09 per founder QA: the 2pt

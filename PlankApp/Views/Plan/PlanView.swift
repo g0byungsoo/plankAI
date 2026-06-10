@@ -56,9 +56,18 @@ struct PlanView: View {
     @State private var todayKcal: Int = 0
     @State private var todayMealsLogged: Int = 0
 
+    // v5 fat-row embed data
+    @State private var todayProteinG: Int = 0
+    @State private var todayCarbsG: Int = 0
+    @State private var todayFatG: Int = 0
+    @State private var stepsHourly: [Int] = Array(repeating: 0, count: 24)
+    @State private var currentHour: Int = 0
+
     var body: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            // v5: program home gets its own pink-tinted background
+            // token. Brand identity over neutral cream cohort default.
+            Palette.programBgPrimary.ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -203,7 +212,14 @@ struct PlanView: View {
                     onTap: { handleRowTap(prescription) },
                     onLongPress: { handleLongPress(prescription) },
                     liveCaloriesToday: prescription.isSnapMeal ? todayKcal : nil,
-                    liveMealsLoggedToday: prescription.isSnapMeal ? todayMealsLogged : nil
+                    liveMealsLoggedToday: prescription.isSnapMeal ? todayMealsLogged : nil,
+                    stepsHourlyCounts: stepsHourly,
+                    stepsCurrentHour: currentHour,
+                    snapMealProteinG: todayProteinG,
+                    snapMealCarbsG: todayCarbsG,
+                    snapMealFatG: todayFatG,
+                    moveExercises: nil,         // Phase 1.B wires real WorkoutGenerator preview
+                    moveMoreCount: 0
                 )
                 .modernEntrance(animateIn, delay: 0.16 + Double(idx) * 0.06)
 
@@ -306,11 +322,14 @@ struct PlanView: View {
             totalDays: plan.totalDays
         )
 
-        // Live food data for the snap-meal subtitle. Reads from
-        // FoodLogPersister's in-memory store (the v1.0.7 stop-gap
-        // documented in PlankAIApp). Refreshed every PlanView appear
-        // since the user may have logged a meal in another tab.
+        // Live food data for the snap-meal subtitle + fat-row macro
+        // strip. Reads from FoodLogPersister's in-memory store (the
+        // v1.0.7 stop-gap documented in PlankAIApp). Refreshed every
+        // PlanView appear since the user may have logged in another tab.
         refreshTodayFood()
+
+        // Hourly steps for the fat-row 24-bar chart (v5).
+        refreshStepsHourly()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
             animateIn = true
@@ -320,7 +339,21 @@ struct PlanView: View {
     private func refreshTodayFood() {
         let macros = FoodLogPersister.todayMacros()
         todayKcal = Int(macros.kcal.rounded())
+        todayProteinG = Int(macros.protein.rounded())
+        todayCarbsG = Int(macros.carbs.rounded())
+        todayFatG = Int(macros.fat.rounded())
         todayMealsLogged = FoodLogPersister.todayLogCount()
+    }
+
+    /// Pull today's hourly step distribution for the fat-row chart.
+    /// Async; updates State on completion. Falls back to all-zeros
+    /// on permission denied / HealthKit unavailable.
+    private func refreshStepsHourly() {
+        currentHour = Calendar.current.component(.hour, from: .now)
+        Task {
+            let hourly = await StepsService.shared.hourlyBreakdown()
+            await MainActor.run { stepsHourly = hourly }
+        }
     }
 
     private func refreshTodayChecks() {
@@ -339,6 +372,9 @@ struct PlanView: View {
         let week = max(1, ((programDay - 1) / 7) + 1)
         let workoutMinutes = profile.workoutMinutes(forProgramWeek: week)
 
+        // v5 row order: load-bearing-first per UX spec §v5.3 — keeps
+        // snap + move fully above fold, ritual rows below.
+        // lesson → snap → move → steps → ritual (weigh / breath).
         var rows: [ProgramDayPrescription] = []
         rows.append(.lesson(lessonId: nil))
         rows.append(.snapMeal)

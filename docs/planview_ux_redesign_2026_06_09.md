@@ -821,3 +821,337 @@ Visual contrast notes:
 
 3. **Progress-row tap behavior — small sheet vs noop vs route to StepsDetailView in becoming tab?** Spec says small sheet (the middle path). The noop option is cleaner-register but reads as broken on a non-trivial percentage of attempts. Routing to StepsDetailView crosses the tab boundary which is wrong. **My vote: small sheet. Build StepsBottomSheet as a new component; reuse the data layer from StepsDetailView.**
 
+---
+
+# Revision v5 (2026-06-09 late) — load-bearing rows go fat, ritual rows stay compact
+
+## v5.1 What changed and why
+
+v4 shipped a uniform 76pt row across all five daily checklist rows. Founder QA in the evening session caught the right thing:
+
+> "i believe we can have a fat row for some of the modules where it needs to show more like steps - bar chart of tracking progress, calorie module [snap a meal], and move row with some preview of the workout for today."
+
+The intent: the rows the user actually uses to *make decisions* (will I walk more? will I eat this? what's my workout today?) get more home-tab real estate. The rows that are *rituals* (open a lesson, breathe, sunday weigh-in) stay compact. v4 treated all rows as equal weight; the user doesn't. Bento-density per-row, not uniform-row-density.
+
+This is a JeniFit-specific innovation — her75 doesn't have telemetry rows, BetterMe's homescreen ships uniform rows even though their Progress screen is rich with mini-charts. We get to put the Progress-screen density INSIDE the daily checklist, which neither reference does. That's the right move for our cohort (TikTok-acquired beginner women checking their phone 30+ times a day) — they shouldn't have to navigate to a "Progress" screen to see today's steps distribution; today's steps distribution should sit ON the daily ritual surface.
+
+I'm overriding v4's uniform-row decision. The reasoning that supported it (her75's chrome restraint) still holds for ritual rows, but it never anticipated load-bearing rows. v4 was right about chrome restraint; v5 corrects the load-bearing oversight.
+
+## v5.2 The three fat rows — anatomy
+
+### Fat row 1: steps (~140pt)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │ ← 14pt top pad
+│  ┌──┐                                                       │
+│  │🚶│  steps                                  4,820 / 7,500 │ ← row header line
+│  └──┘  your daily walk                                      │
+│                                                             │ ← 8pt gap
+│      ▁ ▁ ▂ ▂ ▁ ▃ ▅ ▆ ▇ ▆ ▄ ▃ ▂ ▁ ▁ ▁ ▁ ▁ ▁ ▁ ▁ ▁ ▁ ▁     │ ← 24-bar hour chart, 44pt tall
+│      6a    9a    12p    3p    6p    9p                      │ ← axis labels 9pt
+│                                                             │ ← 14pt bottom pad
+└─────────────────────────────────────────────────────────────┘
+```
+
+Concrete spec:
+
+- **Header line** (same as compact row): sticky-note + title + subtitle on left, numeric label `4,820 / 7,500` on the right where the bar+label was in v4. NO trailing bar on the header line — the inline chart below carries that information now. **The 64pt × 3pt bar from v4 §4.4 is deleted from the steps row in v5** (it's now a 24-bar full-width hour chart instead).
+- **24 bars** representing today's 24 hours, 0–23 local time. Bar width: `(rowWidth - 40pt left inset - 20pt right inset) / 24 - 2pt gap` ≈ 11pt × bar. Bar fills 0% to 100% of available bar height (44pt) scaled to **today's peak hour**, not to a fixed step count. (Scaling to the goal divided by 24 makes most bars look flat for low-activity users; scaling to today's peak makes the distribution visible regardless of total activity. The numeric label `4,820 / 7,500` on the header line carries the absolute number.)
+- **Bar color**: `Palette.cocoaPrimary` at 70% opacity for past hours, `Palette.cocoaTertiary` at 30% opacity for future hours (the user can SEE that hours 4pm-11pm haven't happened yet — implicitly cues "the day isn't over, keep walking"). Current hour: solid `Palette.cocoaPrimary` at 100% with a tiny 1pt cream highlight on top edge. No sage/state-good color here — the chart is data, the COMPLETE state when target hit lives in the header label flip to `*reached* · 7,500` per v4 §4.4.
+- **Axis labels**: 6 markers `6a / 9a / 12p / 3p / 6p / 9p` in `Typo.caption2` (9pt), `Palette.cocoaTertiary`. Below the bars. No y-axis. The numeric label on the header IS the y-axis equivalent.
+- **No goal line** drawn across the chart. The goal lives in the `/ 7,500` header label. A horizontal goal line would compete with the bars for visual weight and tip the chart into gym-tracker register. The bars + the header count + the future-hour transparency is enough to read "where am I vs where I'm trying to be."
+
+Empty state (day 1 morning, no steps yet): all 24 bars rendered at minimum 1pt height in `Palette.hairlineCocoa` so the chart structure is visible (not a blank gap), axis labels visible, header reads `0 / 7,500`. The intentional-not-broken signal is the visible chart skeleton — same shape as a populated chart, just flat. **Avoids the "did this load?" doubt that an empty rectangle would create.**
+
+### Fat row 2: snap a meal (~155pt)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │ ← 14pt top pad
+│  ┌──┐                                                       │
+│  │📷│  snap a meal                                ✓✨       │ ← row header line (auto-complete state shown)
+│  └──┘  2 logged today                                       │
+│                                                             │ ← 10pt gap
+│      ┌────────┐  1,247 cal  ·  74p  ·  138c  ·  42f         │ ← meal thumb + macro strip
+│      │ [meal] │                                             │
+│      │ [photo]│                                             │
+│      └────────┘                                             │
+│                                                             │ ← 14pt bottom pad
+└─────────────────────────────────────────────────────────────┘
+```
+
+Concrete spec:
+
+- **Header line** (same as compact row): sticky-note + title + subtitle on left, checkbox/auto-complete badge on the right. Unchanged from v4 binary trailing.
+- **Meal thumb**: 48pt × 48pt rounded-6pt square, leading-aligned (20pt from card edge, same column as the sticky), shows the MOST RECENT meal photo from `FoodLogPersister.todayLogs.last`. If no photo (text-only entry), shows the `camera` SF symbol at 22pt centered on `Palette.bgPrimary` fill. Soft 1pt cocoa-hairline border.
+- **Macro strip** (right of thumb, 12pt gap): single line of text, `Typo.caption` (DM Sans Medium 13pt). Format: `1,247 cal · 74p · 138c · 42f` — total kcal first in DM Sans **SemiBold** for emphasis, then `cal` lowercase, then dot-separator macros with single-letter unit suffixes (`p` `c` `f`) in `Palette.cocoaSecondary`. Single letter is intentional: keeps the strip on one line at 353pt row width without truncating, and the cohort is GLP-1-era literate on protein-carbs-fat without needing full words.
+- **No mini macro bars.** A protein/carb/fat triple-bar would be redundant with the strip text AND would import gym-tracker register. The numbers ARE the visualization at this density.
+- **No "remaining" calculation.** This row shows what was eaten, not what's left in a daily target. The cohort is post-Ozempic, anti-calorie-tracker — per [[feedback-food-ux-antishame]] we don't render a daily kcal target. The header `2 logged today` is the only count signal.
+
+Empty state (no meals yet today): meal thumb slot renders the 48pt `camera` SF symbol at 22pt centered on `Palette.bgPrimary` with 1pt cocoa-hairline border (looks like a placeholder picture frame, not a broken image). Macro strip text reads: `*tap to snap your first*` — italic Fraunces on "tap to snap your first", DM Sans-less, full italic phrase (single italic block is acceptable here because it's a CTA-as-copy, mirroring the v3.6 punch-word voice signal sized up to a full line). This is the only place in v5 where italic Fraunces runs a full phrase instead of a punch word; the rule bends because the empty state needs to read as "do this" not "data goes here."
+
+### Fat row 3: move (~170pt)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │ ← 14pt top pad
+│  ┌──┐                                                       │
+│  │🏃│  move                                        ◯        │ ← row header line
+│  └──┘  18 min · gentle today                                │
+│                                                             │ ← 10pt gap
+│      ┌──┐ ┌──┐ ┌──┐         ·  + 4 more                     │ ← exercise preview row
+│      │1 │ │2 │ │3 │                                         │
+│      │  │ │  │ │  │                                         │
+│      └──┘ └──┘ └──┘                                         │
+│      bridge   plank   bird-dog                              │ ← exercise names 10pt
+│                                                             │ ← 14pt bottom pad
+└─────────────────────────────────────────────────────────────┘
+```
+
+Concrete spec:
+
+- **Header line** (same as compact row): sticky-note + title + subtitle on left, checkbox on right. Subtitle gets a small spec tweak: `18 min · gentle today` (dot-separator vs v4's comma) to match the rhythm of the macro strip in the snap row. Minutes + tier on one line.
+- **Exercise preview row**: 3 exercise tiles, each 56pt × 56pt rounded-6pt. Tile fill: `Palette.bgPrimary` (cream). Tile content: the exercise's display number (`1` `2` `3`) in Fraunces SBItalic 22pt, `Palette.cocoaPrimary`, top-left-aligned with 8pt inset. No exercise illustration — we don't have per-exercise photography and the cohort doesn't need to recognize the silhouette to commit to the session (the title carries that).
+- **Exercise names**: under each tile, the exercise name in `Typo.caption2` (DM Sans Regular 10pt), `Palette.cocoaSecondary`, single-line, truncated with `…` at tile width if needed. Names pulled from the prescribed session's first 3 exercises via `WorkoutGenerator.previewExercises(prescription:limit:3)`.
+- **"+ N more" indicator**: to the right of the 3 tiles with 16pt gap, vertically center-aligned with the tile row (not the name row), reads `· + 4 more` in `Typo.caption` (DM Sans Medium 13pt), `Palette.cocoaTertiary`. Total exercise count minus 3. If the session has ≤3 exercises (rare — short sessions), the indicator is hidden.
+- **No total time / no tier badge on the preview row.** Both already live on the header line subtitle. Repeating them in the preview would be chrome cosplay.
+
+Empty state (workout not yet generated, e.g. cold-start morning before `WorkoutGenerator` has run): exercise tiles render at 30% opacity with the numerals only, name labels read `—` (em-dash glyph, the only em-dash allowed in the spec because it's a placeholder for missing data, not between-words punctuation). Header subtitle reads `loading today's session…` instead of `18 min · gentle today`. Auto-resolves within ~200ms of cold-start since `WorkoutGenerator` is in-memory.
+
+## v5.3 Heights and iPhone 15 fit math
+
+Per-row heights:
+
+| Row | Compact (v4) | Fat (v5) | Delta |
+|---|---|---|---|
+| today's lesson | 76pt | 76pt (compact) | 0 |
+| snap a meal | 76pt | **155pt (fat)** | +79 |
+| move | 76pt | **170pt (fat)** | +94 |
+| steps | 76pt | **140pt (fat)** | +64 |
+| breath / weigh-in / plank / water (one slot) | 76pt | 76pt (compact) | 0 |
+
+Card chrome: 14pt top pad + 14pt bottom pad + 4 dividers × 0.5pt = ~30pt.
+
+**Total card height with 5 rows** (1 lesson + 1 snap-fat + 1 move-fat + 1 steps-fat + 1 ritual): `76 + 155 + 170 + 140 + 76 + 30 = 647pt`.
+
+**Total screen height above tab bar** at iPhone 15:
+
+| From | To | Pt |
+|---|---|---|
+| safeArea top | eyebrow | 24 |
+| eyebrow | strip | 18 |
+| strip + center marker | checklist card | 22 + 56 (strip) + 18 (marker block + spacing) = 96 |
+| checklist card | micro-caption | 24 |
+| micro-caption block height | — | ~24 |
+| micro-caption | tab bar buffer | 60 |
+| **Subtotal: chrome around card** | | **246pt** |
+
+Card 647pt + chrome 246pt = **893pt total**. iPhone 15 usable above tab bar = 852pt (393×852 frame minus 59pt safe-area top minus 83pt tab bar = ~710pt visible).
+
+**Conclusion: the card scrolls.** ~183pt of the card falls below the fold for the modal day-1 cohort. That's the last 1.5 rows. Specifically: with the rows ordered `lesson → snap (fat) → move (fat) → steps (fat) → ritual`, what sits below the fold is the bottom ~25% of the steps fat row (≈30pt of the 24-bar chart) + the entire ritual row at the bottom + the micro-caption.
+
+### Is "card scrolls" acceptable?
+
+Yes, with specific row ordering. Re-ordering rules:
+
+1. **lesson stays at top** — fastest single-tap commit, primes the user's first action of the day.
+2. **snap-meal is row 2** — the "decide before eating" surface needs to be above the fold *every morning* because pre-breakfast is the high-leverage tap window. Snap fat row top-aligned ~76pt below the lesson row puts its top at 76pt; its 155pt height extends to 231pt within the card. Comfortably above the fold (card top is at ~246pt into the screen, card visible portion is ~710 − 246 = 464pt, so the first ~464pt of card content is above fold).
+3. **move is row 3** — workout preview deserves the second above-fold fat slot. Position: 76 + 155 = 231pt into card → bottom at 401pt. Still above fold.
+4. **steps is row 4** — steps is a passive-tracking row; the user doesn't *act* on it at app-open time, they GLANCE at it during the day. Below-fold is acceptable because the data accumulates throughout the day and the user reopens. Position: 401pt into card → bottom at 541pt. Card visible region is 464pt, so the BOTTOM ~77pt of steps falls below fold. That's roughly the bottom 50% of the chart bars + axis labels.
+5. **ritual row (breath / weigh-in / plank) is row 5** — last. The ritual rows are the LEAST decision-critical; they're "did I do this" markers, not "what should I do" surfaces. Falling fully below the fold + requiring a small scroll is fine. **They were less load-bearing in the founder's brief and they get the below-fold tax.**
+
+### Scroll behavior
+
+- Card is inside the existing `ScrollView`. No separate scroll. The user scrolls the whole PlanView and the card moves with the eyebrow + strip.
+- **No sticky strip header.** Tempting (the strip stays visible while user scrolls) but breaks the her75 paper-on-paper register — sticky chrome is iOS-app-coded, not editorial-coded. The user already sees the strip on every fresh open; scrolling within a session to reveal one more row doesn't need it pinned.
+- **Bottom-fold tease**: aim to have the ritual row's TOP visible above the fold (just the sticky + title peek). This is the magazine "see something below the fold to invite the scroll" pattern. With current math, the ritual row top sits at 541pt into the card → 541 + 246 = 787pt into the screen. iPhone 15 visible to fold = ~710pt. So the ritual row peek is ~78pt BELOW the fold (not visible). **Fix: drop the steps fat-row height from 140pt to 124pt** by tightening the bar chart top/bottom pads — moves steps bottom from 541 to 525, then ritual top to 525 + ritual-row offset, peek lands at fold +/- 10pt. Acceptable. Adjusted heights baked into §v5.7.
+- **Plank rows day**: on plank-included days (config-driven, not every day), the card grows by 76pt. Plank row goes at the BOTTOM (row 6, after ritual). Ritual row gets pushed further below fold. Acceptable — plank is an active program day and the user expects the card to grow.
+
+## v5.4 Visual cohesion strategy — picked (a) embedded mini-component below the subtitle line
+
+Walked the four options:
+
+- **(a) same row chrome + embedded mini-component below the subtitle line as expanded subtitle area** — what I'm picking. The fat row is structurally a compact row + a content block underneath, inside the same row's vertical bounds. No new chrome, no internal hairline, no nested card. The mini-component lives in the same indentation column as the title/subtitle (40pt left indent past the sticky-note).
+- **(b) separate visual region with internal hairline** — explicitly rejected. An internal hairline above the embedded chart breaks the row into "two things in one row," doubling the hairline frequency in the card (the row dividers are already 0.5pt hairlines; adding internal hairlines means the user sees them at twice the density). Tips the card from "five rows" into "five rows of sub-cards" — gym-app density.
+- **(c) restructure with mini-component to the RIGHT of the title (vs below) for steps so the row stays one-line tall** — rejected. 24-hour bar chart can't fit horizontally in the trailing region (would compress to ~140pt width = ~5pt per bar = unreadable). Macro strip already DOES sit horizontally next to the title in row 2 (snap-meal header line carries `1,247 cal · 74p · 138c · 42f` to the right of the title in compact form during day) — but for the FAT version with the meal thumb the thumb has to be its own block.
+- **(d) something else** — considered: per-fat-row card-within-card with a 1pt border. Too much chrome. Considered: full-width edge-to-edge mini-component (chart extends to card horizontal edges, breaking the 40pt indent). Wrong — breaks the her75 leading-indent grid that ties the card together.
+
+(a) is the her75-compatible move. The fat row reads as "a row with more to say," not "a row that became a different thing." Cohesion is preserved by:
+
+1. **Indent column**: ALL embedded content (chart bars, meal thumb, exercise tiles) starts at the same 40pt left indent as the title text. The sticky-note column to the left stays empty in the embedded region. Reads as a single visual column structure.
+2. **No internal chrome**: no internal hairline, no internal background, no card-within-card. The embedded content sits on the white card surface directly.
+3. **Top/bottom padding inside the row stays at the compact-row's 14pt** — fat rows just have more *between* the header and the bottom padding. Card-level vertical rhythm is preserved.
+4. **Dividers between rows stay at the same indented-hairline pattern (leading 80pt, 0.5pt cocoa-hairline)** — same as v4. The eye reads "5 rows separated by hairlines" identically whether some rows are tall or short. The fat rows just have more breath inside the hairline-to-hairline gap.
+
+## v5.5 Tap behavior on fat rows
+
+### Steps fat row
+
+- **Row body tap** (sticky + title + subtitle + chart area + numeric label): opens StepsBottomSheet (the v4 §4.6 small sheet — already speced). Light haptic.
+- **Tap on a specific hour bar**: same as row body tap. Don't fragment the affordance into per-bar interaction. A per-bar tap-to-see-that-hour pattern is over-engineered for a 24-bar chart at this density — the bars are 11pt wide, smaller than HIG, and the user can SEE the distribution at a glance. If they want hourly detail, the sheet handles it.
+- **No long-press**: progress row, manual override not applicable (HealthKit is canonical).
+
+### Snap-meal fat row
+
+- **Row body tap** (sticky + title + subtitle + meal thumb + macro strip + checkbox area): opens the food camera (`FoodCameraView`). Same as v4 binary-row tap.
+- **Tap on the meal thumb specifically**: opens `FoodLogView` scrolled to that meal's detail (not the camera). The thumb visually reads as a media element — tapping it should view the media, not start a new capture. This IS a fragmented affordance, and it's the right one because the thumb is a recognizable media element whereas the bars in the steps row are not.
+- **Tap on the macro strip text**: same as row body — opens camera. The strip is text, text is row-body.
+- **Long-press on row** (binary fat row): MarkAsDoneSheet, same as v4. The user can mark snap-meal done without snapping if they ate without their phone. Unchanged.
+
+### Move fat row
+
+- **Row body tap** (sticky + title + subtitle + exercise tile row + checkbox area): opens `BrowseWorkoutsView` or the prescribed session preview (`PreSessionView`) per existing routing. Same as v4 binary-row tap on the move row.
+- **Tap on an exercise tile specifically**: opens the prescribed session preview scrolled to that exercise. Similar logic to the meal thumb — the tile reads as a discrete content element, tapping it should preview that element specifically.
+- **Tap on "+ 4 more" indicator**: same as row body — opens session preview at top. The indicator IS the row-body for that horizontal region.
+- **Long-press on row** (binary fat row): MarkAsDoneSheet, same as v4.
+
+### Universal rule
+
+Embedded mini-components inside fat rows are **read-only by default + selectively tappable on recognizable media elements** (meal thumb, exercise tile). Chart bars are NOT individually tappable. The principle: if the embedded element looks like a button/tile/thumb, tapping it does a specific thing; if it looks like data visualization (bars, dots, lines), tapping it falls through to the row body. This matches user instinct — cohort doesn't try to tap chart bars, they DO try to tap photos and tiles.
+
+## v5.6 Subtitle treatment with fat rows
+
+v4 subtitle was one line of context copy directly below the title. Decision for v5: **subtitle stays in the header line, unchanged. The embedded data lives BELOW the subtitle, not in place of it.**
+
+Reasoning: the subtitle copy carries the row's *meaning* (what this row is about today). The data carries the row's *state* (where the user is on it). They're different jobs. Replacing the subtitle with data ("4,820 / 7,500" replacing "your daily walk") would make the row feel like a number, not a ritual. Keeping both lets the row read as "this is what walking means today" + "here's how today's walk is going."
+
+Specific subtitle copy per fat row:
+
+| Row | Subtitle (v5, unchanged from v4 with minor tweaks) |
+|---|---|
+| steps | `your daily walk` — context, not data. |
+| snap a meal | `2 logged today` when logs exist; `one photo · we read the plate` when empty (v4 copy). |
+| move | `18 min · gentle today` — minutes + tier. Dot-separator change from v4's comma to match snap-row rhythm. |
+
+The numeric label `4,820 / 7,500` (steps), macro strip (snap), exercise tiles (move) all live in the embedded region BELOW the header line. The numeric label exception: steps' `4,820 / 7,500` is so tightly coupled to the row identity that it lives on the header LINE (right edge, where the v4 trailing label was) AND the chart lives below — the label is the count, the chart is the distribution. Two different pieces of information.
+
+## v5.7 Empty / pre-data states
+
+Founder's instinct holds: empty states should look intentional, not broken. Per fat row:
+
+### Steps empty (Day 1 morning, 0 steps)
+
+- Chart: all 24 bars rendered at 1pt minimum height in `Palette.hairlineCocoa` (12% cocoa). Chart skeleton visible, axis labels visible.
+- Header numeric label: `0 / 7,500` in standard `Typo.caption` cocoaSecondary.
+- Subtitle: `your daily walk` (unchanged).
+- **Why this works**: structure is visible, count is honest, no "loading…" spinner, no "no data" emoji. The flat-bars state IS the morning state.
+
+### Snap-meal empty (no meals logged today)
+
+- Meal thumb: 48pt × 48pt rounded-6pt cream-fill with `camera` SF symbol at 22pt centered, 1pt cocoa-hairline border. Reads as picture-frame-placeholder.
+- Macro strip: `*tap to snap your first*` in Fraunces SBItalic 13pt, full-italic line, `Palette.cocoaPrimary` (not cocoaSecondary — slightly more presence because it's a CTA-as-copy).
+- Subtitle: `one photo · we read the plate` (v4 copy).
+- Header trailing checkbox: empty 26pt cocoa-tertiary stroke circle (v4 binary-empty default).
+- **Why this works**: the empty state mirrors the populated state's shape (thumb-on-left + text-on-right) so the row doesn't reflow when the user logs their first meal. The italic CTA-as-copy makes "tap to snap" feel inviting, not commanding.
+
+### Move empty (workout not yet generated)
+
+- Exercise tiles: 3 tiles rendered at 30% opacity, numerals visible (`1` `2` `3`) faint.
+- Exercise names: em-dash glyph `—` per tile in cocoaTertiary.
+- Header numeric label: subtitle reads `loading today's session…` in cocoaSecondary.
+- Header trailing checkbox: empty.
+- **Why this works**: the structural placeholder reads as "session is being prepared," not "no workout exists." Resolves within ~200ms of `WorkoutGenerator` in-memory hit. If for some reason generation fails (it shouldn't — fallback exists), the row collapses to compact form with subtitle `rest day, no move scheduled` (v4 fallback).
+
+### Move on a rest day (engine says no workout)
+
+- Falls back to v4 compact row — fat row only renders when there IS a workout to preview. The rest-day row reads at 50% opacity with em-dash trailing, same as v4 `.restDay`. No embedded content because there's nothing to embed.
+
+## v5.8 What stays compact for now / Phase 2 candidates
+
+Founder asked me to recommend keep-compact vs fat-in-phase-2 for each remaining row.
+
+| Row | Recommendation | Reasoning |
+|---|---|---|
+| **today's lesson** | **Keep compact in v5. Phase 2 candidate: fat for lesson with embedded 3-bullet preview.** | Lesson title + 2-min subtitle is enough commitment device for tap-to-read. Adding 3 bullet preview would steal the lesson's own hook — the lesson screen IS where the bullets live. The compact row's job is "make me tap"; the bullets' job is "keep me reading once I'm tapped." Different jobs, different surfaces. Phase 2 fat could ship a single 1-line preview pulled from lesson copy (the "WHY this matters today" line) but not the full 3-bullet outline. |
+| **breath** | **Keep compact permanently.** | Breath is a 1-2 min ritual with no progression to show. The user doesn't make a decision about whether to breathe today based on past data; they decide based on how they feel. A "last 7 days breathwork" embed would import streak-anxiety register (per [[feedback-voice-signals]] anti-streak rule). The ritual stays compact. |
+| **weigh-in (Sunday)** | **Keep compact in v5. Phase 2 candidate: fat for weigh-in with 4-week trend mini-chart.** | Sunday is once-a-week and the moment of weigh-in is high-emotion. Adding the trend chart to the row WOULD be load-bearing (the trend is the anti-shame frame — see [[feedback-anti-shame-food-ux]] trend>number). BUT: weigh-in row appears once a week on Sundays. Adding a fat treatment for one day out of seven means 6 days of "where did the chart go?" inconsistency. **Better path**: keep weigh-in row compact, route the trend chart to the Becoming tab where it already lives (Weight Trend EMA module). The row's job is "log the weight today"; the chart's job is "see the trajectory." Different surfaces. |
+| **plank (when active)** | **Keep compact permanently.** | Plank check-in is a single-data-point input row, max 1 minute. Same shape as weigh-in but daily. Compact. |
+| **water (Phase 3)** | **Fat at ship time.** | When water lands, it's a progress row with a clear visualization (cups grid, 8 droplets, fill state). Same fat-row treatment as steps: header line with `6 / 8 cups` numeric label + embedded 8-cup grid below. Don't ship water as compact then refactor to fat — ship fat from day 1. |
+| **measurements (Phase 2)** | **Fat at ship time.** | Monthly cadence. When measurements lands, embed the last-3-measurements delta (chest +0.2 / waist −0.3 / hips +0.1) as a 3-row mini-text under the header. Same fat pattern, smaller embedded region (~24pt of embed). |
+
+Phase 2 summary: at v5 ship, 3 fat + 4 compact possible per-day. At Phase 2 ship, water + measurements are fat too → up to 5 fat + 3 compact possible per day. The card grows, fold pushes further, more rows below fold. Acceptable — by Phase 2 the user is months into the program and the daily checklist scrolling is muscle memory.
+
+## v5.9 iPhone 15 fit math — final, with v5.3 height adjustment
+
+Per v5.3 conclusion, drop steps fat-row height from 140pt to 124pt (tighter chart pads). Updated:
+
+| Row | Height |
+|---|---|
+| today's lesson (compact) | 76pt |
+| snap a meal (fat) | 155pt |
+| move (fat) | 170pt |
+| steps (fat) | 124pt (was 140pt) |
+| ritual (breath/weigh-in/plank) (compact) | 76pt |
+| Card chrome (top + bottom pad + 4 dividers) | 30pt |
+| **Card total** | **631pt** |
+
+Screen vertical budget (iPhone 15, 393×852 frame):
+
+| From | To | Pt |
+|---|---|---|
+| safeArea top | eyebrow | 24 |
+| eyebrow | strip | 18 |
+| strip | strip center marker | 4 |
+| strip block height (cells) | — | 56 |
+| strip center marker height | — | 18 |
+| strip block | checklist card | 22 |
+| **Subtotal: chrome above card** | | **142pt** |
+| Checklist card | — | 631 |
+| Card | micro-caption | 24 |
+| Micro-caption height | — | 24 |
+| Micro-caption | tab bar buffer | 60 |
+| **Total above tab bar** | | **881pt** |
+
+iPhone 15 visible above tab bar = ~710pt. So `881 − 710 = 171pt` falls below the fold.
+
+Below the fold for the modal day-1 cohort:
+- Bottom ~38pt of the steps fat row (≈ bottom 30% of chart bars + axis labels)
+- Entire ritual row (76pt)
+- Card bottom padding (14pt)
+- Micro-caption (24pt)
+- Tab bar buffer (60pt)
+
+Above the fold:
+- Eyebrow (24pt) ✓
+- Strip (56pt) + center marker (18pt) ✓
+- Card top padding + lesson row (76pt) ✓
+- Snap-meal fat row (155pt) ✓
+- Move fat row (170pt) ✓
+- Top ~70% of steps fat row (header line + ~60% of chart bars) ✓
+
+**The above-fold story**: user opens app → sees today's identity (eyebrow + strip) → sees lesson + snap + move + most of steps. Three of the three "load-bearing" rows are fully above fold. Steps shows enough to read distribution at a glance even with the bottom 30% clipped (the axis labels falling below the fold means the user can see the bar shapes but loses the time labels — acceptable, the bars themselves convey the morning/afternoon/evening distribution by their relative position).
+
+**The below-fold story**: scroll down ~170pt to see the rest of steps + the ritual row + the caption. Easy thumb scroll. The "peek" at the top of the ritual row above the fold is **not achieved** (it's 38pt below fold). Trade: keeping move + snap fat above fold is more important than ritual peek. Founder can override in code by tightening the snap or move height by 38pt total if she wants the peek, but my recommendation is **don't** — the fat rows need their breath.
+
+## v5.10 What this changes in code (≤200 words)
+
+**`PlanRow.swift` body:**
+- Add `isFatRow: Bool` computed off prescription type. Lesson/breath/weigh-in/plank → false. Snap/move/steps → true (subject to fat-row content being available — steps with 0 HK data still fat, snap with 0 logs still fat per empty state spec, move during workout-generation-loading still fat).
+- Body switches: compact branch (existing v4) when `!isFatRow`, fat branch when `isFatRow`. Fat branch is a `VStack(spacing: 10) { headerLine; embeddedContent }`.
+- Each fat row gets its own embedded view: `StepsHourChartEmbed`, `SnapMealEmbed`, `MoveExerciseEmbed`. Each pulled into its own file under `PlankApp/Views/Plan/Embeds/`.
+- Padding stays at `.padding(.vertical, 14).padding(.horizontal, 20)`.
+
+**`StepsHourChartEmbed.swift` (new):**
+- Reads `StepsService.shared.hourlyBreakdown()` (new method — needs adding) returning `[Int]` of 24 step-count-per-hour values.
+- Renders 24 `Capsule`s in HStack with 2pt spacing, height-scaled to max value, color per past/current/future hour rule.
+- Axis labels in HStack below with `Spacer`s spacing them at 6 / 9 / 12 / 3 / 6 / 9 positions.
+
+**`SnapMealEmbed.swift` (new):**
+- Reads `FoodLogPersister.todayLogs.last` for thumb + `.todayMacros()` for the strip.
+- Falls back to empty-state placeholder when `todayLogs.isEmpty`.
+
+**`MoveExerciseEmbed.swift` (new):**
+- Reads `WorkoutGenerator.previewExercises(profile:bodyFocus:limit:3)` (new method — needs adding) returning `[(displayNumber: Int, name: String)]`.
+- Renders 3 tiles + names + "+ N more" indicator. Empty-state placeholder when generator hasn't resolved.
+
+**`PlanView.swift`:**
+- No layout changes — card still iterates `todayPrescriptions` and the row decides its own height. Card auto-grows.
+
+## v5.11 Open questions
+
+1. **Steps chart bar color — cocoa for past hours or sage for past hours?** Spec says cocoa (data-color, neutral). Alternative: sage `Palette.stateGood` for past hours to signal "this happened, it's good." My vote: cocoa. The chart is information, not encouragement. Sage would push us into gym-tracker register (filled green = good). Cocoa stays editorial.
+
+2. **Snap-meal thumb on text-only entries — show the camera-icon placeholder thumb, or show a different glyph (`text.alignleft`?) so the user knows the log was text-not-photo?** Spec says camera placeholder regardless. My vote: camera placeholder. Differentiating text-vs-photo at this density is fine-grained and probably illegible at 48pt; the user's mental model is "I logged that meal" not "I logged that meal with a photo vs without." Phase 2 if we add a text-icon variant, do it then.
+
+3. **Move exercise tiles — should the tile FILL be type-keyed (mint for warmups, rose for cardio, etc.) to match the sticky-note color system?** Tempting because it would visually link the embedded tiles to the sticky-note craft signal. My vote: no — keep all tiles cream `Palette.bgPrimary`. The sticky-note carries the type identity ONCE per row. Repeating it on the 3 exercise tiles would import too much pastel into the card and break the white-card visual restraint. Tile chrome stays neutral.

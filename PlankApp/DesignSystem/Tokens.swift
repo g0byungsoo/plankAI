@@ -273,9 +273,19 @@ enum Palette {
     // pink. ProgramPaperShadow (defined below) replaces .plankShadow()
     // on program surfaces only.
 
+    /// Program home (PlanView) background. Founder direction
+    /// 2026-06-09: bgPrimary #FDF6F4 reads too neutral on most
+    /// displays; PlanView is the most-opened JeniFit surface and
+    /// needs the brand pink identity to show clearly. This token
+    /// is ~30% accentSubtle blended over bgPrimary — clearly pink-
+    /// tinted without going pastel-saturated. PlanView only; other
+    /// screens keep bgPrimary so this change doesn't ripple.
+    static let programBgPrimary = Color(hex: "#FBECEC")
+
     /// Card surface for program rows (PlanView, ProgressGridView,
     /// IntensityPickerView). True white #FFFFFF — layers on top of
-    /// bgPrimary #FDF6F4 with a soft 4% shadow.
+    /// programBgPrimary with a soft 4% shadow. Crisp white-on-pink
+    /// is the JeniFit brand register.
     static let programCard = Color(hex: "#FFFFFF")
 
     /// Sticky-note row marker pastels. Cycled by row index on

@@ -234,6 +234,55 @@ final class StepsService {
         self.lastSyncedAt = Date()
     }
 
+    // MARK: - Hourly breakdown (v5 fat-row chart)
+
+    /// Today's step count bucketed by hour, oldest → newest.
+    /// `[0]` is 12am–1am, `[23]` is 11pm–12am. Used by PlanView's
+    /// fat-row steps chart to render a 24-bar distribution today.
+    ///
+    /// Returns an array of exactly 24 ints; hours with no recorded
+    /// activity return 0. Same HKStatisticsCollectionQuery pattern
+    /// as `refresh()` but with hour-interval components instead of
+    /// day. Async + cheap; call from `.task` or `.onAppear`.
+    func hourlyBreakdown() async -> [Int] {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            return Array(repeating: 0, count: 24)
+        }
+        let stepType = HKQuantityType(.stepCount)
+        let cal = Calendar.current
+        let now = Date()
+        let startOfToday = cal.startOfDay(for: now)
+
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startOfToday,
+            end: now,
+            options: .strictStartDate
+        )
+        var interval = DateComponents(); interval.hour = 1
+
+        return await withCheckedContinuation { continuation in
+            let query = HKStatisticsCollectionQuery(
+                quantityType: stepType,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum,
+                anchorDate: startOfToday,
+                intervalComponents: interval
+            )
+            query.initialResultsHandler = { _, collection, _ in
+                var buckets: [Int] = Array(repeating: 0, count: 24)
+                collection?.enumerateStatistics(from: startOfToday, to: now) { stats, _ in
+                    let hour = cal.dateComponents([.hour], from: startOfToday, to: stats.startDate).hour ?? 0
+                    if (0..<24).contains(hour) {
+                        let value = Int(stats.sumQuantity()?.doubleValue(for: .count()) ?? 0)
+                        buckets[hour] = value
+                    }
+                }
+                continuation.resume(returning: buckets)
+            }
+            healthStore.execute(query)
+        }
+    }
+
     // MARK: - Observer (foreground updates)
 
     /// Subscribes to step-count changes while the app is foregrounded.
