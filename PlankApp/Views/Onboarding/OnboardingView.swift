@@ -86,13 +86,12 @@ struct OnboardingView: View {
     // nav into onboarding or a fresh launch mid-flow doesn't double-prompt; iOS
     // also caps requestReview() to 3 per 365 days regardless.
     @AppStorage("onboardingReviewPromptShown") private var onboardingReviewPromptShown = false
-    // Onboarding v2 — promoted to production default 2026-06-01 for the
-    // 1.0.6 build 11 release. All new users see the v2 flow (D1 welcome
-    // with creator photos, 9 credibility-grade questions, reveal sequence).
-    // Existing users who completed onboarding pre-1.0.6 are unaffected.
-    // To force v1 for QA, flip to false via DebugAuthView or simctl
-    // defaults write com.bk.plankAI onboarding_v2_enabled -bool false.
-    @AppStorage("onboarding_v2_enabled") private var onboardingV2Enabled = true
+    // v3 dead-code rip (2026-06-10) — onboardingV2Enabled gate
+    // removed. v2 is the only path; v1 was the pre-v1.0.6 fallback
+    // (shipped 2026-06-03 as default). AppStorage key
+    // `onboarding_v2_enabled` left in UserDefaults for legacy installs
+    // — nothing reads it now. DebugAuthView's v2_enabled toggle is
+    // also removed.
     @State private var showRevealSequence = false
     @State private var pendingRevealData: OnboardingData? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -687,36 +686,25 @@ struct OnboardingView: View {
         )
 
         // ─── Part 1 — Your story ────────────────────────────────
-        case 1: onboardingV2Enabled
-            ? AnyView(jfQuestion(
-                // v2 soft "why" — rewritten 2026-06-01 per
-                // feedback_copy_succinct_genz memory: 2-4 word labels,
-                // concrete > abstract. Prior "to feel lighter, calmer
-                // / soft pull" was too literary for Gen-Z attention
-                // span. Same enum values preserved.
-                "what's your why?",
-                sub: "pick the closest.",
-                opts: [
-                    ("loseWeight",  "lose weight",       nil, "leaf"),
-                    ("fullBody",    "tone all over",     nil, "sparkles"),
-                    ("toneCore",    "stronger core",     nil, "circle.hexagongrid"),
-                    ("growGlutes",  "build glutes",      nil, "flame"),
-                    ("slimLegs",    "lean legs",         nil, "wind"),
-                ],
-                sel: $goal, next: 100
-            ))
-            : AnyView(jfQuestion(
-                "what are we becoming?",
-                sub: "we'll build the entire plan around this answer.",
-                opts: [
-                    ("loseWeight",  "Lose weight",              "Lean down, feel lighter",      "arrow.down.circle"),
-                    ("fullBody",    "Full body transformation", "Tone all over, head to toe",   "sparkle"),
-                    ("toneCore",    "Tone my core",             "Define abs and obliques",      "figure.core.training"),
-                    ("growGlutes",  "Grow glutes",              "Sculpt and lift",              "figure.strengthtraining.functional"),
-                    ("slimLegs",    "Slim and define legs",     "Lean, long lines",             "figure.walk"),
-                ],
-                sel: $goal, next: 100
-            ))
+        // v3 dead-code rip (2026-06-10) — onboarding-v1 branch removed.
+        // v1 was the pre-2026-06-03 flow; v1.0.6 shipped v2 as default
+        // for every install. No realistic user is still mid-v1 by now.
+        // Per [[feedback-dead-code]].
+        case 1: jfQuestion(
+            // v2 soft "why" — rewritten 2026-06-01 per
+            // feedback_copy_succinct_genz memory: 2-4 word labels,
+            // concrete > abstract.
+            "what's your why?",
+            sub: "pick the closest.",
+            opts: [
+                ("loseWeight",  "lose weight",       nil, "leaf"),
+                ("fullBody",    "tone all over",     nil, "sparkles"),
+                ("toneCore",    "stronger core",     nil, "circle.hexagongrid"),
+                ("growGlutes",  "build glutes",      nil, "flame"),
+                ("slimLegs",    "lean legs",         nil, "wind"),
+            ],
+            sel: $goal, next: 100
+        )
 
         // ─── Attribution (epic #1 child #7, 2026-05-30) ──────────
         // "how did you hear about jenifit?" — single-select, slot
@@ -1926,78 +1914,20 @@ struct OnboardingView: View {
     /// followed by the existing analysis / plan reveal / paywall pipeline
     /// (20–24) which Phase 5 will rebuild. Sign-in prompt (26) sits
     /// between plan reveal and personal stat as before.
-    private static let v1FlowOrder: [Int] = [
-        // Part 1 — anti-shame anchor (230) right after the divider
-        // sets the brand promise before any sensitive Q. 100 is the
-        // attribution question (epic #1 child #7, 2026-05-30), slotted
-        // right after Q1 (becoming goal) per the 200+ app teardown
-        // research — early enough to be answered honestly, late enough
-        // that the user has already chosen a goal so the question
-        // doesn't feel presumptuous.
-        200, 230, 1, 100, 110, 111,
-        // Part 2 — N2 (236, "what's worked before") after Q2 so the
-        // experience context lands before activity level. E1-c (232,
-        // five-min science) before session length pre-empts doubt.
-        201, 2, 236, 8, 120, 121, 232, 25, 17,
-        // Phase 4 — education-as-quiz beat (12-week habit window).
-        // Teaches the JeniFit 3-month evidence frame before the body
-        // Q cluster lands; value delivered pre-paywall, antidote to
-        // "extraction without value" perception (Noom-research finding).
-        270,
-        // Part 3 — E1-b (231, body-Q primer) immediately before
-        // gender reduces drop on the highest-skip questions.
-        202, 231, 130, 7, 131, 132, 133, 134, 135,
-        // Phase 5 — reshape transition + first prediction (commit-escalation)
-        160, 161,
-        // Part 4 — E1-d (233, cycle awareness) after identity Q, then
-        // N1 (235, "this month") routes into vision-injection trio
-        // 237/238/239 (epic #1 child #6, session-scope only) → reward.
-        203, 140, 233, 235, 237, 238, 239, 141, 142,
-        // Video demo (145, epic #1 child #8) — auto-skips when
-        // jeni_session_demo.mp4 isn't in the bundle or reduce-motion
-        // is on. Keeping it in flowOrder is harmless when skipped;
-        // back-nav from case 170 still walks through it correctly.
-        145,
-        // Phase 5 — re-prediction recap
-        170,
-        // Phase 3 — tier-ladder identity preview (week 1 / 3 / 8).
-        // Shows progression as identity, not weight numbers.
-        260,
-        // Part 5
-        204, 150, 151, 152,
-        // Mid-flow recap — "so here's you" — surfaces 4 of the user's
-        // own answers so the Part 6 + plan reveal feel earned.
-        206,
-        // Part 6
-        205, 3, 11, 18, 19,
-        // Phase 5 — loading carousel + final prediction → plateau
-        // pre-frame (E1-e, 234) → plan reveal → method preview (250,
-        // "what you get with me" — daily ritual tease, only post-purchase
-        // feature) → consent ritual (240, pinky-promise long-press
-        // signature) → rating prefilter → sign-in → personal stat →
-        // camera setup.
-        //
-        // Phase 3 (2026 conversion pass): tier-ladder identity preview
-        // (260) inserted between re-prediction (170) and Part 5 divider
-        // (204) — shows the user what each week of the program FEELS
-        // like in identity terms (building / steady / stronger), not
-        // weight numbers. Companion to the comparison frame at case
-        // 142.
-        234, 21, 250, 240, 215, 26, 22, 23,
-    ]
+    // v3 dead-code rip (2026-06-10) — v1FlowOrder removed entirely.
+    // v1 was the pre-v1.0.6 flow; v1.0.6 (shipped 2026-06-03) made
+    // v2FlowOrder the default for every install. Orphan v1-only case
+    // bodies (110/111/120/121/141/142/145/150/151/152/170/201/202/204/
+    // 235/236/237/238/239/240/270/22/19) stay compiled but are no
+    // longer reachable from flowOrder; future pass can prune them
+    // surgically. Per [[feedback-dead-code]] this rip kills the most
+    // dangerous dead code (the parallel flow definition) without
+    // risking the orphan-case surgery in one pass.
 
-    // v2 flow order — A1 (minimal): drops 7 dead-signal questions
-    // (workoutLocation 120, workoutStyle 121, priorWorkouts 236,
-    // eatingContext 237, dailyActivityLevel 238, bodyPhotoReadiness 239,
-    // rewardChoice 141) and consolidates the 3 relatability yes/nos
-    // (150, 151, 152) into one multi-select screen (153). Same screens
-    // otherwise — A2-A5 add new credibility-grade questions (sleep,
-    // stress, eating, hormonal, GLP-1, etc.) into the cohort-signal slot.
-    //
-    // Routing is gated by `onboardingV2Enabled` AppStorage — v1 users
-    // stay on v1FlowOrder until the flag flips. v1 cases 120/121/141/
-    // 150/151/152/236/237/238/239 still exist in `currentScreen` so v1
-    // back-nav keeps working; v2 just doesn't visit them.
+    // v3 flow order — the only path. 55 cases including the v3 P11
+    // additions (chapter IA + 9 new screens — 171/172/173 psychometric
+    // + 280/281 bridges + 282 reciprocity + 283 cohort + 284 consent +
+    // 285 Apple Health).
     private static let v2FlowOrder: [Int] = [
         // Act 1 — Soft entry: welcome → anti-shame anchor → soft "why" →
         // attribution. Low-stakes commitment, get her one screen in.
@@ -2108,9 +2038,9 @@ struct OnboardingView: View {
         234, 21, 250, 26, 215, 23,
     ]
 
-    private var flowOrder: [Int] {
-        onboardingV2Enabled ? Self.v2FlowOrder : Self.v1FlowOrder
-    }
+    // v3 dead-code rip (2026-06-10) — collapsed from a conditional
+    // v1/v2 picker to a single source. v2 is the only flow.
+    private var flowOrder: [Int] { Self.v2FlowOrder }
 
     // ── v3 chapter IA (2026-06-10, BetterMe S3 pattern) ─────────────
     //
@@ -2418,95 +2348,19 @@ struct OnboardingView: View {
                          size: 38, rotation: -11, phaseDelay: 0.90),
     ]
 
-    private var welcome: some View {
-        Group {
-            if onboardingV2Enabled {
-                v2Welcome
-            } else {
-                v1Welcome
-            }
-        }
-    }
+    // v3 dead-code rip (2026-06-10) — v1Welcome branch removed.
+    // Every install since v1.0.6 (2026-06-03) lands on v2Welcome.
+    private var welcome: some View { v2Welcome }
 
-    private var v1Welcome: some View {
-        GeometryReader { geo in
-            ZStack {
-                Palette.bgPrimary.ignoresSafeArea()
-
-                StickerScatter(placements: Self.welcomePlacements)
-
-                VStack(spacing: 0) {
-                    welcomeTopBar
-                        .padding(.horizontal, 16)
-                        .padding(.top, 4)
-
-                    Spacer().frame(height: 32)
-
-                    welcomeEyebrow
-                        .padding(.horizontal, 24)
-                        .opacity(welcomeEyebrowVisible ? 1 : 0)
-                        .offset(y: welcomeEyebrowVisible ? 0 : 8)
-
-                    Spacer().frame(height: 12)
-
-                    welcomeHeadline
-                        .padding(.horizontal, 24)
-                        .opacity(welcomeHeadlineVisible ? 1 : 0)
-                        .offset(y: welcomeHeadlineVisible ? 0 : 12)
-
-                    Spacer().frame(height: 16)
-
-                    welcomeSubhead
-                        .padding(.horizontal, 24)
-                        .opacity(welcomeSubheadVisible ? 1 : 0)
-                        .offset(y: welcomeSubheadVisible ? 0 : 12)
-
-                    Spacer().frame(height: 20)
-
-                    // Plank video block — restored after the polaroid
-                    // experiment. Keeps Variant D's founder-voice copy
-                    // above (eyebrow + headline + subhead) but lets
-                    // the video carry the visual weight. Cap shrunk
-                    // from 240–380 to 200–320 so the welcome stack
-                    // still fits with the shorter Variant D headline.
-                    welcomeVideoBlock(height: max(200, min(320, geo.size.height * 0.36)))
-                        .padding(.horizontal, 24)
-                        .opacity(welcomeVideoVisible ? 1 : 0)
-                        .scaleEffect(welcomeVideoVisible ? 1.0 : 0.96)
-
-                    Spacer(minLength: 12)
-
-                    welcomeCTA
-                        .padding(.horizontal, 24)
-                        .opacity(welcomeCtaVisible ? 1 : 0)
-                        .scaleEffect(welcomeCtaVisible ? 1.0 : 0.96)
-
-                    Text("free to begin.")
-                        .font(.custom("DMSans-Regular", size: 13))
-                        .foregroundStyle(Palette.textSecondary)
-                        .padding(.top, 8)
-                        .opacity(welcomeCtaVisible ? 1 : 0)
-
-                    Button {
-                        Haptics.light()
-                        showWelcomeSignInSheet = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text("already have an account?")
-                            Text("sign in").underline()
-                        }
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, 12)
-                    .padding(.bottom, 16)
-                    .opacity(welcomeCtaVisible ? 1 : 0)
-                }
-            }
-            .task { await runWelcomeChoreography() }
-        }
-    }
+    // v3 dead-code rip (2026-06-10) — v1Welcome view body removed
+    // (~78 lines). Was the pre-2026-06-01 first-screen layout (eyebrow
+    // + headline + subhead + plank video + CTA). Replaced by v2Welcome
+    // ("The Curator" rebuild) which is the only welcome path now.
+    // Helpers `welcomeTopBar` + `welcomePlacements` survive because
+    // v2Welcome uses them; the v1-only `welcomeEyebrow` /
+    // `welcomeHeadline` / `welcomeSubhead` / `welcomeVideoBlock` /
+    // `welcomeCTA` + their `welcome*Visible` @State vars +
+    // `runWelcomeChoreography` are now orphans pending a deeper sweep.
 
     // MARK: - v2 Welcome — "The Curator" (rebuild 2026-06-01)
     //
@@ -7771,7 +7625,7 @@ struct OnboardingView: View {
                     // advance(to:) so resolveNext does the right thing
                     // per flow version — v2 goes to 165, v1 skips past.
                     #if DEBUG
-                    print("[D67] comparisonScreen → advance(to: 165). v2_enabled=\(onboardingV2Enabled), flowContains165=\(flowOrder.contains(165))")
+                    print("[D67] comparisonScreen → advance(to: 165). flowContains165=\(flowOrder.contains(165))")
                     #endif
                     advance(to: 165, confirmation: nil)
                 }
@@ -9024,15 +8878,12 @@ struct OnboardingView: View {
         data.relatability3 = relatability3 ?? false
         data.acquisitionSource = acquisitionSource  // epic #1 child #7
 
-        if onboardingV2Enabled {
-            // Hold the completed data while the reveal sequence runs;
-            // OnboardingRevealView's onRevealComplete fires onComplete(data)
-            // when the user dismisses the paired-permissions screen.
-            pendingRevealData = data
-            withAnimation(Motion.crossFade) { showRevealSequence = true }
-        } else {
-            onComplete(data)
-        }
+        // v3 dead-code rip (2026-06-10) — v1 path (straight onComplete
+        // without reveal sequence) removed. All users now route through
+        // OnboardingRevealView. v1 was the pre-v1.0.6 flow; no realistic
+        // user is still on it.
+        pendingRevealData = data
+        withAnimation(Motion.crossFade) { showRevealSequence = true }
     }
 
     private func bS(_ b: String) -> Int {

@@ -387,7 +387,8 @@ struct DebugAuthView: View {
             let d = UserDefaults.standard
             VStack(alignment: .leading, spacing: 4) {
                 row("hasCompleted", "\(d.bool(forKey: "hasCompletedOnboarding"))")
-                row("v2_enabled",   "\(d.bool(forKey: "onboarding_v2_enabled"))")
+                // v3 dead-code rip (2026-06-10) — v2_enabled row removed.
+                // v1 flow is gone; the flag is no longer read by the app.
             }
             .padding(12)
             .background(Palette.bgElevated)
@@ -396,9 +397,6 @@ struct DebugAuthView: View {
             Button {
                 UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
                 UserDefaults.standard.removeObject(forKey: "onboardingCompletedAt")
-                // Force v2 on every reset so testing always exercises the
-                // delta v7 flow (commitment screen D67, calorie hero D68).
-                UserDefaults.standard.set(true, forKey: "onboarding_v2_enabled")
                 status = "onboarding reset — relaunch app to re-run."
             } label: {
                 Text("Reset onboarding (DEBUG only)")
