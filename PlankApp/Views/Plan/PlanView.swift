@@ -49,34 +49,53 @@ struct PlanView: View {
     @State private var todayPrescriptions: [ProgramDayPrescription] = []
     @State private var checkStateByKey: [String: ProgramService.ChecklistState] = [:]
     @State private var completionByDay: [Int: Int] = [:]
-    @State private var showChapterComplete: Bool = false
     @State private var animateIn: Bool = false
 
     // Scrapbook mode: nil = today; Int = viewing snapshot of past day.
     @State private var viewingDay: Int? = nil
 
-    // Lock sheet
-    @State private var showLockSheet: Bool = false
-    @State private var lockedDayTapped: Int = 1
+    // Single-router pattern for modal presentations. Stacking 5+
+    // .fullScreenCover and 3+ .sheet modifiers on the same view
+    // is a known SwiftUI failure mode — only one of each type
+    // reliably fires, the rest get silently shadowed. Two enum
+    // routers (one fullScreenCover + one sheet) keep dispatch
+    // unambiguous. Founder QA 2026-06-09: "long-pressing, press
+    // to open module are[n't] working" — root cause was the
+    // multi-modifier collision, not the gestures themselves.
+    @State private var activeCover: PlanCover? = nil
+    @State private var activeSheet: PlanSheet? = nil
 
-    // Mark-as-done sheet (long-press override)
-    @State private var showMarkAsDoneSheet: Bool = false
-    @State private var markAsDonePrescription: ProgramDayPrescription? = nil
+    enum PlanCover: Identifiable {
+        case lesson(LessonID)
+        case captureFlow
+        case preRoutine(WorkoutPreset)
+        case breathSession
+        case chapterComplete
 
-    // Phase 1.B module-routing covers + sheets. Each row tap routes
-    // to its actual module; module's completion callback marks the
-    // row autoCompleted on return.
-    @State private var showLessonRitual: Bool = false
-    @State private var pendingLessonId: LessonID? = nil
+        var id: String {
+            switch self {
+            case .lesson(let id): return "lesson-\(id.rawValue)"
+            case .captureFlow:    return "captureFlow"
+            case .preRoutine:     return "preRoutine"
+            case .breathSession:  return "breathSession"
+            case .chapterComplete: return "chapterComplete"
+            }
+        }
+    }
 
-    @State private var showCaptureFlow: Bool = false
+    enum PlanSheet: Identifiable {
+        case lock(day: Int)
+        case markAsDone(ProgramDayPrescription)
+        case logWeight
 
-    @State private var showPreRoutine: Bool = false
-    @State private var pendingWorkout: WorkoutPreset? = nil
-
-    @State private var showBreathSession: Bool = false
-
-    @State private var showLogWeight: Bool = false
+        var id: String {
+            switch self {
+            case .lock(let day): return "lock-\(day)"
+            case .markAsDone(let p): return "markAsDone-\(p.itemKey)"
+            case .logWeight:     return "logWeight"
+            }
+        }
+    }
 
     /// Latest weight reading for the LogWeightSheet pre-fill.
     @Query(sort: \WeightLogRecord.loggedAt, order: .reverse) private var allWeightLogs: [WeightLogRecord]
@@ -126,119 +145,114 @@ struct PlanView: View {
             }
         }
         .onAppear { onAppear() }
-        .fullScreenCover(isPresented: $showChapterComplete) {
-            ChapterCompleteView(
-                totalDays: schedule?.totalDays ?? ProgramScheduleCalculator.fallbackTotalDays,
-                userId: userId,
-                onDismiss: { showChapterComplete = false },
-                onPickNextProgram: { _ in
-                    showChapterComplete = false
-                }
+        .fullScreenCover(item: $activeCover) { cover in
+            coverContent(for: cover)
+        }
+        .sheet(item: $activeSheet) { sheet in
+            sheetContent(for: sheet)
+        }
+    }
+
+    @ViewBuilder
+    private func coverContent(for cover: PlanCover) -> some View {
+        switch cover {
+        case .lesson(let lessonId):
+            JeniMethodRitualView(
+                lesson: lessonId,
+                user: JeniMethodUserContext.fromAppStorage(),
+                onComplete: {
+                    markAutoCompleted(.lesson(lessonId: String(lessonId.rawValue)))
+                    activeCover = nil
+                },
+                onSkip: { _ in activeCover = nil }
             )
-        }
-        .sheet(isPresented: $showLockSheet) {
-            ProgramLockSheet(
-                lockedDay: lockedDayTapped,
-                currentDay: schedule?.programDay ?? 1,
-                totalDays: schedule?.totalDays ?? ProgramScheduleCalculator.fallbackTotalDays,
-                onDismiss: { showLockSheet = false }
-            )
-            .presentationDetents([.medium])
-            .presentationDragIndicator(.hidden)
-            // Force the entire sheet container background to white
-            // (iOS 16.4+). Without this the system uses .systemBackground
-            // which on dark-mode-ish overlay renders as a grey bleed at
-            // the top/bottom edges of the .medium detent.
-            .presentationBackground(Palette.programCard)
-        }
-        .sheet(isPresented: $showMarkAsDoneSheet) {
-            if let prescription = markAsDonePrescription {
-                MarkAsDoneSheet(
-                    prescription: prescription,
-                    onConfirm: {
-                        handleMarkAsDoneConfirm(prescription)
-                        showMarkAsDoneSheet = false
-                    },
-                    onDismiss: { showMarkAsDoneSheet = false }
-                )
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.hidden)
-                .presentationBackground(Palette.programCard)
-            }
-        }
-        // Phase 1.B module covers. Each module's success callback
-        // marks the row autoCompleted (sparkle glyph). Cancel paths
-        // simply dismiss without state change.
-        .fullScreenCover(isPresented: $showLessonRitual) {
-            if let lessonId = pendingLessonId {
-                JeniMethodRitualView(
-                    lesson: lessonId,
-                    user: JeniMethodUserContext.fromAppStorage(),
-                    onComplete: {
-                        // LessonID is Int-raw; cast to string for the
-                        // ProgramDayPrescription.lesson(lessonId:) param.
-                        markAutoCompleted(.lesson(lessonId: String(lessonId.rawValue)))
-                        showLessonRitual = false
-                    },
-                    onSkip: { _ in showLessonRitual = false }
-                )
-            }
-        }
-        .fullScreenCover(isPresented: $showCaptureFlow) {
+
+        case .captureFlow:
             CaptureFlowView(
                 userId: userId,
                 cuisineProfile: cuisineProfileCSV.isEmpty ? nil : cuisineProfileCSV,
                 onDismiss: {
-                    showCaptureFlow = false
-                    // Refresh food data so the macro embed updates.
-                    // If a meal was logged, the snap row auto-completes
-                    // via the next refresh.
+                    activeCover = nil
                     refreshTodayFood()
                     if todayKcal > 0 {
                         markAutoCompleted(.snapMeal)
                     }
                 }
             )
-        }
-        .fullScreenCover(isPresented: $showPreRoutine) {
-            if let workout = pendingWorkout {
-                PreRoutineView(
-                    workout: workout,
-                    onStart: {
-                        // Phase 1.B: PreRoutineView's onStart fires the
-                        // session player. For now, mark complete + dismiss
-                        // — Phase 2 will wire the actual SessionView
-                        // chain + handle SessionLogRecord auto-detection.
-                        markAutoCompleted(.workout(tier: .medium, minutes: 0, bodyFocus: nil))
-                        showPreRoutine = false
-                    },
-                    onCancel: { showPreRoutine = false }
-                )
-            }
-        }
-        .fullScreenCover(isPresented: $showBreathSession) {
+
+        case .preRoutine(let workout):
+            PreRoutineView(
+                workout: workout,
+                onStart: {
+                    // Phase 1.B: marks complete on tap-Start; Phase 2
+                    // wires the full SessionView chain + SessionLogRecord
+                    // auto-detection.
+                    markAutoCompleted(.workout(tier: .medium, minutes: 0, bodyFocus: nil))
+                    activeCover = nil
+                },
+                onCancel: { activeCover = nil }
+            )
+
+        case .breathSession:
             BreathworkSessionView(
                 onReadyToMove: {
                     markAutoCompleted(.breath(minutes: 1, style: .calming))
-                    showBreathSession = false
+                    activeCover = nil
                 },
                 onLater: {
                     markAutoCompleted(.breath(minutes: 1, style: .calming))
-                    showBreathSession = false
+                    activeCover = nil
                 },
-                onDismiss: { showBreathSession = false }
+                onDismiss: { activeCover = nil }
+            )
+
+        case .chapterComplete:
+            ChapterCompleteView(
+                totalDays: schedule?.totalDays ?? ProgramScheduleCalculator.fallbackTotalDays,
+                userId: userId,
+                onDismiss: { activeCover = nil },
+                onPickNextProgram: { _ in activeCover = nil }
             )
         }
-        .sheet(isPresented: $showLogWeight) {
+    }
+
+    @ViewBuilder
+    private func sheetContent(for sheet: PlanSheet) -> some View {
+        switch sheet {
+        case .lock(let day):
+            ProgramLockSheet(
+                lockedDay: day,
+                currentDay: schedule?.programDay ?? 1,
+                totalDays: schedule?.totalDays ?? ProgramScheduleCalculator.fallbackTotalDays,
+                onDismiss: { activeSheet = nil }
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.hidden)
+            .presentationBackground(Palette.programCard)
+
+        case .markAsDone(let prescription):
+            MarkAsDoneSheet(
+                prescription: prescription,
+                onConfirm: {
+                    handleMarkAsDoneConfirm(prescription)
+                    activeSheet = nil
+                },
+                onDismiss: { activeSheet = nil }
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.hidden)
+            .presentationBackground(Palette.programCard)
+
+        case .logWeight:
             LogWeightSheet(
                 startingFromKg: allWeightLogs.first?.weightKg ?? 65,
                 isUpdatingToday: hasLoggedWeightToday,
                 onSave: { newKg in
                     persistWeight(kg: newKg)
                     markAutoCompleted(.weighIn)
-                    showLogWeight = false
+                    activeSheet = nil
                 },
-                onCancel: { showLogWeight = false }
+                onCancel: { activeSheet = nil }
             )
             .presentationDetents([.medium, .large])
             .presentationBackground(Palette.programCard)
@@ -445,7 +459,7 @@ struct PlanView: View {
         profile = ProgramService.shared.currentProfile(userId: userId, in: modelContext)
 
         if computed.isPostGoal {
-            DispatchQueue.main.async { showChapterComplete = true }
+            DispatchQueue.main.async { activeCover = .chapterComplete }
         }
 
         todayPrescriptions = composeTodaysChecklist(
@@ -585,11 +599,10 @@ struct PlanView: View {
             }
         case .locked(let d):
             Haptics.medium()
-            lockedDayTapped = d
-            showLockSheet = true
+            activeSheet = .lock(day: d)
         case .newProgram:
             Haptics.light()
-            showChapterComplete = true
+            activeCover = .chapterComplete
         }
     }
 
@@ -616,23 +629,22 @@ struct PlanView: View {
         case .lesson:
             openLesson()
         case .snapMeal:
-            showCaptureFlow = true
+            activeCover = .captureFlow
         case .workout(let tier, let minutes, let bodyFocus):
             openWorkout(tier: tier, minutes: minutes, bodyFocus: bodyFocus)
         case .steps:
-            // No standalone steps module; route to the long-press
-            // sheet for explicit mark-as-done. HealthKit auto-fires
-            // when threshold crossed (Phase 2 wiring).
+            // No standalone steps module; HealthKit auto-fires when
+            // threshold crossed. Tap is silent (Phase 2 will surface
+            // a steps detail sheet here).
             return
         case .breath:
-            showBreathSession = true
+            activeCover = .breathSession
         case .weighIn:
-            showLogWeight = true
+            activeSheet = .logWeight
         case .plank, .water, .measurements:
             // Phase 2 will wire dedicated modules. For now fall back
             // to the manual mark-as-done sheet.
-            markAsDonePrescription = prescription
-            showMarkAsDoneSheet = true
+            activeSheet = .markAsDone(prescription)
         }
     }
 
@@ -641,9 +653,8 @@ struct PlanView: View {
         // user's current engagement day. PlanView's programDay maps
         // 1-to-1 (program day 1 → lesson 1, etc.).
         let day = schedule?.programDay ?? 1
-        pendingLessonId = JeniMethodState.lessonForCard(currentDay: day)
-        if pendingLessonId != nil {
-            showLessonRitual = true
+        if let lessonId = JeniMethodState.lessonForCard(currentDay: day) {
+            activeCover = .lesson(lessonId)
         }
     }
 
@@ -654,9 +665,6 @@ struct PlanView: View {
         let focus: [BodyFocus] = BodyFocus(rawValue: focusToken).map { [$0] } ?? [.fullBody]
 
         let recentIds = allSessionLogs.prefix(7).compactMap { log -> [String]? in
-            // SessionLogRecord stores exerciseResults as Data?; we don't
-            // need to crack open the blob here — just use the slot's
-            // overall exerciseType as an approximate avoid signal.
             [log.exerciseType]
         }
 
@@ -676,8 +684,8 @@ struct PlanView: View {
             startingTier: startingTierInt,
             intensityOffset: workoutLevel + todaysEnergy
         )
-        pendingWorkout = WorkoutGenerator.generate(from: input)
-        showPreRoutine = true
+        let workout = WorkoutGenerator.generate(from: input)
+        activeCover = .preRoutine(workout)
     }
 
     /// Called by module callbacks when a session/log fires successfully.
@@ -695,8 +703,7 @@ struct PlanView: View {
         guard viewingDay == nil else { return }
         guard !prescription.isProgressRow else { return }
         Haptics.medium()
-        markAsDonePrescription = prescription
-        showMarkAsDoneSheet = true
+        activeSheet = .markAsDone(prescription)
     }
 
     /// User confirmed manual mark-as-done from the long-press sheet.
