@@ -281,12 +281,14 @@ struct JeniMethodRitualView: View {
 
     // MARK: - Typography
 
-    private var headlineFont: Font {
-        Font.custom("Fraunces72pt-SemiBold", size: 28, relativeTo: .title2)
-    }
-    private var headlineItalicFont: Font {
-        Font.custom("Fraunces72pt-SemiBoldItalic", size: 28, relativeTo: .title2)
-    }
+    // v3 P11.6 (2026-06-10) — promoted from questionHero 34pt to
+    // heroHeadline 42pt per [[feedback-hero-typography-ladder]].
+    // Lessons are a daily intent-setting beat — belongs on the
+    // default hero ladder alongside plan reveal / PacePicker /
+    // welcome / coach intro. Was bumped from 28pt → questionHero
+    // in v9 P9.7; this pass takes it the rest of the way.
+    private var headlineFont: Font { Typo.heroHeadline }
+    private var headlineItalicFont: Font { Typo.heroHeadlineItalic }
 }
 
 #if DEBUG

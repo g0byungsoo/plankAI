@@ -28,13 +28,21 @@ struct PostPurchaseFlowView: View {
     let onFinish: (_ launchWorkout: Bool) -> Void
 
     private enum Phase: Equatable {
+        case forging               // v3 P11.4 — 8s post-paywall keystone
         case coachIntro
         case breathworkPrimer
         case breathworkSession
         case forceFirstAction      // W4-T2 — D38 post-paywall picker
     }
 
-    @State private var phase: Phase = .coachIntro
+    // v3 P11.4 (2026-06-10) — forging phase lands FIRST so the user
+    // sees the program activating before Jeni introduces herself.
+    // 5 milestone cascade lines + single success haptic at 380ms
+    // acknowledge the just-made commitment ($47.99 + the 25s
+    // onboarding loader). Lands as the brand's "you bought it,
+    // here's what it is" beat per the Cal AI calai31 + her75
+    // editorial register synthesis.
+    @State private var phase: Phase = .forging
 
     /// Mirror of the AppStorage key HomeView watches to launch the
     /// food capture flow on appear. PostPurchaseFlow sets it true on
@@ -50,11 +58,21 @@ struct PostPurchaseFlowView: View {
             // in from 0 on appear, creating a flash between phases).
             // Single canonical scatter (coachIntroDefault) reads as the
             // welcome flow's visual constant across all 4 phases.
-            Palette.bgPrimary.ignoresSafeArea()
+            // v8 P8.6: post-paywall router canvas — pink directly so
+            // all welcome children (premium welcome, coach intro, breath
+            // primer, force first action) inherit the program-era pink
+            // without each child re-declaring its bg.
+            Palette.programBgPrimary.ignoresSafeArea()
             StickerScatter(placements: StickerScatter.coachIntroDefault())
                 .allowsHitTesting(false)
 
             switch phase {
+            case .forging:
+                ForgingRevealView(onContinue: {
+                    transition(to: .coachIntro)
+                })
+                .transition(.opacity)
+
             case .coachIntro:
                 CoachIntroView(onContinue: {
                     transition(to: .breathworkPrimer)

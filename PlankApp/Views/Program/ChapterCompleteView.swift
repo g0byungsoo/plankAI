@@ -70,6 +70,16 @@ struct ChapterCompleteView: View {
         }
     }
 
+    /// v8 P8.8: celebration peak earns max sticker density per
+    /// designer audit. Mixed gummy bears / bow / sparkle scatter
+    /// behind the hero — anchored above the picker so the cards
+    /// stay clear. All hit-disabled + a11y-hidden.
+    private static let celebrationPlacements: [StickerPlacement] = [
+        StickerPlacement(sticker: .gummyBear, position: CGPoint(x: 0.86, y: 0.08), size: 56, rotation: -8, phaseDelay: 0.0),
+        StickerPlacement(sticker: .bowIridescent, position: CGPoint(x: 0.12, y: 0.13), size: 44, rotation: 6, phaseDelay: 0.18),
+        StickerPlacement(sticker: .sparkleGlossy, position: CGPoint(x: 0.74, y: 0.21), size: 28, rotation: -3, phaseDelay: 0.36),
+    ]
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
@@ -84,7 +94,15 @@ struct ChapterCompleteView: View {
             }
             footer
         }
-        .background(Palette.programBgPrimary.ignoresSafeArea())
+        .background(
+            ZStack {
+                Palette.programBgPrimary
+                StickerScatter(placements: Self.celebrationPlacements)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+            .ignoresSafeArea()
+        )
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
                 animateIn = true
@@ -96,40 +114,46 @@ struct ChapterCompleteView: View {
     }
 
     private var hero: some View {
-        VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
-            Text("day \(totalDays).")
-                .font(Typo.programHeroDisplay)
-                .foregroundStyle(Palette.cocoaPrimary)
-                .accessibilityFocused($titleFocused)
-            (
-                Text("you ")
-                    .font(Typo.programHeroDisplay)
-                    .foregroundStyle(Palette.cocoaPrimary)
-                +
-                Text("became")
-                    .font(Typo.programHeroItalic)
-                    .foregroundStyle(Palette.cocoaPrimary)
-                +
-                Text(" her.")
-                    .font(Typo.programHeroDisplay)
-                    .foregroundStyle(Palette.cocoaPrimary)
-            )
-        }
+        // v3 P11.1.A (2026-06-10) — converted from modernEntrance fade
+        // to LineCascadeText with per-line haptic. Celebration peak
+        // earns the her75 luxury cascade signal — the moment the
+        // user crosses goalDate is one of the few hero beats that
+        // benefits from the cadence per [[feedback-her75-line-cascade]].
+        LineCascadeText(
+            lines: [
+                .plain("day \(totalDays)."),
+                .composite(base: "you became her.", italic: ["became"]),
+            ],
+            baseFont: Typo.programHeroDisplay,
+            italicFont: Typo.programHeroItalic,
+            color: Palette.cocoaPrimary,
+            alignment: .leading,
+            lineSpacing: Typo.programHeroLineGap,
+            perLineDelay: 0.55,
+            trigger: animateIn
+        )
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .modernEntrance(animateIn)
+        .accessibilityFocused($titleFocused)
+        .accessibilityLabel("Day \(totalDays). You became her.")
     }
 
     private var manifesto: some View {
-        // Anti-shame body, NWCR-cited. Two short sentences instead
-        // of an em-dash phrase. Founder voice rule 2026-06-09.
-        // Renamed from `body` (collides with View protocol's required
-        // `var body: some View`, causes recursive-getter compile error).
-        Text("30% of women who finish stop here. they regain within a year. stay with us. pick what's next.")
-            .font(Typo.body)
-            .foregroundStyle(Palette.cocoaSecondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .modernEntrance(animateIn, delay: 0.08)
+        // v8 P8.8: softened from the NWCR scale-shame stat ("30% of
+        // women… regain within a year") — that landed wrong on the
+        // celebration peak. Anti-shame frame, italic punch on the
+        // forward-looking word. Same NWCR-grounded intent, peer
+        // register. Founder voice rule 2026-06-09.
+        ItalicAccentText(
+            "most women stop here. the ones who stay, stay changed. pick what's next.",
+            italic: ["changed.", "next."],
+            baseFont: Typo.body,
+            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+            color: Palette.cocoaSecondary,
+            alignment: .leading
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .modernEntrance(animateIn, delay: 0.08)
     }
 
     private var picker: some View {
@@ -147,16 +171,25 @@ struct ChapterCompleteView: View {
 
     private var footer: some View {
         VStack {
+            // v8 P8.8: promoted from a quiet caption to a ghost pill —
+            // a graduation deserves a real touch target. Cocoa text on
+            // hairline stroke keeps it secondary (no primary action by
+            // design — celebration is a free moment).
             Button { onDismiss() } label: {
                 Text("give me a beat")
                     .font(Typo.caption)
                     .foregroundStyle(Palette.cocoaSecondary)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 14)
+                    .overlay(
+                        Capsule().stroke(Palette.hairlineCocoa, lineWidth: 1)
+                    )
+                    .clipShape(Capsule())
             }
             .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity)
-        .padding(.bottom, 8)
+        .padding(.vertical, 12)
         .background(
             Palette.programBgPrimary
                 .overlay(
@@ -194,13 +227,17 @@ private struct ChapterCompleteCard: View {
                                 )
                         }
                         if !kind.isAvailableInPhase1 {
+                            // v8 P8.8: "soon" pill on hairlineCocoa
+                            // read dead next to the recommended stateGood
+                            // pill. Swap to accentSubtle so locked
+                            // options still feel alive on the celebration.
                             Text("soon")
                                 .font(Typo.eyebrow)
                                 .foregroundStyle(Palette.cocoaTertiary)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
                                 .background(
-                                    Capsule().fill(Palette.hairlineCocoa)
+                                    Capsule().fill(Palette.accentSubtle.opacity(0.4))
                                 )
                         }
                     }
@@ -219,6 +256,12 @@ private struct ChapterCompleteCard: View {
             .background(
                 RoundedRectangle(cornerRadius: Radius.programCard)
                     .fill(Palette.programCard)
+            )
+            // v8 P8.8: complete the scrapbook chrome — accent border
+            // matches PlanView rows + Subflow cards.
+            .overlay(
+                RoundedRectangle(cornerRadius: Radius.programCard)
+                    .stroke(Palette.accent.opacity(0.5), lineWidth: 1.5)
             )
             .programPaperShadow()
             .opacity(kind.isAvailableInPhase1 ? 1.0 : 0.78)

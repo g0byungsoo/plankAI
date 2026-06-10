@@ -1,5 +1,7 @@
 import SwiftUI
 import AVFoundation
+import SwiftData
+import PlankSync
 
 // MARK: - CoachIntroView
 //
@@ -36,6 +38,10 @@ struct CoachIntroView: View {
     let onContinue: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    // v8 P8.6: pull active plan to anchor the eyebrow to the user's
+    // custom program duration (never hardcode 75 per
+    // [[project-program-duration-custom]]).
+    @Environment(\.modelContext) private var modelContext
 
     // ── Personalization (read at onAppear via @AppStorage mirrors) ──
     @AppStorage("userName") private var storedName: String = ""
@@ -162,7 +168,7 @@ struct CoachIntroView: View {
                 .scaledToFill()
                 .frame(width: 164, height: 164)
                 .clipShape(Circle())
-                .overlay(Circle().stroke(Palette.bgPrimary, lineWidth: 5))
+                .overlay(Circle().stroke(Palette.programBgPrimary, lineWidth: 5))
                 .scaleEffect(coachVisible ? 1 : 0.6)
                 .opacity(coachVisible ? 1 : 0)
         }
@@ -171,12 +177,25 @@ struct CoachIntroView: View {
     }
 
     private var eyebrow: some View {
-        Text("DAY 1 WITH \(coachDisplayName.uppercased())")
+        // v8 P8.6: anchors the welcome to the user's CUSTOM program
+        // duration (read from ProgramPlanRecord). Falls back to the
+        // pre-v1.1 "DAY 1 WITH <coach>" line for users without an
+        // active plan yet (paywall-only flow / older builds).
+        Text(eyebrowCopy)
             .font(Typo.eyebrow)
             .tracking(1.6)
             .foregroundStyle(Palette.accent)
             .opacity(eyebrowVisible ? 1 : 0)
             .offset(y: eyebrowVisible ? 0 : 6)
+    }
+
+    private var eyebrowCopy: String {
+        let userId = AppSync.shared.currentUserId ?? ""
+        if !userId.isEmpty,
+           let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext) {
+            return "DAY 1 OF \(plan.totalDays) WITH \(coachDisplayName.uppercased())"
+        }
+        return "DAY 1 WITH \(coachDisplayName.uppercased())"
     }
 
     private var greeting: some View {
@@ -245,13 +264,15 @@ struct CoachIntroView: View {
     // between body (16pt) and title (32pt) — visually substantial without
     // overwhelming the coach portrait.
 
-    private var greetingFont: Font {
-        Font.custom("Fraunces72pt-SemiBold", size: 36, relativeTo: .largeTitle)
-    }
-
-    private var greetingItalicFont: Font {
-        Font.custom("Fraunces72pt-SemiBoldItalic", size: 36, relativeTo: .largeTitle)
-    }
+    // v3 P11.6 (2026-06-10) — promoted from questionHero 34pt to
+    // heroHeadline 42pt per [[feedback-hero-typography-ladder]]. The
+    // coach greeting is the first emotional beat post-paywall (lands
+    // after ForgingRevealView via PostPurchaseFlowView phase swap) —
+    // belongs on the same hero ladder as plan reveal / PacePicker /
+    // welcome. Was bumped from 36pt → questionHero in v9 P9.7; this
+    // pass takes it the rest of the way.
+    private var greetingFont: Font { Typo.heroHeadline }
+    private var greetingItalicFont: Font { Typo.heroHeadlineItalic }
 
     private var focalFont: Font {
         Font.custom("Fraunces72pt-SemiBold", size: 22, relativeTo: .title3)

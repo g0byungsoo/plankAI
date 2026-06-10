@@ -103,7 +103,10 @@ struct AffirmationLoaderScreen: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary
+            // v8 P8.6: auth-bootstrap loader fires on every launch (not
+            // just first install) — conditional helper picks pink only
+            // for program-era users so legacy users keep cream.
+            Palette.programEraBg
                 .ignoresSafeArea()
                 .opacity(bgVisible ? 1 : 0)
 
@@ -126,25 +129,34 @@ struct AffirmationLoaderScreen: View {
             VStack(spacing: 16) {
                 Spacer()
 
+                // v3 P11.6 (2026-06-10) — promoted from questionHero
+                // 34pt to heroHeadline 42pt per [[feedback-hero-
+                // typography-ladder]]. AffirmationLoader is a hero
+                // moment (post-purchase choreography), not an in-
+                // question header.
                 ItalicAccentText(
                     triplet.l1,
                     italic: triplet.italics,
-                    baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
                     color: Palette.textPrimary,
                     alignment: .center
                 )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
                 .opacity(line1Visible ? 1 : 0)
                 .scaleEffect(line1Visible ? 1.0 : 0.95)
 
                 ItalicAccentText(
                     triplet.l2,
                     italic: triplet.italics,
-                    baseFont: .custom("Fraunces72pt-SemiBold", size: 28),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 28),
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
                     color: Palette.textPrimary,
                     alignment: .center
                 )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
                 .opacity(line2Visible ? 1 : 0)
                 .scaleEffect(line2Visible ? 1.0 : 0.95)
 
@@ -152,7 +164,8 @@ struct AffirmationLoaderScreen: View {
                 // (italic = the punch). Same hand as AffirmationScreen's
                 // closer.
                 Text(triplet.l3)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
+                    .font(Typo.heroHeadlineItalic)
+                    .kerning(-0.4)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
                     .opacity(line3Visible ? 1 : 0)

@@ -55,8 +55,12 @@ struct BreathworkPrimerView: View {
                             .offset(y: eyebrowVisible ? 0 : 6)
                             .padding(.bottom, Space.sm)
 
-                        ItalicAccentText("did you know breath can help your weight loss?",
-                                         italic: ["weight loss"],
+                        // v8 P8.6 — replaces the Cal-AI-coded "did you know
+                        // weight loss?" hook. Post-Ozempic copy rule kills
+                        // direct weight-loss framing here. The citation
+                        // blocks below still carry the science substance.
+                        ItalicAccentText("breath does more than you think.",
+                                         italic: ["more"],
                                          baseFont: headlineFont,
                                          italicFont: headlineItalicFont,
                                          color: Palette.textPrimary,
@@ -125,18 +129,10 @@ struct BreathworkPrimerView: View {
                              color: Palette.textPrimary,
                              alignment: .center)
 
-            VStack(spacing: Space.xs) {
-                Text("when stress keeps cortisol high, your body holds onto fat. yale found it hits women hardest, right around the middle.")
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textPrimary)
-                    .multilineTextAlignment(.center)
-
-                Text("epel et al., yale · cortisol & abdominal fat in women")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Palette.textSecondary.opacity(0.8))
-                    .multilineTextAlignment(.center)
-            }
-
+            // v8 P8.6 — Epel/Yale citation removed per designer trim
+            // (5 citations was a textbook, not a primer). The Meerman
+            // CO₂ and Balban Stanford blocks below carry the science
+            // substance without burying the reader.
             Text("slow breathing flips on your parasympathetic system, your body's \u{201C}rest and digest\u{201D} mode. cortisol comes down. and the cravings that were never really hunger come down with it.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textPrimary)
@@ -171,26 +167,9 @@ struct BreathworkPrimerView: View {
                     .multilineTextAlignment(.center)
             }
 
-            // One more piece of evidence — narrower than Balban but
-            // directly relevant: a small Japanese trial on premenopausal
-            // women whose nervous systems were "blunted" (the same
-            // adrenergic dysfunction tied to stubborn weight in 2010
-            // obesity reviews). One minute of slow stretch-breath before
-            // meals brought their sympathetic activity back up — and the
-            // group repeating it for a month lost body fat. Small study,
-            // limited generalizability, but it's the closest thing
-            // breathwork-for-women has to a weight-loss endpoint.
-            VStack(spacing: Space.xs) {
-                Text("in a smaller japanese trial, one minute of slow breath before meals helped women whose nervous systems had gone quiet — and the ones who kept it up for a month lost body fat.")
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textPrimary)
-                    .multilineTextAlignment(.center)
-
-                Text("sato et al., biomedical research (2010) · senobi breathing · n=40 women")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Palette.textSecondary.opacity(0.8))
-                    .multilineTextAlignment(.center)
-            }
+            // v8 P8.6 — Sato/Japanese senobi citation removed per
+            // designer trim. Was narrower-scope than Balban + repeated
+            // the same lever. Closing line below carries the takeaway.
 
             ItalicAccentText("breath won't melt fat. it clears the cortisol quietly working against you.",
                              italic: ["working against you"],
@@ -244,12 +223,14 @@ struct BreathworkPrimerView: View {
 
     // MARK: - Typography
 
-    private var headlineFont: Font {
-        Font.custom("Fraunces72pt-SemiBold", size: 28, relativeTo: .title2)
-    }
-    private var headlineItalicFont: Font {
-        Font.custom("Fraunces72pt-SemiBoldItalic", size: 28, relativeTo: .title2)
-    }
+    // v3 P11.6 (2026-06-10) — promoted to heroHeadline 42pt per the
+    // locked typography ladder ([[feedback-hero-typography-ladder]]).
+    // BreathworkPrimer is a post-purchase hero beat (sits between
+    // CoachIntro and BreathworkSession in PostPurchaseFlowView),
+    // belongs on the default hero ladder. Was bumped from 28pt →
+    // questionHero in v9 P9.7; this pass takes it the rest of the way.
+    private var headlineFont: Font { Typo.heroHeadline }
+    private var headlineItalicFont: Font { Typo.heroHeadlineItalic }
 
     // MARK: - Choreography
 
