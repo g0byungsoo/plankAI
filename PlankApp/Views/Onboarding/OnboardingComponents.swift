@@ -235,6 +235,125 @@ struct NotificationPermission {
     }
 }
 
+// MARK: - FirstWeekPreview (v9 P9.1, onboarding program chapter)
+//
+// Her75 designer spec (2026-06-10): the highest-leverage screen in the
+// onboarding restructure. Surfaces a real 7-day rhythm — Mon→Sun tiles
+// generated from the user's just-picked intensity + collected bodyFocus
+// + sessionLengthPref — so by the time the user hits the paywall they
+// have HELD their plan. "Pay for THIS plan that's tangibly mine, not
+// an idea."
+//
+// Distribution per IntensityProfile.sessionsPerWeek:
+//   soft   → 3/week (Mon, Wed, Fri)
+//   medium → 4/week (Mon, Wed, Thu, Sat)
+//   hard   → 5/week (Mon, Tue, Thu, Fri, Sun)
+//
+// Off-days surface as breathwork beats (not "rest day" — that reads
+// inactive). Anchors the program-era language: every day has a
+// rhythm, even the recovery days.
+
+struct FirstWeekDay: Identifiable {
+    let id = UUID()
+    let weekdayLabel: String      // "mon" / "tue" / ...
+    let title: String             // "lower body focus" / "breathe"
+    let detailLine: String        // "18 min" / "5 min · calm"
+    let isWorkoutDay: Bool
+}
+
+struct FirstWeekPreview: View {
+
+    let tier: IntensityTier
+    let bodyFocus: [BodyFocus]
+    let sessionLengthMinutes: Int
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(days) { day in
+                    tile(for: day)
+                }
+            }
+            .padding(.horizontal, Space.screenPadding)
+            .scrollTargetLayout()
+        }
+        .scrollTargetBehavior(.viewAligned)
+        .scrollClipDisabled()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("your first week preview")
+    }
+
+    private var days: [FirstWeekDay] {
+        // sessionsPerWeek lookup mirrors IntensityProfile.soft/medium/hard
+        // exactly so the preview matches what the program actually
+        // delivers. Workout-day pattern is the same one the program
+        // scheduler uses (M/W/F for soft, etc.).
+        let sessionsPerWeek: Int
+        let workoutWeekdayIndices: Set<Int>
+        switch tier {
+        case .soft:
+            sessionsPerWeek = 3
+            workoutWeekdayIndices = [0, 2, 4]               // Mon Wed Fri
+        case .medium:
+            sessionsPerWeek = 4
+            workoutWeekdayIndices = [0, 2, 3, 5]            // Mon Wed Thu Sat
+        case .hard:
+            sessionsPerWeek = 5
+            workoutWeekdayIndices = [0, 1, 3, 4, 6]         // Mon Tue Thu Fri Sun
+        }
+        _ = sessionsPerWeek  // documented for reader; count derives from set
+
+        let labels = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+        return labels.enumerated().map { (idx, label) in
+            if workoutWeekdayIndices.contains(idx) {
+                let preset = WorkoutGenerator.generate(from: WorkoutGenerator.Input(
+                    bodyFocus: bodyFocus.isEmpty ? [.fullBody] : bodyFocus,
+                    lengthMinutes: sessionLengthMinutes,
+                    recentSessionExerciseIds: [],
+                    recentRatings: [],
+                    startingTier: tier == .soft ? 1 : (tier == .medium ? 2 : 3)
+                ))
+                return FirstWeekDay(
+                    weekdayLabel: label,
+                    title: preset.name.lowercased(),
+                    detailLine: "\(preset.estimatedDuration) min",
+                    isWorkoutDay: true
+                )
+            } else {
+                return FirstWeekDay(
+                    weekdayLabel: label,
+                    title: "breathe",
+                    detailLine: "5 min · calm the noise",
+                    isWorkoutDay: false
+                )
+            }
+        }
+    }
+
+    private func tile(for day: FirstWeekDay) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(day.weekdayLabel)
+                .font(Typo.eyebrow)
+                .tracking(1.6)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+            Spacer(minLength: 4)
+            Text(day.title)
+                .font(.custom("Fraunces72pt-SemiBold", size: 18, relativeTo: .headline))
+                .foregroundStyle(Palette.cocoaPrimary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(day.detailLine)
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaSecondary)
+        }
+        .padding(14)
+        .frame(width: 156, height: 130, alignment: .topLeading)
+        .scrapbookCard(tint: day.isWorkoutDay ? Palette.accent : Palette.stateGood)
+    }
+}
+
 // MARK: - Animated SF Symbol
 
 /// Wraps an SF Symbol with entrance animation.

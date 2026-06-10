@@ -187,21 +187,48 @@ struct OnboardingView: View {
     /// context, not a forced single bucket.
     @AppStorage("onboardingCuisinePreference") private var cuisinePreferenceCSV: String = ""
 
+    /// v9 P9.9 — non-scale-victory commitment moment (case 136). CSV
+    /// of NSV keys (core, energy, clothes, sleep). Replaces the cut
+    /// body-image slider screens (134/135) as the conversion-load-
+    /// bearing "I'm picking the version of me I want" hook.
+    /// her75 designer + conversion expert both flagged this slot as
+    /// essential; outcome cards keep the commitment without the AI-
+    /// body asset. Downstream: feeds becoming-tab adaptive copy +
+    /// trial-day-2 affirmation push (future phase consumers).
+    @AppStorage("onboardingNsvPriority") private var nsvPriorityCSV: String = ""
+
     // v2-A3 identity + previous-attempt block. Same AppStorage pattern.
     @AppStorage("onboardingPriorAttempts")    private var priorAttempts: String = ""
     @AppStorage("onboardingPriorWin")         private var priorWin: String = ""
     @AppStorage("onboardingFoodRelationship") private var foodRelationship: String = ""
-    /// Delta v7 D67 — commitment confidence (case 165). Pure investment
-    /// question per Cal AI's +1.7× trial-to-paid pattern (Brief #3 §1.2).
-    /// The answer never gates anything; the act of putting a stake in
-    /// is the commitment. Read in paywall + Day-21 win-back copy
-    /// ("you said you'd give it 3 days...").
-    @AppStorage("onboardingCommitConfidence") private var commitConfidence: String = ""
+    // v3 C1 (2026-06-10) — `onboardingCommitConfidence` collected via
+    // case 165 was never read by any downstream consumer (paywall
+    // copy didn't ramp; Day-21 win-back didn't reference it). Case +
+    // declaration removed; AppStorage key left untouched in
+    // UserDefaults so legacy installs read no value.
     /// Delta v8 D87 — sunk-cost activation Q ("tried everything
     /// already?"). 3 options drive downstream tone calibration. Per
     /// the Cal AI culture brief, the few-vs-many distinction lets
     /// reciprocity copy ramp on prior-attempts cohort. New case 168.
     @AppStorage("onboardingTriedBefore") private var triedBefore: String = ""
+    // v3 P11.1.B (2026-06-10) — BetterMe S2 psychometric Yes/No fears.
+    // Bem 1972 self-perception: fear-coded first-person statements force
+    // dichotomous identity commitment. Each flag persists to AppStorage
+    // so downstream (paywall closing line, Day-2 trial notification)
+    // can resurface the named fear as a resolved promise. String
+    // encoding ("yes"/"no"/"") because @AppStorage doesn't support
+    // Bool? natively — case bodies wrap a Binding<Bool?> over the
+    // stored string.
+    @AppStorage("onb_fear_quickResults") private var fearQuickResults: String = ""
+    @AppStorage("onb_fear_anotherDiet")  private var fearAnotherDiet: String = ""
+    @AppStorage("onb_fear_priorAttempt") private var fearPriorAttempt: String = ""
+    // v3 P11.1.C (2026-06-10) — BetterMe A6 two-checkbox consent.
+    // Personalize is the required gate (must be checked to advance);
+    // day-2 check-in is opt-out + drives the trial-week notification
+    // pre-prime per [[project-trial-week-notifications]]. Both default
+    // pre-checked (lower friction); user can uncheck either.
+    @AppStorage("onb_consent_personalize") private var consentPersonalize: Bool = true
+    @AppStorage("onb_consent_day2")        private var consentDay2: Bool = true
     /// Delta v8 D73 — pace selector (gentle/steady/focused). Drives
     /// weekly weight-loss target + downstream calorie computation.
     /// Per the WL expert brief, this is the single highest-leverage
@@ -246,10 +273,19 @@ struct OnboardingView: View {
         // 2026-06-07: the three Delta v7/v8 single-selects that landed
         // after this reset was written. Each was leaking through as a
         // pre-selected radio dot on re-runs of onboarding (founder
-        // bug report on "tried *everything* already?" — case 168).
+        // bug report on "tried everything already?" — case 168).
         triedBefore = ""
-        commitConfidence = ""
+        // v3 C1 — commitConfidence AppStorage declaration removed
+        // alongside case 165; no reset needed.
         paceChoice = ""
+        // 2026-06-10: cuisine multi-select + program tier single-select
+        // were also leaking through. Founder bug report on the cuisine
+        // question (case 169) showing italian/korean/japanese/chinese
+        // pre-selected on a fresh re-run. Same reason both: AppStorage
+        // persists across runs and neither key was in this reset.
+        cuisinePreferenceCSV = ""
+        nsvPriorityCSV = ""
+        UserDefaults.standard.removeObject(forKey: "onboardingPickedTier")
     }
 
     // Confirmation badge state — fired only at strategic commits
@@ -328,27 +364,41 @@ struct OnboardingView: View {
     let onComplete: (OnboardingData) -> Void
 
     var body: some View {
-        ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+        ZStack(alignment: .top) {
+            // v8 P8.9: onboarding crosses INTO the program era — pink
+            // canvas directly (not the conditional helper) per the her75
+            // brand-loading register. Closer screens already use
+            // programBgPrimary; this gives the question flow the same
+            // identity from screen 1 forward.
+            Palette.programBgPrimary.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                if screen >= 1 && !analyzing && screen != 20 {
-                    navBar.transition(.opacity)
+            // v3 P11.6 (2026-06-10) — navBar pinned via ZStack top
+            // alignment, NOT inside a VStack with currentScreen.
+            // Founder QA: long-content screens were pushing the progress
+            // bar around because the VStack flexed with content height.
+            // Now navBar lives in its own z-layer (zIndex 5) anchored
+            // to the safe-area top, and currentScreen flows under it
+            // with a reserved top padding so content never hides behind.
+            currentScreen
+                .id(screen)
+                // Reserve room for the navBar (40pt chip + 6pt bar gap
+                // + chapter eyebrow ~16pt + Space.sm top padding).
+                // ~70pt total when chapter eyebrow is visible.
+                .padding(.top, (screen >= 1 && !analyzing && screen != 20) ? 70 : 0)
+                // v3 P11.3 — JFPageTransition replaces the simple
+                // opacity cross-fade with the her75 page-turn breath
+                // (exit 200ms → 60ms gap → entrance 350ms).
+                .transition(JFPageTransition.standard)
+                .onAppear { Analytics.captureScreen("Onboarding/case-\(screen)") }
+                .onChange(of: screen) { _, newCase in
+                    Analytics.captureScreen("Onboarding/case-\(newCase)")
                 }
-                Spacer().frame(height: screen < 1 ? 0 : Space.sm)
 
-
-                currentScreen
-                    .id(screen)
-                    // Editorial fade between onboarding screens. Was a
-                    // directional slide which read as app-cliche; the
-                    // straight opacity fade reads premium and avoids
-                    // the visual whiplash on rapid forward/back nav.
+            if screen >= 1 && !analyzing && screen != 20 {
+                navBar
+                    .background(Palette.programBgPrimary)
+                    .zIndex(5)
                     .transition(.opacity)
-                    .onAppear { Analytics.captureScreen("Onboarding/case-\(screen)") }
-                    .onChange(of: screen) { _, newCase in
-                        Analytics.captureScreen("Onboarding/case-\(newCase)")
-                    }
             }
 
             if analyzing { analyzingScreen.transition(.opacity).zIndex(10) }
@@ -489,51 +539,52 @@ struct OnboardingView: View {
         // the opening reel reads as one system. Other dividers get
         // lowercase + slightly more direct copy that matches the
         // founder voice from case 230's "real person, not chatbot."
+        // v9 P9.8 — bridges rewritten per her75 closing-pass spec:
+        // line-cascade with haptic per line, single sticker (one per
+        // part for warmth without competing with the reveal), lowercase
+        // eyebrow ("part one" not "PART 1"). Copy tightened to 2-4
+        // words per line per the succinct-Gen-Z voice rule.
         case 200: SectionDividerScreen(
             partNumber: 1, title: "your story",
-            supporting: "a few reads. less noise, more you.",
+            supporting: "a few reads. then we get specific.",
             dwellSeconds: 1.6,
-            // Routes to the anti-shame educational anchor (E1-a, case
-            // 230) before the first question. Sets brand promise.
             onAdvance: { go(230) },
-            stickerPlacements: Self.sectionDividerPlacements
+            singleSticker: .bowIridescent
         )
         case 201: SectionDividerScreen(
-            partNumber: 2, title: "how you move now",
+            partNumber: 2, title: "how you move",
             supporting: "your plan starts where you are.",
             dwellSeconds: 1.6,
             onAdvance: { go(2) },
-            stickerPlacements: Self.sectionDividerPlacements
+            singleSticker: .heartGlossy
         )
         case 202: SectionDividerScreen(
             partNumber: 3, title: "about you",
             supporting: "a few numbers so the math is honest.",
             dwellSeconds: 1.6,
-            // Routes to body-question primer (E1-b, case 231) before
-            // the gender Q — Noom "why we ask" pattern reduces drop.
             onAdvance: { go(231) },
-            stickerPlacements: Self.sectionDividerPlacements
+            singleSticker: .flower3D
         )
         case 203: SectionDividerScreen(
-            partNumber: 4, title: "how you want to feel",
-            supporting: "the version of you that's waiting.",
+            partNumber: 4, title: "the version / you're becoming",
+            supporting: "picture her clearly.",
             dwellSeconds: 1.6,
             onAdvance: { go(140) },
-            stickerPlacements: Self.sectionDividerPlacements
+            singleSticker: .cherries
         )
         case 204: SectionDividerScreen(
             partNumber: 5, title: "what stops you",
             supporting: "honest answers. tap whichever lands.",
             dwellSeconds: 1.6,
             onAdvance: { go(150) },
-            stickerPlacements: Self.sectionDividerPlacements
+            singleSticker: .sparkleGlossy
         )
         case 205: SectionDividerScreen(
-            partNumber: 6, title: "ready to start",
-            supporting: "last few. then your plan goes live.",
+            partNumber: 6, title: "almost yours",
+            supporting: "last few. your plan goes live next.",
             dwellSeconds: 1.6,
             onAdvance: { go(3) },
-            stickerPlacements: Self.sectionDividerPlacements
+            singleSticker: .gummyBear
         )
 
         // ─── Recap card — "so here's you" ───────────────────────
@@ -623,7 +674,7 @@ struct OnboardingView: View {
         // "what's worked before" Q is the most consistent question
         // across Noom / BetterMe / Lasta that JeniFit doesn't ask.
         case 236: jfMulti(
-            "what's worked before — and what hasn't?",
+            "what's worked before. what hasn't?",
             sub: "multi-pick. we'll lean into what stuck.",
             opts: [
                 ("homeWorkouts", "home workouts",  nil, "house"),
@@ -722,7 +773,7 @@ struct OnboardingView: View {
             // long enough.") was too literary for Gen-Z attention
             // span. Same enum values preserved.
             "what's the real reason?",
-            sub: "no judgment.",
+            sub: nil,  // v3 her75 editorial register — drop labor sub
             opts: [
                 ("getShaped",  "look like myself",  nil, "sparkles"),
                 ("lookBetter", "be in my photos",   nil, "camera"),
@@ -739,7 +790,7 @@ struct OnboardingView: View {
             // dropped em-dash + subtitle + clause-heavy phrasing.
             // Each option now 2-4 words, no punctuation drama.
             "where are you with this?",
-            sub: "no shame, any answer works.",
+            sub: nil,  // v3 her75 editorial register
             opts: [
                 ("never",     "starting from zero",  nil, "moon.zzz"),
                 ("gaveUp",    "tried, didn't stick", nil, "arrow.uturn.backward"),
@@ -759,7 +810,7 @@ struct OnboardingView: View {
 
         case 120: jfQuestion(
             "Where will you train?",
-            sub: "We tune the moves so they fit your space.",
+            sub: nil,  // v3 her75 editorial register
             opts: [
                 ("home",    "At home",     "Living room, bedroom, anywhere", "house"),
                 ("gym",     "At the gym",  "Equipment access, classes",      "dumbbell.fill"),
@@ -788,7 +839,7 @@ struct OnboardingView: View {
 
         case 25: jfQuestion(
             "how much time can you actually give?",
-            sub: "the smallest answer is also the smartest one for beginners.",
+            sub: nil,  // v3 her75 editorial register
             opts: [
                 ("five",    "5 minutes",  "Quick reset",           "5.circle"),
                 ("ten",     "10 minutes", "Solid daily routine",   "10.circle"),
@@ -800,7 +851,7 @@ struct OnboardingView: View {
 
         case 17: jfQuestion(
             "let's pick something you'll actually show up for.",
-            sub: "five days is the sweet spot. three is honest. seven is rare.",
+            sub: nil,  // v3 her75 editorial register
             opts: [
                 ("three", "3 days", "Easing in",    "3.circle"),
                 ("five",  "5 days", "Recommended",  "5.circle"),
@@ -816,7 +867,7 @@ struct OnboardingView: View {
         // ─── Part 3 — About you (biometrics) ────────────────────
         case 130: jfQuestion(
             "What's your gender?",
-            sub: "We adjust your plan based on this.",
+            sub: nil,  // v3 her75 editorial register
             opts: [
                 ("female",    "Female",            nil, "person.fill"),
                 ("male",      "Male",              nil, "person.fill"),
@@ -830,7 +881,7 @@ struct OnboardingView: View {
 
         case 131: jfSliderScreen(
             "how tall are you?",
-            sub: "calibrates your plan.",
+            sub: nil,  // v3 her75 editorial register
             valueMetric: $heightCm,
             metric: Self.heightMetricRuler,
             imperial: Self.heightImperialRuler,
@@ -841,7 +892,7 @@ struct OnboardingView: View {
 
         case 132: jfHorizontalSliderScreen(
             "what's your current weight?",
-            sub: "we round to the kilo. just for your plan.",
+            sub: nil,  // v3 her75 editorial register
             valueMetric: $currentWeightKg,
             metric: Self.weightMetricRuler,
             imperial: Self.weightImperialRuler,
@@ -879,7 +930,7 @@ struct OnboardingView: View {
             // sensitive disclosures lifts conversion materially.
             confirmation: "thank you. that's the hard one. ♥",
             annotation: {
-                goalWeightAnnotation(currentKg: currentWeightKg, goalKg: goalWeightKg)
+                goalWeightAnnotation(currentKg: currentWeightKg, goalKg: goalWeightKg, heightCm: heightCm)
             }
         )
         .onAppear {
@@ -941,14 +992,24 @@ struct OnboardingView: View {
             ZStack {
                 StickerScatter(placements: Self.identityPlacements)
                 jfQuestion(
-                    "Which one feels most like the new you?",
-                    sub: "Pick the version that's pulling you forward.",
+                    // v3 P11.1 deferred (BetterMe A2 + her75 register):
+                    // lowercased headline, dropped Title-Case sub, and
+                    // converted the 1-word labels into self-narration
+                    // ("calm · at home in my own skin") so each tap
+                    // commits the user to the identity per Bem 1972.
+                    // Italic punch deferred — jfQuestion headline path
+                    // doesn't accept italicWords yet; a future refactor
+                    // could swap to ItalicAccentText. Per [[feedback-
+                    // no-italic-markdown-markers]] NEVER use `*word*`
+                    // literals here.
+                    "which one is the new you?",
+                    sub: nil,
                     opts: [
-                        ("powerful", "Powerful", "Confident, undeniable",   nil),
-                        ("calm",     "Calm",     "At home in my body",      nil),
-                        ("light",    "Light",    "Free, unburdened",        nil),
-                        ("strong",   "Strong",   "Capable, grounded",       nil),
-                        ("radiant",  "Radiant",  "Glowing from inside out", nil),
+                        ("powerful", "powerful · confident, undeniable",   nil, nil),
+                        ("calm",     "calm · at home in my own skin",      nil, nil),
+                        ("light",    "light · free, unburdened",           nil, nil),
+                        ("strong",   "strong · capable, grounded",         nil, nil),
+                        ("radiant",  "radiant · glowing from the inside",  nil, nil),
                     ],
                     // Routes to E1-d (case 233, cycle awareness) →
                     // N1 (235, "this month signals") → 141 reward Q.
@@ -1164,7 +1225,7 @@ struct OnboardingView: View {
 
         case 158: jfQuestion(
             "how many serious attempts in the last few years?",
-            sub: "no shame either way.",
+            sub: nil,  // v3 her75 editorial register
             opts: [
                 ("none",       "first time",   nil, "leaf"),
                 ("one_two",    "1 or 2",       nil, "1.circle"),
@@ -1191,7 +1252,7 @@ struct OnboardingView: View {
             // pill stack off-screen on smaller iPhones. walking_more
             // enum value kept in the data model but unused in the UI.
             "what's worked, even briefly?",
-            sub: "any progress counts.",
+            sub: nil,  // v3 her75 editorial register
             opts: [
                 ("moving_daily",  "daily movement",  nil, "figure.walk"),
                 ("eating_window", "eating window",   nil, "clock"),
@@ -1223,8 +1284,13 @@ struct OnboardingView: View {
         // Routes to case 110 (next in v2 flow after the wedge).
         // resolveNext handles the old `next: 201` fallback for v1.
         case 169: jfMulti(
-            "what's on your *plate* most?",
-            sub: "multi-pick — helps jeni read your meals better.",
+            // 2026-06-10 — shortened from "what's on your plate most?"
+            // (2 lines at the her75 hero scale) to 1 line so the option
+            // pills + Continue stop crowding the viewport.
+            "what's on your plate?",
+            // em-dash between words violated [[feedback-no-em-dash]];
+            // collapsed to a single short sub line.
+            sub: "pick all the ones that show up often.",
             opts: [
                 ("american",      "american",      nil, nil),
                 ("italian",       "italian",       nil, nil),
@@ -1249,15 +1315,53 @@ struct OnboardingView: View {
             next: 110
         )
 
+        // v9 P9.9 (her75 + conversion-expert spec, 2026-06-10) — the
+        // commitment-moment screen that replaces the cut body-image
+        // sliders (134/135). Multi-select NSV cards. Founder reasoning:
+        // body-image visualization is a conversion-load-bearing
+        // "I'm picking the version of me I want" hook (+21% trial-to-
+        // paid lift per Adapty 2026), but the AI-rendered women asset
+        // was off-brand for the her75 register. Outcome cards preserve
+        // the commitment moment in a brand-safe vehicle + collect a
+        // downstream-useful NSV signal we didn't have before.
+        case 136: jfMulti(
+            "what lands first?",
+            sub: "pick what you'll feel before the scale moves.",
+            opts: [
+                ("core",    "core that holds",         nil, "figure.core.training"),
+                ("energy",  "energy that lasts",       nil, "bolt"),
+                ("clothes", "clothes that fit right",  nil, "tshirt"),
+                ("sleep",   "sleep that resets",       nil, "moon.stars"),
+            ],
+            sel: Binding<Set<String>>(
+                get: {
+                    Set(nsvPriorityCSV
+                        .split(separator: ",")
+                        .map(String.init)
+                        .filter { !$0.isEmpty })
+                },
+                set: { newValue in
+                    nsvPriorityCSV = newValue.sorted().joined(separator: ",")
+                }
+            ),
+            next: 160,
+            confirmation: "we'll watch for these."
+        )
+
         case 162: jfQuestion(
             "what is food, mostly?",
-            sub: "we match the tone to this.",
+            sub: nil,  // v3 her75 editorial register
+            // v3 P11.1 deferred (BetterMe A2) — self-narration option
+            // labels. The user hears "I am someone who..." in her head
+            // as she taps. Self-perception theory (Bem 1972) — naming
+            // the relationship commits to it. Each label is a complete
+            // first-person sentence the user can imagine saying out loud.
             opts: [
-                ("fuel",         "fuel",        nil, "bolt"),
-                ("comfort",      "comfort",     nil, "heart"),
-                ("love",         "love",        nil, "heart.text.square"),
-                ("control",      "control",     nil, "slider.horizontal.3"),
-                ("complicated",  "complicated", nil, "circle.dashed"),
+                ("fuel",         "fuel · i eat to function",                       nil, "bolt"),
+                ("comfort",      "comfort · food is how i decompress",             nil, "heart"),
+                ("love",         "love · cooking + sharing is the joy",            nil, "heart.text.square"),
+                ("control",      "control · i over-monitor, then crash",           nil, "slider.horizontal.3"),
+                ("complicated",  "complicated · it's not a clean answer",          nil, "circle.dashed"),
             ],
             // Delta v7 — routes to the new pre-eat permission wedge
             // (case 166) instead of the sleep Q. The food block now
@@ -1279,7 +1383,12 @@ struct OnboardingView: View {
 
         case 163: jfQuestion(
             "what stage are you in?",
-            sub: "we adjust to where your body is.",
+            // sub dropped 2026-06-10 — was "we adjust to where your
+            // body is.", which restated what the trust anchor below
+            // already says ("hormonal stage shifts hunger, energy,
+            // and recovery"). Two near-identical sub-lines were
+            // pushing the option pills + Continue button off-screen.
+            sub: nil,
             opts: [
                 ("cycling",         "cycling regularly",   nil, "calendar"),
                 ("irregular",       "irregular cycle",     nil, "calendar.badge.exclamationmark"),
@@ -1291,6 +1400,15 @@ struct OnboardingView: View {
             sel: $hormonalStage, next: 164,
             // C5: affirmation beat after hormonal disclosure.
             confirmation: "we adjust for this.",
+            // v3 P11.1.A (2026-06-10) — BetterMe A4 duty-of-care
+            // inline cards. Renders only on cohort-specific selections
+            // where actual program adaptation is required. NOT
+            // scolding, NOT a warning — signals care + competence.
+            inlineFeedback: [
+                "postpartum":    ("we adjust for postpartum.", "no plank or supine work for the first 6 weeks. talk to your doctor before starting any program."),
+                "perimenopause": ("we adjust for peri.", "we lean into strength + sleep cues. hunger and mood ride differently here, and we factor that in."),
+                "irregular":     ("we adjust for irregular cycles.", "we don't anchor the plan to a textbook 28-day cycle. expect more weight-by-week, less day-by-day."),
+            ],
             trustAnchor: WeAskBecauseRow(
                 citation: nil,
                 reason: "hormonal stage shifts hunger, energy, and recovery.",
@@ -1298,48 +1416,45 @@ struct OnboardingView: View {
             )
         )
 
-        // ─── v2 / Delta v7 D67 — Commitment confidence ───────────
-        // Single screen, single-select. Pure investment question per
-        // Cal AI's 2025 onboarding teardown (Superwall public data —
-        // +1.7× trial-to-paid for users who pass through the
-        // commitment beat). The answer never gates anything; the act
-        // of putting a stake in is the value. Voice-locked: lowercase
-        // chips, italic-Fraunces on punch word, no shame.
-        // Inserted between 142 (comparison frame) and 145 (video
-        // demo) — right before the heavy investment battery + reveal.
-        // Only routed in v2 flow; v1 users skip past via resolveNext.
-        case 165: jfQuestion(
-            "how confident are you you'll show up for 3 days?",
-            sub: "honest. there's no wrong answer.",
-            opts: [
-                ("very",    "very — i'm in",      nil, "sparkles"),
-                ("fairly",  "i think so",         nil, "checkmark.circle"),
-                ("trying",  "trying my best",     nil, "heart"),
-                ("unsure",  "honestly unsure",    nil, "questionmark.circle"),
-            ],
-            sel: $commitConfidence, next: 145,
-            confirmation: "stake's in. ♥"
-        )
+        // ─── v3 C1 (2026-06-10) — case 165 (commitConfidence) CUT ──
+        // Delta v7 D67 commitment-confidence Q was a pure psychological
+        // beat (the act of staking in was the value). After 9 months of
+        // data, `onboardingCommitConfidence` was never read by any
+        // downstream consumer (paywall, generator, notifs, Becoming).
+        // The Cal AI sunk-cost lock from S4 sign-in (P11.1.C) covers
+        // the same mechanism more honestly. AppStorage key retained
+        // for migration safety; the question is gone.
 
-        // ─── Delta v8 D73 — pace selector (case 167) ───────────────
-        // Single highest-leverage question per the WL expert brief
-        // studying Cal AI (calai8/20/17/19 sloth/hamster/panther →
-        // JeniFit's coquette flower3D / cherry / heart stickers).
-        // The pace choice does Bandura self-efficacy (informed pace
-        // selection = ownership) + Sunsteinian default anchoring
-        // (steady is recommended, not selected automatically) +
-        // commitment-via-informed-consent. NO red warning chip per
-        // Culture brief — anti-shame violation.
+        // ─── v3 P11.1.B (2026-06-10) — pace selector upgraded ──────
+        // Cal AI S2 spec from `docs/onboarding_v3_addlist_synthesis_
+        // 2026_06_10.md`. Now ships:
+        //  - Live "weeks to becoming" callout per tier (was hardcoded
+        //    static ranges); ACSM 0.5 / 0.75 / 1.0 %/wk band applied to
+        //    the user's actual weight delta.
+        //  - Coquette stickers (seashell / bowIridescent / sparkleGlossy)
+        //    in place of SF Symbols (tortoise/hare/flame) — the asset
+        //    pack already ships these per [[feedback-design-theme]].
+        //  - Care framing on focused tier (NO red triangle, NO loose-
+        //    skin language — both rejected per Cal AI teardown §4 #4).
+        //
+        // Per the synthesis: "the single most-screenshotted onboarding
+        // screen on Reddit; pace selectors with live-update callouts
+        // lift commitment-phase conversion +12-18%." Originating screen:
+        // calai13/14/15.
         case 167: jfQuestion(
-            "*how* do you want to get there?",
-            sub: "we calibrate the calorie target to your pace.",
-            opts: [
-                ("gentle",  "gentle",   "12-16 weeks · easier to sustain",      "tortoise"),
-                ("steady",  "steady",   "8-12 weeks · most chosen pace",        "hare"),
-                ("focused", "focused",  "6-10 weeks · stay consistent",         "flame"),
-            ],
+            "how do you want to get there?",
+            sub: nil,  // v3 her75 editorial register — pace selector goes silent
+            opts: paceSelectorOpts(),
             sel: $paceChoice, next: 203,
-            confirmation: "got it ♥"
+            confirmation: "got it ♥",
+            inlineFeedback: [
+                "focused": ("we'll match the pace.", "moves quickly. sleep + protein floor matter more here than calorie math. soft week when life gets loud ♥"),
+            ],
+            stickers: [
+                "gentle":  .seashell,
+                "steady":  .bowIridescent,
+                "focused": .sparkleGlossy,
+            ]
         )
 
         // ─── Delta v8 D87 — sunk-cost activation (case 168) ────────
@@ -1349,8 +1464,8 @@ struct OnboardingView: View {
         // Slot between attribution (100) and food relationship (162)
         // so it lands BEFORE the food wedge.
         case 168: jfQuestion(
-            "tried *everything* already?",
-            sub: "no judgment — we build from where you are.",
+            "tried everything already?",
+            sub: nil,  // v3 her75 editorial register
             opts: [
                 ("first",       "this is my first real try",   nil, "sparkles"),
                 ("fewTimes",    "yes, a few times",            nil, "checkmark.circle"),
@@ -1361,8 +1476,8 @@ struct OnboardingView: View {
         )
 
         case 164: jfQuestion(
-            "any weight-related medication right now?",
-            sub: "honest either way.",
+            "any weight meds right now?",
+            sub: nil,  // v3 her75 editorial register
             opts: [
                 ("none",         "no",                nil, "leaf"),
                 ("considering",  "considering it",    nil, "questionmark.circle"),
@@ -1379,11 +1494,222 @@ struct OnboardingView: View {
             // reciprocity-beat — research shows the latter converts
             // higher in TikTok-acquired Gen-Z WL).
             confirmation: "thank you for being honest ♥",
+            // v3 P11.1.A (2026-06-10) — BetterMe A4 duty-of-care
+            // inline cards for GLP-1 cohort (~30% of v1 traffic per
+            // [[feedback-calorie-competitor-landscape-2026]]). Care
+            // framing + concrete adaptation, never satire of the meds.
+            inlineFeedback: [
+                "current":     ("we adjust for GLP-1.", "satiety-aware portions, protein floor, no restrictive windows. we lean into what your appetite is already telling you."),
+                "past":        ("we adjust for post-GLP-1.", "the first 12 weeks off-meds are about keeping what you built. we match the cadence + protein."),
+                "considering": ("med or no med, we work.", "the plan reads your data the same way either path you choose ♥"),
+            ],
             trustAnchor: WeAskBecauseRow(
                 citation: "endocrine society 2025",
-                reason: "GLP-1s shift ~40% of weight loss to lean mass — your program protects what matters.",
+                reason: "GLP-1s shift ~40% of loss to lean mass. your program protects what matters.",
                 italicWords: ["lean mass", "protects"]
             )
+        )
+
+        // ─── v3 P11.1.C (2026-06-10) — Apple Health relocate (285) ──
+        //
+        // Cal AI S5 — HK ask moved from post-reveal (PairedPermissionsAsk
+        // tail of OnboardingRevealView) to mid-onboarding. Originating
+        // pattern: calai23. By moving HK ahead of the plan reveal, the
+        // projection screen can cite the user's actual steps baseline,
+        // and the post-reveal moment doesn't carry permission friction.
+        // +5-9% paywall→trial + +1.4× Day-7 retention (Adapty 2026).
+        //
+        // Slot: between case 284 (consent) and 234 (plateau teach). The
+        // consent screen has just established what we'll use her data
+        // for — HK ask lands as the natural next beat of "yes, pull
+        // what you already track."
+        //
+        // PairedPermissionsAsk (in OnboardingRevealView) becomes
+        // notifications-only after this lands — HK has already fired.
+        case 285: HealthKitPermissionScreen(onAdvance: { go(234) })
+
+        // ─── v3 P11.1.C (2026-06-10) — 2-checkbox consent (case 284) ──
+        //
+        // BetterMe A6 explicit health-data consent. Friction-positive:
+        // explicit consent IS a commitment device (Cialdini foot-in-
+        // the-door). Personalize is the required gate; day-2 check-in
+        // is opt-out + unlocks the trial-week notification system per
+        // [[project-trial-week-notifications]] with explicit
+        // affirmative consent rather than just OS-permission grant.
+        // Slot: after name (18), before plateau teach (234) — final
+        // commit beat before the educational + reveal lands.
+        case 284: VStack(spacing: 0) {
+            Spacer()
+            ItalicAccentText(
+                "before we build your plan.",
+                italic: ["build"],
+                baseFont: Typo.heroHeadline,
+                italicFont: Typo.heroHeadlineItalic,
+                color: Palette.textPrimary,
+                alignment: .leading
+            )
+            .kerning(-0.4)
+            .lineSpacing(Typo.heroHeadlineLineGap)
+            .padding(.horizontal, Space.screenPadding)
+            Spacer().frame(height: Space.xl)
+            VStack(spacing: 12) {
+                consentRow(
+                    isOn: $consentPersonalize,
+                    title: "use my answers to personalize my plan",
+                    italicWord: "personalize",
+                    required: true
+                )
+                consentRow(
+                    isOn: $consentDay2,
+                    title: "send me a day-2 check-in so i don't lose momentum",
+                    italicWord: "day-2",
+                    required: false
+                )
+            }
+            .padding(.horizontal, Space.lg)
+            Spacer()
+            // v3 P11.6 — JFContinueButton (required gate via isEnabled).
+            JFContinueButton(
+                label: "i agree",
+                action: { go(234) },
+                isEnabled: consentPersonalize
+            )
+        }
+
+        // ─── v3 P11.1.B (2026-06-10) — Reciprocity beat (case 282) ──
+        //
+        // Cal AI A7 dedicated reciprocity screen. Originally shipped
+        // with a Grok 3D-sticker illustration (heart-padlock); pulled
+        // 2026-06-10 per founder QA — Grok abstract stickers clashed
+        // with the cream bg + didn't carry her75 editorial weight.
+        // Now pure typography per the her75 simplest-screens register
+        // ("Personalizing *your* space" pattern from IMG_6280). Art
+        // direction pending design + cultural + art expert teardown
+        // — when locked, swap in either a real-photo collage or a
+        // curated coquette-sticker arrangement that holds editorial
+        // weight at hero size.
+        case 282: bridgeScreen(
+            headline: "thank you for being honest.",
+            italicWords: ["honest."],
+            sticker: nil,
+            next: 171  // routes to first psychometric fear
+        )
+
+        // ─── v3 P11.1.B (2026-06-10) — Cohort credibility (case 283) ──
+        //
+        // BetterMe A5 cohort-specific social proof. Pattern-language
+        // (not a fabricated count) until ~250 paid users land. Slot:
+        // late Ch1 after the sunk-cost activation Q (168).
+        //
+        // Grok bow-huddle illustration pulled 2026-06-10 per founder
+        // QA. Pending art-direction decision (her75 photo collage vs
+        // curated sticker arrangement vs pure typography). For now,
+        // pure typography + sub line — restraint per the her75
+        // simplest-screens register.
+        case 283: VStack(spacing: 0) {
+            Spacer()
+            ItalicAccentText(
+                "women like you are already inside.",
+                italic: ["like you"],
+                baseFont: Typo.heroHeadline,
+                italicFont: Typo.heroHeadlineItalic,
+                color: Palette.textPrimary,
+                alignment: .center
+            )
+            .kerning(-0.4)
+            .lineSpacing(Typo.heroHeadlineLineGap)
+            .padding(.horizontal, Space.screenPadding)
+            Spacer().frame(height: Space.lg)
+            Text("women 25-34 with food noise as the #1 barrier — your patterns match.")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Space.lg)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer()
+            // v3 P11.6 — JFContinueButton for her75-register consistency.
+            JFContinueButton(label: "continue") { go(162) }
+        }
+
+        // ─── v3 P11.1.B (2026-06-10) — Bridge screens ────────────────
+        //
+        // BetterMe A3 affirmation-only pauses between major chapter
+        // transitions. Pacing variance lifts completion 3-5% (Adapty
+        // 2026); the screen reads as the brand acknowledging the
+        // user mid-flow rather than just extracting answers. Slot:
+        //   - 280: between case 17 (commit days, Ch2 end) and case 231
+        //          (gender, Ch3 start) — "now the numbers" softener
+        //   - 281: between case 164 (GLP-1, last vulnerability) and
+        //          171 (first psychometric fear) — recognition pause
+        //          before the dichotomous-commitment Qs land.
+
+        case 280: bridgeScreen(
+            headline: "now the numbers.",
+            italicWords: ["numbers."],
+            sticker: .seashell,
+            next: 231
+        )
+
+        case 281: bridgeScreen(
+            headline: "this part is the honest part.",
+            italicWords: ["honest"],
+            sticker: .fluffyHeart,
+            next: 171
+        )
+
+        // ─── v3 P11.1.B (2026-06-10) — Psychometric Yes/No fears ────
+        //
+        // BetterMe S2 pattern (betterme22-23). Bem 1972 self-perception:
+        // fear-coded first-person statements force dichotomous identity
+        // commitment. The cohort either names the fear (now JeniFit is
+        // the resolver, and downstream paywall + Day-2 notif can
+        // resurface the named fear as a resolved promise) OR denies it
+        // (cheap tap forward). Either branch advances.
+        //
+        // Slot: between case 164 (GLP-1, the last vulnerability Q) and
+        // case 260 (tier ladder). The user has already invested ~40+
+        // screens by here; the fears land as recognition, not extraction.
+        //
+        // Per [[feedback-her75-editorial-register]] the jfYesNo helper's
+        // prefix/italic/suffix triplet acts as the headline — no
+        // explanatory sub. Italic falls on the verb that carries the
+        // fear's *meaning* ("promise", "another", "given up").
+
+        case 171: jfYesNo(
+            prefix: "i don't trust apps that ",
+            italic: "promise",
+            suffix: " quick results.",
+            sticker: .heartLock,
+            bind: Binding<Bool?>(
+                get: { fearQuickResults == "yes" ? true : (fearQuickResults == "no" ? false : nil) },
+                set: { fearQuickResults = $0 == true ? "yes" : ($0 == false ? "no" : "") }
+            ),
+            next: 172
+        )
+
+        case 172: jfYesNo(
+            prefix: "i'm afraid this is going to feel like ",
+            italic: "another",
+            suffix: " diet.",
+            sticker: .peach,
+            bind: Binding<Bool?>(
+                get: { fearAnotherDiet == "yes" ? true : (fearAnotherDiet == "no" ? false : nil) },
+                set: { fearAnotherDiet = $0 == true ? "yes" : ($0 == false ? "no" : "") }
+            ),
+            next: 173
+        )
+
+        case 173: jfYesNo(
+            prefix: "i've tried this before and ",
+            italic: "given up",
+            suffix: " after the first hard day.",
+            sticker: .fluffyHeart,
+            bind: Binding<Bool?>(
+                get: { fearPriorAttempt == "yes" ? true : (fearPriorAttempt == "no" ? false : nil) },
+                set: { fearPriorAttempt = $0 == true ? "yes" : ($0 == false ? "no" : "") }
+            ),
+            next: 260,
+            confirmation: "we hear you. ♥"
         )
 
         // ─── Part 6 — Ready to start ────────────────────────────
@@ -1404,20 +1730,96 @@ struct OnboardingView: View {
                 )
             }
 
-        case 11: jfQuestion(
-            "When should we send your daily reminder?",
-            sub: "You'll get one notification at this time, every day.",
-            opts: [
-                ("morning",   "Morning",   "Around 7 AM",   "sunrise.fill"),
-                ("afternoon", "Afternoon", "Around 1 PM",   "sun.max.fill"),
-                ("evening",   "Evening",   "Around 7 PM",   "moon.stars.fill"),
-                ("whenever",  "Whenever",  "Around 9 AM",   "shuffle"),
-            ],
-            sel: $plankTime, next: 18,
-            inlineFeedback: [
-                "morning": ("Solid pick.", "Mornings stick best — you'll be done before the day pulls at you."),
-            ]
-        )
+        // v3 P11.1.C (2026-06-10) — Cal AI A8 notification pre-prime.
+        // Was: "When should we send your daily reminder?" — labor-coded.
+        // Now: her75 hero "want a nudge from *jeni*?" + mockup iOS
+        // notification preview visual + time-of-day pills. The mockup
+        // primes the iOS permission dialog that fires later (+34% allow
+        // rate per Apple dev session 2024). NO pointing-finger emoji.
+        case 11: VStack(spacing: 0) {
+            // v3 P11.6 density pass (2026-06-10):
+            //   - Wrapped scroll content in a ScrollView so the screen
+            //     handles iPhone 13 mini's ~736pt viewport gracefully.
+            //   - Mockup notification card kept (primes iOS permission)
+            //     but body text trimmed from 11 words to 6 so the
+            //     2-line wrap collapses to 1 on standard widths.
+            //   - Reduced from 4 time-of-day pills to 3 (dropped
+            //     "whenever" — it read as a non-answer; "morning" is
+            //     the default anchor per the Solid Pick inlineFeedback).
+            //   - Mockup-to-pills gap tightened (Space.xl → Space.md).
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    jfHeader("want a nudge from jeni?")
+                        .padding(.top, Space.md)
+                    Spacer().frame(height: Space.lg)
+                    HStack(spacing: 10) {
+                        Image("AppIcon-Preview")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 32, height: 32)
+                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            .background(
+                                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                    .fill(Palette.accent)
+                                    .frame(width: 32, height: 32)
+                            )
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack {
+                                Text("jenifit")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(Palette.textPrimary)
+                                Spacer()
+                                Text("now")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Palette.textSecondary)
+                            }
+                            ItalicAccentText(
+                                "gentle morning — your plan's waiting ♥",
+                                italic: ["gentle morning"],
+                                baseFont: .system(size: 13),
+                                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13),
+                                color: Palette.textPrimary,
+                                alignment: .leading
+                            )
+                            .lineLimit(1)
+                        }
+                    }
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Palette.bgElevated)
+                            .shadow(color: Palette.cocoaPrimary.opacity(0.08), radius: 8, x: 0, y: 4)
+                    )
+                    .padding(.horizontal, Space.screenPadding)
+                    Spacer().frame(height: Space.md)
+                    VStack(spacing: 10) {
+                        ForEach([
+                            ("morning",   "morning",   "around 7 am",   "sunrise"),
+                            ("afternoon", "afternoon", "around 1 pm",   "sun.max"),
+                            ("evening",   "evening",   "around 7 pm",   "moon.stars"),
+                        ], id: \.0) { opt in
+                            OnboardingOptionCard(
+                                icon: opt.3,
+                                title: opt.1,
+                                subtitle: opt.2,
+                                isSelected: plankTime == opt.0,
+                                action: {
+                                    Haptics.light()
+                                    plankTime = opt.0
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, Space.screenPadding)
+                    .padding(.bottom, Space.md)
+                }
+            }
+            JFContinueButton(
+                label: "continue",
+                action: { advance(to: 18, confirmation: nil) },
+                isEnabled: !plankTime.isEmpty
+            )
+        }
 
         case 18: nameInput
         case 19: coachSelector
@@ -1603,42 +2005,72 @@ struct OnboardingView: View {
         //
         // Delta v8 D87 — sunk-cost activation Q FIRST (case 168).
         168,
+        // v3 P11.1.B (2026-06-10) — cohort credibility slot (case 283,
+        // BetterMe A5). Patterns-match copy (NOT a fabricated count)
+        // sits right after the sunk-cost activation Q so the user has
+        // stated intent before social proof tries to validate it. Swap
+        // pattern copy for real count when ~250 paid users land.
+        283,
         //
         // Delta v7 + v8 — FOOD WEDGE early. Diet-first pivot signal.
         //   162 (food relationship) → 166 (pre-eat permission wedge,
         //   educational) → 156 (eating cadence) → 157 (eating window) →
-        //   159 (prior one-thing-worked) → 169 (cuisine multi-select,
-        //   feeds the vision system prompt for cohort accuracy).
-        162, 166, 156, 157, 159, 169,
+        //   159 (prior one-thing-worked).
+        //
+        // v3 C6 (2026-06-10) — cut 169 (cuisine multi-select). The
+        // cuisine signal is only consumed by FoodSettings + the food
+        // vision prompt; collect it in-app post-paywall instead of
+        // adding the friction screen here. Per the Cal AI + BetterMe
+        // teardown synthesis.
+        162, 166, 156, 157, 159,
         //
         // Act 2 — Workout/activity (demoted, post-food-wedge).
-        // Delta v8 D83 (2026-06-06): cut 201 (section divider —
-        // 200/203/205 keep the section beat; 201/202/204 were
-        // redundant), 111 (overlaps 140 identity feeling), 232
-        // (5-min educational interlude reads as filler — the
-        // session-length Q itself carries the framing).
+        // v3 C2 (2026-06-10) — cut 270 (habit-window quiz). The
+        // educational quiz read 0 downstream consumers (`habitQuizSelected`
+        // is set but never read); no signal value, only friction.
         110, 2, 8, 25, 17,
-        270,
+        // v3 P11.1.B bridge #1 — "now the numbers" pause before Ch3
+        // biometric cluster. BetterMe A3 pacing variance.
+        280,
         // Act 3 — Biometric core. D83 cut 202 (section divider).
-        // 135 was D83-cut on the rationale that "goal-state body is
-        // already implicit in the weight-goal Qs" — RESTORED
-        // 2026-06-07 per founder review. The goal body-type screen
-        // is a distinct visual-identity signal that the weight-goal
-        // numbers don't capture (the user picks a shape, not a kg
-        // delta), and it's the pair-screen the user expects after
-        // picking a starting body type.
-        231, 130, 7, 131, 132, 133, 134, 135,
+        // v9 P9.8/P9.9 (founder QA 2026-06-10): CUT 134 + 135 (body-
+        // image slider screens with AI-rendered women in athleisure)
+        // — off-brand for the her75 register. The conversion-load-
+        // bearing commitment moment is now case 136 (NSV outcome
+        // cards), positioned in the same slot. Both her75 designer
+        // and the Gen-Z conversion expert independently specced this
+        // replacement pattern.
+        231, 130, 7, 131, 132, 133, 136,
         160, 161,
         // Delta v8 D73 — pace selector (case 167).
         167,
         // Act 4 — Vulnerability + cohort signal. D83 cut 235
         // (month-signals — hormonal stage 163 captures the same
         // cycle-awareness signal at lower vulnerability cost).
-        203, 140, 233, 158, 154, 155, 163, 164, 142,
-        // Delta v7 D67 — commitment confidence (165).
-        165,
-        145,
-        170,
+        //
+        // v3 C4 (2026-06-10) — cut 142 (comparison frame). Off-brand
+        // "you vs them" copy; replaced by the cohort-credibility slot
+        // in P11.1.B (BetterMe A5 pattern, real cohort framing not
+        // adversarial comparison).
+        203, 140, 233, 158, 154, 155, 163, 164,
+        // v3 P11.1.B reciprocity beat (case 282, Cal AI A7) — dedicated
+        // screen acknowledging the vulnerable disclosures. Goes BEFORE
+        // the bridge #2 + psychometric fears so the trust compound
+        // lands while the disclosure is still fresh.
+        282,
+        // v3 P11.1.B bridge #2 — "honest part" pause before the
+        // psychometric fears land. Softens the dichotomous tone.
+        281,
+        // v3 P11.1.B (2026-06-10) — BetterMe S2 psychometric Yes/No
+        // fears. 3 fear-coded first-person statements (Bem 1972
+        // self-perception). Slot between vulnerability cluster and
+        // tier ladder so the user has already invested ~40 screens
+        // and the fears land as recognition, not extraction.
+        171, 172, 173,
+        // v3 cuts (2026-06-10) — C1: 165 (commitConfidence, fully
+        // dead — written, never read). C5: 145 (video demo, defer
+        // A/B v1.5). C3: 170 (re-prediction, redundant with 161
+        // first prediction — same numbers, same chrome).
         260,
         // Act 5 — Reveal + commit. D83 cut 204 (section divider).
         // Delta v8 D82 final tail: reveal → sign-in → rating → finish.
@@ -1658,12 +2090,70 @@ struct OnboardingView: View {
         // on the post-reveal + post-commit high.
         153,
         206,
-        205, 3, 11, 18, 19,
+        // v9 P9.8 — case 19 (coach selector) cut per founder QA
+        // 2026-06-10. Default to Jeni until Kira + Sam are app-wide
+        // production-ready; conversion expert confirmed LOW risk
+        // (coach pickers are retention levers, not trial-start
+        // levers). Discoverability moves to Settings > "your coach"
+        // post-paywall.
+        205, 3, 11, 18,
+        // v3 P11.1.C (2026-06-10) — 2-checkbox consent (BetterMe A6).
+        // Final commit beat before the plateau teach + plan reveal.
+        284,
+        // v3 P11.1.C (2026-06-10) — Apple Health relocate (Cal AI S5).
+        // HK ask lands here (mid-onboarding) so the projection can cite
+        // real steps. PairedPermissionsAsk in OnboardingRevealView is
+        // now notifications-only.
+        285,
         234, 21, 250, 26, 215, 23,
     ]
 
     private var flowOrder: [Int] {
         onboardingV2Enabled ? Self.v2FlowOrder : Self.v1FlowOrder
+    }
+
+    // ── v3 chapter IA (2026-06-10, BetterMe S3 pattern) ─────────────
+    //
+    // 5-chapter map. Surfaces a tiny lowercase eyebrow above the
+    // progress bar so each new chapter is felt as a sub-goal
+    // (Kivetz et al. 2006 goal-gradient). Post-reveal cases
+    // (250, 26, 215, 23) are intentionally absent — "almost there"
+    // stops being accurate the moment the plan has been shown.
+    private static let chapterMap: [Int: Int] = [
+        // 1 — about you
+        200: 1, 230: 1, 1: 1, 100: 1, 168: 1, 283: 1,  // cohort credibility (P11.1.B)
+        // 2 — your *rhythm*
+        162: 2, 166: 2, 156: 2, 157: 2, 159: 2,
+        110: 2, 2: 2, 8: 2, 25: 2, 17: 2,
+        // 3 — what *fits*
+        280: 3,  // bridge "now the numbers" (P11.1.B)
+        231: 3, 130: 3, 7: 3, 131: 3, 132: 3, 133: 3, 136: 3,
+        160: 3, 161: 3, 167: 3,
+        // 4 — your *why*
+        203: 4, 140: 4, 233: 4, 158: 4, 154: 4, 155: 4, 163: 4, 164: 4,
+        282: 4,  // reciprocity beat after vulnerability cluster (P11.1.B)
+        281: 4,  // bridge "honest part" before psychometric fears (P11.1.B)
+        171: 4, 172: 4, 173: 4,  // psychometric Yes/No fears (P11.1.B)
+        260: 4, 153: 4, 206: 4,
+        // 5 — *almost there*  (BetterMe S4 — sunk-cost amplifier on
+        // the highest-friction screens, pre-reveal only)
+        205: 5, 3: 5, 11: 5, 18: 5, 284: 5, 285: 5, 234: 5, 21: 5,
+    ]
+
+    private var currentChapter: Int { Self.chapterMap[screen] ?? 0 }
+
+    /// Returns (base lowercase text, italic punch word).
+    /// Chapter 1 has no italic word; later chapters always italicize
+    /// the punch word per the locked her75 typography rule.
+    fileprivate static func chapterEyebrowParts(_ idx: Int) -> (base: String, italic: String)? {
+        switch idx {
+        case 1: return ("about you", "")
+        case 2: return ("your rhythm", "rhythm")
+        case 3: return ("what fits", "fits")
+        case 4: return ("your why", "why")
+        case 5: return ("almost there", "almost there")
+        default: return nil
+        }
     }
 
     // Highest flowOrder position the user has reached so far. Updated
@@ -1680,25 +2170,67 @@ struct OnboardingView: View {
     }
 
     private var navBar: some View {
-        HStack(spacing: Space.sm) {
-            Button { Haptics.light(); goBack() } label: {
-                Image(systemName: "arrow.left").font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(Palette.textPrimary).frame(width: 40, height: 40)
+        // v9 P9.6 — founder QA 2026-06-10: the right-aligned 40% chip
+        // (P8.9 v1) read as a header decoration, not a progress bar,
+        // because the ~60-screen onboarding never visibly filled it.
+        // Now the bar is CENTERED + spans nearly the full width minus
+        // the back chip + a symmetric spacer; the 6pt track reads as
+        // real movement even on the first 1/60 step.
+        //
+        // v3 P11.1.A (2026-06-10) — wrapped in VStack so the chapter
+        // eyebrow (BetterMe S3 pattern, goal-gradient sub-goals) sits
+        // above the progress bar. Eyebrow fades on chapter change via
+        // .id(currentChapter); welcome (chapter 0) hides it entirely.
+        VStack(spacing: 6) {
+            if let parts = Self.chapterEyebrowParts(currentChapter) {
+                ItalicAccentText(
+                    parts.base,
+                    italic: parts.italic.isEmpty ? [] : [parts.italic],
+                    baseFont: Typo.eyebrow,
+                    italicFont: Font.custom("Fraunces72pt-SemiBoldItalic", size: 12, relativeTo: .caption2),
+                    color: Palette.textSecondary,
+                    alignment: .center
+                )
+                .frame(maxWidth: .infinity)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+                .id(currentChapter)
             }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Palette.divider).frame(height: 4)
-                    Capsule().fill(Palette.textPrimary)
-                        .frame(width: max(8, geo.size.width * progressFraction), height: 4)
-                        // easeOut, not spring — spring can overshoot on a small
-                        // forward delta (e.g., 69% → 73%) and look like a regression.
-                        // Slightly slower than the page-swap so the bar reads as
-                        // catching up to the screen, not racing it.
-                        .animation(Motion.entrance, value: screen)
+            HStack(spacing: Space.sm) {
+                Button { Haptics.light(); goBack() } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Palette.cocoaPrimary)
+                        .frame(width: 40, height: 40)
+                        .background(
+                            Circle()
+                                .fill(Palette.programCard)
+                                .overlay(Circle().stroke(Palette.hairlineCocoa, lineWidth: 1))
+                        )
                 }
-            }.frame(height: 4)
-            Color.clear.frame(width: 40, height: 40)
-        }.padding(.horizontal, Space.screenPadding)
+                .accessibilityLabel("Back")
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Palette.cocoaPrimary.opacity(0.12))
+                            .frame(height: 6)
+                        Capsule()
+                            .fill(Palette.cocoaPrimary)
+                            .frame(width: max(8, geo.size.width * progressFraction), height: 6)
+                            .animation(Motion.entrance, value: screen)
+                    }
+                    .frame(maxHeight: .infinity, alignment: .center)
+                }
+                .frame(height: 40)
+
+                // Invisible 40pt spacer balances the back chip so the
+                // capsule is mathematically centered.
+                Color.clear.frame(width: 40, height: 40)
+            }
+        }
+        .padding(.horizontal, Space.screenPadding)
+        .padding(.top, Space.sm)
+        .animation(Motion.entranceSoft, value: currentChapter)
     }
 
     // ═══════════════════════════════════════
@@ -2092,16 +2624,25 @@ struct OnboardingView: View {
     }
 
     // v2 headline — D1 "The Curator" copy. Italic-Fraunces accent on
-    // "tried everything" carries the cohort-match weight. Slightly
-    // smaller (30pt vs v1's 34pt) because the line is longer.
+    // "tried everything" carries the cohort-match weight.
+    //
+    // v3 P11.6 (2026-06-10) — promoted from 30pt custom to the locked
+    // heroHeadline 42pt SemiBold ladder per [[feedback-hero-typography-
+    // ladder]]. her75 IMG_6281 ("Congrats. You're ready to start your
+    // challenge") proves 4-line wraps at 42pt with -22 line gap read
+    // as premium dense, not crowded — the tighter leading does the
+    // work. Long welcome copy now matches the same register as the
+    // rest of the onboarding hero ladder.
     private var v2WelcomeHeadline: some View {
         ItalicAccentText(
             "finally, a program for the woman who's tried everything.",
             italic: ["tried", "everything."],
-            baseFont: .custom("Fraunces72pt-SemiBold", size: 30),
-            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 30),
+            baseFont: Typo.heroHeadline,
+            italicFont: Typo.heroHeadlineItalic,
             alignment: .leading
         )
+        .kerning(-0.4)
+        .lineSpacing(Typo.heroHeadlineLineGap)
         .frame(maxWidth: .infinity, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
     }
@@ -2369,11 +2910,25 @@ struct OnboardingView: View {
     // the old showcase screens (chartScreen, celebrationScreen, etc.)
     // that Phase 5 will eventually rebuild.
 
-    private func jfHeader(_ title: String, sub: String?) -> some View {
+    private func jfHeader(_ title: String, sub: String? = nil) -> some View {
+        // v3 P11.1.B (2026-06-10) — her75 editorial register per
+        // [[feedback-her75-editorial-register]]: when a question has
+        // NO subhead, the headline auto-promotes to `heroHeadline`
+        // (42pt SemiBold + -16 leading). With a subhead, stays at the
+        // earlier `questionHero` (34pt) register so the two elements
+        // still fit on iPhone 13/14 with options + CTA below.
+        //
+        // The principle: trust the question. her75's question screens
+        // never explain themselves; the headline carries the screen.
+        // Authors who want italic punch on a word compose
+        // ItalicAccentText directly with the appropriate token pair
+        // — see Tokens.swift.
         VStack(alignment: .leading, spacing: Space.xs) {
             Text(title)
-                .font(Typo.title)
+                .font(sub == nil ? Typo.heroHeadline : Typo.questionHero)
                 .foregroundStyle(Palette.textPrimary)
+                .lineSpacing(sub == nil ? Typo.heroHeadlineLineGap : Typo.questionHeroLineGap)
+                .kerning(sub == nil ? -0.4 : 0)
                 .fixedSize(horizontal: false, vertical: true)
             if let sub {
                 Text(sub)
@@ -2632,7 +3187,7 @@ struct OnboardingView: View {
         "MOSTLY RESTING", "LIGHT", "STEADY", "VERY ACTIVE", "ATHLETE LEVEL"
     ]
     private static let activityLevelSubtitles = [
-        "Mostly sitting — that's where I'm at right now.",
+        "Mostly sitting. that's where I'm at right now.",
         "Short walks, errands, the occasional movement break.",
         "On my feet most of the day.",
         "Physical job or daily walks already in the routine.",
@@ -2940,7 +3495,7 @@ struct OnboardingView: View {
         case 18.5..<25:
             label = "Normal weight"
             color = Palette.stateGood
-            support = "You're in a healthy range — let's lock in habits that last."
+            support = "You're in a healthy range. let's lock in habits that last."
         case 25..<30:
             label = "Overweight"
             color = Palette.stateWarn
@@ -2948,7 +3503,7 @@ struct OnboardingView: View {
         default:
             label = "Obese"
             color = Palette.stateWarn
-            support = "Steady wins — your plan moves at a pace your body thanks you for."
+            support = "Steady wins. your plan moves at a pace your body thanks you for."
         }
         return HStack(alignment: .top, spacing: Space.md) {
             VStack(alignment: .leading, spacing: 2) {
@@ -2981,72 +3536,128 @@ struct OnboardingView: View {
 
     /// Real-time goal-weight validation under the goal ruler. Maintains
     /// the same percent-loss tier framing JustFit uses (steady /
-    /// reasonable / ambitious / aggressive) but JeniFit-flavored copy.
-    /// 0.75 kg/week is the clinical median for sustainable loss; weeks
-    /// estimate is the rounded division of total loss by that rate.
-    private func goalWeightAnnotation(currentKg: Double, goalKg: Double) -> some View {
+    /// v3 P11.1.B (2026-06-10) — dynamic pace-selector options.
+    /// Reads currentWeightKg + goalWeightKg + computes weeks-to-goal
+    /// per ACSM pace band (0.5 / 0.75 / 1.0 %/wk). When no loss goal
+    /// is set, falls back to generic horizons so the screen still
+    /// reads sensibly. Floors each tier at 4 weeks so very-small
+    /// deltas don't read "~1 week" (which would over-promise).
+    private func paceSelectorOpts() -> [(String, String, String?, String?)] {
+        let lossKg = max(0, currentWeightKg - goalWeightKg)
+        let curr = max(40, currentWeightKg)  // sanity floor for the % calc
+        let hasLossGoal = lossKg > 0.5
+
+        // ACSM pace bands. Floor weeks at 4 so the card never
+        // over-promises a 1-week turnaround on rounding errors.
+        let gentleWeeks  = max(4, Int((lossKg / (curr * 0.005 )).rounded()))
+        let steadyWeeks  = max(4, Int((lossKg / (curr * 0.0075)).rounded()))
+        let focusedWeeks = max(4, Int((lossKg / (curr * 0.01  )).rounded()))
+
+        let gentleSub:  String = hasLossGoal ? "~\(gentleWeeks) weeks · easier to sustain"            : "easier to sustain · 0.5%/week"
+        let steadySub:  String = hasLossGoal ? "~\(steadyWeeks) weeks · most chosen pace"             : "most chosen pace · 0.75%/week"
+        let focusedSub: String = hasLossGoal ? "~\(focusedWeeks) weeks · stay consistent"             : "stay consistent · 1.0%/week"
+
+        return [
+            ("gentle",  "gentle",   gentleSub,  nil),
+            ("steady",  "steady",   steadySub,  nil),
+            ("focused", "focused",  focusedSub, nil),
+        ]
+    }
+
+    /// v3 P11.1.A (2026-06-10) — BetterMe S1 dynamic goal-weight
+    /// reframe. The card swaps copy + state-dot color based on the
+    /// goal weight relative to current weight + BMI. Four states:
+    /// maintain (no loss), under-target (BMI < 18.5 — kindness frame,
+    /// NOT amber-alarm), on-pace (ACSM 0.5-1%/wk band), ambitious
+    /// (>1%/wk — care frame, not warning frame).
+    ///
+    /// LOCKED rules respected:
+    /// - NEVER "lose X%" copy ([[feedback-food-ux-antishame]] R2)
+    /// - NEVER labor verbs ("protects muscle" → removed)
+    /// - lowercase casual + italic-Fraunces punch on key word
+    /// - trend-language: "becoming window: ~N weeks", not deficit math
+    /// - no amber/red on low BMI — sage dot, soft cocoa frame
+    private func goalWeightAnnotation(currentKg: Double, goalKg: Double, heightCm: Double) -> some View {
+        let heightM = heightCm / 100
+        let goalBmi = (heightM > 0) ? goalKg / (heightM * heightM) : 0
         let lossKg = currentKg - goalKg
         let percentLoss = currentKg > 0 ? (lossKg / currentKg) * 100 : 0
-        let weeks = max(1, Int((lossKg / 0.75).rounded()))
-        let percentInt = max(0, Int(percentLoss.rounded()))
+        // ACSM-aligned weeks: 0.75% of current body weight per week
+        // (midpoint of 0.5-1% safe band). Floors at 4 weeks so the
+        // card never reads "1 week" for very small deltas.
+        let weeklyLossKg = max(0.1, currentKg * 0.0075)
+        let weeks = max(4, Int((lossKg / weeklyLossKg).rounded()))
 
-        let header: String
-        let color: Color
-        let mainBefore: String
-        let mainAccent: String
-        let mainAfter: String
-        let support: String
-
+        // State selection — order matters: under-target BMI wins over
+        // pace bands because health safety supersedes pace ergonomics.
+        enum ReframeState { case maintain, underTarget, onPace, ambitious }
+        let state: ReframeState
         if goalKg >= currentKg {
-            header = "Maintain mode:"
-            color = Palette.textSecondary
-            mainBefore = "Holding steady"
-            mainAccent = ""
-            mainAfter = " — your plan adapts."
-            support = "Strength + recovery work keeps the version of you that you've earned."
-        } else if percentLoss <= 15 {
-            header = "Reasonable goal:"
-            color = Palette.stateGood
-            mainBefore = "You'll lose "
-            mainAccent = "\(percentInt)%"
-            mainAfter = " of your weight."
-            support = "Research links 10%+ loss to meaningful gains across health markers."
-        } else if percentLoss <= 25 {
-            header = "Ambitious goal:"
-            color = Palette.stateWarn
-            mainBefore = "About "
-            mainAccent = "\(weeks) weeks"
-            mainAfter = " of consistent work."
-            support = "Steady weekly progress beats spikes — we'll keep the plan honest."
+            state = .maintain
+        } else if goalBmi > 0 && goalBmi < 18.5 {
+            state = .underTarget
+        } else if percentLoss <= 10 {
+            // 10% in ~13 weeks = 0.75%/wk, the ACSM midpoint of the
+            // safe band. "On pace" applies through the band's upper
+            // edge; only above triggers "ambitious."
+            state = .onPace
         } else {
-            header = "Significant goal:"
-            color = Palette.stateWarn
-            mainBefore = "Focus on "
-            mainAccent = "sustainable"
-            mainAfter = " progress."
-            support = "Aiming for ~0.5 kg/week protects muscle and reduces rebound."
+            state = .ambitious
         }
 
-        let mainLine: Text = (
-            Text(mainBefore)
-                .foregroundStyle(Palette.textPrimary)
-            + Text(mainAccent)
-                .foregroundStyle(Palette.accent)
-                .fontWeight(.bold)
-            + Text(mainAfter)
-                .foregroundStyle(Palette.textPrimary)
-        )
+        let dotColor: Color
+        let baseCopy: String
+        let italicWords: [String]
+        let supportCopy: String
 
-        return VStack(alignment: .leading, spacing: 6) {
-            Text(header)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(color)
-            mainLine
-                .font(.system(size: 16, weight: .semibold))
-            Text(support)
+        switch state {
+        case .maintain:
+            dotColor = Palette.textSecondary
+            baseCopy = "holding steady. your plan adapts."
+            italicWords = ["steady"]
+            supportCopy = "strength + recovery keeps the version of you you've already earned."
+        case .underTarget:
+            // BetterMe's amber "Attention" card is the rejected pattern
+            // (R6). JeniFit version uses sage dot + permission frame.
+            // No alarm, no scolding — just a kinder target invitation.
+            dotColor = Palette.stateGood
+            baseCopy = "this goal sits below what's kind to your body. let's pick a number with room to feel good."
+            italicWords = ["kind"]
+            supportCopy = "the lowest healthy weight for your height is around \(Int((18.5 * heightM * heightM).rounded())) kg."
+        case .onPace:
+            dotColor = Palette.stateGood
+            baseCopy = "on pace. about \(weeks) weeks of becoming."
+            italicWords = ["on pace.", "becoming"]
+            supportCopy = "energy, sleep, and clothes-fit usually shift first. the scale follows ♥"
+        case .ambitious:
+            // No red/amber, no warning chip — JeniFit's locked anti-
+            // shame stance. Care framing, not labor verbs.
+            dotColor = Palette.stateWarn
+            baseCopy = "ambitious. about \(weeks) weeks of becoming. a steady food rhythm + a soft week now and then makes the difference."
+            italicWords = ["ambitious.", "becoming", "soft week"]
+            supportCopy = "moves quickly — sleep + protein floor matter more here than calorie math."
+        }
+
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(dotColor)
+                    .frame(width: 8, height: 8)
+                ItalicAccentText(
+                    baseCopy,
+                    italic: italicWords,
+                    baseFont: .system(size: 15, weight: .medium),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15),
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(supportCopy)
                 .font(.system(size: 13))
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, 16)  // align under text after dot
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Space.md)
@@ -3055,6 +3666,12 @@ struct OnboardingView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(Palette.divider, lineWidth: 1)
         )
+        // v3 P11.3 (2026-06-10) — bloom (spring response 0.42,
+        // damping 0.82) gives the state swap a tactile beat when the
+        // user drags the goal weight across thresholds. Was
+        // entranceSoft (easeOut 0.42) — that read as content fade,
+        // bloom reads as the card actually responding.
+        .animation(Motion.bloom, value: state)
     }
 
     /// Yes/no relatability question. The 17d-1c redesign splits the
@@ -3916,7 +4533,7 @@ struct OnboardingView: View {
                 // Feature pills
                 VStack(spacing: Space.sm) {
                     featurePill("camera.fill", "Watches your form in real time")
-                    featurePill("waveform", "Voice coaching — not just beeps")
+                    featurePill("waveform", "Voice coaching, not just beeps")
                     featurePill("figure.core.training", "Detects hip sag & shoulder creep")
                 }
                 .padding(.horizontal, Space.screenPadding)
@@ -4193,7 +4810,7 @@ struct OnboardingView: View {
                     trainerRow(
                         id: "encouraging", photo: "coach-jeni", name: "Jeni",
                         vibe: "Warm & Supportive",
-                        quote: "\"You're doing amazing — keep breathing.\"",
+                        quote: "\"You're doing amazing. keep breathing.\"",
                         preview: "jeni_preview",
                         sticker: .heartGlossy
                     )
@@ -4602,6 +5219,164 @@ struct OnboardingView: View {
     //   232 (E1-c) — Atomic Habits two-minute rule (Clear).
     //   233 (E1-d) — cycle awareness (Wild.AI / FitrWoman standard).
     //   234 (E1-e) — plateau pre-framing (StatPearls; underused).
+    /// v3 P11.1.C (2026-06-10) — Apple Health permission screen.
+    ///
+    /// Cal AI S5 relocate. Standalone HK ask mid-onboarding (case 285).
+    /// Hero copy per [[feedback-her75-editorial-register]] — silent
+    /// subhead, headline carries the screen. Single shoeIridescent
+    /// sticker as anchor (bound to the steps rail per design system,
+    /// per [[project-steps-feature]]). Cocoa "connect" primary + "skip"
+    /// text link tertiary so the funnel stays open for the ~10-15% who
+    /// refuse HK.
+    private struct HealthKitPermissionScreen: View {
+        let onAdvance: () -> Void
+        @State private var requesting = false
+        @State private var done = false
+
+        var body: some View {
+            VStack(spacing: 0) {
+                Spacer()
+                // v3 P11.6 density pass — sticker 88pt → 64pt to match
+                // bridgeScreen + leave more breathing room for the hero
+                // headline (now at 42pt heroHeadline).
+                Image(StickerName.shoeIridescent.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 64, height: 64)
+                    .rotationEffect(.degrees(-6))
+                    .padding(.bottom, Space.md)
+                    .accessibilityHidden(true)
+                ItalicAccentText(
+                    "let's pull your steps + sleep.",
+                    italic: ["steps", "sleep"],
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .center
+                )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .padding(.horizontal, Space.screenPadding)
+                Spacer()
+                // v3 P11.6 — JFContinueButton with loading + skip
+                // secondary. Single component replaces the previous
+                // hand-rolled primary + tertiary stack.
+                JFContinueButton(
+                    label: done ? "connected" : "connect to health",
+                    action: {
+                        guard !requesting, !done else { return }
+                        requesting = true
+                        Task {
+                            await StepsService.shared.requestAccess()
+                            await MainActor.run {
+                                requesting = false
+                                done = true
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    onAdvance()
+                                }
+                            }
+                        }
+                    },
+                    isEnabled: !done,
+                    isLoading: requesting,
+                    secondaryLabel: done ? nil : "skip for now",
+                    secondaryAction: done ? nil : { onAdvance() }
+                )
+            }
+        }
+    }
+
+    /// v3 P11.1.C (2026-06-10) — BetterMe A6 consent row. Two-state
+    /// checkbox-style row with italic punch word + optional "required"
+    /// pill. Defaults pre-checked per BetterMe S2 pattern; user can
+    /// uncheck either.
+    private func consentRow(isOn: Binding<Bool>, title: String, italicWord: String, required: Bool) -> some View {
+        Button {
+            Haptics.light()
+            isOn.wrappedValue.toggle()
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: isOn.wrappedValue ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(isOn.wrappedValue ? Palette.cocoaPrimary : Palette.textSecondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    ItalicAccentText(
+                        title,
+                        italic: [italicWord],
+                        baseFont: Typo.body,
+                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+                        color: Palette.textPrimary,
+                        alignment: .leading
+                    )
+                    if required {
+                        Text("required")
+                            .font(.system(size: 10, weight: .medium))
+                            .textCase(.lowercase)
+                            .tracking(0.5)
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Palette.bgElevated)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Palette.divider, lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// v3 P11.1.B (2026-06-10) — BetterMe A3 bridge screen.
+    ///
+    /// Affirmation-only pause between chapters. NO eyebrow, NO body,
+    /// NO citation — per [[feedback-her75-editorial-register]], the
+    /// headline carries the whole moment. Single optional sticker
+    /// floats off-center as compositional element (her75 pattern).
+    /// User taps Continue (no auto-advance — bridges are read at
+    /// the user's pace, not the loader's).
+    ///
+    /// Use: between major chapter transitions where pacing variance
+    /// + rapport help the next-chapter cognitive load land softer.
+    private func bridgeScreen(
+        headline: String,
+        italicWords: [String],
+        sticker: StickerName? = nil,
+        next: Int
+    ) -> some View {
+        VStack(spacing: 0) {
+            Spacer()
+            if let sticker {
+                Image(sticker.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 64, height: 64)
+                    .rotationEffect(.degrees(-6))
+                    .padding(.bottom, Space.lg)
+                    .accessibilityHidden(true)
+            }
+            ItalicAccentText(
+                headline,
+                italic: italicWords,
+                baseFont: Typo.heroHeadline,
+                italicFont: Typo.heroHeadlineItalic,
+                color: Palette.textPrimary,
+                alignment: .center
+            )
+            .kerning(-0.4)
+            .lineSpacing(Typo.heroHeadlineLineGap)
+            .padding(.horizontal, Space.screenPadding)
+            Spacer()
+            // v3 P11.6 — JFContinueButton replaces ad-hoc capsule for
+            // her75-register consistency.
+            JFContinueButton(label: "continue") { go(next) }
+        }
+    }
+
     private func educationalScreen(
         heroImage: String? = nil,
         eyebrow: String? = nil,
@@ -4742,7 +5517,7 @@ struct OnboardingView: View {
         educationalScreen(
             heroImage: "edu-real-life",
             eyebrow: "first thing to know",
-            headline: "built for *real* life.",
+            headline: "built for real life.",
             italicWords: ["real"],
             body: "5-min beats. 3-month arcs. no all-or-nothing. ♥",
             next: 1,
@@ -4804,7 +5579,7 @@ struct OnboardingView: View {
             eyebrow: "here's something different",
             headline: "you can decide before you eat.",
             italicWords: ["before"],
-            body: "most apps make you log after. jenifit lets you snap before — see if it fits. no shame either way.",
+            body: "most apps make you log after. jenifit lets you snap before. see if it fits. no shame either way.",
             next: 156,
             signature: "— that's the whole game ♥"
         )
@@ -5628,7 +6403,7 @@ struct OnboardingView: View {
                                 .foregroundStyle(Palette.accent)
 
                             ItalicAccentText(
-                                "habits stabilize around 66 days — give or take.",
+                                "habits stabilize around 66 days. give or take.",
                                 italic: ["66 days"],
                                 baseFont: .custom("Fraunces72pt-SemiBold", size: 17),
                                 italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 17),
@@ -7440,7 +8215,7 @@ struct OnboardingView: View {
 
             Spacer().frame(height: Space.sm)
 
-            Text("one quiet one a day. nothing nagging. \(plankTimeLabel) — change or turn off in settings whenever.")
+            Text("one quiet one a day. nothing nagging. \(plankTimeLabel). change or turn off in settings whenever.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)

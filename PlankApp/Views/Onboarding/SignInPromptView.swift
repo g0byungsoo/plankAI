@@ -128,20 +128,29 @@ struct SignInPromptView: View {
 
             Spacer().frame(height: Space.sm)
 
-            Text({
-                switch mode {
-                case .signIn:
-                    return "Sign in to recover your routine\non this device."
-                case .sunkCostLock:
-                    return "so it's still here when you switch phones,\nand we never start you over."
-                case .signUp:
-                    return "Sign in to keep your routine\nwhen you switch phones."
-                }
-            }())
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Space.lg)
+            // v3 P11.1.C (2026-06-10) — sunkCostLock sub dropped per
+            // [[feedback-her75-editorial-register]]. signIn/signUp
+            // modes keep their subs (different cohort context: signIn
+            // is recovery, signUp is opt-in; both benefit from the
+            // affordance hint). sunkCostLock is the Cal AI S4 commit
+            // moment — the headline ("save your becoming plan ♥")
+            // already carries the meaning; the sub was restating it.
+            if mode != .sunkCostLock {
+                Text({
+                    switch mode {
+                    case .signIn:
+                        return "Sign in to recover your routine\non this device."
+                    case .signUp:
+                        return "Sign in to keep your routine\nwhen you switch phones."
+                    case .sunkCostLock:
+                        return ""
+                    }
+                }())
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.lg)
+            }
 
             Spacer()
 
