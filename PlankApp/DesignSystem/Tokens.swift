@@ -132,11 +132,16 @@ enum Typo {
     /// natural-wrapped (which left a fat 56pt gutter between lines
     /// on the 48pt size). Founder direction 2026-06-09: "like her75,
     /// reduce line heights and make texts bigger throughout."
-    static let programHeroDisplay = font("Fraunces72pt-Light", size: 52, relativeTo: .largeTitle).leading(.tight)
+    /// her75 Phase 2 re-ladder (2026-06-10): 52pt → 44pt. The
+    /// celebration peak stays earned (one step above the 38pt
+    /// in-app hero) but 52pt read as oversized against the new
+    /// 38pt question default. ChapterCompleteView is the only
+    /// consumer of this register.
+    static let programHeroDisplay = font("Fraunces72pt-Light", size: 44, relativeTo: .largeTitle).leading(.tight)
 
     /// Italic accent at the program-hero size. Pair with
     /// programHeroDisplay on the same Text via inline +.
-    static let programHeroItalic = font("Fraunces72pt-SemiBoldItalic", size: 52, relativeTo: .largeTitle).leading(.tight)
+    static let programHeroItalic = font("Fraunces72pt-SemiBoldItalic", size: 44, relativeTo: .largeTitle).leading(.tight)
 
     /// Recommended negative spacing for a 2-line her75-style hero
     /// VStack at programHeroDisplay/Italic size. Brings the two
@@ -146,7 +151,9 @@ enum Typo {
     /// pass showed lines still felt separated. -16 is the her75
     /// "lines almost touch" register; pair with single-line VStack
     /// rows (no internal wrap) so the gap is uniform throughout.
-    static let programHeroLineGap: CGFloat = -16
+    // her75 Phase 2 re-ladder (2026-06-10): -16 → -20 at the new
+    // 44pt size (-45% ratio, matching the heroHeadline cadence).
+    static let programHeroLineGap: CGFloat = -20
 
     // MARK: - Question hero (v8 P8.9 typography insights)
     //
@@ -220,24 +227,31 @@ enum Typo {
     // call site for the hero size to match her75's measured -1%
     // tracking. See `docs/her75_design_extraction_2026_06_10.md`.
 
-    /// `heroHeadline` — the missing +1 register above displayHero.
-    /// Fraunces SemiBold 42pt. The IMG_6275 / IMG_6280 single-line
-    /// scale used on silent brand-statement screens (paywall hero,
-    /// ProgramIntroFullScreenCover, the post-reveal "ready" beat).
-    /// Pair with `heroHeadlineItalic` for the italic punch word.
-    /// Apply `.kerning(-0.4)` at the call site.
-    static let heroHeadline = font("Fraunces72pt-SemiBold", size: 42, relativeTo: .largeTitle)
+    /// `heroHeadline` — THE in-app hero register. Fraunces SemiBold
+    /// 38pt.
+    ///
+    /// her75 Phase 2 re-ladder (2026-06-10, design-expert audit
+    /// docs/her75_redesign_phase2_plan_2026_06_10.md §4): 42pt was
+    /// measured off her75's App Store marketing shots; the IN-APP
+    /// heroes (IMG_6275-6282) sit at 36-40pt. 42pt + -22 leading on
+    /// iPhone 13's 390pt content width rendered 3-line questions as
+    /// a wall — founder verdict "ridiculously big." 38pt is the
+    /// measured in-app register.
+    ///
+    /// ONE register for all Archetype A/B/D heroes (questions,
+    /// bridges, dashboards). Celebration peak (programHeroDisplay
+    /// 44pt) is the single step up. Pair with `heroHeadlineItalic`;
+    /// apply `.kerning(-0.4)` at the call site.
+    static let heroHeadline = font("Fraunces72pt-SemiBold", size: 38, relativeTo: .largeTitle)
 
     /// Italic accent at the hero-headline size. Same -0.4 kerning rule.
-    static let heroHeadlineItalic = font("Fraunces72pt-SemiBoldItalic", size: 42, relativeTo: .largeTitle)
+    static let heroHeadlineItalic = font("Fraunces72pt-SemiBoldItalic", size: 38, relativeTo: .largeTitle)
 
-    /// `.lineSpacing()` for hero-headline stacks. Founder QA
-    /// 2026-06-10: -16 was too loose at 42pt; her75 IMG_6281
-    /// ("Congrats. You're ready to start your challenge") visually
-    /// has the lines almost touching at descenders/ascenders. -22
-    /// at 42pt = -52% of font size, matching her75's measured ratio.
-    /// Holding the rule: NEVER loosen past -18 at this register.
-    static let heroHeadlineLineGap: CGFloat = -22
+    /// `.lineSpacing()` for hero-headline stacks. -18 at 38pt = -47%
+    /// ratio, matching her75's measured 4-line-wrap cadence
+    /// (IMG_6281). Lines touch at ascender/descender without
+    /// becoming illegible.
+    static let heroHeadlineLineGap: CGFloat = -18
 
     /// `heroSubpill` — DM Sans SemiBold 13pt for the cocoa-fill
     /// social-proof pill that sits BELOW (never above) the hero

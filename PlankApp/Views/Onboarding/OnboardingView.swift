@@ -380,10 +380,11 @@ struct OnboardingView: View {
             // with a reserved top padding so content never hides behind.
             currentScreen
                 .id(screen)
-                // Reserve room for the navBar (40pt chip + 6pt bar gap
-                // + chapter eyebrow ~16pt + Space.sm top padding).
-                // ~70pt total when chapter eyebrow is visible.
-                .padding(.top, (screen >= 1 && !analyzing && screen != 20) ? 70 : 0)
+                // her75 Phase 2 §3 — fixed 64pt reserve matching the
+                // locked 56pt nav region + 8pt buffer. CONSTANT on
+                // every nav-bearing screen so the hero start Y is
+                // identical page-to-page.
+                .padding(.top, (screen >= 1 && !analyzing && screen != 20) ? 64 : 0)
                 // v3 P11.3 — JFPageTransition replaces the simple
                 // opacity cross-fade with the her75 page-turn breath
                 // (exit 200ms → 60ms gap → entrance 350ms).
@@ -898,7 +899,7 @@ struct OnboardingView: View {
 
         case 133: jfHorizontalSliderScreen(
             "and your goal weight?",
-            sub: "you can change this later.",
+            sub: nil,  // her75 Phase 1 §1.3 — hero carries the screen
             valueMetric: $goalWeightKg,
             metric: Self.weightMetricRuler,
             imperial: Self.weightImperialRuler,
@@ -1106,7 +1107,7 @@ struct OnboardingView: View {
             // Original sentence-length barrier statements compressed
             // to single short phrases each.
             "which of these feel true?",
-            sub: "tap any. skip the rest.",
+            sub: nil,  // her75 Phase 1 — minSelection 0 already allows skip
             opts: [
                 ("r1", "apps make me feel worse",   nil, "heart"),
                 ("r2", "i don't know what's right", nil, "questionmark.circle"),
@@ -1138,12 +1139,7 @@ struct OnboardingView: View {
             sel: $sleepHours, next: 155,
             // C5 (2026-06-01): affirmation beat after sleep input.
             // Per succinctness rule — 3-5 words max.
-            confirmation: "noted. sleep matters here.",
-            trustAnchor: WeAskBecauseRow(
-                citation: "nhanes 2024",
-                reason: "sleep under 6 hours roughly doubles weight-loss resistance.",
-                italicWords: ["sleep", "weight-loss"]
-            )
+            confirmation: "noted. sleep matters here."
         )
 
         case 155: jfQuestion(
@@ -1159,12 +1155,7 @@ struct OnboardingView: View {
             // so stress now routes to hormonal stage (163) directly.
             sel: $stressLevel, next: 163,
             // C5: affirmation beat after stress disclosure.
-            confirmation: "we got you.",
-            trustAnchor: WeAskBecauseRow(
-                citation: "epel yale 2023",
-                reason: "stress hormones make the body hold weight, especially around the middle.",
-                italicWords: ["hold weight", "the middle"]
-            )
+            confirmation: "we got you."
         )
 
         case 156: jfQuestion(
@@ -1177,12 +1168,7 @@ struct OnboardingView: View {
                 ("grazing",     "grazing all day", nil, "leaf"),
                 ("chaotic",     "chaos",           nil, "wind.snow"),
             ],
-            sel: $eatingCadence, next: 157,
-            trustAnchor: WeAskBecauseRow(
-                citation: nil,
-                reason: "we plan around how you actually eat.",
-                italicWords: ["actually eat"]
-            )
+            sel: $eatingCadence, next: 157
         )
 
         case 157: jfQuestion(
@@ -1198,12 +1184,7 @@ struct OnboardingView: View {
             // Delta v7 — routes to prior-win (159) which still has
             // "logging_food" as an option. After food wedge completes
             // we hand off to Act 2 (workout) via 201.
-            sel: $eatingWindow, next: 159,
-            trustAnchor: WeAskBecauseRow(
-                citation: "bmj 2024",
-                reason: "late-night eating is the top weight-loss stall pattern.",
-                italicWords: ["late-night", "stall"]
-            )
+            sel: $eatingWindow, next: 159
         )
 
         // ─── v2-A3: Identity + previous-attempt anchor block ────────
@@ -1229,12 +1210,7 @@ struct OnboardingView: View {
             // C5: affirmation beat after a skeptic-aware prior-attempts
             // disclosure. The user just admitted she's tried before;
             // brand voice acknowledges without overpromising.
-            confirmation: "reading you. you're not alone here.",
-            trustAnchor: WeAskBecauseRow(
-                citation: "frontiers 2015",
-                reason: "naming what didn't work last time is how the next attempt sticks.",
-                italicWords: ["didn't work", "sticks"]
-            )
+            confirmation: "reading you. you're not alone here."
         )
 
         case 159: jfQuestion(
@@ -1254,12 +1230,7 @@ struct OnboardingView: View {
             // Delta v8 (2026-06-06) — closes the food wedge block,
             // routes to the cuisine Q (case 169) which is now the final
             // food-wedge screen before the workout block.
-            sel: $priorWin, next: 169,
-            trustAnchor: WeAskBecauseRow(
-                citation: "bandura 1997",
-                reason: "we anchor your plan to what already works.",
-                italicWords: ["anchor", "what already works"]
-            )
+            sel: $priorWin, next: 169
         )
 
         // ─── Delta v8 + W5-T6 — cuisine multi-select (case 169) ────
@@ -1364,12 +1335,7 @@ struct OnboardingView: View {
             // Delta v7 — routes to the new pre-eat permission wedge
             // (case 166) instead of the sleep Q. The food block now
             // sits at the top of onboarding.
-            sel: $foodRelationship, next: 166,
-            trustAnchor: WeAskBecauseRow(
-                citation: nil,
-                reason: "we calibrate the voice to how you relate to food.",
-                italicWords: ["calibrate"]
-            )
+            sel: $foodRelationship, next: 166
         )
 
         // ─── v2-A4: Cohort signal — hormonal stage + GLP-1 status ────
@@ -1406,12 +1372,7 @@ struct OnboardingView: View {
                 "postpartum":    ("we adjust for postpartum.", "no plank or supine work for the first 6 weeks. talk to your doctor before starting any program."),
                 "perimenopause": ("we adjust for peri.", "we lean into strength + sleep cues. hunger and mood ride differently here, and we factor that in."),
                 "irregular":     ("we adjust for irregular cycles.", "we don't anchor the plan to a textbook 28-day cycle. expect more weight-by-week, less day-by-day."),
-            ],
-            trustAnchor: WeAskBecauseRow(
-                citation: nil,
-                reason: "hormonal stage shifts hunger, energy, and recovery.",
-                italicWords: ["hunger", "energy", "recovery"]
-            )
+            ]
         )
 
         // ─── v3 C1 (2026-06-10) — case 165 (commitConfidence) CUT ──
@@ -1500,12 +1461,7 @@ struct OnboardingView: View {
                 "current":     ("we adjust for GLP-1.", "satiety-aware portions, protein floor, no restrictive windows. we lean into what your appetite is already telling you."),
                 "past":        ("we adjust for post-GLP-1.", "the first 12 weeks off-meds are about keeping what you built. we match the cadence + protein."),
                 "considering": ("med or no med, we work.", "the plan reads your data the same way either path you choose ♥"),
-            ],
-            trustAnchor: WeAskBecauseRow(
-                citation: "endocrine society 2025",
-                reason: "GLP-1s shift ~40% of loss to lean mass. your program protects what matters.",
-                italicWords: ["lean mass", "protects"]
-            )
+            ]
         )
 
         // ─── v3 P11.1.C (2026-06-10) — Apple Health relocate (285) ──
@@ -1716,7 +1672,7 @@ struct OnboardingView: View {
         case 3:
             jfQuestion(
                     "how long can you hold a plank?",
-                    sub: "your starting benchmark. \"no idea\" is also an answer.",
+                    sub: nil,  // her75 Phase 1 — "Not sure" option carries the affordance
                     opts: [
                         ("under15",   "Under 15s",  "Just starting",       "stopwatch"),
                         ("fifteen30", "15-30s",     "Building a base",     "stopwatch.fill"),
@@ -1733,84 +1689,75 @@ struct OnboardingView: View {
         // notification preview visual + time-of-day pills. The mockup
         // primes the iOS permission dialog that fires later (+34% allow
         // rate per Apple dev session 2024). NO pointing-finger emoji.
+        // her75 Phase 1 §3(d) (2026-06-10) — ScrollView REMOVED. With
+        // the 38pt re-ladder + 3 pills + 1 mockup card the content
+        // fits one viewport on iPhone 13 mini. her75 onboarding is
+        // one-viewport per screen; if it doesn't fit, the screen has
+        // too much content.
         case 11: VStack(spacing: 0) {
-            // v3 P11.6 density pass (2026-06-10):
-            //   - Wrapped scroll content in a ScrollView so the screen
-            //     handles iPhone 13 mini's ~736pt viewport gracefully.
-            //   - Mockup notification card kept (primes iOS permission)
-            //     but body text trimmed from 11 words to 6 so the
-            //     2-line wrap collapses to 1 on standard widths.
-            //   - Reduced from 4 time-of-day pills to 3 (dropped
-            //     "whenever" — it read as a non-answer; "morning" is
-            //     the default anchor per the Solid Pick inlineFeedback).
-            //   - Mockup-to-pills gap tightened (Space.xl → Space.md).
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    jfHeader("want a nudge from jeni?")
-                        .padding(.top, Space.md)
-                    Spacer().frame(height: Space.lg)
-                    HStack(spacing: 10) {
-                        Image("AppIcon-Preview")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 32, height: 32)
-                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                            .background(
-                                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                    .fill(Palette.accent)
-                                    .frame(width: 32, height: 32)
-                            )
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack {
-                                Text("jenifit")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(Palette.textPrimary)
-                                Spacer()
-                                Text("now")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(Palette.textSecondary)
-                            }
-                            ItalicAccentText(
-                                "gentle morning — your plan's waiting ♥",
-                                italic: ["gentle morning"],
-                                baseFont: .system(size: 13),
-                                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13),
-                                color: Palette.textPrimary,
-                                alignment: .leading
-                            )
-                            .lineLimit(1)
-                        }
-                    }
-                    .padding(12)
+            jfHeader("want a nudge from jeni?")
+                .padding(.top, Space.md)
+            Spacer().frame(height: Space.lg)
+            HStack(spacing: 10) {
+                Image("AppIcon-Preview")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 32, height: 32)
+                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                     .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Palette.bgElevated)
-                            .shadow(color: Palette.cocoaPrimary.opacity(0.08), radius: 8, x: 0, y: 4)
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .fill(Palette.accent)
+                            .frame(width: 32, height: 32)
                     )
-                    .padding(.horizontal, Space.screenPadding)
-                    Spacer().frame(height: Space.md)
-                    VStack(spacing: 10) {
-                        ForEach([
-                            ("morning",   "morning",   "around 7 am",   "sunrise"),
-                            ("afternoon", "afternoon", "around 1 pm",   "sun.max"),
-                            ("evening",   "evening",   "around 7 pm",   "moon.stars"),
-                        ], id: \.0) { opt in
-                            OnboardingOptionCard(
-                                icon: opt.3,
-                                title: opt.1,
-                                subtitle: opt.2,
-                                isSelected: plankTime == opt.0,
-                                action: {
-                                    Haptics.light()
-                                    plankTime = opt.0
-                                }
-                            )
-                        }
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text("jenifit")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.textPrimary)
+                        Spacer()
+                        Text("now")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Palette.textSecondary)
                     }
-                    .padding(.horizontal, Space.screenPadding)
-                    .padding(.bottom, Space.md)
+                    ItalicAccentText(
+                        "gentle morning — your plan's waiting ♥",
+                        italic: ["gentle morning"],
+                        baseFont: .system(size: 13),
+                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13),
+                        color: Palette.textPrimary,
+                        alignment: .leading
+                    )
+                    .lineLimit(1)
                 }
             }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Palette.bgElevated)
+                    .shadow(color: Palette.cocoaPrimary.opacity(0.08), radius: 8, x: 0, y: 4)
+            )
+            .padding(.horizontal, Space.screenPadding)
+            Spacer().frame(height: Space.md)
+            VStack(spacing: 10) {
+                ForEach([
+                    ("morning",   "morning",   "around 7 am",   "sunrise"),
+                    ("afternoon", "afternoon", "around 1 pm",   "sun.max"),
+                    ("evening",   "evening",   "around 7 pm",   "moon.stars"),
+                ], id: \.0) { opt in
+                    OnboardingOptionCard(
+                        icon: opt.3,
+                        title: opt.1,
+                        subtitle: opt.2,
+                        isSelected: plankTime == opt.0,
+                        action: {
+                            Haptics.light()
+                            plankTime = opt.0
+                        }
+                    )
+                }
+            }
+            .padding(.horizontal, Space.screenPadding)
+            Spacer()
             JFContinueButton(
                 label: "continue",
                 action: { advance(to: 18, confirmation: nil) },
@@ -2109,31 +2056,39 @@ struct OnboardingView: View {
     }
 
     private var navBar: some View {
-        // v9 P9.6 — founder QA 2026-06-10: the right-aligned 40% chip
-        // (P8.9 v1) read as a header decoration, not a progress bar,
-        // because the ~60-screen onboarding never visibly filled it.
-        // Now the bar is CENTERED + spans nearly the full width minus
-        // the back chip + a symmetric spacer; the 6pt track reads as
-        // real movement even on the first 1/60 step.
-        //
-        // v3 P11.1.A (2026-06-10) — wrapped in VStack so the chapter
-        // eyebrow (BetterMe S3 pattern, goal-gradient sub-goals) sits
-        // above the progress bar. Eyebrow fades on chapter change via
-        // .id(currentChapter); welcome (chapter 0) hides it entirely.
+        // her75 Phase 2 §3 (2026-06-10) — NAV REGION PINNED AT EXACTLY
+        // 56pt ALWAYS. The founder's "progress bar shifts" complaint
+        // traced to 4 causes the audit identified:
+        //   1. the eyebrow's if-let inserted/removed 22pt of height
+        //      when the chapter label appeared/disappeared
+        //   2. variable hero heights changed the bar-to-content gap
+        //   3. ScrollView-vs-not mismatches changed visual top inset
+        //   4. the whole navBar animated on chapter change
+        // Fix 1 + 4 live here: the eyebrow gets a FIXED 10pt ZStack
+        // slot (renders empty when no chapter), and only the eyebrow
+        // CONTENT fades — the bar row never moves and never animates.
+        // Fixes 2 + 3 land in the archetype templates.
         VStack(spacing: 6) {
-            if let parts = Self.chapterEyebrowParts(currentChapter) {
-                ItalicAccentText(
-                    parts.base,
-                    italic: parts.italic.isEmpty ? [] : [parts.italic],
-                    baseFont: Typo.eyebrow,
-                    italicFont: Font.custom("Fraunces72pt-SemiBoldItalic", size: 12, relativeTo: .caption2),
-                    color: Palette.textSecondary,
-                    alignment: .center
-                )
-                .frame(maxWidth: .infinity)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-                .id(currentChapter)
+            // Fixed 10pt eyebrow slot — present on every screen,
+            // content-only fades.
+            ZStack {
+                if let parts = Self.chapterEyebrowParts(currentChapter) {
+                    ItalicAccentText(
+                        parts.base,
+                        italic: parts.italic.isEmpty ? [] : [parts.italic],
+                        baseFont: Typo.eyebrow,
+                        italicFont: Font.custom("Fraunces72pt-SemiBoldItalic", size: 12, relativeTo: .caption2),
+                        color: Palette.textSecondary,
+                        alignment: .center
+                    )
+                    .transition(.opacity)
+                    .id(currentChapter)
+                }
             }
+            .frame(height: 10)
+            .frame(maxWidth: .infinity)
+            .animation(Motion.crossFade, value: currentChapter)
+
             HStack(spacing: Space.sm) {
                 Button { Haptics.light(); goBack() } label: {
                     Image(systemName: "chevron.left")
@@ -2148,15 +2103,7 @@ struct OnboardingView: View {
                 }
                 .accessibilityLabel("Back")
 
-                // v3 P11.9 (2026-06-10) — progress bar slimmed 6pt → 2pt
-                // per the her75 IMG_6280 hairline reference. The 6pt
-                // capsule read as JeniFit-coquette chunky; her75's
-                // editorial register uses a near-invisible hairline that
-                // ONLY signals progress when filled. Track opacity also
-                // bumped from 0.12 → 0.08 so the empty rail almost
-                // disappears against cream — the user reads "I'm
-                // advancing through a magazine," not "I'm 12% through
-                // a survey."
+                // her75 hairline — 2pt, near-invisible track.
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule()
@@ -2176,9 +2123,9 @@ struct OnboardingView: View {
                 Color.clear.frame(width: 40, height: 40)
             }
         }
+        .frame(height: 56)  // 10 eyebrow + 6 gap + 40 bar — LOCKED
         .padding(.horizontal, Space.screenPadding)
         .padding(.top, Space.sm)
-        .animation(Motion.entranceSoft, value: currentChapter)
     }
 
     // ═══════════════════════════════════════
