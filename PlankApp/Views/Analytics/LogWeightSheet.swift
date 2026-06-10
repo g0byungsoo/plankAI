@@ -42,7 +42,12 @@ struct LogWeightSheet: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            // v6 audit #2: weigh-in sheet aligns with the program-era
+            // pink. Routed to from PlanView's weigh-in row + Becoming
+            // tab. Legacy AnalyticsView entry stays cream via the
+            // sheet's wrapper background (this background only paints
+            // when presented modally with default chrome).
+            Palette.programBgPrimary.ignoresSafeArea()
 
             VStack(spacing: Space.lg) {
                 grabber
@@ -257,7 +262,7 @@ struct LogWeightSheet: View {
             .padding(.bottom, Space.md)
         }
         .padding(.horizontal, Space.screenPadding)
-        .background(Palette.bgPrimary)
+        .background(Palette.programBgPrimary)
         .onAppear {
             Analytics.captureScreen("LogWeight")
             keypadFocused = true

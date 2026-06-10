@@ -43,7 +43,11 @@ struct JeniMethodRitualView: View {
 
     var body: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            // v6 audit #2: lesson player aligns with the program-era
+            // pink home tab. Per designer note, accentSubtle mat at
+            // line 157 (around the illustration pocket) stays — it
+            // provides the right contrast on the visual card.
+            Palette.programBgPrimary.ignoresSafeArea()
 
             StickerScatter(placements: StickerScatter.breathworkPrimerDefault())
                 .allowsHitTesting(false)
