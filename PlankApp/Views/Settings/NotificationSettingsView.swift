@@ -36,7 +36,7 @@ struct NotificationSettingsView: View {
                         .labelsHidden()
                 }
                 .padding(Space.md)
-                .scrapbookCard()
+                .editorialCard()
                 .onChange(of: notificationsEnabled) { _, enabled in
                     if enabled {
                         requestPermission()
@@ -98,7 +98,7 @@ struct NotificationSettingsView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, Space.xs)
                         .padding(.horizontal, Space.sm)
-                        .scrapbookCard()
+                        .editorialCard()
 
                         saveButton
 
@@ -263,7 +263,7 @@ struct NotificationSettingsView: View {
                 Spacer(minLength: 0)
             }
             .padding(Space.md)
-            .scrapbookCard()
+            .editorialCard()
         }
     }
 
@@ -284,7 +284,7 @@ struct NotificationSettingsView: View {
                 .labelsHidden()
         }
         .padding(Space.md)
-        .scrapbookCard()
+        .editorialCard()
         .onChange(of: isOn.wrappedValue) { _, enabled in
             if enabled { requestPermission() }
             RetentionNotifications.applyTogglesChanged()

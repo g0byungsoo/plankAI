@@ -98,7 +98,7 @@ struct AccountView: View {
                 .onSubmit { saveName() }
                 .padding(Space.md)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .scrapbookCard()
+                .editorialCard()
         }
     }
 
@@ -189,7 +189,7 @@ struct AccountView: View {
                 }
             }
             .padding(Space.md)
-            .scrapbookCard()
+            .editorialCard()
         }
     }
 
@@ -238,7 +238,7 @@ struct AccountView: View {
                 restorePurchasesButton
             }
             .padding(Space.md)
-            .scrapbookCard()
+            .editorialCard()
         }
         .sheet(isPresented: $showSignInSheet) {
             NavigationStack {
@@ -308,7 +308,7 @@ struct AccountView: View {
                 restorePurchasesButton
             }
             .padding(Space.md)
-            .scrapbookCard()
+            .editorialCard()
 
             // Delete Account — Apple App Store Review Guideline 5.1.1(v)
             // requires every account-creating app to expose this in-app.

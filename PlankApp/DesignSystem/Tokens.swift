@@ -705,6 +705,50 @@ extension View {
     }
 }
 
+// MARK: - EditorialCard (v3 P11.9, her75 restraint pass 2026-06-10)
+//
+// The OTHER card chrome — her75 editorial register. Shadow-only, NO
+// border, slightly more rounded corners (28pt vs scrapbookCard's
+// 24pt). Per the art-direction composition expert brief: her75's
+// cards are "pure white, ~28pt corners, shadow-only, no stroke."
+//
+// When to use which:
+//   - `scrapbookCard` — accent-border + hard-offset shadow. Reads
+//     as JeniFit-coquette playful. Welcome screen, plan-reveal hero,
+//     celebration peaks. The brand-warmth surfaces.
+//   - `editorialCard` — borderless + soft shadow. Reads as her75
+//     editorial restraint. Settings sub-pages, Becoming bento tiles,
+//     CoachNote-like body cards. The premium-tool surfaces.
+//
+// Founder QA 2026-06-10: "settings + becoming still look far from
+// her75." This modifier unblocks those surfaces without ripping
+// scrapbookCard from the celebration moments where it earns its
+// keep. Both ship.
+
+struct EditorialCard: ViewModifier {
+    var cornerRadius: CGFloat = 28
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Palette.bgElevated)
+                    .shadow(color: Color.black.opacity(0.05), radius: 18, x: 0, y: 6)
+            )
+    }
+}
+
+extension View {
+    /// Wraps the receiver in the her75 editorial chrome: 28pt corners,
+    /// `bgElevated` fill, soft drop shadow, NO border. Use on
+    /// premium-tool surfaces (Settings, Becoming bento tiles, body
+    /// cards) where her75 editorial restraint reads as more premium
+    /// than coquette warmth. Prefer over `scrapbookCard` when the
+    /// surface is a list/dashboard/utility, not a brand celebration.
+    func editorialCard(cornerRadius: CGFloat = 28) -> some View {
+        modifier(EditorialCard(cornerRadius: cornerRadius))
+    }
+}
+
 // MARK: - Hit-target helper
 //
 // Expand the hit target to Apple HIG's 44×44 minimum without changing

@@ -44,7 +44,7 @@ struct FeedbackView: View {
                         .frame(minHeight: 160)
                         .scrollContentBackground(.hidden)
                         .padding(Space.md)
-                        .scrapbookCard()
+                        .editorialCard()
 
                     sendButton
 

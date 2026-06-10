@@ -223,7 +223,7 @@ struct ProfileHubView: View {
         }
         .padding(Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .scrapbookCard()
+        .editorialCard()
     }
 
     private func statPill(_ text: String) -> some View {
@@ -254,7 +254,7 @@ struct ProfileHubView: View {
             }
             .padding(Space.md)
             .frame(maxWidth: .infinity)
-            .scrapbookCard()
+            .editorialCard()
         }
         .buttonStyle(.plain)
         .reveal(index, revealed)
@@ -315,7 +315,7 @@ struct ProfileHubView: View {
             }
             .padding(Space.md)
             .frame(maxWidth: .infinity)
-            .scrapbookCard()
+            .editorialCard()
         }
         .buttonStyle(.plain)
         .reveal(index, revealed)
@@ -341,7 +341,7 @@ struct ProfileHubView: View {
             }
             .padding(Space.md)
             .frame(maxWidth: .infinity)
-            .scrapbookCard()
+            .editorialCard()
         }
         .buttonStyle(.plain)
         .reveal(index, revealed)

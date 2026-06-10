@@ -2873,19 +2873,34 @@ struct AnalyticsView: View {
 
     // MARK: - Empty State
 
-    /// Shared scrapbook chrome for Phase B+ analytics modules — 24pt
-    /// corners, 1.5pt accent border, hard offset shadow. Matches the
-    /// rest of the app (browse, settings, pre-session) instead of the
-    /// older Phase 7 plankShadow + 16pt rounded.
+    /// v3 P11.9 (2026-06-10) — Becoming bento chrome retuned to the
+    /// her75 editorial register per founder QA: "Becoming + Settings
+    /// look far from her75 design." Default tint path now uses the
+    /// EditorialCard chrome (28pt corners + soft drop shadow + NO
+    /// border) — the her75 restraint the analytics-dashboard surface
+    /// needs to read as premium-tool, not coquette-warmth.
+    ///
+    /// Non-default tints (state callouts — stateWarn, stateGood) keep
+    /// the scrapbook ZStack with the colored border because the border
+    /// IS the signal: "this card means something."
+    @ViewBuilder
     private func scrapbookCardChrome(tint: Color = Palette.accent) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(tint.opacity(0.15))
-                .offset(x: 4, y: 4)
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+        if tint == Palette.accent {
+            // Default = her75 editorial restraint.
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .fill(Palette.bgElevated)
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(tint, lineWidth: 1.5)
+                .shadow(color: Color.black.opacity(0.05), radius: 18, x: 0, y: 6)
+        } else {
+            // State-callout = scrapbook with colored border.
+            ZStack {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(tint.opacity(0.15))
+                    .offset(x: 4, y: 4)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Palette.bgElevated)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(tint, lineWidth: 1.5)
+            }
         }
     }
 
