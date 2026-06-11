@@ -144,6 +144,8 @@ struct AnalyticsView: View {
     /// Drives the coach avatar on the adaptive insight (same mapping the
     /// home note + reminders use).
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
+    /// GLP-1 status (onboarding v2) — gates the cohort protein line.
+    @AppStorage("onboarding_glp1_status") private var glp1Status = ""
 
     /// User-scoped views over the raw @Query results. SessionRatingRecord
     /// has no userId column locally (cloud schema added it later), so we
@@ -498,6 +500,22 @@ struct AnalyticsView: View {
                         identityLine: "\(becomingStateWord).",
                         identityItalic: [becomingStateWord]
                     )
+                    // Founder 2026-06-11: "a few scattered stickers
+                    // (don't let it overlap with contents)" — the
+                    // folio's right half is reliably empty (day count
+                    // is left-aligned), so the sparkle sits in known
+                    // whitespace. 2 stickers total on this surface
+                    // (sparkle here + bow on the map), edge-anchored.
+                    .overlay(alignment: .topTrailing) {
+                        Image(StickerName.sparkleGlossy.assetName)
+                            .resizable().scaledToFit()
+                            .frame(width: 38, height: 38)
+                            .rotationEffect(.degrees(-8))
+                            .opacity(StickerName.sparkleGlossy.style.opacity)
+                            .offset(x: -4, y: 6)
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
+                    }
                     .opacity(sectionOpacity[0])
                     .offset(y: sectionOffset[0])
                     .blur(radius: headerBlur)
@@ -887,8 +905,104 @@ struct AnalyticsView: View {
                     .padding(.top, 2)
             }
 
-            moreDepthLink
+            // v1.1 below-fold (2026-06-11, founder: "fill it up...
+            // useful and beautiful, something worthy to share"):
+            // ONE accumulation artifact + a receipts ledger, per the
+            // two below-fold expert briefs. The map matures into the
+            // share crop (day-3 users share the folio; day-40 users
+            // share the filled map). Missed past days render
+            // identical to future days — the map records what she
+            // did, never what she didn't.
+            if let userId = auth.currentUser?.id.uuidString, !userId.isEmpty,
+               let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext) {
+                ProgramWeekMap(
+                    totalDays: plan.totalDays,
+                    startDate: plan.startDate,
+                    engagedDates: engagedDates
+                )
+                .padding(.top, 10)
+                .overlay(alignment: .topTrailing) {
+                    Image(StickerName.bowSatin.assetName)
+                        .resizable().scaledToFit()
+                        .frame(width: 34, height: 34)
+                        .rotationEffect(.degrees(9))
+                        .opacity(StickerName.bowSatin.style.opacity)
+                        .offset(x: 2, y: -2)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+
+                if let milestone = nextMilestoneLine {
+                    Text(milestone)
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            }
+
+            // The receipts — program-to-date evidence ledger
+            // (Unick 2014: early process evidence is the honest
+            // week-1-3 answer to "is it working?"). Rows are the
+            // depth entries; the standalone link died with them.
+            VStack(spacing: 0) {
+                if routineSessionCount > 0 {
+                    BecomingLedgerRow(
+                        label: "sessions moved",
+                        value: "\(routineSessionCount)",
+                        onTap: { showDepthSheet = true }
+                    )
+                }
+                if let userId = auth.currentUser?.id.uuidString, !userId.isEmpty, FoodFlags.isEnabled {
+                    let plateCount = FoodLogPersister.allEntries(userId: userId).count
+                    if plateCount > 0 {
+                        BecomingLedgerRow(
+                            label: "plates logged",
+                            value: "\(plateCount)",
+                            onTap: { showDepthSheet = true }
+                        )
+                    }
+                }
+                if bestPlankHold > 0 {
+                    BecomingLedgerRow(
+                        label: "longest hold",
+                        value: formatHoldTime(bestPlankHold),
+                        onTap: { showDepthSheet = true }
+                    )
+                }
+                BecomingLedgerRow(
+                    label: "more depth",
+                    value: "↗",
+                    onTap: { showDepthSheet = true }
+                )
+            }
+            .padding(.top, 6)
         }
+    }
+
+    /// Goal-gradient line under the map: "4 days to week two."
+    /// Zero input; nil once she's past the final week boundary.
+    private var nextMilestoneLine: String? {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty,
+              let schedule = ProgramService.shared.currentSchedule(userId: userId, in: modelContext)
+        else { return nil }
+        let day = schedule.programDay
+        guard day >= 1 else { return nil }
+        let currentWeek = (day - 1) / 7 + 1
+        let nextBoundary = currentWeek * 7 + 1
+        let daysLeft = nextBoundary - day
+        guard daysLeft > 0, daysLeft <= 7 else { return nil }
+        let weekWord: String = {
+            let f = NumberFormatter()
+            f.numberStyle = .spellOut
+            return f.string(from: NSNumber(value: currentWeek + 1)) ?? "\(currentWeek + 1)"
+        }()
+        return daysLeft == 1
+            ? "1 day to week \(weekWord)."
+            : "\(daysLeft) days to week \(weekWord)."
+    }
+
+    private func formatHoldTime(_ seconds: Double) -> String {
+        let s = Int(seconds)
+        return s >= 60 ? String(format: "%d:%02d", s / 60, s % 60) : "\(s)s"
     }
 
     // MARK: - v1.1 dashboard data (folio / week row / food week / insight)
@@ -921,15 +1035,33 @@ struct AnalyticsView: View {
         return "\(f.string(from: plan.startDate).lowercased()) → \(f.string(from: end).lowercased())"
     }
 
-    /// Last 7 days (oldest → today) as dot states. Engaged = any
-    /// completed module that day (activeDates). Gain-framed: an
+    /// Engaged-day definition for the dot surfaces: ANY signal she
+    /// gave that day fills the dot — checklist/day-progress, a
+    /// session, or a plate scan. Founder QA day 3: she'd scanned
+    /// plates 3 of 3 days but the checklist-only count read "0 of 7"
+    /// — demoralizing AND false. Engagement counts what she did,
+    /// wherever she did it.
+    private var engagedDates: Set<Date> {
+        var days = activeDates
+        let cal = Calendar.current
+        for log in sessionLogs { days.insert(cal.startOfDay(for: log.completedAt)) }
+        if FoodFlags.isEnabled,
+           let userId = auth.currentUser?.id.uuidString, !userId.isEmpty {
+            for entry in FoodLogPersister.allEntries(userId: userId) {
+                days.insert(cal.startOfDay(for: entry.loggedAt))
+            }
+        }
+        return days
+    }
+
+    /// Last 7 days (oldest → today) as dot states. Gain-framed: an
     /// un-done day is an open circle, never red.
     private var weekDotStates: [WeekDayState] {
         let cal = Calendar.current
         let today = cal.startOfDay(for: .now)
         return (0..<7).map { offset in
             guard let day = cal.date(byAdding: .day, value: offset - 6, to: today) else { return .open }
-            let done = activeDates.contains(day)
+            let done = engagedDates.contains(day)
             if cal.isDateInToday(day) { return done ? .todayDone : .today }
             return done ? .done : .open
         }
@@ -984,16 +1116,54 @@ struct AnalyticsView: View {
         )
     }
 
-    private var stepsStatCell: some View {
-        let today = StepsService.shared.todayCount
-        let week = StepsService.shared.weekTotal
-        return BecomingStatCell(
-            label: "steps",
-            lines: [
-                (today > 0 ? today.formatted() : "—", "today"),
-                (week > 0 ? week.formatted() : "—", "this week"),
-            ]
-        )
+    @ViewBuilder private var stepsStatCell: some View {
+        let service = StepsService.shared
+        switch service.authStatus {
+        case .authorized:
+            BecomingStatCell(
+                label: "steps",
+                lines: [
+                    (service.todayCount > 0 ? service.todayCount.formatted() : "—", "today"),
+                    (service.weekTotal > 0 ? service.weekTotal.formatted() : "—", "this week"),
+                ]
+            )
+        case .notDetermined:
+            // A double "—" placeholder apologizes; an action invites.
+            VStack(alignment: .leading, spacing: 3) {
+                Text("steps")
+                    .font(.custom("DMSans-Medium", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+                Button {
+                    Haptics.light()
+                    Task { await StepsService.shared.requestAccess() }
+                } label: {
+                    Text("connect steps →")
+                        .font(.custom("DMSans-SemiBold", size: 14))
+                        .foregroundStyle(Palette.textPrimary)
+                }
+                .buttonStyle(.plain)
+            }
+        case .denied:
+            VStack(alignment: .leading, spacing: 3) {
+                Text("steps")
+                    .font(.custom("DMSans-Medium", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+                Button {
+                    Haptics.light()
+                    if let url = StepsService.openAppleHealthURL,
+                       UIApplication.shared.canOpenURL(url) {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Text("reconnect in health →")
+                        .font(.custom("DMSans-SemiBold", size: 14))
+                        .foregroundStyle(Palette.textPrimary)
+                }
+                .buttonStyle(.plain)
+            }
+        case .unavailable:
+            BecomingStatCell(label: "steps", lines: [("—", "")])
+        }
     }
 
     @ViewBuilder private var platesStatCell: some View {
@@ -1031,8 +1201,16 @@ struct AnalyticsView: View {
                 return ("most of your movement lands after 6pm. evenings are yours ♥", ["yours"])
             }
         }
-        // protein pattern — ≥3 scan days this week
-        if let week = foodWeek, week.scanDays >= 3 {
+        // GLP-1 cohort line — protein is load-bearing for lean-mass
+        // protection (Wilding 2021); fires once plates are flowing.
+        if ProgramGoalCalculator.isGLP1User(from: glp1Status),
+           let week = foodWeek, week.scanDays >= 2 {
+            return ("on your medication, protein is what protects muscle. yours is showing up ♥", ["protein"])
+        }
+        // protein pattern — claims need receipts: ≥3 scan days AND
+        // protein actually led ≥2 of them (the chip said "1 of 3"
+        // while this line claimed a pattern — founder screenshot).
+        if let week = foodWeek, week.scanDays >= 3, week.proteinLedDays >= 2 {
             return ("protein's been showing up on your plates this week.", ["showing up"])
         }
         // engagement pattern — week 2+
@@ -1060,7 +1238,12 @@ struct AnalyticsView: View {
     /// to the weight delta data. Replaces the killed 40pt hero per
     /// program expert verdict.
     private var identityTrendCaption: String {
-        "becoming \(identityFeelingWord) takes consistency · you're showing it"
+        // "you're showing it" only when the week backs the claim
+        // (≥3 engaged days) — over-claiming against a 0-of-7 week
+        // reads as flattery, not evidence.
+        weekDoneCount >= 3
+            ? "becoming \(identityFeelingWord) takes consistency · you're showing it"
+            : "becoming \(identityFeelingWord) takes consistency"
     }
 
     /// Q140 identity feeling word. Falls back to a behavior-derived
@@ -1164,41 +1347,87 @@ struct AnalyticsView: View {
     /// engagement per PostHog — affects ~62% of opens): swap to
     /// step/workout activity trend so the tab earns its open
     /// without requiring weight input.
+    // MARK: - v1.1 trend honesty ladder (2026-06-11)
+    //
+    // Founder device QA showed "up 5.7 lb" as the 36pt hero on DAY
+    // THREE — computed across the self-report→scale boundary (women
+    // under-report by 1-3 kg, Connor Gorber 2007), so the headline
+    // gain was largely measurement artifact, rendered at the exact
+    // attrition peak (Eysenbach 2005). Both below-fold experts
+    // converged on the same fix:
+    //   1. The onboarding self-report seed is EXCLUDED from all
+    //      delta math; baseline = first scale-measured log.
+    //   2. Render ladder: calibration (<3 measured or <7d span:
+    //      no delta anywhere, expectation pre-load copy) →
+    //      first-trend (≥3 + ≥7d: direction in words only) →
+    //      full artifact (≥14d span).
+    //   3. Direction gate: the serif delta numeral renders for
+    //      down-or-steady only; a genuine "up" reads in language
+    //      with a physiology frame, never as the hero numeral.
+
+    /// Scale-measured logs only — the onboarding self-report seed
+    /// never participates in trend math.
+    private var measuredWeightLogs: [WeightLogRecord] {
+        weightLogs.filter { $0.source != "onboarding" }
+    }
+
+    private var measuredSpanDays: Int {
+        guard let oldest = measuredWeightLogs.last?.loggedAt,
+              let newest = measuredWeightLogs.first?.loggedAt else { return 0 }
+        return Calendar.current.dateComponents([.day], from: oldest, to: newest).day ?? 0
+    }
+
+    private enum TrendRenderState { case calibration, firstTrend, full }
+
+    private var trendRenderState: TrendRenderState {
+        let n = measuredWeightLogs.count
+        if n >= 3 && measuredSpanDays >= 14 { return .full }
+        if n >= 3 && measuredSpanDays >= 7 { return .firstTrend }
+        return .calibration
+    }
+
+    /// EMA direction over measured logs, in language. nil = no signal.
+    private var trendDirectionLine: String? {
+        let recent = measuredWeightLogs.sorted { $0.loggedAt < $1.loggedAt }
+        guard recent.count >= 3 else { return nil }
+        let alpha = 2.0 / 8.0
+        var ema = recent[0].weightKg
+        for log in recent.dropFirst() { ema = alpha * log.weightKg + (1 - alpha) * ema }
+        let delta = ema - recent[0].weightKg
+        if delta < -0.3 { return "drifting down, gently" }
+        if delta > 0.3 { return "up a little. water and hormones do this; the line knows" }
+        return "holding steady"
+    }
+
     @ViewBuilder private var becomingTrendHeroCard: some View {
-        if weightLogs.count >= 2 {
+        if !measuredWeightLogs.isEmpty {
             weightTrendHeroCard
         } else {
             activityTrendHeroCard
         }
     }
 
-    /// Weight trend hero — concrete delta + receipt numbers
-    /// ("162.4 today · 168.6 at start"). Direct register per the
-    /// tool-first reset: numerical before/after UNLOCKED here.
+    /// Weight trend hero — renders per the honesty ladder. Receipt
+    /// numbers + serif delta only at .full AND only when the
+    /// direction is down-or-steady; gains read in language with a
+    /// physiology frame.
     private var weightTrendHeroCard: some View {
-        let payload = weightDeltaPayload
         let latestDisplay: String = {
-            guard let l = latestWeightKg else { return "—" }
+            guard let l = measuredWeightLogs.first?.weightKg else { return "—" }
             return String(format: "%.1f", weightUnit.display(fromKg: l))
-        }()
-        let startingDisplay: String = {
-            guard let s = startingWeightKg else { return "—" }
-            return String(format: "%.1f", weightUnit.display(fromKg: s))
         }()
         return VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("YOUR TREND")
-                    .font(.custom("DMSans-Regular", size: 11))
-                    .kerning(0.66)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
+                Text("your trend")
+                    .font(.custom("DMSans-Medium", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
                 Spacer()
                 Button { showLogWeight = true } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
                             .font(.system(size: 10, weight: .bold))
                         Text("log")
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                            .font(.custom("DMSans-SemiBold", size: 12))
                     }
                     .foregroundStyle(Palette.textInverse)
                     .padding(.horizontal, 10)
@@ -1209,40 +1438,103 @@ struct AnalyticsView: View {
                 .buttonStyle(.plain)
             }
 
-            HStack(alignment: .lastTextBaseline, spacing: 6) {
-                Text(payload.direction)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 20))
-                    .foregroundStyle(payload.color)
-                Text(payload.delta)
-                    .font(.custom("Fraunces72pt-SemiBold", size: 36))
-                    .monospacedDigit()
-                    .foregroundStyle(Palette.cocoaPrimary)
-                Text(weightUnit.label)
-                    .font(.custom("DMSans-Regular", size: 14))
+            switch trendRenderState {
+            case .calibration:
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                    Text(latestDisplay)
+                        .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.cocoaPrimary)
+                    Text("\(weightUnit.label) today")
+                        .font(.custom("DMSans-Regular", size: 14))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                }
+                // Expectation pre-loading (Dalle Grave 2005): accurate
+                // expectations protect against early dropout. No delta
+                // exists yet, by design.
+                Text("daily swings of 2 to 3 lb are water, not fat. the line needs a week to mean something ♥")
+                    .font(.custom("DMSans-Regular", size: 12))
                     .foregroundStyle(Palette.cocoaSecondary)
-            }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 2)
 
-            Text("\(latestDisplay) today · \(startingDisplay) at start")
-                .font(.custom("DMSans-Regular", size: 11))
-                .monospacedDigit()
-                .foregroundStyle(Palette.cocoaSecondary)
+            case .firstTrend:
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                    Text(latestDisplay)
+                        .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.cocoaPrimary)
+                    Text("\(weightUnit.label) today")
+                        .font(.custom("DMSans-Regular", size: 14))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                }
+                if let line = trendDirectionLine {
+                    ItalicAccentText(
+                        "\(line).",
+                        italic: [],
+                        baseFont: .custom("DMSans-Regular", size: 13),
+                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13),
+                        color: Palette.cocoaSecondary,
+                        alignment: .leading
+                    )
+                }
+                weightTrendSparkline
+                    .frame(height: 36)
+                    .padding(.top, 2)
 
-            // v1.0.7 round 10 — identity caption attached to trend
-            // data per program expert: "Identity attached to evidence
-            // is adherence-driving." Pulls Q140 + Q111 inline.
-            ItalicAccentText(
-                identityTrendCaption,
-                italic: [identityFeelingWord],
-                baseFont: .custom("DMSans-Regular", size: 11),
-                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 11),
-                color: Palette.cocoaTertiary,
-                alignment: .leading
-            )
-            .padding(.top, 2)
-
-            weightTrendSparkline
-                .frame(height: 44)
+            case .full:
+                let payload = weightDeltaPayload
+                let startingDisplay: String = {
+                    guard let s = measuredWeightLogs.last?.weightKg else { return "—" }
+                    return String(format: "%.1f", weightUnit.display(fromKg: s))
+                }()
+                if payload.isGain {
+                    // Direction gate: a genuine up never headlines as
+                    // the serif numeral — language + physiology frame.
+                    HStack(alignment: .lastTextBaseline, spacing: 6) {
+                        Text(latestDisplay)
+                            .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                            .monospacedDigit()
+                            .foregroundStyle(Palette.cocoaPrimary)
+                        Text("\(weightUnit.label) today")
+                            .font(.custom("DMSans-Regular", size: 14))
+                            .foregroundStyle(Palette.cocoaSecondary)
+                    }
+                    Text("up a little. water and hormones do this; the line knows.")
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    HStack(alignment: .lastTextBaseline, spacing: 6) {
+                        Text(payload.direction)
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 20))
+                            .foregroundStyle(payload.color)
+                        Text(payload.delta)
+                            .font(.custom("Fraunces72pt-SemiBold", size: 36))
+                            .monospacedDigit()
+                            .foregroundStyle(Palette.cocoaPrimary)
+                        Text(weightUnit.label)
+                            .font(.custom("DMSans-Regular", size: 14))
+                            .foregroundStyle(Palette.cocoaSecondary)
+                    }
+                    Text("\(latestDisplay) today · \(startingDisplay) at first weigh-in")
+                        .font(.custom("DMSans-Regular", size: 11))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.cocoaSecondary)
+                }
+                ItalicAccentText(
+                    identityTrendCaption,
+                    italic: [identityFeelingWord],
+                    baseFont: .custom("DMSans-Regular", size: 11),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 11),
+                    color: Palette.cocoaTertiary,
+                    alignment: .leading
+                )
                 .padding(.top, 2)
+                weightTrendSparkline
+                    .frame(height: 44)
+                    .padding(.top, 2)
+            }
         }
         .padding(.horizontal, Space.md)
         .padding(.vertical, Space.md)
@@ -1261,7 +1553,7 @@ struct AnalyticsView: View {
         // stays clean.
         .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 2, y: 2)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Weight trend: \(payload.direction) \(payload.delta) \(weightUnit.label). \(latestDisplay) today, \(startingDisplay) at start.")
+        .accessibilityLabel("Weight trend: \(latestDisplay) \(weightUnit.label) today.")
     }
 
     private var weightTrendSparkline: some View {
@@ -1309,18 +1601,16 @@ struct AnalyticsView: View {
         let breathDays = BreathworkState.shared.distinctDaysThisWeek
         return VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("THIS WEEK")
-                    .font(.custom("DMSans-Regular", size: 11))
-                    .kerning(0.66)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
+                Text("this week")
+                    .font(.custom("DMSans-Medium", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
                 Spacer()
                 Button { showLogWeight = true } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
                             .font(.system(size: 10, weight: .bold))
                         Text("log weight")
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                            .font(.custom("DMSans-SemiBold", size: 12))
                     }
                     .foregroundStyle(Palette.textInverse)
                     .padding(.horizontal, 10)
@@ -1773,16 +2063,20 @@ struct AnalyticsView: View {
         .accessibilityLabel("Weight \(payload.direction) \(payload.delta) \(weightUnit.label) since you started. Tap to log.")
     }
 
-    private var weightDeltaPayload: (delta: String, direction: String, color: Color) {
-        guard let s = startingWeightKg, let l = latestWeightKg, abs(l - s) >= 0.05 else {
-            return ("—", "steady", Palette.cocoaSecondary)
+    /// Delta over MEASURED logs only (first scale weigh-in is the
+    /// baseline — never the onboarding self-report).
+    private var weightDeltaPayload: (delta: String, direction: String, color: Color, isGain: Bool) {
+        guard let s = measuredWeightLogs.last?.weightKg,
+              let l = measuredWeightLogs.first?.weightKg,
+              abs(l - s) >= 0.05 else {
+            return ("—", "steady", Palette.cocoaSecondary, false)
         }
         let absDisp = abs(weightUnit.display(fromKg: l - s))
         let delta = String(format: "%.1f", absDisp)
         if l < s {
-            return (delta, "down", Palette.jeweledRose.opacity(0.9))
+            return (delta, "down", Palette.jeweledRose.opacity(0.9), false)
         }
-        return (delta, "up", Palette.cocoaSecondary)
+        return (delta, "up", Palette.cocoaSecondary, true)
     }
 
     private var weightMiniSparkline: some View {
@@ -1800,7 +2094,7 @@ struct AnalyticsView: View {
 
     private func weightSparkPoints(in size: CGSize) -> [CGPoint] {
         let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: .now)!
-        let recent = weightLogs.filter { $0.loggedAt >= cutoff }.sorted { $0.loggedAt < $1.loggedAt }
+        let recent = measuredWeightLogs.filter { $0.loggedAt >= cutoff }.sorted { $0.loggedAt < $1.loggedAt }
         guard recent.count >= 2 else { return [] }
         let alpha: Double = 2.0 / (7.0 + 1.0)
         var ema: [Double] = []
@@ -1893,25 +2187,9 @@ struct AnalyticsView: View {
         }
     }
 
-    @ViewBuilder private var moreDepthLink: some View {
-        Button {
-            showDepthSheet = true
-        } label: {
-            HStack(spacing: 4) {
-                Text("more depth")
-                    .font(.custom("DMSans-Regular", size: 13))
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 11, weight: .semibold))
-            }
-            .foregroundStyle(Palette.cocoaTertiary)
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.vertical, Space.md)
-        }
-        .buttonStyle(.plain)
-        .overlay(alignment: .top) {
-            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
-        }
-    }
+    // (moreDepthLink deleted 2026-06-11 — the receipts ledger rows
+    // carry the depth entry now; a final "more depth ↗" row sits at
+    // the ledger's foot.)
 
     /// Plank PR display for the 2-up stat tile. Mirrors
     /// BecomingDashboardHero's old internal helper.

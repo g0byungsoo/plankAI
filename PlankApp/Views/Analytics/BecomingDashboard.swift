@@ -105,9 +105,14 @@ struct BecomingWeekRow: View {
                 .font(.custom("DMSans-Medium", size: 12))
                 .foregroundStyle(Palette.textSecondary)
             Spacer()
-            Text("\(doneCount) of 7")
-                .font(.custom("JeniHeroSerif-Regular", size: 20))
-                .foregroundStyle(Palette.textPrimary)
+            // Never headline a zero (Koo & Fishbach 2012 small-area
+            // framing) — the count appears once there's something
+            // to count; until then the dots carry the row alone.
+            if doneCount > 0 {
+                Text("\(doneCount) of 7")
+                    .font(.custom("JeniHeroSerif-Regular", size: 20))
+                    .foregroundStyle(Palette.textPrimary)
+            }
             HStack(spacing: 5) {
                 ForEach(Array(states.enumerated()), id: \.offset) { _, state in
                     dot(state)
@@ -248,6 +253,101 @@ struct PlateFilmstrip: View {
             .onTapGesture { onTap?() }
             .accessibilityLabel("her week in plates — opens the food log")
         }
+    }
+}
+
+// MARK: - Program week map (below-fold anchor)
+
+/// Her program as rows of 7 dots — the accumulation artifact that
+/// matures into the share crop. Anti-shame load-bearing rule: a
+/// missed PAST day renders IDENTICAL to a day that hasn't arrived
+/// yet (open divider stroke). The map only records what she did;
+/// it never marks what she didn't. Today gets the accent ring,
+/// rhyming with the week dot-row above the fold.
+struct ProgramWeekMap: View {
+    let totalDays: Int
+    let startDate: Date
+    let engagedDates: Set<Date>
+
+    private var weeks: Int { Int(ceil(Double(totalDays) / 7.0)) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("day by day")
+                .font(.custom("DMSans-Medium", size: 12))
+                .foregroundStyle(Palette.textSecondary)
+            VStack(alignment: .leading, spacing: 7) {
+                ForEach(0..<weeks, id: \.self) { week in
+                    HStack(spacing: 7) {
+                        ForEach(0..<7, id: \.self) { slot in
+                            let dayIndex = week * 7 + slot
+                            if dayIndex < totalDays {
+                                mapDot(dayIndex: dayIndex)
+                            }
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("her \(totalDays) days, \(engagedDates.count) marked")
+    }
+
+    @ViewBuilder private func mapDot(dayIndex: Int) -> some View {
+        let cal = Calendar.current
+        let day = cal.date(byAdding: .day, value: dayIndex, to: cal.startOfDay(for: startDate))
+        let isToday = day.map { cal.isDateInToday($0) } ?? false
+        let engaged = day.map { engagedDates.contains(cal.startOfDay(for: $0)) } ?? false
+        Group {
+            if engaged {
+                Circle().fill(Palette.cocoaPrimary)
+            } else {
+                Circle().stroke(Palette.divider, lineWidth: 1)
+            }
+        }
+        .frame(width: 8, height: 8)
+        .overlay {
+            if isToday {
+                Circle().stroke(Palette.accent, lineWidth: 1.2)
+                    .frame(width: 13, height: 13)
+            }
+        }
+    }
+}
+
+// MARK: - Receipts ledger row (atom 3)
+
+/// Program-to-date hairline row: lowercase label left, tabular
+/// numeral right. Taps open an existing depth sheet — the ledger
+/// IS the table of contents, absorbing the old "more depth ↗" link.
+struct BecomingLedgerRow: View {
+    let label: String
+    let value: String
+    var onTap: (() -> Void)? = nil
+
+    var body: some View {
+        Button {
+            Haptics.light()
+            onTap?()
+        } label: {
+            VStack(spacing: 0) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(label)
+                        .font(.custom("DMSans-Regular", size: 15))
+                        .foregroundStyle(Palette.textPrimary)
+                    Spacer()
+                    Text(value)
+                        .font(.custom("DMSans-SemiBold", size: 15))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.textPrimary)
+                }
+                .padding(.vertical, 11)
+                Rectangle().fill(Palette.divider).frame(height: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(label): \(value)")
     }
 }
 
