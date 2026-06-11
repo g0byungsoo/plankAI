@@ -114,18 +114,6 @@ struct EditProfileView: View {
                 .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        // Heart sticker — caring-for-self framing, low-key on the page.
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.heartGlossy.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 52, height: 52)
-                .rotationEffect(.degrees(12))
-                .offset(x: 4, y: -8)
-                .opacity(StickerName.heartGlossy.style.opacity)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
     }
 
     // MARK: - Section

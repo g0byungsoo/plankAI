@@ -423,7 +423,9 @@ struct AnalyticsView: View {
     var body: some View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
-            StickerScatter(placements: Self.logsPlacements)
+            // her75 Phase 2 (2026-06-10) — page-level scatter cut per
+            // Archetype D (audit §2): the dashboard bans per-page
+            // sticker decoration. Module-internal accents stay.
 
             ScrollView(showsIndicators: false) {
                 // Lazy so sections off-screen on first render don't pay
@@ -3525,10 +3527,18 @@ struct AnalyticsView: View {
         )
     }
 
+    /// her75 Phase 2 (2026-06-10) — converted from italic-Fraunces
+    /// section label to the tracked editorial eyebrow per the audit
+    /// §7: "render an editorial-eyebrow inside the FIRST card of each
+    /// group, not a separate section divider row." her75-homescreen
+    /// has zero mid-page section labels; when grouping matters, the
+    /// 11pt tracked-caps eyebrow is the quietest possible mark.
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
-            .foregroundStyle(Palette.cocoaSecondary)
+            .font(Typo.captionTracked)
+            .kerning(1.98)
+            .textCase(.uppercase)
+            .foregroundStyle(Palette.cocoaTertiary)
             .padding(.top, 4)
     }
 

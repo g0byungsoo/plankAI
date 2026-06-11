@@ -121,18 +121,6 @@ struct ChangeTrainerView: View {
                 .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        // Bow sticker — "pick your favorite", playful framing.
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.bowIridescent.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 54, height: 54)
-                .rotationEffect(.degrees(-10))
-                .offset(x: 4, y: -8)
-                .opacity(StickerName.bowIridescent.style.opacity)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
     }
 
     // MARK: - Switch pill

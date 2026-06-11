@@ -75,18 +75,6 @@ struct FeedbackView: View {
                 .foregroundStyle(Palette.textPrimary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        // Sparkle — small handwritten-ish accent.
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.starLineart.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 44, height: 44)
-                .rotationEffect(.degrees(15))
-                .offset(x: 4, y: -6)
-                .opacity(StickerName.starLineart.style.opacity)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
     }
 
     private var sendButton: some View {

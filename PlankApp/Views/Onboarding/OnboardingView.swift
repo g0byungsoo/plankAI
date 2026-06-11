@@ -548,43 +548,37 @@ struct OnboardingView: View {
             partNumber: 1, title: "your story",
             supporting: "a few reads. then we get specific.",
             dwellSeconds: 1.6,
-            onAdvance: { go(230) },
-            singleSticker: .bowIridescent
+            onAdvance: { go(230) }
         )
         case 201: SectionDividerScreen(
             partNumber: 2, title: "how you move",
             supporting: "your plan starts where you are.",
             dwellSeconds: 1.6,
-            onAdvance: { go(2) },
-            singleSticker: .heartGlossy
+            onAdvance: { go(2) }
         )
         case 202: SectionDividerScreen(
             partNumber: 3, title: "about you",
             supporting: "a few numbers so the math is honest.",
             dwellSeconds: 1.6,
-            onAdvance: { go(231) },
-            singleSticker: .flower3D
+            onAdvance: { go(231) }
         )
         case 203: SectionDividerScreen(
             partNumber: 4, title: "the version / you're becoming",
             supporting: "picture her clearly.",
             dwellSeconds: 1.6,
-            onAdvance: { go(140) },
-            singleSticker: .cherries
+            onAdvance: { go(140) }
         )
         case 204: SectionDividerScreen(
             partNumber: 5, title: "what stops you",
             supporting: "honest answers. tap whichever lands.",
             dwellSeconds: 1.6,
-            onAdvance: { go(150) },
-            singleSticker: .sparkleGlossy
+            onAdvance: { go(150) }
         )
         case 205: SectionDividerScreen(
             partNumber: 6, title: "almost yours",
             supporting: "last few. your plan goes live next.",
             dwellSeconds: 1.6,
-            onAdvance: { go(3) },
-            singleSticker: .gummyBear
+            onAdvance: { go(3) }
         )
 
         // ─── Recap card — "so here's you" ───────────────────────
@@ -1067,7 +1061,7 @@ struct OnboardingView: View {
             italic: "closer",
             suffix: ".",
             sticker: .flower3D,
-            heroImage: "edu-barrier-body",
+            // her75 Phase 2 — Grok illustration cut; pure-typography teach beat.
             bind: $relatability1, next: 151
         )
         case 151: jfYesNo(
@@ -1075,7 +1069,7 @@ struct OnboardingView: View {
             italic: "right",
             suffix: " for me.",
             sticker: .starLineart,
-            heroImage: "edu-barrier-guidance",
+            // her75 Phase 2 — Grok illustration cut; pure-typography teach beat.
             bind: $relatability2, next: 152
         )
         case 152: jfYesNo(
@@ -1083,7 +1077,7 @@ struct OnboardingView: View {
             italic: "too hard",
             suffix: " or boring.",
             sticker: .heartsLineart,
-            heroImage: "edu-barrier-stick",
+            // her75 Phase 2 — Grok illustration cut; pure-typography teach beat.
             bind: $relatability3, next: 206,
             // Reciprocity beat — closes the barriers sequence. Phase 2
             // refresh aligns with the RevenueCat reciprocity finding +
@@ -1600,14 +1594,12 @@ struct OnboardingView: View {
         case 280: bridgeScreen(
             headline: "now the numbers.",
             italicWords: ["numbers."],
-            sticker: .seashell,
             next: 231
         )
 
         case 281: bridgeScreen(
             headline: "this part is the honest part.",
             italicWords: ["honest"],
-            sticker: .fluffyHeart,
             next: 171
         )
 
@@ -4599,7 +4591,7 @@ struct OnboardingView: View {
 
     private var coachSelector: some View {
         ZStack {
-            StickerScatter(placements: Self.coachSelectorPlacements)
+            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             VStack(alignment: .leading, spacing: 0) {
                 // Italic-accent headline — Fraunces voice instead of
@@ -4820,7 +4812,7 @@ struct OnboardingView: View {
         let goalAnchor = recapGoalAnchor()
 
         return ZStack {
-            StickerScatter(placements: Self.recapPlacements)
+            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             VStack(spacing: 0) {
                 Spacer()
@@ -5055,16 +5047,10 @@ struct OnboardingView: View {
         var body: some View {
             VStack(spacing: 0) {
                 Spacer()
-                // v3 P11.6 density pass — sticker 88pt → 64pt to match
-                // bridgeScreen + leave more breathing room for the hero
-                // headline (now at 42pt heroHeadline).
-                Image(StickerName.shoeIridescent.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 64, height: 64)
-                    .rotationEffect(.degrees(-6))
-                    .padding(.bottom, Space.md)
-                    .accessibilityHidden(true)
+                // her75 Phase 2 (2026-06-10) — shoeIridescent sticker
+                // cut per the audit §6: borderline case, decided cut
+                // for Phase 2 cohesion. If the screen reads naked on
+                // device, re-introduce as a 32pt accent in Phase 4.
                 ItalicAccentText(
                     "let's pull your steps + sleep.",
                     italic: ["steps", "sleep"],
@@ -5215,7 +5201,7 @@ struct OnboardingView: View {
         signature: String? = nil
     ) -> some View {
         ZStack {
-            StickerScatter(placements: Self.educationalPlacements)
+            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             VStack(spacing: 0) {
                 Spacer()
@@ -5334,7 +5320,7 @@ struct OnboardingView: View {
     // edu-coach-intro mug shot.
     private var educationalAntiShameScreen: some View {
         educationalScreen(
-            heroImage: "edu-real-life",
+            // her75 Phase 2 — Grok illustration cut; pure-typography teach beat.
             eyebrow: "first thing to know",
             headline: "built for real life.",
             italicWords: ["real"],
@@ -5347,7 +5333,7 @@ struct OnboardingView: View {
     // 231 (E1-b) — body-question priming.
     private var educationalBodyPrimerScreen: some View {
         educationalScreen(
-            heroImage: "edu-body-primer",
+            // her75 Phase 2 — Grok illustration cut; pure-typography teach beat.
             eyebrow: "heads up",
             headline: "next few are about your body.",
             italicWords: ["your body"],
@@ -5362,7 +5348,7 @@ struct OnboardingView: View {
     // minimum-friction habits).
     private var educationalFiveMinScreen: some View {
         educationalScreen(
-            heroImage: "edu-five-minutes",
+            // her75 Phase 2 — Grok illustration cut; pure-typography teach beat.
             eyebrow: "real talk",
             headline: "five minutes is the science answer.",
             italicWords: ["five"],
@@ -5376,7 +5362,7 @@ struct OnboardingView: View {
     // 233 (E1-d) — cycle awareness.
     private var educationalCycleScreen: some View {
         educationalScreen(
-            heroImage: "edu-cycle",
+            // her75 Phase 2 — Grok illustration cut; pure-typography teach beat.
             eyebrow: "one more thing",
             headline: "you're not the same on day 7 as day 21.",
             italicWords: ["day 7", "day 21"],
@@ -5408,7 +5394,7 @@ struct OnboardingView: View {
     // adaptation, the canonical plateau mechanism).
     private var educationalPlateauScreen: some View {
         educationalScreen(
-            heroImage: "edu-plateau",
+            // her75 Phase 2 — Grok illustration cut; pure-typography teach beat.
             eyebrow: "before you start",
             headline: "the scale stalls around week 3. that's good.",
             italicWords: ["good"],
@@ -5521,7 +5507,7 @@ struct OnboardingView: View {
             // Sticker scatter — edge-only, matches consent-ritual
             // placement coordinates (the screen we replaced) so the
             // visual rhythm of the onboarding endgame stays continuous.
-            StickerScatter(placements: Self.brandPromisesPlacements)
+            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             VStack(spacing: 0) {
                 Spacer()
@@ -5691,7 +5677,7 @@ struct OnboardingView: View {
         // Space.sm. Net cut ~180pt → CTA visible in first viewport.
         return ZStack {
             Palette.bgPrimary.ignoresSafeArea()
-            StickerScatter(placements: Self.methodPreviewPlacements)
+            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             VStack(spacing: 0) {
                 Spacer().frame(height: Space.md)
@@ -6019,7 +6005,7 @@ struct OnboardingView: View {
     private var tierLadderScreen: some View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
-            StickerScatter(placements: Self.tierLadderPlacements)
+            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
@@ -6178,7 +6164,7 @@ struct OnboardingView: View {
     private var habitWindowQuizScreen: some View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
-            StickerScatter(placements: Self.habitQuizPlacements)
+            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
@@ -6431,7 +6417,7 @@ struct OnboardingView: View {
     // safe + TikTok-moderation safe per the 2026 audience research).
     private var firstPredictionScreen: some View {
         ZStack {
-            StickerScatter(placements: Self.firstPredictionPlacements)
+            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
             // C2 + chart-fill (2026-06-01): .rough chart styling +
             // headline now clearly labels 138 lb as "the goal" (prior
             // "roughly, around 138 lb." read as floating). Below-chart
@@ -6690,7 +6676,7 @@ struct OnboardingView: View {
     // answers, your plan is ready."
     private var finalPredictionScreen: some View {
         ZStack {
-            StickerScatter(placements: Self.finalPredictionPlacements)
+            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             VStack(spacing: 0) {
                 Spacer().frame(height: Space.lg)
@@ -6945,7 +6931,7 @@ struct OnboardingView: View {
     private var loadingCarouselScreen: some View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
-            StickerScatter(placements: Self.carouselPlacements)
+            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             VStack(spacing: 0) {
                 Spacer()
@@ -7444,7 +7430,7 @@ struct OnboardingView: View {
 
     private var comparisonScreen: some View {
         ZStack {
-            StickerScatter(placements: Self.comparisonPlacements)
+            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             VStack(spacing: 0) {
                 Spacer().frame(height: Space.lg)
@@ -7721,7 +7707,7 @@ struct OnboardingView: View {
         let coachPhoto = voicePreference == "encouraging" ? "coach-jeni" : voicePreference == "balanced" ? "coach-matson" : "coach-kira"
 
         return ZStack {
-            StickerScatter(placements: Self.planRevealPlacements)
+            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             VStack(spacing: 0) {
             Spacer()
@@ -8137,7 +8123,7 @@ struct OnboardingView: View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
 
-            StickerScatter(placements: Self.reviewPromptPlacements)
+            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             VStack(spacing: 0) {
                 Spacer()

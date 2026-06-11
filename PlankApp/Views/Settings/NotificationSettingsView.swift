@@ -165,18 +165,6 @@ struct NotificationSettingsView: View {
                 .foregroundStyle(Palette.textPrimary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        // Sparkle sticker — gentle nudge, not alarm.
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.sparkleGlossy.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 50, height: 50)
-                .rotationEffect(.degrees(-12))
-                .offset(x: 4, y: -8)
-                .opacity(StickerName.sparkleGlossy.style.opacity)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
     }
 
     // MARK: - Save

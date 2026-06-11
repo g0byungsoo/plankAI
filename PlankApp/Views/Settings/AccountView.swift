@@ -128,18 +128,6 @@ struct AccountView: View {
                 .foregroundStyle(Palette.textPrimary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        // Heart-lock — "your stuff, locked to you" framing.
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.heartLock.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 56, height: 56)
-                .rotationEffect(.degrees(10))
-                .offset(x: 4, y: -10)
-                .opacity(StickerName.heartLock.style.opacity)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
     }
 
     // MARK: - App info
