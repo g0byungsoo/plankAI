@@ -218,17 +218,35 @@ public struct FoodLogTimelineView: View {
 
     // MARK: - Day header
 
+    /// v1.1 journal grammar (Morsel-calibrated, 2026-06-11): eyebrow
+    /// date + serif day word, with the day total demoted to "about
+    /// N cal" caption register ("about" is the honesty word — photo
+    /// estimates carry 20-30% error; a precise-looking total would
+    /// over-claim).
     @ViewBuilder private func dayHeader(for dayStart: Date, kcalTotal: Double) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(dayLabel(for: dayStart))
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
-                .foregroundStyle(FoodTheme.textPrimary)
-            Spacer()
-            Text("\(Int(kcalTotal.rounded())) kcal")
-                .font(.system(size: 12, weight: .medium))
+        VStack(alignment: .leading, spacing: 1) {
+            Text(eyebrowDate(for: dayStart))
+                .font(.system(size: 11, weight: .medium))
+                .kerning(1.4)
+                .textCase(.uppercase)
                 .foregroundStyle(FoodTheme.textSecondary)
-                .monospacedDigit()
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(dayLabel(for: dayStart))
+                    .font(.custom("JeniHeroSerif-Regular", size: 26))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                Spacer()
+                Text("about \(Int(kcalTotal.rounded())) cal")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                    .monospacedDigit()
+            }
         }
+    }
+
+    private func eyebrowDate(for date: Date) -> String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "MMMM d"
+        return fmt.string(from: date)
     }
 
     private func dayLabel(for date: Date) -> String {
@@ -241,8 +259,9 @@ public struct FoodLogTimelineView: View {
         if cal.isDate(date, inSameDayAs: yesterday) {
             return "yesterday"
         }
+        // The eyebrow carries the date; the day word stays short.
         let fmt = DateFormatter()
-        fmt.dateFormat = "EEEE, MMMM d"
+        fmt.dateFormat = "EEEE"
         return fmt.string(from: date).lowercased()
     }
 
@@ -368,18 +387,39 @@ private struct FoodLogRowView: View {
         .accessibilityLabel(accessibilityLabel)
     }
 
-    /// Coquette gummy-bubble glyph slot. Source-tagged so dining-out
-    /// entries get a different icon than scan/quick-add. All bundled
-    /// SF Symbols to keep the package leaf-clean.
+    /// v1.1 journal — her REAL plate photo in a white matte (the
+    /// her75 polaroid cue: 3pt matte + hairline, one continuous
+    /// radius) when one exists; photo-less entries (quick-add /
+    /// dining-out / pre-photo-store history) get the source glyph in
+    /// the SAME matte shape so the rhythm holds — never a grey
+    /// placeholder, never the old pink circle.
     @ViewBuilder private var iconBubble: some View {
-        ZStack {
-            Circle()
-                .fill(FoodTheme.accentSubtle.opacity(0.6))
-                .frame(width: 40, height: 40)
-            Image(systemName: iconName)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(FoodTheme.textPrimary)
+        Group {
+            if let photo = FoodPhotoStore.photo(entryId: entry.id) {
+                Image(uiImage: photo)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(FoodTheme.bgElevated)
+                        .frame(width: 56, height: 56)
+                    Image(systemName: iconName)
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                }
+            }
         }
+        .padding(3)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.white)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(FoodTheme.textPrimary.opacity(0.08), lineWidth: 0.5)
+        )
         .accessibilityHidden(true)
     }
 

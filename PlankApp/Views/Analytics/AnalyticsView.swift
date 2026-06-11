@@ -146,6 +146,10 @@ struct AnalyticsView: View {
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
     /// GLP-1 status (onboarding v2) — gates the cohort protein line.
     @AppStorage("onboarding_glp1_status") private var glp1Status = ""
+    /// Restriction-risk cohort flags — hide the lighter-days counter
+    /// (the journal stays fully available).
+    @AppStorage("onboardingFoodRelationship") private var foodRelationshipKey = ""
+    @AppStorage("onboardingPriorAttempts") private var priorAttemptsKey = ""
 
     /// User-scoped views over the raw @Query results. SessionRatingRecord
     /// has no userId column locally (cloud schema added it later), so we
@@ -413,6 +417,9 @@ struct AnalyticsView: View {
     /// Founder's "no scrolling" rule honored: snapshot one viewport,
     /// detail one tap away.
     @State private var showDepthSheet = false
+    /// v1.1 food journal — opened from the plates teaser.
+    @State private var showFoodJournal = false
+    @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 1650
     @State private var presentedFutureRail: FutureRail? = nil
     @State private var presentedMetric: BecomingMetric? = nil
     @State private var calendarScale: CGFloat = 0.95
@@ -584,6 +591,18 @@ struct AnalyticsView: View {
             // header all clear comfortably.
             .presentationDetents([.fraction(0.78)])
             .presentationDragIndicator(.visible)
+        }
+        // v1.1 food journal — same presentation contract HomeView uses
+        // (the + button dismisses; the camera lives on the tab bar's
+        // center button, so no chained capture present from here).
+        .fullScreenCover(isPresented: $showFoodJournal) {
+            FoodLogTimelineView(
+                userId: auth.currentUser?.id.uuidString ?? "",
+                dailyTarget: foodDailyTarget,
+                onAddTapped: { showFoodJournal = false },
+                onDismiss: { showFoodJournal = false }
+            )
+            .presentationBackground(Palette.bgPrimary)
         }
         .sheet(isPresented: $showDepthSheet) {
             becomingDepthSheet
@@ -896,113 +915,100 @@ struct AnalyticsView: View {
                 trailing: { platesStatCell }
             )
 
-            if let week = foodWeek, !week.photoEntryIds.isEmpty {
-                PlateFilmstrip(entryIds: week.photoEntryIds)
+            // v1.1 food layer (2026-06-11) — the dot map + receipts
+            // ledger died same-day in founder QA ("not quite useful");
+            // replaced by the lighter-days module + the plates journal
+            // teaser per docs/becoming_food_layer_design_2026_06_11.md.
+            // The filmstrip is reborn as the teaser's polaroid fan;
+            // the insight line relocates to the page foot.
+
+            if lighterDaysCounterVisible {
+                LighterDaysRow(states: lighterDayStates)
+                    .padding(.top, 6)
+            }
+
+            if let userId = auth.currentUser?.id.uuidString, !userId.isEmpty, FoodFlags.isEnabled {
+                let entries = FoodLogPersister.allEntries(userId: userId)
+                if !entries.isEmpty {
+                    PlateFanTeaser(
+                        photoEntryIds: entries
+                            .sorted { $0.loggedAt > $1.loggedAt }
+                            .map(\.id)
+                            .filter { FoodPhotoStore.hasPhoto(entryId: $0) },
+                        entryCount: entries.count,
+                        onOpen: { showFoodJournal = true }
+                    )
+                    .padding(.top, 4)
+                }
             }
 
             if let insight = dashboardInsight {
                 BecomingInsightLine(text: insight.text, italic: insight.italic)
                     .padding(.top, 2)
             }
-
-            // v1.1 below-fold (2026-06-11, founder: "fill it up...
-            // useful and beautiful, something worthy to share"):
-            // ONE accumulation artifact + a receipts ledger, per the
-            // two below-fold expert briefs. The map matures into the
-            // share crop (day-3 users share the folio; day-40 users
-            // share the filled map). Missed past days render
-            // identical to future days — the map records what she
-            // did, never what she didn't.
-            if let userId = auth.currentUser?.id.uuidString, !userId.isEmpty,
-               let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext) {
-                ProgramWeekMap(
-                    totalDays: plan.totalDays,
-                    startDate: plan.startDate,
-                    engagedDates: engagedDates
-                )
-                .padding(.top, 10)
-                .overlay(alignment: .topTrailing) {
-                    Image(StickerName.bowSatin.assetName)
-                        .resizable().scaledToFit()
-                        .frame(width: 34, height: 34)
-                        .rotationEffect(.degrees(9))
-                        .opacity(StickerName.bowSatin.style.opacity)
-                        .offset(x: 2, y: -2)
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                }
-
-                if let milestone = nextMilestoneLine {
-                    Text(milestone)
-                        .font(.custom("DMSans-Regular", size: 12))
-                        .foregroundStyle(Palette.textSecondary)
-                }
-            }
-
-            // The receipts — program-to-date evidence ledger
-            // (Unick 2014: early process evidence is the honest
-            // week-1-3 answer to "is it working?"). Rows are the
-            // depth entries; the standalone link died with them.
-            VStack(spacing: 0) {
-                if routineSessionCount > 0 {
-                    BecomingLedgerRow(
-                        label: "sessions moved",
-                        value: "\(routineSessionCount)",
-                        onTap: { showDepthSheet = true }
-                    )
-                }
-                if let userId = auth.currentUser?.id.uuidString, !userId.isEmpty, FoodFlags.isEnabled {
-                    let plateCount = FoodLogPersister.allEntries(userId: userId).count
-                    if plateCount > 0 {
-                        BecomingLedgerRow(
-                            label: "plates logged",
-                            value: "\(plateCount)",
-                            onTap: { showDepthSheet = true }
-                        )
-                    }
-                }
-                if bestPlankHold > 0 {
-                    BecomingLedgerRow(
-                        label: "longest hold",
-                        value: formatHoldTime(bestPlankHold),
-                        onTap: { showDepthSheet = true }
-                    )
-                }
-                BecomingLedgerRow(
-                    label: "more depth",
-                    value: "↗",
-                    onTap: { showDepthSheet = true }
-                )
-            }
-            .padding(.top, 6)
         }
     }
 
-    /// Goal-gradient line under the map: "4 days to week two."
-    /// Zero input; nil once she's past the final week boundary.
-    private var nextMilestoneLine: String? {
+    // MARK: - Lighter days (EnergyLedger consumers)
+
+    /// Counter visibility: defaults OFF for restriction-risk cohorts
+    /// (strained food relationship or lost-count prior attempts) —
+    /// a deficit-shaped counter is exactly the surface that
+    /// re-triggers restriction patterns there. The journal itself
+    /// stays fully available; only the counter hides.
+    private var lighterDaysCounterVisible: Bool {
+        guard FoodFlags.isEnabled else { return false }
+        guard !["control", "complicated"].contains(foodRelationshipKey),
+              priorAttemptsKey != "many" else { return false }
+        // Needs the inputs to mean anything: a BMR and at least one log.
+        guard lighterDayBMR != nil else { return false }
         guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty,
-              let schedule = ProgramService.shared.currentSchedule(userId: userId, in: modelContext)
-        else { return nil }
-        let day = schedule.programDay
-        guard day >= 1 else { return nil }
-        let currentWeek = (day - 1) / 7 + 1
-        let nextBoundary = currentWeek * 7 + 1
-        let daysLeft = nextBoundary - day
-        guard daysLeft > 0, daysLeft <= 7 else { return nil }
-        let weekWord: String = {
-            let f = NumberFormatter()
-            f.numberStyle = .spellOut
-            return f.string(from: NSNumber(value: currentWeek + 1)) ?? "\(currentWeek + 1)"
-        }()
-        return daysLeft == 1
-            ? "1 day to week \(weekWord)."
-            : "\(daysLeft) days to week \(weekWord)."
+              !FoodLogPersister.allEntries(userId: userId).isEmpty else { return false }
+        return true
     }
 
-    private func formatHoldTime(_ seconds: Double) -> String {
-        let s = Int(seconds)
-        return s >= 60 ? String(format: "%d:%02d", s / 60, s % 60) : "\(s)s"
+    private var lighterDayBMR: Double? {
+        guard let h = currentUserRecord?.onboardingHeightCm, h > 50 else { return nil }
+        let weight = measuredWeightLogs.first?.weightKg
+            ?? (onboardingCurrentWeightKg > 0 ? onboardingCurrentWeightKg : nil)
+        guard let w = weight, w > 20 else { return nil }
+        let age = EnergyLedger.ageMidpoint(fromRange: currentUserRecord?.onboardingAgeRange ?? "")
+        return EnergyLedger.bmrFemale(weightKg: w, heightCm: h, age: age)
+    }
+
+    /// Last 7 days oldest → today. Today is ALWAYS unclassified
+    /// (classification runs on closed days only); steps come from
+    /// StepsService's 7-day buckets aligned the same way.
+    private var lighterDayStates: [Bool] {
+        guard let bmr = lighterDayBMR,
+              let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else {
+            return Array(repeating: false, count: 7)
+        }
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+        let allEntries = FoodLogPersister.allEntries(userId: userId)
+        let glp1 = ProgramGoalCalculator.isGLP1User(from: glp1Status)
+        let weeklySteps = StepsService.shared.weeklyCounts  // [0]=6d ago … [6]=today
+
+        return (0..<7).map { offset in
+            guard offset < 6,  // today (offset 6) never classifies live
+                  let day = cal.date(byAdding: .day, value: offset - 6, to: today),
+                  let nextDay = cal.date(byAdding: .day, value: 1, to: day)
+            else { return false }
+            let dayEntries = allEntries.filter { $0.loggedAt >= day && $0.loggedAt < nextDay }
+            guard !dayEntries.isEmpty else { return false }
+            let sessionSeconds = sessionLogs
+                .filter { $0.completedAt >= day && $0.completedAt < nextDay }
+                .compactMap { $0.totalDuration }
+                .reduce(0, +)
+            return EnergyLedger.isLighterDay(.init(
+                entries: dayEntries,
+                stepsCount: weeklySteps.indices.contains(offset) ? weeklySteps[offset] : 0,
+                sessionSeconds: sessionSeconds,
+                bmr: bmr,
+                isGLP1: glp1
+            ))
+        }
     }
 
     // MARK: - v1.1 dashboard data (folio / week row / food week / insight)

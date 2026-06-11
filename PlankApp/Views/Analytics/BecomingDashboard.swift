@@ -221,133 +221,122 @@ struct MacroMicroBars: View {
     }
 }
 
-// MARK: - Plate filmstrip (atom 8)
+// (PlateFilmstrip deleted 2026-06-11 — reborn as PlateFanTeaser,
+// the journal doorway below.)
 
-/// 4-up strip of HER OWN plate photos (FoodPhotoStore thumbnails).
-/// Renders nothing at all when she has no photos this week — an empty
-/// module disappears, it never apologizes with a placeholder.
-struct PlateFilmstrip: View {
-    let entryIds: [String]   // newest first, already photo-filtered
-    var onTap: (() -> Void)? = nil
+// (ProgramWeekMap + BecomingLedgerRow deleted 2026-06-11 — founder
+// QA: "i don't think information there is quite useful." Replaced
+// by the lighter-days module + plates journal teaser below, per
+// docs/becoming_food_layer_design_2026_06_11.md.)
 
-    var body: some View {
-        if !entryIds.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("her week in plates")
-                    .font(.custom("DMSans-Medium", size: 12))
-                    .foregroundStyle(Palette.textSecondary)
-                HStack(spacing: 8) {
-                    ForEach(entryIds.prefix(4), id: \.self) { id in
-                        if let img = FoodPhotoStore.photo(entryId: id) {
-                            Image(uiImage: img)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 72, height: 56)
-                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        }
-                    }
-                    Spacer(minLength: 0)
-                }
-            }
-            .contentShape(Rectangle())
-            .onTapGesture { onTap?() }
-            .accessibilityLabel("her week in plates — opens the food log")
-        }
+// MARK: - Lighter days (the deficit insight, gain-framed)
+
+/// Weekly "lighter day" dots — filled when the day cleared every
+/// honesty gate in EnergyLedger (conservative under, ≥2 meals,
+/// restriction floor). EVERYTHING else (over days, thin-logging
+/// days, today, future) renders as the same faint open dot: a
+/// filled dot is the only statement this surface ever makes. The
+/// count has NO denominator (founder-locked 2026-06-11) — "two so
+/// far" only ever grows; an off week reads quiet, not failed. The
+/// word "deficit" never appears in user-facing copy.
+struct LighterDaysRow: View {
+    /// Last 7 days oldest → today; true = earned the mark.
+    let states: [Bool]
+
+    private var count: Int { states.filter { $0 }.count }
+
+    private var countWord: String {
+        let f = NumberFormatter()
+        f.numberStyle = .spellOut
+        return f.string(from: NSNumber(value: count)) ?? "\(count)"
     }
-}
-
-// MARK: - Program week map (below-fold anchor)
-
-/// Her program as rows of 7 dots — the accumulation artifact that
-/// matures into the share crop. Anti-shame load-bearing rule: a
-/// missed PAST day renders IDENTICAL to a day that hasn't arrived
-/// yet (open divider stroke). The map only records what she did;
-/// it never marks what she didn't. Today gets the accent ring,
-/// rhyming with the week dot-row above the fold.
-struct ProgramWeekMap: View {
-    let totalDays: Int
-    let startDate: Date
-    let engagedDates: Set<Date>
-
-    private var weeks: Int { Int(ceil(Double(totalDays) / 7.0)) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("day by day")
+        HStack(alignment: .firstTextBaseline) {
+            Text("lighter days")
                 .font(.custom("DMSans-Medium", size: 12))
                 .foregroundStyle(Palette.textSecondary)
-            VStack(alignment: .leading, spacing: 7) {
-                ForEach(0..<weeks, id: \.self) { week in
-                    HStack(spacing: 7) {
-                        ForEach(0..<7, id: \.self) { slot in
-                            let dayIndex = week * 7 + slot
-                            if dayIndex < totalDays {
-                                mapDot(dayIndex: dayIndex)
-                            }
-                        }
-                        Spacer(minLength: 0)
+            Spacer()
+            if count > 0 {
+                Text("\(countWord) so far this week")
+                    .font(.custom("DMSans-Regular", size: 13))
+                    .foregroundStyle(Palette.textPrimary)
+            }
+            HStack(spacing: 5) {
+                ForEach(Array(states.enumerated()), id: \.offset) { _, lighter in
+                    if lighter {
+                        Circle().fill(Palette.cocoaPrimary).frame(width: 7, height: 7)
+                    } else {
+                        Circle().stroke(Palette.divider, lineWidth: 1.2).frame(width: 7, height: 7)
                     }
                 }
             }
+            .padding(.leading, 6)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("her \(totalDays) days, \(engagedDates.count) marked")
-    }
-
-    @ViewBuilder private func mapDot(dayIndex: Int) -> some View {
-        let cal = Calendar.current
-        let day = cal.date(byAdding: .day, value: dayIndex, to: cal.startOfDay(for: startDate))
-        let isToday = day.map { cal.isDateInToday($0) } ?? false
-        let engaged = day.map { engagedDates.contains(cal.startOfDay(for: $0)) } ?? false
-        Group {
-            if engaged {
-                Circle().fill(Palette.cocoaPrimary)
-            } else {
-                Circle().stroke(Palette.divider, lineWidth: 1)
-            }
-        }
-        .frame(width: 8, height: 8)
-        .overlay {
-            if isToday {
-                Circle().stroke(Palette.accent, lineWidth: 1.2)
-                    .frame(width: 13, height: 13)
-            }
-        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(count > 0
+            ? "lighter days: \(countWord) so far this week"
+            : "lighter days")
     }
 }
 
-// MARK: - Receipts ledger row (atom 3)
+// MARK: - Plates journal teaser
 
-/// Program-to-date hairline row: lowercase label left, tabular
-/// numeral right. Taps open an existing depth sheet — the ledger
-/// IS the table of contents, absorbing the old "more depth ↗" link.
-struct BecomingLedgerRow: View {
-    let label: String
-    let value: String
-    var onTap: (() -> Void)? = nil
+/// The latest plates as a fanned polaroid trio — the doorway into
+/// the full journal. Photos wear the white matte (the her75
+/// polaroid cue); collapses entirely when she has no logs.
+struct PlateFanTeaser: View {
+    let photoEntryIds: [String]   // newest first
+    let entryCount: Int           // total logs (for the no-photo state)
+    let onOpen: () -> Void
 
     var body: some View {
         Button {
             Haptics.light()
-            onTap?()
+            onOpen()
         } label: {
-            VStack(spacing: 0) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(label)
-                        .font(.custom("DMSans-Regular", size: 15))
-                        .foregroundStyle(Palette.textPrimary)
-                    Spacer()
-                    Text(value)
-                        .font(.custom("DMSans-SemiBold", size: 15))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.textPrimary)
+            HStack(spacing: Space.md) {
+                if !photoEntryIds.isEmpty {
+                    ZStack {
+                        ForEach(Array(photoEntryIds.prefix(3).enumerated()), id: \.element) { index, id in
+                            if let img = FoodPhotoStore.photo(entryId: id) {
+                                Image(uiImage: img)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 64, height: 64)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    .padding(3)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .fill(.white)
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .stroke(Palette.divider, lineWidth: 0.5)
+                                    )
+                                    .rotationEffect(.degrees(Double(index - 1) * 6))
+                                    .offset(x: CGFloat(index - 1) * 22)
+                            }
+                        }
+                    }
+                    .frame(width: 116, height: 76)
                 }
-                .padding(.vertical, 11)
-                Rectangle().fill(Palette.divider).frame(height: 1)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("her plates")
+                        .font(.custom("JeniHeroSerif-Italic", size: 19))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(entryCount == 1 ? "1 plate kept" : "\(entryCount) plates kept")
+                        .font(.custom("DMSans-Regular", size: 12))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.textSecondary)
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(label): \(value)")
+        .accessibilityLabel("her plates — opens the food journal, \(entryCount) plates kept")
     }
 }
 
