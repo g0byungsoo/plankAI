@@ -384,17 +384,8 @@ struct AnalyticsView: View {
         return "just beginning"
     }
 
-    /// Cocoa status pill under the page hero. Real data only:
-    /// "becoming since {month}" from the first session, or "day {N}"
-    /// from the engagement calculator when no sessions predate this
-    /// month. Nil = no pill (first-launch state).
-    private var becomingPill: String? {
-        guard let firstSession = sessionLogs.last else { return nil }
-        let f = DateFormatter()
-        f.dateFormat = "MMMM"
-        return "becoming since \(f.string(from: firstSession.completedAt).lowercased())"
-    }
-
+    // (becomingPill deleted 2026-06-10 — the folio masthead's day
+    // count + date range replaced the "becoming since" pill.)
 
     // Grouped sessions
     private var thisWeekSessions: [SessionLogRecord] {
@@ -495,16 +486,18 @@ struct AnalyticsView: View {
                     // chunk + the date strip demoted below it. The
                     // BecomingStatusStrip (date + trend chip) survives
                     // as the pill-row under the hero.
-                    VStack(alignment: .leading, spacing: 6) {
-                        JFPageHero(
-                            title: "you're \(becomingStateWord).",
-                            italic: [becomingStateWord],
-                            pill: becomingPill,
-                            alignment: .leading
-                        )
-                        BecomingStatusStrip(weightLogs: weightLogs)
-                            .padding(.horizontal, Space.screenPadding)
-                    }
+                    // v1.1 Becoming dashboard (2026-06-10) — the folio
+                    // masthead replaces the JFPageHero + status strip.
+                    // Opens on WHERE SHE IS IN HER PROGRAM (zero-input
+                    // data) per [[feedback-becoming-hero-input-burden]];
+                    // identity line survives beneath the day count.
+                    BecomingFolio(
+                        dayNumber: folioDayNumber,
+                        totalDays: folioTotalDays,
+                        dateRange: folioDateRange,
+                        identityLine: "\(becomingStateWord).",
+                        identityItalic: [becomingStateWord]
+                    )
                     .opacity(sectionOpacity[0])
                     .offset(y: sectionOffset[0])
                     .blur(radius: headerBlur)
@@ -854,382 +847,204 @@ struct AnalyticsView: View {
             //   5. Weight + trend with identity caption attached
             //   6. More depth link
 
-            becomingStreakStrip
+            // v1.1 Becoming dashboard (2026-06-10) — the one-snapshot
+            // restructure per docs/becoming_dashboard_v1_1_plan. Five-
+            // expert consensus kills applied in this pass:
+            //   - streak strip → week dot-row (gain-framed, no flame)
+            //   - today's-balance daily kcal card → DEAD (daily energy-
+            //     balance verdicts are the shame surface; weekly-
+            //     smoothed descendant lands in the recap)
+            //   - WHO ring → DEAD (her program is the standard now;
+            //     the citation survives in JeniMethod)
+            // Trend hero keeps the one-bordered-artifact slot (it
+            // already swaps to activity when weight is stale — the
+            // input-burden rule's conditional default).
 
-            // v1.0.7 round 12 (founder feedback 2026-06-06): two
-            // separate calorie cards (balance + spent breakdown)
-            // confused users — both showed bars side-by-side
-            // without it being clear what each meant. Merged into a
-            // single becomingTodayBalanceCard that shows the
-            // balance equation AND the spent breakdown inline.
-            becomingTodayBalanceCard
-
-            becomingWHORing
+            BecomingWeekRow(states: weekDotStates, doneCount: weekDoneCount)
 
             becomingTrendHeroCard
+
+            BecomingStatPair(
+                leading: { stepsStatCell },
+                trailing: { platesStatCell }
+            )
+
+            if let week = foodWeek, !week.photoEntryIds.isEmpty {
+                PlateFilmstrip(entryIds: week.photoEntryIds)
+            }
+
+            if let insight = dashboardInsight {
+                BecomingInsightLine(text: insight.text, italic: insight.italic)
+                    .padding(.top, 2)
+            }
 
             moreDepthLink
         }
     }
 
-    // MARK: - v1.0.7 round 10 calorie + identity cards
+    // MARK: - v1.1 dashboard data (folio / week row / food week / insight)
 
-    /// Today's balance — the signature calorie card. Horizontal bar
-    /// "gained" left + "spent" right + headline deficit number.
-    /// Per WL design expert spec (founder picked daily-only +
-    /// show-spent-transparently). pageIvory fill, not pink — "pink
-    /// fills on a deficit card would feel like the app is trying
-    /// to apologize for the math."
-    @ViewBuilder private var becomingTodayBalanceCard: some View {
-        let payload = todayBalancePayload
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("TODAY")
-                    .font(.custom("DMSans-Regular", size: 11))
-                    .kerning(0.66)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                Spacer()
-                if payload.gained > 0, payload.deficit > 0 {
-                    Image(StickerName.heartGlossy.assetName)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 24, height: 24)
-                        .rotationEffect(.degrees(-8))
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                }
-            }
-
-            HStack(alignment: .lastTextBaseline, spacing: 4) {
-                Text(payload.headlineSign)
-                    .font(.custom("Fraunces72pt-SemiBold", size: 36))
-                    .foregroundStyle(payload.headlineColor)
-                Text(payload.headlineNum)
-                    .font(.custom("Fraunces72pt-SemiBold", size: 36))
-                    .monospacedDigit()
-                    .foregroundStyle(Palette.cocoaPrimary)
-                (Text("kcal ")
-                    .font(.custom("DMSans-Regular", size: 13))
-                 + Text(payload.headlineWord)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13)))
-                    .foregroundStyle(Palette.cocoaSecondary)
-            }
-
-            balanceBar(gained: payload.gained, spent: payload.spent)
-                .frame(height: 14)
-                .padding(.vertical, 6)
-
-            // Two-column gained/spent — gained left + bmr/steps/
-            // workout breakdown inline under "spent" so the user
-            // sees in one card both the balance AND where the
-            // spent number came from.
-            HStack(alignment: .top, spacing: 0) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("gained")
-                        .font(.custom("DMSans-Regular", size: 11))
-                        .foregroundStyle(Palette.cocoaTertiary)
-                    Text("\(Int(payload.gained))")
-                        .font(.custom("Fraunces72pt-SemiBold", size: 18))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.cocoaPrimary)
-                    Text("from food")
-                        .font(.custom("DMSans-Regular", size: 11))
-                        .foregroundStyle(Palette.cocoaSecondary)
-                }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("spent")
-                        .font(.custom("DMSans-Regular", size: 11))
-                        .foregroundStyle(Palette.cocoaTertiary)
-                    Text("\(Int(payload.spent))")
-                        .font(.custom("Fraunces72pt-SemiBold", size: 18))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.jeweledRose)
-                    let parts = spentBreakdown
-                    Text("bmr \(Int(parts.bmr)) · steps \(Int(parts.steps)) · move \(Int(parts.workout))")
-                        .font(.custom("DMSans-Regular", size: 11))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.cocoaSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
-            }
-            Text(payload.subline)
-                .font(.custom("DMSans-Regular", size: 12))
-                .foregroundStyle(Palette.cocoaSecondary)
-                .padding(.top, 2)
+    /// Program day when a plan is active; engagement day otherwise.
+    private var folioDayNumber: Int {
+        if let userId = auth.currentUser?.id.uuidString, !userId.isEmpty,
+           let schedule = ProgramService.shared.currentSchedule(userId: userId, in: modelContext) {
+            return max(1, schedule.programDay)
         }
-        .padding(.horizontal, Space.md)
-        .padding(.vertical, Space.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.pageIvory)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 2, y: 2)
+        return max(1, EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs))
     }
 
-    /// Horizontal balance bar — left half cocoa (gained), right half
-    /// jeweledRose (spent). Widths scaled to the combined total.
-    private func balanceBar(gained: Double, spent: Double) -> some View {
-        GeometryReader { geo in
-            let total = max(gained + spent, 1)
-            let gainedW = max(4, CGFloat(gained / total) * geo.size.width)
-            HStack(spacing: 0) {
-                Capsule()
-                    .fill(Palette.cocoaSecondary)
-                    .frame(width: gainedW)
-                Capsule()
-                    .fill(Palette.jeweledRose)
-            }
-        }
+    /// `plan.totalDays` per [[project-program-duration-custom]] —
+    /// nil (folio reads "of showing up") when no plan is active.
+    private var folioTotalDays: Int? {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return nil }
+        return ProgramService.shared.activePlan(userId: userId, in: modelContext)?.totalDays
     }
 
-    /// Compute today's balance: gained (food kcal) - spent (BMR +
-    /// steps + workout). Positive deficit = under maintenance =
-    /// progress toward goal. Returns headline strings and the bar
-    /// proportions.
-    private var todayBalancePayload: (
-        gained: Double, spent: Double, deficit: Double,
-        headlineSign: String, headlineNum: String, headlineWord: String,
-        headlineColor: Color, subline: String
-    ) {
-        let gained = todayKcalGained
-        let spent = todaySpent
-        let deficit = spent - gained // positive = deficit
-        let absVal = Int(abs(deficit))
-        if gained == 0 && spent == 0 {
-            return (0, 0, 0, "", "—", "", Palette.cocoaSecondary,
-                    "log a meal to see today's balance")
-        }
-        if gained == 0 {
-            return (gained, spent, deficit, "", "\(Int(spent))", "moved today",
-                    Palette.jeweledRose,
-                    "log a meal to see today's deficit")
-        }
-        if deficit > 0 {
-            return (gained, spent, deficit, "−", "\(absVal)", "deficit",
-                    Palette.jeweledRose,
-                    "you're ahead of plan today ♥")
-        }
-        return (gained, spent, deficit, "+", "\(absVal)", "surplus",
-                Palette.cocoaSecondary,
-                "honest day — tomorrow resets")
+    /// "apr 2 → jun 25" horizon strip — the her75 printed-end-date
+    /// move. Only renders with an active plan.
+    private var folioDateRange: String? {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty,
+              let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext)
+        else { return nil }
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        let end = Calendar.current.date(byAdding: .day, value: plan.totalDays, to: plan.startDate) ?? plan.startDate
+        return "\(f.string(from: plan.startDate).lowercased()) → \(f.string(from: end).lowercased())"
     }
 
-    /// Spent breakdown card — BMR + steps + workout, stacked
-    /// horizontal bar with 3 segments. Founder picked
-    /// "show transparently"; this card answers "where did the
-    /// spent number come from?" without ringing the "earn this
-    /// cookie" bell (no per-workout calorie callout).
-    @ViewBuilder private var becomingSpentBreakdownCard: some View {
-        let parts = spentBreakdown
-        VStack(alignment: .leading, spacing: 8) {
-            Text("MOVED TODAY")
-                .font(.custom("DMSans-Regular", size: 11))
-                .kerning(0.66)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.cocoaTertiary)
-
-            HStack(alignment: .lastTextBaseline, spacing: 6) {
-                Text("\(Int(parts.total))")
-                    .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                    .monospacedDigit()
-                    .foregroundStyle(Palette.cocoaPrimary)
-                Text("kcal spent")
-                    .font(.custom("DMSans-Regular", size: 13))
-                    .foregroundStyle(Palette.cocoaSecondary)
-            }
-
-            spentStackedBar(bmr: parts.bmr, steps: parts.steps, workout: parts.workout)
-                .frame(height: 12)
-                .padding(.vertical, 4)
-
-            HStack(spacing: 0) {
-                spentLegendDot(color: Palette.cocoaSecondary, label: "bmr", value: parts.bmr)
-                Spacer()
-                spentLegendDot(color: Palette.cocoaSecondary.opacity(0.6), label: "steps", value: parts.steps)
-                Spacer()
-                spentLegendDot(color: Palette.jeweledRose, label: "workout", value: parts.workout)
-            }
-        }
-        .padding(.horizontal, Space.md)
-        .padding(.vertical, Space.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.pageIvory)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Palette.hairlineCocoa, lineWidth: 0.5)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-    }
-
-    private func spentStackedBar(bmr: Double, steps: Double, workout: Double) -> some View {
-        GeometryReader { geo in
-            let total = max(bmr + steps + workout, 1)
-            let bmrW = max(4, CGFloat(bmr / total) * geo.size.width)
-            let stepsW = max(4, CGFloat(steps / total) * geo.size.width)
-            HStack(spacing: 1) {
-                Capsule().fill(Palette.cocoaSecondary).frame(width: bmrW)
-                Capsule().fill(Palette.cocoaSecondary.opacity(0.6)).frame(width: stepsW)
-                Capsule().fill(Palette.jeweledRose)
-            }
-        }
-    }
-
-    private func spentLegendDot(color: Color, label: String, value: Double) -> some View {
-        HStack(spacing: 4) {
-            Circle().fill(color).frame(width: 6, height: 6)
-            Text("\(label) ")
-                .font(.custom("DMSans-Regular", size: 11))
-                .foregroundStyle(Palette.cocoaSecondary)
-             + Text("\(Int(value))")
-                .font(.custom("DMSans-Medium", size: 11))
-                .monospacedDigit()
-                .foregroundStyle(Palette.cocoaPrimary)
-        }
-    }
-
-    /// Today's gained kcal from FoodLogPersister (in-memory store
-    /// until v1.0.8 SwiftData migration). Returns 0 when food rail
-    /// disabled or no logs.
-    private var todayKcalGained: Double {
-        guard FoodFlags.isEnabled else { return 0 }
-        let userId = auth.currentUser?.id.uuidString ?? ""
-        guard !userId.isEmpty else { return 0 }
-        return FoodLogPersister.todayAndWeekly(userId: userId).today
-    }
-
-    /// Today's spent kcal = BMR + steps × 0.04 + workout duration ×
-    /// 5 kcal/min. Mifflin-St Jeor BMR for female since the cohort
-    /// is exclusively women.
-    private var todaySpent: Double {
-        return bmrEstimate + stepsKcal + workoutKcalToday
-    }
-
-    private var spentBreakdown: (bmr: Double, steps: Double, workout: Double, total: Double) {
-        let bmr = bmrEstimate
-        let steps = stepsKcal
-        let workout = workoutKcalToday
-        return (bmr, steps, workout, bmr + steps + workout)
-    }
-
-    /// Mifflin-St Jeor BMR (female): 10w + 6.25h − 5a − 161
-    private var bmrEstimate: Double {
-        guard let h = currentUserRecord?.onboardingHeightCm, h > 50,
-              let w = latestWeightKg, w > 20 else { return 0 }
-        let age = ageFromRange()
-        return 10 * w + 6.25 * h - 5 * Double(age) - 161
-    }
-
-    private func ageFromRange() -> Int {
-        let range = currentUserRecord?.onboardingAgeRange ?? ""
-        switch range {
-        case "18-24": return 21
-        case "25-34": return 29
-        case "35-44": return 39
-        case "45-54": return 49
-        case "55+":   return 60
-        default:      return 30
-        }
-    }
-
-    /// Steps kcal estimate — ~0.04 kcal/step. Pulls today's count
-    /// from StepsService.shared.
-    private var stepsKcal: Double {
-        Double(StepsService.shared.todayCount) * 0.04
-    }
-
-    /// Workout kcal estimate — sum of today's session duration (min)
-    /// × 5 kcal/min (rough MET=5 × avg weight). Approximation; can
-    /// be replaced with HealthKit active energy in v1.0.8.
-    private var workoutKcalToday: Double {
+    /// Last 7 days (oldest → today) as dot states. Engaged = any
+    /// completed module that day (activeDates). Gain-framed: an
+    /// un-done day is an open circle, never red.
+    private var weekDotStates: [WeekDayState] {
         let cal = Calendar.current
-        let todaySec = sessionLogs
-            .filter { cal.isDateInToday($0.completedAt) }
-            .compactMap { $0.totalDuration }
-            .reduce(0, +)
-        return (todaySec / 60.0) * 5.0
+        let today = cal.startOfDay(for: .now)
+        return (0..<7).map { offset in
+            guard let day = cal.date(byAdding: .day, value: offset - 6, to: today) else { return .open }
+            let done = activeDates.contains(day)
+            if cal.isDateInToday(day) { return done ? .todayDone : .today }
+            return done ? .done : .open
+        }
     }
 
-    /// Identity as quiet caption — one line above the streak strip
-    /// (vs the previous 40pt hero that ate 30% of viewport). Per
-    /// program expert: "Identity attached to evidence is adherence-
-    /// driving." Q140 italic punch + Q111 motivation fragment
-    /// inline. No card chrome, no sticker — just a quiet voice
-    /// line that holds the brand register without burning real
-    /// estate.
-    private var becomingIdentityCaption: some View {
-        let identity = identityFeelingWord
-        let motivation = motivationFragment
-        let line: String = {
-            if let m = motivation {
-                return "becoming \(identity) — you said you wanted \(m) ♥"
-            }
-            return "becoming \(identity) — one session at a time ♥"
-        }()
-        return ItalicAccentText(
-            line,
-            italic: [identity, motivation].compactMap { $0 },
-            baseFont: .custom("DMSans-Regular", size: 14),
-            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 14),
-            color: Palette.cocoaSecondary,
-            alignment: .leading
+    private var weekDoneCount: Int {
+        weekDotStates.filter { $0 == .done || $0 == .todayDone }.count
+    }
+
+    /// 7-day food rollup from the scan stream (her highest-intensity
+    /// input per the round-2 PostHog pull). nil = no logs this week.
+    private struct FoodWeek {
+        let scanDays: Int
+        let proteinAvg: Double
+        let protein: Double
+        let carbs: Double
+        let fat: Double
+        let proteinLedDays: Int
+        let photoEntryIds: [String]
+    }
+
+    private var foodWeek: FoodWeek? {
+        guard FoodFlags.isEnabled,
+              let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return nil }
+        let cal = Calendar.current
+        guard let cutoff = cal.date(byAdding: .day, value: -7, to: .now) else { return nil }
+        let entries = FoodLogPersister.allEntries(userId: userId).filter { $0.loggedAt >= cutoff }
+        guard !entries.isEmpty else { return nil }
+        let byDay = Dictionary(grouping: entries) { cal.startOfDay(for: $0.loggedAt) }
+        let protein = entries.reduce(0.0) { $0 + $1.protein }
+        let carbs   = entries.reduce(0.0) { $0 + $1.carbs }
+        let fat     = entries.reduce(0.0) { $0 + $1.fat }
+        // A day reads "protein-forward" when protein carries ≥30% of
+        // its macro kcal — descriptive pattern, never a daily verdict.
+        let proteinLedDays = byDay.values.filter { day in
+            let p = day.reduce(0.0) { $0 + $1.protein } * 4
+            let c = day.reduce(0.0) { $0 + $1.carbs } * 4
+            let f = day.reduce(0.0) { $0 + $1.fat } * 9
+            let total = p + c + f
+            return total > 0 && p / total >= 0.3
+        }.count
+        let photoIds = entries
+            .sorted { $0.loggedAt > $1.loggedAt }
+            .map(\.id)
+            .filter { FoodPhotoStore.hasPhoto(entryId: $0) }
+        return FoodWeek(
+            scanDays: byDay.count,
+            proteinAvg: protein / Double(byDay.count),
+            protein: protein, carbs: carbs, fat: fat,
+            proteinLedDays: proteinLedDays,
+            photoEntryIds: photoIds
         )
-        .padding(.top, 4)
-        .padding(.bottom, 4)
     }
 
-    /// Identity hero — Q140 identity feeling word in italic-Fraunces
-    /// PLUS Q111 motivation fragment as the subhero. Per WL expert:
-    /// "identity comes from HER answers ... this is identity AS a
-    /// tool: it reminds her what she signed up for every time she
-    /// opens the tab." Reference image: "you're / becoming
-    /// stronger. / you said you wanted confidence in any outfit.
-    /// one session at a time." + heartGlossy top-right.
-    private var becomingIdentityHero: some View {
-        let identity = identityFeelingWord
-        let motivation = motivationFragment
-        return VStack(alignment: .leading, spacing: 6) {
-            Text("you're")
-                .font(Typo.eyebrow).tracking(2)
-                .foregroundStyle(Palette.accent)
-            (Text("becoming ")
-                .font(.custom("Fraunces72pt-SemiBold", size: 40))
-             + Text(identity)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 40))
-             + Text(".")
-                .font(.custom("Fraunces72pt-SemiBold", size: 40)))
-                .foregroundStyle(Palette.textPrimary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-            if let m = motivation {
-                ItalicAccentText(
-                    "you said you wanted *\(m)*. one session at a time.",
-                    italic: [m],
-                    baseFont: .custom("DMSans-Regular", size: 14),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 14),
-                    color: Palette.textSecondary,
-                    alignment: .leading
+    private var stepsStatCell: some View {
+        let today = StepsService.shared.todayCount
+        let week = StepsService.shared.weekTotal
+        return BecomingStatCell(
+            label: "steps",
+            lines: [
+                (today > 0 ? today.formatted() : "—", "today"),
+                (week > 0 ? week.formatted() : "—", "this week"),
+            ]
+        )
+    }
+
+    @ViewBuilder private var platesStatCell: some View {
+        if let week = foodWeek {
+            VStack(alignment: .leading, spacing: 6) {
+                BecomingStatCell(
+                    label: "plates",
+                    lines: [("\(week.scanDays)", week.scanDays == 1 ? "day logged" : "days logged")],
+                    languageChip: week.proteinLedDays >= max(1, week.scanDays / 2)
+                        ? "protein led, \(week.proteinLedDays) of \(week.scanDays) days"
+                        : "balanced week"
                 )
-                .padding(.top, 2)
+                MacroMicroBars(protein: week.protein, carbs: week.carbs, fat: week.fat)
+                    .frame(width: 88)
             }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .topTrailing) {
-            Image(StickerName.heartGlossy.assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 44, height: 44)
-                .rotationEffect(.degrees(-8))
-                .offset(x: 8, y: -4)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+        } else {
+            BecomingStatCell(label: "plates", lines: [("—", "no plates yet")])
         }
     }
+
+    /// One rotating sentence about HER data — provenance-gated; when
+    /// nothing clears its gate the line doesn't render (never filler).
+    private var dashboardInsight: (text: String, italic: [String])? {
+        // trend on pace — needs measurable toward-goal pace + visible weight
+        if !hideWeightStats, let toward = paceTowardGoal, toward > 0.02, weighInsThisWeek >= 2 {
+            return ("your trend is moving. gently is the point ♥", ["gently"])
+        }
+        // evening-movement pattern — ≥5 routines, ≥60% after 6pm
+        let routines = sessionLogs.filter { $0.sessionType == "routine" }
+        if routines.count >= 5 {
+            let evening = routines.filter {
+                Calendar.current.component(.hour, from: $0.completedAt) >= 18
+            }.count
+            if Double(evening) / Double(routines.count) >= 0.6 {
+                return ("most of your movement lands after 6pm. evenings are yours ♥", ["yours"])
+            }
+        }
+        // protein pattern — ≥3 scan days this week
+        if let week = foodWeek, week.scanDays >= 3 {
+            return ("protein's been showing up on your plates this week.", ["showing up"])
+        }
+        // engagement pattern — week 2+
+        let day = EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs)
+        if day >= 7 {
+            return ("\(day) days of showing up. that's the pattern that bends the line.", ["pattern"])
+        }
+        return nil
+    }
+
+    // v1.1 Becoming dashboard (2026-06-10): the daily today's-balance
+    // card + spent breakdown + their kcal estimate chain DELETED per
+    // the 5-expert consensus (daily energy-balance verdicts are the
+    // shame surface; expenditure estimates carry ±20% error). The
+    // honest descendant is a weekly-smoothed energy view inside the
+    // P3 recap. Mifflin-St Jeor BMR + per-step/per-minute kcal
+    // helpers died with it — recompute from research when the weekly
+    // recap needs them.
+
+    // (becomingIdentityCaption + the 40pt becomingIdentityHero deleted
+    // 2026-06-10 — both orphaned; the folio masthead carries identity.)
 
     /// Identity-on-trend caption — "*becoming powerful* takes
     /// consistency, you're showing it." Q140 italic punch attached
@@ -1267,131 +1082,12 @@ struct AnalyticsView: View {
         }
     }
 
-    /// 3-up streak strip per the founder's reference image: day
-    /// streak / workouts / min total. Each tile = icon + big
-    /// Fraunces SemiBold number + DM Sans label. pageIvory fill,
-    /// 20pt corners, soft offset shadow.
-    private var becomingStreakStrip: some View {
-        let streakDays = streak.count
-        let workoutsLifetime = sessionLogs.filter { $0.sessionType == "routine" }.count
-        let minutesTotal: Int = {
-            let totalSec = sessionLogs.compactMap { $0.totalDuration }.reduce(0, +)
-            return Int(totalSec / 60)
-        }()
-        return HStack(spacing: 10) {
-            streakStripTile(iconSystem: "flame.fill", iconColor: Palette.accent, value: "\(streakDays)", label: "day streak")
-            streakStripTile(iconSystem: "checkmark.circle.fill", iconColor: Palette.cocoaSecondary, value: "\(workoutsLifetime)", label: "workouts")
-            streakStripTile(iconSystem: "clock.fill", iconColor: Palette.cocoaSecondary, value: "\(minutesTotal)", label: "min total")
-        }
-    }
-
-    private func streakStripTile(iconSystem: String, iconColor: Color, value: String, label: String) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: iconSystem)
-                .font(.system(size: 18, weight: .regular))
-                .foregroundStyle(iconColor)
-                .padding(.top, 4)
-            Text(value)
-                .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                .monospacedDigit()
-                .foregroundStyle(Palette.cocoaPrimary)
-            Text(label)
-                .font(.custom("DMSans-Regular", size: 12))
-                .foregroundStyle(Palette.cocoaSecondary)
-                .padding(.bottom, 4)
-        }
-        .frame(maxWidth: .infinity, minHeight: 110)
-        .background(Palette.pageIvory)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Palette.jeweledRose.opacity(0.18), lineWidth: 0.5)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: Palette.jeweledRose.opacity(0.08), radius: 0, x: 2, y: 2)
-    }
-
-    /// WHO 150-min ring card. Per WL expert spec: 200pt, ring left
-    /// 45% + copy right 55%. Ring = accentSubtle track + jeweledRose
-    /// progress arc, 14pt stroke, 130pt diameter. Educational copy
-    /// ("WHO sets 150 min/wk for general health") + 3 states (empty,
-    /// mid, hit).
-    private var becomingWHORing: some View {
-        let weekMin = weekActiveMinutes
-        let target = 150
-        let pct = min(Double(weekMin) / Double(target), 1.0)
-        let pctText = "\(Int(pct * 100))%"
-        let stateCopy: String = {
-            if weekMin == 0 {
-                return "WHO sets 150 min/wk for general health. one session puts you on the board."
-            }
-            if weekMin < target {
-                return "\(target - weekMin) min to hit this week's anchor."
-            }
-            return "you cleared the WHO anchor this week."
-        }()
-        return HStack(alignment: .center, spacing: 14) {
-            ZStack {
-                Circle()
-                    .stroke(Palette.accentSubtle, lineWidth: 14)
-                Circle()
-                    .trim(from: 0, to: pct)
-                    .stroke(Palette.jeweledRose, style: StrokeStyle(lineWidth: 14, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(Motion.gentleSpring, value: pct)
-                VStack(spacing: 2) {
-                    Text(pctText)
-                        .font(.custom("Fraunces72pt-SemiBold", size: 24))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.cocoaPrimary)
-                    Text("of target")
-                        .font(.custom("DMSans-Regular", size: 11))
-                        .foregroundStyle(Palette.cocoaSecondary)
-                }
-            }
-            .frame(width: 130, height: 130)
-            VStack(alignment: .leading, spacing: 6) {
-                Text("this week")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
-                    .foregroundStyle(Palette.jeweledRose)
-                HStack(alignment: .lastTextBaseline, spacing: 4) {
-                    Text("\(weekMin)")
-                        .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.cocoaPrimary)
-                    Text("/ 150 min")
-                        .font(.custom("DMSans-Regular", size: 14))
-                        .foregroundStyle(Palette.cocoaSecondary)
-                }
-                Text(stateCopy)
-                    .font(.custom("DMSans-Regular", size: 13))
-                    .foregroundStyle(Palette.cocoaSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(Space.md)
-        .frame(maxWidth: .infinity, minHeight: 160, alignment: .leading)
-        .background(Palette.pageIvory)
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Palette.jeweledRose.opacity(0.35), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .shadow(color: Palette.jeweledRose.opacity(0.10), radius: 0, x: 2, y: 2)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("This week: \(weekMin) of 150 minutes. \(pctText) of WHO target. \(stateCopy)")
-    }
-
-    /// This week's active minutes (sum of session totalDuration in
-    /// the last 7 days, converted to integer minutes).
-    private var weekActiveMinutes: Int {
-        let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: .now)!
-        let totalSec = sessionLogs
-            .filter { $0.completedAt >= weekAgo }
-            .compactMap { $0.totalDuration }
-            .reduce(0, +)
-        return Int(totalSec / 60)
-    }
+    // v1.1 Becoming dashboard (2026-06-10): becomingStreakStrip + its
+    // flame tiles DELETED (streak-loss framing; the gain-framed week
+    // dot-row replaces it). becomingWHORing DELETED — her program is
+    // the standard now, two competing movement targets confuse the
+    // prescription; the WHO 150-min citation survives in JeniMethod
+    // lesson content.
 
     /// BMI card with AHA 2021 framing. UNLOCKED per founder's tool-
     /// first reset: "BMI was on the avoid list — RECOMMEND whether

@@ -18,84 +18,9 @@ import PlankSync
 //   - 0.5pt cocoa-12 hairlines NEVER 1pt
 //   - Lowercase casual, hearts ♥ as terminal punctuation only
 
-// MARK: - BecomingStatusStrip
-//
-// Top-of-screen 44pt strip. Replaces the page hero ("you're /
-// becoming steady.") with the Equinox+ concierge tell — date on
-// the left, italic-Fraunces state word on the right computed from
-// the 28-day EMA slope. She glances top-right and knows her state
-// in 0.5s before reading a single number.
-//
-// State vocabulary (3 words, anti-shame-locked):
-//   ↘ losing  — trend EMA moving toward weight-loss goal
-//   → steady  — flat or near-flat (no meaningful slope)
-//   ↗ rising  — trend EMA moving away from goal direction
-//
-// "rising" replaces the more clinical "regaining" per voice lock —
-// the cohort tested poorly against direct goal-direction words
-// for the off-goal state; "rising" reads physical (a number goes
-// up) without scoring her behavior.
-
-struct BecomingStatusStrip: View {
-    let weightLogs: [WeightLogRecord]
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(dateText)
-                .font(.custom("DMSans-Regular", size: 13))
-                .foregroundStyle(Palette.cocoaSecondary)
-            Text("♥")
-                .font(.system(size: 11))
-                .foregroundStyle(Palette.cocoaTertiary)
-            Spacer()
-            if let state = trendState {
-                HStack(spacing: 4) {
-                    Text(state.arrow)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Palette.jeweledRose.opacity(0.85))
-                    Text(state.word)
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                        .foregroundStyle(Palette.jeweledRose)
-                }
-                .accessibilityLabel("Trend \(state.word)")
-            }
-        }
-        .frame(height: 28)
-        .padding(.top, 4)
-    }
-
-    private var dateText: String {
-        let f = DateFormatter()
-        f.dateFormat = "EEEE 'week' w"
-        return f.string(from: .now).lowercased()
-    }
-
-    private struct TrendState { let arrow: String; let word: String }
-
-    /// Compute the 28-day EMA slope and map to a 3-word state.
-    /// Returns nil with <2 logs (no signal to label).
-    private var trendState: TrendState? {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -28, to: .now)!
-        let recent = weightLogs.filter { $0.loggedAt >= cutoff }.sorted { $0.loggedAt < $1.loggedAt }
-        guard recent.count >= 2 else { return nil }
-
-        let alpha: Double = 2.0 / (7.0 + 1.0)
-        var ema: [Double] = []
-        for (i, log) in recent.enumerated() {
-            if i == 0 { ema.append(log.weightKg) }
-            else { ema.append(alpha * log.weightKg + (1 - alpha) * ema[i - 1]) }
-        }
-        guard let first = ema.first, let last = ema.last else { return nil }
-        let deltaKg = last - first
-        if abs(deltaKg) < 0.3 {
-            return .init(arrow: "→", word: "steady")
-        } else if deltaKg < 0 {
-            return .init(arrow: "↘", word: "losing")
-        } else {
-            return .init(arrow: "↗", word: "rising")
-        }
-    }
-}
+// (BecomingStatusStrip deleted 2026-06-10 — the v1.1 folio masthead
+// on AnalyticsView replaced the date + trend-arrow strip; direction
+// now reads in language inside the trend artifact, never arrows.)
 
 // MARK: - BecomingStatTile
 //
