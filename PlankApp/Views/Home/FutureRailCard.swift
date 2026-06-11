@@ -173,12 +173,7 @@ struct FutureRailExplainerSheet: View {
 
             Spacer()
 
-            Button(action: onClose) {
-                Text("got it")
-            }
-            .buttonStyle(.ctaPrimary)
-            .padding(.horizontal, Space.lg)
-            .padding(.bottom, Space.xl)
+            JFContinueButton(label: "got it", action: onClose)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Palette.bgPrimary)

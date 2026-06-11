@@ -220,34 +220,24 @@ struct BreathworkSessionView: View {
 
             Spacer()
 
-            VStack(spacing: Space.sm) {
-                Button {
-                    Haptics.medium()
+            JFContinueButton(
+                label: "ready to move",
+                action: {
                     Analytics.track(.breathworkSessionCompleted,
                                     properties: ["next": "workout"])
                     stopAudio()
                     onReadyToMove()
-                } label: {
-                    Text("ready to move")
-                }
-                .buttonStyle(.ctaPrimary)
-
-                Button {
+                },
+                secondaryLabel: "save it for later",
+                secondaryAction: {
                     Haptics.light()
                     Analytics.track(.breathworkSessionCompleted,
                                     properties: ["next": "later"])
                     stopAudio()
                     onLater()
-                } label: {
-                    Text("save it for later")
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textSecondary)
                 }
-                .padding(.top, Space.xs)
-            }
+            )
             .opacity(completeVisible ? 1 : 0)
-            .padding(.horizontal, Space.lg)
-            .padding(.bottom, Space.xl)
         }
     }
 

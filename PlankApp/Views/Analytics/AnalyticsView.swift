@@ -107,10 +107,7 @@ struct MetricExplainerSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Button(action: onClose) { Text("got it") }
-                .buttonStyle(.ctaPrimary)
-                .padding(.horizontal, Space.lg)
-                .padding(.bottom, Space.xl)
+            JFContinueButton(label: "got it", action: onClose)
         }
         .padding(.top, 56)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

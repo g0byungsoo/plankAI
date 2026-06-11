@@ -189,14 +189,13 @@ struct BreathworkPrimerView: View {
 
     private var ctaStack: some View {
         VStack(spacing: Space.sm) {
-            Button {
-                Haptics.medium()
-                Analytics.track(.breathworkPrimerContinued)
-                onBreathe()
-            } label: {
-                Text("one minute with me")
-            }
-            .buttonStyle(.ctaPrimary)
+            JFContinueButton(
+                label: "one minute with me",
+                action: {
+                    Analytics.track(.breathworkPrimerContinued)
+                    onBreathe()
+                }
+            )
 
             Button {
                 Haptics.light()

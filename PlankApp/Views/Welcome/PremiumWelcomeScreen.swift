@@ -79,14 +79,9 @@ struct PremiumWelcomeScreen: View {
                 // User taps "let's begin" → advance() → onComplete()
                 // → PlankAIApp transitions to Module 1. No more silent
                 // failures from cover-transition queue races.
-                Button(action: advance) {
-                    Text("let's begin")
-                }
-                .buttonStyle(.ctaPrimary)
-                .padding(.horizontal, Space.lg)
-                .padding(.bottom, Space.xl)
-                .opacity(ctaVisible ? 1 : 0)
-                .offset(y: ctaVisible ? 0 : 12)
+                JFContinueButton(label: "let's begin", action: advance)
+                    .opacity(ctaVisible ? 1 : 0)
+                    .offset(y: ctaVisible ? 0 : 12)
             }
         }
         .onAppear {

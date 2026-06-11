@@ -114,14 +114,9 @@ struct CoachIntroView: View {
 
                 Spacer(minLength: Space.lg)
 
-                Button(action: advance) {
-                    Text("let's go")
-                }
-                .buttonStyle(.ctaPrimary)
-                .padding(.horizontal, Space.lg)
-                .padding(.bottom, Space.xl)
-                .opacity(ctaVisible ? 1 : 0)
-                .offset(y: ctaVisible ? 0 : 12)
+                JFContinueButton(label: "let's go", action: advance)
+                    .opacity(ctaVisible ? 1 : 0)
+                    .offset(y: ctaVisible ? 0 : 12)
             }
         }
         .onAppear {

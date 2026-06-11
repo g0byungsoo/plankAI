@@ -1,77 +1,8 @@
 import SwiftUI
 
-// MARK: - CTAButtonStyle
-//
-// Three semantic variants that map to JeniFit's button hierarchy:
-//   .primary   — cocoa pill, cream label. The "do the thing" button. Used for
-//                Get Started, Continue, Subscribe, etc. Single per screen.
-//   .secondary — accent (dusty rose) pill, cream label. Reserved for
-//                celebratory or selection-confirming actions (e.g., paywall
-//                "Continue" once a plan is picked).
-//   .tertiary  — text-only, cocoa label. Inline / dismissive actions
-//                (Skip, Cancel, "Already have an account").
-//
-// All variants share the same press feedback (scale 0.98 + opacity 0.85) so
-// the touch language reads consistent across hierarchies.
-
-struct CTAButtonStyle: ButtonStyle {
-    enum Variant { case primary, secondary, tertiary }
-
-    let variant: Variant
-    var fullWidth: Bool = true
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(labelFont)
-            .foregroundStyle(foreground)
-            .padding(.vertical, verticalPadding)
-            .padding(.horizontal, Space.lg)
-            .frame(maxWidth: fullWidth ? .infinity : nil)
-            .background(backgroundShape)
-            .opacity(configuration.isPressed ? 0.85 : 1.0)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-    }
-
-    private var labelFont: Font {
-        switch variant {
-        case .primary, .secondary: return Typo.heading
-        case .tertiary: return Typo.body
-        }
-    }
-
-    private var foreground: Color {
-        switch variant {
-        case .primary, .secondary: return Palette.textInverse
-        case .tertiary: return Palette.textPrimary
-        }
-    }
-
-    private var verticalPadding: CGFloat {
-        switch variant {
-        case .primary, .secondary: return Space.md
-        case .tertiary: return Space.sm
-        }
-    }
-
-    @ViewBuilder
-    private var backgroundShape: some View {
-        switch variant {
-        case .primary:
-            Capsule().fill(Palette.bgInverse)
-        case .secondary:
-            Capsule().fill(Palette.accent)
-        case .tertiary:
-            Color.clear
-        }
-    }
-}
-
-extension ButtonStyle where Self == CTAButtonStyle {
-    static var ctaPrimary: CTAButtonStyle { .init(variant: .primary) }
-    static var ctaSecondary: CTAButtonStyle { .init(variant: .secondary) }
-    static var ctaTertiary: CTAButtonStyle { .init(variant: .tertiary, fullWidth: false) }
-}
+// (CTAButtonStyle deleted 2026-06-11 — the one-CTA system
+// (JFContinueButton) absorbed every production call site; the
+// three-variant style family had zero consumers left.)
 
 // MARK: - WeAskBecauseRow
 //
@@ -1718,15 +1649,11 @@ struct BodyTypeSlider: View {
 // the JeniFit palette. These previews are #if DEBUG-gated implicitly by
 // the #Preview macro — they don't ship in release builds.
 
-#Preview("CTA buttons") {
-    VStack(spacing: Space.md) {
-        Button("Get started") {}.buttonStyle(.ctaPrimary)
-        Button("Subscribe") {}.buttonStyle(.ctaSecondary)
-        Button("Skip for now") {}.buttonStyle(.ctaTertiary)
-    }
-    .padding(Space.lg)
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .background(Palette.bgPrimary)
+#Preview("CTA button") {
+    JFContinueButton(label: "continue", action: {})
+        .padding(Space.lg)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Palette.bgPrimary)
 }
 
 #Preview("OnboardingOptionCard") {
