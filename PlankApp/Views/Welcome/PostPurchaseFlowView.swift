@@ -130,7 +130,9 @@ struct PostPurchaseFlowView: View {
     }
 
     private func transition(to next: Phase) {
-        withAnimation(.easeInOut(duration: 0.5)) {
+        // v1.1 module pass — phase swaps ride the shared crossFade
+        // token (0.45 easeInOut) instead of a one-off 0.5.
+        withAnimation(Motion.crossFade) {
             phase = next
         }
     }

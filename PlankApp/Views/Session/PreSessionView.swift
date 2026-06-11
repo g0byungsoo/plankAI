@@ -38,6 +38,7 @@ struct PreSessionView: View {
     /// HomeView so the cover materializes instantly with no slide-up;
     /// this fade is the only motion the user sees.
     @State private var contentOpacity: Double = 0
+    @State private var contentSettle: CGFloat = 8
 
     var body: some View {
         ZStack {
@@ -79,9 +80,13 @@ struct PreSessionView: View {
             }
         }
         .opacity(contentOpacity)
+        .offset(y: contentSettle)
         .onAppear {
-            withAnimation(.easeInOut(duration: 0.6)) {
+            // v1.1 module pass — the shared arrival (fade + 8pt settle
+            // on gentleSpring), matching every other module entrance.
+            withAnimation(Motion.gentleSpring) {
                 contentOpacity = 1
+                contentSettle = 0
             }
             // Keep the screen awake during setup too — users spend
             // 20-30+ seconds reading the WHY block + positioning the
