@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit  // UIImage for the P3 day-card render
 import PlankSync
 import PlankFood
 import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
@@ -420,6 +421,9 @@ struct AnalyticsView: View {
     /// v1.1 food journal — opened from the plates teaser.
     @State private var showFoodJournal = false
     @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 1650
+    /// v1.1 P3 — rendered day card pending share-sheet presentation.
+    @State private var dayCardImage: UIImage? = nil
+    @State private var showDayCardShare = false
     @State private var presentedFutureRail: FutureRail? = nil
     @State private var presentedMetric: BecomingMetric? = nil
     @State private var calendarScale: CGFloat = 0.95
@@ -512,7 +516,7 @@ struct AnalyticsView: View {
                     // folio's right half is reliably empty (day count
                     // is left-aligned), so the sparkle sits in known
                     // whitespace. 2 stickers total on this surface
-                    // (sparkle here + bow on the map), edge-anchored.
+                    // (sparkle here + the teaser's polaroid fan).
                     .overlay(alignment: .topTrailing) {
                         Image(StickerName.sparkleGlossy.assetName)
                             .resizable().scaledToFit()
@@ -522,6 +526,29 @@ struct AnalyticsView: View {
                             .offset(x: -4, y: 6)
                             .allowsHitTesting(false)
                             .accessibilityHidden(true)
+                    }
+                    // v1.1 P3 — "keep today's page": the quiet share
+                    // glyph under the folio renders the her75 day card
+                    // (adherence + steps + plates; the trend is NEVER
+                    // on the share by default — she never shares her
+                    // mass).
+                    .overlay(alignment: .bottomTrailing) {
+                        Button {
+                            Haptics.light()
+                            dayCardImage = BecomingDayCardRenderer.render(
+                                dayNumber: folioDayNumber,
+                                totalDays: folioTotalDays,
+                                dateRange: folioDateRange,
+                                facts: dayCardFacts
+                            )
+                            showDayCardShare = dayCardImage != nil
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(Palette.textSecondary)
+                                .tappableArea()
+                        }
+                        .accessibilityLabel("keep today's page — share your day card")
                     }
                     .opacity(sectionOpacity[0])
                     .offset(y: sectionOffset[0])
@@ -596,6 +623,12 @@ struct AnalyticsView: View {
             // header all clear comfortably.
             .presentationDetents([.fraction(0.78)])
             .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showDayCardShare) {
+            if let img = dayCardImage {
+                BecomingShareSheet(image: img)
+                    .presentationDetents([.medium, .large])
+            }
         }
         // v1.1 food journal — same presentation contract HomeView uses
         // (the + button dismisses; the camera lives on the tab bar's
@@ -1193,6 +1226,27 @@ struct AnalyticsView: View {
         } else {
             BecomingStatCell(label: "plates", lines: [("—", "no plates yet")])
         }
+    }
+
+    /// Share-safe day-card facts: adherence + steps + plates only.
+    /// Empty slots simply don't render (never a placeholder fact).
+    private var dayCardFacts: [String] {
+        var facts: [String] = []
+        if weekDoneCount > 0 {
+            facts.append("\(weekDoneCount) of 7 days kept")
+        }
+        let steps = StepsService.shared.weekTotal
+        if steps > 0 {
+            facts.append("\(steps.formatted()) steps this week")
+        }
+        if FoodFlags.isEnabled,
+           let userId = auth.currentUser?.id.uuidString, !userId.isEmpty {
+            let plates = FoodLogPersister.allEntries(userId: userId).count
+            if plates > 0 {
+                facts.append(plates == 1 ? "1 plate kept" : "\(plates) plates kept")
+            }
+        }
+        return facts
     }
 
     /// One rotating sentence about HER data — provenance-gated; when
