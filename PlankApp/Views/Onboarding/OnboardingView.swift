@@ -2783,6 +2783,19 @@ struct OnboardingView: View {
         .padding(.horizontal, Space.screenPadding)
     }
 
+    /// v4 R1 — the CTA dock. Apply via `.safeAreaInset(edge: .bottom)`
+    /// on a screen's root stack so the button renders at the same
+    /// pixel Y on every screen; content can mathematically never push
+    /// it (the founder's "progress bar and button on the same position
+    /// throughout" demand, docs/onboarding_v4_rebuild_plan §A). Paints
+    /// the canvas color behind the button so internally-scrolled
+    /// content slides under, never through.
+    private func jfCTADock<Button: View>(@ViewBuilder _ button: () -> Button) -> some View {
+        button()
+            .padding(.top, Space.xs)
+            .background(Palette.programBgPrimary)
+    }
+
     private func advance(to next: Int, confirmation: String?) {
         let target = resolveNext(hint: next)
         // v2 case 153 (consolidated barriers) is the source of truth for
@@ -2870,41 +2883,46 @@ struct OnboardingView: View {
             // hero region already carries the breathing room.
             Spacer().frame(height: Space.xs)
 
-            VStack(spacing: Space.sm) {
-                ForEach(opts, id: \.0) { key, optTitle, optSub, optIcon in
-                    OnboardingOptionCard(
-                        icon: optIcon,
-                        sticker: stickers?[key],
-                        title: optTitle,
-                        subtitle: optSub,
-                        isSelected: sel.wrappedValue == key,
-                        action: {
-                            Haptics.light()
-                            withAnimation(Motion.tap) {
-                                sel.wrappedValue = key
+            // v4 R1 — options scroll INTERNALLY when they overflow
+            // (basedOnSize keeps short lists inert); they can never
+            // collide with the nav bar or push the CTA.
+            ScrollView {
+                VStack(spacing: Space.sm) {
+                    ForEach(opts, id: \.0) { key, optTitle, optSub, optIcon in
+                        OnboardingOptionCard(
+                            icon: optIcon,
+                            sticker: stickers?[key],
+                            title: optTitle,
+                            subtitle: optSub,
+                            isSelected: sel.wrappedValue == key,
+                            action: {
+                                Haptics.light()
+                                withAnimation(Motion.tap) {
+                                    sel.wrappedValue = key
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
+
+                    if let feedback = inlineFeedback,
+                       let entry = feedback[sel.wrappedValue] {
+                        inlineFeedbackCard(heading: entry.0, body: entry.1)
+                            .padding(.top, Space.xs)
+                    }
                 }
-
-                if let feedback = inlineFeedback,
-                   let entry = feedback[sel.wrappedValue] {
-                    inlineFeedbackCard(heading: entry.0, body: entry.1)
-                        .padding(.top, Space.xs)
-                }
+                .padding(.horizontal, Space.screenPadding)
+                .padding(.bottom, Space.sm)
             }
-            .padding(.horizontal, Space.screenPadding)
-
-            Spacer()
-
-            Button("Continue") {
-                advance(to: next, confirmation: confirmation)
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .safeAreaInset(edge: .bottom) {
+            jfCTADock {
+                JFContinueButton(
+                    label: "continue",
+                    action: { advance(to: next, confirmation: confirmation) },
+                    isEnabled: !sel.wrappedValue.isEmpty
+                )
             }
-            .buttonStyle(.ctaPrimary)
-            .padding(.horizontal, Space.screenPadding)
-            .padding(.bottom, Space.lg)
-            .opacity(sel.wrappedValue.isEmpty ? 0.35 : 1.0)
-            .disabled(sel.wrappedValue.isEmpty)
         }
     }
 
@@ -2999,22 +3017,22 @@ struct OnboardingView: View {
             }
 
             Spacer()
-
-            Button("Continue") {
-                // Sync the legacy ageRange string here (was in
-                // .onChange(of: ageYears) but per-tick parent state
-                // mutations interact poorly with Picker.wheel — the
-                // wheel can hold its scroll responder past the screen
-                // transition and freeze the next screen, see height-
-                // ruler freeze report). Setting once on Continue is
-                // enough; the wheel value already lives in @State and
-                // persists across re-mounts.
-                ageRange = bucketize(age: ageYears)
-                advance(to: 131, confirmation: nil)
+        }
+        .safeAreaInset(edge: .bottom) {
+            jfCTADock {
+                JFContinueButton(label: "continue") {
+                    // Sync the legacy ageRange string here (was in
+                    // .onChange(of: ageYears) but per-tick parent state
+                    // mutations interact poorly with Picker.wheel — the
+                    // wheel can hold its scroll responder past the screen
+                    // transition and freeze the next screen, see height-
+                    // ruler freeze report). Setting once on Continue is
+                    // enough; the wheel value already lives in @State and
+                    // persists across re-mounts.
+                    ageRange = bucketize(age: ageYears)
+                    advance(to: 131, confirmation: nil)
+                }
             }
-            .buttonStyle(.ctaPrimary)
-            .padding(.horizontal, Space.screenPadding)
-            .padding(.bottom, Space.lg)
         }
     }
 
@@ -3109,21 +3127,21 @@ struct OnboardingView: View {
             .padding(.horizontal, Space.lg)
 
             Spacer()
-
-            Button("Continue") {
-                // Sync the legacy activityLevel string here rather
-                // than per-tick onChange, mirroring the age wheel
-                // pattern (avoids parent re-renders during slider
-                // drag that can interact poorly with downstream
-                // screens that need a clean mount).
-                let clampedIdx = max(0, min(Self.activityLevelKeys.count - 1,
-                                            activityLevelIndex))
-                activityLevel = Self.activityLevelKeys[clampedIdx]
-                advance(to: 120, confirmation: nil)
+        }
+        .safeAreaInset(edge: .bottom) {
+            jfCTADock {
+                JFContinueButton(label: "continue") {
+                    // Sync the legacy activityLevel string here rather
+                    // than per-tick onChange, mirroring the age wheel
+                    // pattern (avoids parent re-renders during slider
+                    // drag that can interact poorly with downstream
+                    // screens that need a clean mount).
+                    let clampedIdx = max(0, min(Self.activityLevelKeys.count - 1,
+                                                activityLevelIndex))
+                    activityLevel = Self.activityLevelKeys[clampedIdx]
+                    advance(to: 120, confirmation: nil)
+                }
             }
-            .buttonStyle(.ctaPrimary)
-            .padding(.horizontal, Space.screenPadding)
-            .padding(.bottom, Space.lg)
         }
         .onAppear {
             if activityLevel.isEmpty {
@@ -3146,38 +3164,40 @@ struct OnboardingView: View {
 
             Spacer().frame(height: Space.xs)
 
-            VStack(spacing: Space.sm) {
-                ForEach(opts, id: \.0) { key, optTitle, optSub, optIcon in
-                    OnboardingOptionCard(
-                        icon: optIcon,
-                        title: optTitle,
-                        subtitle: optSub,
-                        isSelected: sel.wrappedValue.contains(key),
-                        action: {
-                            Haptics.light()
-                            withAnimation(.spring(response: 0.25)) {
-                                if sel.wrappedValue.contains(key) {
-                                    sel.wrappedValue.remove(key)
-                                } else {
-                                    sel.wrappedValue.insert(key)
+            ScrollView {
+                VStack(spacing: Space.sm) {
+                    ForEach(opts, id: \.0) { key, optTitle, optSub, optIcon in
+                        OnboardingOptionCard(
+                            icon: optIcon,
+                            title: optTitle,
+                            subtitle: optSub,
+                            isSelected: sel.wrappedValue.contains(key),
+                            action: {
+                                Haptics.light()
+                                withAnimation(.spring(response: 0.25)) {
+                                    if sel.wrappedValue.contains(key) {
+                                        sel.wrappedValue.remove(key)
+                                    } else {
+                                        sel.wrappedValue.insert(key)
+                                    }
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
+                .padding(.horizontal, Space.screenPadding)
+                .padding(.bottom, Space.sm)
             }
-            .padding(.horizontal, Space.screenPadding)
-
-            Spacer()
-
-            Button("Continue") {
-                advance(to: next, confirmation: confirmation)
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .safeAreaInset(edge: .bottom) {
+            jfCTADock {
+                JFContinueButton(
+                    label: "continue",
+                    action: { advance(to: next, confirmation: confirmation) },
+                    isEnabled: sel.wrappedValue.count >= minSelection
+                )
             }
-            .buttonStyle(.ctaPrimary)
-            .padding(.horizontal, Space.screenPadding)
-            .padding(.bottom, Space.lg)
-            .opacity(sel.wrappedValue.count < minSelection ? 0.35 : 1.0)
-            .disabled(sel.wrappedValue.count < minSelection)
         }
     }
 
@@ -3205,12 +3225,13 @@ struct OnboardingView: View {
             )
             .padding(.horizontal, Space.screenPadding)
             Spacer()
-            Button("Continue") {
-                advance(to: next, confirmation: confirmation)
+        }
+        .safeAreaInset(edge: .bottom) {
+            jfCTADock {
+                JFContinueButton(label: "continue") {
+                    advance(to: next, confirmation: confirmation)
+                }
             }
-            .buttonStyle(.ctaPrimary)
-            .padding(.horizontal, Space.screenPadding)
-            .padding(.bottom, Space.lg)
         }
     }
 
@@ -3246,12 +3267,13 @@ struct OnboardingView: View {
             )
             .padding(.horizontal, Space.screenPadding)
             Spacer()
-            Button("Continue") {
-                advance(to: next, confirmation: confirmation)
+        }
+        .safeAreaInset(edge: .bottom) {
+            jfCTADock {
+                JFContinueButton(label: "continue") {
+                    advance(to: next, confirmation: confirmation)
+                }
             }
-            .buttonStyle(.ctaPrimary)
-            .padding(.horizontal, Space.screenPadding)
-            .padding(.bottom, Space.lg)
         }
     }
 
@@ -3314,12 +3336,13 @@ struct OnboardingView: View {
             .padding(.top, Space.xs)
 
             Spacer(minLength: Space.md)
-            Button("Continue") {
-                advance(to: next, confirmation: confirmation)
+        }
+        .safeAreaInset(edge: .bottom) {
+            jfCTADock {
+                JFContinueButton(label: "continue") {
+                    advance(to: next, confirmation: confirmation)
+                }
             }
-            .buttonStyle(.ctaPrimary)
-            .padding(.horizontal, Space.screenPadding)
-            .padding(.bottom, Space.lg)
         }
     }
 
@@ -3586,128 +3609,48 @@ struct OnboardingView: View {
                 .padding(.horizontal, Space.lg)
 
             Spacer()
-
-            HStack(spacing: Space.md) {
-                Button {
-                    Haptics.medium()
-                    bind.wrappedValue = false
-                    advance(to: next, confirmation: confirmation)
-                } label: {
-                    Text("Not me")
-                        .font(Typo.heading)
-                        .foregroundStyle(Palette.textPrimary)
-                        .frame(maxWidth: .infinity, minHeight: 56)
-                        .background(Palette.bgElevated,
-                                    in: RoundedRectangle(cornerRadius: Radius.md))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Radius.md)
-                                .stroke(Palette.divider, lineWidth: 1)
-                        )
-                }
-                .buttonStyle(PressFeedbackStyle())
-
-                Button {
-                    Haptics.medium()
-                    bind.wrappedValue = true
-                    advance(to: next, confirmation: confirmation)
-                } label: {
-                    Text("Yeah, that's me")
-                        .font(Typo.heading)
-                        .foregroundStyle(Palette.textInverse)
-                        .frame(maxWidth: .infinity, minHeight: 56)
-                        .background(Palette.accent,
-                                    in: RoundedRectangle(cornerRadius: Radius.md))
-                }
-                .buttonStyle(PressFeedbackStyle())
-            }
-            .padding(.horizontal, Space.screenPadding)
-            .padding(.bottom, Space.xl)
         }
-    }
-
-    // ═══════════════════════════════════════
-    // MARK: - QUESTION (legacy — feedback on Continue)
-    // ═══════════════════════════════════════
-
-    @State private var inlineFeedback = ""
-    @State private var showInlineFeedback = false
-
-    private func questionView(_ title: String, sub: String?, opts: [(String, String)],
-                              sel: Binding<String>, feedbacks: [String: String], next: Int) -> some View {
-        VStack(spacing: 0) {
-            jfHeader(title, sub: sub)
-
-            Spacer().frame(height: Space.lg)
-
-            // Options (disabled during feedback)
-            VStack(spacing: Space.sm) {
-                ForEach(opts, id: \.0) { key, label in
-                    let on = sel.wrappedValue == key
+        // v4 R1 — the yes/no pair is the CTA on psychometric screens;
+        // it docks like every other CTA (same pixel Y) and wears the
+        // one-CTA system chrome: 56pt capsules, DM Sans SemiBold 16,
+        // outline vs cocoa fill. The pink accent fill died with the
+        // v4 kill list (her75 buttons are plain sans on cocoa).
+        .safeAreaInset(edge: .bottom) {
+            jfCTADock {
+                HStack(spacing: Space.sm) {
                     Button {
-                        Haptics.light()
-                        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) { sel.wrappedValue = key }
+                        Haptics.medium()
+                        bind.wrappedValue = false
+                        advance(to: next, confirmation: confirmation)
                     } label: {
-                        Text(label)
-                            .font(.system(size: 17, weight: .medium))
-                            .foregroundStyle(on ? Palette.textInverse : Palette.textPrimary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 20).frame(height: 56)
-                            .background(on ? Palette.bgInverse : Palette.bgElevated)
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        Text("not me")
+                            .font(.custom("DMSans-SemiBold", size: 16))
+                            .foregroundStyle(Palette.textPrimary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(
+                                Capsule().stroke(Palette.divider, lineWidth: 1.5)
+                            )
                     }
-                    .scaleEffect(on ? 1.02 : 1.0)
-                    .animation(.spring(response: 0.25), value: on)
-                    .disabled(showInlineFeedback)
-                }
-            }
-            .padding(.horizontal, Space.screenPadding)
-            .opacity(showInlineFeedback ? 0.5 : 1.0)
-            .animation(.easeOut(duration: 0.2), value: showInlineFeedback)
+                    .buttonStyle(PressFeedbackStyle())
 
-            // Feedback area (fixed height, between options and button)
-            ZStack {
-                if showInlineFeedback {
-                    Text(inlineFeedback)
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 32)
-                        .padding(.vertical, 22)
-                        .background(Color(hex: "#C8612C"))
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .transition(.opacity.combined(with: .scale(scale: 0.88)))
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: 70)
-            .padding(.top, Space.md)
-
-            Spacer()
-
-            // Continue button
-            ctaBtn("Continue") {
-                Haptics.medium()
-                if let fb = feedbacks[sel.wrappedValue] {
-                    inlineFeedback = fb
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        showInlineFeedback = true
+                    Button {
+                        Haptics.medium()
+                        bind.wrappedValue = true
+                        advance(to: next, confirmation: confirmation)
+                    } label: {
+                        Text("yeah, that's me")
+                            .font(.custom("DMSans-SemiBold", size: 16))
+                            .foregroundStyle(Palette.textInverse)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(Palette.bgInverse, in: Capsule())
                     }
-                    Haptics.success()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                        withAnimation(.easeOut(duration: 0.15)) { showInlineFeedback = false }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                            if next == -1 { withAnimation { analyzing = true }; startAnalyzing() }
-                            else { go(next) }
-                        }
-                    }
-                } else {
-                    if next == -1 { withAnimation { analyzing = true }; startAnalyzing() }
-                    else { go(next) }
+                    .buttonStyle(PressFeedbackStyle())
                 }
+                .padding(.horizontal, Space.lg)
+                .padding(.bottom, 24)
             }
-            .opacity(sel.wrappedValue.isEmpty ? 0.3 : 1.0)
-            .disabled(sel.wrappedValue.isEmpty || showInlineFeedback)
         }
     }
 
