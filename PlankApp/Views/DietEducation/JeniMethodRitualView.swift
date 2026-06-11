@@ -62,15 +62,20 @@ struct JeniMethodRitualView: View {
                 topBar
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: Space.md) {
-                        Spacer().frame(height: Space.sm)
-                        // Kicker — lowercase quiet label (the pink
-                        // uppercase eyebrow read survey-app).
+                    VStack(alignment: .leading, spacing: 0) {
+                        Spacer().frame(height: Space.lg)
+
+                        // Magazine kicker — tracked lowercase, the
+                        // her75 footer-furniture register pulled up
+                        // to open the page (founder: "magazine feel").
                         if let eyebrow = page.eyebrow {
                             Text(eyebrow.lowercased())
-                                .font(.custom("DMSans-Medium", size: 13))
+                                .font(.custom("DMSans-Medium", size: 11))
+                                .kerning(1.98)
                                 .foregroundStyle(Palette.textSecondary)
+                            Spacer().frame(height: Space.sm)
                         }
+
                         ItalicAccentText(page.headline,
                                          italic: page.italic,
                                          baseFont: headlineFont,
@@ -81,21 +86,40 @@ struct JeniMethodRitualView: View {
                             .lineSpacing(Typo.heroHeadlineLineGap)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        if page.citation != nil {
-                            factCard
-                        } else if let body = page.body {
+                        // Hairline rule between headline and body —
+                        // the magazine column break.
+                        Rectangle()
+                            .fill(Palette.divider)
+                            .frame(width: 56, height: 1)
+                            .padding(.vertical, Space.md)
+
+                        if let body = page.body {
                             Text(body)
-                                .font(Typo.body)
+                                .font(.custom("DMSans-Regular", size: 17))
+                                .lineSpacing(5)
                                 .foregroundStyle(Palette.textPrimary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
 
+                        if let citation = page.citation {
+                            Text(citation.lowercased())
+                                .font(.custom("DMSans-Medium", size: 11))
+                                .kerning(0.4)
+                                .foregroundStyle(Palette.textSecondary.opacity(0.7))
+                                .padding(.top, Space.md)
+                        }
+
                         if let breathLine = page.breathLine {
-                            Text(breathLine)
-                                .font(Typo.body)
-                                .foregroundStyle(Palette.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .padding(.top, Space.xs)
+                            ItalicAccentText(
+                                breathLine,
+                                italic: [],
+                                baseFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+                                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+                                color: Palette.textSecondary,
+                                alignment: .leading
+                            )
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, Space.md)
                         }
                         Spacer().frame(height: Space.lg)
                     }
@@ -109,8 +133,24 @@ struct JeniMethodRitualView: View {
                     .transition(JFPageTransition.standard)
                 }
 
+                // Magazine footer folio: hairline + issue line. The
+                // page furniture that makes it read as a printed page.
+                VStack(spacing: 0) {
+                    Rectangle().fill(Palette.divider).frame(height: 1)
+                        .padding(.horizontal, Space.lg)
+                    HStack {
+                        Text(folioLine)
+                            .font(.custom("DMSans-Medium", size: 11))
+                            .kerning(1.98)
+                            .foregroundStyle(Palette.textSecondary.opacity(0.7))
+                        Spacer()
+                    }
+                    .padding(.horizontal, Space.lg)
+                    .padding(.top, 10)
+                }
+
                 ctaButton
-                    .padding(.top, Space.sm)
+                    .padding(.top, Space.xs)
             }
         }
         .onAppear {
@@ -168,37 +208,11 @@ struct JeniMethodRitualView: View {
         .padding(.top, Space.md)
     }
 
-    // (visualBlock deleted 2026-06-11 — the Grok paper-craft
-    // illustration slot and per-page sticker accents are dead per
-    // Direction A; fact pages carry a typographic card instead.)
-
-    /// Typographic fact card — the breathwork protocol card's sibling:
-    /// body inside quiet white chrome, citation as the receipt row.
-    private var factCard: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            if let body = page.body {
-                Text(body)
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if let citation = page.citation {
-                Text(citation.lowercased())
-                    .font(.custom("DMSans-Medium", size: 11))
-                    .foregroundStyle(Palette.textSecondary.opacity(0.7))
-            }
-        }
-        .padding(Space.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.white.opacity(0.55))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Palette.divider, lineWidth: 1)
-        )
-    }
+    // (visualBlock deleted 2026-06-11 — Grok illustration slot +
+    // per-page stickers dead per Direction A. The fact card was then
+    // superseded same-day by the magazine column: founder wants the
+    // page reading as a printed spread, so body + citation sit on
+    // the open page under a hairline, no card chrome.)
 
     @ViewBuilder private var ctaButton: some View {
         if page.isHandoff, let onChainNext, let nextRowTitle {
@@ -234,6 +248,19 @@ struct JeniMethodRitualView: View {
     /// wired (HomeView path); otherwise the truthful "done for today".
     private var legacyHandoffLabel: String {
         onCompleteAndStartWorkout != nil ? page.ctaLabel.lowercased() : "done for today"
+    }
+
+    /// Magazine footer folio line — "the jenifit method · day five".
+    private var folioLine: String {
+        let dayWord: String = {
+            guard script.id >= 1 && script.id <= 14 else { return "" }
+            let f = NumberFormatter()
+            f.numberStyle = .spellOut
+            return f.string(from: NSNumber(value: script.id)) ?? "\(script.id)"
+        }()
+        return dayWord.isEmpty
+            ? "the jenifit method"
+            : "the jenifit method · day \(dayWord)"
     }
 
     // MARK: - Behavior
