@@ -424,6 +424,10 @@ struct AnalyticsView: View {
     /// v1.1 P3 — rendered day card pending share-sheet presentation.
     @State private var dayCardImage: UIImage? = nil
     @State private var showDayCardShare = false
+    /// v1.1 P3b — Sunday recap takeover. Once per ISO week, Sundays
+    /// only, never on an empty week.
+    @State private var showSundayRecap = false
+    @AppStorage("becoming.recap.lastShownWeek") private var recapLastShownWeek = ""
     @State private var presentedFutureRail: FutureRail? = nil
     @State private var presentedMetric: BecomingMetric? = nil
     @State private var calendarScale: CGFloat = 0.95
@@ -593,6 +597,7 @@ struct AnalyticsView: View {
         .onAppear {
             Analytics.captureScreen("Becoming")
             animateIn()
+            presentSundayRecapIfDue()
             // v1.1 P2 — silent body-mass refresh (no-op until the user
             // has granted via Settings; never prompts from here).
             if let userId = auth.currentUser?.id.uuidString, !userId.isEmpty {
@@ -602,6 +607,21 @@ struct AnalyticsView: View {
                     )
                 }
             }
+        }
+        .fullScreenCover(isPresented: $showSundayRecap) {
+            BecomingRecapView(
+                weekNumber: recapWeekNumber,
+                facts: dayCardFacts,
+                quietWeek: weekDoneCount <= 1,
+                dayCard: BecomingDayCardRenderer.render(
+                    dayNumber: folioDayNumber,
+                    totalDays: folioTotalDays,
+                    dateRange: folioDateRange,
+                    facts: dayCardFacts
+                ),
+                onDismiss: { showSundayRecap = false }
+            )
+            .presentationBackground(Palette.bgPrimary)
         }
         // Weight log + first-log seed live at the body level now that the
         // trend lives inside the bento (the old standalone weightCard carried
@@ -1225,6 +1245,28 @@ struct AnalyticsView: View {
             }
         } else {
             BecomingStatCell(label: "plates", lines: [("—", "no plates yet")])
+        }
+    }
+
+    /// Program week for the recap headline ("week three."). nil for
+    /// non-program users (headline falls back to "this week.").
+    private var recapWeekNumber: Int? {
+        guard folioTotalDays != nil else { return nil }
+        return (folioDayNumber - 1) / 7 + 1
+    }
+
+    /// Present the Sunday recap: Sundays only, once per ISO week,
+    /// NEVER on an empty week (never recap an empty week at her).
+    private func presentSundayRecapIfDue() {
+        let cal = Calendar.current
+        guard cal.component(.weekday, from: .now) == 1 else { return }
+        let weekKey = "\(cal.component(.yearForWeekOfYear, from: .now))-w\(cal.component(.weekOfYear, from: .now))"
+        guard recapLastShownWeek != weekKey else { return }
+        guard weekDoneCount > 0, !dayCardFacts.isEmpty else { return }
+        recapLastShownWeek = weekKey
+        // Let the tab's own entrance settle before the takeover.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            showSundayRecap = true
         }
     }
 
