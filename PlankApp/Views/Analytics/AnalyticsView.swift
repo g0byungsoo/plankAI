@@ -554,7 +554,12 @@ struct AnalyticsView: View {
                     // module helpers stay compiled and are rendered
                     // by `becomingDepthSheet` (the sheet view) below.
                 }
-                .padding(.horizontal, Space.screenPadding)
+                // v1.1 padding consistency (founder 2026-06-11): match
+                // the Today tab's program rhythm — 24pt horizontal
+                // (PlanView uses Space.lg) + 24pt top inset so the two
+                // tabs' content starts at the same x and y.
+                .padding(.horizontal, Space.lg)
+                .padding(.top, 24)
                 .padding(.bottom, 100)
             }
         }
@@ -1195,7 +1200,7 @@ struct AnalyticsView: View {
     private var dashboardInsight: (text: String, italic: [String])? {
         // trend on pace — needs measurable toward-goal pace + visible weight
         if !hideWeightStats, let toward = paceTowardGoal, toward > 0.02, weighInsThisWeek >= 2 {
-            return ("your trend is moving. gently is the point ♥", ["gently"])
+            return ("your trend is moving. gently is the point \u{2665}\u{FE0E}", ["gently"])
         }
         // evening-movement pattern — ≥5 routines, ≥60% after 6pm
         let routines = sessionLogs.filter { $0.sessionType == "routine" }
@@ -1204,14 +1209,14 @@ struct AnalyticsView: View {
                 Calendar.current.component(.hour, from: $0.completedAt) >= 18
             }.count
             if Double(evening) / Double(routines.count) >= 0.6 {
-                return ("most of your movement lands after 6pm. evenings are yours ♥", ["yours"])
+                return ("most of your movement lands after 6pm. evenings are yours \u{2665}\u{FE0E}", ["yours"])
             }
         }
         // GLP-1 cohort line — protein is load-bearing for lean-mass
         // protection (Wilding 2021); fires once plates are flowing.
         if ProgramGoalCalculator.isGLP1User(from: glp1Status),
            let week = foodWeek, week.scanDays >= 2 {
-            return ("on your medication, protein is what protects muscle. yours is showing up ♥", ["protein"])
+            return ("on your medication, protein is what protects muscle. yours is showing up \u{2665}\u{FE0E}", ["protein"])
         }
         // protein pattern — claims need receipts: ≥3 scan days AND
         // protein actually led ≥2 of them (the chip said "1 of 3"
@@ -1458,7 +1463,7 @@ struct AnalyticsView: View {
                 // Expectation pre-loading (Dalle Grave 2005): accurate
                 // expectations protect against early dropout. No delta
                 // exists yet, by design.
-                Text("daily swings of 2 to 3 lb are water, not fat. the line needs a week to mean something ♥")
+                Text("daily swings of 2 to 3 lb are water, not fat. the line needs a week to mean something \u{2665}\u{FE0E}")
                     .font(.custom("DMSans-Regular", size: 12))
                     .foregroundStyle(Palette.cocoaSecondary)
                     .fixedSize(horizontal: false, vertical: true)

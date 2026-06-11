@@ -178,6 +178,7 @@ private struct TabBloom: ViewModifier {
     @State private var appearedOnce: Bool
     @State private var blur: CGFloat = 0
     @State private var opacity: Double = 1
+    @State private var offsetY: CGFloat = 0
 
     init(isActive: Bool) {
         self.isActive = isActive
@@ -188,12 +189,16 @@ private struct TabBloom: ViewModifier {
         // Opaque cream backdrop under the blooming content so the blur + fade
         // never reveal the black window behind the tab. No scaleEffect — the
         // earlier scale shrank the content and exposed black gaps at the
-        // top/bottom edges. Just a soft blur resolving into focus.
+        // top/bottom edges. Blur resolving into focus + an 8pt upward
+        // settle (founder 2026-06-11: "modern, simple but premium
+        // transition between today and becoming") — the page arrives
+        // like a card laid on the desk, never a slide.
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
             content
                 .blur(radius: blur)
                 .opacity(opacity)
+                .offset(y: offsetY)
         }
         .onChange(of: isActive) { _, active in
             guard active else { return }
@@ -201,11 +206,11 @@ private struct TabBloom: ViewModifier {
             guard !reduceMotion else { return }
             // Set the bloom-from state this frame, then resolve to clear next
             // runloop so the blur is actually rendered before it animates away.
-            blur = 5; opacity = 0.85
+            blur = 5; opacity = 0.85; offsetY = 8
             Haptics.soft()
             DispatchQueue.main.async {
-                withAnimation(.easeOut(duration: 0.45)) {
-                    blur = 0; opacity = 1
+                withAnimation(Motion.gentleSpring) {
+                    blur = 0; opacity = 1; offsetY = 0
                 }
             }
         }
