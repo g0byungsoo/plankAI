@@ -3,17 +3,19 @@ import UIKit
 
 // MARK: - Typography
 //
-// Two families:
-//   - Fraunces (serif, editorial) for hero/title/italic-accent slots
-//   - DM Sans (utility sans) for heading/body/caption/eyebrow
+// Three families (see docs/her75_typeface_spec_2026_06_10.md):
+//   - Jeni Hero Serif (Playfair Display instanced at wght 650 roman /
+//     620 italic, renamed per OFL Reserved Font Name) — ALL display-class
+//     serif slots ≥19pt. This IS her75's face, identified letterform-by-
+//     letterform. One weight only: roman/italic is the only juxtaposition
+//     (her75 never mixes Light vs SemiBold). Never below 16pt.
+//   - Fraunces 72pt cuts — micro slots only (11pt eyebrow/ornament, where
+//     Playfair hairlines die) + body-copy italic punch words.
+//   - DM Sans (utility sans) for heading/body/caption/eyebrow.
 //
-// Fraunces ships per-optical-size in the upstream repo. We bundle the 72pt
-// optical (designed for ≥24pt usage) since title (32pt) and display (56pt)
-// both sit comfortably in that range. PostScript names: Fraunces72pt-Light,
-// Fraunces72pt-Regular, Fraunces72pt-SemiBold, Fraunces72pt-SemiBoldItalic.
-//
-// "Medium" doesn't ship at 72pt opsz — SemiBold is the closest weight and
-// reads as more emphatic anyway, which matches the editorial intent.
+// Jeni Hero Serif lineGap rule: −0.505 × size (her75 measured cadence,
+// baseline-to-baseline ≈ 1.17 × cap). Relax to −0.42 × size only if a
+// 3-line stack shows descender/ascender collision; never looser.
 
 enum Typo {
     /// Custom-font helper that's Dynamic Type-aware via `relativeTo:`.
@@ -25,9 +27,9 @@ enum Typo {
         .custom(name, size: size, relativeTo: style)
     }
 
-    static let display = font("Fraunces72pt-Light", size: 56, relativeTo: .largeTitle).leading(.tight)
-    static let title = font("Fraunces72pt-SemiBold", size: 32, relativeTo: .title)
-    static let titleItalic = font("Fraunces72pt-SemiBoldItalic", size: 32, relativeTo: .title)
+    static let display = font("JeniHeroSerif-Regular", size: 56, relativeTo: .largeTitle).leading(.tight)
+    static let title = font("JeniHeroSerif-Regular", size: 32, relativeTo: .title)
+    static let titleItalic = font("JeniHeroSerif-Italic", size: 32, relativeTo: .title)
     static let heading = font("DMSans-SemiBold", size: 20, relativeTo: .headline)
     static let body = font("DMSans-Regular", size: 16, relativeTo: .body)
     static let caption = font("DMSans-Medium", size: 13, relativeTo: .caption)
@@ -46,11 +48,11 @@ enum Typo {
     /// JenisNote masthead. Italic Fraunces, 19pt display, tracking -0.2
     /// (editorial display always tightens). Editorial 72pt-optical
     /// register.
-    static let mastheadDisplay = font("Fraunces72pt-SemiBoldItalic", size: 19, relativeTo: .title3)
+    static let mastheadDisplay = font("JeniHeroSerif-Italic", size: 19, relativeTo: .title3)
 
     /// Becoming chapter cover title. Italic Fraunces 36pt, tracking
     /// -0.5 for the display-cut shrink. Magazine-masthead register.
-    static let chapterCover = font("Fraunces72pt-SemiBoldItalic", size: 36, relativeTo: .title)
+    static let chapterCover = font("JeniHeroSerif-Italic", size: 36, relativeTo: .title)
 
     /// Editorial eyebrow — 11pt UPPERCASE tracking 3 (Acne Paper +
     /// Cereal convention). Fraunces SemiBold for the editorial weight;
@@ -60,11 +62,11 @@ enum Typo {
 
     /// Pull-quote between chapters / on Sunday Feature. Italic
     /// Fraunces 22pt, lh 1.45 — pull-quotes should breathe.
-    static let pullQuote = font("Fraunces72pt-SemiBoldItalic", size: 22, relativeTo: .title3)
+    static let pullQuote = font("JeniHeroSerif-Italic", size: 22, relativeTo: .title3)
 
     /// Section / chapter title where it's not a full cover (smaller
     /// inline use). Italic Fraunces 26pt, lh 1.2.
-    static let sectionTitle = font("Fraunces72pt-SemiBoldItalic", size: 26, relativeTo: .title2)
+    static let sectionTitle = font("JeniHeroSerif-Italic", size: 26, relativeTo: .title2)
 
     // MARK: - v1.0.7 minimal-functional-aesthetic dashboard tokens
     //
@@ -91,9 +93,12 @@ enum Typo {
     //     italic on them would be redundant decoration.
 
     /// Dashboard hero number — weight digit, plank PR, the single
-    /// largest numeral on the surface. Fraunces Light at 64pt.
+    /// largest numeral on the surface. Single-weight doctrine: the
+    /// Light-vs-SemiBold juxtaposition died with the Playfair swap;
+    /// if 650 reads too heavy at 64pt on device, shrink the size,
+    /// don't instance a Light cut.
     /// Apply `.monospacedDigit()` at the call site for tabular.
-    static let numeralHero = font("Fraunces72pt-Light", size: 64, relativeTo: .largeTitle).leading(.tight)
+    static let numeralHero = font("JeniHeroSerif-Regular", size: 64, relativeTo: .largeTitle).leading(.tight)
 
     /// Stat-row number — streak count, plank time, sessions this
     /// week. DM Sans Medium 22pt. Apply `.monospacedDigit()` at
@@ -137,13 +142,11 @@ enum Typo {
     /// in-app hero) but 52pt read as oversized against the new
     /// 38pt question default. ChapterCompleteView is the only
     /// consumer of this register.
-    // v4 R2 reverted with heroHeadline — celebration back on Fraunces
-    // pending the font-designer verdict.
-    static let programHeroDisplay = font("Fraunces72pt-Light", size: 44, relativeTo: .largeTitle).leading(.tight)
+    static let programHeroDisplay = font("JeniHeroSerif-Regular", size: 44, relativeTo: .largeTitle).leading(.tight)
 
     /// Italic accent at the program-hero size. Pair with
     /// programHeroDisplay on the same Text via inline +.
-    static let programHeroItalic = font("Fraunces72pt-SemiBoldItalic", size: 44, relativeTo: .largeTitle).leading(.tight)
+    static let programHeroItalic = font("JeniHeroSerif-Italic", size: 44, relativeTo: .largeTitle).leading(.tight)
 
     /// Recommended negative spacing for a 2-line her75-style hero
     /// VStack at programHeroDisplay/Italic size. Brings the two
@@ -153,9 +156,8 @@ enum Typo {
     /// pass showed lines still felt separated. -16 is the her75
     /// "lines almost touch" register; pair with single-line VStack
     /// rows (no internal wrap) so the gap is uniform throughout.
-    // her75 Phase 2 re-ladder (2026-06-10): -16 → -20 at the new
-    // 44pt size (-45% ratio, matching the heroHeadline cadence).
-    static let programHeroLineGap: CGFloat = -20
+    // Playfair cadence: −0.505 × 44 ≈ −22.
+    static let programHeroLineGap: CGFloat = -22
 
     // MARK: - Question hero (v8 P8.9 typography insights)
     //
@@ -181,12 +183,12 @@ enum Typo {
     /// 32pt `Typo.title` (which used to drive jfHeader before the
     /// her75 push), keeps her75's display-heavy register, and fits
     /// the longest medical-phrase questions on 2 lines.
-    static let questionHero = font("Fraunces72pt-SemiBold", size: 34, relativeTo: .largeTitle)
+    static let questionHero = font("JeniHeroSerif-Regular", size: 34, relativeTo: .largeTitle)
 
     /// Italic accent at the question-hero size. Pair with
     /// `questionHero` inline (`Text(base).font(.questionHero) + Text(punch).font(.questionHeroItalic)`)
     /// or via `ItalicAccentText(... baseFont: .questionHero, italicFont: .questionHeroItalic)`.
-    static let questionHeroItalic = font("Fraunces72pt-SemiBoldItalic", size: 34, relativeTo: .largeTitle)
+    static let questionHeroItalic = font("JeniHeroSerif-Italic", size: 34, relativeTo: .largeTitle)
 
     /// `.lineSpacing(_)` for question-hero stacks. Founder reference
     /// (her75 App Store screens 2026-06-10): lines visually TOUCH on
@@ -194,7 +196,8 @@ enum Typo {
     /// the same clamp — lines almost overlap at descenders/ascenders
     /// without becoming illegible. This is the "luxurious" her75
     /// signature; don't loosen past -12.
-    static let questionHeroLineGap: CGFloat = -14
+    // Playfair cadence: −0.505 × 34 ≈ −17.
+    static let questionHeroLineGap: CGFloat = -17
 
     /// Display hero — the BIGGEST register. Re-tuned 2026-06-10:
     /// 44pt was clipping pinned CTAs on the goal-date reveal +
@@ -202,21 +205,21 @@ enum Typo {
     /// still reads as chapter-cover scale at her75's cadence, just
     /// shorter — pairs with the much tighter -16 lineGap below so
     /// the visual weight is preserved.
-    static let displayHero = font("Fraunces72pt-Light", size: 38, relativeTo: .largeTitle).leading(.tight)
+    static let displayHero = font("JeniHeroSerif-Regular", size: 38, relativeTo: .largeTitle).leading(.tight)
 
-    /// Italic accent at the display-hero size. Heavy weight against
-    /// the upright Light creates the her75 weight juxtaposition.
-    static let displayHeroItalic = font("Fraunces72pt-SemiBoldItalic", size: 38, relativeTo: .largeTitle).leading(.tight)
+    /// Italic accent at the display-hero size. Roman vs italic is the
+    /// only juxtaposition (the old Light-vs-SemiBold weight contrast
+    /// died with the Playfair swap — her75 never mixes weights).
+    static let displayHeroItalic = font("JeniHeroSerif-Italic", size: 38, relativeTo: .largeTitle).leading(.tight)
 
-    /// Negative leading for display-hero stacks. -16 at 38pt = the
-    /// her75 "lines touch" cadence on the App Store hero shots
-    /// (founder reference 2026-06-10).
-    static let displayHeroLineGap: CGFloat = -16
+    /// Negative leading for display-hero stacks.
+    // Playfair cadence: −0.505 × 38 ≈ −19.
+    static let displayHeroLineGap: CGFloat = -19
 
     /// Numeral on ProgramStickyNote — the 1-5 row markers on
     /// DailyChecklistCard. Italic Fraunces 28pt. Hand-cut paper
     /// register; the ONE craft signal per program screen.
-    static let stickyNumeral = font("Fraunces72pt-SemiBoldItalic", size: 28, relativeTo: .title2)
+    static let stickyNumeral = font("JeniHeroSerif-Italic", size: 28, relativeTo: .title2)
 
     // MARK: - v3 her75 typography (2026-06-10)
     //
@@ -231,35 +234,22 @@ enum Typo {
 
     /// `heroHeadline` — THE in-app hero register.
     ///
-    /// v4 R2 (2026-06-10, founder-authorized typeface swap per
-    /// docs/onboarding_v4_rebuild_plan_2026_06_10.md §B): Fraunces →
-    /// **Bodoni Moda Display** (opsz 48 static cut, wght 600). her75's
-    /// serif is a high-contrast fashion-Didone — razor hairlines,
-    /// vertical stress, dramatic italics. Fraunces (soft, wonky,
-    /// low-contrast) never read her75 at any size. Founder verbatim:
-    /// "when you copy font design, copy it almost as it is. if our
-    /// existing font style doesn't work, we can also change it."
-    ///
-    /// 40pt Didone ≈ 38pt Fraunces optical size (smaller x-height).
-    /// ONE register for all hero surfaces. Pair with
-    /// `heroHeadlineItalic`; kerning handled by the face itself —
-    /// drop the -0.4 call-site kerning when migrating (Didones are
-    /// already tight; extra negative tracking clogs hairlines).
-    // v4 R2 REVERTED (2026-06-10) — founder device QA: "the new font
-    // style looks horrible." Bodoni Moda opsz48/600 read wrong on
-    // device. Heroes back on Fraunces while the font-designer agent
-    // identifies her75's actual face + the correct copy (candidates:
-    // DM Serif Display — designed sibling of our DM Sans body face —
-    // Playfair Display, Prata, different Bodoni cut). TTFs stay
-    // bundled pending the verdict.
-    static let heroHeadline = font("Fraunces72pt-SemiBold", size: 38, relativeTo: .largeTitle)
+    /// v4 R2 final (2026-06-10): Jeni Hero Serif = Playfair Display
+    /// instanced at wght 650 (her75's actual face, identified
+    /// letterform-by-letterform — the looped italic w in "Follow",
+    /// the sweeping italic g in "girl"). Bodoni Moda failed device
+    /// QA (hairlines collapse, 1790-engraving DNA); Fraunces failed
+    /// (oldstyle wedge terminals, never fashion-editorial). Keep the
+    /// -0.4 call-site kerning. Full spec + the roman/italic intra-
+    /// word mixing rule: docs/her75_typeface_spec_2026_06_10.md.
+    static let heroHeadline = font("JeniHeroSerif-Regular", size: 38, relativeTo: .largeTitle)
 
     /// Italic accent at the hero-headline size.
-    static let heroHeadlineItalic = font("Fraunces72pt-SemiBoldItalic", size: 38, relativeTo: .largeTitle)
+    static let heroHeadlineItalic = font("JeniHeroSerif-Italic", size: 38, relativeTo: .largeTitle)
 
-    /// `.lineSpacing()` for hero-headline stacks (-47% ratio at 38pt
-    /// Fraunces per the her75 measured cadence).
-    static let heroHeadlineLineGap: CGFloat = -18
+    /// `.lineSpacing()` for hero-headline stacks.
+    // Playfair cadence: −0.505 × 38 ≈ −19.
+    static let heroHeadlineLineGap: CGFloat = -19
 
     /// `heroSubpill` — DM Sans SemiBold 13pt for the cocoa-fill
     /// social-proof pill that sits BELOW (never above) the hero
@@ -276,8 +266,8 @@ enum Typo {
     /// masthead. Differs from `stickyNumeral` (28pt, for row
     /// numerals on DailyChecklistCard); this is for screen-level
     /// titles like ProgramStickyNoteHeader.
-    static let mastheadSticker = font("Fraunces72pt-SemiBold", size: 30, relativeTo: .title2)
-    static let mastheadStickerItalic = font("Fraunces72pt-SemiBoldItalic", size: 30, relativeTo: .title2)
+    static let mastheadSticker = font("JeniHeroSerif-Regular", size: 30, relativeTo: .title2)
+    static let mastheadStickerItalic = font("JeniHeroSerif-Italic", size: 30, relativeTo: .title2)
 
     /// `captionTracked` — DM Sans Medium 11pt with `+0.18em` wider
     /// tracking than `statLabel` (which uses `+0.06em`). Luxury-
