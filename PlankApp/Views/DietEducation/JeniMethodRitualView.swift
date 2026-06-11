@@ -25,8 +25,17 @@ struct JeniMethodRitualView: View {
     /// presentation can pass nil (treated like onComplete).
     var onCompleteAndStartWorkout: (() -> Void)? = nil
 
+    /// v1.1 education pass (2026-06-11) — the chain. When set, the
+    /// final page's CTA reads "next: {nextRowTitle}" and fires this
+    /// instead of the legacy workout handoff: the lesson's 84%
+    /// engagement routes into whatever's actually next on her
+    /// checklist. The old "start today's workout" CTA had isHandoff
+    /// set but PlanView never passed the closure, so the button
+    /// label lied and silently dismissed (founder QA).
+    var nextRowTitle: String? = nil
+    var onChainNext: (() -> Void)? = nil
+
     @State private var pageIndex = 0
-    @State private var contentVisible = false
     /// Ambient zen-lofi under the lesson — same player the welcome
     /// breathwork session uses. Boxed once by @State across redraws.
     @State private var musicPlayer = RitualMusicPlayer()
@@ -43,74 +52,70 @@ struct JeniMethodRitualView: View {
 
     var body: some View {
         ZStack {
-            // v6 audit #2: lesson player aligns with the program-era
-            // pink home tab. Per designer note, accentSubtle mat at
-            // line 157 (around the illustration pocket) stays — it
-            // provides the right contrast on the visual card.
+            // v1.1 education pass (2026-06-11): scatter REMOVED (teach
+            // beats are scatter-free per the milestone rule); the page
+            // becomes a left-aligned editorial column on the program
+            // canvas, matching the breathwork intro's register.
             Palette.programBgPrimary.ignoresSafeArea()
-
-            StickerScatter(placements: StickerScatter.breathworkPrimerDefault())
-                .allowsHitTesting(false)
 
             VStack(spacing: 0) {
                 topBar
 
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: Space.md) {
+                    VStack(alignment: .leading, spacing: Space.md) {
                         Spacer().frame(height: Space.sm)
-                        visualBlock
+                        // Kicker — lowercase quiet label (the pink
+                        // uppercase eyebrow read survey-app).
                         if let eyebrow = page.eyebrow {
-                            Text(eyebrow.uppercased())
-                                .font(Typo.eyebrow)
-                                .tracking(1.6)
-                                .foregroundStyle(Palette.accent)
-                                .multilineTextAlignment(.center)
+                            Text(eyebrow.lowercased())
+                                .font(.custom("DMSans-Medium", size: 13))
+                                .foregroundStyle(Palette.textSecondary)
                         }
                         ItalicAccentText(page.headline,
                                          italic: page.italic,
                                          baseFont: headlineFont,
                                          italicFont: headlineItalicFont,
                                          color: Palette.textPrimary,
-                                         alignment: .center)
-                            .padding(.horizontal, Space.sm)
-                        if let body = page.body {
+                                         alignment: .leading)
+                            .kerning(-0.4)
+                            .lineSpacing(Typo.heroHeadlineLineGap)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        if page.citation != nil {
+                            factCard
+                        } else if let body = page.body {
                             Text(body)
                                 .font(Typo.body)
                                 .foregroundStyle(Palette.textPrimary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, Space.xs)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        if let citation = page.citation {
-                            Text(citation)
-                                .font(.system(size: 11))
-                                .foregroundStyle(Palette.textSecondary.opacity(0.8))
-                                .multilineTextAlignment(.center)
-                        }
+
                         if let breathLine = page.breathLine {
                             Text(breathLine)
                                 .font(Typo.body)
                                 .foregroundStyle(Palette.textSecondary)
-                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .padding(.top, Space.xs)
-                                .padding(.horizontal, Space.sm)
                         }
                         Spacer().frame(height: Space.lg)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, Space.lg)
-                    .opacity(contentVisible ? 1 : 0)
-                    .offset(y: contentVisible ? 0 : 8)
+                    // v1.1 — JFPageTransition page-turn (200ms exit /
+                    // 60ms gap / 350ms entrance) replaces the 0.45s
+                    // crossfade; the same vocabulary as onboarding +
+                    // tab switches so module pages feel like one app.
+                    .id(page.id)
+                    .transition(JFPageTransition.standard)
                 }
 
                 ctaButton
-                    .padding(.horizontal, Space.lg)
                     .padding(.top, Space.sm)
-                    .padding(.bottom, Space.xl)
             }
         }
         .onAppear {
             musicPlayer.play()
             fireLessonViewedOnce()
-            reveal()
         }
         .onDisappear { musicPlayer.stop() }
     }
@@ -118,89 +123,120 @@ struct JeniMethodRitualView: View {
     // MARK: - Sections
 
     private var topBar: some View {
-        HStack {
-            if pageIndex > 0 {
+        ZStack {
+            // Page dots — centered, the same dot grammar as the
+            // Becoming week row. Filled = read (incl. current).
+            HStack(spacing: 6) {
+                ForEach(0..<script.pages.count, id: \.self) { i in
+                    if i <= pageIndex {
+                        Circle().fill(Palette.cocoaPrimary).frame(width: 6, height: 6)
+                    } else {
+                        Circle().stroke(Palette.divider, lineWidth: 1.1).frame(width: 6, height: 6)
+                    }
+                }
+            }
+            .accessibilityLabel("page \(pageIndex + 1) of \(script.pages.count)")
+
+            HStack {
+                if pageIndex > 0 {
+                    Button {
+                        Haptics.light()
+                        withAnimation(Motion.pageEntrance) { pageIndex -= 1 }
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(Palette.textPrimary.opacity(0.7))
+                            .frame(width: 36, height: 36)
+                            .background(Circle().fill(Color.white.opacity(0.4)))
+                    }
+                    .accessibilityLabel("Back")
+                }
+                Spacer()
                 Button {
-                    Haptics.light()
-                    contentVisible = false
-                    pageIndex -= 1
-                    reveal()
+                    skip()
                 } label: {
-                    Image(systemName: "chevron.left")
+                    Image(systemName: "xmark")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(Palette.textPrimary.opacity(0.7))
                         .frame(width: 36, height: 36)
                         .background(Circle().fill(Color.white.opacity(0.4)))
                 }
-                .accessibilityLabel("Back")
+                .accessibilityLabel("Close")
             }
-            Spacer()
-            Button {
-                skip()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Palette.textPrimary.opacity(0.7))
-                    .frame(width: 36, height: 36)
-                    .background(Circle().fill(Color.white.opacity(0.4)))
-            }
-            .accessibilityLabel("Close")
         }
         .padding(.horizontal, Space.lg)
         .padding(.top, Space.md)
     }
 
-    @ViewBuilder
-    private var visualBlock: some View {
-        if let asset = page.illustration {
-            Image(asset)
-                .resizable()
-                .scaledToFit()
-                .frame(maxWidth: .infinity)
-                .frame(height: 196)
-                .background(Palette.accentSubtle.opacity(0.4))
-                .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Radius.lg)
-                        .stroke(Palette.accent.opacity(0.4), lineWidth: 1.5)
-                )
-                .padding(.bottom, Space.xs)
-                .accessibilityHidden(true)
-        } else if let sticker = page.sticker {
-            Image(sticker.assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 76, height: 76)
-                .padding(.bottom, Space.xs)
-                .accessibilityHidden(true)
+    // (visualBlock deleted 2026-06-11 — the Grok paper-craft
+    // illustration slot and per-page sticker accents are dead per
+    // Direction A; fact pages carry a typographic card instead.)
+
+    /// Typographic fact card — the breathwork protocol card's sibling:
+    /// body inside quiet white chrome, citation as the receipt row.
+    private var factCard: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            if let body = page.body {
+                Text(body)
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let citation = page.citation {
+                Text(citation.lowercased())
+                    .font(.custom("DMSans-Medium", size: 11))
+                    .foregroundStyle(Palette.textSecondary.opacity(0.7))
+            }
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.white.opacity(0.55))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Palette.divider, lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder private var ctaButton: some View {
+        if page.isHandoff, let onChainNext, let nextRowTitle {
+            // The chain — lesson energy routes to whatever's actually
+            // next on her checklist; "done for today" stays one quiet
+            // link below (never two pills).
+            JFContinueButton(
+                label: "next: \(nextRowTitle.lowercased())",
+                action: {
+                    completeBookkeeping()
+                    onChainNext()
+                },
+                secondaryLabel: "done for today",
+                secondaryAction: {
+                    completeBookkeeping()
+                    onComplete()
+                }
+            )
+        } else if page.isHandoff {
+            JFContinueButton(label: legacyHandoffLabel) {
+                completeAndLaunch()
+            }
+        } else {
+            JFContinueButton(label: page.ctaLabel.lowercased()) {
+                Haptics.light()
+                withAnimation(Motion.pageEntrance) { pageIndex += 1 }
+            }
         }
     }
 
-    private var ctaButton: some View {
-        Button {
-            if page.isHandoff {
-                completeAndLaunch()
-            } else {
-                Haptics.light()
-                contentVisible = false
-                pageIndex += 1
-                reveal()
-            }
-        } label: {
-            Text(page.ctaLabel)
-        }
-        .buttonStyle(.ctaPrimary)
+    /// Legacy final-page label. The old scripts say "start today's
+    /// workout" — only honest when a workout handoff is actually
+    /// wired (HomeView path); otherwise the truthful "done for today".
+    private var legacyHandoffLabel: String {
+        onCompleteAndStartWorkout != nil ? page.ctaLabel.lowercased() : "done for today"
     }
 
     // MARK: - Behavior
-
-    private func reveal() {
-        if reduceMotion {
-            contentVisible = true
-            return
-        }
-        withAnimation(.easeInOut(duration: 0.45)) { contentVisible = true }
-    }
 
     /// X tapped — record the skip (live cohort only) and hand back to the
     /// parent, which dismisses. Mirrors the old beat player's skip path.
@@ -218,29 +254,33 @@ struct JeniMethodRitualView: View {
         onSkip(page.id)
     }
 
-    /// Final-page CTA — completion bookkeeping (live cohort only), then
-    /// launch the workout (or plain dismiss in re-read / no-workout calls).
-    private func completeAndLaunch() {
-        if !isReread {
-            JeniMethodState.markLessonCompleted(script.id)
-            Haptics.heavy()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                Haptics.success()
-            }
-            // The terminal arc event fires once, on the last numbered day.
-            if script.id == LessonID.dailyLessons.last?.rawValue {
-                let days = JeniMethodState.daysSinceEnrolled() ?? 0
-                Analytics.track(
-                    .dietEducationCompleted,
-                    properties: JeniMethodAnalytics.completedProps(
-                        user: user,
-                        lessonsCompleted: LessonID.dailyLessons.count,
-                        lessonsSkipped: JeniMethodState.skipCount,
-                        daysElapsed: days
-                    )
+    /// Shared completion bookkeeping — live cohort only. The receipt
+    /// is deliberately tiny (a lesson is 3 minutes of reading): one
+    /// success haptic, no celebration screen (v1.1 education pass —
+    /// was heavy + delayed success, which over-celebrated).
+    private func completeBookkeeping() {
+        guard !isReread else { return }
+        JeniMethodState.markLessonCompleted(script.id)
+        Haptics.success()
+        // The terminal arc event fires once, on the last numbered day.
+        if script.id == LessonID.dailyLessons.last?.rawValue {
+            let days = JeniMethodState.daysSinceEnrolled() ?? 0
+            Analytics.track(
+                .dietEducationCompleted,
+                properties: JeniMethodAnalytics.completedProps(
+                    user: user,
+                    lessonsCompleted: LessonID.dailyLessons.count,
+                    lessonsSkipped: JeniMethodState.skipCount,
+                    daysElapsed: days
                 )
-            }
+            )
         }
+    }
+
+    /// Legacy final-page CTA — completion bookkeeping, then launch the
+    /// workout (or plain dismiss in re-read / no-workout calls).
+    private func completeAndLaunch() {
+        completeBookkeeping()
         if let handoff = onCompleteAndStartWorkout {
             // Raise the plain light-pink bridge (RitualToWorkoutSplash) and
             // let it reach full opacity (HomeView fades it in over 0.3s)

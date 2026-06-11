@@ -168,6 +168,10 @@ struct PlanView: View {
     private func coverContent(for cover: PlanCover) -> some View {
         switch cover {
         case .lesson(let lessonId):
+            // v1.1 education pass — the chain: the lesson's last page
+            // routes to her next unchecked checklist row (the old
+            // "start today's workout" CTA had no handoff wired here
+            // and silently dismissed).
             JeniMethodRitualView(
                 lesson: lessonId,
                 user: JeniMethodUserContext.fromAppStorage(),
@@ -175,7 +179,21 @@ struct PlanView: View {
                     markAutoCompleted(.lesson(lessonId: String(lessonId.rawValue)))
                     dismissCover()
                 },
-                onSkip: { _ in dismissCover() }
+                onSkip: { _ in dismissCover() },
+                nextRowTitle: nextUncheckedPrescription?.rowTitle,
+                onChainNext: {
+                    markAutoCompleted(.lesson(lessonId: String(lessonId.rawValue)))
+                    let next = nextUncheckedPrescription
+                    dismissCover()
+                    if let next {
+                        // Let the cover dismissal settle before the next
+                        // module's cover mounts (stacked fullScreenCovers
+                        // read as a hitch).
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            handleRowTap(next)
+                        }
+                    }
+                }
             )
 
         case .captureFlow:
@@ -658,6 +676,18 @@ struct PlanView: View {
         case .newProgram:
             Haptics.light()
             present(cover: .chapterComplete)
+        }
+    }
+
+    /// The lesson chain's target: the first unchecked, OPENABLE row
+    /// after the lesson. Steps is skipped (no module to open); the
+    /// lesson itself is skipped (she's in it).
+    private var nextUncheckedPrescription: ProgramDayPrescription? {
+        todayPrescriptions.first { p in
+            if case .lesson = p { return false }
+            if case .steps = p { return false }
+            let state = checkStateByKey[p.itemKey] ?? .empty
+            return !state.isCompleted
         }
     }
 
