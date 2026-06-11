@@ -40,10 +40,15 @@ public enum FoodLogPersister {
     private static var inMemoryEntries: [Entry] = []
     private static var didHydrate: Bool = false
     private static let userDefaultsKey = "jenifit.foodlog.v1"
-    /// Entries older than this many days are pruned on every write
-    /// to bound the UserDefaults payload. 14d covers the 7-day
-    /// Becoming/Home reads plus headroom.
-    private static let retentionDays: Int = 14
+    private static let migratedFlagKey = "jenifit.foodlog.jsonl.migrated"
+    // v1.1 food journal (2026-06-11): the 14-day TTL is DEAD. The
+    // journal's promise is "your plates, kept" — industry norm is
+    // account-lifetime retention (MacroFactor posture; MFP's 2-year
+    // free cliff is the category's most-hated policy) and the math
+    // says pruning solves a non-problem (~220KB/yr of entries).
+    // Storage moved from a UserDefaults blob to an append-only JSONL
+    // file (corrupt-line tolerant, atomic appends); the old blob
+    // migrates once and is kept as a backup.
 
     /// Combine publisher fires when a new entry is added. HomeFoodCard
     /// subscribes via .onReceive to refresh its bar on every log.
@@ -155,42 +160,75 @@ public enum FoodLogPersister {
         public let fiber: Double
     }
 
-    /// Lazy hydrate from UserDefaults on first read after a cold
-    /// launch. Idempotent — guarded by `didHydrate` so warm reads
-    /// stay O(1).
+    // MARK: - JSONL store
+
+    private static var storeURL: URL? {
+        guard let base = FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first else { return nil }
+        let dir = base.appendingPathComponent("FoodLogs", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: dir.path) {
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+        return dir.appendingPathComponent("entries.jsonl")
+    }
+
+    /// Lazy hydrate on first read after a cold launch. Reads the
+    /// JSONL file line-by-line — a corrupt line loses ONE entry,
+    /// never the journal. One-time migration pulls the legacy
+    /// UserDefaults blob in first (blob kept as a backup; never
+    /// deleted).
     private static func hydrateIfNeeded() {
         guard !didHydrate else { return }
         didHydrate = true
-        guard let data = UserDefaults.standard.data(forKey: userDefaultsKey) else {
-            return
+        migrateLegacyBlobIfNeeded()
+        guard let url = storeURL,
+              let raw = try? String(contentsOf: url, encoding: .utf8) else { return }
+        let decoder = JSONDecoder()
+        var loaded: [Entry] = []
+        for line in raw.split(separator: "\n") {
+            guard let data = line.data(using: .utf8),
+                  let entry = try? decoder.decode(Entry.self, from: data) else { continue }
+            loaded.append(entry)
         }
-        do {
-            let decoded = try JSONDecoder().decode([Entry].self, from: data)
-            inMemoryEntries = decoded
-        } catch {
-            // Bad blob — treat as empty (worst case: user loses the
-            // last few logs, not the entire run). Don't overwrite
-            // the corrupt blob until the next successful write so
-            // a debugger can still inspect it.
-            #if DEBUG
-            print("[FoodLogPersister] failed to decode UserDefaults blob: \(error)")
-            #endif
-        }
+        // De-dupe by id (replays from a partially-failed rewrite keep
+        // the last occurrence) and restore chronological order.
+        var byId: [String: Entry] = [:]
+        for entry in loaded { byId[entry.id] = entry }
+        inMemoryEntries = byId.values.sorted { $0.loggedAt < $1.loggedAt }
     }
 
-    /// Write the full entry array (post-prune) to UserDefaults as
-    /// JSON. Called from `persist()` on every successful log.
-    private static func writeToUserDefaults() {
-        // Prune entries older than retentionDays before persisting.
-        let cutoff = Date().addingTimeInterval(-Double(retentionDays) * 86400)
-        inMemoryEntries.removeAll { $0.loggedAt < cutoff }
-        do {
-            let data = try JSONEncoder().encode(inMemoryEntries)
-            UserDefaults.standard.set(data, forKey: userDefaultsKey)
-        } catch {
-            #if DEBUG
-            print("[FoodLogPersister] failed to encode entries: \(error)")
-            #endif
+    private static func migrateLegacyBlobIfNeeded() {
+        guard !UserDefaults.standard.bool(forKey: migratedFlagKey),
+              let url = storeURL else { return }
+        defer { UserDefaults.standard.set(true, forKey: migratedFlagKey) }
+        guard let data = UserDefaults.standard.data(forKey: userDefaultsKey),
+              let legacy = try? JSONDecoder().decode([Entry].self, from: data),
+              !legacy.isEmpty else { return }
+        // Don't double-write if a JSONL already exists (defensive).
+        guard !FileManager.default.fileExists(atPath: url.path) else { return }
+        let encoder = JSONEncoder()
+        let lines = legacy.compactMap { entry -> String? in
+            guard let d = try? encoder.encode(entry) else { return nil }
+            return String(data: d, encoding: .utf8)
+        }
+        try? (lines.joined(separator: "\n") + "\n")
+            .write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    /// Append ONE entry to the JSONL file. O(1) per log; no rewrite
+    /// of history, no pruning — logs are kept for the account
+    /// lifetime per the retention policy.
+    private static func appendToStore(_ entry: Entry) {
+        guard let url = storeURL,
+              let data = try? JSONEncoder().encode(entry),
+              let line = String(data: data, encoding: .utf8) else { return }
+        if let handle = try? FileHandle(forWritingTo: url) {
+            defer { try? handle.close() }
+            _ = try? handle.seekToEnd()
+            try? handle.write(contentsOf: Data((line + "\n").utf8))
+        } else {
+            try? (line + "\n").write(to: url, atomically: true, encoding: .utf8)
         }
     }
 
@@ -286,7 +324,7 @@ public enum FoodLogPersister {
             title = "scanned plate"
         }
         let entryId = UUID().uuidString
-        inMemoryEntries.append(Entry(
+        let entry = Entry(
             id: entryId,
             userId: userId,
             loggedAt: loggedAt,
@@ -297,8 +335,9 @@ public enum FoodLogPersister {
             fiber: plateFiber,
             title: title,
             source: food.source.rawValue
-        ))
-        writeToUserDefaults()
+        )
+        inMemoryEntries.append(entry)
+        appendToStore(entry)
 
         // v1.1 Becoming filmstrip — persist a small on-device thumbnail
         // keyed by the entry id. Forward-only; nil for quick-add /
@@ -420,7 +459,20 @@ public enum FoodLogPersister {
         let before = inMemoryEntries.count
         inMemoryEntries.removeAll { $0.id == id }
         guard inMemoryEntries.count != before else { return }
-        writeToUserDefaults()
+        rewriteStore()
         changeNotifier.send(())
+    }
+
+    /// Full rewrite of the JSONL file — deletes are rare, so the
+    /// O(n) rewrite is fine (appends stay O(1) via appendToStore).
+    private static func rewriteStore() {
+        guard let url = storeURL else { return }
+        let encoder = JSONEncoder()
+        let lines = inMemoryEntries.compactMap { entry -> String? in
+            guard let d = try? encoder.encode(entry) else { return nil }
+            return String(data: d, encoding: .utf8)
+        }
+        try? (lines.joined(separator: "\n") + (lines.isEmpty ? "" : "\n"))
+            .write(to: url, atomically: true, encoding: .utf8)
     }
 }
