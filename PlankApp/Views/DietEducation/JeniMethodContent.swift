@@ -28,21 +28,23 @@ enum LessonID: Int, CaseIterable {
 
     /// Stable slug used in analytics properties (lesson_topic). Never
     /// shown to users.
+    // v1.1 content arc (2026-06-11) — slugs follow the diet-first
+    // rewrite so lesson_topic analytics segment by the new curriculum.
     var topicSlug: String {
         switch self {
         case .day1:    return "muscle_changes_the_math"
-        case .day2:    return "the_exercise_paradox"
-        case .day3:    return "the_invisible_burn"
-        case .day4:    return "stillness_is_training"
-        case .day5:    return "walk_after_you_eat"
-        case .day6:    return "small_beats_heroic"
-        case .day7:    return "sixty_six_days"
-        case .day8:    return "the_return"
-        case .day9:    return "be_your_own_friend"
-        case .day10:   return "protein_every_meal"
-        case .day11:   return "enjoyment_is_the_ingredient"
-        case .day12:   return "exercise_snacks"
-        case .day13:   return "sleep_is_the_multiplier"
+        case .day2:    return "snap_dont_count"
+        case .day3:    return "protein_first"
+        case .day4:    return "cant_outmove_the_plate"
+        case .day5:    return "scale_is_moody"
+        case .day6:    return "walk_after_you_eat"
+        case .day7:    return "lighter_days"
+        case .day8:    return "the_comeback"
+        case .day9:    return "food_noise"
+        case .day10:   return "sleep_is_the_multiplier"
+        case .day11:   return "the_quiet_7500"
+        case .day12:   return "small_beats_heroic"
+        case .day13:   return "sixty_six_days"
         case .day14:   return "begin_again"
         case .generic: return "daily_check_in"
         }
