@@ -355,6 +355,46 @@ struct AnalyticsView: View {
     // (coach note trigger removed 2026-06-10 — feature shelved for
     // v1.0.8+; see comment at AnalyticsView body line ~520)
 
+    // MARK: - Becoming page hero state (her75 Phase 5, audit §7)
+    //
+    // The italic chunk in "you're *{state}*." derives from collected
+    // data per [[feedback-data-provenance]] — never fabricated.
+    // Priority order matters: goal-progress beats trend beats
+    // session-count, so the most meaningful signal leads.
+
+    private var becomingStateWord: String {
+        // ≥50% of goal distance covered → "becoming her"
+        if let latest = latestWeightKg,
+           onboardingCurrentWeightKg > 0, onboardingGoalWeightKg > 0,
+           onboardingCurrentWeightKg > onboardingGoalWeightKg {
+            let total = onboardingCurrentWeightKg - onboardingGoalWeightKg
+            let done = onboardingCurrentWeightKg - latest
+            if done / total >= 0.5 { return "becoming her" }
+        }
+        // Trend-based states need ≥3 logs
+        if weightLogs.count >= 3 {
+            if let delta = weightDeltaKg {
+                if delta < -0.3 { return "becoming steady" }
+                if abs(delta) <= 0.3 { return "becoming patient" }
+            }
+            return "becoming steady"
+        }
+        // Sessions but no weight signal
+        if sessionLogs.count >= 7 { return "showing up" }
+        return "just beginning"
+    }
+
+    /// Cocoa status pill under the page hero. Real data only:
+    /// "becoming since {month}" from the first session, or "day {N}"
+    /// from the engagement calculator when no sessions predate this
+    /// month. Nil = no pill (first-launch state).
+    private var becomingPill: String? {
+        guard let firstSession = sessionLogs.last else { return nil }
+        let f = DateFormatter()
+        f.dateFormat = "MMMM"
+        return "becoming since \(f.string(from: firstSession.completedAt).lowercased())"
+    }
+
 
     // Grouped sessions
     private var thisWeekSessions: [SessionLogRecord] {
@@ -433,7 +473,9 @@ struct AnalyticsView: View {
                 // modules + recent-sessions ForEach (potentially many
                 // rows for active users) — eager VStack would render
                 // and animate them all on appear.
-                LazyVStack(alignment: .leading, spacing: 20) {
+                // her75 Phase 5 — module spacing 20 → 24pt matching
+                // the her75-homescreen vertical rhythm (audit §8 P5.6).
+                LazyVStack(alignment: .leading, spacing: Space.lg) {
                     // v1.0.7 Becoming snapshot redesign (founder feedback
                     // round 3, 2026-06-06: "becoming screen is still too
                     // busy ... no snapshot feeling of showing everything
@@ -446,11 +488,26 @@ struct AnalyticsView: View {
                     // Status strip replaces the page hero ("you're /
                     // becoming steady"). Concierge tell — date + state
                     // word in italic-Fraunces jeweledRose top-right.
-                    BecomingStatusStrip(weightLogs: weightLogs)
-                        .padding(.top, Space.md)
-                        .opacity(sectionOpacity[0])
-                        .offset(y: sectionOffset[0])
-                        .blur(radius: headerBlur)
+                    // her75 Phase 5 — Archetype D page hero (audit §7).
+                    // The page hero is the SAME 38pt register as
+                    // onboarding heroes per her75-homescreen.webp —
+                    // "you're *{state}*." with a data-derived italic
+                    // chunk + the date strip demoted below it. The
+                    // BecomingStatusStrip (date + trend chip) survives
+                    // as the pill-row under the hero.
+                    VStack(alignment: .leading, spacing: 6) {
+                        JFPageHero(
+                            title: "you're \(becomingStateWord).",
+                            italic: [becomingStateWord],
+                            pill: becomingPill,
+                            alignment: .leading
+                        )
+                        BecomingStatusStrip(weightLogs: weightLogs)
+                            .padding(.horizontal, Space.screenPadding)
+                    }
+                    .opacity(sectionOpacity[0])
+                    .offset(y: sectionOffset[0])
+                    .blur(radius: headerBlur)
 
                     // v3 P11.5 (2026-06-10) — coach note SHELVED 2026-06-10.
                     // Founder call: not core to the v1.0.7 redesign + the

@@ -156,15 +156,11 @@ struct NotificationSettingsView: View {
     // MARK: - Header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: Space.xs) {
-            Text("settings")
-                .font(Typo.eyebrow).tracking(2)
-                .foregroundStyle(Palette.accent)
-            Text("notifications.")
-                .font(Typo.titleItalic)
-                .foregroundStyle(Palette.textPrimary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // her75 Phase 6 — JFPageHero (audit §7). Breadcrumb eyebrow
+        // dropped (her75 sub-pages show none); title promoted from
+        // titleItalic 32pt to the ONE page-hero register.
+        JFPageHero(title: "notifications.", italic: ["notifications"], alignment: .leading)
+            .padding(.horizontal, -Space.screenPadding)  // parent already pads
     }
 
     // MARK: - Save

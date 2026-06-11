@@ -101,19 +101,11 @@ struct EditProfileView: View {
     // MARK: - Header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: Space.xs) {
-            Text("your program")
-                .font(Typo.eyebrow).tracking(2)
-                .foregroundStyle(Palette.accent)
-            Text("my plan.")
-                .font(Typo.titleItalic)
-                .foregroundStyle(Palette.textPrimary)
-            Text("jeni built this for you. tweak it anytime.")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-                .padding(.top, 2)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // her75 Phase 6 — JFPageHero (audit §7). Breadcrumb eyebrow +
+        // explainer caption dropped; 38pt page-hero register. Copy per
+        // the audit's per-surface table: "*your* plan."
+        JFPageHero(title: "your plan.", italic: ["your"], alignment: .leading)
+            .padding(.horizontal, -Space.screenPadding)  // parent already pads
     }
 
     // MARK: - Section

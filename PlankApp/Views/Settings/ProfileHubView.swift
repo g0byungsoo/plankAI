@@ -129,6 +129,10 @@ struct ProfileHubView: View {
     private var hubList: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: Space.lg) {
+                // her75 Phase 6 — Archetype D page hero (audit §7).
+                JFPageHero(title: "your space.", italic: ["your"], alignment: .leading)
+                    .reveal(0, revealed)
+
                 identityHeader
                     .padding(.horizontal, Space.screenPadding)
                     .reveal(0, revealed)
@@ -177,11 +181,11 @@ struct ProfileHubView: View {
 
     private var identityHeader: some View {
         let initial = userName.first.map { String($0).uppercased() } ?? ""
+        // her75 Phase 6 — breadcrumb eyebrow dropped; the page hero
+        // ("*your* space.") renders at hubList level ABOVE this card.
+        // This view is now the pure identity module (avatar + name +
+        // pills) in editorialCard chrome.
         return VStack(alignment: .leading, spacing: Space.md) {
-            Text("settings")
-                .font(Typo.eyebrow).tracking(2)
-                .foregroundStyle(Palette.accent)
-
             HStack(spacing: Space.md) {
                 ZStack {
                     Circle().fill(Palette.accentSubtle).frame(width: 60, height: 60)

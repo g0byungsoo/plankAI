@@ -777,6 +777,61 @@ struct OnboardingProgressBar: View {
 // Used as a screen body inside OnboardingView; the parent owns the
 // dispatch to the next screen.
 
+// MARK: - JFPageHero (her75 Phase 5 — Archetype D page hero)
+//
+// The canonical drop-in for every dashboard / settings page hero per
+// docs/her75_redesign_phase2_plan_2026_06_10.md §7. her75's page-level
+// structure (her75-homescreen.webp): big italic-Fraunces hero at the
+// SAME register as onboarding (38pt heroHeadline), ONE optional cocoa
+// social-proof / status pill below, then modules. No tab labels, no
+// eyebrow breadcrumbs, no sticker decoration.
+//
+// Every Archetype D surface (Becoming, Settings hub, Settings
+// sub-pages, PlanView) drops this in — no surface ships a one-off
+// page hero composition. The structural consistency IS the fix for
+// the founder's "everything is inconsistent" complaint.
+//
+// Pill content must trace to collected data per
+// [[feedback-data-provenance]] — "becoming since march", "day 12",
+// never a fabricated count.
+
+struct JFPageHero: View {
+    let title: String
+    var italic: [String] = []
+    /// Optional cocoa status pill ("becoming since march", "day 12 of 75").
+    var pill: String? = nil
+    var alignment: HorizontalAlignment = .leading
+
+    var body: some View {
+        VStack(alignment: alignment, spacing: 14) {
+            ItalicAccentText(
+                title,
+                italic: italic,
+                baseFont: Typo.heroHeadline,
+                italicFont: Typo.heroHeadlineItalic,
+                color: Palette.textPrimary,
+                alignment: alignment == .leading ? .leading : .center
+            )
+            .kerning(-0.4)
+            .lineSpacing(Typo.heroHeadlineLineGap)
+            .fixedSize(horizontal: false, vertical: true)
+
+            if let pill {
+                Text(pill)
+                    .font(Typo.heroSubpill)
+                    .kerning(0.2)
+                    .foregroundStyle(Palette.textInverse)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Palette.cocoaPrimary))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : .center)
+        .padding(.horizontal, Space.screenPadding)
+        .padding(.top, Space.md)
+    }
+}
+
 struct SectionDividerScreen: View {
     let partNumber: Int
     let title: String

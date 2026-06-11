@@ -108,13 +108,12 @@ struct ChangeTrainerView: View {
     // MARK: - Header
 
     private var header: some View {
+        // her75 Phase 6 — JFPageHero (audit §7). Eyebrow dropped;
+        // "tap to preview" affordance KEPT (genuinely non-obvious
+        // interaction per the editorial-register exception).
         VStack(alignment: .leading, spacing: Space.xs) {
-            Text("settings")
-                .font(Typo.eyebrow).tracking(2)
-                .foregroundStyle(Palette.accent)
-            Text("your coach.")
-                .font(Typo.titleItalic)
-                .foregroundStyle(Palette.textPrimary)
+            JFPageHero(title: "your coach.", italic: ["your"], alignment: .leading)
+                .padding(.horizontal, -Space.screenPadding)  // parent already pads
             Text("tap to preview their voice.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
