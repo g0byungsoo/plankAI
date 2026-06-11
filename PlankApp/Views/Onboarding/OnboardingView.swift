@@ -7707,7 +7707,15 @@ struct OnboardingView: View {
         let coachPhoto = voicePreference == "encouraging" ? "coach-jeni" : voicePreference == "balanced" ? "coach-matson" : "coach-kira"
 
         return ZStack {
-            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
+            // her75 Phase 2 + founder calibration (2026-06-10) —
+            // scatter RESTORED here. The rule per founder: "i like the
+            // sticker scatter on certain pages to give a highlight and
+            // keep jenifit in some way. i just don't want to spam it."
+            // Scatter lives on the 3 MILESTONE moments only: welcome
+            // (entrance), plan reveal (THIS — the celebration peak of
+            // onboarding), graduation (ChapterCompleteView). Questions,
+            // bridges, teach beats, settings stay scatter-free.
+            StickerScatter(placements: Self.planRevealPlacements)
 
             VStack(spacing: 0) {
             Spacer()
