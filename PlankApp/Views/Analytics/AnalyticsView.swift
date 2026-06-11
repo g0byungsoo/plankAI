@@ -598,6 +598,18 @@ struct AnalyticsView: View {
             Analytics.captureScreen("Becoming")
             animateIn()
             presentSundayRecapIfDue()
+            // P3b — earn-gated Sunday push (id-replaced, one per week
+            // max; empty weeks never get a push at her).
+            let cal = Calendar.current
+            let engagedThisWeek = engagedDates.filter {
+                cal.component(.weekOfYear, from: $0) == cal.component(.weekOfYear, from: .now)
+                    && cal.component(.yearForWeekOfYear, from: $0) == cal.component(.yearForWeekOfYear, from: .now)
+            }.count
+            Task {
+                await RecapNotificationService.shared.scheduleIfEarned(
+                    engagedDaysThisWeek: engagedThisWeek
+                )
+            }
             // v1.1 P2 — silent body-mass refresh (no-op until the user
             // has granted via Settings; never prompts from here).
             if let userId = auth.currentUser?.id.uuidString, !userId.isEmpty {
