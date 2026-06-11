@@ -1168,6 +1168,7 @@
 		DD0001012FA4000100000001 /* StreakCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001002FA4000100000001 /* StreakCalculator.swift */; };
 		DD06ECD49FDE5E8AFD087E08 /* jeni_prep_full_side_jacks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2BA97B457A83AE5AEFA74EFC /* jeni_prep_full_side_jacks.m4a */; };
 		DD25011370F9EE995BEB00D2 /* matson_prep_full_forward_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CA29BF318F5A08929B54543E /* matson_prep_full_forward_lunge.m4a */; };
+		DDC9027A4A448CEB8C618ED4 /* BodyMassImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3633473FC95033CBB793ED64 /* BodyMassImportService.swift */; };
 		DE0A7138BAC4D1BF98A7BD08 /* prep_short_bent_knee_hip_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 3B037D85275A4B02E65AB038 /* prep_short_bent_knee_hip_raise.m4a */; };
 		DE0CC1AC29F943B21CBA14B9 /* jeni_prep_full_tabletop_bridge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 45FC568A5EC30A62E4E067BC /* jeni_prep_full_tabletop_bridge.m4a */; };
 		DE104A7F7BCCC00868523B7C /* prep_full_v_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2681614B7C8DA1E951770DFD /* prep_full_v_up.m4a */; };
@@ -1525,6 +1526,7 @@
 		34D5F968590BAC879F805E88 /* prep_full_bent_knee_hip_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_bent_knee_hip_raise.m4a; sourceTree = "<group>"; };
 		35089DAF39C15023C82B1ADB /* prep_short_good_morning.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_good_morning.m4a; sourceTree = "<group>"; };
 		35FD6E25890A5BF03E594D82 /* jeni_prep_full_overhead_reverse_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_overhead_reverse_lunge.m4a; sourceTree = "<group>"; };
+		3633473FC95033CBB793ED64 /* BodyMassImportService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyMassImportService.swift; sourceTree = "<group>"; };
 		36496577CBDE7E8F77F79240 /* matson_prep_full_front_kicks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_front_kicks.m4a; sourceTree = "<group>"; };
 		365D9C7E8A10A10AE5C9E8FE /* jeni_prep_short_side_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_side_jacks.m4a; sourceTree = "<group>"; };
 		36767C28B943D7D81B6CA9F3 /* JeniMethodRitualView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMethodRitualView.swift; sourceTree = "<group>"; };
@@ -4065,6 +4067,7 @@
 				F3E82401121039C64A84CC59 /* BreathworkState.swift */,
 				76521CB909B4824F242CE6F2 /* BreathworkProtocols.swift */,
 				3CEDB541D733D76A8AF9D475 /* HealthKitDietaryEnergyWriter.swift */,
+				3633473FC95033CBB793ED64 /* BodyMassImportService.swift */,
 			);
 			path = Health;
 			sourceTree = "<group>";
@@ -5664,6 +5667,7 @@
 				5DB64979707ED28BA2517A16 /* ForgingRevealView.swift in Sources */,
 				5694033794C4AE63A5A9A2A0 /* CoachNoteAPIClient.swift in Sources */,
 				5CDAC64C819410F726C61BB2 /* BecomingDashboard.swift in Sources */,
+				DDC9027A4A448CEB8C618ED4 /* BodyMassImportService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

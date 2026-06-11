@@ -25,9 +25,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>JeniFit uses your camera for two things: to watch your form during plank sessions (frames stay on your phone, never sent anywhere), and to scan your meals (one photo per scan is sent to our private vision service for calorie estimation, never stored as a personal photo and never used to train models).</string>
+	<string>JeniFit uses your camera for two things: to watch your form during plank sessions (frames stay on your phone, never sent anywhere), and to scan your meals (one photo per scan is sent to our private vision service for calorie estimation and never used to train models; a small copy stays on your phone for your own food diary).</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>JeniFit reads your step count so Jeni can quietly notice the days you moved more. Your step data stays between you and Apple Health — JeniFit never sees the raw samples or sends them anywhere.</string>
+	<string>JeniFit reads your step count so Jeni can quietly notice the days you moved more (steps stay between you and Apple Health, never sent anywhere). If you turn on weight import, weigh-ins your scale or other apps save to Apple Health appear in your trend automatically and sync to your JeniFit account, so you never have to type them.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>If you turn on the Apple Health write toggle in JeniFit's food settings, your logged meal calories are saved to Apple Health as Dietary Energy. Off by default. You can change this anytime.</string>
 	<key>NSUserTrackingUsageDescription</key>

@@ -536,6 +536,15 @@ struct AnalyticsView: View {
         .onAppear {
             Analytics.captureScreen("Becoming")
             animateIn()
+            // v1.1 P2 — silent body-mass refresh (no-op until the user
+            // has granted via Settings; never prompts from here).
+            if let userId = auth.currentUser?.id.uuidString, !userId.isEmpty {
+                Task {
+                    await BodyMassImportService.shared.importIfEnabled(
+                        userId: userId, into: modelContext
+                    )
+                }
+            }
         }
         // Weight log + first-log seed live at the body level now that the
         // trend lives inside the bento (the old standalone weightCard carried

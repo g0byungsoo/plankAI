@@ -25,6 +25,8 @@ struct ProfileHubView: View {
     @AppStorage("jenimethod.feature_enabled") private var jeniMethodFlagEnabled = true
 
     @State private var stepsService = StepsService.shared
+    @State private var bodyMassImport = BodyMassImportService.shared
+    @Environment(\.modelContext) private var modelContext
 
     @State private var auth = AuthService.shared
     @State private var route: HubRoute?
@@ -145,6 +147,7 @@ struct ProfileHubView: View {
                     }
                     hubRow("reminders", "when jeni checks in", .sparkleGlossy, .reminders, 4)
                     appleHealthRowIfNeeded(index: 4)
+                    weightImportRowIfNeeded(index: 5)
                     hubRow("account", "sign-in & subscription", .heartLock, .account, 5)
                     hubRow("feedback", "tell us anything ♥", .starLineart, .feedback, 6)
                     if jeniMethodFlagEnabled && jeniMethodLastCompletedId >= 14 {
@@ -297,6 +300,48 @@ struct ProfileHubView: View {
             )
         case .authorized, .unavailable:
             EmptyView()
+        }
+    }
+
+    /// v1.1 Becoming P2 — body-mass import recovery/enable surface.
+    /// Smart scales + other apps write weight to Apple Health; one tap
+    /// here turns the typed-weight stream passive (the import respects
+    /// the one-per-day policy and never overwrites a manual log).
+    /// Hidden once the permission sheet has been shown (HK read status
+    /// is opaque; re-prompting is impossible) and when HK unavailable.
+    @ViewBuilder
+    private func weightImportRowIfNeeded(index: Int) -> some View {
+        if bodyMassImport.authStatus == .notDetermined {
+            Button {
+                Haptics.light()
+                guard let userId = AuthService.shared.currentUser?.id.uuidString,
+                      !userId.isEmpty else { return }
+                Task {
+                    await bodyMassImport.requestAccessAndImport(
+                        userId: userId, into: modelContext
+                    )
+                }
+            } label: {
+                HStack(spacing: Space.md) {
+                    ZStack {
+                        Circle().fill(Palette.accentSubtle.opacity(0.45)).frame(width: 40, height: 40)
+                        Image(StickerName.butterflyRing.assetName)
+                            .resizable().scaledToFit().frame(width: 26, height: 26)
+                            .opacity(StickerName.butterflyRing.style.opacity)
+                    }
+                    .accessibilityHidden(true)
+                    rowText(title: "weight from apple health",
+                            subtitle: "your scale syncs, no typing")
+                    Spacer(minLength: 0)
+                    chevron
+                }
+                .padding(Space.md)
+                .frame(maxWidth: .infinity)
+                .editorialCard()
+            }
+            .buttonStyle(.plain)
+            .reveal(index, revealed)
+            .accessibilityLabel("Weight from Apple Health. Your scale syncs, no typing.")
         }
     }
 
