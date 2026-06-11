@@ -205,7 +205,13 @@ public struct PhotoCaptureView: View {
         // so it can't get clipped or rendered weirdly — strokeBorder
         // draws cleanly inside a known rect.
         ZStack {
-            Color.black.ignoresSafeArea()
+            // v1.1 capture spec (2026-06-11): the SURROUND goes cream —
+            // the camera reads as a polaroid being composed on the
+            // desk, continuous with the rest of the app (and with the
+            // PolaroidHero morph that follows). The frame INTERIOR
+            // stays dark (functional letterbox/exposure floor) — the
+            // only intentional black left in the flow.
+            FoodTheme.bgPrimary.ignoresSafeArea()
 
             // v1.0.9 D2 polish round 3 — invisible 1×1 ScanningOverlay
             // prewarm. See `prewarmingScanCanvas` doc comment. Compiles
@@ -308,7 +314,8 @@ public struct PhotoCaptureView: View {
                 }
             )
         }
-        .preferredColorScheme(.dark)
+        // (preferredColorScheme(.dark) removed with the cream surround —
+        // status bar text reads cocoa-on-cream like every other screen.)
         .animation(.easeInOut(duration: 0.35), value: isCapturing)
         // v1.0.8 Phase S — terminal-error sheet. Rate limit / budget
         // cap → dedicated UI instead of vague banner.
@@ -810,9 +817,9 @@ public struct PhotoCaptureView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
                     .background(
-                        Capsule().fill(Color(red: 1.0, green: 0.075, blue: 0.94))
+                        Capsule().fill(FoodTheme.textPrimary)
                     )
-                    .shadow(color: Color(red: 1.0, green: 0.075, blue: 0.94).opacity(0.3),
+                    .shadow(color: FoodTheme.textPrimary.opacity(0.3),
                             radius: 8, x: 0, y: 2)
             }
 
@@ -1116,6 +1123,9 @@ public struct PhotoCaptureView: View {
     /// Library upload entry point. Tap → PHPicker. Picker hands
     /// back a UIImage which goes through the same saliency +
     /// resize + EF pipeline as a camera capture.
+    // v1.1 capture spec — on-cream chrome rule: controls OUTSIDE the
+    // viewfinder wear the app register (cocoa glyph on soft white),
+    // not dark glass.
     @ViewBuilder private var galleryButton: some View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -1123,9 +1133,10 @@ public struct PhotoCaptureView: View {
         } label: {
             Image(systemName: "photo.on.rectangle.angled")
                 .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(.white)
+                .foregroundStyle(FoodTheme.textPrimary)
                 .frame(width: 44, height: 44)
-                .background(.ultraThinMaterial, in: Circle())
+                .background(Circle().fill(Color.white.opacity(0.55)))
+                .overlay(Circle().stroke(FoodTheme.textPrimary.opacity(0.10), lineWidth: 1))
         }
         .accessibilityLabel("upload photo")
         .disabled(isCapturing)
@@ -1177,17 +1188,16 @@ public struct PhotoCaptureView: View {
         // FoodCaptureDispatcher arm, CaptureTab.imOut — all stay in
         // place so re-enabling later is a one-chip-add, not a
         // re-implementation.
-        HStack(spacing: 4) {
-            modeChip("📷", "snap", .photo)
-            modeChip("✍", "quick log", .quickAdd)
+        // v1.1 capture spec — the breathwork-intro chip register on
+        // cream (emoji dropped per the v4 kill-list).
+        HStack(spacing: 6) {
+            modeChip("snap", .photo)
+            modeChip("quick log", .quickAdd)
         }
-        .padding(4)
-        .background(.ultraThinMaterial, in: Capsule())
-        .colorScheme(.dark)
     }
 
     @ViewBuilder
-    private func modeChip(_ emoji: String, _ label: String, _ tab: CaptureTab) -> some View {
+    private func modeChip(_ label: String, _ tab: CaptureTab) -> some View {
         let isActive = captureTab == tab
         Button {
             captureTab = tab
@@ -1197,29 +1207,23 @@ public struct PhotoCaptureView: View {
             case .imOut:    onImOutTapped()
             }
         } label: {
-            HStack(spacing: 5) {
-                Text(emoji)
-                    .font(.system(size: 12))
-                Text(label)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(isActive ? FoodTheme.textPrimary : Color.white.opacity(0.85))
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-            }
-            .padding(.horizontal, 11)
-            .padding(.vertical, 7)
-            .background(
-                Capsule().fill(isActive ? Color.white : Color.clear)
-            )
-            .overlay(
-                Capsule()
-                    .stroke(FoodTheme.accent.opacity(isActive ? 0.7 : 0), lineWidth: 1)
-            )
-            .shadow(
-                color: FoodTheme.textPrimary.opacity(isActive ? 0.15 : 0),
-                radius: 0, x: 2, y: 2
-            )
-            .animation(.spring(response: 0.45, dampingFraction: 0.82), value: isActive)
+            Text(label)
+                .font(.custom("DMSans-SemiBold", size: 14))
+                .foregroundStyle(isActive ? FoodTheme.bgPrimary : FoodTheme.textPrimary)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 14)
+                .frame(height: 38)
+                .background(
+                    Capsule().fill(isActive ? FoodTheme.textPrimary : Color.white.opacity(0.55))
+                )
+                .overlay(
+                    Capsule().stroke(
+                        FoodTheme.textPrimary.opacity(isActive ? 0 : 0.12),
+                        lineWidth: 1
+                    )
+                )
+                .animation(.spring(response: 0.45, dampingFraction: 0.82), value: isActive)
         }
     }
 
@@ -2302,7 +2306,7 @@ struct SharePickerSheet: View {
                               : "circle")
                             .font(.system(size: 18))
                             .foregroundStyle(selectedKinds.count == slides.count
-                                             ? Color(red: 1.0, green: 0.075, blue: 0.94)
+                                             ? FoodTheme.textPrimary
                                              : FoodTheme.textSecondary)
                         Text("select all")
                             .font(.system(size: 15, weight: .medium))
@@ -2325,10 +2329,10 @@ struct SharePickerSheet: View {
                             Capsule().fill(
                                 selectedKinds.isEmpty
                                 ? Color.gray.opacity(0.4)
-                                : Color(red: 1.0, green: 0.075, blue: 0.94)
+                                : FoodTheme.textPrimary
                             )
                         )
-                        .shadow(color: Color(red: 1.0, green: 0.075, blue: 0.94)
+                        .shadow(color: FoodTheme.textPrimary
                                     .opacity(selectedKinds.isEmpty ? 0 : 0.3),
                                 radius: 8, x: 0, y: 2)
                 }
@@ -2374,7 +2378,7 @@ struct SharePickerSheet: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .stroke(isSelected
-                                    ? Color(red: 1.0, green: 0.075, blue: 0.94)
+                                    ? FoodTheme.textPrimary
                                     : Color.black.opacity(0.08),
                                     lineWidth: isSelected ? 3 : 1)
                     )
@@ -2382,7 +2386,7 @@ struct SharePickerSheet: View {
                 ZStack {
                     Circle()
                         .fill(isSelected
-                              ? Color(red: 1.0, green: 0.075, blue: 0.94)
+                              ? FoodTheme.textPrimary
                               : Color.white)
                         .overlay(
                             Circle().stroke(Color.black.opacity(0.06), lineWidth: 1)
@@ -2474,9 +2478,9 @@ struct TerminalErrorSheet: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(
-                        Capsule().fill(Color(red: 1.0, green: 0.075, blue: 0.94))
+                        Capsule().fill(FoodTheme.textPrimary)
                     )
-                    .shadow(color: Color(red: 1.0, green: 0.075, blue: 0.94)
+                    .shadow(color: FoodTheme.textPrimary
                                 .opacity(0.3),
                             radius: 8, x: 0, y: 2)
             }
@@ -2532,7 +2536,7 @@ struct GalleryConfirmSheet: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .stroke(
-                            Color(red: 1.0, green: 0.075, blue: 0.94),
+                            FoodTheme.textPrimary,
                             lineWidth: 3
                         )
                 )
@@ -2566,9 +2570,9 @@ struct GalleryConfirmSheet: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
                         .background(
-                            Capsule().fill(Color(red: 1.0, green: 0.075, blue: 0.94))
+                            Capsule().fill(FoodTheme.textPrimary)
                         )
-                        .shadow(color: Color(red: 1.0, green: 0.075, blue: 0.94)
+                        .shadow(color: FoodTheme.textPrimary
                                     .opacity(0.3),
                                 radius: 8, x: 0, y: 2)
                 }

@@ -195,6 +195,7 @@ struct PlanView: View {
                     }
                 }
             )
+            .presentationBackground(Palette.programBgPrimary)
 
         case .captureFlow:
             CaptureFlowView(
@@ -208,6 +209,10 @@ struct PlanView: View {
                     }
                 }
             )
+            // v1.1 — kills the black frame the system cover paints
+            // before the view draws (founder: "screen goes black for
+            // milliseconds").
+            .presentationBackground(Palette.bgPrimary)
 
         case .preRoutine(let workout):
             PreRoutineView(
@@ -221,6 +226,7 @@ struct PlanView: View {
                 },
                 onCancel: { dismissCover() }
             )
+            .presentationBackground(Palette.programEraBg)
 
         case .breathSession:
             // v1.1 module-experience pass (2026-06-11): the row now
@@ -246,6 +252,7 @@ struct PlanView: View {
                 onDismiss: { dismissCover() },
                 onPickNextProgram: { _ in dismissCover() }
             )
+            .presentationBackground(Palette.programBgPrimary)
         }
     }
 

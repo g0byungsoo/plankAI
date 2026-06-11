@@ -1059,6 +1059,7 @@ struct HomeView: View {
                 recentSessionExerciseIds: [],
                 recentRatings: []
             )
+            .presentationBackground(Palette.bgPrimary)
         }
         .fullScreenCover(isPresented: $showRoutineSession) {
             // Group wrap — `.presentationBackground` was being applied to
