@@ -49,6 +49,13 @@ public struct FoodLogTimelineView: View {
     /// tap so we don't re-render on every log change.
     @State private var shareImage: UIImage? = nil
     @State private var showShareSheet: Bool = false
+    /// v1.1 journal — meal detail. The detail lives in the SAME view
+    /// hierarchy as the rows (overlay, not a sheet) so the photo
+    /// matte can morph row→hero via matchedGeometryEffect (the
+    /// Morsel "tiles flow between views" move; iOS 17 target rules
+    /// out navigationTransition(.zoom)).
+    @State private var selectedEntry: FoodLogPersister.FoodLogEntry? = nil
+    @Namespace private var heroNS
 
     public init(
         userId: String,
@@ -72,6 +79,12 @@ public struct FoodLogTimelineView: View {
             floatingAddButton
                 .padding(.trailing, 22)
                 .padding(.bottom, 28)
+                .opacity(selectedEntry == nil ? 1 : 0)
+
+            if let entry = selectedEntry {
+                mealDetail(for: entry)
+                    .zIndex(10)
+            }
         }
         .onAppear { refresh() }
         .onReceive(FoodLogPersister.changeNotifier) { _ in refresh() }
@@ -139,10 +152,20 @@ public struct FoodLogTimelineView: View {
                             // without dragging List's section chrome
                             // into the cream-backdrop layout.
                             ForEach(day.rows) { entry in
-                                FoodLogRowView(entry: entry)
+                                FoodLogRowView(
+                                    entry: entry,
+                                    heroNS: heroNS,
+                                    photoHidden: selectedEntry?.id == entry.id
+                                )
                                     .padding(.horizontal, FoodTheme.Space.lg)
                                     .padding(.vertical, 8)
                                     .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+                                            selectedEntry = entry
+                                        }
+                                    }
                                     .onLongPressGesture(minimumDuration: 0.4) {
                                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                         pendingDeleteEntryId = entry.id
@@ -164,12 +187,14 @@ public struct FoodLogTimelineView: View {
 
     @ViewBuilder private var header: some View {
         HStack(alignment: .center, spacing: 10) {
-            // Italic-Fraunces punch word on "log" per voice lock.
+            // v1.1 journal — "plates" is the surface's name now
+            // (Becoming's teaser says "her plates"; in here it's hers
+            // in first person). Serif italic punch per voice lock.
             (
                 Text("your ")
                     .font(.custom("DMSans-Regular", size: 22))
-                + Text("log")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+                + Text("plates")
+                    .font(.custom("JeniHeroSerif-Italic", size: 26))
             )
             .foregroundStyle(FoodTheme.textPrimary)
 
@@ -333,6 +358,170 @@ public struct FoodLogTimelineView: View {
     private func refresh() {
         entries = FoodLogPersister.allEntries(userId: userId)
     }
+
+    // MARK: - Meal detail (v1.1 journal)
+
+    /// The Morsel meal-detail anatomy on JeniFit paper: photo hero
+    /// (morphed from the row matte), name, serif cal numeral,
+    /// "22% of today · 8:14am" context, macro rows, quiet actions.
+    @ViewBuilder private func mealDetail(for entry: FoodLogPersister.FoodLogEntry) -> some View {
+        let dayTotal = dayKcalTotal(for: entry)
+        ZStack {
+            // Cream scrim — tap anywhere outside to morph back.
+            FoodTheme.bgPrimary.opacity(0.97)
+                .ignoresSafeArea()
+                .onTapGesture { closeDetail() }
+
+            VStack(spacing: 0) {
+                Group {
+                    if let photo = FoodPhotoStore.photo(entryId: entry.id) {
+                        Image(uiImage: photo)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 264, height: 264)
+                            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    } else {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                .fill(FoodTheme.bgElevated)
+                                .frame(width: 264, height: 264)
+                            Image(systemName: "fork.knife")
+                                .font(.system(size: 44, weight: .regular))
+                                .foregroundStyle(FoodTheme.textSecondary)
+                        }
+                    }
+                }
+                .padding(6)
+                .background(RoundedRectangle(cornerRadius: 26, style: .continuous).fill(.white))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .stroke(FoodTheme.textPrimary.opacity(0.08), lineWidth: 0.5)
+                )
+                .matchedGeometryEffect(id: entry.id, in: heroNS)
+                .shadow(color: FoodTheme.textPrimary.opacity(0.10), radius: 18, x: 0, y: 10)
+
+                Text(entry.title.isEmpty ? "scanned plate" : entry.title.lowercased())
+                    .font(.custom("JeniHeroSerif-Regular", size: 26))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, FoodTheme.Space.lg)
+                    .padding(.top, 22)
+
+                HStack(alignment: .lastTextBaseline, spacing: 5) {
+                    Text("\(Int(entry.kcal.rounded()))")
+                        .font(.custom("JeniHeroSerif-Regular", size: 40))
+                        .monospacedDigit()
+                        .foregroundStyle(FoodTheme.textPrimary)
+                    Text("cal")
+                        .font(.custom("DMSans-Regular", size: 15))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                }
+                .padding(.top, 8)
+
+                Text(detailContextLine(for: entry, dayTotal: dayTotal))
+                    .font(.custom("DMSans-Medium", size: 12))
+                    .kerning(0.6)
+                    .foregroundStyle(FoodTheme.textSecondary)
+                    .padding(.top, 4)
+
+                if entry.protein + entry.carbs + entry.fat > 0 {
+                    VStack(spacing: 10) {
+                        detailMacroRow("protein", grams: entry.protein)
+                        detailMacroRow("carbs", grams: entry.carbs)
+                        detailMacroRow("fat", grams: entry.fat)
+                    }
+                    .padding(.horizontal, 44)
+                    .padding(.top, 24)
+                }
+
+                HStack(spacing: FoodTheme.Space.md) {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        pendingDeleteEntryId = entry.id
+                        closeDetail()
+                    } label: {
+                        Text("remove")
+                            .font(.custom("DMSans-SemiBold", size: 14))
+                            .foregroundStyle(FoodTheme.textSecondary)
+                            .padding(.horizontal, 18)
+                            .frame(height: 40)
+                            .background(Capsule().stroke(FoodTheme.textPrimary.opacity(0.15), lineWidth: 1))
+                    }
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        closeDetail()
+                    } label: {
+                        Text("done")
+                            .font(.custom("DMSans-SemiBold", size: 14))
+                            .foregroundStyle(FoodTheme.bgPrimary)
+                            .padding(.horizontal, 24)
+                            .frame(height: 40)
+                            .background(Capsule().fill(FoodTheme.textPrimary))
+                    }
+                }
+                .padding(.top, 28)
+            }
+            .padding(.vertical, FoodTheme.Space.lg)
+        }
+        .transition(.opacity)
+        .accessibilityAddTraits(.isModal)
+    }
+
+    private func closeDetail() {
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+            selectedEntry = nil
+        }
+    }
+
+    /// "22% of today · 8:14am" — context, never a verdict. The share
+    /// line hides when this is the day's only entry (100% of one
+    /// plate says nothing).
+    private func detailContextLine(for entry: FoodLogPersister.FoodLogEntry, dayTotal: Double) -> String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "h:mma"
+        fmt.amSymbol = "am"
+        fmt.pmSymbol = "pm"
+        let time = fmt.string(from: entry.loggedAt)
+        let dayRows = entries.filter {
+            Calendar.current.isDate($0.loggedAt, inSameDayAs: entry.loggedAt)
+        }
+        guard dayRows.count > 1, dayTotal > 0 else { return time }
+        let pct = Int((entry.kcal / dayTotal * 100).rounded())
+        return "\(pct)% of the day · \(time)"
+    }
+
+    private func dayKcalTotal(for entry: FoodLogPersister.FoodLogEntry) -> Double {
+        entries
+            .filter { Calendar.current.isDate($0.loggedAt, inSameDayAs: entry.loggedAt) }
+            .reduce(0) { $0 + $1.kcal }
+    }
+
+    /// Label · thin track bar · right-aligned grams. Relative scale
+    /// caps at 60g protein / 80g carbs / 40g fat per plate so the
+    /// bars read composition without claiming a target.
+    private func detailMacroRow(_ label: String, grams: Double) -> some View {
+        let cap: Double = label == "carbs" ? 80 : (label == "fat" ? 40 : 60)
+        let fraction = min(1.0, grams / cap)
+        return HStack(spacing: 12) {
+            Text(label)
+                .font(.custom("DMSans-Medium", size: 12))
+                .foregroundStyle(FoodTheme.textSecondary)
+                .frame(width: 56, alignment: .leading)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(FoodTheme.accentSubtle.opacity(0.6))
+                    Capsule().fill(FoodTheme.accent)
+                        .frame(width: max(4, geo.size.width * fraction))
+                }
+            }
+            .frame(height: 4)
+            Text("\(Int(grams.rounded()))g")
+                .font(.custom("DMSans-Medium", size: 12))
+                .monospacedDigit()
+                .foregroundStyle(FoodTheme.textPrimary)
+                .frame(width: 40, alignment: .trailing)
+        }
+    }
 }
 
 // MARK: - FoodLogRowView
@@ -340,6 +529,10 @@ public struct FoodLogTimelineView: View {
 private struct FoodLogRowView: View {
 
     let entry: FoodLogPersister.FoodLogEntry
+    /// v1.1 journal — the photo matte is the morph source for the
+    /// meal detail (matchedGeometryEffect within one hierarchy).
+    var heroNS: Namespace.ID? = nil
+    var photoHidden: Bool = false
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -394,7 +587,7 @@ private struct FoodLogRowView: View {
     /// the SAME matte shape so the rhythm holds — never a grey
     /// placeholder, never the old pink circle.
     @ViewBuilder private var iconBubble: some View {
-        Group {
+        let matte = Group {
             if let photo = FoodPhotoStore.photo(entryId: entry.id) {
                 Image(uiImage: photo)
                     .resizable()
@@ -420,6 +613,16 @@ private struct FoodLogRowView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(FoodTheme.textPrimary.opacity(0.08), lineWidth: 0.5)
         )
+
+        Group {
+            if let heroNS {
+                matte
+                    .matchedGeometryEffect(id: entry.id, in: heroNS, isSource: !photoHidden)
+                    .opacity(photoHidden ? 0 : 1)
+            } else {
+                matte
+            }
+        }
         .accessibilityHidden(true)
     }
 
