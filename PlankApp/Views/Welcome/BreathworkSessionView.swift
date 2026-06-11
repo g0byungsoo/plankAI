@@ -342,7 +342,12 @@ struct BreathworkSessionView: View {
         // Kick the BreathCircle into its cycling state. It drives the
         // visual, haptics, countdown, and fires onCycleComplete when all
         // reps finish.
-        breathState = .cycling(inhale: inhaleSec, exhale: exhaleSec, repeats: totalReps)
+        breathState = .cycling(
+            inhale: inhaleSec,
+            hold: techProtocol.holdSec,
+            exhale: exhaleSec,
+            repeats: totalReps
+        )
     }
 
     private func finishBreathing() {

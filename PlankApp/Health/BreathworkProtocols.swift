@@ -29,6 +29,13 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
     case calming
     case coherent
     case energizing
+    /// v1.1 (2026-06-11) — 4-7-8 for the sleepy occasion, now that
+    /// BreathCircle supports a hold phase. Evidence grade MODERATE
+    /// per docs/breathwork_evidence_review_2026_06_11.md: claims the
+    /// slow-breathing sleep literature, never a 4-7-8-specific
+    /// promise. (Box breathing intentionally NOT added — it lost the
+    /// Balban head-to-head to cyclic sighing for the stress occasion.)
+    case windDown
 
     var id: String { rawValue }
 
@@ -38,6 +45,7 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
         case .calming:    return "calming"
         case .coherent:   return "coherent"
         case .energizing: return "energizing"
+        case .windDown:   return "wind-down"
         }
     }
 
@@ -47,6 +55,7 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
         case .calming:    return "lower your cortisol"
         case .coherent:   return "find your balance"
         case .energizing: return "wake the body up"
+        case .windDown:   return "tell the day it's over"
         }
     }
 
@@ -56,6 +65,7 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
         case .calming:    return "4 in · 6 out"
         case .coherent:   return "5 in · 5 out"
         case .energizing: return "4 in · 4 out"
+        case .windDown:   return "4 in · 7 hold · 8 out"
         }
     }
 
@@ -65,6 +75,15 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
         case .calming: return 4
         case .coherent: return 5
         case .energizing: return 4
+        case .windDown: return 4
+        }
+    }
+
+    /// Hold-at-apex seconds. 0 = no hold phase.
+    var holdSec: Int {
+        switch self {
+        case .windDown: return 7
+        default:        return 0
         }
     }
 
@@ -74,16 +93,18 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
         case .calming: return 6
         case .coherent: return 5
         case .energizing: return 4
+        case .windDown: return 8
         }
     }
 
-    /// Number of cycles. Total session time ≈ (inhale + exhale) × repeats.
+    /// Number of cycles. Total session time ≈ (inhale + hold + exhale) × repeats.
     var repeats: Int {
         switch self {
         case .calming:    return 6  // 60s
         case .coherent:   return 6  // 60s
         case .energizing: return 8  // 64s — slightly longer because the
                                     // sympathetic shift needs more reps
+        case .windDown:   return 3  // 57s — a 4-7-8 cycle is 19s
         }
     }
 
@@ -96,11 +117,13 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
     var whenSituations: [String] {
         switch self {
         case .calming:
-            return ["feeling wired", "before bed", "cravings that aren't hunger"]
+            return ["feeling wired", "stress eating moments", "cravings that aren't hunger"]
         case .coherent:
             return ["sitting to focus", "between meetings", "racing mind"]
         case .energizing:
             return ["before meals", "before you move", "3pm slump"]
+        case .windDown:
+            return ["in bed", "after the last scroll", "mind won't stop"]
         }
     }
 
@@ -115,6 +138,8 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
             return "your hrv climbs to its resonant rhythm."
         case .energizing:
             return "wakes the sympathetic system back up."
+        case .windDown:
+            return "the long exhale is the day-is-done signal."
         }
     }
 
@@ -125,6 +150,7 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
         case .calming:    return ["parasympathetic"]
         case .coherent:   return ["hrv", "resonant rhythm"]
         case .energizing: return ["sympathetic"]
+        case .windDown:   return ["day-is-done"]
         }
     }
 
@@ -135,6 +161,7 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
         case .calming:    return "balban et al. · stanford 2023 · n=111"
         case .coherent:   return "lehrer 2014 · resonant-frequency breathing"
         case .energizing: return "sato et al. · biomed res 2010 · n=40 women"
+        case .windDown:   return "slow-breathing sleep literature · 15-study review 2025"
         }
     }
 
@@ -144,6 +171,7 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
         case .calming:    return .heartGlossy
         case .coherent:   return .butterflyRing
         case .energizing: return .sparkleGlossy
+        case .windDown:   return .flower3D
         }
     }
 
@@ -155,6 +183,7 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
         case .calming:    return "your long exhale just slowed your heart rate. that's the brake pedal."
         case .coherent:   return "your heart and breath found the same rhythm. that's the balance signal."
         case .energizing: return "your breath just woke the system back up. gently."
+        case .windDown:   return "your nervous system got the day-is-done signal. let it carry you."
         }
     }
 }
@@ -186,9 +215,10 @@ enum BreathOccasion: String, CaseIterable, Identifiable {
 
     var techProtocol: BreathworkProtocol {
         switch self {
-        case .settled, .sleepy: return .calming
-        case .steady:           return .coherent
-        case .awake:            return .energizing
+        case .settled: return .calming
+        case .sleepy:  return .windDown   // 4-7-8 now that holds render
+        case .steady:  return .coherent
+        case .awake:   return .energizing
         }
     }
 

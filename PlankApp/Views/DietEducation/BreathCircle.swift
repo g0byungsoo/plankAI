@@ -21,15 +21,24 @@ struct BreathCircle: View {
     enum State: Equatable {
         case idle
         case holding(scale: CGFloat)
-        case cycling(inhale: Int, exhale: Int, repeats: Int)
+        /// `hold` = seconds at the inhale apex (0 = no hold). v1.1
+        /// adds hold-phase support so 4-7-8 / box protocols render —
+        /// the bloom stays full, the haptic pulse-train goes SILENT
+        /// (stillness is the felt cue), the countdown keeps ticking.
+        case cycling(inhale: Int, hold: Int, exhale: Int, repeats: Int)
+
+        static func cycling(inhale: Int, exhale: Int, repeats: Int) -> State {
+            .cycling(inhale: inhale, hold: 0, exhale: exhale, repeats: repeats)
+        }
     }
 
     enum Phase: Equatable {
-        case idle, inhale, exhale
+        case idle, inhale, hold, exhale
         var displayWord: String {
             switch self {
             case .idle:   return ""
             case .inhale: return "inhale"
+            case .hold:   return "hold"
             case .exhale: return "exhale"
             }
         }
@@ -43,6 +52,7 @@ struct BreathCircle: View {
     /// preserve existing ritual behavior.
     var inhaleWord: String = "inhale"
     var exhaleWord: String = "exhale"
+    var holdWord: String = "hold"
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @SwiftUI.State private var animatedScale: CGFloat = 0.45
@@ -151,6 +161,7 @@ struct BreathCircle: View {
         switch phase {
         case .idle:   return ""
         case .inhale: return inhaleWord
+        case .hold:   return holdWord
         case .exhale: return exhaleWord
         }
     }
@@ -185,12 +196,12 @@ struct BreathCircle: View {
             withAnimation(.easeOut(duration: 0.4)) { animatedScale = 0 }
         case .holding(let scale):
             withAnimation(.easeInOut(duration: 0.6)) { animatedScale = scale }
-        case .cycling(let inhale, let exhale, let repeats):
-            startCycle(inhale: inhale, exhale: exhale, repeats: repeats)
+        case .cycling(let inhale, let hold, let exhale, let repeats):
+            startCycle(inhale: inhale, hold: hold, exhale: exhale, repeats: repeats)
         }
     }
 
-    private func startCycle(inhale: Int, exhale: Int, repeats: Int) {
+    private func startCycle(inhale: Int, hold: Int, exhale: Int, repeats: Int) {
         if reduceMotion {
             animatedScale = 0.78
             phase = .idle
@@ -205,6 +216,7 @@ struct BreathCircle: View {
             currentRep: 0,
             totalReps: repeats,
             inhale: inhale,
+            hold: hold,
             exhale: exhale
         )
     }
@@ -214,7 +226,7 @@ struct BreathCircle: View {
     /// re-entry checks it. If `applyState` or `onDisappear` has bumped
     /// the counter in the meantime, this chain stops dead — no more
     /// `startPulses`, no orphaned timers.
-    private func runCycle(generation: Int, currentRep: Int, totalReps: Int, inhale: Int, exhale: Int) {
+    private func runCycle(generation: Int, currentRep: Int, totalReps: Int, inhale: Int, hold: Int, exhale: Int) {
         guard generation == cycleGeneration else { return }
         guard currentRep < totalReps else {
             stopPulses()
@@ -224,6 +236,7 @@ struct BreathCircle: View {
             return
         }
         let inhaleSec = Double(inhale)
+        let holdSec = Double(hold)
         let exhaleSec = Double(exhale)
 
         // ─── Inhale ─────────────────────────────────────────────────
@@ -250,33 +263,51 @@ struct BreathCircle: View {
             stopPulses()
             Haptics.medium()  // apex punctuation — clearly felt with the inhale completion
 
-            // ─── Exhale ─────────────────────────────────────────────
-            // Visual: scale 1.0 → 0.55 over exhaleSec.
-            // Phase text: "exhale".
-            // Haptic: continuous .soft() pulses, slightly slower
-            // (0.75s) — feels like a longer release.
-            // Countdown: restarts at exhale, ticks down once per sec.
-            withAnimation(.easeOut(duration: 0.25)) { phase = .exhale }
-            withAnimation(.easeInOut(duration: exhaleSec)) {
-                animatedScale = 0.45
-            }
-            startPulses(intervalSeconds: 0.75)
-            startCountdown(seconds: exhale, generation: generation)
-            DispatchQueue.main.asyncAfter(deadline: .now() + exhaleSec) {
-                guard generation == cycleGeneration else {
-                    stopPulses()
-                    stopCountdown()
-                    return
+            // ─── Hold (4-7-8 / box protocols; skipped when 0) ───────
+            // Visual: bloom STAYS at the apex — stillness is the cue.
+            // Haptic: SILENT through the hold (the pulse-train's
+            // absence is the felt instruction); one soft pulse at
+            // release into the exhale.
+            // Countdown: ticks through the hold.
+            let beginExhale: () -> Void = {
+                withAnimation(.easeOut(duration: 0.25)) { phase = .exhale }
+                withAnimation(.easeInOut(duration: exhaleSec)) {
+                    animatedScale = 0.45
                 }
-                stopPulses()
-                Haptics.medium()  // bottom punctuation — settle
-                runCycle(
-                    generation: generation,
-                    currentRep: currentRep + 1,
-                    totalReps: totalReps,
-                    inhale: inhale,
-                    exhale: exhale
-                )
+                startPulses(intervalSeconds: 0.75)
+                startCountdown(seconds: exhale, generation: generation)
+                DispatchQueue.main.asyncAfter(deadline: .now() + exhaleSec) {
+                    guard generation == cycleGeneration else {
+                        stopPulses()
+                        stopCountdown()
+                        return
+                    }
+                    stopPulses()
+                    Haptics.medium()  // bottom punctuation — settle
+                    runCycle(
+                        generation: generation,
+                        currentRep: currentRep + 1,
+                        totalReps: totalReps,
+                        inhale: inhale,
+                        hold: hold,
+                        exhale: exhale
+                    )
+                }
+            }
+
+            if hold > 0 {
+                withAnimation(.easeOut(duration: 0.25)) { phase = .hold }
+                startCountdown(seconds: hold, generation: generation)
+                DispatchQueue.main.asyncAfter(deadline: .now() + holdSec) {
+                    guard generation == cycleGeneration else {
+                        stopCountdown()
+                        return
+                    }
+                    Haptics.soft()  // release cue into the exhale
+                    beginExhale()
+                }
+            } else {
+                beginExhale()
             }
         }
     }
