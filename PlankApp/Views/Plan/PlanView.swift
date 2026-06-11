@@ -205,23 +205,20 @@ struct PlanView: View {
             )
 
         case .breathSession:
-            // BreathworkSessionView intentionally has no background of
-            // its own (lifted to its original PostPurchaseFlowView host
-            // to avoid phase-swap flicker). When presented from here,
-            // we need to set the cover's container background so the
-            // breath bloom isn't floating on system black.
-            BreathworkSessionView(
-                onReadyToMove: {
-                    markAutoCompleted(.breath(minutes: 1, style: .calming))
-                    dismissCover()
-                },
-                onLater: {
-                    markAutoCompleted(.breath(minutes: 1, style: .calming))
+            // v1.1 module-experience pass (2026-06-11): the row now
+            // opens the full flow (occasion intro → session → receipt)
+            // instead of a hardcoded 60s .calming session with no
+            // intro. ≥3 lifetime completions quick-starts past the
+            // intro with her last-used occasion + duration.
+            BreathworkFlowView(
+                onComplete: { minutes, techProtocol in
+                    let style: ProgramDayPrescription.BreathStyle =
+                        techProtocol == .energizing ? .energizing : .calming
+                    markAutoCompleted(.breath(minutes: minutes, style: style))
                     dismissCover()
                 },
                 onDismiss: { dismissCover() }
             )
-            .background(Palette.programBgPrimary.ignoresSafeArea())
             .presentationBackground(Palette.programBgPrimary)
 
         case .chapterComplete:

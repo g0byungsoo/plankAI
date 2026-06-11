@@ -34,6 +34,18 @@ struct BreathworkSessionView: View {
     /// without changes. Home re-entry passes a value from BreathLibraryView.
     var techProtocol: BreathworkProtocol = .calming
 
+    /// Session length multiplier — the protocol's base repeats cover
+    /// ~1 minute; the Balban dose is 5 min/day, so the intro offers
+    /// 1 / 2 / 5 and the session scales its cycle count.
+    var sessionMinutes: Int = 1
+
+    /// Where the session was launched from. Day-1's post-purchase
+    /// flow keeps the "ready to move" chained choice; daily program
+    /// entries end on the receipt (PostSessionView's quieter sibling
+    /// — a breath session ends at ~30% of a workout's celebration).
+    enum SessionContext { case day1, daily }
+    var context: SessionContext = .day1
+
     @AppStorage("voicePreference") private var storedVoice: String = "encouraging"
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -56,7 +68,7 @@ struct BreathworkSessionView: View {
     /// technique changes the session shape end-to-end.
     private var inhaleSec: Int { techProtocol.inhaleSec }
     private var exhaleSec: Int { techProtocol.exhaleSec }
-    private var totalReps: Int { techProtocol.repeats }
+    private var totalReps: Int { techProtocol.repeats * max(1, sessionMinutes) }
 
     var body: some View {
         // Background + sticker scatter lifted to PostPurchaseFlowView so
@@ -168,9 +180,17 @@ struct BreathworkSessionView: View {
         }
     }
 
-    // MARK: - Complete content (the option-C choice)
+    // MARK: - Complete content
 
-    private var completeContent: some View {
+    @ViewBuilder private var completeContent: some View {
+        switch context {
+        case .day1: day1CompleteContent
+        case .daily: receiptContent
+        }
+    }
+
+    /// Day-1 option-C choice (unchanged — chains into the first workout).
+    private var day1CompleteContent: some View {
         VStack(spacing: Space.lg) {
             Spacer()
 
@@ -228,6 +248,64 @@ struct BreathworkSessionView: View {
             .opacity(completeVisible ? 1 : 0)
             .padding(.horizontal, Space.lg)
             .padding(.bottom, Space.xl)
+        }
+    }
+
+    /// The receipt — daily completion at ~30% of a workout's
+    /// celebration weight. Serif headline, the protocol's honest
+    /// mechanism line, her real breath week as 7 dots, one quiet CTA.
+    /// No fireworks, no share, no numbers about her body.
+    private var receiptContent: some View {
+        VStack(spacing: 0) {
+            Spacer()
+
+            ItalicAccentText("that's your body settling.",
+                             italic: ["settling"],
+                             baseFont: titleFont,
+                             italicFont: titleItalicFont,
+                             color: Palette.textPrimary,
+                             alignment: .center)
+                .opacity(completeVisible ? 1 : 0)
+                .offset(y: completeVisible ? 0 : 8)
+
+            Text(techProtocol.receiptLine)
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.sm)
+                .opacity(completeVisible ? 1 : 0)
+
+            // Her breath week — real BreathworkState data, gain-framed
+            // (the same dot idiom as Becoming's week row).
+            let flags = BreathworkState.shared.weekDayFlags
+            let count = flags.filter { $0 }.count
+            VStack(spacing: 8) {
+                HStack(spacing: 7) {
+                    ForEach(Array(flags.enumerated()), id: \.offset) { _, breathed in
+                        if breathed {
+                            Circle().fill(Palette.cocoaPrimary).frame(width: 7, height: 7)
+                        } else {
+                            Circle().stroke(Palette.divider, lineWidth: 1.2).frame(width: 7, height: 7)
+                        }
+                    }
+                }
+                Text(count == 1 ? "1 breath day this week" : "\(count) breath days this week")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .padding(.top, Space.lg)
+            .opacity(completeVisible ? 1 : 0)
+
+            Spacer()
+
+            JFContinueButton(label: "done") {
+                Analytics.track(.breathworkSessionCompleted,
+                                properties: ["next": "done", "minutes": sessionMinutes])
+                stopAudio()
+                onLater()
+            }
+            .opacity(completeVisible ? 1 : 0)
         }
     }
 

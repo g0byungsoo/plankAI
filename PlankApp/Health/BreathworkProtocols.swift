@@ -146,4 +146,62 @@ enum BreathworkProtocol: String, CaseIterable, Identifiable {
         case .energizing: return .sparkleGlossy
         }
     }
+
+    /// End-screen ("the receipt") mechanism line — what just happened
+    /// in her body, in language the evidence supports. Never metabolic
+    /// claims per docs/breathwork_evidence_review_2026_06_11.md.
+    var receiptLine: String {
+        switch self {
+        case .calming:    return "your long exhale just slowed your heart rate. that's the brake pedal."
+        case .coherent:   return "your heart and breath found the same rhythm. that's the balance signal."
+        case .energizing: return "your breath just woke the system back up. gently."
+        }
+    }
+}
+
+// MARK: - BreathOccasion
+//
+// v1.1 module-experience pass (2026-06-11): the intro screen asks
+// "how do you want to feel?" — feeling-first selection (Othership
+// pattern, per docs/breathwork_apps_teardown_2026_06_11.md) mapped
+// onto the existing 3 protocols. Occasions are doorways, not new
+// pacing engines.
+
+enum BreathOccasion: String, CaseIterable, Identifiable {
+    case settled   // acute stress reset — the default
+    case sleepy    // evening wind-down
+    case steady    // focus / racing mind
+    case awake     // morning / slump
+
+    var id: String { rawValue }
+
+    var chipLabel: String {
+        switch self {
+        case .settled: return "settled"
+        case .sleepy:  return "sleepy"
+        case .steady:  return "steady"
+        case .awake:   return "awake"
+        }
+    }
+
+    var techProtocol: BreathworkProtocol {
+        switch self {
+        case .settled, .sleepy: return .calming
+        case .steady:           return .coherent
+        case .awake:            return .energizing
+        }
+    }
+
+    /// One quiet line under the protocol card naming the occasion's
+    /// honest value. Evidence grades per the review doc — the
+    /// before-bed line claims the slow-breathing sleep literature,
+    /// never a 4-7-8-specific promise.
+    var occasionLine: String {
+        switch self {
+        case .settled: return "five minutes of this lifted mood more than meditation in stanford's trial."
+        case .sleepy:  return "a long exhale tells your body the day is over. slower breath before bed is linked to falling asleep faster."
+        case .steady:  return "your heart and breath sync into one rhythm. racing mind slows to match."
+        case .awake:   return "short equal breaths wake the system back up. before the day starts asking."
+        }
+    }
 }

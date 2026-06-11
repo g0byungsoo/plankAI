@@ -91,6 +91,20 @@ final class BreathworkState {
         weekDayKeys.contains(Self.todayKey())
     }
 
+    /// Last 7 calendar days (oldest → today) as breathed/not flags —
+    /// drives the end-screen receipt's week strip.
+    var weekDayFlags: [Bool] {
+        let cal = Calendar.current
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        let keys = pruned(weekDayKeys)
+        let today = cal.startOfDay(for: Date())
+        return (0..<7).map { offset in
+            guard let day = cal.date(byAdding: .day, value: offset - 6, to: today) else { return false }
+            return keys.contains(f.string(from: day))
+        }
+    }
+
     // MARK: - Writes
 
     /// Called from BreathworkSessionView once per completed session. Bumps

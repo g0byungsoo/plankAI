@@ -96,6 +96,7 @@
 		157738879D4AD30141689C78 /* jeni_prep_short_reverse_to_forward_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 48DAD656E4B3D0B943209208 /* jeni_prep_short_reverse_to_forward_lunge.m4a */; };
 		15BD6BAA608296FEA1A9CCFA /* matson_prep_short_crunch_knee_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F50F5B8A5B8A0E6BABA46874 /* matson_prep_short_crunch_knee_raise.m4a */; };
 		161E4AD9D5811E38405F3854 /* prep_short_glute_bridge_march.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0731784D4742AD27D399BCEA /* prep_short_glute_bridge_march.m4a */; };
+		16475A7ED0A9F235AB88F227 /* BreathworkFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B2ED417FC817351A5402A5 /* BreathworkFlowView.swift */; };
 		16D2F1DA82C6C38EA5894704 /* matson_prep_full_seated_forward_fold.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6E1085D34FADD14F82403A22 /* matson_prep_full_seated_forward_fold.m4a */; };
 		171A174F2320F3FFBB2E049F /* jeni_prep_full_calf_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6955E2EAFDF5D636E9437E12 /* jeni_prep_full_calf_raise.m4a */; };
 		174103760FFB24A1D6211667 /* prep_short_single_leg_glute_bridge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0718757F9AB31D624010C6B3 /* prep_short_single_leg_glute_bridge.m4a */; };
@@ -2010,6 +2011,7 @@
 		A13AA2418A480800EA7977C8 /* matson_prep_short_narrow_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_narrow_squat.m4a; sourceTree = "<group>"; };
 		A209E94DA4BAC91A9221365B /* jeni_prep_full_plank_frog_jump.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_plank_frog_jump.m4a; sourceTree = "<group>"; };
 		A2AE5C38F9616F469501A51E /* prep_short_modified_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_modified_jacks.m4a; sourceTree = "<group>"; };
+		A2B2ED417FC817351A5402A5 /* BreathworkFlowView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BreathworkFlowView.swift; sourceTree = "<group>"; };
 		A31D81011D7FBA3FF4D40330 /* matson_prep_full_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_squat.m4a; sourceTree = "<group>"; };
 		A3459CA6DBA2969CA97FAA80 /* ExternalDisplayManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExternalDisplayManager.swift; sourceTree = "<group>"; };
 		A3B130A7989B01C75287A9D7 /* jeni_prep_full_high_knees.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_high_knees.m4a; sourceTree = "<group>"; };
@@ -4245,6 +4247,7 @@
 				85A31F993C12062E36F57A7E /* BreathLibraryView.swift */,
 				2A93A098CFDC39CC3E2B1C1C /* ForceFirstActionView.swift */,
 				D2DE727DA736CE890131B82B /* ForgingRevealView.swift */,
+				A2B2ED417FC817351A5402A5 /* BreathworkFlowView.swift */,
 			);
 			path = Welcome;
 			sourceTree = "<group>";
@@ -5672,6 +5675,7 @@
 				5CDAC64C819410F726C61BB2 /* BecomingDashboard.swift in Sources */,
 				DDC9027A4A448CEB8C618ED4 /* BodyMassImportService.swift in Sources */,
 				429C60D48E0CBC60C8725548 /* EnergyLedger.swift in Sources */,
+				16475A7ED0A9F235AB88F227 /* BreathworkFlowView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
