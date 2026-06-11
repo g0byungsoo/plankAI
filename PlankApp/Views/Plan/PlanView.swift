@@ -750,13 +750,19 @@ struct PlanView: View {
     }
 
     private func openLesson() {
-        // Lesson ID picked by JeniMethodState.lessonForCard from the
-        // user's current engagement day. PlanView's programDay maps
-        // 1-to-1 (program day 1 → lesson 1, etc.).
+        // BUG FIX (founder QA 2026-06-11: "lesson module doesn't pop
+        // up when you click the row"): lessonForCard's enrollment
+        // guard gated the OLD HomeView card's visibility — program
+        // users who never touched the legacy JeniMethod card have a
+        // nil enrolledAt, so the row tap silently did nothing. An
+        // explicit tap always opens: stamp enrollment (idempotent,
+        // keeps the day-index math anchored) and resolve the lesson
+        // directly. LessonID covers 1-14 + generic, so the rawValue
+        // init can't miss for any clamped day.
+        JeniMethodState.markEnrolled()
         let day = schedule?.programDay ?? 1
-        if let lessonId = JeniMethodState.lessonForCard(currentDay: day) {
-            present(cover: .lesson(lessonId))
-        }
+        let lessonId = LessonID(rawValue: JeniMethodState.lessonId(forDay: day)) ?? .generic
+        present(cover: .lesson(lessonId))
     }
 
     private func openWorkout(tier: IntensityTier, minutes: Int, bodyFocus: String?) {
