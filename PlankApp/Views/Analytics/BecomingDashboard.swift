@@ -51,7 +51,9 @@ struct BecomingFolio: View {
 
             HStack(spacing: 6) {
                 if let totalDays {
-                    Text("of her \(totalDays)")
+                    // Founder QA 2026-06-11: "of her 84" read ambiguous;
+                    // "of 84 days" is the clear version.
+                    Text("of \(totalDays) days")
                         .font(.custom("DMSans-Medium", size: 13))
                         .foregroundStyle(Palette.textSecondary)
                 } else {
