@@ -34,6 +34,9 @@ struct JFContinueButton: View {
     let action: () -> Void
     var isEnabled: Bool = true
     var isLoading: Bool = false
+    /// Set false when the call site fires its own haptic in `action`
+    /// (the legacy ctaBtn sites do) — avoids a double-tap stutter.
+    var firesHaptic: Bool = true
     /// Optional secondary text-link below the primary capsule
     /// (e.g. "skip for now", "maybe later"). Kept tertiary so the
     /// primary CTA stays the visual focus.
@@ -44,7 +47,7 @@ struct JFContinueButton: View {
         VStack(spacing: 12) {
             Button {
                 guard isEnabled, !isLoading else { return }
-                Haptics.medium()
+                if firesHaptic { Haptics.medium() }
                 action()
             } label: {
                 HStack(spacing: 6) {

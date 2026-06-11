@@ -8646,26 +8646,18 @@ struct OnboardingView: View {
     // MARK: - Shared
     // ═══════════════════════════════════════
 
+    /// v4 R1b (2026-06-11) — the legacy gradient rounded-rect CTA is
+    /// dead; every inline screen (teach beats, dividers, loader,
+    /// notif pre-prime, coach intro, ...) now renders the one-CTA
+    /// system through this shim. Labels lowercase per the her75
+    /// register; call sites keep their own haptics (firesHaptic
+    /// false avoids the double-fire).
     private func ctaBtn(_ title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(Palette.textInverse)
-                .frame(maxWidth: .infinity).frame(height: 56)
-                .background(
-                    LinearGradient(
-                        colors: [Palette.bgInverse, Palette.bgInverse.opacity(0.85)],
-                        startPoint: .top, endPoint: .bottom
-                    )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(.white.opacity(0.06), lineWidth: 1)
-                )
-        }
-        .buttonStyle(PressFeedbackStyle())
-        .padding(.horizontal, Space.screenPadding).padding(.bottom, Space.lg)
+        JFContinueButton(
+            label: title.lowercased(),
+            action: action,
+            firesHaptic: false
+        )
     }
 
     private func go(_ to: Int) {
