@@ -137,11 +137,13 @@ enum Typo {
     /// in-app hero) but 52pt read as oversized against the new
     /// 38pt question default. ChapterCompleteView is the only
     /// consumer of this register.
-    static let programHeroDisplay = font("Fraunces72pt-Light", size: 44, relativeTo: .largeTitle).leading(.tight)
+    // v4 R2 (2026-06-10) — celebration peak follows the Didone swap.
+    // 46pt = one earned step above the 40pt in-app default.
+    static let programHeroDisplay = font("BodoniModa-DisplaySemiBold", size: 46, relativeTo: .largeTitle).leading(.tight)
 
     /// Italic accent at the program-hero size. Pair with
     /// programHeroDisplay on the same Text via inline +.
-    static let programHeroItalic = font("Fraunces72pt-SemiBoldItalic", size: 44, relativeTo: .largeTitle).leading(.tight)
+    static let programHeroItalic = font("BodoniModa-DisplaySemiBoldItalic", size: 46, relativeTo: .largeTitle).leading(.tight)
 
     /// Recommended negative spacing for a 2-line her75-style hero
     /// VStack at programHeroDisplay/Italic size. Brings the two
@@ -227,31 +229,33 @@ enum Typo {
     // call site for the hero size to match her75's measured -1%
     // tracking. See `docs/her75_design_extraction_2026_06_10.md`.
 
-    /// `heroHeadline` — THE in-app hero register. Fraunces SemiBold
-    /// 38pt.
+    /// `heroHeadline` — THE in-app hero register.
     ///
-    /// her75 Phase 2 re-ladder (2026-06-10, design-expert audit
-    /// docs/her75_redesign_phase2_plan_2026_06_10.md §4): 42pt was
-    /// measured off her75's App Store marketing shots; the IN-APP
-    /// heroes (IMG_6275-6282) sit at 36-40pt. 42pt + -22 leading on
-    /// iPhone 13's 390pt content width rendered 3-line questions as
-    /// a wall — founder verdict "ridiculously big." 38pt is the
-    /// measured in-app register.
+    /// v4 R2 (2026-06-10, founder-authorized typeface swap per
+    /// docs/onboarding_v4_rebuild_plan_2026_06_10.md §B): Fraunces →
+    /// **Bodoni Moda Display** (opsz 48 static cut, wght 600). her75's
+    /// serif is a high-contrast fashion-Didone — razor hairlines,
+    /// vertical stress, dramatic italics. Fraunces (soft, wonky,
+    /// low-contrast) never read her75 at any size. Founder verbatim:
+    /// "when you copy font design, copy it almost as it is. if our
+    /// existing font style doesn't work, we can also change it."
     ///
-    /// ONE register for all Archetype A/B/D heroes (questions,
-    /// bridges, dashboards). Celebration peak (programHeroDisplay
-    /// 44pt) is the single step up. Pair with `heroHeadlineItalic`;
-    /// apply `.kerning(-0.4)` at the call site.
-    static let heroHeadline = font("Fraunces72pt-SemiBold", size: 38, relativeTo: .largeTitle)
+    /// 40pt Didone ≈ 38pt Fraunces optical size (smaller x-height).
+    /// ONE register for all hero surfaces. Pair with
+    /// `heroHeadlineItalic`; kerning handled by the face itself —
+    /// drop the -0.4 call-site kerning when migrating (Didones are
+    /// already tight; extra negative tracking clogs hairlines).
+    static let heroHeadline = font("BodoniModa-DisplaySemiBold", size: 40, relativeTo: .largeTitle)
 
-    /// Italic accent at the hero-headline size. Same -0.4 kerning rule.
-    static let heroHeadlineItalic = font("Fraunces72pt-SemiBoldItalic", size: 38, relativeTo: .largeTitle)
+    /// Italic accent at the hero-headline size — the "that girl"
+    /// Didone italic.
+    static let heroHeadlineItalic = font("BodoniModa-DisplaySemiBoldItalic", size: 40, relativeTo: .largeTitle)
 
-    /// `.lineSpacing()` for hero-headline stacks. -18 at 38pt = -47%
-    /// ratio, matching her75's measured 4-line-wrap cadence
-    /// (IMG_6281). Lines touch at ascender/descender without
-    /// becoming illegible.
-    static let heroHeadlineLineGap: CGFloat = -18
+    /// `.lineSpacing()` for hero-headline stacks. Didones carry
+    /// shorter ascenders/descenders than Fraunces, so -10 at 40pt
+    /// achieves the her75 "lines touch" cadence that needed -18 on
+    /// Fraunces. Retune on device if lines collide.
+    static let heroHeadlineLineGap: CGFloat = -10
 
     /// `heroSubpill` — DM Sans SemiBold 13pt for the cocoa-fill
     /// social-proof pill that sits BELOW (never above) the hero

@@ -186,6 +186,11 @@ private struct ProjectionPresentation: View {
                         // moment of onboarding; questionHero (34pt)
                         // read as too small after the her75
                         // standardization pass.
+                        // v4 R1 (2026-06-10) — CLIP FIX. Founder device
+                        // screenshot showed this hero bleeding off both
+                        // screen edges: no horizontal padding + no wrap
+                        // allowance at 38pt. Padding + fixedSize lets it
+                        // wrap inside the safe width.
                         ItalicAccentText(
                             "your becoming, plotted",
                             italic: ["plotted"],
@@ -196,6 +201,8 @@ private struct ProjectionPresentation: View {
                         )
                         .kerning(-0.4)
                         .lineSpacing(Typo.heroHeadlineLineGap)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, Space.screenPadding)
                         .opacity(heroVisible ? 1 : 0)
                         .scaleEffect(heroVisible ? 1.0 : 0.96)
 
@@ -604,6 +611,8 @@ private struct PairedPermissionsAsk: View {
                 )
                 .kerning(-0.4)
                 .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, Space.screenPadding)
                 .opacity(heroVisible ? 1 : 0)
                 .scaleEffect(heroVisible ? 1.0 : 0.96)
 
@@ -784,6 +793,8 @@ private struct FirstWeekPresentation: View {
                         )
                         .kerning(-0.4)
                         .lineSpacing(Typo.heroHeadlineLineGap)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, Space.screenPadding)
                         .opacity(heroVisible ? 1 : 0)
                         .scaleEffect(heroVisible ? 1.0 : 0.96)
 
@@ -915,6 +926,8 @@ private struct PacePickerPresentation: View {
                         )
                         .kerning(-0.4)
                         .lineSpacing(Typo.heroHeadlineLineGap)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, Space.screenPadding)
                         .opacity(heroVisible ? 1 : 0)
                         .scaleEffect(heroVisible ? 1.0 : 0.96)
 
