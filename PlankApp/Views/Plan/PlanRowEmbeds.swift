@@ -145,9 +145,14 @@ struct SnapMealEmbed: View {
         let fraction = target > 0 ? min(1.0, max(0.0, Double(current) / Double(target))) : 0.0
         return VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 4) {
+                // lineLimit + scale so "protein" never wraps to
+                // "protei/n" in the narrow third-column width
+                // (founder screenshot 2026-06-11).
                 Text(label)
                     .font(.system(size: 11, weight: .regular))
                     .foregroundStyle(Palette.cocoaTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                 Spacer(minLength: 0)
                 Text("\(current)g")
                     .font(.custom("DMSans-Medium", size: 11, relativeTo: .caption2))
@@ -183,7 +188,6 @@ struct MoveExerciseEmbed: View {
         let durationLabel: String   // e.g. "2 min" or "30s"
     }
 
-    let totalMinutes: Int
     let exercises: [Exercise]   // ordered list of today's session
 
     /// Phase 1 placeholder list until Phase 1.B wires
@@ -196,16 +200,14 @@ struct MoveExerciseEmbed: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Summary line: total minutes + exercise count.
+            // Summary line — exercise count only. The row subtitle
+            // directly above already says "10 min · you've got this";
+            // repeating the minutes here read as redundant (founder
+            // QA 2026-06-11).
             HStack(spacing: 6) {
-                Text("\(totalMinutes) min")
+                Text("\(exercises.count) \(exercises.count == 1 ? "exercise" : "exercises")")
                     .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .caption))
                     .foregroundStyle(Palette.accent)
-                Text("·")
-                    .foregroundStyle(Palette.cocoaTertiary)
-                Text("\(exercises.count) \(exercises.count == 1 ? "exercise" : "exercises")")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaSecondary)
                 Spacer()
             }
 

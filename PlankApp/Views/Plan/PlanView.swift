@@ -412,7 +412,6 @@ struct PlanView: View {
                     snapMealProteinG: todayProteinG,
                     snapMealCarbsG: todayCarbsG,
                     snapMealFatG: todayFatG,
-                    moveTotalMinutes: moveTotalMinutes(for: prescription),
                     moveExercises: nil   // Phase 1.B wires real WorkoutGenerator preview
                 )
                 .modernEntrance(animateIn, delay: 0.16 + Double(idx) * 0.06)
@@ -552,15 +551,9 @@ struct PlanView: View {
         todayStepCount = StepsService.shared.todayCount
     }
 
-    /// Extract the prescription's workout minutes for the move row's
-    /// totalMinutes display in the embed. Falls back to 0 for non-
-    /// workout rows.
-    private func moveTotalMinutes(for prescription: ProgramDayPrescription) -> Int {
-        if case .workout(_, let minutes, _) = prescription {
-            return minutes
-        }
-        return 0
-    }
+    // (moveTotalMinutes helper deleted 2026-06-11 — the embed's
+    // minutes line duplicated the row subtitle; the embed shows
+    // exercise count only now.)
 
     private func refreshTodayChecks() {
         guard let schedule, let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext) else {

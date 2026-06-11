@@ -48,7 +48,6 @@ struct PlanRow: View {
     var snapMealProteinG: Int = 0
     var snapMealCarbsG: Int = 0
     var snapMealFatG: Int = 0
-    var moveTotalMinutes: Int = 0
     var moveExercises: [MoveExerciseEmbed.Exercise]? = nil
 
     enum RowState {
@@ -160,7 +159,6 @@ struct PlanRow: View {
 
         case .workout:
             MoveExerciseEmbed(
-                totalMinutes: moveTotalMinutes,
                 exercises: moveExercises ?? MoveExerciseEmbed.placeholder
             )
             .padding(.leading, 56)
@@ -192,13 +190,14 @@ struct PlanRow: View {
         // Live override: snap meal shows today's calorie total when
         // FoodLogPersister has any meals logged. Falls back to the
         // prescription's static "one photo · we read the plate".
+        // Founder QA 2026-06-11: the kcal subtitle duplicated the
+        // embed's big "1,300 cal today" numeral directly beneath it.
+        // The subtitle now carries the COUNT (what the numeral
+        // doesn't say); the embed carries the math.
         if case .snapMeal = prescription {
             if let kcal = liveCaloriesToday, kcal > 0 {
-                let count = liveMealsLoggedToday ?? 0
-                if count >= 2 {
-                    return "\(kcal) cal · \(count) meals today"
-                }
-                return "\(kcal) cal today"
+                let count = max(1, liveMealsLoggedToday ?? 1)
+                return count == 1 ? "1 plate today" : "\(count) plates today"
             }
         }
 
