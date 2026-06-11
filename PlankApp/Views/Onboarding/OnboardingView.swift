@@ -690,7 +690,8 @@ struct OnboardingView: View {
             // feedback_copy_succinct_genz memory: 2-4 word labels,
             // concrete > abstract.
             "what's your why?",
-            sub: "pick the closest.",
+            sub: nil,  // her75 Phase 3
+            italic: ["your why"],
             opts: [
                 ("loseWeight",  "lose weight",       nil, "leaf"),
                 ("fullBody",    "tone all over",     nil, "sparkles"),
@@ -715,7 +716,8 @@ struct OnboardingView: View {
         // (consistency compounds trust per first-screen research).
         case 100: jfQuestion(
             "how did you hear about jenifit?",
-            sub: "helps us thank the right person.",
+            sub: nil,  // her75 Phase 3
+            italic: ["hear"],
             opts: [
                 ("tiktok",     "tiktok",              nil, "play.rectangle.fill"),
                 ("instagram",  "instagram",           nil, "camera.fill"),
@@ -875,7 +877,8 @@ struct OnboardingView: View {
 
         case 132: jfHorizontalSliderScreen(
             "what's your current weight?",
-            sub: nil,  // v3 her75 editorial register
+            sub: nil,
+            italic: ["your"],  // v3 her75 editorial register
             valueMetric: $currentWeightKg,
             metric: Self.weightMetricRuler,
             imperial: Self.weightImperialRuler,
@@ -893,7 +896,8 @@ struct OnboardingView: View {
 
         case 133: jfHorizontalSliderScreen(
             "and your goal weight?",
-            sub: nil,  // her75 Phase 1 §1.3 — hero carries the screen
+            sub: nil,
+            italic: ["your"],  // her75 Phase 1 §1.3 — hero carries the screen
             valueMetric: $goalWeightKg,
             metric: Self.weightMetricRuler,
             imperial: Self.weightImperialRuler,
@@ -991,6 +995,7 @@ struct OnboardingView: View {
                     // viewport on iPhone 13 mini.
                     "which one is the new you?",
                     sub: nil,
+                    italic: ["new"],
                     opts: [
                         ("powerful", "powerful", "confident, undeniable",   nil),
                         ("calm",     "calm",     "at home in my own skin",  nil),
@@ -1123,6 +1128,7 @@ struct OnboardingView: View {
         case 154: jfQuestion(
             "how much sleep do you usually get?",
             sub: nil,
+            italic: ["you"],
             opts: [
                 ("under5",  "under 5 hours",  nil, "moon.zzz"),
                 ("five6",   "5 to 6",         nil, "moon"),
@@ -1306,7 +1312,8 @@ struct OnboardingView: View {
 
         case 162: jfQuestion(
             "what is food, mostly?",
-            sub: nil,  // v3 her75 editorial register
+            sub: nil,
+            italic: ["food"],  // v3 her75 editorial register
             // v3 P11.1 deferred (BetterMe A2) — self-narration option
             // labels. Title stays one-word so the row reads at a glance;
             // subtitle carries the first-person commitment line.
@@ -1396,10 +1403,17 @@ struct OnboardingView: View {
         // calai13/14/15.
         case 167: jfQuestion(
             "how do you want to get there?",
-            sub: nil,  // v3 her75 editorial register — pace selector goes silent
+            sub: nil,
+            italic: ["you"],  // v3 her75 editorial register — pace selector goes silent
             opts: paceSelectorOpts(),
             sel: $paceChoice, next: 203,
             confirmation: "got it ♥",
+            // her75 Phase 3 — audit said cut this inlineFeedback as
+            // filler; KEPT deliberately. It's the informed-consent
+            // mechanism on the focused tier (Cal AI's red-triangle
+            // warning done anti-shame, founder-locked per the v3
+            // synthesis), renders only on selection, duty-of-care-
+            // adjacent like 163/164.
             inlineFeedback: [
                 "focused": ("we'll match the pace.", "moves quickly. sleep + protein floor matter more here than calorie math. soft week when life gets loud ♥"),
             ],
@@ -1418,7 +1432,8 @@ struct OnboardingView: View {
         // so it lands BEFORE the food wedge.
         case 168: jfQuestion(
             "tried everything already?",
-            sub: nil,  // v3 her75 editorial register
+            sub: nil,
+            italic: ["tried"],  // v3 her75 editorial register
             opts: [
                 ("first",       "this is my first real try",   nil, "sparkles"),
                 ("fewTimes",    "yes, a few times",            nil, "checkmark.circle"),
@@ -1430,7 +1445,8 @@ struct OnboardingView: View {
 
         case 164: jfQuestion(
             "any weight meds right now?",
-            sub: nil,  // v3 her75 editorial register
+            sub: nil,
+            italic: ["weight meds"],  // v3 her75 editorial register
             opts: [
                 ("none",         "no",                nil, "leaf"),
                 ("considering",  "considering it",    nil, "questionmark.circle"),
@@ -1539,7 +1555,6 @@ struct OnboardingView: View {
         case 282: bridgeScreen(
             headline: "thank you for being honest.",
             italicWords: ["honest."],
-            sticker: nil,
             next: 171  // routes to first psychometric fear
         )
 
@@ -2721,34 +2736,50 @@ struct OnboardingView: View {
     // the old showcase screens (chartScreen, celebrationScreen, etc.)
     // that Phase 5 will eventually rebuild.
 
-    private func jfHeader(_ title: String, sub: String? = nil) -> some View {
-        // v3 P11.1.B (2026-06-10) — her75 editorial register per
-        // [[feedback-her75-editorial-register]]: when a question has
-        // NO subhead, the headline auto-promotes to `heroHeadline`
-        // (42pt SemiBold + -16 leading). With a subhead, stays at the
-        // earlier `questionHero` (34pt) register so the two elements
-        // still fit on iPhone 13/14 with options + CTA below.
-        //
-        // The principle: trust the question. her75's question screens
-        // never explain themselves; the headline carries the screen.
-        // Authors who want italic punch on a word compose
-        // ItalicAccentText directly with the appropriate token pair
-        // — see Tokens.swift.
+    /// her75 Phase 3 — Archetype A hero region (audit §2).
+    ///
+    /// FIXED 150pt hero block, top-leading aligned. The hero starts at
+    /// the same Y on every question screen and the options region below
+    /// starts at the same Y regardless of whether the headline wraps
+    /// 1, 2, or 3 lines — the wrap happens INSIDE the fixed block.
+    /// This is the structural half of the "progress bar never moves"
+    /// fix (the nav region pin in Phase 1 was the other half).
+    ///
+    /// (Audit specced 200pt; tuned to 150pt at implementation — at the
+    /// 38pt re-ladder a 3-line hero measures ~130pt, and 200pt left a
+    /// dead band above the options on 1-line heroes. 150 = 3-line
+    /// capacity + breathing room.)
+    ///
+    /// `italic:` takes the punch CHUNK (1-3 word semantic unit per the
+    /// audit §5 decision tree — possessive phrase, NP, PP, or deictic
+    /// pronoun). Composed via ItalicAccentText, never `*markers*`.
+    ///
+    /// `sub:` is retained for the rare affordance line but renders
+    /// INSIDE the fixed region. Default nil per
+    /// [[feedback-her75-editorial-register]].
+    private func jfHeader(_ title: String, sub: String? = nil, italic: [String] = []) -> some View {
         VStack(alignment: .leading, spacing: Space.xs) {
-            Text(title)
-                .font(sub == nil ? Typo.heroHeadline : Typo.questionHero)
-                .foregroundStyle(Palette.textPrimary)
-                .lineSpacing(sub == nil ? Typo.heroHeadlineLineGap : Typo.questionHeroLineGap)
-                .kerning(sub == nil ? -0.4 : 0)
-                .fixedSize(horizontal: false, vertical: true)
+            ItalicAccentText(
+                title,
+                italic: italic,
+                baseFont: Typo.heroHeadline,
+                italicFont: Typo.heroHeadlineItalic,
+                color: Palette.textPrimary,
+                alignment: .leading
+            )
+            .kerning(-0.4)
+            .lineSpacing(Typo.heroHeadlineLineGap)
+            .fixedSize(horizontal: false, vertical: true)
             if let sub {
                 Text(sub)
                     .font(Typo.body)
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(height: 150, alignment: .topLeading)
         .padding(.horizontal, Space.screenPadding)
     }
 
@@ -2802,6 +2833,8 @@ struct OnboardingView: View {
 
     private func jfQuestion(
         _ title: String, sub: String? = nil,
+        // her75 Phase 3 — italic punch chunk, threaded to jfHeader.
+        italic: [String] = [],
         opts: [(String, String, String?, String?)],
         sel: Binding<String>,
         next: Int,
@@ -2826,14 +2859,16 @@ struct OnboardingView: View {
         trustAnchor: WeAskBecauseRow? = nil
     ) -> some View {
         VStack(spacing: 0) {
-            jfHeader(title, sub: sub)
+            jfHeader(title, sub: sub, italic: italic)
 
             if let trustAnchor {
                 Spacer().frame(height: Space.sm)
                 trustAnchor
             }
 
-            Spacer().frame(height: Space.lg)
+            // her75 Phase 3 — Space.lg gap dropped; the fixed 150pt
+            // hero region already carries the breathing room.
+            Spacer().frame(height: Space.xs)
 
             VStack(spacing: Space.sm) {
                 ForEach(opts, id: \.0) { key, optTitle, optSub, optIcon in
@@ -3099,6 +3134,7 @@ struct OnboardingView: View {
 
     private func jfMulti(
         _ title: String, sub: String? = nil,
+        italic: [String] = [],
         opts: [(String, String, String?, String?)],
         sel: Binding<Set<String>>,
         next: Int,
@@ -3106,9 +3142,9 @@ struct OnboardingView: View {
         minSelection: Int = 1
     ) -> some View {
         VStack(spacing: 0) {
-            jfHeader(title, sub: sub)
+            jfHeader(title, sub: sub, italic: italic)
 
-            Spacer().frame(height: Space.lg)
+            Spacer().frame(height: Space.xs)
 
             VStack(spacing: Space.sm) {
                 ForEach(opts, id: \.0) { key, optTitle, optSub, optIcon in
@@ -3185,6 +3221,7 @@ struct OnboardingView: View {
     /// band range visualizes a target zone (e.g. loss range).
     private func jfHorizontalSliderScreen<Annotation: View>(
         _ title: String, sub: String? = nil,
+        italic: [String] = [],
         valueMetric: Binding<Double>,
         metric: BiometricRulerConfig,
         imperial: BiometricRulerConfig,
@@ -3196,7 +3233,7 @@ struct OnboardingView: View {
         @ViewBuilder annotation: @escaping () -> Annotation = { EmptyView() }
     ) -> some View {
         VStack(spacing: 0) {
-            jfHeader(title, sub: sub)
+            jfHeader(title, sub: sub, italic: italic)
             Spacer()
             HorizontalBiometricRulerScreen(
                 valueMetric: valueMetric,
@@ -5136,34 +5173,20 @@ struct OnboardingView: View {
         .buttonStyle(.plain)
     }
 
-    /// v3 P11.1.B (2026-06-10) — BetterMe A3 bridge screen.
+    /// her75 Phase 3 — Archetype B bridge (audit §2).
     ///
-    /// Affirmation-only pause between chapters. NO eyebrow, NO body,
-    /// NO citation — per [[feedback-her75-editorial-register]], the
-    /// headline carries the whole moment. Single optional sticker
-    /// floats off-center as compositional element (her75 pattern).
-    /// User taps Continue (no auto-advance — bridges are read at
-    /// the user's pace, not the loader's).
-    ///
-    /// Use: between major chapter transitions where pacing variance
-    /// + rapport help the next-chapter cognitive load land softer.
+    /// Pure-typography exhale moment per IMG_6280 / IMG_6281: centered
+    /// 38pt hero, total cream restraint, optional ONE supporting line.
+    /// Sticker param removed in Phase 2/3 — bridges are the screens
+    /// where NOT decorating is the design.
     private func bridgeScreen(
         headline: String,
         italicWords: [String],
-        sticker: StickerName? = nil,
+        supporting: String? = nil,
         next: Int
     ) -> some View {
         VStack(spacing: 0) {
             Spacer()
-            if let sticker {
-                Image(sticker.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 64, height: 64)
-                    .rotationEffect(.degrees(-6))
-                    .padding(.bottom, Space.lg)
-                    .accessibilityHidden(true)
-            }
             ItalicAccentText(
                 headline,
                 italic: italicWords,
@@ -5175,9 +5198,15 @@ struct OnboardingView: View {
             .kerning(-0.4)
             .lineSpacing(Typo.heroHeadlineLineGap)
             .padding(.horizontal, Space.screenPadding)
+            if let supporting {
+                Text(supporting)
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, Space.lg)
+                    .padding(.horizontal, Space.lg)
+            }
             Spacer()
-            // v3 P11.6 — JFContinueButton replaces ad-hoc capsule for
-            // her75-register consistency.
             JFContinueButton(label: "continue") { go(next) }
         }
     }

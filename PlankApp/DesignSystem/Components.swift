@@ -783,75 +783,51 @@ struct SectionDividerScreen: View {
     let supporting: String
     let dwellSeconds: Double
     let onAdvance: () -> Void
-    /// v9 P9.8 — legacy 4-5 scatter is OFF the bridges per her75 closing
-    /// pass. A single sticker carries the warmth signal without competing
-    /// with the line-cascade reveal that's the new focal point. Callers
-    /// can still pass the legacy scatter (kept for back-compat); if
-    /// `singleSticker` is set it overrides + we render only that one.
-    var stickerPlacements: [StickerPlacement] = []
-    var singleSticker: StickerName? = nil
+    // her75 Phase 3 (2026-06-10) — sticker params removed entirely.
+    // Dividers are Archetype B (audit §2): editorial eyebrow + centered
+    // 38pt heroHeadline cascade + ONE supporting line. Total cream
+    // restraint per IMG_6280; the eyebrow carries the chapter beat.
 
     @State private var subVisible = false
 
     var body: some View {
-        ZStack {
-            // Single sticker overrides scatter (her75 closing-pass spec).
-            if let single = singleSticker {
-                Image(single.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 80, height: 80)
-                    .rotationEffect(.degrees(-8))
-                    .opacity(single.style.opacity)
-                    .position(x: UIScreen.main.bounds.width - 70, y: 150)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-            } else if !stickerPlacements.isEmpty {
-                // Legacy callers — not used in v9 bridges but kept for
-                // back-compat until the migration sweep finishes.
-                StickerScatter(placements: stickerPlacements)
-            }
+        VStack(spacing: Space.lg) {
+            Spacer()
 
-            VStack(spacing: Space.lg) {
-                Spacer()
+            // Editorial eyebrow — lowercase "part one" register at the
+            // 11pt tracked-caps mark (her75 IMG_6279 footer convention).
+            Text("part \(spelledPart(partNumber))")
+                .font(Typo.captionTracked)
+                .kerning(1.98)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.accent)
 
-                // Lowercase eyebrow per her75 closing-pass rule — was
-                // "PART 1" upper-case which broke the all-lowercase
-                // voice register the rest of the flow ships.
-                Text("part \(spelledPart(partNumber))")
-                    .font(Typo.eyebrow)
-                    .tracking(2)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.accent)
+            Spacer().frame(height: 4)
 
-                Spacer().frame(height: 4)
+            // Line-cascade with `.soft` haptic per line at the ONE
+            // in-app hero register (38pt heroHeadline post-re-ladder).
+            LineCascadeText(
+                lines: cascadeLines,
+                baseFont: Typo.heroHeadline,
+                italicFont: Typo.heroHeadlineItalic,
+                color: Palette.textPrimary,
+                alignment: .center,
+                lineSpacing: Typo.heroHeadlineLineGap,
+                perLineDelay: 0.42
+            )
+            .padding(.horizontal, Space.lg)
 
-                // Line-cascade with `.soft` haptic per line. Bridges
-                // use questionHero 34pt (NOT displayHero — reserved
-                // for plan-reveal beats per designer spec).
-                LineCascadeText(
-                    lines: cascadeLines,
-                    baseFont: Typo.questionHero,
-                    italicFont: Typo.questionHeroItalic,
-                    color: Palette.textPrimary,
-                    alignment: .center,
-                    lineSpacing: Typo.questionHeroLineGap,
-                    perLineDelay: 0.42
-                )
-                .padding(.horizontal, Space.lg)
+            Spacer().frame(height: 8)
 
-                Spacer().frame(height: 8)
+            Text(supporting)
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Space.xl)
+                .opacity(subVisible ? 1 : 0)
+                .offset(y: subVisible ? 0 : 8)
 
-                Text(supporting)
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Space.xl)
-                    .opacity(subVisible ? 1 : 0)
-                    .offset(y: subVisible ? 0 : 8)
-
-                Spacer()
-            }
+            Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
