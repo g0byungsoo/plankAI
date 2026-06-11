@@ -159,14 +159,20 @@ struct BuildingPlanLoadingView: View {
                         .transition(.opacity)
                 }
 
+                // her75 Phase 4 — Archetype E loader (audit §2 + IMG_6280
+                // "Personalizing your space"). Hero promoted from 22pt
+                // custom to the ONE in-app register: 38pt heroHeadline
+                // + italic chunk "your" per the decision tree.
                 ItalicAccentText(
-                    showCompletionFrame ? "your becoming plan" : "building your becoming plan",
-                    italic: showCompletionFrame ? ["becoming"] : ["becoming"],
-                    baseFont: .custom("Fraunces72pt-SemiBold", size: 22),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
+                    showCompletionFrame ? "your plan, ready." : "personalizing your plan",
+                    italic: ["your"],
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
                     color: Palette.textPrimary,
                     alignment: .center
                 )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
                 .padding(.horizontal, Space.lg)
                 .opacity(heroVisible ? 1 : 0)
 

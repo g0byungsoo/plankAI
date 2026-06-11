@@ -592,14 +592,18 @@ private struct PairedPermissionsAsk: View {
                 // notifications-only. Headline updated from "two quiet
                 // things" → "one quiet ritual ping ♥" per her75 editorial
                 // register (silent sub, single hero).
+                // her75 Phase 4 — promoted 26pt custom → 38pt
+                // heroHeadline (the ONE in-app register, Archetype B).
                 ItalicAccentText(
                     "one quiet ritual ping.",
                     italic: ["quiet"],
-                    baseFont: .custom("Fraunces72pt-SemiBold", size: 26),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 26),
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
                     color: Palette.textPrimary,
                     alignment: .center
                 )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
                 .opacity(heroVisible ? 1 : 0)
                 .scaleEffect(heroVisible ? 1.0 : 0.96)
 
@@ -1072,19 +1076,21 @@ private struct GoalDateRevealPresentation: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                // v9 P9.7 — her75 line-cascade reveal at displayHero
-                // scale (52pt). Lead-in body line sets the prompt; the
-                // date lands as the main beat with a paired haptic.
+                // her75 Phase 4 — Archetype B goal-date reveal.
+                // displayHero tokens deprecated per the re-ladder
+                // (merged into heroHeadline). Lead-in body line sets
+                // the prompt; the date lands as the 38pt italic beat
+                // with a paired haptic.
                 LineCascadeText(
                     lines: [
                         .plain("you'll get there by"),
                         .italic(goalDateFormatted)
                     ],
                     baseFont: Typo.body,
-                    italicFont: Typo.displayHeroItalic,
+                    italicFont: Typo.heroHeadlineItalic,
                     color: Palette.cocoaPrimary,
                     alignment: .center,
-                    lineSpacing: Typo.displayHeroLineGap,
+                    lineSpacing: Typo.heroHeadlineLineGap,
                     perLineDelay: 0.55
                 )
                 .padding(.horizontal, Space.lg)

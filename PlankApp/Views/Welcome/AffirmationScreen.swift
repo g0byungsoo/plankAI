@@ -119,21 +119,22 @@ struct AffirmationScreen: View {
             }
             .allowsHitTesting(false)
 
-            // v9 P9.7 — her75 hero scale (52pt displayHero). 28pt was
-            // undersized; this is a first-launch peak moment that
-            // deserves the biggest register. Three staggered lines
-            // with paired haptics (existing line1/2/3Visible chain
-            // continues to gate so the choreography matches).
+            // her75 Phase 4 — displayHero deprecated per the re-ladder
+            // (audit §4); promoted to the ONE in-app register
+            // (38pt heroHeadline). Three staggered lines with paired
+            // haptics (existing line1/2/3Visible chain unchanged).
             VStack(spacing: 16) {
                 Text(kAffirmationLine1)
-                    .font(Typo.displayHero)
+                    .font(Typo.heroHeadline)
+                    .kerning(-0.4)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
                     .opacity(line1Visible ? 1 : 0)
                     .scaleEffect(line1Visible ? 1.0 : 0.95)
 
                 Text(kAffirmationLine2)
-                    .font(Typo.displayHero)
+                    .font(Typo.heroHeadline)
+                    .kerning(-0.4)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
                     .opacity(line2Visible ? 1 : 0)
@@ -141,7 +142,8 @@ struct AffirmationScreen: View {
 
                 // Line 3 promoted to italic — JeniFit voice signal.
                 Text(kAffirmationLine3)
-                    .font(Typo.displayHeroItalic)
+                    .font(Typo.heroHeadlineItalic)
+                    .kerning(-0.4)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
                     .opacity(line3Visible ? 1 : 0)
