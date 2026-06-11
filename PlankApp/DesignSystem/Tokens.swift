@@ -137,13 +137,13 @@ enum Typo {
     /// in-app hero) but 52pt read as oversized against the new
     /// 38pt question default. ChapterCompleteView is the only
     /// consumer of this register.
-    // v4 R2 (2026-06-10) — celebration peak follows the Didone swap.
-    // 46pt = one earned step above the 40pt in-app default.
-    static let programHeroDisplay = font("BodoniModa-DisplaySemiBold", size: 46, relativeTo: .largeTitle).leading(.tight)
+    // v4 R2 reverted with heroHeadline — celebration back on Fraunces
+    // pending the font-designer verdict.
+    static let programHeroDisplay = font("Fraunces72pt-Light", size: 44, relativeTo: .largeTitle).leading(.tight)
 
     /// Italic accent at the program-hero size. Pair with
     /// programHeroDisplay on the same Text via inline +.
-    static let programHeroItalic = font("BodoniModa-DisplaySemiBoldItalic", size: 46, relativeTo: .largeTitle).leading(.tight)
+    static let programHeroItalic = font("Fraunces72pt-SemiBoldItalic", size: 44, relativeTo: .largeTitle).leading(.tight)
 
     /// Recommended negative spacing for a 2-line her75-style hero
     /// VStack at programHeroDisplay/Italic size. Brings the two
@@ -245,17 +245,21 @@ enum Typo {
     /// `heroHeadlineItalic`; kerning handled by the face itself —
     /// drop the -0.4 call-site kerning when migrating (Didones are
     /// already tight; extra negative tracking clogs hairlines).
-    static let heroHeadline = font("BodoniModa-DisplaySemiBold", size: 40, relativeTo: .largeTitle)
+    // v4 R2 REVERTED (2026-06-10) — founder device QA: "the new font
+    // style looks horrible." Bodoni Moda opsz48/600 read wrong on
+    // device. Heroes back on Fraunces while the font-designer agent
+    // identifies her75's actual face + the correct copy (candidates:
+    // DM Serif Display — designed sibling of our DM Sans body face —
+    // Playfair Display, Prata, different Bodoni cut). TTFs stay
+    // bundled pending the verdict.
+    static let heroHeadline = font("Fraunces72pt-SemiBold", size: 38, relativeTo: .largeTitle)
 
-    /// Italic accent at the hero-headline size — the "that girl"
-    /// Didone italic.
-    static let heroHeadlineItalic = font("BodoniModa-DisplaySemiBoldItalic", size: 40, relativeTo: .largeTitle)
+    /// Italic accent at the hero-headline size.
+    static let heroHeadlineItalic = font("Fraunces72pt-SemiBoldItalic", size: 38, relativeTo: .largeTitle)
 
-    /// `.lineSpacing()` for hero-headline stacks. Didones carry
-    /// shorter ascenders/descenders than Fraunces, so -10 at 40pt
-    /// achieves the her75 "lines touch" cadence that needed -18 on
-    /// Fraunces. Retune on device if lines collide.
-    static let heroHeadlineLineGap: CGFloat = -10
+    /// `.lineSpacing()` for hero-headline stacks (-47% ratio at 38pt
+    /// Fraunces per the her75 measured cadence).
+    static let heroHeadlineLineGap: CGFloat = -18
 
     /// `heroSubpill` — DM Sans SemiBold 13pt for the cocoa-fill
     /// social-proof pill that sits BELOW (never above) the hero
