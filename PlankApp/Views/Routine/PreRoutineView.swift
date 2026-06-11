@@ -13,23 +13,16 @@ struct PreRoutineView: View {
     /// Phase 9.26 — content opacity for the fade-in appear animation.
     /// The fullScreenCover binding is set with `Transaction.disablesAnimations`
     /// upstream (HomeView), so the cover materializes instantly with
-    /// no slide-up; this fade then handles the visual reveal. Result:
-    /// the workout "appears" softly instead of popping up.
+    /// no slide-up; this fade then handles the visual reveal. v1.1
+    /// module pass: paired with an 8pt upward settle (the TabBloom
+    /// "card laid down" vocabulary) so every module arrives the same way.
     @State private var contentOpacity: Double = 0
+    @State private var contentOffset: CGFloat = 8
 
-    /// Reference body weight for kcal estimation. Real per-user weight
-    /// arrives in Phase 7 (weight-loss analytics) — until then this gives a
-    /// stable, transparent baseline (~average adult woman).
-    private static let referenceBodyKg: Double = 65
-
-    private var totalKcal: Int {
-        let total = workout.exercises.reduce(0.0) { sum, slot in
-            guard let ex = slot.exercise else { return sum }
-            return sum + ex.kcalPerMinute(bodyWeightKg: Self.referenceBodyKg)
-                * Double(slot.duration) / 60.0
-        }
-        return max(1, Int(total.rounded()))
-    }
+    // (kcal estimate deleted 2026-06-11 — it ran on a fabricated 65kg
+    // reference weight (data-provenance violation) and put a flame +
+    // burn number on the pre-workout brief (the framing the post-
+    // Ozempic locks kill). Rounds replaced it as the third stat.)
 
     /// Distinct primary areas across main slots, in original order.
     private var primaryAreas: [TargetArea] {
@@ -81,21 +74,21 @@ struct PreRoutineView: View {
                     .padding(.top, Space.md)
                 }
 
-                startButton
-                    .padding(.horizontal, Space.screenPadding)
-                    .padding(.bottom, Space.lg)
+                startButton  // JFContinueButton carries its own insets
             }
         }
         .opacity(contentOpacity)
+        .offset(y: contentOffset)
         .onAppear {
             #if DEBUG
             print("[FUNNEL] preroutine_appeared | workout cover rendered successfully")
             #endif
-            // Phase 9.26 — fade content in over 0.6s. With the
-            // cover-present animation disabled upstream, this is the
-            // only motion the user sees: a calm fade-in reveal.
-            withAnimation(.easeInOut(duration: 0.6)) {
+            // v1.1 module pass — the shared arrival: fade + 8pt settle
+            // on gentleSpring, matching the tab switch and the lesson
+            // page-turn so every surface lands in the same voice.
+            withAnimation(Motion.gentleSpring) {
                 contentOpacity = 1
+                contentOffset = 0
             }
             // v8: voice intro (chained focus_intro → duration_intro)
             // removed from the workout preview per founder direction.
@@ -129,10 +122,12 @@ struct PreRoutineView: View {
     private var header: some View {
         ZStack {
             VStack(spacing: Space.xs) {
+                // v1.1 — tracked-lowercase kicker (the lesson player's
+                // magazine register), not accent-pink caps.
                 Text("today's workout")
-                    .font(Typo.eyebrow)
-                    .tracking(2)
-                    .foregroundStyle(Palette.accent)
+                    .font(.custom("DMSans-Medium", size: 11))
+                    .kerning(1.98)
+                    .foregroundStyle(Palette.textSecondary)
 
                 Text(workout.name.lowercased())
                     .font(Typo.titleItalic)
@@ -174,10 +169,11 @@ struct PreRoutineView: View {
     // MARK: - Stats row
 
     private var statsRow: some View {
-        HStack(spacing: Space.sm) {
+        let rounds = workout.exercises.map { $0.round }.max() ?? 1
+        return HStack(spacing: Space.sm) {
             statCard(icon: "clock", value: "\(workout.estimatedDuration)", unit: "min")
-            statCard(icon: "flame.fill", value: "\(totalKcal)", unit: "kcal")
             statCard(icon: "figure.run", value: "\(workout.exercises.count)", unit: "moves")
+            statCard(icon: "arrow.2.circlepath", value: "\(rounds)", unit: rounds == 1 ? "round" : "rounds")
         }
     }
 
@@ -375,23 +371,11 @@ struct PreRoutineView: View {
 
     // MARK: - Start
 
+    // v1.1 module pass — the one-CTA system (never italic serif
+    // inside a button; her75 buttons are plain sans).
     private var startButton: some View {
-        Button {
-            Haptics.vibrate()
+        JFContinueButton(label: "start workout") {
             onStart()
-        } label: {
-            HStack {
-                Text("start workout")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
-                Spacer()
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 16, weight: .bold))
-            }
-            .foregroundStyle(Palette.textInverse)
-            .padding(.horizontal, 22)
-            .frame(height: 60)
-            .background(Palette.bgInverse)
-            .clipShape(Capsule())
         }
     }
 }

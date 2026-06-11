@@ -82,10 +82,14 @@ struct PostRoutineView: View {
                     .font(.system(size: 72))
 
                 VStack(spacing: Space.sm) {
-                    Text("Session ended early")
+                    // v1.1 module pass — the early exit is information,
+                    // never a scolding. The old copy threatened the
+                    // streak ("finish at least 70% next time") at the
+                    // exact moment she's most likely to not come back.
+                    Text("you moved. that counts.")
                         .font(Typo.titleItalic)
                         .foregroundStyle(Palette.textPrimary)
-                    Text("You completed \(Int(completionRate * 100))%. finish at least 70% next time and it'll count toward your streak.")
+                    Text("you did \(Int(completionRate * 100))% today. stopping early is information, not failure. tomorrow's session will meet you where you are.")
                         .font(Typo.body)
                         .foregroundStyle(Palette.textSecondary)
                         .multilineTextAlignment(.center)
@@ -94,17 +98,7 @@ struct PostRoutineView: View {
 
                 Spacer()
 
-                Button(action: onDone) {
-                    Text("BACK")
-                        .font(Typo.body).fontWeight(.bold).tracking(2)
-                        .foregroundStyle(Palette.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: Space.minTapTarget + 12)
-                        .background(Palette.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
-                }
-                .padding(.horizontal, Space.screenPadding)
-                .padding(.bottom, Space.xl)
+                JFContinueButton(label: "done", action: onDone)
             }
         }
     }
@@ -341,17 +335,22 @@ struct PostRoutineView: View {
 
     private var streakBlock: some View {
         VStack(spacing: Space.sm) {
-            HStack(spacing: Space.xs) {
-                ForEach(0..<min(streakCount, 7), id: \.self) { i in
-                    Text("🔥")
-                        .font(.system(size: i == streakCount - 1 ? 32 : 20))
+            // v1.1 module pass — the flame-emoji row was the Cal AI
+            // streak idiom the research killed app-wide; the cocoa
+            // dot row (Becoming's grammar) replaces it. Gain-framed:
+            // dots only ever fill.
+            HStack(spacing: 6) {
+                ForEach(0..<min(streakCount, 7), id: \.self) { _ in
+                    Circle()
+                        .fill(Palette.cocoaPrimary)
+                        .frame(width: 8, height: 8)
                         .scaleEffect(streakScale)
                 }
             }
 
             (
                 Text("\(streakCount) ").font(.custom("Fraunces72pt-SemiBold", size: 28)) +
-                Text("day streak").font(Typo.titleItalic)
+                Text(streakCount == 1 ? "day in" : "days in").font(Typo.titleItalic)
             )
             .foregroundStyle(Palette.textPrimary)
 
@@ -379,16 +378,18 @@ struct PostRoutineView: View {
         .padding(.horizontal, Space.screenPadding)
     }
 
+    // v1.1 module pass — lowercase voice; the bro register ("built
+    // different", "can't stop won't stop") died with the rewrite.
     private var streakMessage: String {
         switch streakCount {
-        case 1: return "First day. This is how it starts."
-        case 2...3: return "Building the habit."
-        case 4...6: return "Consistency hits different."
-        case 7: return "One full week. Respect."
-        case 8...13: return "You're locked in."
-        case 14: return "Two weeks. This is you now."
-        case 15...29: return "Can't stop won't stop."
-        default: return "Built different."
+        case 1: return "first day. this is how it starts."
+        case 2...3: return "the habit is forming."
+        case 4...6: return "consistency looks good on you."
+        case 7: return "one full week. that's real."
+        case 8...13: return "this is a rhythm now."
+        case 14: return "two weeks. this is you now."
+        case 15...29: return "quietly unstoppable."
+        default: return "this is just what you do now."
         }
     }
 
@@ -520,9 +521,9 @@ struct PostRoutineView: View {
 
     private func tagLabel(_ tag: String) -> String {
         switch tag {
-        case "loved_it": return "Loved It"
-        case "boring": return "Boring"
-        case "good_variety": return "Good Variety"
+        case "loved_it": return "loved it"
+        case "boring": return "boring"
+        case "good_variety": return "good variety"
         default: return tag
         }
     }
@@ -552,9 +553,10 @@ struct PostRoutineView: View {
 
     // MARK: - Done Button
 
+    // v1.1 module pass — one-CTA system (the caps "DONE" rounded-rect
+    // was the last off-system button on the celebration).
     private var doneButton: some View {
-        Button {
-            Haptics.medium()
+        JFContinueButton(label: "done") {
             // Deliver the rating + tags + the relative effort feel (the
             // effort drives the next-session energy nudge in RoutineSessionView).
             let tags = Array(selectedTags) + (effortFeel.isEmpty ? [] : [effortFeel])
@@ -562,17 +564,7 @@ struct PostRoutineView: View {
                 onRate(selectedRating, tags)
             }
             onDone()
-        } label: {
-            Text("DONE")
-                .font(Typo.body)
-                .fontWeight(.bold)
-                .foregroundStyle(Palette.textInverse)
-                .frame(maxWidth: .infinity)
-                .frame(height: Space.minTapTarget + 12)
-                .background(Palette.bgInverse)
-                .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
         }
-        .padding(.bottom, Space.lg)
     }
 
     // MARK: - Helpers

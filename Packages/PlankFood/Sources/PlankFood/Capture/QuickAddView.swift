@@ -184,20 +184,20 @@ public struct QuickAddView: View {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 Task { await submit() }
             } label: {
-                Text("log it ♥")
-                    .font(.system(size: 16, weight: .semibold))
+                Text("log it")
+                    .font(.custom("DMSans-SemiBold", size: 16))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 50)
+                    .frame(height: 56)
                     .background(
                         Capsule().fill(
                             trimmedInput.isEmpty
-                            ? FoodTheme.accent.opacity(0.35)
-                            : FoodTheme.accent
+                            ? FoodTheme.textPrimary.opacity(0.35)
+                            : FoodTheme.textPrimary
                         )
                     )
                     .shadow(
-                        color: trimmedInput.isEmpty ? .clear : FoodTheme.accent.opacity(0.3),
+                        color: trimmedInput.isEmpty ? .clear : FoodTheme.textPrimary.opacity(0.18),
                         radius: 8, x: 0, y: 2
                     )
             }

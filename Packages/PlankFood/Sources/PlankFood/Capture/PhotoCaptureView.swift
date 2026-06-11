@@ -910,20 +910,19 @@ public struct PhotoCaptureView: View {
             // Log it — primary CTA, hot pink. v1.0.8 Phase R.5 — use
             // galleryImage when present (gallery upload path), fall
             // back to frozenFrame for camera captures.
+            // v1.1 module pass — the hot-magenta capsule violated the
+            // locked 8-token palette; this joins the one-CTA system
+            // (56pt cocoa capsule, DM Sans SemiBold 16).
             Button {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 onCaptured(result, galleryImage ?? camera.frozenFrame)
             } label: {
                 Text("log it")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(.custom("DMSans-SemiBold", size: 16))
+                    .foregroundStyle(FoodTheme.bgPrimary)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background(
-                        Capsule().fill(Color(red: 1.0, green: 0.075, blue: 0.94))
-                    )
-                    .shadow(color: Color(red: 1.0, green: 0.075, blue: 0.94).opacity(0.3),
-                            radius: 8, x: 0, y: 2)
+                    .frame(height: 56)
+                    .background(Capsule().fill(FoodTheme.textPrimary))
             }
 
             // Share — v1.0.8 Phase Q exports the composed 9:16
