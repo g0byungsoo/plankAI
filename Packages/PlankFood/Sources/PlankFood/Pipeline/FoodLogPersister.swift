@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import Combine
+import UIKit
 
 // MARK: - FoodLogPersister
 //
@@ -244,6 +245,7 @@ public enum FoodLogPersister {
     public static func persist(
         _ food: CapturedFood,
         userId: String,
+        photo: UIImage? = nil,
         into context: ModelContext
     ) throws -> FoodLogRecord {
 
@@ -283,7 +285,9 @@ public enum FoodLogPersister {
         } else {
             title = "scanned plate"
         }
+        let entryId = UUID().uuidString
         inMemoryEntries.append(Entry(
+            id: entryId,
             userId: userId,
             loggedAt: loggedAt,
             kcal: plateKcal,
@@ -295,6 +299,11 @@ public enum FoodLogPersister {
             source: food.source.rawValue
         ))
         writeToUserDefaults()
+
+        // v1.1 Becoming filmstrip — persist a small on-device thumbnail
+        // keyed by the entry id. Forward-only; nil for quick-add /
+        // dining-out paths.
+        if let photo { FoodPhotoStore.save(photo, entryId: entryId) }
 
         changeNotifier.send(())
 

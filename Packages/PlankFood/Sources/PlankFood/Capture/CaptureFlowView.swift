@@ -272,6 +272,7 @@ public struct CaptureFlowView: View {
             try FoodLogPersister.persist(
                 food,
                 userId: userId,
+                photo: capturedPhoto,
                 into: modelContext
             )
             FoodAnalytics.track(.logSaved, properties: [
