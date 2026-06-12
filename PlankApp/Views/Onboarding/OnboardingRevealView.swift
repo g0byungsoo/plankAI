@@ -49,6 +49,11 @@ struct OnboardingRevealView: View {
         case goalDate
         case firstWeek
         case permissions
+        // v4.5 (2026-06-11) — trial-promise commit beat. The LAST
+        // pre-paywall screen: makes the existing TrialEndNotification
+        // promise visible before price appears (Cal AI calai40/43,
+        // −22% refunds / +10-14% trial start in the 2026 teardowns).
+        case trialPromise
     }
 
     private var hasProjection: Bool {
@@ -100,7 +105,12 @@ struct OnboardingRevealView: View {
                 )
                 .transition(.opacity)
             case .permissions:
-                PairedPermissionsAsk(onContinue: onRevealComplete)
+                PairedPermissionsAsk(onContinue: {
+                    withAnimation(Motion.crossFade) { step = .trialPromise }
+                })
+                .transition(.opacity)
+            case .trialPromise:
+                TrialPromisePresentation(onContinue: onRevealComplete)
                     .transition(.opacity)
             }
         }
@@ -630,18 +640,10 @@ private struct PairedPermissionsAsk: View {
 
                 Spacer()
 
-                Button(action: onContinue) {
-                    Text("continue")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                        .foregroundStyle(Palette.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(Palette.bgInverse)
-                        .clipShape(Capsule())
-                }
-                .padding(.horizontal, Space.lg)
-                .padding(.bottom, 32)
-                .opacity(ctaVisible ? 1 : 0)
+                JFContinueButton(label: "continue", action: onContinue)
+                    .padding(.horizontal, Space.lg)
+                    .padding(.bottom, 32)
+                    .opacity(ctaVisible ? 1 : 0)
             }
         }
         .task {
@@ -1188,5 +1190,111 @@ private struct GoalDateRevealPresentation: View {
         Circle()
             .fill(tinted ? Palette.accent : Palette.cocoaPrimary)
             .frame(width: big ? 12 : 6, height: big ? 12 : 6)
+    }
+}
+
+
+// MARK: - TrialPromisePresentation (v4.5, 2026-06-11)
+//
+// The trial-promise commit beat — final pre-paywall screen. Every row
+// states something the app ACTUALLY does (TrialEndNotificationService
+// schedules the renewal reminder; the day-2 check-in only fires when
+// she consented on case 284). No fabricated promises, no countdown
+// theater. her75 register: Didone cascade hero, thin rows, one CTA.
+
+private struct TrialPromisePresentation: View {
+    let onContinue: () -> Void
+
+    @AppStorage("onb_consent_day2") private var consentDay2 = false
+    @State private var rowsVisible = false
+    @State private var ctaVisible = false
+
+    var body: some View {
+        ZStack {
+            Palette.programBgPrimary.ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer().frame(height: Space.xl + Space.lg)
+
+                LineCascadeText(
+                    lines: [
+                        .plain("before the numbers,"),
+                        .composite(base: "four promises.", italic: ["promises"]),
+                    ],
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    lineSpacing: Typo.heroHeadlineLineGap
+                )
+                .padding(.horizontal, Space.screenPadding)
+
+                Spacer().frame(height: Space.xl)
+
+                VStack(alignment: .leading, spacing: Space.md) {
+                    promiseRow(
+                        symbol: "checkmark.circle",
+                        line: "your full plan opens today. all of it."
+                    )
+                    promiseRow(
+                        symbol: consentDay2 ? "heart.text.square" : "moon.zzz",
+                        line: consentDay2
+                            ? "day 2 — one gentle check-in. that's it."
+                            : "week one stays quiet. no spam, ever."
+                    )
+                    promiseRow(
+                        symbol: "bell.badge",
+                        line: "if you start a trial, we remind you before anything renews."
+                    )
+                    promiseRow(
+                        symbol: "hand.raised",
+                        line: "cancel takes two taps in settings. no maze."
+                    )
+                }
+                .padding(.horizontal, Space.screenPadding)
+                .opacity(rowsVisible ? 1 : 0)
+                .offset(y: rowsVisible ? 0 : 10)
+
+                Spacer()
+
+                // her75 "make it official" register — one quiet photo
+                // card grounding the promises (Grok cutout, from behind).
+                Image("onb-reveal-balcony")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 170)
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .padding(.horizontal, Space.screenPadding + 20)
+                    .accessibilityHidden(true)
+                    .opacity(rowsVisible ? 1 : 0)
+
+                Spacer().frame(height: Space.lg)
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            JFContinueButton(label: "continue", action: onContinue)
+                .padding(.horizontal, Space.lg)
+                .padding(.bottom, Space.md)
+                .opacity(ctaVisible ? 1 : 0)
+        }
+        .task {
+            // Rows land after the 2-line cascade (~0.84s) finishes.
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            withAnimation(Motion.entrance) { rowsVisible = true }
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            withAnimation(Motion.entrance) { ctaVisible = true }
+        }
+    }
+
+    private func promiseRow(symbol: String, line: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+            Image(systemName: symbol)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(Palette.accent)
+                .frame(width: 22)
+            Text(line)
+                .font(Typo.body)
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }

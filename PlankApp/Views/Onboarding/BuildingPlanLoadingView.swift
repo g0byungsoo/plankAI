@@ -16,12 +16,10 @@ import AppTrackingTransparency
 // references — "factoring in your flat-belly focus", "matching your
 // gentle pace" — read as the model actually doing work.
 //
-// Composition mirrors AffirmationLoaderScreen on purpose so the two
-// loaders (auth bootstrap, plan build) feel like one family: central
-// breathing bloom, 4-sticker scatter, single italic-Fraunces line.
-// What differs: rotating sub-label every ~3s, "becoming" italic punch
-// word on the hero, no retry surface (this loader can't fail — it's
-// time-based, not network-based).
+// v4.5 R4 (2026-06-11) — her75 IMG_6280 register: Didone hero +
+// 2pt hairline bar on cream silence. The labor illusion survives in
+// the rotating personalized sub-line + quiet milestone list; the
+// chrome (bloom, sticker scatter, % counter, gradient bar) does not.
 
 struct BuildingPlanLoadingView: View {
     let bodyFocus: Set<String>
@@ -33,17 +31,11 @@ struct BuildingPlanLoadingView: View {
     @State private var subLabelIndex: Int = 0
     @State private var subLabelVisible = false
     @State private var heroVisible = false
-    @State private var stickerRevealCount = 0
-    @State private var pulse = false
-    @State private var bloomScale: CGFloat = 0.92
-    @State private var bloomVisible = false
     /// Delta v8 loader-expert recommendation #2 — completion frame
-    /// at 100%. Loader pauses, bloom does one breath, hero swaps to
-    /// "ready ♥" badge + cocoa "see your plan" CTA. Tap-to-continue
+    /// at 100%. Hero swaps to "your plan, ready." + cocoa CTA. Tap-to-continue
     /// (was auto-advance) per Adapty 2026: +8-12% paywall engagement
     /// because user enters next screen with intent.
     @State private var showCompletionFrame = false
-    @State private var completionBloomScale: CGFloat = 1.0
 
     /// Delta v8 loader-expert recommendation #3 — ATT prompt at ~30%.
     /// Cal AI fires ATT at 21% (calai17). TikTok-acquired cohort +
@@ -83,21 +75,6 @@ struct BuildingPlanLoadingView: View {
     @AppStorage("onboardingHormonalStage")     private var hormonalStage: String = ""
     @AppStorage("onboarding_glp1_status")      private var glp1Status: String = ""
 
-    private static let placements: [StickerPlacement] = [
-        StickerPlacement(sticker: .flower3D,
-                         position: CGPoint(x: 0.18, y: 0.16),
-                         size: 38, rotation: -10, phaseDelay: 0.00),
-        StickerPlacement(sticker: .sparkleGlossy,
-                         position: CGPoint(x: 0.84, y: 0.20),
-                         size: 32, rotation: 14, phaseDelay: 0.35),
-        StickerPlacement(sticker: .bowIridescent,
-                         position: CGPoint(x: 0.16, y: 0.82),
-                         size: 36, rotation: 8, phaseDelay: 0.60),
-        StickerPlacement(sticker: .heartsLineart,
-                         position: CGPoint(x: 0.86, y: 0.80),
-                         size: 30, rotation: -8, phaseDelay: 0.85),
-    ]
-
     var body: some View {
         ZStack {
             // v8 P8.5: onboarding closer for the v1.1 program era. Uses
@@ -106,63 +83,14 @@ struct BuildingPlanLoadingView: View {
             // the welcome before the programEraEnabled flag flips on
             // enrollment commit.
             Palette.programBgPrimary.ignoresSafeArea()
-            centralBloom
 
-            GeometryReader { geo in
-                ZStack {
-                    ForEach(
-                        Array(Self.placements.prefix(stickerRevealCount).enumerated()),
-                        id: \.element.id
-                    ) { _, p in
-                        Sticker(placement: p)
-                            .position(
-                                x: p.position.x * geo.size.width,
-                                y: p.position.y * geo.size.height
-                            )
-                    }
-                }
-            }
-            .allowsHitTesting(false)
-
-            VStack(spacing: Space.lg) {
+            // v4.5 R4 — her75 IMG_6280 register: Didone hero + hairline
+            // bar on cream silence. The labor illusion survives in the
+            // rotating personalized sub-line + quiet milestone list
+            // (Buell & Norton; Adapty 2026 +9-15%) — the chrome doesn't.
+            VStack(spacing: 0) {
                 Spacer()
 
-                // Hero % counter — 64pt Fraunces, visual anchor.
-                // Sits inside the central bloom so the bloom reads as
-                // a soft halo around the number. monospacedDigit keeps
-                // digit columns the same width across 1-, 2-, and
-                // 3-digit values; contentTransition(.numericText())
-                // was dropped 2026-06-01 because custom fonts (Fraunces)
-                // lack the OpenType digit-positioning tables it needs,
-                // which left stale glyphs overlapping at the 99→100
-                // transition.
-                if showCompletionFrame {
-                    // Delta v8 completion frame.
-                    ItalicAccentText(
-                        "ready ♥",
-                        italic: ["ready"],
-                        baseFont: .custom("Fraunces72pt-SemiBold", size: 56),
-                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 56),
-                        color: Palette.textPrimary,
-                        alignment: .center
-                    )
-                    .scaleEffect(completionBloomScale)
-                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                } else {
-                    Text("\(Int(progress * 100))%")
-                        .font(.custom("Fraunces72pt-SemiBold", size: 64, relativeTo: .largeTitle))
-                        .monospacedDigit()
-                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-                        .foregroundStyle(Palette.textPrimary)
-                        .opacity(heroVisible ? 1 : 0)
-                        .scaleEffect(heroVisible ? 1.0 : 0.96)
-                        .transition(.opacity)
-                }
-
-                // her75 Phase 4 — Archetype E loader (audit §2 + IMG_6280
-                // "Personalizing your space"). Hero promoted from 22pt
-                // custom to the ONE in-app register: 38pt heroHeadline
-                // + italic chunk "your" per the decision tree.
                 ItalicAccentText(
                     showCompletionFrame ? "your plan, ready." : "personalizing your plan",
                     italic: ["your"],
@@ -175,88 +103,49 @@ struct BuildingPlanLoadingView: View {
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .padding(.horizontal, Space.lg)
                 .opacity(heroVisible ? 1 : 0)
+                .scaleEffect(heroVisible ? 1.0 : 0.97)
+                .animation(Motion.entrance, value: showCompletionFrame)
 
+                Spacer().frame(height: Space.lg + 4)
+
+                // Hairline progress — 200pt, 2pt, cocoa on faint track
+                // (her75's exact loading bar). Holds during the ATT
+                // pause so the stop reads as deliberate.
                 if !showCompletionFrame {
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Palette.divider.opacity(0.6))
+                            .frame(width: 200, height: 2)
+                        Capsule()
+                            .fill(Palette.bgInverse)
+                            .frame(width: 200 * CGFloat(progress), height: 2)
+                    }
+                    .opacity(heroVisible ? 1 : 0)
+
+                    Spacer().frame(height: Space.lg)
+
                     subLabel(at: subLabelIndex)
                         .padding(.horizontal, Space.lg)
-                        .opacity(subLabelVisible ? 1 : 0)
+                        .opacity(subLabelVisible ? 0.9 : 0)
                         .id(subLabelIndex)
+                }
+
+                if showCompletionFrame {
+                    JFContinueButton(label: "see your plan", action: onComplete)
+                        .padding(.horizontal, Space.xl)
+                        .padding(.top, Space.lg)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
 
                 Spacer()
 
-                // Gradient progress bar — secondary "your plan is
-                // computing" signal. Pulled from v1 loadingCarousel.
-                // Same cocoa → accent → stateGood gradient so the
-                // visual register matches the rest of the brand.
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Palette.divider).frame(height: 4)
-                        Capsule()
-                            .fill(LinearGradient(
-                                colors: [
-                                    Palette.bgInverse.opacity(0.6),
-                                    Palette.accent,
-                                    Palette.stateGood.opacity(0.85),
-                                ],
-                                startPoint: .leading, endPoint: .trailing))
-                            .frame(width: geo.size.width * CGFloat(progress),
-                                   height: 4)
-                    }
-                }
-                .frame(height: 4)
-                .padding(.horizontal, Space.xl)
-                .opacity(heroVisible ? 1 : 0)
-
-                // Delta v8 completion CTA — replaces the progress bar +
-                // checklist when the loader hits 100%. Single cocoa pill,
-                // tap → onComplete. Auto-advance fallback after 8s.
-                if showCompletionFrame {
-                    Button {
-                        onComplete()
-                    } label: {
-                        Text("see your plan")
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                            .foregroundStyle(Palette.textInverse)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(Palette.bgInverse)
-                            .clipShape(Capsule())
-                    }
-                    .padding(.horizontal, Space.xl)
-                    .padding(.top, 24)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-                }
-
-                // Delta v8 D75 — milestone checklist (calai34/31/38 adapted).
-                // Buell & Norton labor illusion (HBS 2011) — listing the
-                // computational stages with progressive checkmarks lifts
-                // perceived effort 9-15% over a single progress bar (Adapty
-                // 2026 H&F benchmark + Brief #7 §1.3). Items fill in at
-                // 20/40/60/80/100% as the bar advances. Voice-locked copy.
                 if !showCompletionFrame {
                     milestoneChecklist
-                        .padding(.top, 16)
-                        .padding(.horizontal, Space.xl)
-                        .opacity(heroVisible ? 1 : 0)
-
-                    HStack(spacing: 6) {
-                        ForEach(0..<3, id: \.self) { i in
-                            Circle()
-                                .fill(Palette.accent.opacity(pulse ? 0.8 : 0.2))
-                                .frame(width: 6, height: 6)
-                                .animation(
-                                    .easeInOut(duration: 0.5)
-                                        .repeatForever(autoreverses: true)
-                                        .delay(Double(i) * 0.15),
-                                    value: pulse
-                                )
-                        }
-                    }
-                    .padding(.top, 12)
-                    .padding(.bottom, 60)
+                        .padding(.horizontal, Space.xl + Space.lg)
+                        .padding(.bottom, 72)
+                        .opacity(heroVisible ? 0.85 : 0)
                 } else {
-                    Spacer().frame(height: 60)
+                    Spacer().frame(height: 72)
                 }
             }
         }
@@ -322,35 +211,6 @@ struct BuildingPlanLoadingView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    // MARK: - Central bloom
-    //
-    // Same three-ring soft pink bloom that AffirmationLoaderScreen uses,
-    // matched intentionally so the two app-loaders feel like one family.
-    // Reduce-motion holds at the mid scale.
-
-    private var centralBloom: some View {
-        ZStack {
-            Circle()
-                .fill(Palette.accent.opacity(0.07))
-                .frame(width: 220, height: 220)
-                .scaleEffect(bloomScale)
-                .blur(radius: 24)
-            Circle()
-                .fill(Palette.accent.opacity(0.14))
-                .frame(width: 140, height: 140)
-                .scaleEffect(bloomScale)
-                .blur(radius: 10)
-            Circle()
-                .fill(Palette.accent.opacity(0.22))
-                .frame(width: 72, height: 72)
-                .scaleEffect(bloomScale)
-                .blur(radius: 3)
-        }
-        .opacity(bloomVisible ? 1 : 0)
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
     }
 
     // MARK: - Sub-label content
@@ -494,23 +354,9 @@ struct BuildingPlanLoadingView: View {
 
     @MainActor
     private func runChoreography() async {
-        withAnimation(.easeOut(duration: 0.8)) { bloomVisible = true }
-        if reduceMotion {
-            bloomScale = 1.0
-        } else {
-            withAnimation(.easeInOut(duration: 3.5).repeatForever(autoreverses: true)) {
-                bloomScale = 1.08
-            }
-        }
-
         withAnimation(Motion.entranceSoft) { heroVisible = true }
-        pulse = true
 
-        try? await Task.sleep(nanoseconds: 200_000_000)
-        for _ in Self.placements.indices {
-            stickerRevealCount += 1
-            try? await Task.sleep(nanoseconds: 80_000_000)
-        }
+        try? await Task.sleep(nanoseconds: 300_000_000)
 
         if reduceMotion {
             subLabelVisible = true
@@ -604,20 +450,13 @@ struct BuildingPlanLoadingView: View {
             }
         }
 
-        // Delta v8 loader-expert #2 — completion frame. Bar fills,
-        // one bloom breath, swap hero to "ready ♥" + cocoa CTA.
-        // Tap-to-continue rather than auto-advance. The dwell is now
-        // owned by the user.
-        try? await Task.sleep(nanoseconds: 300_000_000)
-        if Task.isCancelled { return }
-        withAnimation(.easeInOut(duration: 0.6)) {
-            completionBloomScale = 1.15
-        }
-        try? await Task.sleep(nanoseconds: 600_000_000)
+        // Completion frame — bar fills, beat of silence, hero swaps to
+        // "your plan, ready." + cocoa CTA. Tap-to-continue; the dwell
+        // is owned by the user.
+        try? await Task.sleep(nanoseconds: 700_000_000)
         if Task.isCancelled { return }
         withAnimation(.easeOut(duration: 0.45)) {
             showCompletionFrame = true
-            completionBloomScale = 1.0
         }
         // Auto-advance fallback after 8s for reduce-motion + edge cases
         // where the user doesn't tap. Founder testing 2026-06-06: most

@@ -862,6 +862,21 @@ struct PaywallView: View {
     /// Compact two-line footer combining the trust microline and the
     /// terms · privacy legal links. Saves ~16pt over rendering both
     /// as separate sections.
+    // v4.5 (2026-06-11) — fear-cohort closing line. The psychometric
+    // yes-flags (cases 171-173) finally cash out: the last line she
+    // reads before the CTA speaks to the fear she named. Falls back
+    // to the generic data line when no fear was surfaced.
+    @AppStorage("onb_fear_quickResults") private var fearQuickResults: String = ""
+    @AppStorage("onb_fear_anotherDiet")  private var fearAnotherDiet: String = ""
+    @AppStorage("onb_fear_priorAttempt") private var fearPriorAttempt: String = ""
+
+    private var closingLine: String {
+        if fearAnotherDiet == "yes"  { return "not another diet. a program that ends · no ads, ever" }
+        if fearPriorAttempt == "yes" { return "built for the day you'd usually quit · no ads, ever" }
+        if fearQuickResults == "yes" { return "no overnight promises. just a real pace · no ads, ever" }
+        return "your data stays yours · no ads, ever"
+    }
+
     private var trustAndLegalFooter: some View {
         VStack(spacing: 4) {
             HStack(spacing: 6) {
@@ -871,7 +886,7 @@ struct PaywallView: View {
                     .frame(width: 14, height: 14)
                     .rotationEffect(.degrees(-8))
                     .accessibilityHidden(true)
-                Text("your data stays yours · no ads, ever")
+                Text(closingLine)
                     .font(.system(size: 10))
                     .foregroundStyle(Palette.textSecondary)
             }

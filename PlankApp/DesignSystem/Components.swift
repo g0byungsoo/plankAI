@@ -308,6 +308,11 @@ struct OnboardingOptionCard: View {
     let title: String
     var subtitle: String? = nil
     let isSelected: Bool
+    /// her75 micro-delight (v4.5, IMG_6256→6257): once a sibling is
+    /// selected, unselected rows strike through + dim, like crossing
+    /// options off a list. Caller computes (a selection exists &&
+    /// !isSelected). Animate at the call site via withAnimation.
+    var isDimmed: Bool = false
     let action: () -> Void
 
     /// v1.0.7 (2026-06-07): when both icon and sticker are nil, render
@@ -343,7 +348,8 @@ struct OnboardingOptionCard: View {
                 VStack(alignment: .leading, spacing: Space.xs) {
                     Text(title)
                         .font(.custom("DMSans-SemiBold", size: 16))
-                        .foregroundStyle(Palette.textPrimary)
+                        .strikethrough(isDimmed, color: Palette.textSecondary.opacity(0.7))
+                        .foregroundStyle(isDimmed ? Palette.textSecondary.opacity(0.55) : Palette.textPrimary)
                         .multilineTextAlignment(.leading)
                     if let subtitle {
                         Text(subtitle)
@@ -764,31 +770,19 @@ struct JFPageHero: View {
 }
 
 struct SectionDividerScreen: View {
-    let partNumber: Int
     let title: String
-    let supporting: String
+    var supporting: String? = nil
     let dwellSeconds: Double
     let onAdvance: () -> Void
-    // her75 Phase 3 (2026-06-10) — sticker params removed entirely.
-    // Dividers are Archetype B (audit §2): editorial eyebrow + centered
-    // 38pt heroHeadline cascade + ONE supporting line. Total cream
-    // restraint per IMG_6280; the eyebrow carries the chapter beat.
+    // v4.5 R4 (2026-06-11) — PART eyebrow killed per the v4 kill-list:
+    // a divider is ONE Didone line on cream silence (her75 IMG_6280).
+    // The chapter eyebrow in the nav dock already carries position.
 
     @State private var subVisible = false
 
     var body: some View {
         VStack(spacing: Space.lg) {
             Spacer()
-
-            // Editorial eyebrow — lowercase "part one" register at the
-            // 11pt tracked-caps mark (her75 IMG_6279 footer convention).
-            Text("part \(spelledPart(partNumber))")
-                .font(Typo.captionTracked)
-                .kerning(1.98)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.accent)
-
-            Spacer().frame(height: 4)
 
             // Line-cascade with `.soft` haptic per line at the ONE
             // in-app hero register (38pt heroHeadline post-re-ladder).
@@ -803,15 +797,17 @@ struct SectionDividerScreen: View {
             )
             .padding(.horizontal, Space.lg)
 
-            Spacer().frame(height: 8)
+            if let supporting {
+                Spacer().frame(height: 8)
 
-            Text(supporting)
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Space.xl)
-                .opacity(subVisible ? 1 : 0)
-                .offset(y: subVisible ? 0 : 8)
+                Text(supporting)
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.xl)
+                    .opacity(subVisible ? 1 : 0)
+                    .offset(y: subVisible ? 0 : 8)
+            }
 
             Spacer()
         }
@@ -843,17 +839,6 @@ struct SectionDividerScreen: View {
         return [.plain(title)]
     }
 
-    private func spelledPart(_ n: Int) -> String {
-        switch n {
-        case 1: return "one"
-        case 2: return "two"
-        case 3: return "three"
-        case 4: return "four"
-        case 5: return "five"
-        case 6: return "six"
-        default: return "\(n)"
-        }
-    }
 }
 
 // MARK: - ConfirmationBadge
@@ -1395,6 +1380,7 @@ struct HorizontalBiometricSlider: View {
                 )
             }
             .frame(height: rulerHeight)
+            .accessibilityIdentifier("biometric_ruler")
         }
     }
 }
@@ -1754,9 +1740,7 @@ struct BodyTypeSlider: View {
 // this is a render-only static preview, not a working onboarding step.
 #Preview("SectionDividerScreen") {
     SectionDividerScreen(
-        partNumber: 1,
-        title: "Your story",
-        supporting: "Three quick reads on what brought you here.",
+        title: "your story",
         dwellSeconds: 9999,
         onAdvance: {}
     )
@@ -1772,4 +1756,58 @@ struct BodyTypeSlider: View {
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(Palette.bgPrimary)
+}
+
+// MARK: - PaperSheen (v4.5, 2026-06-11)
+//
+// Soft diagonal light-glint sweeping the day-one plan card every ~6s,
+// like cardstock catching light. Pure SwiftUI (a Metal colorEffect
+// version was prototyped, but the gradient sweep is visually identical
+// at this subtlety and carries no toolchain dependency). The glint is
+// masked to the view's own shape via blendMode so dark glyphs stay
+// legible. Reduce-motion renders the content untouched.
+
+struct PaperSheenModifier: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        if reduceMotion {
+            content
+        } else {
+            content.overlay(
+                PaperSheenOverlay()
+                    .allowsHitTesting(false)
+                    .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            )
+        }
+    }
+}
+
+private struct PaperSheenOverlay: View {
+    @State private var sweep: CGFloat = -0.7
+
+    var body: some View {
+        TimelineView(.periodic(from: .now + 1.2, by: 6)) { context in
+            GeometryReader { geo in
+                let band = geo.size.width * 0.55
+                LinearGradient(
+                    colors: [.clear, .white.opacity(0.18), .clear],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .frame(width: band)
+                .rotationEffect(.degrees(8))
+                .offset(x: sweep * (geo.size.width + band) - band * 0.5)
+                .blendMode(.plusLighter)
+            }
+            .onChange(of: context.date) { _, _ in
+                sweep = -0.7
+                withAnimation(.easeInOut(duration: 1.2)) { sweep = 1.7 }
+            }
+        }
+    }
+}
+
+extension View {
+    func paperSheen() -> some View { modifier(PaperSheenModifier()) }
 }
