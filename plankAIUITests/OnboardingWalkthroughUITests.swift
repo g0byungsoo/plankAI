@@ -205,3 +205,125 @@ final class OnboardingWalkthroughUITests: XCTestCase {
         snap("final")
     }
 }
+
+// v1.1 release QA (2026-06-12) — in-app core-flow walker.
+//
+// Pairs --uitest-inapp-qa (completed onboarding, program flags reset)
+// with --uitest-pro-access (DEBUG entitlement) and walks the chains
+// this release touched: program intro cover → setup subflow → PlanView
+// first-run hint → move row → PreRoutine brief → LIVE session start →
+// end → breathe row intro → becoming tab. Screenshot per beat.
+//
+//   xcodebuild test -project plankAI.xcodeproj -scheme plankAI \
+//     -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+//     -only-testing:plankAIUITests/InAppQAUITests
+
+final class InAppQAUITests: XCTestCase {
+
+    override func setUpWithError() throws {
+        continueAfterFailure = true
+    }
+
+    func testWalkCoreInAppFlows() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--uitest-inapp-qa", "--uitest-pro-access"]
+        app.launch()
+
+        addUIInterruptionMonitor(withDescription: "system alerts") { alert in
+            for label in ["Allow", "Allow Once", "OK", "Don't Allow"] {
+                let b = alert.buttons[label]
+                if b.exists { b.tap(); return true }
+            }
+            return false
+        }
+
+        var shot = 0
+        func snap(_ name: String) {
+            let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+            attachment.name = String(format: "%02d_%@", shot, name)
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            shot += 1
+        }
+
+        // Splash dwell (1.8s floor + crossfade).
+        Thread.sleep(forTimeInterval: 4.0)
+
+        // ── Program intro cover (existing-user opt-in) ──
+        let startProgram = app.buttons["start my program"]
+        if startProgram.waitForExistence(timeout: 8) {
+            Thread.sleep(forTimeInterval: 0.8)   // entrance settle
+            snap("program_intro_cover")
+            startProgram.tap()
+
+            // ── Setup subflow: goalDateReveal → intensityPick → commitment ──
+            for label in ["see your options", "continue", "i'm in"] {
+                let b = app.buttons[label]
+                if b.waitForExistence(timeout: 6) {
+                    Thread.sleep(forTimeInterval: 0.8)
+                    snap("setup_\(label.replacingOccurrences(of: " ", with: "_"))")
+                    b.tap()
+                }
+            }
+            Thread.sleep(forTimeInterval: 1.5)
+        }
+
+        // ── PlanView with first-run hint ──
+        snap("plan_view_first_run")
+        XCTAssertTrue(
+            app.staticTexts["move"].firstMatch.waitForExistence(timeout: 6),
+            "PlanView move row missing — plan was not created"
+        )
+
+        // ── Workout chain: row → brief → LIVE session ──
+        app.staticTexts["move"].firstMatch.tap()
+        Thread.sleep(forTimeInterval: 1.2)
+        snap("preroutine_brief")
+        let startWorkout = app.buttons["start workout"]
+        XCTAssertTrue(startWorkout.waitForExistence(timeout: 5), "start workout CTA missing")
+        startWorkout.tap()
+        Thread.sleep(forTimeInterval: 3.0)
+        snap("routine_session_live")
+        // The bug this release fixed: tapping start used to do nothing.
+        XCTAssertFalse(
+            app.buttons["start workout"].exists,
+            "still on PreRoutineView — session never started"
+        )
+
+        // End the session via the end-workout control + confirm alert.
+        let endButton = app.buttons["End workout"]
+        if endButton.waitForExistence(timeout: 4) {
+            endButton.tap()
+            let endConfirm = app.alerts.buttons["End"]
+            if endConfirm.waitForExistence(timeout: 3) { endConfirm.tap() }
+            Thread.sleep(forTimeInterval: 1.5)
+            snap("post_session_or_plan")
+            // Post-routine screen (below-threshold copy) — dismiss via
+            // any primary CTA if present.
+            for label in ["done", "back home", "continue", "keep going", "not today"] {
+                let b = app.buttons[label]
+                if b.exists && b.isHittable { b.tap(); Thread.sleep(forTimeInterval: 1.0); break }
+            }
+        }
+
+        // ── Breathwork intro (perfume accent) ──
+        let breathe = app.staticTexts["breathe"].firstMatch
+        if breathe.waitForExistence(timeout: 5) {
+            breathe.tap()
+            Thread.sleep(forTimeInterval: 1.2)
+            snap("breathwork_intro")
+            let close = app.buttons["Close"].firstMatch
+            if close.exists { close.tap(); Thread.sleep(forTimeInterval: 0.8) }
+        }
+
+        // ── Becoming tab (steps tile, recap surfaces) ──
+        let becomingTab = app.tabBars.buttons["becoming"]
+        if becomingTab.waitForExistence(timeout: 4) {
+            becomingTab.tap()
+            Thread.sleep(forTimeInterval: 1.5)
+            snap("becoming_tab")
+        }
+
+        snap("final_state")
+    }
+}

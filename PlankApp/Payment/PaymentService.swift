@@ -76,14 +76,20 @@ final class PaymentService {
     /// `effectiveHasProAccess` so production code keeps the simple
     /// `hasProAccess` API.
     var debugForcePaywall: Bool = false
+
+    /// DEBUG-only inverse: grants pro access for in-app QA runs
+    /// (XCUITest walkers, sim screenshots) without an RC sandbox
+    /// purchase. Compile-gated out of release.
+    let debugForceProAccess: Bool =
+        ProcessInfo.processInfo.arguments.contains("--uitest-pro-access")
     #endif
 
     /// Effective entitlement state used by the paywall gate. In DEBUG
-    /// honors `debugForcePaywall`; in release it's identical to
+    /// honors the QA overrides; in release it's identical to
     /// `hasProAccess`. Always reads through this in PlankAIApp.
     var effectiveHasProAccess: Bool {
         #if DEBUG
-        return hasProAccess && !debugForcePaywall
+        return (hasProAccess || debugForceProAccess) && !debugForcePaywall
         #else
         return hasProAccess
         #endif

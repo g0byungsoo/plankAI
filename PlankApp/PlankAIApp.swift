@@ -65,6 +65,18 @@ struct PlankAIApp: App {
             UserDefaults.standard.removeObject(forKey: "ratingPrompt.lastDate")
             UserDefaults.standard.removeObject(forKey: "onboardingReviewPromptShown")
         }
+        // In-app QA hook: lands the walker on MainTabView as a
+        // completed-onboarding user (pair with --uitest-pro-access for
+        // the entitlement). Program flags reset so the run exercises
+        // the existing-user intro cover → setup → PlanView chain.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-inapp-qa") {
+            UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+            UserDefaults.standard.removeObject(forKey: "hasSeenProgramIntro")
+            UserDefaults.standard.removeObject(forKey: "hasEnrolledInProgram")
+            UserDefaults.standard.removeObject(forKey: "programEraEnabled")
+            UserDefaults.standard.removeObject(forKey: "planFirstRunHintSeen")
+            UserDefaults.standard.removeObject(forKey: "planChecksMigratedV1")
+        }
         #endif
 
         // PostHog must be set up *before* any Analytics.track call lands
