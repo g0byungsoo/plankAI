@@ -503,6 +503,9 @@ private struct RootView: View {
     // before its full 5.5s choreography completes.
     @State private var affirmationDone: Bool
 
+    // Minimum dwell for the editorial launch loader (returning users).
+    @State private var loaderMinHoldDone = false
+
     init() {
         _affirmationDone = State(
             initialValue: UserDefaults.standard.bool(forKey: "hasSeenAffirmation")
@@ -533,7 +536,13 @@ private struct RootView: View {
                 // fresh install) before customerInfoStream has emitted
                 // RevenueCat's authoritative answer. The seeded cache +
                 // 3s safety timeout in PaymentService bound the wait.
-                if auth.isReady && payment.isEntitlementReady {
+                //
+                // loaderMinHoldDone (founder QA 2026-06-11): fast
+                // bootstraps unmounted the editorial loader before the
+                // affirmation could land. 1.6s minimum hold so the
+                // moment reads; slow bootstraps are unaffected (the
+                // hold elapses while they're still waiting).
+                if auth.isReady && payment.isEntitlementReady && loaderMinHoldDone {
                     MainTabView()
                         .transition(.opacity)
                         .fullScreenCover(isPresented: .constant(!payment.effectiveHasProAccess && !payment.isInAuthTransition)) {
@@ -707,6 +716,13 @@ private struct RootView: View {
         .animation(Motion.crossFade, value: auth.isReady)
         .animation(Motion.crossFade, value: payment.isEntitlementReady)
         .animation(Motion.crossFade, value: affirmationDone)
+        .animation(Motion.crossFade, value: loaderMinHoldDone)
+        .task {
+            // Start the loader dwell clock at first frame, not at
+            // bootstrap completion, so the hold overlaps the real wait.
+            try? await Task.sleep(nanoseconds: 1_600_000_000)
+            loaderMinHoldDone = true
+        }
         .task {
             // Order matters: auth bootstrap → AppSync configure + onLaunch.
             // AppSync needs both AuthService.currentUser and the model

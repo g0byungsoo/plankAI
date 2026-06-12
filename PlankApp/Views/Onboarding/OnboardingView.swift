@@ -2509,12 +2509,25 @@ struct OnboardingView: View {
                     .background(Color.white, in: Capsule())
                     .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
                 Spacer()
-                Text("jenifit")
-                    .font(.system(size: 10, weight: .semibold))
-                    .tracking(1.4)
-                    .foregroundStyle(Palette.textSecondary)
+                Image("onb-profile-latte")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 26, height: 26)
+                    .background(Palette.accentSubtle)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.white, lineWidth: 1.5))
             }
-            .padding(.top, 18)
+            .padding(.top, 16)
+
+            // her75 tally strip — day progress marks.
+            HStack(spacing: 5) {
+                ForEach(0..<14, id: \.self) { i in
+                    Capsule()
+                        .fill(i == 0 ? Palette.bgInverse : Palette.accentSubtle)
+                        .frame(width: 3, height: i == 0 ? 14 : 10)
+                }
+                Spacer()
+            }
 
             Spacer(minLength: 0)
 
@@ -2531,48 +2544,77 @@ struct OnboardingView: View {
     }
 
     /// Food-snap camera mock: warm viewfinder with a meal centered,
-    /// scan brackets, mode pill, shutter.
+    /// scan brackets, verdict chip, camera control row.
     private var welcomeDemoCamera: some View {
         VStack(spacing: 10) {
-            Spacer().frame(height: 22)
+            Spacer().frame(height: 20)
             ZStack {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [Palette.cocoaPrimary.opacity(0.82),
-                                     Palette.cocoaPrimary.opacity(0.62)],
+                            colors: [Palette.cocoaPrimary.opacity(0.88),
+                                     Palette.cocoaPrimary.opacity(0.60)],
                             startPoint: .top, endPoint: .bottom
                         )
                     )
                 Image("onb-cuisine-mediterranean")
                     .resizable()
                     .scaledToFit()
-                    .padding(18)
-                // Scan corner brackets.
+                    .padding(20)
                 WelcomeScanBrackets()
                     .stroke(Color.white.opacity(0.9), lineWidth: 2.5)
-                    .padding(14)
+                    .padding(13)
+
+                // Verdict chip pinned over the plate — the pre-eat
+                // promise in one glance.
+                VStack {
+                    Spacer()
+                    HStack(spacing: 5) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Palette.stateGood)
+                        Text("fits today")
+                            .font(.custom("DMSans-SemiBold", size: 10.5))
+                            .foregroundStyle(Palette.textPrimary)
+                        Text("· 540 cal")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.white, in: Capsule())
+                    .padding(.bottom, 10)
+                }
             }
             .frame(maxHeight: .infinity)
 
-            Text("snap to see if it fits")
+            Text("snap before you eat")
                 .font(.custom("DMSans-SemiBold", size: 11))
                 .foregroundStyle(Palette.textPrimary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 5)
                 .background(Color.white, in: Capsule())
 
-            Circle()
-                .stroke(Palette.bgInverse, lineWidth: 3)
-                .frame(width: 34, height: 34)
-                .overlay(Circle().fill(Palette.bgInverse).frame(width: 24, height: 24))
-                .padding(.bottom, 2)
+            // Camera control row — gallery / shutter / flash.
+            HStack(spacing: 22) {
+                Image(systemName: "photo.on.rectangle")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.textSecondary)
+                Circle()
+                    .stroke(Palette.bgInverse, lineWidth: 3)
+                    .frame(width: 36, height: 36)
+                    .overlay(Circle().fill(Palette.bgInverse).frame(width: 26, height: 26))
+                Image(systemName: "bolt.slash")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .padding(.bottom, 2)
         }
     }
 
-    /// Steps mock: hero count + ring, same numbers as the plan page.
+    /// Steps mock: hero ring + a week of mini bars underneath.
     private var welcomeDemoSteps: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             Spacer()
             ZStack {
                 Circle()
@@ -2591,7 +2633,31 @@ struct OnboardingView: View {
                         .foregroundStyle(Palette.textSecondary)
                 }
             }
-            .frame(width: 124, height: 124)
+            .frame(width: 118, height: 118)
+
+            // The week so far — quiet little bar strip sells "this is
+            // a real tracker", not a mockup.
+            VStack(spacing: 6) {
+                HStack(alignment: .bottom, spacing: 7) {
+                    ForEach(Array([0.55, 0.8, 0.45, 0.95, 0.7, 0.3, 0.62].enumerated()), id: \.offset) { i, h in
+                        Capsule()
+                            .fill(i == 6 ? Palette.accent : Palette.accentSubtle)
+                            .frame(width: 9, height: 12 + 26 * h)
+                    }
+                }
+                HStack(spacing: 7) {
+                    ForEach(["m", "t", "w", "t", "f", "s", "s"].indices, id: \.self) { i in
+                        Text(["m", "t", "w", "t", "f", "s", "s"][i])
+                            .font(.system(size: 7.5, weight: .medium))
+                            .foregroundStyle(i == 6 ? Palette.textPrimary : Palette.textSecondary)
+                            .frame(width: 9)
+                    }
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 13))
+            .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
 
             Text("the everyday anchor")
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
@@ -5429,14 +5495,15 @@ struct OnboardingView: View {
         // When the cutout's subject is cropped by its own canvas edge
         // (the pre-eat arms), push that edge off-screen so the cut
         // reads as "from the edge of the phone", never mid-air.
-        accentFlushTrailing: Bool = false
+        accentFlushTrailing: Bool = false,
+        accentMaxHeight: CGFloat = 320
     ) -> some View {
         ZStack(alignment: .bottomTrailing) {
             if let accentImage {
                 Image(accentImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(maxHeight: 320)
+                    .frame(maxHeight: accentMaxHeight)
                     .padding(.trailing, accentFlushTrailing ? 0 : Space.lg)
                     .offset(x: accentFlushTrailing ? 20 : 0)
                     .padding(.bottom, Space.xs)
@@ -5499,10 +5566,11 @@ struct OnboardingView: View {
             headline: "built for real life.",
             italicWords: ["real"],
             body: "5-min beats. 3-month arcs. no all-or-nothing. what you share calibrates your plan. never shared, never sold.",
-            // Bouquet, not anthurium: the anthurium pair read as a
-            // direct her75 quote (founder QA 2026-06-11).
+            // Tall cactus (founder round 5): the bouquet read small and
+            // busy; this screen wants one LONG sculptural object.
             next: 1,
-            accentImage: "onb-filler-bouquet"
+            accentImage: "onb-filler-cactus",
+            accentMaxHeight: 460
         )
     }
 

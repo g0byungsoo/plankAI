@@ -21,6 +21,7 @@ struct AffirmationLoaderScreen: View {
     let onRetry: () -> Void
 
     @State private var settled = false
+    @State private var subVisible = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -29,23 +30,30 @@ struct AffirmationLoaderScreen: View {
                 Palette.programEraBg
                     .ignoresSafeArea()
 
-                // The affirmation — fixed, not rotating: a sub-second
-                // screen can't land variety; one line seen on every
-                // launch becomes the brand's doorbell. Sits UNDER the
-                // girl so her blazer overlaps the tail (the editorial
-                // subject-over-type move).
-                VStack(alignment: .leading, spacing: 0) {
-                    Spacer().frame(height: geo.size.height * 0.34)
-                    (Text("your\n").font(Typo.heroHeadline)
+                // The affirmation — fixed, not rotating: one line seen
+                // on every launch becomes the brand's doorbell. Sits
+                // UNDER the girl so her shoulder overlaps the tail (the
+                // editorial subject-over-type move). The sub-line lands
+                // at 0.45s; RootView guarantees a 1.6s dwell so it
+                // always finishes.
+                VStack(alignment: .leading, spacing: 14) {
+                    Spacer().frame(height: geo.size.height * 0.26)
+                    (Text("this is your\n").font(Typo.heroHeadline)
                      + Text("that girl").font(Typo.heroHeadlineItalic)
                      + Text(" era.").font(Typo.heroHeadline))
                         .foregroundStyle(Palette.textPrimary)
                         .kerning(-0.4)
                         .lineSpacing(Typo.heroHeadlineLineGap)
                         .multilineTextAlignment(.leading)
+                    (Text("she's been in you ").font(.custom("DMSans-Regular", size: 16))
+                     + Text("the whole time.").font(.custom("Fraunces72pt-SemiBoldItalic", size: 16)))
+                        .foregroundStyle(Palette.textSecondary)
+                        .opacity(subVisible ? 1 : 0)
+                        .offset(y: subVisible ? 0 : 6)
                     Spacer()
                 }
                 .padding(.leading, 24)
+                .padding(.trailing, 32)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 // The girl — bottom-anchored, legs bleed off-screen,
@@ -87,8 +95,10 @@ struct AffirmationLoaderScreen: View {
         .onAppear {
             if reduceMotion {
                 settled = true
+                subVisible = true
             } else {
                 withAnimation(Motion.entranceSoft) { settled = true }
+                withAnimation(Motion.entranceSoft.delay(0.45)) { subVisible = true }
             }
         }
     }
