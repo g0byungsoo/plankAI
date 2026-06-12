@@ -1287,15 +1287,15 @@ private struct TrialPromisePresentation: View {
 
                 Spacer()
 
-                // her75 "make it official" register — one quiet photo
-                // card grounding the promises (Grok cutout, from behind).
-                Image("onb-reveal-balcony")
+                // True-alpha it-girl cutout floating on cream (founder
+                // round 8: the balcony photo card still carried its own
+                // background). Seated tea girl matches the settled,
+                // no-tricks mood the promises are making.
+                Image("onb-itgirl-promise")
                     .resizable()
-                    .scaledToFill()
+                    .scaledToFit()
+                    .frame(maxHeight: 250)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 170)
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                    .padding(.horizontal, Space.screenPadding + 20)
                     .accessibilityHidden(true)
                     .opacity(rowsVisible ? 1 : 0)
 
