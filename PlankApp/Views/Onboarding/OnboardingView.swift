@@ -2362,7 +2362,7 @@ struct OnboardingView: View {
                         .opacity(v2CtaVisible ? 1 : 0)
                         .scaleEffect(v2CtaVisible ? 1.0 : 0.96)
 
-                    Text("free to begin.")
+                    Text("free to start.")
                         .font(.custom("DMSans-Regular", size: 13))
                         .foregroundStyle(Palette.textSecondary)
                         .padding(.top, 8)
@@ -2389,14 +2389,15 @@ struct OnboardingView: View {
         }
     }
 
-    // v4.6 headline — conversion-expert pick for the TikTok-arrival
-    // cohort: continues the FYP dialect ("soft discipline") instead of
-    // restarting the conversation, and "done with diets" pre-frames
-    // the paywall as a different category of purchase.
+    // Round-4 headline (founder: plainer words; expert decided). In the
+    // 3-second TikTok arrival she needs category confirmation ("this is
+    // the weight-loss app from the video") before identity copy; the
+    // phone mock supplies the proof, the headline labels the category.
+    // A/B runner-up on file: "your daily to-do for losing weight".
     private var v2WelcomeHeadline: some View {
         ItalicAccentText(
-            "soft discipline for the girl who's done with diets.",
-            italic: ["done"],
+            "your weight-loss plan, made simple.",
+            italic: ["simple"],
             baseFont: Typo.heroHeadline,
             italicFont: Typo.heroHeadlineItalic,
             alignment: .center
@@ -2413,34 +2414,77 @@ struct OnboardingView: View {
     /// (Cal AI welcome-video pattern, done in code so it never drifts
     /// from the shipped product). Reduce-motion holds the plan page.
     private func welcomeDemoFrame(height: CGFloat) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 38)
-                .fill(Color.white.opacity(0.65))
+        // Realistic iPhone proportions (founder QA round 4: the uniform
+        // 5pt stroke read as a toy frame). Thin near-black bezel ring,
+        // screen inset 6pt, Dynamic Island pill floating INSIDE the
+        // screen, side-button nubs, soft drop shadow.
+        let width = height * 0.482
+        let outerRadius = height * 0.118
 
-            Group {
-                switch welcomeDemoPage {
-                case 1: welcomeDemoCamera
-                case 2: welcomeDemoSteps
-                default: welcomeDemoPlan
+        return ZStack {
+            // Body — near-black slab with a subtle edge highlight.
+            RoundedRectangle(cornerRadius: outerRadius, style: .continuous)
+                .fill(Color(red: 0.13, green: 0.11, blue: 0.11))
+                .overlay(
+                    RoundedRectangle(cornerRadius: outerRadius, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.35), Color.white.opacity(0.05)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+
+            // Screen — 4pt bezel ring reads true-to-device.
+            ZStack {
+                RoundedRectangle(cornerRadius: outerRadius - 4, style: .continuous)
+                    .fill(Palette.bgPrimary)
+
+                Group {
+                    switch welcomeDemoPage {
+                    case 1: welcomeDemoCamera
+                    case 2: welcomeDemoSteps
+                    default: welcomeDemoPlan
+                    }
                 }
+                .transition(.opacity)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+                .padding(.top, 24)
             }
-            .transition(.opacity)
-            .padding(.horizontal, 14)
-            .padding(.bottom, 14)
+            .clipShape(RoundedRectangle(cornerRadius: outerRadius - 4, style: .continuous))
+            .padding(4)
+
+            // Dynamic Island — floats inside the screen.
+            VStack {
+                Capsule()
+                    .fill(Color.black)
+                    .frame(width: width * 0.30, height: 14)
+                    .padding(.top, 13)
+                Spacer()
+            }
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: 38)
-                .stroke(Palette.bgInverse, lineWidth: 5)
-        )
-        .overlay(alignment: .top) {
-            Capsule()
-                .fill(Palette.bgInverse)
-                .frame(width: 56, height: 7)
-                .padding(.top, 9)
+        .frame(width: width, height: height)
+        // Side buttons — thin nubs hugging the edges.
+        .overlay(alignment: .topLeading) {
+            VStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(Color(red: 0.10, green: 0.08, blue: 0.08))
+                    .frame(width: 2.5, height: height * 0.045)
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(Color(red: 0.10, green: 0.08, blue: 0.08))
+                    .frame(width: 2.5, height: height * 0.085)
+            }
+            .offset(x: -2.5, y: height * 0.20)
         }
-        .frame(width: height * 0.52, height: height)
-        .clipped()
-        .shadow(color: .black.opacity(0.10), radius: 18, y: 10)
+        .overlay(alignment: .topTrailing) {
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(Color(red: 0.10, green: 0.08, blue: 0.08))
+                .frame(width: 2.5, height: height * 0.12)
+                .offset(x: 2.5, y: height * 0.24)
+        }
+        .shadow(color: .black.opacity(0.16), radius: 22, y: 12)
         .accessibilityLabel("a preview of jenifit: your daily plan, the food camera, and steps")
         .task {
             guard !reduceMotion else { return }
