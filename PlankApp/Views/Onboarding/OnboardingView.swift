@@ -5566,11 +5566,12 @@ struct OnboardingView: View {
             headline: "built for real life.",
             italicWords: ["real"],
             body: "5-min beats. 3-month arcs. no all-or-nothing. what you share calibrates your plan. never shared, never sold.",
-            // Tall cactus (founder round 5): the bouquet read small and
-            // busy; this screen wants one LONG sculptural object.
+            // Founder-supplied rose bouquet (2026-06-12), replacing the
+            // cactus. 380pt keeps it clear of the body copy (the 460pt
+            // cactus poked through the text block).
             next: 1,
-            accentImage: "onb-filler-cactus",
-            accentMaxHeight: 460
+            accentImage: "onb-filler-roses",
+            accentMaxHeight: 380
         )
     }
 
