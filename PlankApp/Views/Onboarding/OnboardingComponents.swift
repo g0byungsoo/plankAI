@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import UserNotifications
 
 // MARK: - Gradient Blob Background
@@ -175,6 +176,28 @@ struct NotificationPermission {
             return granted
         } catch {
             return false
+        }
+    }
+
+    /// iOS shows the system dialog ONCE per install. After a prior
+    /// denial, `requestAuthorization` resolves silently and the tap
+    /// reads as broken (founder QA 2026-06-11). Route that case to the
+    /// app's notification settings instead; already-granted resolves
+    /// true without a dialog.
+    @MainActor
+    static func requestOrOpenSettings() async -> Bool {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            return true
+        case .denied:
+            if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+                _ = await UIApplication.shared.open(url)
+            }
+            return false
+        default:
+            return await request()
         }
     }
 

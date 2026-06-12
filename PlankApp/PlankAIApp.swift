@@ -61,6 +61,9 @@ struct PlankAIApp: App {
         // to the hard paywall.
         if ProcessInfo.processInfo.arguments.contains("--uitest-fresh-onboarding") {
             UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
+            UserDefaults.standard.removeObject(forKey: "ratingPrompt.postPlanReveal.shown")
+            UserDefaults.standard.removeObject(forKey: "ratingPrompt.lastDate")
+            UserDefaults.standard.removeObject(forKey: "onboardingReviewPromptShown")
         }
         #endif
 
@@ -72,14 +75,15 @@ struct PlankAIApp: App {
         // event (onboarding_start / paywall_view).
         Self.bootstrapAnalytics()
 
-        // TikTok Business SDK — runs after PostHog so PostHog still
-        // owns the in-app funnel; TikTok owns ad-attribution + SKAN.
-        // Auto-tracking left enabled (Install + Launch + 2DRetention +
-        // Purchase from StoreKit) since those ARE the CPI-bidder
-        // optimization signal. Short-circuits silently when the
-        // config still has placeholder values (development builds
-        // before secrets land).
-        Self.bootstrapTikTok()
+        // TikTok Business SDK — deferred OFF the first-frame critical
+        // path (loading-experience pass 2026-06-11): its SKAN + config
+        // fetch was the largest single contributor to the blank-launch
+        // gap, and nothing in-app reads it (PostHog owns the funnel;
+        // TikTok's auto Launch event fires whenever it initializes).
+        // Low priority so the render loop wins the first frames.
+        Task.detached(priority: .background) {
+            await MainActor.run { Self.bootstrapTikTok() }
+        }
 
         // Ensure Application Support directory exists before SwiftData tries to create the store
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!

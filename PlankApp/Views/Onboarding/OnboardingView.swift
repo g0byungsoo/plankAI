@@ -285,6 +285,14 @@ struct OnboardingView: View {
         cuisinePreferenceCSV = ""
         nsvPriorityCSV = ""
         UserDefaults.standard.removeObject(forKey: "onboardingPickedTier")
+        // 2026-06-11 founder bug report: movement question (case 8)
+        // opened with "walks here and there" pre-selected on re-runs.
+        // Same persistence leak; the v4 key landed after this reset.
+        movementBaseline = ""
+        // Fear psychometrics leak the same way (yes/no pre-answered).
+        fearQuickResults = ""
+        fearAnotherDiet = ""
+        fearPriorAttempt = ""
     }
 
     // v4.6 — notification-banner drop-in on the nudge screen (case 11).
@@ -292,6 +300,15 @@ struct OnboardingView: View {
 
     // v4.6 — welcome demo frame page cycler (plan / camera / steps).
     @State private var welcomeDemoPage = 0
+
+    // v4.6 round 3 — cohort marquee (case 283). 12 it-girl profiles.
+    @State private var cohortMarqueeIndex = 0
+    private static let cohortMarqueeAssets: [String] = [
+        "onb-cohort-1", "onb-cohort-2", "onb-cohort-3",
+        "onb-profile-latte", "onb-profile-cap", "onb-profile-scarf",
+        "onb-profile-bun", "onb-profile-phone", "onb-profile-smoothie",
+        "onb-profile-towel", "onb-profile-braid", "onb-profile-book",
+    ]
 
     // Confirmation badge state — fired only at strategic commits
     // (5–7 across the full flow), not after every question. Goal is
@@ -1460,22 +1477,41 @@ struct OnboardingView: View {
         // simplest-screens register.
         case 283: VStack(spacing: 0) {
             Spacer()
-            // v4.5 — her75-share register photo huddle (Grok editorial
-            // cutouts, faces obscured). Overlapping round crops read
-            // as "three friends" without a fabricated count.
-            HStack(spacing: -14) {
-                ForEach(Array(["onb-cohort-1", "onb-cohort-2", "onb-cohort-3"].enumerated()), id: \.offset) { idx, asset in
+            // v4.6 round 3 — rotating profile marquee. 12 it-girl
+            // cutouts conveyor right-to-left, a new woman always
+            // entering from the right (founder direction). Window of
+            // 3; ~1.8s cadence; reduce-motion holds the first three.
+            HStack(alignment: .bottom, spacing: 18) {
+                ForEach(0..<3, id: \.self) { slot in
+                    let asset = Self.cohortMarqueeAssets[
+                        (cohortMarqueeIndex + slot) % Self.cohortMarqueeAssets.count
+                    ]
                     Image(asset)
                         .resizable()
-                        .scaledToFill()
-                        .frame(width: idx == 1 ? 76 : 64, height: idx == 1 ? 76 : 64)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Palette.bgPrimary, lineWidth: 3))
-                        .zIndex(idx == 1 ? 1 : 0)
+                        .scaledToFit()
+                        .frame(height: slot == 1 ? 110 : 92)
+                        .id("\(asset)-\(cohortMarqueeIndex + slot)")
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
                 }
             }
+            .frame(height: 116)
+            .clipped()
             .accessibilityHidden(true)
             .padding(.bottom, Space.lg)
+            .task {
+                guard !reduceMotion else { return }
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 1_800_000_000)
+                    guard !Task.isCancelled else { break }
+                    withAnimation(Motion.gentleSpring) {
+                        cohortMarqueeIndex = (cohortMarqueeIndex + 1)
+                            % Self.cohortMarqueeAssets.count
+                    }
+                }
+            }
             ItalicAccentText(
                 "women like you are already inside.",
                 italic: ["like you"],
@@ -3402,12 +3438,15 @@ struct OnboardingView: View {
             // her75 "when do you start" register — photo anchored to the
             // bottom edge, rotated, bleeding off-screen. Cream-bg cutout
             // merges with bgPrimary so it reads as a placed object.
+            // v4.6 round 3: true-alpha legs-up cutout, thighs exit the
+            // canvas bottom, so it sits flush on the screen's bottom
+            // edge and the cut reads natural (no more rotated photo
+            // with its background rectangle showing).
             Image("onb-movement-sneakers")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 300)
-                .rotationEffect(.degrees(96))
-                .offset(x: 70, y: 110)
+                .frame(width: 290)
+                .offset(x: 46, y: 24)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 0) {
@@ -5416,8 +5455,10 @@ struct OnboardingView: View {
             headline: "built for real life.",
             italicWords: ["real"],
             body: "5-min beats. 3-month arcs. no all-or-nothing. what you share calibrates your plan. never shared, never sold.",
+            // Bouquet, not anthurium: the anthurium pair read as a
+            // direct her75 quote (founder QA 2026-06-11).
             next: 1,
-            accentImage: "onb-filler-anthurium"
+            accentImage: "onb-filler-bouquet"
         )
     }
 
@@ -5443,7 +5484,8 @@ struct OnboardingView: View {
             italicWords: ["good"],
             body: "plateaus mean adaptation, not failure. jeni tells you what to change. no panic.",
             next: 21,
-            citation: "acsm 2024"
+            citation: "acsm 2024",
+            accentImage: "onb-filler-matcha"
         )
     }
 
@@ -7935,7 +7977,7 @@ struct OnboardingView: View {
                 ctaBtn("allow notifications") {
                     Haptics.medium()
                     Task {
-                        let granted = await NotificationPermission.request()
+                        let granted = await NotificationPermission.requestOrOpenSettings()
                         notificationsEnabled = granted
                         if granted {
                             // v1.0.7 Phase D — daily reminder NO LONGER

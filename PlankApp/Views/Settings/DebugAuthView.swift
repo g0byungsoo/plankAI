@@ -397,6 +397,12 @@ struct DebugAuthView: View {
             Button {
                 UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
                 UserDefaults.standard.removeObject(forKey: "onboardingCompletedAt")
+                // Founder QA 2026-06-11: re-runs must show the rating
+                // ask (case 215) again. Production users keep the
+                // once-per-install gate; this is the DEBUG escape.
+                UserDefaults.standard.removeObject(forKey: "ratingPrompt.postPlanReveal.shown")
+                UserDefaults.standard.removeObject(forKey: "ratingPrompt.lastDate")
+                UserDefaults.standard.removeObject(forKey: "onboardingReviewPromptShown")
                 status = "onboarding reset — relaunch app to re-run."
             } label: {
                 Text("Reset onboarding (DEBUG only)")

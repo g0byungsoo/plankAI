@@ -708,7 +708,7 @@ private struct PairedPermissionsAsk: View {
         guard !requestingNotifs, !notifsRequested else { return }
         requestingNotifs = true
         Task {
-            let granted = await NotificationPermission.request()
+            let granted = await NotificationPermission.requestOrOpenSettings()
             if granted {
                 // Schedule the default 8am reminder. Settings tab still
                 // lets the user change time + voice afterwards; this is
