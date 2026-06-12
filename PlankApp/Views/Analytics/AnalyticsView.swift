@@ -417,6 +417,8 @@ struct AnalyticsView: View {
     @State private var showDepthSheet = false
     /// v1.1 food journal — opened from the plates teaser.
     @State private var showFoodJournal = false
+    /// Calorie camera over the journal (the timeline's + button).
+    @State private var showJournalCapture = false
     @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 1650
     /// v1.1 P3 — rendered day card pending share-sheet presentation.
     /// Identifiable wrapper so the share sheet presents via
@@ -665,17 +667,26 @@ struct AnalyticsView: View {
             BecomingShareSheet(image: item.image)
                 .presentationDetents([.medium, .large])
         }
-        // v1.1 food journal — same presentation contract HomeView uses
-        // (the + button dismisses; the camera lives on the tab bar's
-        // center button, so no chained capture present from here).
+        // v1.1 food journal. The + opens the calorie camera OVER the
+        // journal (cover-on-cover) so the fresh plate lands in the
+        // timeline the moment capture finishes — FoodLogPersister's
+        // changeNotifier refreshes the list live underneath.
         .fullScreenCover(isPresented: $showFoodJournal) {
             FoodLogTimelineView(
                 userId: auth.currentUser?.id.uuidString ?? "",
                 dailyTarget: foodDailyTarget,
-                onAddTapped: { showFoodJournal = false },
+                onAddTapped: { showJournalCapture = true },
                 onDismiss: { showFoodJournal = false }
             )
             .presentationBackground(Palette.bgPrimary)
+            .fullScreenCover(isPresented: $showJournalCapture) {
+                CaptureFlowView(
+                    userId: auth.currentUser?.id.uuidString ?? "",
+                    cuisineProfile: UserDefaults.standard
+                        .string(forKey: "onboardingCuisinePreference"),
+                    onDismiss: { showJournalCapture = false }
+                )
+            }
         }
         .sheet(isPresented: $showDepthSheet) {
             becomingDepthSheet
