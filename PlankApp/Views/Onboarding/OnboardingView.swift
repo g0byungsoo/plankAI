@@ -5607,15 +5607,14 @@ struct OnboardingView: View {
         educationalScreen(
             headline: "the scale stalls around week 3. that's good.",
             italicWords: ["good"],
-            // Pink-sand hourglass (round 9, second pass): "the scale
-            // stalls" wants a time object. Sand still flowing = the
-            // plateau is progress moving quietly, and it is the most
-            // coquette object on any teach screen.
+            // Lit taper candle with a blush bow (round 10): time passing,
+            // calm, single-object generation-safe. The hourglass read
+            // washed-out on device.
             body: "plateaus mean adaptation, not failure. jeni tells you what to change. no panic.",
             next: 21,
             citation: "acsm 2024",
-            accentImage: "onb-filler-hourglass",
-            accentMaxHeight: 360
+            accentImage: "onb-filler-candle",
+            accentMaxHeight: 380
         )
     }
 
