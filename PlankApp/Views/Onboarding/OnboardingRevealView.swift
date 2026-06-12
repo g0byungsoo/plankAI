@@ -232,8 +232,7 @@ private struct ProjectionPresentation: View {
 
                         BecomingProjectionCard(
                             currentWeightKg: currentWeightKg,
-                            goalWeightKg: goalWeightKg,
-                            voicePreference: voicePreference
+                            goalWeightKg: goalWeightKg
                         )
                         .padding(.horizontal, Space.md)
                         .opacity(cardVisible ? 1 : 0)
@@ -346,20 +345,15 @@ private struct ProjectionPresentation: View {
     }
 
     /// Delta v8 D79 — specific date target ("august 14") for the plan
-    /// reveal pill. ACSM 0.5-1%/wk midpoint (0.75%) of current body
-    /// weight projected to goal. Returns lowercase month + day, no
-    /// year. Nil when no weight-loss goal is set.
+    /// reveal pill. Routed through ProjectionMath at the user's picked
+    /// pace so it matches the pace selector, day-one card, and paywall.
     private var goalDateText: String? {
-        guard let curr = currentWeightKg, let goal = goalWeightKg,
-              curr > goal else { return nil }
-        let toLose = curr - goal
-        let weeklyLossKg = curr * 0.0075  // 0.75% of body weight per ACSM
-        let weeks = max(2.0, toLose / weeklyLossKg)
-        let days = Int((weeks * 7).rounded())
-        guard let date = Calendar.current.date(byAdding: .day, value: days, to: .now) else { return nil }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM d"
-        return formatter.string(from: date).lowercased()
+        guard let curr = currentWeightKg, let goal = goalWeightKg else { return nil }
+        return ProjectionMath.formattedLongDate(
+            currentKg: curr,
+            goalKg: goal,
+            paceKey: UserDefaults.standard.string(forKey: ProjectionMath.paceDefaultsKey)
+        )
     }
 
     /// Delta v8 D74 — multi-proof plan reveal. Replaces the single-
@@ -822,6 +816,18 @@ private struct FirstWeekPresentation: View {
                             .padding(.horizontal, Space.lg)
                             .opacity(weekVisible ? 1 : 0)
 
+                        // v4.6 (2026-06-11) — it-girl cutout fills the
+                        // dead space under the strip (founder QA: screen
+                        // read as empty below the cards).
+                        Image("onb-itgirl-firstweek")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxHeight: 280)
+                            .frame(maxWidth: .infinity)
+                            .accessibilityHidden(true)
+                            .opacity(weekVisible ? 1 : 0)
+                            .offset(y: weekVisible ? 0 : 12)
+
                         Spacer().frame(height: Space.lg)
                     }
                 }
@@ -943,7 +949,7 @@ private struct PacePickerPresentation: View {
                         VStack(spacing: 12) {
                             paceRow(tier: .soft,   title: "soft",   tagline: "0.5% a week. room for life.")
                             paceRow(tier: .medium, title: "steady", tagline: "0.75% a week. most chosen.")
-                            paceRow(tier: .hard,   title: "focused", tagline: "1% a week. you've got time.")
+                            paceRow(tier: .hard,   title: "focused", tagline: "1% a week. fastest healthy pace.")
                         }
                         .padding(.horizontal, Space.lg)
                         .opacity(rowsVisible ? 1 : 0)
@@ -980,10 +986,24 @@ private struct PacePickerPresentation: View {
 
     private func paceRow(tier: IntensityTier, title: String, tagline: String) -> some View {
         let selected = pickedTierRaw == tier.rawValue
-        let weeks = window.weeks(for: tier)
+        // Pace unification (2026-06-11): row weeks come from the same
+        // ProjectionMath the pace selector + paywall use, so the number
+        // here never disagrees with the dates she already saw.
+        let weeks = ProjectionMath.projectedWeeks(
+            currentKg: currentWeightKg,
+            goalKg: goalWeightKg,
+            paceKey: ProjectionMath.paceKey(forTier: tier.rawValue)
+        ) ?? window.weeks(for: tier)
         return Button {
             Haptics.light()
             pickedTierRaw = tier.rawValue
+            // Write back to the canonical pace key so every downstream
+            // surface (goal-date reveal, paywall chart, day-one card)
+            // re-dates with the re-picked pace.
+            UserDefaults.standard.set(
+                ProjectionMath.paceKey(forTier: tier.rawValue),
+                forKey: ProjectionMath.paceDefaultsKey
+            )
         } label: {
             HStack(alignment: .top, spacing: 14) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -1070,8 +1090,16 @@ private struct GoalDateRevealPresentation: View {
         ))
     }
 
+    // Pace unification (2026-06-11): the reveal date IS the projection
+    // date at the picked tier's pace. Window (cohort science) still
+    // drives program length elsewhere; the user-facing goal date stays
+    // one family across pace selector, day-one card, here, and paywall.
     private var goalDate: Date {
-        window.goalDate(from: Date(), tier: tier)
+        ProjectionMath.projectedGoalDate(
+            currentKg: currentWeightKg,
+            goalKg: goalWeightKg,
+            paceKey: ProjectionMath.paceKey(forTier: tier.rawValue)
+        ) ?? window.goalDate(from: Date(), tier: tier)
     }
 
     private var goalDateFormatted: String {
@@ -1081,7 +1109,11 @@ private struct GoalDateRevealPresentation: View {
     }
 
     private var totalWeeks: Int {
-        window.weeks(for: tier)
+        ProjectionMath.projectedWeeks(
+            currentKg: currentWeightKg,
+            goalKg: goalWeightKg,
+            paceKey: ProjectionMath.paceKey(forTier: tier.rawValue)
+        ) ?? window.weeks(for: tier)
     }
 
     var body: some View {
