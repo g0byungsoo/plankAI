@@ -31,6 +31,9 @@ struct DailyShareCard: View {
 
     let date: Date
     let entries: [FoodLogPersister.FoodLogEntry]
+    /// entryId → stored food photo. Entries without a photo (quick
+    /// add) fall back to the text panel.
+    let photos: [String: UIImage]
     let pillTexts: [String]
 
     /// 1080×1920 canvas. SwiftUI logical pts here; ImageRenderer.scale
@@ -200,6 +203,7 @@ struct DailyShareCard: View {
             polaroidCard(
                 title: entry.title.isEmpty ? "scanned plate" : entry.title.lowercased(),
                 time: timeLabel(for: entry.loggedAt),
+                photo: photos[entry.id],
                 rotation: rotation,
                 isEmptyState: false
             )
@@ -213,33 +217,57 @@ struct DailyShareCard: View {
     private func polaroidCard(
         title: String,
         time: String,
+        photo: UIImage? = nil,
         rotation: Double,
         isEmptyState: Bool
     ) -> some View {
         VStack(spacing: 0) {
-            // Top: text panel that stands in for the photo until v1.1
-            // ships photo storage. Cocoa text on accentSubtle so the
-            // card still reads as a contentful tile, not a blank
-            // polaroid.
+            // Top: the stored food photo when one exists (camera
+            // logs); text panel fallback for quick-add entries.
             ZStack {
-                Color(hex: "#F5D5D8").opacity(0.6)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                Text(title)
-                    .font(.custom("Fraunces72pt-Regular", size: 34))
-                    .foregroundStyle(Color(hex: "#3D2B2B"))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(3)
-                    .padding(.horizontal, 32)
+                if let photo {
+                    Image(uiImage: photo)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 380, height: 380)
+                        .clipped()
+                } else {
+                    Color(hex: "#F5D5D8").opacity(0.6)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    Text(title)
+                        .font(.custom("Fraunces72pt-Regular", size: 34))
+                        .foregroundStyle(Color(hex: "#3D2B2B"))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                        .padding(.horizontal, 32)
+                }
             }
             .frame(width: 380, height: 380)
+            .clipped()
             .padding(.top, 24)
             .padding(.horizontal, 24)
 
             // Caption — Fraunces italic, matches plan §D3 caption spec.
-            Text(time)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
-                .foregroundStyle(Color(hex: "#7B5959"))
-                .padding(.vertical, 24)
+            // Photo cards add the meal title (the photo replaced it
+            // up top); text cards keep time-only.
+            if photo != nil {
+                VStack(spacing: 2) {
+                    Text(title)
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+                        .foregroundStyle(Color(hex: "#3D2B2B"))
+                        .lineLimit(1)
+                    Text(time)
+                        .font(.system(size: 20))
+                        .foregroundStyle(Color(hex: "#7B5959"))
+                }
+                .padding(.vertical, 16)
+                .padding(.horizontal, 24)
+            } else {
+                Text(time)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+                    .foregroundStyle(Color(hex: "#7B5959"))
+                    .padding(.vertical, 24)
+            }
         }
         .frame(width: 440, height: 500)
         .background(Color.white)

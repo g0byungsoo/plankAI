@@ -32,9 +32,19 @@ public enum DailyShareRenderer {
         let macros = FoodLogPersister.todayMacros()
         let pills = buildPills(entries: entries, macros: macros, dailyTarget: dailyTarget)
 
+        // Photo-backed polaroids — load each gridded entry's stored
+        // photo up front so the offscreen render is synchronous.
+        var photos: [String: UIImage] = [:]
+        for entry in entries.prefix(4) {
+            if let photo = FoodPhotoStore.photo(entryId: entry.id) {
+                photos[entry.id] = photo
+            }
+        }
+
         let card = DailyShareCard(
             date: date,
             entries: entries,
+            photos: photos,
             pillTexts: pills
         )
         .frame(width: 1080, height: 1920)
