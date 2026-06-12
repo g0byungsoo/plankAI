@@ -5513,7 +5513,11 @@ struct OnboardingView: View {
         // Rest the cutout's bottom directly on the CTA dock instead of
         // floating Space.xs above it (the plateau woman stands on the
         // continue button).
-        accentFlushBottom: Bool = false
+        accentFlushBottom: Bool = false,
+        // Positive sinks the cutout BELOW the content edge; the CTA
+        // dock renders on top, so the subject reads as emerging from
+        // the continue button (founder round 12).
+        accentOffsetY: CGFloat = 0
     ) -> some View {
         ZStack(alignment: accentFlushLeading ? .bottomLeading : .bottomTrailing) {
             if let accentImage {
@@ -5522,8 +5526,11 @@ struct OnboardingView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(maxHeight: accentMaxHeight)
                     .padding(.trailing, (accentFlushTrailing || accentFlushLeading) ? 0 : Space.lg)
-                    .offset(x: accentFlushLeading ? -6
-                              : (accentFlushTrailing ? 20 : 0) + accentOffsetX)
+                    .offset(
+                        x: accentFlushLeading ? -6
+                            : (accentFlushTrailing ? 20 : 0) + accentOffsetX,
+                        y: accentOffsetY
+                    )
                     .padding(.bottom, accentFlushBottom ? 0 : Space.xs)
                     .accessibilityHidden(true)
             }
@@ -5619,14 +5626,17 @@ struct OnboardingView: View {
         educationalScreen(
             headline: "the scale stalls around week 3. that's good.",
             italicWords: ["good"],
-            // Founder-supplied woman cutout (round 11), standing on the
-            // continue button.
+            // Founder-supplied woman cutout (round 12 sizing): smaller,
+            // shifted right, sunk 36pt under the dock so she reads as
+            // coming out of the continue button.
             body: "plateaus mean adaptation, not failure. jeni tells you what to change. no panic.",
             next: 21,
             citation: "acsm 2024",
             accentImage: "onb-itgirl-plateau",
-            accentMaxHeight: 400,
-            accentFlushBottom: true
+            accentMaxHeight: 290,
+            accentOffsetX: 26,
+            accentFlushBottom: true,
+            accentOffsetY: 36
         )
     }
 
