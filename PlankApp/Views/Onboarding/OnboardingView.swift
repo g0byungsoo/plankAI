@@ -287,6 +287,12 @@ struct OnboardingView: View {
         UserDefaults.standard.removeObject(forKey: "onboardingPickedTier")
     }
 
+    // v4.6 — notification-banner drop-in on the nudge screen (case 11).
+    @State private var nudgeBannerDropped = false
+
+    // v4.6 — welcome demo frame page cycler (plan / camera / steps).
+    @State private var welcomeDemoPage = 0
+
     // Confirmation badge state — fired only at strategic commits
     // (5–7 across the full flow), not after every question. Goal is
     // moments of acknowledgement, not constant noise.
@@ -1114,23 +1120,21 @@ struct OnboardingView: View {
         //
         // Routes to case 110 (next in v2 flow after the wedge).
         // resolveNext handles the old `next: 201` fallback for v1.
-        case 169: jfMulti(
-            // 2026-06-10 — shortened from "what's on your plate most?"
-            // (2 lines at the her75 hero scale) to 1 line so the option
-            // pills + Continue stop crowding the viewport.
+        // v4.6 (2026-06-11) — revived from the v3 C6 cut per founder
+        // direction (cuisine signal lifts in-app calorie-vision
+        // accuracy) and upgraded to the it-girl photo grid: one food
+        // cutout per option, multi-select.
+        case 169: jfPhotoMulti(
             "what's on your plate?",
-            // em-dash between words violated [[feedback-no-em-dash]];
-            // collapsed to a single short sub line.
             sub: "pick all the ones that show up often.",
+            italic: ["plate"],
             opts: [
-                ("american",      "american",      nil, nil),
-                ("italian",       "italian",       nil, nil),
-                ("mexican",       "mexican",       nil, nil),
-                ("korean",        "korean",        nil, nil),
-                ("japanese",      "japanese",      nil, nil),
-                ("chinese",       "chinese",       nil, nil),
-                ("mediterranean", "mediterranean", nil, nil),
-                ("other",         "other",         nil, nil),
+                ("american",      "american",      "onb-cuisine-american"),
+                ("italian",       "italian",       "onb-cuisine-italian"),
+                ("mexican",       "mexican",       "onb-cuisine-mexican"),
+                ("eastAsian",     "east asian",    "onb-cuisine-eastasian"),
+                ("southAsian",    "south asian",   "onb-cuisine-southasian"),
+                ("mediterranean", "mediterranean", "onb-cuisine-mediterranean"),
             ],
             sel: Binding<Set<String>>(
                 get: {
@@ -1614,16 +1618,21 @@ struct OnboardingView: View {
                 .padding(.top, Space.md)
             Spacer().frame(height: Space.lg)
             HStack(spacing: 10) {
-                Image("AppIcon-Preview")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 32, height: 32)
-                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                    .background(
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(Palette.accent)
-                            .frame(width: 32, height: 32)
-                    )
+                // Real app-icon treatment (founder QA 2026-06-11): the
+                // bow logo on a white icon tile, like the actual banner.
+                ZStack {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(Color.white)
+                    Image("logo_jenifit_bow")
+                        .resizable()
+                        .scaledToFit()
+                        .padding(5)
+                }
+                .frame(width: 32, height: 32)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .stroke(Palette.divider, lineWidth: 0.5)
+                )
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
                         Text("jenifit")
@@ -1652,6 +1661,23 @@ struct OnboardingView: View {
                     .shadow(color: Palette.cocoaPrimary.opacity(0.08), radius: 8, x: 0, y: 4)
             )
             .padding(.horizontal, Space.screenPadding)
+            // Apple-banner drop-in: slides down from above with the
+            // system spring, lands with a soft tick. Reduce-motion snaps.
+            .offset(y: nudgeBannerDropped ? 0 : -72)
+            .opacity(nudgeBannerDropped ? 1 : 0)
+            .onAppear {
+                guard !nudgeBannerDropped else { return }
+                if reduceMotion {
+                    nudgeBannerDropped = true
+                } else {
+                    withAnimation(.spring(response: 0.55, dampingFraction: 0.74).delay(0.4)) {
+                        nudgeBannerDropped = true
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                        Haptics.soft()
+                    }
+                }
+            }
             Spacer().frame(height: Space.md)
             VStack(spacing: 10) {
                 ForEach([
@@ -1823,7 +1849,10 @@ struct OnboardingView: View {
         // vision prompt; collect it in-app post-paywall instead of
         // adding the friction screen here. Per the Cal AI + BetterMe
         // teardown synthesis.
-        162, 166, 156, 157, 159,
+        // v4.6 (2026-06-11) — 169 (cuisine photo grid) revived from the
+        // v3 C6 cut; the cuisine signal feeds the in-app calorie-vision
+        // prompt and the cohort eats across cuisines.
+        162, 166, 156, 157, 159, 169,
         //
         // Act 2 — Workout/activity (demoted, post-food-wedge).
         // v3 C2 (2026-06-10) — cut 270 (habit-window quiz). The
@@ -1922,7 +1951,7 @@ struct OnboardingView: View {
         // 1 — about you
         200: 1, 230: 1, 1: 1, 100: 1, 168: 1, 283: 1,  // cohort credibility (P11.1.B)
         // 2 — your *rhythm*
-        162: 2, 166: 2, 156: 2, 157: 2, 159: 2,
+        162: 2, 166: 2, 156: 2, 157: 2, 159: 2, 169: 2,
         8: 2,
         // 3 — what *fits*
         280: 3,  // bridge "now the numbers" (P11.1.B)
@@ -2277,13 +2306,13 @@ struct OnboardingView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 4)
 
-                    Spacer().frame(height: 16)
+                    Spacer().frame(height: 12)
 
-                    welcomeDemoFrame(height: max(300, min(430, geo.size.height * 0.46)))
+                    welcomeDemoFrame(height: max(330, min(480, geo.size.height * 0.52)))
                         .opacity(v2BowVisible ? 1 : 0)
                         .scaleEffect(v2BowVisible ? 1.0 : 0.96)
 
-                    Spacer().frame(height: 18)
+                    Spacer().frame(height: 16)
 
                     v2WelcomeHeadline
                         .padding(.horizontal, 24)
@@ -2324,13 +2353,14 @@ struct OnboardingView: View {
         }
     }
 
-    // v2 headline — D1 "The Curator" copy. Italic-Fraunces accent on
-    // "tried everything" carries the cohort-match weight. Centered in
-    // v4.6 to sit under the device-frame demo (her75 pattern).
+    // v4.6 headline — conversion-expert pick for the TikTok-arrival
+    // cohort: continues the FYP dialect ("soft discipline") instead of
+    // restarting the conversation, and "done with diets" pre-frames
+    // the paywall as a different category of purchase.
     private var v2WelcomeHeadline: some View {
         ItalicAccentText(
-            "finally, a program for the woman who's tried everything.",
-            italic: ["tried", "everything."],
+            "soft discipline for the girl who's done with diets.",
+            italic: ["done"],
             baseFont: Typo.heroHeadline,
             italicFont: Typo.heroHeadlineItalic,
             alignment: .center
@@ -2341,43 +2371,24 @@ struct OnboardingView: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// her75 device-frame demo. A phone-shaped frame with a live mini
-    /// mock of the daily plan inside: day pill + the four real rails.
-    /// Pure SwiftUI so it can never drift from the shipped product.
+    /// her75 device-frame demo. A phone-shaped frame cycling through
+    /// three live SwiftUI mocks of the product: the daily plan, the
+    /// food-snap camera, and the steps counter. Crossfades every 2.6s
+    /// (Cal AI welcome-video pattern, done in code so it never drifts
+    /// from the shipped product). Reduce-motion holds the plan page.
     private func welcomeDemoFrame(height: CGFloat) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 38)
                 .fill(Color.white.opacity(0.65))
 
-            VStack(alignment: .leading, spacing: 9) {
-                HStack {
-                    Text("day 1")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
-                        .foregroundStyle(Palette.textPrimary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
-                        .background(Color.white, in: Capsule())
-                        .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
-                    Spacer()
-                    Text("jenifit")
-                        .font(.system(size: 10, weight: .semibold))
-                        .tracking(1.4)
-                        .foregroundStyle(Palette.textSecondary)
+            Group {
+                switch welcomeDemoPage {
+                case 1: welcomeDemoCamera
+                case 2: welcomeDemoSteps
+                default: welcomeDemoPlan
                 }
-                .padding(.top, 18)
-
-                Spacer(minLength: 0)
-
-                welcomeDemoRow(thumb: "onb-itgirl-firstweek",
-                               title: "move", sub: "10 min", done: true)
-                welcomeDemoRow(thumb: "onb-itgirl-preeat",
-                               title: "snap a meal", sub: "before you eat", done: false)
-                welcomeDemoStepsRow
-                welcomeDemoRow(thumb: "onb-itgirl-journal",
-                               title: "the method", sub: "2-min read", done: false)
-
-                Spacer(minLength: 0)
             }
+            .transition(.opacity)
             .padding(.horizontal, 14)
             .padding(.bottom, 14)
         }
@@ -2392,8 +2403,121 @@ struct OnboardingView: View {
                 .padding(.top, 9)
         }
         .frame(width: height * 0.52, height: height)
+        .clipped()
         .shadow(color: .black.opacity(0.10), radius: 18, y: 10)
-        .accessibilityLabel("a preview of your daily jenifit plan")
+        .accessibilityLabel("a preview of jenifit: your daily plan, the food camera, and steps")
+        .task {
+            guard !reduceMotion else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 2_600_000_000)
+                guard !Task.isCancelled else { break }
+                withAnimation(Motion.crossFade) {
+                    welcomeDemoPage = (welcomeDemoPage + 1) % 3
+                }
+            }
+        }
+    }
+
+    private var welcomeDemoPlan: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack {
+                Text("day 1")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                    .foregroundStyle(Palette.textPrimary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .background(Color.white, in: Capsule())
+                    .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+                Spacer()
+                Text("jenifit")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.4)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .padding(.top, 18)
+
+            Spacer(minLength: 0)
+
+            welcomeDemoRow(thumb: "onb-itgirl-firstweek",
+                           title: "move", sub: "10 min", done: true)
+            welcomeDemoRow(thumb: "onb-itgirl-preeat",
+                           title: "snap a meal", sub: "before you eat", done: false)
+            welcomeDemoStepsRow
+            welcomeDemoRow(thumb: "onb-itgirl-journal",
+                           title: "the method", sub: "2-min read", done: false)
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    /// Food-snap camera mock: warm viewfinder with a meal centered,
+    /// scan brackets, mode pill, shutter.
+    private var welcomeDemoCamera: some View {
+        VStack(spacing: 10) {
+            Spacer().frame(height: 22)
+            ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Palette.cocoaPrimary.opacity(0.82),
+                                     Palette.cocoaPrimary.opacity(0.62)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                Image("onb-cuisine-mediterranean")
+                    .resizable()
+                    .scaledToFit()
+                    .padding(18)
+                // Scan corner brackets.
+                WelcomeScanBrackets()
+                    .stroke(Color.white.opacity(0.9), lineWidth: 2.5)
+                    .padding(14)
+            }
+            .frame(maxHeight: .infinity)
+
+            Text("snap to see if it fits")
+                .font(.custom("DMSans-SemiBold", size: 11))
+                .foregroundStyle(Palette.textPrimary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(Color.white, in: Capsule())
+
+            Circle()
+                .stroke(Palette.bgInverse, lineWidth: 3)
+                .frame(width: 34, height: 34)
+                .overlay(Circle().fill(Palette.bgInverse).frame(width: 24, height: 24))
+                .padding(.bottom, 2)
+        }
+    }
+
+    /// Steps mock: hero count + ring, same numbers as the plan page.
+    private var welcomeDemoSteps: some View {
+        VStack(spacing: 12) {
+            Spacer()
+            ZStack {
+                Circle()
+                    .stroke(Palette.accentSubtle, lineWidth: 9)
+                Circle()
+                    .trim(from: 0, to: 0.62)
+                    .stroke(Palette.accent,
+                            style: StrokeStyle(lineWidth: 9, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                VStack(spacing: 2) {
+                    Text("4,680")
+                        .font(.custom("Fraunces72pt-SemiBold", size: 26))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("of 7,500 steps")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+            }
+            .frame(width: 124, height: 124)
+
+            Text("the everyday anchor")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                .foregroundStyle(Palette.textSecondary)
+            Spacer()
+        }
     }
 
     private func welcomeDemoRow(thumb: String, title: String, sub: String, done: Bool) -> some View {
@@ -2791,23 +2915,26 @@ struct OnboardingView: View {
             // collide with the nav bar or push the CTA.
             ScrollView {
                 VStack(spacing: Space.sm) {
-                    ForEach(opts, id: \.0) { key, optTitle, optSub, optIcon in
-                        OnboardingOptionCard(
-                            icon: optIcon,
-                            sticker: stickers?[key],
-                            title: optTitle,
-                            subtitle: optSub,
-                            isSelected: sel.wrappedValue == key,
-                            isDimmed: strikeUnselected
-                                && !sel.wrappedValue.isEmpty
-                                && sel.wrappedValue != key,
-                            action: {
-                                Haptics.light()
-                                withAnimation(Motion.tap) {
-                                    sel.wrappedValue = key
+                    ForEach(Array(opts.enumerated()), id: \.element.0) { idx, opt in
+                        let (key, optTitle, optSub, optIcon) = opt
+                        StaggeredReveal(index: idx) {
+                            OnboardingOptionCard(
+                                icon: optIcon,
+                                sticker: stickers?[key],
+                                title: optTitle,
+                                subtitle: optSub,
+                                isSelected: sel.wrappedValue == key,
+                                isDimmed: strikeUnselected
+                                    && !sel.wrappedValue.isEmpty
+                                    && sel.wrappedValue != key,
+                                action: {
+                                    Haptics.light()
+                                    withAnimation(Motion.tap) {
+                                        sel.wrappedValue = key
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
 
                     if let feedback = inlineFeedback,
@@ -3011,23 +3138,26 @@ struct OnboardingView: View {
 
             ScrollView {
                 VStack(spacing: Space.sm) {
-                    ForEach(opts, id: \.0) { key, optTitle, optSub, optIcon in
-                        OnboardingOptionCard(
-                            icon: optIcon,
-                            title: optTitle,
-                            subtitle: optSub,
-                            isSelected: sel.wrappedValue.contains(key),
-                            action: {
-                                Haptics.light()
-                                withAnimation(.spring(response: 0.25)) {
-                                    if sel.wrappedValue.contains(key) {
-                                        sel.wrappedValue.remove(key)
-                                    } else {
-                                        sel.wrappedValue.insert(key)
+                    ForEach(Array(opts.enumerated()), id: \.element.0) { idx, opt in
+                        let (key, optTitle, optSub, optIcon) = opt
+                        StaggeredReveal(index: idx) {
+                            OnboardingOptionCard(
+                                icon: optIcon,
+                                title: optTitle,
+                                subtitle: optSub,
+                                isSelected: sel.wrappedValue.contains(key),
+                                action: {
+                                    Haptics.light()
+                                    withAnimation(.spring(response: 0.25)) {
+                                        if sel.wrappedValue.contains(key) {
+                                            sel.wrappedValue.remove(key)
+                                        } else {
+                                            sel.wrappedValue.insert(key)
+                                        }
                                     }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
                 .padding(.horizontal, Space.screenPadding)
@@ -3493,10 +3623,64 @@ struct OnboardingView: View {
                               GridItem(.flexible(), spacing: Space.sm)],
                     spacing: Space.sm
                 ) {
-                    ForEach(opts, id: \.key) { opt in
-                        photoChoiceCard(opt: opt, isSelected: sel.wrappedValue == opt.key) {
-                            Haptics.light()
-                            withAnimation(Motion.tap) { sel.wrappedValue = opt.key }
+                    ForEach(Array(opts.enumerated()), id: \.element.key) { idx, opt in
+                        StaggeredReveal(index: idx) {
+                            photoChoiceCard(opt: opt, isSelected: sel.wrappedValue == opt.key) {
+                                Haptics.light()
+                                withAnimation(Motion.tap) { sel.wrappedValue = opt.key }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, Space.screenPadding)
+                .padding(.bottom, Space.sm)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .safeAreaInset(edge: .bottom) {
+            jfCTADock {
+                JFContinueButton(
+                    label: "continue",
+                    action: { advance(to: next, confirmation: confirmation) },
+                    isEnabled: !sel.wrappedValue.isEmpty
+                )
+            }
+        }
+    }
+
+    /// Multi-select photo grid — same card chrome as jfPhotoChoice.
+    /// Built for the cuisine question (169): food cutout per option.
+    private func jfPhotoMulti(
+        _ title: String, sub: String? = nil,
+        italic: [String] = [],
+        opts: [(key: String, label: String, asset: String)],
+        sel: Binding<Set<String>>,
+        next: Int,
+        confirmation: String? = nil
+    ) -> some View {
+        VStack(spacing: 0) {
+            jfHeader(title, sub: sub, italic: italic)
+
+            Spacer().frame(height: Space.xs)
+
+            ScrollView {
+                LazyVGrid(
+                    columns: [GridItem(.flexible(), spacing: Space.sm),
+                              GridItem(.flexible(), spacing: Space.sm)],
+                    spacing: Space.sm
+                ) {
+                    ForEach(Array(opts.enumerated()), id: \.element.key) { idx, opt in
+                        StaggeredReveal(index: idx) {
+                            photoChoiceCard(opt: opt, isSelected: sel.wrappedValue.contains(opt.key)) {
+                                Haptics.light()
+                                withAnimation(Motion.tap) {
+                                    if sel.wrappedValue.contains(opt.key) {
+                                        sel.wrappedValue.remove(opt.key)
+                                    } else {
+                                        sel.wrappedValue.insert(opt.key)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -3523,12 +3707,15 @@ struct OnboardingView: View {
     ) -> some View {
         Button(action: action) {
             VStack(spacing: 0) {
+                // scaledToFit (founder QA 2026-06-11): the cutouts have
+                // real alpha, so fit shows the whole subject ending
+                // naturally instead of a hard fill-crop against the
+                // label row. Bottom-aligned so feet/bases rest on it.
                 Image(opt.asset)
                     .resizable()
-                    .scaledToFill()
-                    .frame(height: 132)
-                    .frame(maxWidth: .infinity)
-                    .clipped()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: 132, alignment: .bottom)
+                    .padding(.top, 8)
 
                 HStack(spacing: 8) {
                     ZStack {
@@ -5155,15 +5342,21 @@ struct OnboardingView: View {
         citation: String? = nil,
         // v4.6 (2026-06-11) — optional it-girl cutout bleeding off the
         // bottom-trailing corner (same move as the 286 sneakers).
-        accentImage: String? = nil
+        accentImage: String? = nil,
+        // When the cutout's subject is cropped by its own canvas edge
+        // (the pre-eat arms), push that edge off-screen so the cut
+        // reads as "from the edge of the phone", never mid-air.
+        accentFlushTrailing: Bool = false
     ) -> some View {
         ZStack(alignment: .bottomTrailing) {
             if let accentImage {
                 Image(accentImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(maxHeight: 330)
-                    .offset(x: 24, y: 16)
+                    .frame(maxHeight: 320)
+                    .padding(.trailing, accentFlushTrailing ? 0 : Space.lg)
+                    .offset(x: accentFlushTrailing ? 20 : 0)
+                    .padding(.bottom, Space.xs)
                     .accessibilityHidden(true)
             }
 
@@ -5223,7 +5416,8 @@ struct OnboardingView: View {
             headline: "built for real life.",
             italicWords: ["real"],
             body: "5-min beats. 3-month arcs. no all-or-nothing. what you share calibrates your plan. never shared, never sold.",
-            next: 1
+            next: 1,
+            accentImage: "onb-filler-anthurium"
         )
     }
 
@@ -5236,7 +5430,8 @@ struct OnboardingView: View {
             italicWords: ["before"],
             body: "most apps make you log after. jenifit lets you snap before. see if it fits. no shame either way.",
             next: 156,
-            accentImage: "onb-itgirl-preeat"
+            accentImage: "onb-itgirl-preeat",
+            accentFlushTrailing: true
         )
     }
 
@@ -8979,6 +9174,64 @@ private struct WeightCurveView: View {
             .delay(1.55)) {
             datePillVisible = true
         }
+    }
+}
+
+/// Camera viewfinder corner brackets for the welcome demo mock.
+struct WelcomeScanBrackets: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let l: CGFloat = min(rect.width, rect.height) * 0.16
+        let r = rect
+        // top-left
+        p.move(to: CGPoint(x: r.minX, y: r.minY + l))
+        p.addLine(to: CGPoint(x: r.minX, y: r.minY))
+        p.addLine(to: CGPoint(x: r.minX + l, y: r.minY))
+        // top-right
+        p.move(to: CGPoint(x: r.maxX - l, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.minY + l))
+        // bottom-right
+        p.move(to: CGPoint(x: r.maxX, y: r.maxY - l))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.maxX - l, y: r.maxY))
+        // bottom-left
+        p.move(to: CGPoint(x: r.minX + l, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.minX, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.minX, y: r.maxY - l))
+        return p
+    }
+}
+
+/// v4.6 (2026-06-11) — per-element entrance cascade for question
+/// screens. The reveal sequence's staggered choreography read as the
+/// "luxury" register in founder QA while question screens snapped in
+/// as one block; this wrapper gives every option row the same 0.06s
+/// cascade so the whole flow speaks one motion language.
+struct StaggeredReveal<Content: View>: View {
+    let index: Int
+    var baseDelay: Double = 0.18
+    @ViewBuilder let content: () -> Content
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var revealed = false
+
+    var body: some View {
+        content()
+            .opacity(revealed ? 1 : 0)
+            .offset(y: revealed ? 0 : 14)
+            .onAppear {
+                guard !revealed else { return }
+                if reduceMotion {
+                    revealed = true
+                } else {
+                    withAnimation(
+                        Motion.entranceSoft.delay(baseDelay + Double(index) * Motion.cascadeTight)
+                    ) {
+                        revealed = true
+                    }
+                }
+            }
     }
 }
 

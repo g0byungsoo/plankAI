@@ -375,8 +375,12 @@ struct OnboardingOptionCard: View {
                 }
             }
             .padding(.horizontal, Space.md)
-            .padding(.vertical, isCompact ? Space.sm : Space.md)
-            .frame(minHeight: isCompact ? 52 : 72)
+            .padding(.vertical, isCompact ? Space.md : Space.md)
+            // her75 tall-pill register (founder QA 2026-06-11): compact
+            // rows at 52pt read as "narrow boxes for no reason" when the
+            // screen has room. 68pt keeps 5-option screens on-screen
+            // while matching the reference pill height.
+            .frame(minHeight: isCompact ? 68 : 72)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Palette.bgElevated, in: RoundedRectangle(cornerRadius: Radius.md))
             .overlay(

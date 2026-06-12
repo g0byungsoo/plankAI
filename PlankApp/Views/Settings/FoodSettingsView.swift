@@ -55,13 +55,15 @@ struct FoodSettingsView: View {
         ("soy",       "soy"),
     ]
 
+    // v4.6 (2026-06-11): key space matches the onboarding cuisine photo
+    // grid (case 169). Legacy keys (korean/japanese/chinese) persist in
+    // the CSV for existing users until they edit here.
     private static let cuisineOptions: [(key: String, label: String)] = [
         ("american",      "american"),
         ("italian",       "italian"),
         ("mexican",       "mexican"),
-        ("korean",        "korean"),
-        ("japanese",      "japanese"),
-        ("chinese",       "chinese"),
+        ("eastAsian",     "east asian"),
+        ("southAsian",    "south asian"),
         ("mediterranean", "mediterranean"),
         ("other",         "other"),
     ]
