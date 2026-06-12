@@ -1477,34 +1477,40 @@ struct OnboardingView: View {
         // simplest-screens register.
         case 283: VStack(spacing: 0) {
             Spacer()
-            // v4.6 round 3 — rotating profile marquee. 12 it-girl
-            // cutouts conveyor right-to-left, a new woman always
-            // entering from the right (founder direction). Window of
-            // 3; ~1.8s cadence; reduce-motion holds the first three.
-            HStack(alignment: .bottom, spacing: 18) {
-                ForEach(0..<3, id: \.self) { slot in
-                    let asset = Self.cohortMarqueeAssets[
-                        (cohortMarqueeIndex + slot) % Self.cohortMarqueeAssets.count
-                    ]
+            // v4.6 round 9 — circular avatar conveyor. Reads as women
+            // joining in real time: a new circle slides in from the
+            // right every 1.6s, the oldest slips out left, the newest
+            // arrival lands slightly larger then settles into the row.
+            // Clean: 4 framed circles, one motion, nothing else.
+            HStack(spacing: 14) {
+                ForEach(0..<4, id: \.self) { slot in
+                    let i = cohortMarqueeIndex + slot
+                    let asset = Self.cohortMarqueeAssets[i % Self.cohortMarqueeAssets.count]
+                    let isNewest = slot == 3
                     Image(asset)
                         .resizable()
-                        .scaledToFit()
-                        .frame(height: slot == 1 ? 110 : 92)
-                        .id("\(asset)-\(cohortMarqueeIndex + slot)")
+                        .scaledToFill()
+                        .frame(width: isNewest ? 72 : 64, height: isNewest ? 72 : 64)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white, lineWidth: 2.5))
+                        .shadow(color: .black.opacity(0.07), radius: 6, y: 3)
+                        .id("\(asset)-\(i)")
                         .transition(.asymmetric(
-                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            insertion: .move(edge: .trailing)
+                                .combined(with: .scale(scale: 0.6))
+                                .combined(with: .opacity),
                             removal: .move(edge: .leading).combined(with: .opacity)
                         ))
                 }
             }
-            .frame(height: 116)
+            .frame(height: 80)
             .clipped()
             .accessibilityHidden(true)
             .padding(.bottom, Space.lg)
             .task {
                 guard !reduceMotion else { return }
                 while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: 1_800_000_000)
+                    try? await Task.sleep(nanoseconds: 1_600_000_000)
                     guard !Task.isCancelled else { break }
                     withAnimation(Motion.gentleSpring) {
                         cohortMarqueeIndex = (cohortMarqueeIndex + 1)
@@ -5496,7 +5502,11 @@ struct OnboardingView: View {
         // (the pre-eat arms), push that edge off-screen so the cut
         // reads as "from the edge of the phone", never mid-air.
         accentFlushTrailing: Bool = false,
-        accentMaxHeight: CGFloat = 320
+        accentMaxHeight: CGFloat = 320,
+        // Horizontal nudge for cutouts whose subject sits off-center
+        // in their own canvas (the roses lean left); positive pushes
+        // toward the trailing edge.
+        accentOffsetX: CGFloat = 0
     ) -> some View {
         ZStack(alignment: .bottomTrailing) {
             if let accentImage {
@@ -5505,7 +5515,7 @@ struct OnboardingView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(maxHeight: accentMaxHeight)
                     .padding(.trailing, accentFlushTrailing ? 0 : Space.lg)
-                    .offset(x: accentFlushTrailing ? 20 : 0)
+                    .offset(x: (accentFlushTrailing ? 20 : 0) + accentOffsetX)
                     .padding(.bottom, Space.xs)
                     .accessibilityHidden(true)
             }
@@ -5567,11 +5577,13 @@ struct OnboardingView: View {
             italicWords: ["real"],
             body: "5-min beats. 3-month arcs. no all-or-nothing. what you share calibrates your plan. never shared, never sold.",
             // Founder-supplied rose bouquet (2026-06-12), replacing the
-            // cactus. 380pt keeps it clear of the body copy (the 460pt
-            // cactus poked through the text block).
+            // cactus. 380pt keeps it clear of the body copy; +90 nudge
+            // sides the bouquet on the right edge (round 9) since its
+            // subject leans left inside the square canvas.
             next: 1,
             accentImage: "onb-filler-roses",
-            accentMaxHeight: 380
+            accentMaxHeight: 380,
+            accentOffsetX: 90
         )
     }
 
@@ -5595,10 +5607,15 @@ struct OnboardingView: View {
         educationalScreen(
             headline: "the scale stalls around week 3. that's good.",
             italicWords: ["good"],
+            // Pink-sand hourglass (round 9, second pass): "the scale
+            // stalls" wants a time object. Sand still flowing = the
+            // plateau is progress moving quietly, and it is the most
+            // coquette object on any teach screen.
             body: "plateaus mean adaptation, not failure. jeni tells you what to change. no panic.",
             next: 21,
             citation: "acsm 2024",
-            accentImage: "onb-filler-matcha"
+            accentImage: "onb-filler-hourglass",
+            accentMaxHeight: 360
         )
     }
 
