@@ -796,6 +796,96 @@ public actor SyncService {
             #endif
         }
     }
+
+    // MARK: - Food logs (v1.1 — journal sync)
+    //
+    // The food journal lives in PlankFood's JSONL store, not SwiftData,
+    // so this section trades the record-type pattern for a plain
+    // Codable row. Title rides in the payload jsonb column (food_logs
+    // has no title column; payload is the designated evolving-field
+    // home per the schema comment).
+
+    public struct FoodLogSyncRow: Codable, Sendable {
+        public let id: String
+        public let user_id: String
+        public let logged_at: String
+        public let kcal_total: Double
+        public let protein_g: Double?
+        public let carbs_g: Double?
+        public let fat_g: Double?
+        public let fiber_g: Double?
+        public let source: String
+        public let payload: Payload?
+
+        public struct Payload: Codable, Sendable {
+            public let title: String?
+            public init(title: String?) { self.title = title }
+        }
+
+        public init(
+            id: String, user_id: String, logged_at: String,
+            kcal_total: Double, protein_g: Double?, carbs_g: Double?,
+            fat_g: Double?, fiber_g: Double?, source: String,
+            payload: Payload?
+        ) {
+            self.id = id
+            self.user_id = user_id
+            self.logged_at = logged_at
+            self.kcal_total = kcal_total
+            self.protein_g = protein_g
+            self.carbs_g = carbs_g
+            self.fat_g = fat_g
+            self.fiber_g = fiber_g
+            self.source = source
+            self.payload = payload
+        }
+    }
+
+    public func upsertFoodLog(_ row: FoodLogSyncRow) async {
+        guard !row.user_id.isEmpty else { return }
+        do {
+            try await supabase.from("food_logs")
+                .upsert(row)
+                .execute()
+        } catch {
+            #if DEBUG
+            print("[SyncService] upsertFoodLog FAILED for \(row.id): \(error)")
+            #endif
+        }
+    }
+
+    public func deleteFoodLog(id: String) async {
+        do {
+            // RLS delete_own policy scopes the delete to auth.uid();
+            // no explicit user_id filter needed (and adding one would
+            // break for the re-attributed sign-in merge case).
+            try await supabase.from("food_logs")
+                .delete()
+                .eq("id", value: id)
+                .execute()
+        } catch {
+            #if DEBUG
+            print("[SyncService] deleteFoodLog FAILED for \(id): \(error)")
+            #endif
+        }
+    }
+
+    public func fetchFoodLogs(userId: String) async -> [FoodLogSyncRow] {
+        do {
+            let rows: [FoodLogSyncRow] = try await supabase.from("food_logs")
+                .select("id, user_id, logged_at, kcal_total, protein_g, carbs_g, fat_g, fiber_g, source, payload")
+                .eq("user_id", value: userId)
+                .order("logged_at", ascending: true)
+                .execute()
+                .value
+            return rows
+        } catch {
+            #if DEBUG
+            print("[SyncService] fetchFoodLogs FAILED: \(error)")
+            #endif
+            return []
+        }
+    }
 }
 
 // MARK: - Supabase row types

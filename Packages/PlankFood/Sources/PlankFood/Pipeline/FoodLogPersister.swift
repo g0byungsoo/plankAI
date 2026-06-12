@@ -130,6 +130,89 @@ public enum FoodLogPersister {
         }
     }
 
+    // MARK: - Cloud sync seam
+    //
+    // The JSONL store is device-local; without a sync path every
+    // reinstall or device switch silently wipes the journal ("your
+    // plates, kept" broken). PlankFood stays Supabase-blind: the main
+    // app registers the two hooks at launch and AppSync does the
+    // network work against the food_logs table.
+
+    /// Full-fidelity entry DTO for the sync layer (FoodLogEntry drops
+    /// userId + fiber, which the cloud row needs).
+    public struct SyncableEntry: Sendable {
+        public let id: String
+        public let userId: String
+        public let loggedAt: Date
+        public let kcal: Double
+        public let protein: Double
+        public let carbs: Double
+        public let fat: Double
+        public let fiber: Double
+        public let title: String
+        public let source: String?
+
+        public init(
+            id: String, userId: String, loggedAt: Date, kcal: Double,
+            protein: Double, carbs: Double, fat: Double, fiber: Double,
+            title: String, source: String?
+        ) {
+            self.id = id
+            self.userId = userId
+            self.loggedAt = loggedAt
+            self.kcal = kcal
+            self.protein = protein
+            self.carbs = carbs
+            self.fat = fat
+            self.fiber = fiber
+            self.title = title
+            self.source = source
+        }
+    }
+
+    /// Fired after a new entry lands in the local store. Registered by
+    /// the main app at launch; nil = sync disabled (tests, previews).
+    public static var onEntryPersisted: (@MainActor (SyncableEntry) -> Void)?
+    /// Fired after a local delete with (entryId, userId).
+    public static var onEntryDeleted: (@MainActor (String, String) -> Void)?
+
+    /// Every local entry for the user, full fidelity — the launch
+    /// reconcile pushes the ones the server doesn't have yet.
+    public static func allSyncableEntries(userId: String) -> [SyncableEntry] {
+        hydrateIfNeeded()
+        return inMemoryEntries
+            .filter { $0.userId == userId }
+            .map {
+                SyncableEntry(
+                    id: $0.id, userId: $0.userId, loggedAt: $0.loggedAt,
+                    kcal: $0.kcal, protein: $0.protein, carbs: $0.carbs,
+                    fat: $0.fat, fiber: $0.fiber, title: $0.title,
+                    source: $0.source
+                )
+            }
+    }
+
+    /// Merge server rows into the local store. Insert-only by id —
+    /// local edits never get clobbered, replays are no-ops. Fires
+    /// changeNotifier once when anything new landed.
+    public static func mergeRemote(_ remote: [SyncableEntry]) {
+        hydrateIfNeeded()
+        let localIds = Set(inMemoryEntries.map(\.id))
+        let fresh = remote.filter { !localIds.contains($0.id) }
+        guard !fresh.isEmpty else { return }
+        for r in fresh {
+            let entry = Entry(
+                id: r.id, userId: r.userId, loggedAt: r.loggedAt,
+                kcal: r.kcal, protein: r.protein, carbs: r.carbs,
+                fat: r.fat, fiber: r.fiber, title: r.title, source: r.source
+            )
+            inMemoryEntries.append(entry)
+            appendToStore(entry)
+        }
+        inMemoryEntries.sort { $0.loggedAt < $1.loggedAt }
+        changeNotifier.send(())
+    }
+
     // MARK: - Public DTO (D3.B timeline)
 
     /// v1.0.9 D3.B — public per-entry DTO surfaced to the food log
@@ -346,6 +429,14 @@ public enum FoodLogPersister {
 
         changeNotifier.send(())
 
+        // Cloud sync hook — fire-and-forget upsert to food_logs.
+        onEntryPersisted?(SyncableEntry(
+            id: entry.id, userId: entry.userId, loggedAt: entry.loggedAt,
+            kcal: entry.kcal, protein: entry.protein, carbs: entry.carbs,
+            fat: entry.fat, fiber: entry.fiber, title: entry.title,
+            source: entry.source
+        ))
+
         // Apple Health write hook. The main app registers a closure at
         // launch that reads the user's "foodHealthKitWriteEnabled"
         // toggle, confirms HK auth, and saves an HKQuantitySample.
@@ -456,8 +547,38 @@ public enum FoodLogPersister {
     /// list render and tap).
     public static func deleteEntry(id: String) {
         hydrateIfNeeded()
-        let before = inMemoryEntries.count
+        guard let removed = inMemoryEntries.first(where: { $0.id == id }) else { return }
         inMemoryEntries.removeAll { $0.id == id }
+        rewriteStore()
+        changeNotifier.send(())
+        onEntryDeleted?(removed.id, removed.userId)
+    }
+
+    /// Re-key entries from one userId to another — the sign-in merge
+    /// path (anon experimentation folds into the named account). The
+    /// launch reconcile pushes the re-keyed rows on the next hydrate.
+    public static func reattributeEntries(from oldId: String, to newId: String) {
+        hydrateIfNeeded()
+        guard oldId != newId, inMemoryEntries.contains(where: { $0.userId == oldId }) else { return }
+        inMemoryEntries = inMemoryEntries.map { e in
+            guard e.userId == oldId else { return e }
+            return Entry(
+                id: e.id, userId: newId, loggedAt: e.loggedAt, kcal: e.kcal,
+                protein: e.protein, carbs: e.carbs, fat: e.fat,
+                fiber: e.fiber, title: e.title, source: e.source
+            )
+        }
+        rewriteStore()
+        changeNotifier.send(())
+    }
+
+    /// Wipe every entry for a user — the delete-account path. Cloud
+    /// rows are removed by the server-side cascade; this only clears
+    /// the device copy (no per-entry delete hooks fired).
+    public static func deleteAllEntries(userId: String) {
+        hydrateIfNeeded()
+        let before = inMemoryEntries.count
+        inMemoryEntries.removeAll { $0.userId == userId }
         guard inMemoryEntries.count != before else { return }
         rewriteStore()
         changeNotifier.send(())

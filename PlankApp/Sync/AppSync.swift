@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import SwiftData
 import PlankSync
+import PlankFood
 import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
 
 // MARK: - AppSync
@@ -41,6 +42,18 @@ final class AppSync {
         self.modelContainer = modelContainer
         guard syncService == nil else { return }
         syncService = SyncService(supabaseClient: supabase, modelContainer: modelContainer)
+
+        // Food journal sync seam — PlankFood fires these after local
+        // writes; we mirror to the food_logs table. Fire-and-forget:
+        // logging requires the network anyway (the vision EF), so a
+        // failed upsert here is rare and the launch reconcile in
+        // hydrateFoodLogs sweeps up stragglers.
+        FoodLogPersister.onEntryPersisted = { entry in
+            Task { await AppSync.shared.upsertFoodLog(entry) }
+        }
+        FoodLogPersister.onEntryDeleted = { entryId, _ in
+            Task { await AppSync.shared.deleteFoodLog(id: entryId) }
+        }
     }
 
     // MARK: Bootstrap
@@ -176,6 +189,10 @@ final class AppSync {
         // user has no enrollment.
         await service.hydrateProgramPlans(userId: userId)
         await service.hydrateProgramDayChecks(userId: userId)
+        // Food journal: pull server rows into the JSONL store, then
+        // push any local entries the server doesn't have (covers logs
+        // recorded before sync shipped + rare failed upserts).
+        await hydrateFoodLogs(userId: userId)
         syncUserDefaultsFromUserRecord(context: container.mainContext, userId: userId)
     }
 
@@ -267,6 +284,11 @@ final class AppSync {
             w.pendingUpsert = true
         }
 
+        // Food journal entries collected during the anonymous period
+        // re-key the same way (views filter by current userId). The
+        // post-sign-in hydrateFoodLogs reconcile pushes them.
+        FoodLogPersister.reattributeEntries(from: oldId, to: newId)
+
         try? modelContext.save()
     }
 
@@ -292,6 +314,75 @@ final class AppSync {
         guard let service = syncService else { return }
         guard !log.userId.isEmpty else { return }
         await service.upsertWeightLog(log)
+    }
+
+    // MARK: - Food journal (v1.1 — journal sync)
+
+    private static let foodLogDateFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    private static func syncRow(from entry: FoodLogPersister.SyncableEntry) -> SyncService.FoodLogSyncRow {
+        SyncService.FoodLogSyncRow(
+            id: entry.id,
+            user_id: entry.userId,
+            logged_at: ISO8601DateFormatter().string(from: entry.loggedAt),
+            kcal_total: entry.kcal,
+            protein_g: entry.protein,
+            carbs_g: entry.carbs,
+            fat_g: entry.fat,
+            fiber_g: entry.fiber,
+            // food_logs.source CHECK list mirrors FoodCapture raw
+            // values; old pre-D3.B entries carry nil → 'photo'.
+            source: entry.source ?? "photo",
+            payload: .init(title: entry.title.isEmpty ? nil : entry.title)
+        )
+    }
+
+    func upsertFoodLog(_ entry: FoodLogPersister.SyncableEntry) async {
+        guard let service = syncService else { return }
+        guard !entry.userId.isEmpty else { return }
+        await service.upsertFoodLog(Self.syncRow(from: entry))
+    }
+
+    func deleteFoodLog(id: String) async {
+        guard let service = syncService else { return }
+        await service.deleteFoodLog(id: id)
+    }
+
+    /// Two-way reconcile: merge server rows into the local journal,
+    /// then push local entries the server doesn't have.
+    func hydrateFoodLogs(userId: String) async {
+        guard let service = syncService else { return }
+        guard !userId.isEmpty else { return }
+
+        let rows = await service.fetchFoodLogs(userId: userId)
+        let fallbackFormatter = ISO8601DateFormatter()
+        let remote: [FoodLogPersister.SyncableEntry] = rows.map { row in
+            FoodLogPersister.SyncableEntry(
+                id: row.id,
+                userId: row.user_id,
+                loggedAt: Self.foodLogDateFormatter.date(from: row.logged_at)
+                    ?? fallbackFormatter.date(from: row.logged_at)
+                    ?? .now,
+                kcal: row.kcal_total,
+                protein: row.protein_g ?? 0,
+                carbs: row.carbs_g ?? 0,
+                fat: row.fat_g ?? 0,
+                fiber: row.fiber_g ?? 0,
+                title: row.payload?.title ?? "",
+                source: row.source
+            )
+        }
+        FoodLogPersister.mergeRemote(remote)
+
+        let remoteIds = Set(rows.map(\.id))
+        for entry in FoodLogPersister.allSyncableEntries(userId: userId)
+        where !remoteIds.contains(entry.id) {
+            await service.upsertFoodLog(Self.syncRow(from: entry))
+        }
     }
 
     // MARK: - Program (v1.1 program pivot)
@@ -413,6 +504,11 @@ final class AppSync {
         if let calibrations = try? context.fetch(calibrationsDescriptor) {
             for cal in calibrations { context.delete(cal) }
         }
+
+        // Food journal lives in the JSONL store, not SwiftData. Server
+        // rows are gone via the delete-account cascade; clear the
+        // device copy too.
+        FoodLogPersister.deleteAllEntries(userId: userId)
 
         try? context.save()
     }
