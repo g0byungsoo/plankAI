@@ -172,7 +172,11 @@ struct BecomingRecapView: View {
         .safeAreaInset(edge: .bottom) {
             JFContinueButton(
                 label: "keep it",
-                action: { showShare = true },
+                action: {
+                    // Guard: presenting with a nil card draws an empty
+                    // (black) sheet. No card → nothing to keep.
+                    if dayCard != nil { showShare = true } else { onDismiss() }
+                },
                 secondaryLabel: "not now",
                 secondaryAction: {
                     Haptics.light()

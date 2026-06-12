@@ -47,8 +47,14 @@ public struct FoodLogTimelineView: View {
     @State private var pendingDeleteEntryId: String? = nil
     /// v1.0.9 D3.C — lazy-rendered 1080×1920 share image. Built on
     /// tap so we don't re-render on every log change.
-    @State private var shareImage: UIImage? = nil
-    @State private var showShareSheet: Bool = false
+    /// Identifiable wrapper — .sheet(item:) instead of
+    /// .sheet(isPresented:) so the first tap can't present the sheet
+    /// against a stale nil image (showed black until a second tap).
+    private struct ShareItem: Identifiable {
+        let id = UUID()
+        let image: UIImage
+    }
+    @State private var shareItem: ShareItem? = nil
     /// v1.1 journal — meal detail. The detail lives in the SAME view
     /// hierarchy as the rows (overlay, not a sheet) so the photo
     /// matte can morph row→hero via matchedGeometryEffect (the
@@ -93,13 +99,11 @@ public struct FoodLogTimelineView: View {
         // wrapper pattern from PhotoCaptureView's result share would
         // mean importing it across files; for one call site, inline
         // the wrap.
-        .sheet(isPresented: $showShareSheet) {
-            if let img = shareImage {
-                ShareActivityView(items: [img], onComplete: {
-                    showShareSheet = false
-                })
-                .ignoresSafeArea()
-            }
+        .sheet(item: $shareItem) { item in
+            ShareActivityView(items: [item.image], onComplete: {
+                shareItem = nil
+            })
+            .ignoresSafeArea()
         }
         .confirmationDialog(
             "remove this log?",
@@ -207,11 +211,12 @@ public struct FoodLogTimelineView: View {
             if !entries.isEmpty {
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    shareImage = DailyShareRenderer.render(
+                    if let img = DailyShareRenderer.render(
                         userId: userId,
                         dailyTarget: dailyTarget
-                    )
-                    showShareSheet = (shareImage != nil)
+                    ) {
+                        shareItem = ShareItem(image: img)
+                    }
                 } label: {
                     Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 15, weight: .semibold))

@@ -419,8 +419,15 @@ struct AnalyticsView: View {
     @State private var showFoodJournal = false
     @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 1650
     /// v1.1 P3 — rendered day card pending share-sheet presentation.
-    @State private var dayCardImage: UIImage? = nil
-    @State private var showDayCardShare = false
+    /// Identifiable wrapper so the share sheet presents via
+    /// .sheet(item:) — .sheet(isPresented:) evaluates its content
+    /// closure against the PRE-tap state snapshot on first present,
+    /// which showed an empty (black) sheet until the second tap.
+    struct DayCardShareItem: Identifiable {
+        let id = UUID()
+        let image: UIImage
+    }
+    @State private var dayCardShareItem: DayCardShareItem? = nil
     /// v1.1 P3b — Sunday recap takeover. Once per ISO week, Sundays
     /// only, never on an empty week.
     @State private var showSundayRecap = false
@@ -536,13 +543,14 @@ struct AnalyticsView: View {
                     .overlay(alignment: .bottomTrailing) {
                         Button {
                             Haptics.light()
-                            dayCardImage = BecomingDayCardRenderer.render(
+                            if let img = BecomingDayCardRenderer.render(
                                 dayNumber: folioDayNumber,
                                 totalDays: folioTotalDays,
                                 dateRange: folioDateRange,
                                 facts: dayCardFacts
-                            )
-                            showDayCardShare = dayCardImage != nil
+                            ) {
+                                dayCardShareItem = DayCardShareItem(image: img)
+                            }
                         } label: {
                             Image(systemName: "square.and.arrow.up")
                                 .font(.system(size: 15, weight: .medium))
@@ -653,11 +661,9 @@ struct AnalyticsView: View {
             .presentationDetents([.fraction(0.78)])
             .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $showDayCardShare) {
-            if let img = dayCardImage {
-                BecomingShareSheet(image: img)
-                    .presentationDetents([.medium, .large])
-            }
+        .sheet(item: $dayCardShareItem) { item in
+            BecomingShareSheet(image: item.image)
+                .presentationDetents([.medium, .large])
         }
         // v1.1 food journal — same presentation contract HomeView uses
         // (the + button dismisses; the camera lives on the tab bar's
