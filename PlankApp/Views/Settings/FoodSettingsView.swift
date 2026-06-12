@@ -14,8 +14,8 @@ import SwiftUI
 //   4. privacy     — photo retention + AI consent status + export
 //
 // Voice locks: lowercase section headers, italic-Fraunces punch words
-// where natural, hearts ♥ as terminal punctuation, cocoa pill CTAs,
-// scrapbook chrome on every grouped card.
+// where natural, hearts as terminal punctuation. v1.1 clean-luxury
+// pass: hairline sections (SettingsChrome), no card chrome.
 
 struct FoodSettingsView: View {
 
@@ -71,18 +71,25 @@ struct FoodSettingsView: View {
     // MARK: - Body
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: Space.lg) {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                JFPageHero(title: "your food.", italic: ["food."], alignment: .leading)
+                    .padding(.horizontal, -Space.screenPadding)
+
+                Spacer().frame(height: 28)
                 dailyTargetSection
+                Spacer().frame(height: 36)
                 whatYouEatSection
+                Spacer().frame(height: 36)
                 trackingSection
+                Spacer().frame(height: 36)
                 privacySection
             }
             .padding(.horizontal, Space.screenPadding)
             .padding(.top, Space.md)
             .padding(.bottom, 40)
         }
-        .background(Palette.bgPrimary.ignoresSafeArea())
+        .background(Palette.programEraBg)
         .onAppear {
             calorieDraft = String(Int(foodDailyTargetKcal.rounded()))
         }
@@ -189,7 +196,7 @@ struct FoodSettingsView: View {
 
                 Toggle(isOn: $eveningCheckInEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("evening check-in ♥")
+                        Text("evening check-in ♥\u{FE0E}")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(Palette.textPrimary)
                         Text("one soft look back at today's plate. 8:30pm.")
@@ -229,15 +236,16 @@ struct FoodSettingsView: View {
 
                 Divider().background(Palette.divider)
 
-                // AI consent — read-only display of acceptance state.
-                // Cannot be toggled here; declined users go through the
-                // sheet again at their next capture attempt.
+                // Photo-analysis consent — read-only display of
+                // acceptance state. Cannot be toggled here; declined
+                // users go through the sheet again at their next
+                // capture attempt.
                 HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: aiConsentAccepted ? "checkmark.circle.fill" : "circle.dashed")
-                        .font(.system(size: 16))
+                    Image(systemName: aiConsentAccepted ? "checkmark.circle" : "circle.dashed")
+                        .font(.system(size: 16, weight: .light))
                         .foregroundStyle(aiConsentAccepted ? Palette.accent : Palette.textSecondary)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("AI consent")
+                        Text("photo analysis consent")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(Palette.textPrimary)
                         Text(aiConsentAccepted
@@ -281,17 +289,16 @@ struct FoodSettingsView: View {
         title: String,
         @ViewBuilder _ content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: Space.md) {
-            Text(title)
-                .font(.system(size: 11, weight: .semibold))
-                .tracking(1.4)
-                .foregroundStyle(Palette.textSecondary)
-                .textCase(.uppercase)
-            content()
+        SettingsSection(title: title) {
+            VStack(alignment: .leading, spacing: Space.md) {
+                content()
+            }
+            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+            }
         }
-        .padding(Space.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(scrapbookChrome())
     }
 
     private func fieldLabel(_ text: String) -> some View {
@@ -356,15 +363,6 @@ struct FoodSettingsView: View {
         return f.string(from: date).lowercased()
     }
 
-    private func scrapbookChrome() -> some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .fill(Palette.bgElevated)
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(Palette.textPrimary, lineWidth: 1)
-            )
-            .shadow(color: Palette.textPrimary.opacity(0.18), radius: 0, x: 2, y: 2)
-    }
 }
 
 // MARK: - FoodChipFlowLayoutChipRow

@@ -198,6 +198,7 @@
 		2E943737B2EF50D7403F9C08 /* matson_prep_short_flutter_kicks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 336E3ECD4FD95A76244EC1F2 /* matson_prep_short_flutter_kicks.m4a */; };
 		2F7251BAC5762EB90DB11776 /* matson_prep_full_side_split_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 76F3EF8D6CB9867434D97BCF /* matson_prep_full_side_split_squat.m4a */; };
 		2F9D4F6F7BEE95BE84FCECDF /* jeni_prep_short_front_kicks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CCC68A1E693650768CA05677 /* jeni_prep_short_front_kicks.m4a */; };
+		30440B762930706742A538A3 /* SettingsChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0A0D8135D44B74CFB88C6D /* SettingsChrome.swift */; };
 		3062D3D72276DE79B5B45F40 /* method_preview_kira.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 150A5A29BBC3373555AFCE06 /* method_preview_kira.m4a */; };
 		307DE14041CF760F717BBD3B /* matson_prep_full_narrow_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 91026BE7B9F95327A33D4E42 /* matson_prep_full_narrow_squat.m4a */; };
 		30D5C2D2FED8FF69A7190FB4 /* matson_prep_short_glute_bridge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0135F12CDEFE68BBBA83E779 /* matson_prep_short_glute_bridge.m4a */; };
@@ -1216,7 +1217,6 @@
 		ED83EF70E7B6F95F3CD87F02 /* ProgramGoalCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BF8E5B2B00D88179487277 /* ProgramGoalCalculator.swift */; };
 		ED86AE3759147A0AF632C8C1 /* matson_prep_full_back_extension_lying.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 3728CE31D0B15029FB648534 /* matson_prep_full_back_extension_lying.m4a */; };
 		EDF03C3EEC36A8F3C51D387E /* jeni_prep_short_dead_bug.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2192930438715A9913F886E6 /* jeni_prep_short_dead_bug.m4a */; };
-		EE0000012FA50002000001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000012FA50001000001 /* SettingsView.swift */; };
 		EE0000022FA50002000002 /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000022FA50001000002 /* EditProfileView.swift */; };
 		EE0000032FA50002000003 /* ChangeTrainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000032FA50001000003 /* ChangeTrainerView.swift */; };
 		EE0000042FA50002000004 /* NotificationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000042FA50001000004 /* NotificationSettingsView.swift */; };
@@ -1852,6 +1852,7 @@
 		790EA433C723F6B8C7189867 /* prep_full_high_plank_leg_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_high_plank_leg_raise.m4a; sourceTree = "<group>"; };
 		79517CD7035B64EA70F7D0D2 /* jeni_prep_short_tabletop_bridge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_tabletop_bridge.m4a; sourceTree = "<group>"; };
 		79EBDF60275ABDA9591AE3E1 /* prep_short_calf_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_calf_raise.m4a; sourceTree = "<group>"; };
+		7A0A0D8135D44B74CFB88C6D /* SettingsChrome.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsChrome.swift; sourceTree = "<group>"; };
 		7A88E5E1ACC3F457FDC90795 /* prep_short_lizard_pose.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_lizard_pose.m4a; sourceTree = "<group>"; };
 		7A99412E7A56B70036E05334 /* jeni_prep_full_jump_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_jump_squat.m4a; sourceTree = "<group>"; };
 		7B0CD411FC2FDC2BE4A5F9D6 /* matson_prep_short_plank_frog_jump.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_plank_frog_jump.m4a; sourceTree = "<group>"; };
@@ -2527,7 +2528,6 @@
 		EBFEB1C5310DA2105E57FF97 /* jeni_prep_short_run_punch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_run_punch.m4a; sourceTree = "<group>"; };
 		EC7D18CC49E5A1B145950138 /* prep_short_air_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_air_squat.m4a; sourceTree = "<group>"; };
 		ED00F7507D67B05010AD8998 /* matson_prep_short_windshield_wipers.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_windshield_wipers.m4a; sourceTree = "<group>"; };
-		EE0000012FA50001000001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		EE0000022FA50001000002 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
 		EE0000032FA50001000003 /* ChangeTrainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeTrainerView.swift; sourceTree = "<group>"; };
 		EE0000042FA50001000004 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
@@ -4228,7 +4228,6 @@
 		EE0000072FA5000100000007 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
-				EE0000012FA50001000001 /* SettingsView.swift */,
 				EE0000022FA50001000002 /* EditProfileView.swift */,
 				EE0000032FA50001000003 /* ChangeTrainerView.swift */,
 				EE0000042FA50001000004 /* NotificationSettingsView.swift */,
@@ -4239,6 +4238,7 @@
 				CDFFB5FD71BB5C412B1E3986 /* CoachAsset.swift */,
 				D035063FF47C994FD6A6F55D /* ProfileHubView.swift */,
 				38D43415E1C4CA152440F8B2 /* FoodSettingsView.swift */,
+				7A0A0D8135D44B74CFB88C6D /* SettingsChrome.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -5611,7 +5611,6 @@
 				CC00010520000000000000F0 /* LogWeightSheet.swift in Sources */,
 				CC00010520000000000000F2 /* WeightTrendChart.swift in Sources */,
 				DD0001012FA4000100000001 /* StreakCalculator.swift in Sources */,
-				EE0000012FA50002000001 /* SettingsView.swift in Sources */,
 				EE0000022FA50002000002 /* EditProfileView.swift in Sources */,
 				EE0000032FA50002000003 /* ChangeTrainerView.swift in Sources */,
 				EE0000042FA50002000004 /* NotificationSettingsView.swift in Sources */,
@@ -5712,6 +5711,7 @@
 				2033A8F3D1639BF1AA13190F /* BecomingDayCard.swift in Sources */,
 				B4D5897D3B28F93909260FC8 /* BecomingRecapView.swift in Sources */,
 				81B9385E70F8A268C06CC0A8 /* RecapNotificationService.swift in Sources */,
+				30440B762930706742A538A3 /* SettingsChrome.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

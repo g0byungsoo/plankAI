@@ -4,22 +4,22 @@ import PlankSync
 import PlankFood
 import Auth
 
-/// The profile/settings hub. Closes via the morphing ☰↔X mark that floats in
-/// HomeView's top-right (kept above this layer), so this view has NO close
-/// button — only a clean "back" when inside a sub-screen. The whole thing
-/// fades in and the rows reveal one-by-one (staggered), per the mindful-motion
-/// rule. State-driven navigation (no NavigationStack) keeps back/close clean.
+/// The profile/settings hub. v1.1 clean-luxury pass: the scrapbook
+/// card rows became hairline-ruled editorial lists (SettingsChrome),
+/// the identity moment opens the page as a monogram + folio line, and
+/// the one jewel is the mother-of-pearl sheen drifting across the
+/// monogram ring.
 ///
-/// Identity header values trace to collected fields (data-provenance):
-/// name, nurturing "shown up N times" (day_progress count, NOT a streak),
-/// goal (bodyFocus), coach (voicePreference), "becoming since" (earliest
+/// State-driven navigation (no NavigationStack) keeps back/close clean.
+/// Identity values trace to collected fields (data provenance): name,
+/// program day (ProgramScheduleCalculator), "shown up N times"
+/// (day_progress count, NOT a streak), "becoming since" (earliest
 /// session date). Anything with no real data is omitted.
 struct ProfileHubView: View {
-    /// Closes the whole hub (HomeView animates it out).
+    /// Closes the whole hub (host animates it out).
     var onClose: () -> Void = {}
 
     @AppStorage("userName") private var userName = ""
-    @AppStorage("bodyFocus") private var bodyFocusValue = ""
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
     @AppStorage("jenimethod.last_lesson_completed_id") private var jeniMethodLastCompletedId = 0
     @AppStorage("jenimethod.feature_enabled") private var jeniMethodFlagEnabled = true
@@ -35,7 +35,7 @@ struct ProfileHubView: View {
     @Query(sort: \SessionLogRecord.completedAt, order: .forward) private var allSessionLogs: [SessionLogRecord]
 
     enum HubRoute: Hashable {
-        case myPlan, coach, reminders, account, feedback, jeniMethod, foodSettings
+        case myPace, coach, reminders, account, feedback, jeniMethod, foodSettings
         #if DEBUG
         case debug
         #endif
@@ -59,15 +59,17 @@ struct ProfileHubView: View {
         f.dateFormat = "MMMM yyyy"
         return f.string(from: first).lowercased()
     }
-    private var goalLabel: String? {
-        switch bodyFocusValue {
-        case "flatBelly": return "flat belly"
-        case "tonedArms": return "toned arms"
-        case "roundButt": return "round butt"
-        case "slimLegs":  return "slim legs"
-        case "fullBody":  return "full body"
-        default:          return nil
-        }
+    /// "day N of M" from the active plan — nil pre-enrollment or
+    /// post-goal so the folio never shows a stale frame.
+    private var programDayLine: String? {
+        guard let userId,
+              let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext)
+        else { return nil }
+        let schedule = ProgramScheduleCalculator.compute(
+            .init(startDate: plan.startDate, totalDays: plan.totalDays)
+        )
+        guard !schedule.isPostGoal else { return nil }
+        return "day \(schedule.programDay) of \(schedule.totalDays)"
     }
 
     var body: some View {
@@ -116,9 +118,6 @@ struct ProfileHubView: View {
             .animation(slow, value: route)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v8 P8.10: programEraBg keeps cream for legacy users + pink
-        // for program-era. Hub is reached from PlanView + ProgressGrid
-        // ellipsis on every session so the canvas must flip.
         .background(Palette.programEraBg)
         .onAppear {
             Analytics.track(.settingsHubOpened)
@@ -130,44 +129,70 @@ struct ProfileHubView: View {
 
     private var hubList: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: Space.lg) {
-                // her75 Phase 6 — Archetype D page hero (audit §7).
-                JFPageHero(title: "your space.", italic: ["your"], alignment: .leading)
-                    .reveal(0, revealed)
-
+            VStack(alignment: .leading, spacing: 0) {
                 identityHeader
-                    .padding(.horizontal, Space.screenPadding)
                     .reveal(0, revealed)
 
-                VStack(spacing: Space.sm) {
-                    hubRow("my plan", "focus area · session length", .bowSatin, .myPlan, 1)
-                    coachRow(2)
-                    if FoodFlags.isEnabled {
-                        hubRow("food", "calories · cuisine · privacy", .cherries, .foodSettings, 3)
+                Spacer().frame(height: 40)
+
+                SettingsSection(title: "program") {
+                    SettingsNavRow(icon: "slider.horizontal.3", title: "my pace") {
+                        go(.myPace)
                     }
-                    hubRow("reminders", "when jeni checks in", .sparkleGlossy, .reminders, 4)
-                    appleHealthRowIfNeeded(index: 4)
-                    weightImportRowIfNeeded(index: 5)
-                    hubRow("account", "sign-in & subscription", .heartLock, .account, 5)
-                    hubRow("feedback", "tell us anything ♥", .starLineart, .feedback, 6)
+                    SettingsNavRow(icon: "waveform", title: "coach",
+                                   value: CoachAsset.displayName(for: voicePreference)) {
+                        go(.coach)
+                    }
+                    if FoodFlags.isEnabled {
+                        SettingsNavRow(icon: "fork.knife", title: "food") {
+                            go(.foodSettings)
+                        }
+                    }
+                    SettingsNavRow(icon: "bell", title: "reminders") {
+                        go(.reminders)
+                    }
+                    appleHealthRowIfNeeded
+                    weightImportRowIfNeeded
+                }
+                .reveal(1, revealed)
+
+                Spacer().frame(height: 36)
+
+                SettingsSection(title: "account") {
+                    SettingsNavRow(icon: "person", title: "account") {
+                        go(.account)
+                    }
+                    SettingsNavRow(icon: "envelope", title: "feedback") {
+                        go(.feedback)
+                    }
                     if jeniMethodFlagEnabled && jeniMethodLastCompletedId >= 14 {
-                        hubRow("the jenifit method", "re-read your lessons", .flower3D, .jeniMethod, 7)
+                        SettingsNavRow(icon: "book.closed", title: "the jenifit method",
+                                       value: "re-read") {
+                            go(.jeniMethod)
+                        }
                     }
                     #if DEBUG
-                    hubRow("debug auth", "dev only", .discoBall, .debug, 8)
+                    SettingsNavRow(icon: "wrench.adjustable", title: "debug auth") {
+                        go(.debug)
+                    }
                     #endif
                 }
-                .padding(.horizontal, Space.screenPadding)
+                .reveal(2, revealed)
             }
+            .padding(.horizontal, Space.screenPadding)
             .padding(.top, Space.sm)
-            .padding(.bottom, 40)
+            .padding(.bottom, 48)
         }
+    }
+
+    private func go(_ dest: HubRoute) {
+        withAnimation(slow) { route = dest }
     }
 
     @ViewBuilder
     private func destination(for route: HubRoute) -> some View {
         switch route {
-        case .myPlan:        EditProfileView()
+        case .myPace:        EditProfileView()
         case .coach:         ChangeTrainerView()
         case .reminders:     NotificationSettingsView()
         case .account:       AccountView()
@@ -182,138 +207,95 @@ struct ProfileHubView: View {
 
     // MARK: - Identity header
 
+    /// Open editorial composition — no card. Monogram in a thin ring
+    /// with the pearl sheen, name in the hero serif, then a quiet
+    /// folio line built only from real data.
     private var identityHeader: some View {
-        let initial = userName.first.map { String($0).uppercased() } ?? ""
-        // her75 Phase 6 — breadcrumb eyebrow dropped; the page hero
-        // ("*your* space.") renders at hubList level ABOVE this card.
-        // This view is now the pure identity module (avatar + name +
-        // pills) in editorialCard chrome.
-        return VStack(alignment: .leading, spacing: Space.md) {
-            HStack(spacing: Space.md) {
-                ZStack {
-                    Circle().fill(Palette.accentSubtle).frame(width: 60, height: 60)
-                    if initial.isEmpty {
-                        Image(StickerName.heartGlossy.assetName)
-                            .resizable().scaledToFit().frame(width: 34, height: 34)
-                            .opacity(StickerName.heartGlossy.style.opacity)
-                    } else {
-                        Text(initial)
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
-                            .foregroundStyle(Palette.accent)
-                    }
-                }
-                .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(userName.isEmpty ? "hi there" : userName.lowercased())
-                        .font(Typo.heading)
-                        .foregroundStyle(Palette.textPrimary)
-                    if let becomingSince {
-                        Text("becoming since \(becomingSince)")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                }
-                Spacer(minLength: 0)
+        let initial = userName.first.map { String($0).lowercased() } ?? "♥\u{FE0E}"
+        return VStack(alignment: .leading, spacing: 18) {
+            ZStack {
+                Circle()
+                    .stroke(Palette.accent.opacity(0.55), lineWidth: 1)
+                    .frame(width: 72, height: 72)
+                Text(initial)
+                    .font(.custom("JeniHeroSerif-Italic", size: 34))
+                    .foregroundStyle(Palette.accent)
+                    .offset(y: -2)
             }
+            .iridescentSheen()
+            .accessibilityHidden(true)
 
-            if shownUpCount > 0 || goalLabel != nil {
-                HStack(spacing: Space.sm) {
-                    if shownUpCount > 0 {
-                        statPill(shownUpCount == 1 ? "shown up once" : "shown up \(shownUpCount)×")
-                    }
-                    if let goalLabel {
-                        statPill(goalLabel)
-                    }
+            VStack(alignment: .leading, spacing: 8) {
+                ItalicAccentText(
+                    userName.isEmpty ? "your space." : "\(userName.lowercased())\u{2019}s space.",
+                    italic: ["space."],
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
+
+                if let folio = folioLine {
+                    Text(folio)
+                        .font(Typo.caption)
+                        .kerning(0.4)
+                        .foregroundStyle(Palette.cocoaTertiary)
                 }
             }
         }
-        .padding(Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .editorialCard()
+        .padding(.top, Space.md)
     }
 
-    private func statPill(_ text: String) -> some View {
-        Text(text)
-            .font(Typo.caption)
-            .foregroundStyle(Palette.accent)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Capsule().fill(Palette.accentSubtle.opacity(0.5)))
-    }
-
-    // MARK: - Rows
-
-    private func coachRow(_ index: Int) -> some View {
-        Button {
-            Haptics.light()
-            withAnimation(slow) { route = .coach }
-        } label: {
-            HStack(spacing: Space.md) {
-                Image(CoachAsset.imageName(for: voicePreference))
-                    .resizable().scaledToFill()
-                    .frame(width: 40, height: 40)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Palette.accentSubtle, lineWidth: 1.5))
-                rowText(title: "your coach", subtitle: CoachAsset.displayName(for: voicePreference))
-                Spacer(minLength: 0)
-                chevron
-            }
-            .padding(Space.md)
-            .frame(maxWidth: .infinity)
-            .editorialCard()
+    /// "day 12 of 154 · shown up 9 times · since june 2026" — only the
+    /// segments backed by real data, dot-separated.
+    private var folioLine: String? {
+        var parts: [String] = []
+        if let programDayLine { parts.append(programDayLine) }
+        if shownUpCount > 0 {
+            parts.append(shownUpCount == 1 ? "shown up once" : "shown up \(shownUpCount) times")
         }
-        .buttonStyle(.plain)
-        .reveal(index, revealed)
+        if let becomingSince { parts.append("since \(becomingSince)") }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    /// v1.0.7 — recovery surface for users who declined Apple Health
-    /// during onboarding and have no other path to enable it. Hidden
-    /// when authorized (the home pulse tile already shows live data)
-    /// and when unavailable (no recovery possible). The two recoverable
-    /// states get distinct tap behavior:
-    ///   - .notDetermined → calls `requestAccess()` which fires the
-    ///     iOS sheet (first time only — Apple disallows re-prompting).
-    ///   - .denied → opens Apple Health → Sources, the only path
-    ///     Apple gives us back after the initial decline.
+    // MARK: - Recovery rows
+
+    /// Recovery surface for users who declined Apple Health during
+    /// onboarding. Hidden when authorized or unavailable.
+    ///   - .notDetermined → requestAccess() fires the iOS sheet (once).
+    ///   - .denied → opens Apple Health → Sources, Apple's only re-path.
     @ViewBuilder
-    private func appleHealthRowIfNeeded(index: Int) -> some View {
+    private var appleHealthRowIfNeeded: some View {
         switch stepsService.authStatus {
         case .notDetermined:
-            appleHealthRow(
-                subtitle: "tap to connect steps",
-                action: {
-                    Task { await stepsService.requestAccess() }
-                },
-                index: index + 1
-            )
+            SettingsNavRow(icon: "heart", title: "apple health", value: "connect steps") {
+                Task { await stepsService.requestAccess() }
+            }
         case .denied:
-            appleHealthRow(
-                subtitle: "tap to reconnect in apple health",
-                action: {
-                    if let url = StepsService.openAppleHealthURL,
-                       UIApplication.shared.canOpenURL(url) {
-                        UIApplication.shared.open(url)
-                    }
-                },
-                index: index + 1
-            )
+            SettingsNavRow(icon: "heart", title: "apple health", value: "reconnect") {
+                if let url = StepsService.openAppleHealthURL,
+                   UIApplication.shared.canOpenURL(url) {
+                    UIApplication.shared.open(url)
+                }
+            }
         case .authorized, .unavailable:
             EmptyView()
         }
     }
 
-    /// v1.1 Becoming P2 — body-mass import recovery/enable surface.
-    /// Smart scales + other apps write weight to Apple Health; one tap
-    /// here turns the typed-weight stream passive (the import respects
-    /// the one-per-day policy and never overwrites a manual log).
-    /// Hidden once the permission sheet has been shown (HK read status
-    /// is opaque; re-prompting is impossible) and when HK unavailable.
+    /// Body-mass import enable surface. Smart scales write weight to
+    /// Apple Health; one tap turns the typed-weight stream passive
+    /// (one-per-day policy, never overwrites a manual log). Hidden
+    /// once the permission sheet has been shown (HK read status is
+    /// opaque) and when HK unavailable.
     @ViewBuilder
-    private func weightImportRowIfNeeded(index: Int) -> some View {
+    private var weightImportRowIfNeeded: some View {
         if bodyMassImport.authStatus == .notDetermined {
-            Button {
-                Haptics.light()
+            SettingsNavRow(icon: "scalemass", title: "weight",
+                           value: "syncs from apple health") {
                 guard let userId = AuthService.shared.currentUser?.id.uuidString,
                       !userId.isEmpty else { return }
                 Task {
@@ -321,118 +303,23 @@ struct ProfileHubView: View {
                         userId: userId, into: modelContext
                     )
                 }
-            } label: {
-                HStack(spacing: Space.md) {
-                    ZStack {
-                        Circle().fill(Palette.accentSubtle.opacity(0.45)).frame(width: 40, height: 40)
-                        Image(StickerName.butterflyRing.assetName)
-                            .resizable().scaledToFit().frame(width: 26, height: 26)
-                            .opacity(StickerName.butterflyRing.style.opacity)
-                    }
-                    .accessibilityHidden(true)
-                    rowText(title: "weight from apple health",
-                            subtitle: "your scale syncs, no typing")
-                    Spacer(minLength: 0)
-                    chevron
-                }
-                .padding(Space.md)
-                .frame(maxWidth: .infinity)
-                .editorialCard()
             }
-            .buttonStyle(.plain)
-            .reveal(index, revealed)
-            .accessibilityLabel("Weight from Apple Health. Your scale syncs, no typing.")
         }
     }
-
-    private func appleHealthRow(subtitle: String, action: @escaping () -> Void, index: Int) -> some View {
-        Button {
-            Haptics.light()
-            action()
-        } label: {
-            HStack(spacing: Space.md) {
-                ZStack {
-                    Circle().fill(Palette.accentSubtle.opacity(0.45)).frame(width: 40, height: 40)
-                    Image(StickerName.shoeIridescent.assetName)
-                        .resizable().scaledToFit().frame(width: 26, height: 26)
-                        .opacity(StickerName.shoeIridescent.style.opacity)
-                }
-                .accessibilityHidden(true)
-                rowText(title: "apple health", subtitle: subtitle)
-                Spacer(minLength: 0)
-                chevron
-            }
-            .padding(Space.md)
-            .frame(maxWidth: .infinity)
-            .editorialCard()
-        }
-        .buttonStyle(.plain)
-        .reveal(index, revealed)
-        .accessibilityLabel("Apple Health. \(subtitle).")
-    }
-
-    private func hubRow(_ title: String, _ subtitle: String, _ sticker: StickerName, _ dest: HubRoute, _ index: Int) -> some View {
-        Button {
-            Haptics.light()
-            withAnimation(slow) { route = dest }
-        } label: {
-            HStack(spacing: Space.md) {
-                ZStack {
-                    Circle().fill(Palette.accentSubtle.opacity(0.45)).frame(width: 40, height: 40)
-                    Image(sticker.assetName)
-                        .resizable().scaledToFit().frame(width: 26, height: 26)
-                        .opacity(sticker.style.opacity)
-                }
-                .accessibilityHidden(true)
-                rowText(title: title, subtitle: subtitle)
-                Spacer(minLength: 0)
-                chevron
-            }
-            .padding(Space.md)
-            .frame(maxWidth: .infinity)
-            .editorialCard()
-        }
-        .buttonStyle(.plain)
-        .reveal(index, revealed)
-    }
-
-    private func rowText(title: String, subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(title)
-                .font(Typo.body).fontWeight(.semibold)
-                .foregroundStyle(Palette.textPrimary)
-            Text(subtitle)
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-        }
-    }
-
-    private var chevron: some View {
-        Image(systemName: "chevron.right")
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(Palette.textSecondary.opacity(0.6))
-    }
-
-    // v8 P8.10: local scrapbookChrome helper removed — unified into
-    // `View.scrapbookCard(tint:)` in DesignSystem/Tokens.swift. The
-    // shared version uses `Palette.programCard` (#FFFFFF) instead of
-    // the old `bgElevated` cream, which fixes the muddy-cream-on-pink
-    // look once the hub flipped to programEraBg.
 }
 
 // MARK: - Staggered reveal
 //
-// Each item fades + lifts in, delayed by its index, so the hub reveals
-// one-by-one (mindful, no abrupt pop). Driven by a `revealed` flag the hub
-// flips true on appear.
+// Each block fades + lifts in, delayed by its index, so the page
+// reveals top-down (mindful, no abrupt pop).
 private struct RevealModifier: ViewModifier {
     let index: Int
     let revealed: Bool
     func body(content: Content) -> some View {
         content
             .opacity(revealed ? 1 : 0)
-            .offset(y: revealed ? 0 : 16)
-            .animation(.easeOut(duration: 0.5).delay(Double(index) * 0.07), value: revealed)
+            .offset(y: revealed ? 0 : 14)
+            .animation(.easeOut(duration: 0.5).delay(Double(index) * 0.08), value: revealed)
     }
 }
 

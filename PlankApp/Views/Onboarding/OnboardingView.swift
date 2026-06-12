@@ -5633,7 +5633,7 @@ struct OnboardingView: View {
             next: 21,
             citation: "acsm 2024",
             accentImage: "onb-itgirl-plateau",
-            accentMaxHeight: 290,
+            accentMaxHeight: 335,
             accentOffsetX: 26,
             accentFlushBottom: true,
             accentOffsetY: 36

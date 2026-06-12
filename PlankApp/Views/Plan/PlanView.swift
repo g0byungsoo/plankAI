@@ -450,6 +450,7 @@ struct PlanView: View {
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(Palette.cocoaSecondary)
                         .frame(width: 44, height: 44, alignment: .trailing)
+                        .accessibilityLabel("settings")
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)

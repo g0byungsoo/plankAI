@@ -326,4 +326,79 @@ final class InAppQAUITests: XCTestCase {
 
         snap("final_state")
     }
+
+    /// Settings drawer walk — hub + every sub-screen, one screenshot
+    /// per beat. Enrolls first (the QA launch arg resets program flags).
+    func testWalkSettingsScreens() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--uitest-inapp-qa", "--uitest-pro-access"]
+        app.launch()
+
+        addUIInterruptionMonitor(withDescription: "system alerts") { alert in
+            for label in ["Allow", "Allow Once", "OK", "Don't Allow"] {
+                let b = alert.buttons[label]
+                if b.exists { b.tap(); return true }
+            }
+            return false
+        }
+
+        var shot = 0
+        func snap(_ name: String) {
+            let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+            attachment.name = String(format: "%02d_%@", shot, name)
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            shot += 1
+        }
+        // Status-bar dead-zone tap — nudges the interruption monitor
+        // so a pending permission alert gets dismissed.
+        func nudgeAlerts() {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.012)).tap()
+        }
+
+        Thread.sleep(forTimeInterval: 4.0)
+
+        // Enroll through the onramp to reach PlanView.
+        let startProgram = app.buttons["start my program"]
+        if startProgram.waitForExistence(timeout: 8) {
+            startProgram.tap()
+            for label in ["see your options", "continue", "i'm in"] {
+                let b = app.buttons[label]
+                if b.waitForExistence(timeout: 6) {
+                    Thread.sleep(forTimeInterval: 0.9)   // entrance settle
+                    b.tap()
+                }
+                nudgeAlerts()
+            }
+            Thread.sleep(forTimeInterval: 1.5)
+            nudgeAlerts()
+        }
+
+        // Open the hub via the eyebrow-row ellipsis (identifier is the
+        // SF symbol name; the runtime title-cases the a11y label).
+        let settings = app.buttons["ellipsis"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 6), "settings entry missing")
+        settings.tap()
+        Thread.sleep(forTimeInterval: 1.4)
+        snap("settings_hub")
+
+        // Walk each sub-screen: row label → screenshot → back. Rows
+        // with a trailing value compose it into the label, so match
+        // by prefix.
+        for row in ["my pace", "coach", "reminders", "account", "feedback"] {
+            let rowButton = app.buttons.matching(
+                NSPredicate(format: "label BEGINSWITH %@", row)
+            ).firstMatch
+            guard rowButton.waitForExistence(timeout: 4) else {
+                XCTFail("hub row \(row) missing"); continue
+            }
+            rowButton.tap()
+            Thread.sleep(forTimeInterval: 1.2)
+            snap("settings_\(row.replacingOccurrences(of: " ", with: "_"))")
+            let back = app.buttons["back"].firstMatch
+            if back.waitForExistence(timeout: 3) { back.tap(); Thread.sleep(forTimeInterval: 0.8) }
+        }
+
+        snap("settings_final")
+    }
 }

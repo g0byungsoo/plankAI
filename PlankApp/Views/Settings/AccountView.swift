@@ -3,6 +3,10 @@ import SwiftData
 import PlankSync
 import Auth  // MemberImportVisibility: User.id / .email live in Supabase's Auth submodule
 
+/// "your account." — v1.1 clean-luxury pass: hairline sections replace
+/// the boxed cards, destructive actions are quiet text rows, and the
+/// membership mark carries the pearl sheen (the drawer's one jewel
+/// beside the hub monogram).
 struct AccountView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @Environment(\.dismiss) private var dismiss
@@ -45,12 +49,29 @@ struct AccountView: View {
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: Space.lg) {
-                header
+            VStack(alignment: .leading, spacing: 0) {
+                JFPageHero(title: "your account.", italic: ["your"], alignment: .leading)
+                    .padding(.horizontal, -Space.screenPadding)
 
-                nameCard
+                Spacer().frame(height: 28)
 
-                membershipCard
+                SettingsSection(title: "your name") {
+                    TextField("your name", text: $editName)
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textPrimary)
+                        .submitLabel(.done)
+                        .onSubmit { saveName() }
+                        .padding(.vertical, 17)
+                        .overlay(alignment: .bottom) {
+                            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+                        }
+                }
+
+                Spacer().frame(height: 36)
+
+                membershipSection
+
+                Spacer().frame(height: 36)
 
                 if auth.isAnonymous || !auth.isAuthenticated {
                     anonymousSection
@@ -59,11 +80,11 @@ struct AccountView: View {
                 }
 
                 #if DEBUG
-                Spacer().frame(height: Space.lg)
-                resetButton   // QA-only: wipes onboarding, hidden from real users
+                Spacer().frame(height: 36)
+                resetRow   // QA-only: wipes onboarding, hidden from real users
                 #endif
 
-                Spacer().frame(height: Space.lg)
+                Spacer().frame(height: 40)
                 versionFooter
 
                 Spacer().frame(height: Space.xl)
@@ -76,30 +97,13 @@ struct AccountView: View {
         .onDisappear { saveName() }
     }
 
-    // MARK: - Name (moved here from "my plan" — it's identity, not a workout setting)
+    // MARK: - Name
 
     private var currentUserRecord: UserRecord? {
         guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else { return nil }
         if let hit = userRecords.first(where: { $0.id == userId }) { return hit }
         let descriptor = FetchDescriptor<UserRecord>(predicate: #Predicate { $0.id == userId })
         return try? modelContext.fetch(descriptor).first
-    }
-
-    private var nameCard: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            Text("your name")
-                .font(Typo.eyebrow).tracking(3)
-                .foregroundStyle(Palette.textSecondary)
-                .padding(.bottom, 2)
-            TextField("your name", text: $editName)
-                .font(Typo.body)
-                .foregroundStyle(Palette.textPrimary)
-                .submitLabel(.done)
-                .onSubmit { saveName() }
-                .padding(Space.md)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .editorialCard()
-        }
     }
 
     /// Persist to AppStorage + UserRecord + Supabase (saved on submit + on
@@ -116,39 +120,23 @@ struct AccountView: View {
         }
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        // her75 Phase 6 — JFPageHero (audit §7). Breadcrumb eyebrow
-        // dropped (her75 sub-pages show none); title promoted from
-        // titleItalic 32pt to the ONE page-hero register.
-        JFPageHero(title: "your account.", italic: ["your"], alignment: .leading)
-            .padding(.horizontal, -Space.screenPadding)  // parent already pads
-    }
-
-    // MARK: - App info
-
     // MARK: - Membership
-    //
-    // Replaces the old version+build "app info" card (a developer artifact
-    // that sat in the highest-priority slot). Leads with what the user cares
-    // about — her membership — and surfaces the Apple-required manage path.
 
-    private var membershipCard: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            Text("membership")
-                .font(Typo.eyebrow).tracking(3)
-                .foregroundStyle(Palette.textSecondary)
-                .padding(.bottom, 2)
-
-            VStack(alignment: .leading, spacing: Space.md) {
-                HStack(spacing: 12) {
+    private var membershipSection: some View {
+        SettingsSection(title: "membership") {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 14) {
                     ZStack {
-                        Circle().fill(Palette.accent.opacity(0.18)).frame(width: 44, height: 44)
-                        Image(StickerName.sparkleGlossy.assetName)
-                            .resizable().scaledToFit().frame(width: 24, height: 24)
-                            .opacity(StickerName.sparkleGlossy.style.opacity)
+                        Circle()
+                            .stroke(Palette.accent.opacity(0.55), lineWidth: 1)
+                            .frame(width: 44, height: 44)
+                        Image(systemName: "sparkle")
+                            .font(.system(size: 15, weight: .light))
+                            .foregroundStyle(Palette.accent)
                     }
+                    .iridescentSheen()
+                    .accessibilityHidden(true)
+
                     VStack(alignment: .leading, spacing: 2) {
                         Text(payment.hasProAccess ? "jenifit plus" : "free plan")
                             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
@@ -162,18 +150,19 @@ struct AccountView: View {
                     }
                     Spacer(minLength: 0)
                 }
+                .padding(.vertical, 16)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+                }
 
                 if payment.hasProAccess {
-                    outlineButton(text: "manage subscription", tint: Palette.accent) {
-                        Haptics.light()
+                    SettingsNavRow(icon: "arrow.up.right", title: "manage subscription") {
                         if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
                             openURL(url)
                         }
                     }
                 }
             }
-            .padding(Space.md)
-            .editorialCard()
         }
     }
 
@@ -187,25 +176,16 @@ struct AccountView: View {
     // MARK: - Anonymous
 
     private var anonymousSection: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            Text("save your progress")
-                .font(Typo.eyebrow).tracking(3)
-                .foregroundStyle(Palette.textSecondary)
-                .padding(.bottom, 2)
-
-            VStack(alignment: .leading, spacing: Space.md) {
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(Palette.accent.opacity(0.18))
-                            .frame(width: 44, height: 44)
-                        Image(systemName: "icloud.and.arrow.up")
-                            .font(.system(size: 17))
-                            .foregroundStyle(Palette.accent)
-                    }
+        SettingsSection(title: "save your progress") {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 14) {
+                    Image(systemName: "icloud.and.arrow.up")
+                        .font(.system(size: 16, weight: .light))
+                        .foregroundStyle(Palette.accent)
+                        .frame(width: 24)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("not signed in.")
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                             .foregroundStyle(Palette.textPrimary)
                         Text("sign in to back up your routine.")
                             .font(Typo.caption)
@@ -213,16 +193,28 @@ struct AccountView: View {
                     }
                     Spacer()
                 }
+                .padding(.vertical, 16)
 
-                cocoaPill(text: "sign in", icon: "arrow.right") {
+                Button {
                     Haptics.light()
                     showSignInSheet = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("sign in")
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundStyle(Palette.textInverse)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(Capsule().fill(Palette.bgInverse))
                 }
+                .buttonStyle(SettingsGlowPressStyle())
+                .padding(.bottom, 8)
 
-                restorePurchasesButton
+                restorePurchasesRow
             }
-            .padding(Space.md)
-            .editorialCard()
         }
         .sheet(isPresented: $showSignInSheet) {
             NavigationStack {
@@ -251,22 +243,13 @@ struct AccountView: View {
     // MARK: - Signed in
 
     private var signedInSection: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            Text("account")
-                .font(Typo.eyebrow).tracking(3)
-                .foregroundStyle(Palette.textSecondary)
-                .padding(.bottom, 2)
-
-            VStack(alignment: .leading, spacing: Space.md) {
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(Palette.stateGood.opacity(0.18))
-                            .frame(width: 44, height: 44)
-                        Image(systemName: providerIcon)
-                            .font(.system(size: 17))
-                            .foregroundStyle(Palette.stateGood)
-                    }
+        SettingsSection(title: "signed in") {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 14) {
+                    Image(systemName: providerIcon)
+                        .font(.system(size: 16, weight: .light))
+                        .foregroundStyle(Palette.accent)
+                        .frame(width: 24)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(displayLabel)
                             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
@@ -279,30 +262,25 @@ struct AccountView: View {
                     }
                     Spacer()
                 }
+                .padding(.vertical, 16)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+                }
 
-                outlineButton(
-                    text: signingOut ? "signing out…" : "sign out",
-                    tint: Palette.stateBad
-                ) {
-                    Haptics.light()
+                quietRow(signingOut ? "signing out…" : "sign out", tint: Palette.textPrimary) {
                     showSignOutConfirm = true
                 }
                 .disabled(signingOut)
 
-                restorePurchasesButton
-            }
-            .padding(Space.md)
-            .editorialCard()
+                // Delete Account — Apple App Store Review Guideline
+                // 5.1.1(v) requires every account-creating app to expose
+                // this in-app. Anonymous users have no cloud row to delete.
+                quietRow("delete account", tint: Palette.stateBad) {
+                    showDeleteAccountSheet = true
+                }
 
-            // Delete Account — Apple App Store Review Guideline 5.1.1(v)
-            // requires every account-creating app to expose this in-app.
-            // Only shown when signed in; anonymous users have no cloud row
-            // to delete.
-            outlineButton(text: "delete account", tint: Palette.stateBad) {
-                Haptics.light()
-                showDeleteAccountSheet = true
+                restorePurchasesRow
             }
-            .padding(.top, Space.sm)
         }
         .alert("Sign out?", isPresented: $showSignOutConfirm) {
             Button("Sign Out", role: .destructive) { Task { await performSignOut() } }
@@ -337,26 +315,29 @@ struct AccountView: View {
         }
     }
 
-    private var resetButton: some View {
+    /// Quiet hairline action row — text only, no chrome. Destructive
+    /// actions get their tint; everything stays still.
+    private func quietRow(_ text: String, tint: Color, action: @escaping () -> Void) -> some View {
         Button {
-            showResetConfirm = true
+            Haptics.light()
+            action()
         } label: {
-            Text("reset onboarding")
+            Text(text)
                 .font(Typo.body)
-                .foregroundStyle(Palette.stateBad)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(Palette.stateBad.opacity(0.10))
-                            .offset(x: 3, y: 3)
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(Palette.bgElevated)
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .stroke(Palette.stateBad.opacity(0.45), lineWidth: 1.5)
-                    }
-                )
+                .foregroundStyle(tint)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 17)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(SettingsGlowPressStyle())
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+        }
+    }
+
+    private var resetRow: some View {
+        quietRow("reset onboarding (dev)", tint: Palette.stateBad) {
+            showResetConfirm = true
         }
         .alert("Reset onboarding?", isPresented: $showResetConfirm) {
             Button("Reset", role: .destructive) {
@@ -387,8 +368,8 @@ struct AccountView: View {
     private var providerIcon: String {
         switch auth.authMethod {
         case .apple: return "apple.logo"
-        case .email: return "envelope.fill"
-        default: return "person.fill"
+        case .email: return "envelope"
+        default: return "person"
         }
     }
 
@@ -398,23 +379,25 @@ struct AccountView: View {
     /// works on either, since RevenueCat scopes purchases to the
     /// configured appUserID and aliases anonymous → authenticated when
     /// the user signs in. Auto-clears feedback after 2s.
-    private var restorePurchasesButton: some View {
+    private var restorePurchasesRow: some View {
         VStack(alignment: .leading, spacing: 6) {
             Button {
                 Task { await performRestore() }
             } label: {
-                ZStack {
+                ZStack(alignment: .leading) {
                     Text("restore purchases")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                        .font(Typo.body)
                         .foregroundStyle(Palette.accent)
                         .opacity(restoring ? 0 : 1)
                     if restoring {
                         PulsingDots(color: Palette.accent)
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 17)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(SettingsGlowPressStyle())
             .disabled(restoring)
 
             if let restoreFeedback {
@@ -422,10 +405,12 @@ struct AccountView: View {
                     .font(Typo.caption)
                     .foregroundStyle(restoreFeedback.color)
                     .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .multilineTextAlignment(.center)
+                    .padding(.bottom, 12)
                     .transition(.opacity)
             }
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
         }
         .onChange(of: restoreFeedback) { _, newValue in
             // Auto-clear after 2s. Compare against the captured value
@@ -484,51 +469,4 @@ struct AccountView: View {
             // Phase F may surface this via a global error toast.
         }
     }
-
-    // MARK: - Shared chrome
-
-    private func cocoaPill(text: String, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack {
-                Text(text)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
-                Spacer()
-                Image(systemName: icon)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Palette.accent)
-            }
-            .foregroundStyle(Palette.textInverse)
-            .padding(.horizontal, Space.md)
-            .frame(height: 50)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 25, style: .continuous)
-                    .fill(Palette.bgInverse)
-            )
-        }
-    }
-
-    private func outlineButton(text: String, tint: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(text)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                .foregroundStyle(tint)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 25, style: .continuous)
-                            .fill(tint.opacity(0.10))
-                            .offset(x: 3, y: 3)
-                        RoundedRectangle(cornerRadius: 25, style: .continuous)
-                            .fill(Palette.bgElevated)
-                        RoundedRectangle(cornerRadius: 25, style: .continuous)
-                            .stroke(tint.opacity(0.55), lineWidth: 1.5)
-                    }
-                )
-        }
-    }
-
-    // v8 P8.10: local scrapbookChrome removed — unified to
-    // `View.scrapbookCard(tint:)` in DesignSystem/Tokens.swift.
 }

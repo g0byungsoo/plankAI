@@ -68,7 +68,8 @@ struct ChangeTrainerView: View {
                             .opacity(headerOpacity)
                             .offset(y: headerOffset)
 
-                        VStack(spacing: Space.sm) {
+                        VStack(spacing: 0) {
+                            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
                             ForEach(Array(trainers.enumerated()), id: \.element.id) { i, trainer in
                                 trainerCard(trainer)
                                     .opacity(cardOpacity[i])
@@ -130,27 +131,16 @@ struct ChangeTrainerView: View {
             previewPlayer?.stop()
             startLoading(newName: name)
         } label: {
-            HStack {
+            HStack(spacing: 8) {
                 Text("switch to \(name.lowercased())")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
-                Spacer()
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Palette.accent)
+                    .font(.system(size: 12, weight: .semibold))
             }
             .foregroundStyle(Palette.textInverse)
-            .padding(.horizontal, Space.lg)
             .frame(maxWidth: .infinity)
-            .frame(height: 60)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(Palette.accent.opacity(0.18))
-                        .offset(x: 4, y: 4)
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(Palette.bgInverse)
-                }
-            )
+            .frame(height: 52)
+            .background(Capsule().fill(Palette.bgInverse))
         }
         .buttonStyle(TrainerButtonStyle())
     }
@@ -285,29 +275,28 @@ struct ChangeTrainerView: View {
                 Image(trainer.photo)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 64, height: 64)
+                    .frame(width: 60, height: 60)
                     .clipShape(Circle())
                     .overlay(
                         Circle()
-                            .stroke(Palette.accent, lineWidth: 2)
+                            .stroke(Palette.accent.opacity(isSelected ? 1 : 0.35),
+                                    lineWidth: isSelected ? 1.5 : 1)
                     )
-                    .scaleEffect(isSelected ? 1.05 : 1.0)
+                    .scaleEffect(isSelected ? 1.04 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
 
                 VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Text(trainer.name.lowercased() + ".")
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 20))
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 19))
                             .foregroundStyle(Palette.textPrimary)
 
                         if isCurrent {
                             Text("current")
-                                .font(Typo.eyebrow).tracking(1)
-                                .foregroundStyle(Palette.stateGood)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Palette.stateGood.opacity(0.12))
-                                .clipShape(Capsule())
+                                .font(Typo.editorialEyebrow)
+                                .textCase(.uppercase)
+                                .kerning(1.4)
+                                .foregroundStyle(Palette.cocoaTertiary)
                         }
                     }
 
@@ -327,32 +316,23 @@ struct ChangeTrainerView: View {
 
                 if isPlaying {
                     Image(systemName: "waveform")
-                        .font(.system(size: 16))
+                        .font(.system(size: 15, weight: .light))
                         .foregroundStyle(Palette.accent)
                         .symbolEffect(.variableColor.iterative)
                         .transition(.scale.combined(with: .opacity))
                 } else if isSelected && !isCurrent {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(Palette.accent)
+                    Circle()
+                        .fill(Palette.accent)
+                        .frame(width: 7, height: 7)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
-            .padding(Space.md)
+            .padding(.vertical, 16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            // Scrapbook chrome — accent border, hard offset shadow.
-            // Selected card gets a stronger accent fill.
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(Palette.accent.opacity(0.18))
-                        .offset(x: 4, y: 4)
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(isSelected ? Palette.accent.opacity(0.10) : Palette.bgElevated)
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Palette.accent, lineWidth: isSelected ? 2 : 1.5)
-                }
-            )
+            .contentShape(Rectangle())
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+            }
         }
         .buttonStyle(TrainerButtonStyle())
     }

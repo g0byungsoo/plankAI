@@ -1,6 +1,9 @@
 import SwiftUI
 import UserNotifications
 
+/// "notifications." — v1.1 clean-luxury pass: hairline rows replace
+/// the boxed toggle cards, the coach preview sits unboxed like a
+/// pull-quote, and the save action is a slim cocoa capsule.
 struct NotificationSettingsView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
     @AppStorage("notificationHour") private var notificationHour = 7
@@ -17,26 +20,19 @@ struct NotificationSettingsView: View {
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: Space.lg) {
-                header
+            VStack(alignment: .leading, spacing: 0) {
+                JFPageHero(title: "notifications.", italic: ["notifications"], alignment: .leading)
+                    .padding(.horizontal, -Space.screenPadding)
 
-                // Toggle row — scrapbook chrome.
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("daily check-in")
-                            .font(Typo.body)
-                            .foregroundStyle(Palette.textPrimary)
-                        Text("\(coachName) taps in once a day ♥")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                    Spacer()
-                    Toggle("", isOn: $notificationsEnabled)
-                        .tint(Palette.accent)
-                        .labelsHidden()
+                Spacer().frame(height: 28)
+
+                SettingsSection(title: "daily check-in") {
+                    SettingsToggleRow(
+                        title: "a note from \(coachName)",
+                        subtitle: "she taps in once a day ♥\u{FE0E}",
+                        isOn: $notificationsEnabled
+                    )
                 }
-                .padding(Space.md)
-                .editorialCard()
                 .onChange(of: notificationsEnabled) { _, enabled in
                     if enabled {
                         requestPermission()
@@ -55,90 +51,74 @@ struct NotificationSettingsView: View {
                 }
 
                 if notificationsEnabled {
-                    VStack(alignment: .leading, spacing: Space.sm) {
-                        Text("reminder time")
-                            .font(Typo.eyebrow).tracking(3)
-                            .foregroundStyle(Palette.textSecondary)
-                            .padding(.bottom, 2)
-
-                        // Two fixes layered:
-                        //
-                        // 1. iOS 17+ regression: `.datePickerStyle(.wheel)`
-                        //    inside a styled-background container without
-                        //    an explicit height mis-measures its intrinsic
-                        //    height and the wheel collapses (digits hidden,
-                        //    only the selection bar shows). Pinning to a
-                        //    200pt frame restores the digits.
-                        //
-                        // 2. Color scheme override: the wheel is UIKit-
-                        //    backed and resolves digit text from
-                        //    UIColor.label, which goes WHITE under system
-                        //    dark mode. JeniFit's palette is hardcoded
-                        //    (cream chrome regardless of mode), so white
-                        //    digits land on cream chrome and read as
-                        //    invisible. Forcing the subtree's environment
-                        //    color scheme to .light makes UIColor.label
-                        //    resolve dark, matching the brand palette.
-                        //    `.tint(Palette.accent)` keeps the selection
-                        //    bar dusty-rose either way.
-                        VStack(spacing: 0) {
-                            DatePicker(
-                                "Time",
-                                selection: $pickerTime,
-                                displayedComponents: .hourAndMinute
-                            )
-                            .datePickerStyle(.wheel)
-                            .labelsHidden()
-                            .tint(Palette.accent)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 200)
-                            .clipped()
-                        }
-                        .environment(\.colorScheme, .light)
+                    VStack(alignment: .leading, spacing: 0) {
+                        // iOS 17+ wheel fixes preserved: explicit 200pt
+                        // height (the wheel collapses without it) +
+                        // forced .light scheme (UIKit-backed digits
+                        // resolve white in dark mode against our
+                        // hardcoded cream).
+                        DatePicker(
+                            "Time",
+                            selection: $pickerTime,
+                            displayedComponents: .hourAndMinute
+                        )
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .tint(Palette.accent)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, Space.xs)
-                        .padding(.horizontal, Space.sm)
-                        .editorialCard()
+                        .frame(height: 200)
+                        .clipped()
+                        .environment(\.colorScheme, .light)
 
                         saveButton
 
-                        reminderPreviewCard
+                        Spacer().frame(height: 24)
+
+                        reminderPreview
+                            .overlay(alignment: .bottom) {
+                                Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+                            }
                     }
                     .transition(.opacity.combined(with: .offset(y: 8)))
                 }
 
+                Spacer().frame(height: 36)
+
                 // Gentle extras — independent retention nudges, each
                 // toggleable + frequency-capped, delivered only when
                 // notifications are authorized. Default on.
-                VStack(alignment: .leading, spacing: Space.sm) {
-                    Text("gentle extras")
-                        .font(Typo.eyebrow).tracking(3)
-                        .foregroundStyle(Palette.textSecondary)
-                        .padding(.bottom, 2)
-
-                    extraToggleRow(
+                SettingsSection(title: "gentle extras") {
+                    SettingsToggleRow(
                         title: "daily affirmations",
-                        subtitle: "little notes from \(coachName), a couple times a week ♥",
+                        subtitle: "little notes from \(coachName), a couple times a week",
                         isOn: $affirmationsEnabled
                     )
-                    extraToggleRow(
+                    SettingsToggleRow(
                         title: "a nudge if you go quiet",
                         subtitle: "\(coachName) reaches out if a few days slip by",
                         isOn: $winbackEnabled
                     )
                 }
+                .onChange(of: affirmationsEnabled) { _, enabled in
+                    if enabled { requestPermission() }
+                    RetentionNotifications.applyTogglesChanged()
+                }
+                .onChange(of: winbackEnabled) { _, enabled in
+                    if enabled { requestPermission() }
+                    RetentionNotifications.applyTogglesChanged()
+                }
 
                 if !permissionGranted && notificationsEnabled {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
+                    Spacer().frame(height: 24)
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 12, weight: .light))
                             .foregroundStyle(Palette.stateWarn)
                         Text("notifications are off in iOS settings. enable them under Settings → JeniFit → Notifications.")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(Space.md)
-                    .scrapbookCard(tint: Palette.stateWarn)
                 }
 
                 Spacer().frame(height: Space.xl)
@@ -153,16 +133,6 @@ struct NotificationSettingsView: View {
         .task { await checkPermission() }
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        // her75 Phase 6 — JFPageHero (audit §7). Breadcrumb eyebrow
-        // dropped (her75 sub-pages show none); title promoted from
-        // titleItalic 32pt to the ONE page-hero register.
-        JFPageHero(title: "notifications.", italic: ["notifications"], alignment: .leading)
-            .padding(.horizontal, -Space.screenPadding)  // parent already pads
-    }
-
     // MARK: - Save
 
     private var saveButton: some View {
@@ -170,36 +140,29 @@ struct NotificationSettingsView: View {
             Haptics.medium()
             saveTime()
         } label: {
-            HStack {
+            HStack(spacing: 8) {
                 Text(saved ? "saved" : "save time")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
-                Spacer()
-                Image(systemName: saved ? "checkmark" : "arrow.right")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(saved ? Palette.stateGood : Palette.accent)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
+                if saved {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .semibold))
+                }
             }
             .foregroundStyle(Palette.textInverse)
-            .padding(.horizontal, Space.lg)
             .frame(maxWidth: .infinity)
-            .frame(height: 60)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(Palette.accent.opacity(0.18))
-                        .offset(x: 4, y: 4)
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(Palette.bgInverse)
-                }
-            )
+            .frame(height: 52)
+            .background(Capsule().fill(Palette.bgInverse))
         }
-        .buttonStyle(NotifPressStyle())
+        .buttonStyle(SettingsGlowPressStyle())
+        .animation(Motion.crossFade, value: saved)
     }
 
     // MARK: - "from your coach" preview
     //
-    // Reframes the reminder as the coach checking in (the parasocial-Jeni
-    // vision) rather than a system nag — shows the coach avatar + the exact
-    // voice-adaptive message that will land, at the saved time.
+    // The reminder reframed as the coach checking in (parasocial-Jeni)
+    // rather than a system nag — avatar + the exact voice-adaptive
+    // message that will land, at the saved time. Unboxed; reads like a
+    // pull-quote between hairlines.
 
     private var coachName: String { CoachAsset.displayName(for: voicePreference) }
 
@@ -222,18 +185,20 @@ struct NotificationSettingsView: View {
         return f.string(from: d).lowercased()
     }
 
-    private var reminderPreviewCard: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
+    private var reminderPreview: some View {
+        VStack(alignment: .leading, spacing: 12) {
             Text("what \(coachName) sends at \(reminderTimeLabel)")
-                .font(Typo.eyebrow).tracking(2)
-                .foregroundStyle(Palette.textSecondary)
+                .font(Typo.editorialEyebrow)
+                .textCase(.uppercase)
+                .kerning(1.8)
+                .foregroundStyle(Palette.cocoaTertiary)
 
             HStack(alignment: .top, spacing: Space.sm) {
                 Image(CoachAsset.imageName(for: voicePreference))
                     .resizable().scaledToFill()
-                    .frame(width: 40, height: 40)
+                    .frame(width: 38, height: 38)
                     .clipShape(Circle())
-                    .overlay(Circle().stroke(Palette.accentSubtle, lineWidth: 1.5))
+                    .overlay(Circle().stroke(Palette.accent.opacity(0.4), lineWidth: 1))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("today's short session.")
@@ -246,37 +211,9 @@ struct NotificationSettingsView: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(Space.md)
-            .editorialCard()
         }
+        .padding(.bottom, 20)
     }
-
-    private func extraToggleRow(title: String, subtitle: String, isOn: Binding<Bool>) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textPrimary)
-                Text(subtitle)
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer()
-            Toggle("", isOn: isOn)
-                .tint(Palette.accent)
-                .labelsHidden()
-        }
-        .padding(Space.md)
-        .editorialCard()
-        .onChange(of: isOn.wrappedValue) { _, enabled in
-            if enabled { requestPermission() }
-            RetentionNotifications.applyTogglesChanged()
-        }
-    }
-
-    // v8 P8.10: local scrapbookChrome removed — unified to
-    // `View.scrapbookCard(tint:)` in DesignSystem/Tokens.swift.
 
     private func saveTime() {
         let components = Calendar.current.dateComponents([.hour, .minute], from: pickerTime)
@@ -292,9 +229,7 @@ struct NotificationSettingsView: View {
     /// Schedule the daily reminder via the shared helper. Routes through
     /// `NotificationPermission.scheduleDailyReminder` so the identifier,
     /// title, and voice-adaptive body stay consistent with the
-    /// onboarding completion path. Removed the local duplicate +
-    /// `removeAllPendingNotificationRequests()` which was nuking the
-    /// trial-end reminder as a side effect.
+    /// onboarding completion path.
     private func scheduleNotification() {
         let time = Calendar.current.date(
             from: DateComponents(hour: notificationHour, minute: notificationMinute)
@@ -312,14 +247,5 @@ struct NotificationSettingsView: View {
     private func checkPermission() async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         permissionGranted = settings.authorizationStatus == .authorized
-    }
-}
-
-private struct NotifPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .opacity(configuration.isPressed ? 0.92 : 1.0)
-            .animation(Motion.tap, value: configuration.isPressed)
     }
 }

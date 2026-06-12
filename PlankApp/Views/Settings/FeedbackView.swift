@@ -23,7 +23,7 @@ struct FeedbackView: View {
                             .resizable().scaledToFit()
                             .frame(width: 52, height: 52)
                             .opacity(StickerName.fluffyHeart.style.opacity)
-                        Text("got it ♥")
+                        Text("got it ♥\u{FE0E}")
                             .font(Typo.titleItalic)
                             .foregroundStyle(Palette.textPrimary)
                         Text("jeni reads every one.")
@@ -33,18 +33,23 @@ struct FeedbackView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, Space.xl)
-                    .padding(Space.md)
-                    .scrapbookCard(tint: Palette.stateGood)
                     .transition(.scale.combined(with: .opacity))
                 } else {
+                    // Open page, ruled like stationery: the editor sits
+                    // between hairlines, no box.
                     TextEditor(text: $feedbackText)
                         .font(Typo.body)
                         .foregroundStyle(Palette.textPrimary)
                         .focused($focused)
                         .frame(minHeight: 160)
                         .scrollContentBackground(.hidden)
-                        .padding(Space.md)
-                        .editorialCard()
+                        .padding(.vertical, Space.xs)
+                        .overlay(alignment: .top) {
+                            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+                        }
+                        .overlay(alignment: .bottom) {
+                            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.5)
+                        }
 
                     sendButton
 
@@ -80,29 +85,20 @@ struct FeedbackView: View {
             focused = false
             submit()
         } label: {
-            HStack {
+            HStack(spacing: 8) {
                 Text("send")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
-                Spacer()
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(isEmpty ? Palette.divider : Palette.accent)
+                    .font(.system(size: 12, weight: .semibold))
             }
             .foregroundStyle(Palette.textInverse)
-            .padding(.horizontal, Space.lg)
             .frame(maxWidth: .infinity)
-            .frame(height: 60)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(Palette.accent.opacity(isEmpty ? 0.06 : 0.18))
-                        .offset(x: 4, y: 4)
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(isEmpty ? Palette.divider : Palette.bgInverse)
-                }
-            )
+            .frame(height: 52)
+            .background(Capsule().fill(isEmpty ? Palette.divider : Palette.bgInverse))
         }
+        .buttonStyle(SettingsGlowPressStyle())
         .disabled(isEmpty)
+        .animation(Motion.crossFade, value: isEmpty)
     }
 
     /// Capture feedback in-app via the existing PostHog pipeline — no Mail
