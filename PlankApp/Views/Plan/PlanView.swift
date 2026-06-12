@@ -65,6 +65,15 @@ struct PlanView: View {
     @State private var activeCover: PlanCover? = nil
     @State private var activeSheet: PlanSheet? = nil
 
+    /// Two-step workout flow inside the .preRoutine cover:
+    /// PreRoutineView (info card) → RoutineSessionView (live session).
+    /// Mirrors HomeView's routineFlow swap so both entry points share
+    /// one motion vocabulary.
+    @State private var routineStep: RoutineStep = .pre
+    private enum RoutineStep { case pre, session }
+
+    @AppStorage("hasCompletedFirstSession") private var hasCompletedFirstSession = false
+
     enum PlanCover: Identifiable {
         case lesson(LessonID)
         case captureFlow
@@ -105,6 +114,10 @@ struct PlanView: View {
     /// Recent session log records — drives the WorkoutGenerator
     /// "avoid recent exercises" param + auto-completion detection.
     @Query(sort: \SessionLogRecord.completedAt, order: .reverse) private var allSessionLogs: [SessionLogRecord]
+
+    /// Day-progress rows for the session save path (same derived-day
+    /// write HomeView.saveRoutineSession performs).
+    @Query private var allDayProgress: [DayProgressRecord]
 
     // Live data for snap-meal subtitle (today's calorie total +
     // meal count from FoodLogPersister's in-memory store).
@@ -215,17 +228,56 @@ struct PlanView: View {
             .presentationBackground(Palette.bgPrimary)
 
         case .preRoutine(let workout):
-            PreRoutineView(
-                workout: workout,
-                onStart: {
-                    // Phase 1.B: marks complete on tap-Start; Phase 2
-                    // wires the full SessionView chain + SessionLogRecord
-                    // auto-detection.
-                    markAutoCompleted(.workout(tier: .medium, minutes: 0, bodyFocus: nil))
-                    dismissCover()
-                },
-                onCancel: { dismissCover() }
-            )
+            // Phase 2 (founder QA 2026-06-12: "start workout does
+            // nothing"): full session chain. PreRoutine → RoutineSession
+            // inside ONE cover, mirroring HomeView's routineFlow swap.
+            // The checklist row marks complete only after the session
+            // clears the ≥70% threshold — not on tap-Start.
+            Group {
+                if routineStep == .pre {
+                    PreRoutineView(
+                        workout: workout,
+                        onStart: {
+                            Analytics.track(.workoutStart, properties: [
+                                "workout_name": workout.name,
+                                "duration_min": workout.estimatedDuration,
+                                "source": "plan_checklist"
+                            ])
+                            if !hasCompletedFirstSession {
+                                Analytics.track(.firstWorkoutStart, properties: [
+                                    "workout_name": workout.name
+                                ])
+                            }
+                            withAnimation(Motion.crossFade) {
+                                routineStep = .session
+                            }
+                        },
+                        onCancel: { dismissCover() }
+                    )
+                    .transition(.opacity)
+                } else {
+                    RoutineSessionView(workout: workout) { results, duration in
+                        let didMeet = SessionCompletion.didMeetThreshold(results)
+                        if didMeet {
+                            if !hasCompletedFirstSession {
+                                Analytics.track(.firstWorkoutComplete, properties: [
+                                    "workout_name": workout.name,
+                                    "duration_seconds": Int(duration)
+                                ])
+                            }
+                            Analytics.track(.workoutComplete, properties: [
+                                "workout_name": workout.name,
+                                "duration_seconds": Int(duration)
+                            ])
+                            saveRoutineSession(workout: workout, results: results, duration: duration)
+                            hasCompletedFirstSession = true
+                            markAutoCompleted(.workout(tier: .medium, minutes: 0, bodyFocus: nil))
+                        }
+                        dismissCover()
+                    }
+                    .transition(.opacity)
+                }
+            }
             .presentationBackground(Palette.programEraBg)
 
         case .breathSession:
@@ -768,6 +820,7 @@ struct PlanView: View {
         var t = Transaction()
         t.disablesAnimations = true
         withTransaction(t) { activeCover = nil }
+        routineStep = .pre    // reset the workout flow for next launch
     }
 
     private func dismissSheet() {
@@ -820,6 +873,59 @@ struct PlanView: View {
         )
         let workout = WorkoutGenerator.generate(from: input)
         present(cover: .preRoutine(workout))
+    }
+
+    /// User-scoped session logs (cross-account isolation — same
+    /// guarantee HomeView.sessionLogs provides).
+    private var scopedSessionLogs: [SessionLogRecord] {
+        guard !userId.isEmpty else { return [] }
+        return allSessionLogs.filter { $0.userId == userId }
+    }
+
+    /// Day-progress record for today's calendar day, user-scoped.
+    private var todayProgress: DayProgressRecord? {
+        guard !userId.isEmpty else { return nil }
+        let cal = Calendar.current
+        return allDayProgress.first { $0.userId == userId && cal.isDate($0.date, inSameDayAs: .now) }
+    }
+
+    /// Persists a completed routine session. Mirrors
+    /// HomeView.saveRoutineSession — derived engagement day, same-day
+    /// DayProgress merge, fire-and-forget Supabase upserts.
+    private func saveRoutineSession(workout: WorkoutPreset, results: [ExerciseResultEntry], duration: TimeInterval) {
+        let uid = AppSync.shared.currentUserId ?? userId
+        let resultsData = try? JSONEncoder().encode(results)
+        let session = SessionLogRecord(
+            userId: uid, exerciseType: "routine", holdTime: 0, targetTime: 0,
+            qualityScore: 0, sessionType: "routine",
+            presetId: workout.id, exerciseResults: resultsData,
+            totalDuration: duration
+        )
+        modelContext.insert(session)
+        let derivedDay = EngagementDayCalculator.programDayForNewSession(
+            existingLogs: scopedSessionLogs,
+            newSessionCompletedAt: session.completedAt
+        )
+        let progressRecord: DayProgressRecord
+        if let existing = todayProgress {
+            existing.primarySessionId = session.id
+            var ids = existing.sessionLogIds ?? []; ids.append(session.id); existing.sessionLogIds = ids
+            existing.programDay = derivedDay
+            existing.updatedAt = .now
+            progressRecord = existing
+        } else {
+            let progress = DayProgressRecord(userId: uid, programDay: derivedDay, primarySessionId: session.id,
+                                             primaryQualityScore: 0, primaryHoldTime: 0)
+            progress.sessionLogIds = [session.id]; modelContext.insert(progress)
+            progressRecord = progress
+            RetentionNotifications.recordShownUpDay(count: derivedDay)
+        }
+        try? modelContext.save()
+        RetentionNotifications.markSessionCompleted()
+        Task {
+            await AppSync.shared.upsertSessionLog(session)
+            await AppSync.shared.upsertDayProgress(progressRecord)
+        }
     }
 
     /// Called by module callbacks when a session/log fires successfully.
