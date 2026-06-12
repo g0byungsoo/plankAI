@@ -692,11 +692,13 @@ private struct RootView: View {
                         affirmationDone = true
                     }
                     .transition(.opacity)
-                } else if !auth.isReady {
-                    // Rare edge case: affirmation finished but auth is
-                    // still resolving (very slow network on first launch).
-                    // Fall through to the cocoa splash briefly until
-                    // bootstrap returns.
+                } else if !auth.isReady || !loaderMinHoldDone {
+                    // Pre-onboarding launches (re-onboards, recovered
+                    // accounts, founder QA resets) land here. The min
+                    // hold applies on THIS branch too — without it a
+                    // cached session resolved auth in ~400ms and the
+                    // editorial splash died before it could be read
+                    // (founder bug report, round 6).
                     AffirmationLoaderScreen(state: auth.bootstrapState) {
                         Task { await auth.retryBootstrap() }
                     }
@@ -720,7 +722,14 @@ private struct RootView: View {
         .task {
             // Start the loader dwell clock at first frame, not at
             // bootstrap completion, so the hold overlaps the real wait.
-            try? await Task.sleep(nanoseconds: 1_600_000_000)
+            //
+            // 1.8s per the splash-duration research (round 6): the
+            // celebrated band is 1.5-3.0s total perceived; 8 words at
+            // skim speed need ~2.0s of availability and the line stays
+            // legible through the 0.45s crossFade exit, so 1.8 + 0.45
+            // ≈ 2.2s perceived. Gating is max(hold, load-ready) — the
+            // best-feeling apps' pattern, never a pure timer.
+            try? await Task.sleep(nanoseconds: 1_800_000_000)
             loaderMinHoldDone = true
         }
         .task {
