@@ -1266,7 +1266,6 @@
 		FA3A037B6FAEDE7F2C8B27A8 /* prep_short_baby_cobra.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F3BBB7441D3299ABD4199503 /* prep_short_baby_cobra.m4a */; };
 		FA696E18EDE0792DB86D5F8C /* matson_prep_short_alt_knee_raise_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8FE41AA2A7825394DD8D9272 /* matson_prep_short_alt_knee_raise_crunch.m4a */; };
 		FAF33A107976A3AB39CCF631 /* prep_short_sit_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 42C2210119D1FC44A3FABDDC /* prep_short_sit_up.m4a */; };
-		FAFA000000000000000B0001 /* AffirmationScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000B0011 /* AffirmationScreen.swift */; };
 		FAFA000000000000000B0003 /* AffirmationLoaderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000B0013 /* AffirmationLoaderScreen.swift */; };
 		FAFA000000000000000B0005 /* PremiumWelcomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000B0015 /* PremiumWelcomeScreen.swift */; };
 		FAFA000000000000000C0001 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000C0011 /* Components.swift */; };
@@ -2591,7 +2590,6 @@
 		FA43645C64DB01F25281169D /* prep_short_tabletop_hold_knee_lift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_tabletop_hold_knee_lift.m4a; sourceTree = "<group>"; };
 		FAEB1E10BFD5CBA21787B3C6 /* jeni_prep_short_floor_dip.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_floor_dip.m4a; sourceTree = "<group>"; };
 		FAF028D604DCD031A53E9F35 /* SupabaseConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
-		FAFA000000000000000B0011 /* AffirmationScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AffirmationScreen.swift; sourceTree = "<group>"; };
 		FAFA000000000000000B0013 /* AffirmationLoaderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AffirmationLoaderScreen.swift; sourceTree = "<group>"; };
 		FAFA000000000000000B0015 /* PremiumWelcomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumWelcomeScreen.swift; sourceTree = "<group>"; };
 		FAFA000000000000000C0011 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
@@ -4276,7 +4274,6 @@
 		FAFA000000000000000B0021 /* Welcome */ = {
 			isa = PBXGroup;
 			children = (
-				FAFA000000000000000B0011 /* AffirmationScreen.swift */,
 				FAFA000000000000000B0013 /* AffirmationLoaderScreen.swift */,
 				FAFA000000000000000B0015 /* PremiumWelcomeScreen.swift */,
 				68C1E436107C98A26432FD84 /* CoachIntroView.swift */,
@@ -5597,7 +5594,6 @@
 				FAFA000000000000000C0003 /* EditorialEmptyState.swift in Sources */,
 				FAFA000000000000000C0102 /* MagicalLoading.swift in Sources */,
 				FAFA000000000000000C0202 /* EffectAnimation.swift in Sources */,
-				FAFA000000000000000B0001 /* AffirmationScreen.swift in Sources */,
 				FAFA000000000000000B0005 /* PremiumWelcomeScreen.swift in Sources */,
 				FAFA000000000000000B0003 /* AffirmationLoaderScreen.swift in Sources */,
 				783186642F99E4130096138F /* CameraManager.swift in Sources */,

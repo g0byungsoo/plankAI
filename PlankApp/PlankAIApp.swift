@@ -497,20 +497,8 @@ private struct RootView: View {
     // on an already-paid user). Default-off behind the flag.
     @State private var showingCoachIntro = false
 
-    // First-launch affirmation gate. Captured as @State (not
-    // @AppStorage) so the screen's mid-flight write of
-    // hasSeenAffirmation at t=1s does not unmount the screen
-    // before its full 5.5s choreography completes.
-    @State private var affirmationDone: Bool
-
-    // Minimum dwell for the editorial launch loader (returning users).
+    // Minimum dwell for the editorial launch splash (all launches).
     @State private var loaderMinHoldDone = false
-
-    init() {
-        _affirmationDone = State(
-            initialValue: UserDefaults.standard.bool(forKey: "hasSeenAffirmation")
-        )
-    }
 
     var body: some View {
         // Phase 20a: route swaps now cross-fade through Motion.crossFade
@@ -520,13 +508,10 @@ private struct RootView: View {
         // the watch-value `.animation(_:value:)` chain at the bottom of
         // the Group fires on every state that drives a route change.
         Group {
-            // Branch on onboarding state first so the first-launch
-            // AffirmationScreen can win over the loader for brand-new
-            // users — the affirmation IS the loading state on first
-            // launch, and auth resolves in the background while it
-            // plays. Returning users see AffirmationLoaderScreen
-            // (a single quote on cream + sticker scatter, no wordmark)
-            // until bootstrap completes.
+            // Every launch shows the same editorial splash
+            // (AffirmationLoaderScreen) for max(1.8s, bootstrap):
+            // brand-new users before onboarding, returning users
+            // before MainTabView. One doorbell for the whole app.
             if hasCompletedOnboarding {
                 // Hold the splash until BOTH auth and the first
                 // entitlement check have resolved. Without the
@@ -687,18 +672,14 @@ private struct RootView: View {
                     .transition(.opacity)
                 }
             } else {
-                if !affirmationDone {
-                    AffirmationScreen {
-                        affirmationDone = true
-                    }
-                    .transition(.opacity)
-                } else if !auth.isReady || !loaderMinHoldDone {
-                    // Pre-onboarding launches (re-onboards, recovered
-                    // accounts, founder QA resets) land here. The min
-                    // hold applies on THIS branch too — without it a
-                    // cached session resolved auth in ~400ms and the
-                    // editorial splash died before it could be read
-                    // (founder bug report, round 6).
+                if !auth.isReady || !loaderMinHoldDone {
+                    // Every pre-onboarding launch (first install,
+                    // re-onboards, recovered accounts) shows the SAME
+                    // editorial splash with the same 1.8s floor. Round 7
+                    // (founder QA): this replaces the old first-launch
+                    // AffirmationScreen, whose 5.5s triplet ceremony was
+                    // both off the new register and a forced wait on
+                    // every new user's first open.
                     AffirmationLoaderScreen(state: auth.bootstrapState) {
                         Task { await auth.retryBootstrap() }
                     }
@@ -717,7 +698,6 @@ private struct RootView: View {
         .animation(Motion.crossFade, value: hasCompletedOnboarding)
         .animation(Motion.crossFade, value: auth.isReady)
         .animation(Motion.crossFade, value: payment.isEntitlementReady)
-        .animation(Motion.crossFade, value: affirmationDone)
         .animation(Motion.crossFade, value: loaderMinHoldDone)
         .task {
             // Start the loader dwell clock at first frame, not at
