@@ -24,25 +24,11 @@ struct MainTabView: View {
     @State private var showCaptureFlow = false
 
     // v1.1 program pivot — gates the program-era home (PlanView) vs
-    // legacy HomeView. Default false; flipped to true when the user
-    // commits to a program (ProgramSetupSubflow sets it directly).
+    // the inline onramp. Flipped to true when the user commits to a
+    // program (ProgramSetupSubflow sets it directly). The legacy
+    // HomeView is retired; there is no third state.
     @AppStorage("programEraEnabled") private var programEraEnabled: Bool = false
     @AppStorage("progressGridEnabled") private var progressGridEnabled: Bool = false
-
-    // Founder-locked: existing users see a full-screen "your program
-    // is ready" cover once on first launch post-v1.1. Cover sets
-    // hasSeenProgramIntro=true on dismiss so we never show it twice.
-    @AppStorage("hasSeenProgramIntro") private var hasSeenProgramIntro: Bool = false
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
-    @AppStorage("hasEnrolledInProgram") private var hasEnrolledInProgram: Bool = false
-
-    /// One-shot trigger for the program intro cover. Initialized from
-    /// the AppStorage flags on first body eval; flipped to false when
-    /// the cover dismisses (success or skip). Keeping this as @State
-    /// — not derived — is what lets the cover dismiss cleanly. A
-    /// computed binding off @AppStorage doesn't re-render fast enough
-    /// in iOS 17/18 to drive a fullScreenCover.
-    @State private var showProgramIntro: Bool = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -53,14 +39,17 @@ struct MainTabView: View {
                 // tab name (founder decision 2026-06-09: minimal rename
                 // for Phase 1; 5-tab BetterMe IA deferred to Phase 6).
                 //
-                // Flag gate: when programEraEnabled (set by the program
-                // subflow commit) PlanView replaces HomeView for this
-                // tab. Flag false = existing render path, zero impact.
+                // Structural gate: enrolled users get PlanView; everyone
+                // else gets the inline onramp until they commit. Inline
+                // (not a fullScreenCover) so nothing races RootView's
+                // route cross-fade — the old cover-based intro got its
+                // presentation cancelled mid-transition and stranded
+                // users on the legacy HomeView.
                 Group {
                     if programEraEnabled {
                         PlanView()
                     } else {
-                        HomeView()
+                        ProgramOnrampView()
                     }
                 }
                 .tabBloom(isActive: selectedTab == .workout)
@@ -90,25 +79,15 @@ struct MainTabView: View {
                 #if DEBUG
                 print("[FUNNEL] main_tab_appeared | paywall cover dismissed, user is now in the app")
                 #endif
-                // Evaluate one-shot program intro on first tab appear.
-                // Same trigger conditions every time the tab gains focus
-                // — re-firing is fine because hasSeenProgramIntro flips
-                // to true the moment the cover dismisses, preventing
-                // a second show.
-                if hasCompletedOnboarding
-                    && !hasEnrolledInProgram
-                    && !hasSeenProgramIntro
-                    && !programEraEnabled
-                {
-                    showProgramIntro = true
-                }
             }
 
             // Central camera FAB per delta v7 D57. Visible only when
             // food rail is enabled. Cocoa circle with cream camera glyph
             // and the brand's signature hard-offset shadow + 1.5pt
             // accent border. Positioned above the native tab bar.
-            if FoodFlags.isEnabled {
+            // Hidden pre-enrollment so it never overlaps the onramp's
+            // pinned CTA.
+            if FoodFlags.isEnabled && programEraEnabled {
                 cameraFAB
                     .padding(.bottom, 30)
                     .accessibilityIdentifier("home_camera_fab")
@@ -121,19 +100,6 @@ struct MainTabView: View {
                     .string(forKey: "onboardingCuisinePreference"),
                 onDismiss: { showCaptureFlow = false }
             )
-        }
-        // v1.1 program pivot — existing-user opt-in. Fires once for
-        // users who completed v1.0 onboarding pre-v1.1, before they
-        // see PlanView (or stay on HomeView if they decline). Founder
-        // locked the full-screen cover (commitment device) over the
-        // quieter home-card approach 2026-06-09.
-        .fullScreenCover(isPresented: $showProgramIntro) {
-            ProgramIntroFullScreenCover {
-                showProgramIntro = false
-                // hasSeenProgramIntro is flipped by the cover internally
-                // on dismiss. If user committed, programEraEnabled is
-                // also true → next tab render shows PlanView.
-            }
         }
     }
 

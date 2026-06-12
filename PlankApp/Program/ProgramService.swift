@@ -112,7 +112,7 @@ public final class ProgramService {
     /// plan. Called by:
     ///   - CommitmentSignatureScreen (onboarding case 173) on first-time
     ///     enrollment from the program-era onboarding sub-flow.
-    ///   - ProgramIntroFullScreenCover for existing users opting in
+    ///   - ProgramOnrampView (Today tab pre-enrollment)
     ///     post-v1.1 launch.
     ///   - ProgramGraduationSheet (Phase 5) when picking a next-program
     ///     track (Maintenance 30 / Recomp 60 / New Goal 75 / Soft Pause).

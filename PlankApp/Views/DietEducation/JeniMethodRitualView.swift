@@ -19,11 +19,6 @@ struct JeniMethodRitualView: View {
     var isReread: Bool = false
     let onComplete: () -> Void
     let onSkip: (_ atPageId: String) -> Void
-    /// Fires when the user taps the final page's "start today's workout"
-    /// CTA. Parent dismisses the lesson AND launches today's generated
-    /// workout. Optional so re-read mode / call sites without a workout
-    /// presentation can pass nil (treated like onComplete).
-    var onCompleteAndStartWorkout: (() -> Void)? = nil
 
     /// v1.1 education pass (2026-06-11) — the chain. When set, the
     /// final page's CTA reads "next: {nextRowTitle}" and fires this
@@ -40,10 +35,6 @@ struct JeniMethodRitualView: View {
     /// breathwork session uses. Boxed once by @State across redraws.
     @State private var musicPlayer = RitualMusicPlayer()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// Splash bridge — flipped true when the handoff CTA fires so the
-    /// RitualToWorkoutSplash overlay hides the cover swap into the routine.
-    /// HomeView observes the same key and renders the receiving end.
-    @AppStorage("ritualToWorkoutTransition") private var ritualToWorkoutTransition = false
 
     private var script: LessonScript {
         JeniMethodRitualContent.resolve(lesson: lesson, user: user)
@@ -232,8 +223,12 @@ struct JeniMethodRitualView: View {
                 }
             )
         } else if page.isHandoff {
-            JFContinueButton(label: legacyHandoffLabel) {
-                completeAndLaunch()
+            // Old scripts say "start today's workout" — the workout
+            // handoff died with the legacy HomeView, so the truthful
+            // label is the quiet close.
+            JFContinueButton(label: "done for today") {
+                completeBookkeeping()
+                onComplete()
             }
         } else {
             JFContinueButton(label: page.ctaLabel.lowercased()) {
@@ -241,13 +236,6 @@ struct JeniMethodRitualView: View {
                 withAnimation(Motion.pageEntrance) { pageIndex += 1 }
             }
         }
-    }
-
-    /// Legacy final-page label. The old scripts say "start today's
-    /// workout" — only honest when a workout handoff is actually
-    /// wired (HomeView path); otherwise the truthful "done for today".
-    private var legacyHandoffLabel: String {
-        onCompleteAndStartWorkout != nil ? page.ctaLabel.lowercased() : "done for today"
     }
 
     /// Magazine footer folio line — "the jenifit method · day five".
@@ -301,26 +289,6 @@ struct JeniMethodRitualView: View {
                     daysElapsed: days
                 )
             )
-        }
-    }
-
-    /// Legacy final-page CTA — completion bookkeeping, then launch the
-    /// workout (or plain dismiss in re-read / no-workout calls).
-    private func completeAndLaunch() {
-        completeBookkeeping()
-        if let handoff = onCompleteAndStartWorkout {
-            // Raise the plain light-pink bridge (RitualToWorkoutSplash) and
-            // let it reach full opacity (HomeView fades it in over 0.3s)
-            // before the lesson cover dismisses underneath it — so the
-            // cover-swap and the workout's appearance are both hidden behind
-            // pink and the workout reads as gently appearing, not sliding
-            // up. No bubble: the splash is just the gradient now.
-            ritualToWorkoutTransition = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                handoff()
-            }
-        } else {
-            onComplete()
         }
     }
 

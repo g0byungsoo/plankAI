@@ -68,10 +68,9 @@ struct PlankAIApp: App {
         // In-app QA hook: lands the walker on MainTabView as a
         // completed-onboarding user (pair with --uitest-pro-access for
         // the entitlement). Program flags reset so the run exercises
-        // the existing-user intro cover → setup → PlanView chain.
+        // the onramp → setup → PlanView chain.
         if ProcessInfo.processInfo.arguments.contains("--uitest-inapp-qa") {
             UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
-            UserDefaults.standard.removeObject(forKey: "hasSeenProgramIntro")
             UserDefaults.standard.removeObject(forKey: "hasEnrolledInProgram")
             UserDefaults.standard.removeObject(forKey: "programEraEnabled")
             UserDefaults.standard.removeObject(forKey: "planFirstRunHintSeen")
@@ -649,26 +648,16 @@ private struct RootView: View {
                             // first-class — don't double-emit here.
                         }
                         .fullScreenCover(isPresented: $showingCoachIntro) {
-                            // Phase A: the post-purchase sequence — Jeni
-                            // welcome → breathwork primer → breath
-                            // session → choice. All phases live inside
+                            // Phase A: the post-purchase sequence — forging
+                            // → Jeni welcome → breathwork primer → breath
+                            // session. All phases live inside
                             // PostPurchaseFlowView (one cover, internal
                             // cross-fades) so transitions read as smooth
-                            // fades, not iOS cover slides. The single
-                            // exit routes the user to the first workout
-                            // (launchWorkout: true → the
-                            // `pendingPostRitualWorkoutLaunch` flag
-                            // HomeView reads on appear) or to Home
-                            // (launchWorkout: false → user picks their
-                            // own moment, workout card stays prominent).
-                            PostPurchaseFlowView(onFinish: { launchWorkout in
+                            // fades, not iOS cover slides. The single exit
+                            // lands the user on the Today tab's program
+                            // onramp.
+                            PostPurchaseFlowView(onFinish: {
                                 CoachIntroState.markShown()
-                                if launchWorkout {
-                                    UserDefaults.standard.set(
-                                        true,
-                                        forKey: "pendingPostRitualWorkoutLaunch"
-                                    )
-                                }
                                 var t = Transaction()
                                 t.disablesAnimations = true
                                 withTransaction(t) {

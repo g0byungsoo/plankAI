@@ -2,34 +2,30 @@ import SwiftUI
 import SwiftData
 import PlankSync
 
-// MARK: - ProgramIntroFullScreenCover
+// MARK: - ProgramOnrampView
 //
-// v1.1 program pivot. Existing-user opt-in surface. Founder decision
-// 2026-06-09: full-screen cover (NOT a quiet home card) — commitment
-// device. Reuses PremiumWelcomeScreen chrome register.
+// v1.1 program pivot. The Today tab's content for any user who has
+// not yet committed to a program — new users straight out of
+// onboarding AND existing users upgrading into the program era.
 //
-// Lifecycle:
-//   - Fires once on first launch post-v1.1 install for users who:
-//     (a) have hasCompletedOnboarding = true
-//     (b) have hasEnrolledInProgram != true
-//     (c) have hasSeenProgramIntro != true
-//   - Two CTAs (pinned footer, NOT inside scroll): "start my program"
-//     → opens ProgramSetupSubflow; "not yet — i'll wait" → sets
-//     hasSeenProgramIntro=true and dismisses.
+// Rendered INLINE as tab content, never presented. The previous
+// fullScreenCover approach raced RootView's route cross-fade on the
+// onboarding → MainTabView swap: the system cancelled the
+// presentation mid-flight (a <1s flash) and stranded the user on the
+// legacy HomeView. Structural rendering has no presentation to lose.
+//
+// There is deliberately no skip: the legacy HomeView is retired, so
+// committing to the program is the only way into the Today surface.
+// ProgramSetupSubflow sets programEraEnabled on commit, which swaps
+// this view for PlanView on the next render.
 //
 // Layout architecture (founder QA 2026-06-09):
-//   - VStack(spacing: 0): ScrollView (content) + Footer (CTAs)
-//   - Footer is OUTSIDE the ScrollView so CTAs never float over rows.
-//   - Hero typography sized to fit 2-3 lines on iPhone 15 (36pt vs
-//     the old 48pt that wrapped to 4 lines).
+//   - VStack(spacing: 0): ScrollView (content) + Footer (CTA)
+//   - Footer is OUTSIDE the ScrollView so the CTA never floats over rows.
 //   - modernEntrance() for all visible elements — single shared
 //     spring per Motion.modernPop.
 
-struct ProgramIntroFullScreenCover: View {
-
-    let onDismiss: () -> Void
-
-    @AppStorage("hasSeenProgramIntro") private var hasSeenProgramIntro: Bool = false
+struct ProgramOnrampView: View {
 
     @State private var showSubflow: Bool = false
     @State private var appeared: Bool = false
@@ -37,9 +33,13 @@ struct ProgramIntroFullScreenCover: View {
     var body: some View {
         ZStack {
             if showSubflow {
-                ProgramSetupSubflow { _ in
-                    hasSeenProgramIntro = true
-                    onDismiss()
+                ProgramSetupSubflow { committed in
+                    // Commit flips programEraEnabled inside the subflow;
+                    // MainTabView re-renders to PlanView on its own. A
+                    // back-out returns to the intro beat.
+                    if !committed {
+                        showSubflow = false
+                    }
                 }
                 .transition(.opacity)
             } else {
@@ -49,9 +49,7 @@ struct ProgramIntroFullScreenCover: View {
         }
         .animation(Motion.crossFade, value: showSubflow)
         .onAppear {
-            // One-frame delay so the cover's own present-transition
-            // (system fullScreenCover slide-up) completes before our
-            // entrance spring fires. Prevents the two from competing.
+            Analytics.captureScreen("ProgramOnramp")
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
                 appeared = true
             }
@@ -70,27 +68,7 @@ struct ProgramIntroFullScreenCover: View {
             }
             footer
         }
-        // v1.1 design pass — the it-girl editorial cutout (founder-
-        // supplied real-photo, her75 technique) replaces the gummy
-        // bear: this cover sells *her* era, so the identity figure
-        // carries the beat. Anchored in the dead space between the
-        // what's-inside card and the footer (sim QA round 1: the
-        // topTrailing spot collided with the 52pt hero).
-        .background(
-            ZStack(alignment: .bottomTrailing) {
-                Palette.programBgPrimary
-                Image("itgirl-dress")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 168, height: 168)
-                    .rotationEffect(.degrees(3))
-                    .padding(.trailing, Space.lg)
-                    .padding(.bottom, 128)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-            }
-            .ignoresSafeArea(edges: .top)
-        )
+        .background(Palette.programBgPrimary.ignoresSafeArea(edges: .top))
     }
 
     private var content: some View {
@@ -103,8 +81,8 @@ struct ProgramIntroFullScreenCover: View {
     private var hero: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Her75-style 2-line display: hand-stacked Text components
-                // with negative spacing so the lines visually clamp
-                // together. programHeroLineGap = -10 is tuned for 52pt.
+            // with negative spacing so the lines visually clamp
+            // together. programHeroLineGap = -10 is tuned for 52pt.
             VStack(alignment: .leading, spacing: Typo.programHeroLineGap) {
                 Text("your program")
                     .font(Typo.programHeroDisplay)
@@ -189,6 +167,7 @@ struct ProgramIntroFullScreenCover: View {
         VStack(spacing: 10) {
             Button {
                 Haptics.light()
+                Analytics.track(.programInviteTapped)
                 withAnimation(Motion.crossFade) { showSubflow = true }
             } label: {
                 Text("start my program")
@@ -198,18 +177,6 @@ struct ProgramIntroFullScreenCover: View {
                     .padding(.vertical, 17)
                     .background(Palette.cocoaPrimary)
                     .clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
-
-            Button {
-                Haptics.light()
-                hasSeenProgramIntro = true
-                onDismiss()
-            } label: {
-                Text("maybe later")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaSecondary)
-                    .padding(.vertical, 8)
             }
             .buttonStyle(.plain)
         }

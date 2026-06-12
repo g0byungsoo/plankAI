@@ -71,35 +71,14 @@ struct DebugAuthView: View {
         }
         .background(Palette.bgPrimary)
         .fullScreenCover(item: $debugRitualToPresent) { lesson in
-            // Phase 9.19 — debug test path uses the same flag-based
-            // hand-off as PlankAIApp's post-paywall flow. HomeView
-            // reads `pendingPostRitualWorkoutLaunch` on its next
-            // appear and launches the routine session. From debug
-            // this lets us phone-test the full Day-1 → workout flow.
+            // Dev-only lesson preview. The workout hand-off flag this
+            // used to set died with the legacy HomeView — PlanView's
+            // lesson chain routes via onChainNext instead.
             JeniMethodRitualView(
                 lesson: lesson,
                 user: .fromAppStorage(),
                 onComplete: { debugRitualToPresent = nil },
-                onSkip:     { _ in debugRitualToPresent = nil },
-                onCompleteAndStartWorkout: {
-                    UserDefaults.standard.set(
-                        true,
-                        forKey: "pendingPostRitualWorkoutLaunch"
-                    )
-                    // Dismiss in place (setAnimationsEnabled is the reliable
-                    // no-slide path; Transaction wasn't). NOTE: this is a
-                    // dev-only test path. The workout cover is owned by
-                    // HomeView and only launches when Home next becomes
-                    // active — so launched from Settings/debug, the workout's
-                    // present happens off-Home where the pink splash can't
-                    // mask it. The real Home flow (daily card / auto lesson)
-                    // is fully slide-free; test the transition from there.
-                    UIView.setAnimationsEnabled(false)
-                    debugRitualToPresent = nil
-                    DispatchQueue.main.async {
-                        UIView.setAnimationsEnabled(true)
-                    }
-                }
+                onSkip:     { _ in debugRitualToPresent = nil }
             )
         }
         .sheet(isPresented: $showingJeniReReadDebug) {

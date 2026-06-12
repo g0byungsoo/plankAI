@@ -9,7 +9,7 @@ import PlankSync
 // CommitmentSignature. Used in two host contexts:
 //
 //   (1) OnboardingView case 171 — new users post-paywall
-//   (2) ProgramIntroFullScreenCover — existing users opting in
+//   (2) ProgramOnrampView — Today tab pre-enrollment
 //
 // Reads collected onboarding values (currentWeightKg, goalWeightKg,
 // age, sex, GLP-1, hormonal) from @AppStorage so the subflow can
@@ -36,7 +36,7 @@ struct ProgramSetupSubflow: View {
 
     // Inputs collected earlier in onboarding — @AppStorage reads them
     // wherever the subflow is hosted (onboarding mid-flow OR the
-    // ProgramIntroFullScreenCover for existing users).
+    // ProgramOnrampView).
     @AppStorage("onboardingCurrentWeightKg") private var currentWeightKg: Double = 65
     @AppStorage("onboardingGoalWeightKg") private var goalWeightKg: Double = 60
     @AppStorage("onboardingAgeRange") private var ageRange: String = ""
@@ -53,7 +53,7 @@ struct ProgramSetupSubflow: View {
     // v9 P9.4 — Subflow page state.
     //
     // The page LAYOUT still has 3 phases for existing-user opt-in
-    // (via ProgramIntroFullScreenCover), but new users coming through
+    // (via ProgramOnrampView), but new users coming through
     // the v9 onboarding flow have ALREADY picked their pace + seen
     // their derived date in OnboardingRevealView's PacePicker +
     // GoalDateReveal steps. For those users we skip straight to the

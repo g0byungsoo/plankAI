@@ -50,9 +50,6 @@
 		0A7F3E6878EAA6E0E753AEE3 /* jeni_prep_full_shoulder_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6F7F68DF39CF4AFB0B3B0D17 /* jeni_prep_full_shoulder_stretch.m4a */; };
 		0A929B73358142BE0E708C0C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 497B84BED7952F84A2354358 /* Foundation.framework */; };
 		0AEBFA0D7C7CD8C74EF30AD2 /* jeni_prep_full_windshield_wipers.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E9FB18A39BCCA12434DBD9CF /* jeni_prep_full_windshield_wipers.m4a */; };
-		0B7C775412FEF90FCAF14DC0 /* TodayPathStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF73D458DA5C3750837A8E6 /* TodayPathStrip.swift */; };
-		0B7C775412FEF90FCAF14DC1 /* WeightLogQuickCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF73D458DA5C3750837A8E7 /* WeightLogQuickCard.swift */; };
-		0B7C775412FEF90FCAF14DC2 /* HomeReadingLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF73D458DA5C3750837A8E8 /* HomeReadingLine.swift */; };
 		0C0BE7E42ADB2B08B456F6E8 /* ProgressGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE03F7E7FEA4E25F9B67EF16 /* ProgressGridView.swift */; };
 		0C1B32A7706578713F07EF8C /* matson_prep_full_jump_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4EE415F1F6C1311A718BE1BA /* matson_prep_full_jump_squat.m4a */; };
 		0C516670BA5B945AEBFA87FB /* jeni_prep_full_glute_bridge_march.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B19437FEEA45C1D7B0B8BE0D /* jeni_prep_full_glute_bridge_march.m4a */; };
@@ -657,9 +654,7 @@
 		9BA9195BBD3CA4D9915FB4A8 /* EngagementDayCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75145CDAAD34A5496A200464 /* EngagementDayCalculator.swift */; };
 		9BD8254699427728D316EFC4 /* matson_prep_short_cocoon_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F339CB28BE7DB59146853439 /* matson_prep_short_cocoon_crunch.m4a */; };
 		9C0336012839C4303AF04A36 /* matson_prep_short_lizard_pose.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 605F05D5940BA04B5B07E00E /* matson_prep_short_lizard_pose.m4a */; };
-		9C24A1B1F3E0B72D9E5B0001 /* RitualToWorkoutSplash.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C24A1B0F3E0B72D9E5B0001 /* RitualToWorkoutSplash.swift */; };
 		9C89BFFFF0A63127D547FB48 /* jeni_prep_short_deep_hip_flexor.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 58510115C27EB92FF50A4316 /* jeni_prep_short_deep_hip_flexor.m4a */; };
-		9CB8BFF9F9F814E3A2BC480A /* JenisNoteTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F62EC2BB171329ECBE9A2A4 /* JenisNoteTemplate.swift */; };
 		9CCA406AB2E9D0BF6D240986 /* matson_prep_full_bow_pose.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0771544C6C0D89872022D273 /* matson_prep_full_bow_pose.m4a */; };
 		9CCA99E9E267ED6AE678C494 /* matson_prep_full_alt_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7CFAA286D148C878F58E5F9B /* matson_prep_full_alt_leg_raise.m4a */; };
 		9CEE3777E4BEE39BA6B5B5F5 /* jeni_prep_full_burpee.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 38CEB23A59F10EAF2AF3F872 /* jeni_prep_full_burpee.m4a */; };
@@ -1123,7 +1118,6 @@
 		D0355170A832F073B01403A0 /* jeni_prep_full_floor_dip.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FB526A350EB96872BCBB82FF /* jeni_prep_full_floor_dip.m4a */; };
 		D06A17486AC3783DEBD1B7E2 /* prep_full_baby_cobra.m4a in Resources */ = {isa = PBXBuildFile; fileRef = A0F8B8A70B6FEB64CF397C16 /* prep_full_baby_cobra.m4a */; };
 		D07711CD959F1DF5B566D69E /* matson_prep_full_tabletop_bridge_knee_lift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 63FE0DB0E9637C72C35D0C3E /* matson_prep_full_tabletop_bridge_knee_lift.m4a */; };
-		D0D33DB6B3381ADA8CF4E7EA /* JenisNoteCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D7A9B9BCB783158FA5926FE /* JenisNoteCard.swift */; };
 		D1579E3925887482D11CA6B7 /* BecomingProjectionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCE0D62BA7D705BFC4DE6CE8 /* BecomingProjectionCard.swift */; };
 		D192BE3F4213BD74A9306AC7 /* PlanViewMicroCaption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CACF807231025C8FC071D79 /* PlanViewMicroCaption.swift */; };
 		D1CC83BF2E9B55D007F01578 /* jeni_prep_short_air_squat.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6CCC96283DD35DB235793821 /* jeni_prep_short_air_squat.m4a */; };
@@ -1285,7 +1279,6 @@
 		FDC651AC016AF01D394FA0C6 /* prep_short_cow_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 1D4DB53378D068037A657CB1 /* prep_short_cow_stretch.m4a */; };
 		FE67F9FF8F1EBB63224B7916 /* jeni_prep_full_side_crunch_hip_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6E3720F4143B123128E61B3C /* jeni_prep_full_side_crunch_hip_raise.m4a */; };
 		FEAA901644024BF19142F3C2 /* prep_short_alt_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 803EF90782EA5740D0ECF91F /* prep_short_alt_leg_raise.m4a */; };
-		FEB8044A1FA1C30739B0EF4B /* ForceFirstActionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A93A098CFDC39CC3E2B1C1C /* ForceFirstActionView.swift */; };
 		FF08B4902FA6000B3D /* roast_1.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF95B9F72FA60004FB /* roast_1.m4a */; };
 		FF0F76B3892BF5BC0E693F1C /* jeni_prep_full_knees_to_chest.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F256457D1E01088DEEAB2BBC /* jeni_prep_full_knees_to_chest.m4a */; };
 		FF1934C52FA7005F95 /* routine_done_4.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FF26AEC12FA7000719 /* routine_done_4.m4a */; };
@@ -1498,7 +1491,6 @@
 		29CAA7BD352DDD731EBDD6D5 /* matson_focus_intro_roundButt.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_focus_intro_roundButt.m4a; sourceTree = "<group>"; };
 		2A008025E09379F68F58ABAB /* matson_prep_full_single_leg_calf_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_single_leg_calf_raise.m4a; sourceTree = "<group>"; };
 		2A72574BA2A0AA0303138132 /* jeni_prep_short_burpee_pushup.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_burpee_pushup.m4a; sourceTree = "<group>"; };
-		2A93A098CFDC39CC3E2B1C1C /* ForceFirstActionView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ForceFirstActionView.swift; sourceTree = "<group>"; };
 		2A9998E4545A16ECD127643D /* jeni_prep_full_mountain_climbers.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_mountain_climbers.m4a; sourceTree = "<group>"; };
 		2AAB2B287953F690A026B72A /* prep_full_back_extension_lying.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_back_extension_lying.m4a; sourceTree = "<group>"; };
 		2BA97B457A83AE5AEFA74EFC /* jeni_prep_full_side_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_side_jacks.m4a; sourceTree = "<group>"; };
@@ -1579,7 +1571,6 @@
 		3EF431D74B15F527AD9AEF31 /* prep_short_sumo_jump_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_sumo_jump_squat.m4a; sourceTree = "<group>"; };
 		3F173B304E8A21DC49C1BD73 /* ScanActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScanActivityAttributes.swift; sourceTree = "<group>"; };
 		3F4A178719ECF8F2976E65A9 /* jeni_prep_full_skipping.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_skipping.m4a; sourceTree = "<group>"; };
-		3F62EC2BB171329ECBE9A2A4 /* JenisNoteTemplate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JenisNoteTemplate.swift; sourceTree = "<group>"; };
 		3F6BD8BB34D4FAD1D61F33A5 /* matson_prep_full_leg_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_leg_raise.m4a; sourceTree = "<group>"; };
 		3F9A288E4DAAB189412C2C3F /* jeni_prep_short_single_leg_glute_bridge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_single_leg_glute_bridge.m4a; sourceTree = "<group>"; };
 		3FA858313775D8615A2A4CDF /* prep_short_fire_hydrant.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_fire_hydrant.m4a; sourceTree = "<group>"; };
@@ -1874,7 +1865,6 @@
 		7CC6D89B7512C5F23689A447 /* jeni_prep_short_vertical_leg_crunch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_vertical_leg_crunch.m4a; sourceTree = "<group>"; };
 		7CDB240A81FAE08C200E985E /* matson_prep_full_childs_pose.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_childs_pose.m4a; sourceTree = "<group>"; };
 		7CFAA286D148C878F58E5F9B /* matson_prep_full_alt_leg_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_alt_leg_raise.m4a; sourceTree = "<group>"; };
-		7D7A9B9BCB783158FA5926FE /* JenisNoteCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JenisNoteCard.swift; sourceTree = "<group>"; };
 		7D7CF4AECCA3BDEF659D7B9A /* jeni_prep_short_downward_dog.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_downward_dog.m4a; sourceTree = "<group>"; };
 		7DF70F5A22C8DDE0EF7CB2CE /* jeni_prep_short_alt_forward_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_alt_forward_lunge.m4a; sourceTree = "<group>"; };
 		7E9F3C781ADFFD867E36697D /* matson_prep_full_side_plank_hip_abduction.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_side_plank_hip_abduction.m4a; sourceTree = "<group>"; };
@@ -1997,7 +1987,6 @@
 		9BD3F7C61C3CD58C223EA0B3 /* matson_prep_full_jumping_lunges.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_jumping_lunges.m4a; sourceTree = "<group>"; };
 		9BE9499ECBF1465D5276425F /* jeni_prep_full_squat_front_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_squat_front_kick.m4a; sourceTree = "<group>"; };
 		9C18B0F78C9035254F25AC25 /* prep_short_narrow_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_narrow_squat.m4a; sourceTree = "<group>"; };
-		9C24A1B0F3E0B72D9E5B0001 /* RitualToWorkoutSplash.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualToWorkoutSplash.swift; sourceTree = "<group>"; };
 		9C2612EBEFBE3C35473C751C /* RitualMusicPlayer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualMusicPlayer.swift; sourceTree = "<group>"; };
 		9C91A6324019FD09BCDE2FD4 /* prep_full_crab_toe_touches.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_crab_toe_touches.m4a; sourceTree = "<group>"; };
 		9C9CC02D71F88B758EA801E3 /* matson_prep_short_high_knees.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_high_knees.m4a; sourceTree = "<group>"; };
@@ -2263,9 +2252,6 @@
 		ACF49062BF652FA96A83 /* jeni_recovery_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_recovery_2.m4a; sourceTree = "<group>"; };
 		ACF49E3A95722FA97349 /* jeni_end_bad.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_end_bad.m4a; sourceTree = "<group>"; };
 		ACF6A03B97D32FA932FD /* jeni_stopped_2.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_stopped_2.m4a; sourceTree = "<group>"; };
-		ACF73D458DA5C3750837A8E6 /* TodayPathStrip.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodayPathStrip.swift; sourceTree = "<group>"; };
-		ACF73D458DA5C3750837A8E7 /* WeightLogQuickCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightLogQuickCard.swift; sourceTree = "<group>"; };
-		ACF73D458DA5C3750837A8E8 /* HomeReadingLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeReadingLine.swift; sourceTree = "<group>"; };
 		ACF9014DF6092FA93EF6 /* matson_guide_setup_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = matson_guide_setup_1.m4a; sourceTree = "<group>"; };
 		ACFDEE85B8FB2FA91E85 /* matson_hip_sag_1.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = matson_hip_sag_1.m4a; sourceTree = "<group>"; };
 		ACFF7880419F2FA95179 /* matson_milestone_120.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = matson_milestone_120.m4a; sourceTree = "<group>"; };
@@ -2710,7 +2696,6 @@
 				2DC687F1CA3C0E985362E086 /* JeniMethodState.swift */,
 				1179DE676E9B609270383FE5 /* JeniMethodContent.swift */,
 				53A1D47CBF31EBEE5F72148A /* JeniMethodTodayCard.swift */,
-				9C24A1B0F3E0B72D9E5B0001 /* RitualToWorkoutSplash.swift */,
 				278745163B0ED000CB590D24 /* JeniMethodAnalytics.swift */,
 				109EAA909F20D014DE1DADBC /* JeniMethodReReadView.swift */,
 				8682D03020E75654B3344E33 /* JeniMethodRitual.swift */,
@@ -2826,15 +2811,10 @@
 			children = (
 				783186542F99E4130096138F /* HomeView.swift */,
 				257E266497F49B819CCF4A82 /* WeekProgressStrip.swift */,
-				7D7A9B9BCB783158FA5926FE /* JenisNoteCard.swift */,
-				3F62EC2BB171329ECBE9A2A4 /* JenisNoteTemplate.swift */,
 				7B5A7B560046E56D15F132EE /* FutureRailCard.swift */,
 				0DE4C443FAA065AAB68E76D1 /* StepsPulseTile.swift */,
 				1BDB4EC3CD4739874F0D09A6 /* BreathworkHomeCard.swift */,
 				A57691CE83A231F4BF72985C /* TrendHeroCard.swift */,
-				ACF73D458DA5C3750837A8E6 /* TodayPathStrip.swift */,
-				ACF73D458DA5C3750837A8E7 /* WeightLogQuickCard.swift */,
-				ACF73D458DA5C3750837A8E8 /* HomeReadingLine.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -4281,7 +4261,6 @@
 				22A82AFDA499295F62A701EB /* BreathworkSessionView.swift */,
 				9889D1DAF1EE39222AB5FF54 /* PostPurchaseFlowView.swift */,
 				85A31F993C12062E36F57A7E /* BreathLibraryView.swift */,
-				2A93A098CFDC39CC3E2B1C1C /* ForceFirstActionView.swift */,
 				D2DE727DA736CE890131B82B /* ForgingRevealView.swift */,
 				A2B2ED417FC817351A5402A5 /* BreathworkFlowView.swift */,
 			);
@@ -5665,7 +5644,6 @@
 				4517C9CFCE71D525BEDBBA2C /* JeniMethodState.swift in Sources */,
 				D268579F96C03B63D2C65681 /* JeniMethodContent.swift in Sources */,
 				7042A670B69DBCABF130336B /* JeniMethodTodayCard.swift in Sources */,
-				9C24A1B1F3E0B72D9E5B0001 /* RitualToWorkoutSplash.swift in Sources */,
 				D60E8D27033FD716DED40EE0 /* JeniMethodAnalytics.swift in Sources */,
 				AA726E47867BF7391B196FA9 /* JeniMethodReReadView.swift in Sources */,
 				1C2AAFCD2B1ED0520C2E77B0 /* JeniMethodRitual.swift in Sources */,
@@ -5674,8 +5652,6 @@
 				0EF5FC8DBBA8B417B274F9AE /* RitualMusicPlayer.swift in Sources */,
 				4A7ACDBFAD31BF04F34B06A0 /* CoachIntroView.swift in Sources */,
 				5434FE4775F19C9A35264EEC /* WeekProgressStrip.swift in Sources */,
-				D0D33DB6B3381ADA8CF4E7EA /* JenisNoteCard.swift in Sources */,
-				9CB8BFF9F9F814E3A2BC480A /* JenisNoteTemplate.swift in Sources */,
 				923475AC1258406527BF7E1D /* FutureRailCard.swift in Sources */,
 				68B3E3195292FCD6942CF3FC /* BreathworkPrimerView.swift in Sources */,
 				3F5956D4FF7EDF5A41920366 /* BreathworkSessionView.swift in Sources */,
@@ -5702,13 +5678,9 @@
 				CF59A22782464DC355C504CD /* OnboardingRevealView.swift in Sources */,
 				188A822CF62EB7817D07C31F /* ProjectionMath.swift in Sources */,
 				D1ED96F957F89976751780A6 /* USDAConfig.swift in Sources */,
-				FEB8044A1FA1C30739B0EF4B /* ForceFirstActionView.swift in Sources */,
 				8E652F638090CC27A4DC70E0 /* FoodSettingsView.swift in Sources */,
 				7FDF5049B31CBEBBFE424872 /* HealthKitDietaryEnergyWriter.swift in Sources */,
 				99A19371CEDE360A7A24183F /* TrendHeroCard.swift in Sources */,
-				0B7C775412FEF90FCAF14DC0 /* TodayPathStrip.swift in Sources */,
-				0B7C775412FEF90FCAF14DC1 /* WeightLogQuickCard.swift in Sources */,
-				0B7C775412FEF90FCAF14DC2 /* HomeReadingLine.swift in Sources */,
 				97588DAED21FAB070B4A9AB3 /* SundayCard.swift in Sources */,
 				1118FF316E9C79F2874B4E2E /* ScanActivityAttributes.swift in Sources */,
 				7274AA8F41098FE3FCA54633 /* TikTokAppConfig.swift in Sources */,
