@@ -73,22 +73,23 @@ struct ProgramIntroFullScreenCover: View {
         // v1.1 design pass — the it-girl editorial cutout (founder-
         // supplied real-photo, her75 technique) replaces the gummy
         // bear: this cover sells *her* era, so the identity figure
-        // carries the beat. Full-subject cutout floats per the
-        // placement rules.
+        // carries the beat. Anchored in the dead space between the
+        // what's-inside card and the footer (sim QA round 1: the
+        // topTrailing spot collided with the 52pt hero).
         .background(
-            ZStack(alignment: .topTrailing) {
+            ZStack(alignment: .bottomTrailing) {
                 Palette.programBgPrimary
                 Image("itgirl-dress")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 132, height: 132)
-                    .rotationEffect(.degrees(4))
-                    .padding(.top, Space.xl)
-                    .padding(.trailing, Space.md)
+                    .frame(width: 168, height: 168)
+                    .rotationEffect(.degrees(3))
+                    .padding(.trailing, Space.lg)
+                    .padding(.bottom, 128)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
-            .ignoresSafeArea()
+            .ignoresSafeArea(edges: .top)
         )
     }
 

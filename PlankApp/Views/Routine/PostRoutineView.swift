@@ -78,8 +78,15 @@ struct PostRoutineView: View {
             VStack(spacing: Space.lg) {
                 Spacer()
 
-                Text("👋")
-                    .font(.system(size: 72))
+                // v1.1 design pass — emoji swapped for the brand bow
+                // sticker per the kill-list (no emoji) + sticker-accent
+                // vocabulary every other module screen uses.
+                Image(StickerName.bowIridescent.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 72, height: 72)
+                    .rotationEffect(.degrees(-6))
+                    .accessibilityHidden(true)
 
                 VStack(spacing: Space.sm) {
                     // v1.1 module pass — the early exit is information,

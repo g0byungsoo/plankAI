@@ -609,7 +609,9 @@ struct PlanView: View {
                     .font(Typo.caption)
                 + Text("day")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                + Text(". tap any row to begin ♥")
+                // U+FE0E pins text presentation — without it the heart
+                // renders as the red emoji glyph (sim QA round 1).
+                + Text(". tap any row to begin ♥\u{FE0E}")
                     .font(Typo.caption)
             )
             .foregroundStyle(Palette.textSecondary)

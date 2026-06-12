@@ -143,8 +143,14 @@ public struct ImOutTonightView: View {
                 Text("you're out tonight")
                     .font(.custom("Fraunces72pt-SemiBold", size: 24))
                     .foregroundStyle(FoodTheme.textPrimary)
-                Text("🌸")
-                    .font(.system(size: 22))
+                // v1.1 design pass — brand flower sticker replaces the
+                // emoji per the no-emoji rule + sticker vocabulary.
+                Image("sticker_flower_3d", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 26, height: 26)
+                    .rotationEffect(.degrees(8))
+                    .accessibilityHidden(true)
             }
             Text("logging a rough estimate.")
                 .font(.system(size: 14))
