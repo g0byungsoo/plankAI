@@ -34,6 +34,7 @@ AuthKey_*.p8
 # Device captures + raw source art (kept local; not app build inputs)
 screenshots/
 /Resources/
+generated_illustrations/
 .claude/scheduled_tasks.lock
 
 # Local backups (re-encoded asset originals, kept outside git for rollback)
