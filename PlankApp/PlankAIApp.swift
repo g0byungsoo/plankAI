@@ -758,6 +758,12 @@ private struct RootView: View {
                 )
             )
             await AppSync.shared.onLaunch(modelContext: modelContext)
+            // Steps: silent permission probe at launch (never prompts).
+            // StepsService's docs always promised this call; it was only
+            // wired through the Home pulse tile's .task, so program
+            // users who land on the Plan tab kept seeing "connect
+            // steps" on Becoming even after granting access.
+            await StepsService.shared.bootstrap()
             // Re-fill the local retention notifications (affirmation drops +
             // win-back). No-op + never prompts when notifications aren't
             // authorized; purely additive over the daily + trial reminders.

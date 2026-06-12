@@ -51,6 +51,11 @@ struct StepsBentoTile: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .task {
+            // bootstrap() before refresh() — the silent probe flips
+            // .notDetermined → .authorized when access was already
+            // granted (idempotent; no-ops once resolved). Without it
+            // this tile showed the "connect" fallback forever.
+            await service.bootstrap()
             await service.refresh()
             Analytics.track(.stepsViewedBecoming, properties: [
                 "week_total": service.weekTotal,
