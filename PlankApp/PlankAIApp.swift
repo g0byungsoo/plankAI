@@ -53,6 +53,17 @@ struct PlankAIApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     init() {
+        #if DEBUG
+        // UI-test hook: one-shot reset instead of an NSArgumentDomain pin
+        // ("-hasCompletedOnboarding NO"), which would override the app's
+        // own write of `true` for the whole run and trap RootView in the
+        // onboarding branch — the flow would loop instead of handing off
+        // to the hard paywall.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-fresh-onboarding") {
+            UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
+        }
+        #endif
+
         // PostHog must be set up *before* any Analytics.track call lands
         // — the wrapper queues to its own background queue, so a race
         // where an early track fires before sink registration would be

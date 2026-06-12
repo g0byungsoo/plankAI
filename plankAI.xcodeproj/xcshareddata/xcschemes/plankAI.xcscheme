@@ -40,6 +40,16 @@
                ReferencedContainer = "container:plankAI.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "C7E2599282953D049447C550"
+               BuildableName = "plankAIUITests.xctest"
+               BlueprintName = "plankAIUITests"
+               ReferencedContainer = "container:plankAI.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

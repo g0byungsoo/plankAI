@@ -33,6 +33,7 @@
 		05D2413C3FA1E6F510AE7CC7 /* prep_short_reverse_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 61588F2A4EAEBBFB01CBE1B8 /* prep_short_reverse_lunge.m4a */; };
 		05E137B3D9A75E87A40B4139 /* matson_prep_full_crunch_knee_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 84364F1EA85162DE8CBAFEEA /* matson_prep_full_crunch_knee_raise.m4a */; };
 		05F4445D2BDE8BA456DB64CA /* matson_prep_full_simple_jacks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 349047A96D98AF6D1F85F268 /* matson_prep_full_simple_jacks.m4a */; };
+		05F481D86680732EE6A65571 /* OnboardingWalkthroughUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD51B039F1512AACA628DDA /* OnboardingWalkthroughUITests.swift */; };
 		0709D91E7506122F6918699E /* matson_prep_short_plank_saw.m4a in Resources */ = {isa = PBXBuildFile; fileRef = AAFD09664207E457676A901E /* matson_prep_short_plank_saw.m4a */; };
 		073A49EA7F4F9285F6F769C1 /* matson_prep_full_burpee_pushup.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 46025FF586E67737C80C71DB /* matson_prep_full_burpee_pushup.m4a */; };
 		075CD404CC0DF0E2BB0F3C01 /* matson_prep_full_mountain_climbers.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 42CCF83765C05724A49192C7 /* matson_prep_full_mountain_climbers.m4a */; };
@@ -373,6 +374,7 @@
 		5B470EF5D3791690172ACE71 /* jeni_prep_short_squat_calf_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 596815D07B544CB73305E622 /* jeni_prep_short_squat_calf_raise.m4a */; };
 		5B9300EE38D14E4B298DE0AF /* jeni_prep_short_side_crunch_hip_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 902716F1A2CC20189EDDEB6D /* jeni_prep_short_side_crunch_hip_raise.m4a */; };
 		5C13D6FDFEE0BEFF24556317 /* jeni_prep_short_back_extension_lying.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8B9B8CC74D053FA36589E99F /* jeni_prep_short_back_extension_lying.m4a */; };
+		5C66F9452827A35F884E40DF /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 497B84BED7952F84A2354358 /* Foundation.framework */; };
 		5CCD588EABC9D97A2127A2C4 /* matson_prep_full_plank_frog_jump.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CEE03801726E7B2DB1CE41BC /* matson_prep_full_plank_frog_jump.m4a */; };
 		5CDAC64C819410F726C61BB2 /* BecomingDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F44F328F8EE99D980EC7549 /* BecomingDashboard.swift */; };
 		5CF2F6ED3D55732509DEC13E /* ProgramSetupSubflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53A5E70C002553C02FF1070A /* ProgramSetupSubflow.swift */; };
@@ -1303,6 +1305,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		0ECBE1697917E3377104D3B2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 783186392F99E3110096138F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 783186402F99E3110096138F;
+			remoteInfo = plankAI;
+		};
 		91ED81E51971F980FAB549D2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 783186392F99E3110096138F /* Project object */;
@@ -1407,6 +1416,7 @@
 		128FBE018EC08C48596ACBE1 /* countdown_beep_final.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = countdown_beep_final.m4a; sourceTree = "<group>"; };
 		12F5A6C130D8688B006211E1 /* ScanLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScanLiveActivity.swift; sourceTree = "<group>"; };
 		13153FE51DDF04B35AC400BD /* matson_prep_short_alternating_superman.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_alternating_superman.m4a; sourceTree = "<group>"; };
+		1339F186B37D13332176935D /* plankAIUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = plankAIUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1345C881AC495AB9C78E1EEC /* prep_short_donkey_kick_pulse.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_donkey_kick_pulse.m4a; sourceTree = "<group>"; };
 		1386D4105F0FA70206192907 /* prep_short_jumping_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_jumping_jacks.m4a; sourceTree = "<group>"; };
 		140B7568F4B8604E83E5D322 /* jeni_prep_short_glute_bridge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_glute_bridge.m4a; sourceTree = "<group>"; };
@@ -1627,6 +1637,7 @@
 		4EC860D7EDE3A0AFA9C7BF47 /* prep_short_kneeling_shoulder_tap.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_kneeling_shoulder_tap.m4a; sourceTree = "<group>"; };
 		4EE415F1F6C1311A718BE1BA /* matson_prep_full_jump_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_jump_squat.m4a; sourceTree = "<group>"; };
 		4FAAC9D4047EF92541C15DF4 /* matson_prep_full_bodyweight_swing.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_bodyweight_swing.m4a; sourceTree = "<group>"; };
+		4FD51B039F1512AACA628DDA /* OnboardingWalkthroughUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingWalkthroughUITests.swift; sourceTree = "<group>"; };
 		4FFAF224C2B0D5362A916EA6 /* prep_short_plank_saw.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_plank_saw.m4a; sourceTree = "<group>"; };
 		502D1430C25207A706BAB5C8 /* jeni_prep_short_side_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_side_lunge.m4a; sourceTree = "<group>"; };
 		50669A8319D7CE60E53F6A3A /* jeni_prep_full_childs_pose.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_childs_pose.m4a; sourceTree = "<group>"; };
@@ -2656,6 +2667,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C21BE93C55443F22D514E332 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C66F9452827A35F884E40DF /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -2705,6 +2724,15 @@
 			path = DietEducation;
 			sourceTree = "<group>";
 		};
+		444B08DEAEE5086AFA86F549 /* plankAIUITests */ = {
+			isa = PBXGroup;
+			children = (
+				4FD51B039F1512AACA628DDA /* OnboardingWalkthroughUITests.swift */,
+			);
+			name = plankAIUITests;
+			path = plankAIUITests;
+			sourceTree = "<group>";
+		};
 		5747CE84C1A2E80AF85C6FB0 /* plankAITests */ = {
 			isa = PBXGroup;
 			children = (
@@ -2749,6 +2777,7 @@
 				783186422F99E3110096138F /* Products */,
 				5747CE84C1A2E80AF85C6FB0 /* plankAITests */,
 				C0A55A098AB29DD2EA90B909 /* JenifitWidgets */,
+				444B08DEAEE5086AFA86F549 /* plankAIUITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -2758,6 +2787,7 @@
 				783186412F99E3110096138F /* plankAI.app */,
 				2D26393518BA28A17D9EC22C /* plankAITests.xctest */,
 				FEFCE18E893D5596452918C8 /* JenifitWidgets.appex */,
+				1339F186B37D13332176935D /* plankAIUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -4328,6 +4358,24 @@
 			productReference = 783186412F99E3110096138F /* plankAI.app */;
 			productType = "com.apple.product-type.application";
 		};
+		C7E2599282953D049447C550 /* plankAIUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F1D9BF4F2C8D232E6BE38369 /* Build configuration list for PBXNativeTarget "plankAIUITests" */;
+			buildPhases = (
+				C6DA1346A700C6FBEC8FF1ED /* Sources */,
+				C21BE93C55443F22D514E332 /* Frameworks */,
+				2038C8663BF6647B04EAD647 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				828AC9BE2BA1E885E5ADD32C /* PBXTargetDependency */,
+			);
+			name = plankAIUITests;
+			productName = plankAIUITests;
+			productReference = 1339F186B37D13332176935D /* plankAIUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -4370,11 +4418,19 @@
 				783186402F99E3110096138F /* plankAI */,
 				6933F14EC6C91D49C618315E /* plankAITests */,
 				4076C317B06F5BEE1B721650 /* JenifitWidgets */,
+				C7E2599282953D049447C550 /* plankAIUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		2038C8663BF6647B04EAD647 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2BFBCDA31E809825CC5FBC3A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -5702,6 +5758,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C6DA1346A700C6FBEC8FF1ED /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				05F481D86680732EE6A65571 /* OnboardingWalkthroughUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -5716,6 +5780,12 @@
 			name = JenifitWidgets;
 			target = 4076C317B06F5BEE1B721650 /* JenifitWidgets */;
 			targetProxy = CC459A37255D55B712E52581 /* PBXContainerItemProxy */;
+		};
+		828AC9BE2BA1E885E5ADD32C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = plankAI;
+			target = 783186402F99E3110096138F /* plankAI */;
+			targetProxy = 0ECBE1697917E3377104D3B2 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -5776,6 +5846,20 @@
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/plankAI.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/plankAI";
+			};
+			name = Debug;
+		};
+		6EE8A90F04D934DAFDC70F27 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAIUITests;
+				PRODUCT_NAME = plankAIUITests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = plankAI;
 			};
 			name = Debug;
 		};
@@ -5976,6 +6060,21 @@
 			};
 			name = Release;
 		};
+		C885FA049D9AB7047EB6FD29 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bk.plankAIUITests;
+				PRODUCT_NAME = plankAIUITests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = plankAI;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		F95ABC0EC99FDF6AED6607E2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -6036,6 +6135,15 @@
 			buildConfigurations = (
 				1D82FEA69B56E9BC8D879B2B /* Release */,
 				6811DFB089046353C3DC2469 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F1D9BF4F2C8D232E6BE38369 /* Build configuration list for PBXNativeTarget "plankAIUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C885FA049D9AB7047EB6FD29 /* Release */,
+				6EE8A90F04D934DAFDC70F27 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
