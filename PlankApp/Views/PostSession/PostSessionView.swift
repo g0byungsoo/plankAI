@@ -253,7 +253,7 @@ struct PostSessionView: View {
         let seconds = Int(holdTime.rounded())
         let emoji = qualityScore >= 7.0 ? "🔥" : qualityScore >= 4.0 ? "😤" : "😅"
         let streakSuffix = streakCount > 1 ? ", \(streakCount)-day streak" : ""
-        return "day \(dayNumber) done — \(seconds)s plank\(streakSuffix) \(emoji) jenifit"
+        return "day \(dayNumber) done. \(seconds)s plank\(streakSuffix) \(emoji) jenifit"
     }
 
     /// Form score = % of hold time with good form (the 70% weight component)

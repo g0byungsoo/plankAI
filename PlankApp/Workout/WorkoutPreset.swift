@@ -176,8 +176,8 @@ extension WorkoutPreset {
 
     static let definition1 = WorkoutPreset(
         id: "definition_1",
-        name: "Flat Belly Burn",
-        description: "Sweaty cardio + core work that hits the abs from every angle. Direct route to definition.",
+        name: "Flat Belly Focus",
+        description: "Cardio + core work that hits the abs from every angle. Direct route to definition.",
         goal: .definition,
         difficulty: .intermediate,
         exercises: [

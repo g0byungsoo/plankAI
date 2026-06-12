@@ -938,14 +938,16 @@ struct WorkoutGenerator {
     // MARK: - Naming
 
     private static func generatedName(for focus: [BodyFocus]) -> String {
-        // Multi-focus session → "Sculpt + Burn"
+        // Post-Ozempic vocabulary pass (2026-06-11): the old pool leaned
+        // on 2010s diet-culture labor verbs (Burn / Pump / Full Send).
+        // Names read as outcomes and rituals now, never as labor.
         if focus.count > 1 { return "Custom Mix" }
         switch focus.first ?? .fullBody {
-        case .flatBelly: return ["Flat Belly Burn", "Core Reset", "Sculpt the Mid"].randomElement()!
-        case .tonedArms: return ["Toned Arms", "Upper Glow", "Sleeve Sculpt"].randomElement()!
-        case .roundButt: return ["Booty Build", "Glute Pump", "Sculpt the Curve"].randomElement()!
-        case .slimLegs:  return ["Lean Legs", "Leg Day Lite", "Long & Strong"].randomElement()!
-        case .fullBody:  return ["Full Send", "Total Body Burn", "Move Everything"].randomElement()!
+        case .flatBelly: return ["Core Reset", "Center Hold", "Quiet Core"].randomElement()!
+        case .tonedArms: return ["Toned Arms", "Upper Glow", "Carry Easy"].randomElement()!
+        case .roundButt: return ["Round & Strong", "The Curve", "Glute Foundations"].randomElement()!
+        case .slimLegs:  return ["Lean Legs", "Long & Strong", "Light Legs"].randomElement()!
+        case .fullBody:  return ["Move Everything", "Total Reset", "All of You"].randomElement()!
         }
     }
 
