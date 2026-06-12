@@ -80,6 +80,7 @@ struct PlanView: View {
         case preRoutine(WorkoutPreset)
         case breathSession
         case chapterComplete
+        case programSetup
 
         var id: String {
             switch self {
@@ -88,9 +89,16 @@ struct PlanView: View {
             case .preRoutine:     return "preRoutine"
             case .breathSession:  return "breathSession"
             case .chapterComplete: return "chapterComplete"
+            case .programSetup:   return "programSetup"
             }
         }
     }
+
+    /// True when programEraEnabled is on but no active plan exists for
+    /// this user (account switch, failed commit, wiped data). Without
+    /// this the screen rendered a blank pink scroll — no checklist, no
+    /// explanation, no way forward.
+    @State private var planMissing: Bool = false
 
     enum PlanSheet: Identifiable {
         case lock(day: Int)
@@ -145,27 +153,31 @@ struct PlanView: View {
             // token. Brand identity over neutral cream cohort default.
             Palette.programBgPrimary.ignoresSafeArea()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    Spacer().frame(height: 24)
-                    eyebrow
-                    Spacer().frame(height: 18)
-                    dayStrip
-                    if viewingDay != nil {
-                        Spacer().frame(height: 16)
-                        viewingPastPill
+            if planMissing {
+                planMissingState
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Spacer().frame(height: 24)
+                        eyebrow
+                        Spacer().frame(height: 18)
+                        dayStrip
+                        if viewingDay != nil {
+                            Spacer().frame(height: 16)
+                            viewingPastPill
+                        }
+                        Spacer().frame(height: 22)
+                        checklistCard
+                        Spacer().frame(height: 24)
+                        PlanViewMicroCaption(
+                            completed: completedRowCount,
+                            total: todayPrescriptions.count
+                        )
+                        .modernEntrance(animateIn, delay: 0.4)
+                        Spacer().frame(height: 60)
                     }
-                    Spacer().frame(height: 22)
-                    checklistCard
-                    Spacer().frame(height: 24)
-                    PlanViewMicroCaption(
-                        completed: completedRowCount,
-                        total: todayPrescriptions.count
-                    )
-                    .modernEntrance(animateIn, delay: 0.4)
-                    Spacer().frame(height: 60)
+                    .padding(.horizontal, Space.lg)
                 }
-                .padding(.horizontal, Space.lg)
             }
         }
         .onAppear { onAppear() }
@@ -295,6 +307,16 @@ struct PlanView: View {
                 },
                 onDismiss: { dismissCover() }
             )
+            .presentationBackground(Palette.programBgPrimary)
+
+        case .programSetup:
+            ProgramSetupSubflow { committed in
+                dismissCover()
+                if committed {
+                    planMissing = false
+                    onAppear()
+                }
+            }
             .presentationBackground(Palette.programBgPrimary)
 
         case .chapterComplete:
@@ -559,6 +581,42 @@ struct PlanView: View {
         }
     }
 
+    // MARK: - Plan-missing recovery
+
+    /// Editorial recovery state. Reachable when the program era flag is
+    /// on without a matching plan row — the setup subflow rebuilds the
+    /// plan from her stored answers in under a minute.
+    @ViewBuilder private var planMissingState: some View {
+        VStack(spacing: 0) {
+            Spacer()
+            (
+                Text("your plan, ")
+                    .font(Typo.heroHeadline)
+                + Text("ready when you are")
+                    .font(Typo.heroHeadlineItalic)
+            )
+            .foregroundStyle(Palette.textPrimary)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, Space.lg)
+
+            Spacer().frame(height: 14)
+
+            Text("a couple of quick questions and today's checklist is back.")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 44)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .safeAreaInset(edge: .bottom) {
+            JFContinueButton(label: "set up my program") {
+                present(cover: .programSetup)
+            }
+        }
+    }
+
     // MARK: - Lifecycle
 
     private func onAppear() {
@@ -566,8 +624,10 @@ struct PlanView: View {
         guard !userId.isEmpty else { return }
 
         guard let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext) else {
+            planMissing = true
             return
         }
+        planMissing = false
 
         // One-time stale-check wipe before hydration. See the
         // planChecksMigratedV1 property for the bug history.

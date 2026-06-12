@@ -169,6 +169,7 @@ enum AnalyticsEvent: String {
     case jenisNoteViewed              = "jenis_note_viewed"
     case futureRailTapped             = "future_rail_tapped"
     case lessonCardTapped             = "lesson_card_tapped"
+    case programInviteTapped          = "program_invite_tapped"
 
     // ── Core engagement (recurring — fire on EVERY occurrence) ──
     // The first_workout_* events above are activation-funnel-specific

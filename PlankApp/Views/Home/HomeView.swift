@@ -7,6 +7,16 @@ import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodu
 struct HomeView: View {
     @AppStorage("userName") private var userName = ""
     @AppStorage("hasCompletedFirstSession") private var hasCompletedFirstSession = false
+
+    // v1.1 program re-entry — "maybe later" on the one-shot intro
+    // cover used to be permanent (hasSeenProgramIntro is a one-way
+    // gate). This quiet card is the second chance: visible only to
+    // users who saw the intro and declined, gone the moment they
+    // enroll.
+    @AppStorage("hasSeenProgramIntro") private var hasSeenProgramIntro = false
+    @AppStorage("hasEnrolledInProgram") private var hasEnrolledInProgram = false
+    @AppStorage("programEraEnabled") private var programEraEnabled = false
+    @State private var showProgramIntroCover = false
     @AppStorage("userGoal") private var userGoal = ""
     @AppStorage("bodyFocus") private var bodyFocusValue = ""
     @AppStorage("sessionLengthPref") private var sessionLengthPref = 7
@@ -581,6 +591,13 @@ struct HomeView: View {
                             .padding(.horizontal, Space.screenPadding)
                             .opacity(msgOpacity[0]).offset(y: msgOffset[0])
                             .blur(radius: greetingBlur)
+
+                        // Program re-entry for "maybe later" users.
+                        if hasSeenProgramIntro && !hasEnrolledInProgram && !programEraEnabled {
+                            programInviteCard
+                                .padding(.horizontal, Space.screenPadding)
+                                .opacity(msgOpacity[0]).offset(y: msgOffset[0])
+                        }
 
                         // HERO — food card per delta v7 D56 (2026-06-05).
                         // 2026-06-06: TrendHeroCard moved to Becoming
@@ -1269,6 +1286,62 @@ struct HomeView: View {
                 },
                 onDismiss: { showStreakReviewSheet = false }
             )
+        }
+    }
+
+    // MARK: - Program invite (re-entry)
+
+    /// Quiet scrapbook card re-offering the program intro to users who
+    /// tapped "not yet" on the one-shot cover. Tap re-presents the SAME
+    /// ProgramIntroFullScreenCover (the founder-locked commitment
+    /// device) — this card is only the doorway back to it.
+    @ViewBuilder private var programInviteCard: some View {
+        Button {
+            Haptics.light()
+            Analytics.track(.programInviteTapped, properties: ["source": "home_invite_card"])
+            showProgramIntroCover = true
+        } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    (
+                        Text("your program is ")
+                            .font(.custom("DMSans-SemiBold", size: 17))
+                        + Text("ready")
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17))
+                        + Text(" ♥")
+                            .font(.custom("DMSans-SemiBold", size: 15))
+                    )
+                    .foregroundStyle(Palette.textPrimary)
+                    Text("a daily checklist built from your answers. start when you're ready.")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Palette.accent)
+            }
+            .padding(Space.md)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(Palette.accent.opacity(0.12))
+                        .offset(x: 3, y: 3)
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(Palette.bgElevated)
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(Palette.accent.opacity(0.45), lineWidth: 1.5)
+                }
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("start your custom program")
+        .fullScreenCover(isPresented: $showProgramIntroCover) {
+            ProgramIntroFullScreenCover {
+                showProgramIntroCover = false
+            }
         }
     }
 
