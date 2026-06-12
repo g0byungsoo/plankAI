@@ -9,6 +9,15 @@ accent, cocoa anchor, hand-drawn sticker scatter, italic-serif punch words.
 Calm and confident, not loud. The aesthetic borrows from gen-Z/Alpha "soft
 girl" scrapbook diaries, not the saturated neon of mainstream fitness apps.
 
+> **Illustration system (2026-06-12):** all illustrated surfaces now run the
+> it-girl editorial cutout register: true-alpha real-photo-style cutouts
+> floating directly on cream, one subject per screen, generated via the
+> Grok + Vision-cutout pipeline or founder-supplied PNGs. Generation
+> hierarchy, placement grammar, per-screen inventory and the
+> add-a-new-screen checklist live in
+> `docs/itgirl_illustration_system_2026_06_12.md`. Sticker scatter remains
+> locked to the 3 earned moments (welcome, plan reveal, graduation).
+
 ---
 
 ## 1. Palette
