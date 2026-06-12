@@ -5608,8 +5608,8 @@ struct OnboardingView: View {
             body: "most apps make you log after. jenifit lets you snap before. see if it fits. no shame either way.",
             next: 156,
             accentImage: "onb-itgirl-preeat",
-            accentFlushLeading: true,
-            accentMaxHeight: 300
+            accentMaxHeight: 300,
+            accentFlushLeading: true
         )
     }
 
