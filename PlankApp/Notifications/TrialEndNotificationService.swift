@@ -24,7 +24,10 @@ final class TrialEndNotificationService {
     /// Stable identifier for the trial-end reminder. Lets us look it up
     /// by ID for cancellation without scanning the full pending list by
     /// content.
-    private let identifier = "absmaxxing.trial.ending.reminder"
+    private let identifier = "jenifit.trial.ending.reminder"
+    /// Pre-rebrand identifier — still pending on devices that scheduled
+    /// before the rename. Always swept alongside the current one.
+    private let legacyIdentifier = "absmaxxing.trial.ending.reminder"
 
     /// Request permission + schedule the reminder for 24 hours before
     /// `trialEndDate`. Idempotent — repeated calls with the same date
@@ -76,7 +79,7 @@ final class TrialEndNotificationService {
         let shownUp = RetentionNotifications.shownUpCount
         if shownUp >= 3 {
             content.title = "look how far you've come."
-            content.body = "you've shown up \(shownUp) times ♥ your free trial becomes a membership tomorrow — manage or cancel anytime in iOS settings."
+            content.body = "you've shown up \(shownUp) times ♥ your free trial becomes a membership tomorrow. manage or cancel anytime in iOS settings."
         } else {
             content.title = "your free trial ends tomorrow."
             content.body = "your trial becomes a membership tomorrow. manage or cancel anytime in iOS settings."
@@ -92,6 +95,10 @@ final class TrialEndNotificationService {
         )
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+
+        // Migration: drop any reminder scheduled under the pre-rebrand
+        // identifier so a device that upgraded doesn't fire twice.
+        center.removePendingNotificationRequests(withIdentifiers: [legacyIdentifier])
 
         do {
             try await center.add(request)
@@ -112,8 +119,9 @@ final class TrialEndNotificationService {
     func cancelTrialEndReminder() async {
         let center = UNUserNotificationCenter.current()
         let pending = await center.pendingNotificationRequests()
-        guard pending.contains(where: { $0.identifier == identifier }) else { return }
-        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        let ids = [identifier, legacyIdentifier]
+        guard pending.contains(where: { ids.contains($0.identifier) }) else { return }
+        center.removePendingNotificationRequests(withIdentifiers: ids)
         #if DEBUG
         print("[TrialEndNotification] cancelled identifier=\(identifier)")
         #endif
