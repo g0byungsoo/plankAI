@@ -5506,17 +5506,25 @@ struct OnboardingView: View {
         // Horizontal nudge for cutouts whose subject sits off-center
         // in their own canvas (the roses lean left); positive pushes
         // toward the trailing edge.
-        accentOffsetX: CGFloat = 0
+        accentOffsetX: CGFloat = 0,
+        // Kiss the LEADING screen edge, zero margin (founder round 11:
+        // the chicken plate sits sticky-left).
+        accentFlushLeading: Bool = false,
+        // Rest the cutout's bottom directly on the CTA dock instead of
+        // floating Space.xs above it (the plateau woman stands on the
+        // continue button).
+        accentFlushBottom: Bool = false
     ) -> some View {
-        ZStack(alignment: .bottomTrailing) {
+        ZStack(alignment: accentFlushLeading ? .bottomLeading : .bottomTrailing) {
             if let accentImage {
                 Image(accentImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(maxHeight: accentMaxHeight)
-                    .padding(.trailing, accentFlushTrailing ? 0 : Space.lg)
-                    .offset(x: (accentFlushTrailing ? 20 : 0) + accentOffsetX)
-                    .padding(.bottom, Space.xs)
+                    .padding(.trailing, (accentFlushTrailing || accentFlushLeading) ? 0 : Space.lg)
+                    .offset(x: accentFlushLeading ? -6
+                              : (accentFlushTrailing ? 20 : 0) + accentOffsetX)
+                    .padding(.bottom, accentFlushBottom ? 0 : Space.xs)
                     .accessibilityHidden(true)
             }
 
@@ -5594,10 +5602,14 @@ struct OnboardingView: View {
         educationalScreen(
             headline: "you can decide before you eat.",
             italicWords: ["before"],
+            // Founder-supplied fried chicken plate (round 11), flush to
+            // the left edge: the honest "decide before you eat" food,
+            // not the aspirational one.
             body: "most apps make you log after. jenifit lets you snap before. see if it fits. no shame either way.",
             next: 156,
             accentImage: "onb-itgirl-preeat",
-            accentFlushTrailing: true
+            accentFlushLeading: true,
+            accentMaxHeight: 300
         )
     }
 
@@ -5607,14 +5619,14 @@ struct OnboardingView: View {
         educationalScreen(
             headline: "the scale stalls around week 3. that's good.",
             italicWords: ["good"],
-            // Lit taper candle with a blush bow (round 10): time passing,
-            // calm, single-object generation-safe. The hourglass read
-            // washed-out on device.
+            // Founder-supplied woman cutout (round 11), standing on the
+            // continue button.
             body: "plateaus mean adaptation, not failure. jeni tells you what to change. no panic.",
             next: 21,
             citation: "acsm 2024",
-            accentImage: "onb-filler-candle",
-            accentMaxHeight: 380
+            accentImage: "onb-itgirl-plateau",
+            accentMaxHeight: 400,
+            accentFlushBottom: true
         )
     }
 
