@@ -221,18 +221,18 @@ struct BreathworkIntroView: View {
             Spacer()
         }
         .padding(.horizontal, Space.lg)
-        // Quiet self-care accent in the dead space above the CTA —
-        // founder-supplied real-photo cutout (her75 technique), floats
-        // as a full-subject object.
+        // Editorial it-girl cutout (her75 real-photo technique) sits
+        // cross-legged on the baseline above the CTA — grounded, not
+        // floating, so the dead space reads intentional.
         .overlay(alignment: .bottomTrailing) {
-            Image("accent-perfume")
+            Image("itgirl-breathe")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 108, height: 108)
-                .rotationEffect(.degrees(-6))
+                .frame(width: 178)
+                .scaleEffect(x: -1)
                 .padding(.trailing, Space.lg)
-                .padding(.bottom, 18)
-                .opacity(animateIn ? 0.95 : 0)
+                .opacity(animateIn ? 1 : 0)
+                .offset(y: animateIn ? 0 : 10)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
