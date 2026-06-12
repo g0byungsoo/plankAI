@@ -601,7 +601,6 @@ struct PaywallView: View {
         BecomingProjectionCard(
             currentWeightKg: currentUserRecord?.onboardingCurrentWeightKg,
             goalWeightKg: currentUserRecord?.onboardingGoalWeightKg,
-            voicePreference: voicePreference,
             chartHeight: 50
         )
     }

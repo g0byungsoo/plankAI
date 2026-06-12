@@ -20,11 +20,22 @@ import SwiftUI
 struct BecomingProjectionCard: View {
     let currentWeightKg: Double?
     let goalWeightKg: Double?
-    let voicePreference: String
     /// 2026-06-06 — paywall compact variant. Paywall wants a short
     /// projection chip (~110pt total) so 3 tier cards can fit on
     /// one screen. Reveal screen keeps the full 110pt chart.
     var chartHeight: CGFloat = 110
+
+    // Pace unification (2026-06-11): rate + date + label all derive
+    // from the user's picked pace. Pre-fix this card hard-coded 0.75%
+    // and labeled the rate from the COACH VOICE key ("encouraging" →
+    // "gentle pace"), so the paywall showed "~1.2 lb/wk · gentle pace"
+    // — steady-rate math under a gentle label.
+    @AppStorage(ProjectionMath.paceDefaultsKey) private var paceChoice: String = ""
+
+    // v4.6 — the curve draws itself on appear (0.9s ease-out) with the
+    // gradient fill fading in behind it. Reduce-motion snaps to drawn.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var curveDrawn = false
 
     @ViewBuilder
     var body: some View {
@@ -32,7 +43,7 @@ struct BecomingProjectionCard: View {
             let unit = WeightUnit.current
             let currentDisp = unit.display(fromKg: curr)
             let goalDisp = unit.display(fromKg: goal)
-            let perWeek = unit.display(fromKg: curr * 0.0075)
+            let perWeek = unit.display(fromKg: curr * ProjectionMath.weeklyFraction(paceKey: paceChoice))
             let dateText = projectedDateText(currentKg: curr, goalKg: goal)
 
             VStack(alignment: .leading, spacing: 14) {
@@ -68,7 +79,9 @@ struct BecomingProjectionCard: View {
                                         endPoint: .bottom
                                     )
                                 )
+                                .opacity(curveDrawn ? 1 : 0)
                             BecomingCurveShape()
+                                .trim(from: 0, to: curveDrawn ? 1 : 0)
                                 .stroke(
                                     Palette.accent,
                                     style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
@@ -78,6 +91,8 @@ struct BecomingProjectionCard: View {
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 28, height: 28)
                                 .rotationEffect(.degrees(-6))
+                                .scaleEffect(curveDrawn ? 1 : 0.4)
+                                .opacity(curveDrawn ? 1 : 0)
                                 .position(
                                     x: geo.size.width - 16,
                                     y: geo.size.height - 14
@@ -86,6 +101,15 @@ struct BecomingProjectionCard: View {
                         }
                     }
                     .frame(height: chartHeight)
+                    .onAppear {
+                        if reduceMotion {
+                            curveDrawn = true
+                        } else {
+                            withAnimation(.easeOut(duration: 0.9).delay(0.25)) {
+                                curveDrawn = true
+                            }
+                        }
+                    }
                 }
 
                 // X-axis labels — bonus per-week pace below the right tick
@@ -119,7 +143,7 @@ struct BecomingProjectionCard: View {
     /// could drift from the onboarding screens; consolidating eliminates
     /// the drift entirely.
     private func projectedDateText(currentKg: Double, goalKg: Double) -> String? {
-        ProjectionMath.formattedShortDate(currentKg: currentKg, goalKg: goalKg)
+        ProjectionMath.formattedShortDate(currentKg: currentKg, goalKg: goalKg, paceKey: paceChoice)
     }
 
     private func formatWeight(_ value: Double) -> String {
@@ -130,12 +154,7 @@ struct BecomingProjectionCard: View {
     }
 
     private var paceLabel: String {
-        switch voicePreference {
-        case "encouraging": return "gentle pace"
-        case "balanced":    return "steady pace"
-        case "roast":       return "ambitious pace"
-        default:            return "steady pace"
-        }
+        ProjectionMath.paceLabel(paceKey: paceChoice)
     }
 }
 
