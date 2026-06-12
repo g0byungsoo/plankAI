@@ -33,7 +33,16 @@ let maskBuffer = try result.generateScaledMaskForImage(
     forInstances: result.allInstances,
     from: handler
 )
-let mask = CIImage(cvPixelBuffer: maskBuffer)
+var mask = CIImage(cvPixelBuffer: maskBuffer)
+
+// Erode the mask ~2.5px so no halo of the generation background
+// survives at the silhouette edge (founder QA: "weird colors on the
+// border"). MorphologyMinimum shrinks the white (subject) region.
+if let erode = CIFilter(name: "CIMorphologyMinimum") {
+    erode.setValue(mask, forKey: kCIInputImageKey)
+    erode.setValue(2.5, forKey: kCIInputRadiusKey)
+    mask = erode.outputImage ?? mask
+}
 
 let blend = CIFilter(name: "CIBlendWithMask")!
 blend.setValue(source, forKey: kCIInputImageKey)
