@@ -100,6 +100,19 @@ struct ChapterCompleteView: View {
                 StickerScatter(placements: Self.celebrationPlacements)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
+                // Graduation gift — founder-supplied real-photo cutout
+                // anchored mid-trailing, under the hero band the
+                // sticker scatter occupies.
+                GeometryReader { geo in
+                    Image("accent-gift")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 92, height: 92)
+                        .rotationEffect(.degrees(10))
+                        .position(x: geo.size.width - 34, y: geo.size.height * 0.30)
+                }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
             }
             .ignoresSafeArea()
         )

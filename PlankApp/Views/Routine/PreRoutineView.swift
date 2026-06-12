@@ -143,15 +143,17 @@ struct PreRoutineView: View {
                 }
             }
 
-            // Two small stickers framing the header — gives the screen
-            // visual punctuation without competing with the title.
+            // Two accents framing the header — gives the screen visual
+            // punctuation without competing with the title. The glossy
+            // pink dumbbells (founder-supplied real-photo cutout, her75
+            // technique) replaced the generic candy sticker: same
+            // footprint, workout-true subject.
             HStack {
-                Image(StickerName.candyIridescent.assetName)
+                Image("accent-dumbbells")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 44, height: 44)
-                    .rotationEffect(.degrees(-15))
-                    .opacity(StickerName.candyIridescent.style.opacity)
+                    .frame(width: 54, height: 54)
+                    .rotationEffect(.degrees(-12))
                 Spacer()
                 Image(StickerName.starLineart.assetName)
                     .resizable()

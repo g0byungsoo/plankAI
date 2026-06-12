@@ -100,6 +100,15 @@ struct PlanView: View {
     /// explanation, no way forward.
     @State private var planMissing: Bool = false
 
+    /// One-time education beat: a new program user lands on the raw
+    /// checklist with zero context (trial-cancellation audit gap #1).
+    /// The hint retires forever on her first row tap.
+    @AppStorage("planFirstRunHintSeen") private var planFirstRunHintSeen: Bool = false
+
+    private var showFirstRunHint: Bool {
+        !planFirstRunHintSeen && viewingDay == nil && completedRowCount == 0
+    }
+
     enum PlanSheet: Identifiable {
         case lock(day: Int)
         case markAsDone(ProgramDayPrescription)
@@ -167,6 +176,10 @@ struct PlanView: View {
                             viewingPastPill
                         }
                         Spacer().frame(height: 22)
+                        if showFirstRunHint {
+                            firstRunHint
+                            Spacer().frame(height: 14)
+                        }
                         checklistCard
                         Spacer().frame(height: 24)
                         PlanViewMicroCaption(
@@ -581,6 +594,32 @@ struct PlanView: View {
         }
     }
 
+    // MARK: - First-run hint
+
+    /// Quiet editorial beat above the checklist on her very first
+    /// visit: what this screen is, how to use it. One line, no chrome
+    /// competition with the card below.
+    @ViewBuilder private var firstRunHint: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "hand.tap")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Palette.accent)
+            (
+                Text("this is your ")
+                    .font(Typo.caption)
+                + Text("day")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                + Text(". tap any row to begin ♥")
+                    .font(Typo.caption)
+            )
+            .foregroundStyle(Palette.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+        .modernEntrance(animateIn, delay: 0.25)
+        .transition(.opacity)
+        .accessibilityElement(children: .combine)
+    }
+
     // MARK: - Plan-missing recovery
 
     /// Editorial recovery state. Reachable when the program era flag is
@@ -824,6 +863,11 @@ struct PlanView: View {
         // completed row, long-press it (handleLongPress toggles
         // complete states off).
         Haptics.light()
+
+        // First tap = she's learned how the checklist works.
+        if !planFirstRunHintSeen {
+            withAnimation(Motion.exit) { planFirstRunHintSeen = true }
+        }
 
         switch prescription {
         case .lesson:

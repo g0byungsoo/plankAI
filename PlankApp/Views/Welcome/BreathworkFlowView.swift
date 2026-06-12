@@ -221,6 +221,21 @@ struct BreathworkIntroView: View {
             Spacer()
         }
         .padding(.horizontal, Space.lg)
+        // Quiet self-care accent in the dead space above the CTA —
+        // founder-supplied real-photo cutout (her75 technique), floats
+        // as a full-subject object.
+        .overlay(alignment: .bottomTrailing) {
+            Image("accent-perfume")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 108, height: 108)
+                .rotationEffect(.degrees(-6))
+                .padding(.trailing, Space.lg)
+                .padding(.bottom, 18)
+                .opacity(animateIn ? 0.95 : 0)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .safeAreaInset(edge: .bottom) {
             JFContinueButton(label: "begin") {
                 onBegin()

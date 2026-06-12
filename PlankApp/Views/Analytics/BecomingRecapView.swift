@@ -89,6 +89,19 @@ struct BecomingRecapView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Space.lg)
+        // That-girl wink under the cascade — founder-supplied
+        // real-photo cutout, floats in the dead space above the CTA.
+        .overlay(alignment: .bottomTrailing) {
+            Image("accent-sunglasses")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 104, height: 104)
+                .rotationEffect(.degrees(-8))
+                .padding(.trailing, Space.lg)
+                .padding(.bottom, 16)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .safeAreaInset(edge: .bottom) {
             JFContinueButton(label: "continue") {
                 withAnimation(Motion.pageEntrance) { stage = .receipts }

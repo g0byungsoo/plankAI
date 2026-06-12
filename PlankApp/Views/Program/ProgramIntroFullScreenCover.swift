@@ -70,20 +70,21 @@ struct ProgramIntroFullScreenCover: View {
             }
             footer
         }
-        // v8 P8.8: single iridescent gummy-bear sticker behind the
-        // hero block — matches PremiumWelcomeScreen register and gives
-        // the cover a brand identity beat before the user reads.
+        // v1.1 design pass — the it-girl editorial cutout (founder-
+        // supplied real-photo, her75 technique) replaces the gummy
+        // bear: this cover sells *her* era, so the identity figure
+        // carries the beat. Full-subject cutout floats per the
+        // placement rules.
         .background(
             ZStack(alignment: .topTrailing) {
                 Palette.programBgPrimary
-                Image(StickerName.gummyBear.assetName)
+                Image("itgirl-dress")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 96, height: 96)
-                    .rotationEffect(.degrees(-6))
-                    .opacity(StickerName.gummyBear.style.opacity)
+                    .frame(width: 132, height: 132)
+                    .rotationEffect(.degrees(4))
                     .padding(.top, Space.xl)
-                    .padding(.trailing, Space.lg)
+                    .padding(.trailing, Space.md)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
@@ -144,10 +145,13 @@ struct ProgramIntroFullScreenCover: View {
                 .textCase(.uppercase)
                 .kerning(0.66)
 
-            teaserRow("🌿", "a daily ritual of 5 things")
-            teaserRow("🥗", "food, paced. not a strict diet.")
-            teaserRow("🏃‍♀️", "movement that matches your energy")
-            teaserRow("📖", "a short lesson every day")
+            // v1.1 design pass — emoji glyphs swapped for thin SF
+            // marks per the kill-list (no emoji) + clean-luxury
+            // composition. Accent tint keeps the rows warm.
+            teaserRow("checklist", "a daily ritual of 5 things")
+            teaserRow("fork.knife", "food, paced. not a strict diet.")
+            teaserRow("figure.run", "movement that matches your energy")
+            teaserRow("book.closed", "a short lesson every day")
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -165,10 +169,11 @@ struct ProgramIntroFullScreenCover: View {
         .modernEntrance(appeared, delay: 0.10)
     }
 
-    private func teaserRow(_ emoji: String, _ text: String) -> some View {
+    private func teaserRow(_ icon: String, _ text: String) -> some View {
         HStack(spacing: 12) {
-            Text(emoji)
-                .font(.system(size: 20))
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Palette.accent)
                 .frame(width: 28, alignment: .center)
             Text(text)
                 .font(Typo.body)

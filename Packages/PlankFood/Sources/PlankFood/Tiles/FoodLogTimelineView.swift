@@ -298,15 +298,25 @@ public struct FoodLogTimelineView: View {
     // MARK: - Empty state
 
     @ViewBuilder private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("nothing logged yet.")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
-                .foregroundStyle(FoodTheme.textPrimary)
-            Text("tap the + to scan or jot what you ate.")
-                .font(.system(size: 14))
-                .foregroundStyle(FoodTheme.textSecondary)
+        // Editorial empty state — the ribboned plate (founder-supplied
+        // real-photo cutout) sets the table before her first log.
+        VStack(spacing: 18) {
+            Image("accent-plate-ribbon", bundle: .main)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 150, height: 150)
+                .accessibilityHidden(true)
+            VStack(spacing: 8) {
+                Text("the table is set.")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                Text("tap the + to scan or jot what you ate.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(FoodTheme.textSecondary)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.top, 36)
     }
 
     // MARK: - Floating + button
