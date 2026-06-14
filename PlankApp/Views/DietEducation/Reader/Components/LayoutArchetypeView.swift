@@ -73,7 +73,7 @@ private struct BottomBleedHero<Content: View>: View {
             VStack(alignment: .leading, spacing: 0) {
                 content
                     .frame(maxWidth: .infinity, alignment: .leading)
-                if let p = primary, let ui = UIImage(named: p.assetSlug) {
+                if let p = primary {
                     // Round-8h: per-asset horizontal anchor. The
                     // manifest's xPct field carries the subject's
                     // alpha-weighted x centroid (computed once at gen
@@ -82,12 +82,14 @@ private struct BottomBleedHero<Content: View>: View {
                     // so the visible body stays in frame instead of
                     // appearing "cut" when scaledToFit centers a
                     // wider-than-tall composition.
+                    // Perf: SwiftUI Image(_:) avoids per-body-recompute
+                    // UIImage cache hits on the main thread.
                     let xAnchor: Alignment = {
                         if p.xPct > 0.58 { return .bottomTrailing }
                         if p.xPct < 0.42 { return .bottomLeading }
                         return .bottom
                     }()
-                    Image(uiImage: ui)
+                    Image(p.assetSlug)
                         .resizable()
                         .scaledToFit()
                         .frame(maxWidth: geo.size.width,
@@ -313,8 +315,10 @@ private struct TopPin<Content: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if let p = primary, let ui = UIImage(named: p.assetSlug) {
-                Image(uiImage: ui)
+            if let p = primary {
+                // Perf: SwiftUI Image(_:) avoids per-body-recompute
+                // UIImage cache hits on the main thread.
+                Image(p.assetSlug)
                     .resizable()
                     .scaledToFit()
                     .frame(width: 92, height: 92)

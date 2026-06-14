@@ -148,6 +148,14 @@ struct PlankAIApp: App {
         // future font additions without re-touching project settings.
         Self.registerBundledFonts()
 
+        // Eagerly decode the 442KB CBT lesson manifest on a background
+        // queue so the first lesson reader open doesn't pay a synchronous
+        // JSON decode stutter. The service memoizes the manifest, so this
+        // populates the cache before any UI reads it.
+        Task.detached(priority: .background) {
+            _ = CBTCurriculumService.shared.manifest()
+        }
+
         // Run the self-checks once at launch in DEBUG. Output is
         // silent on success; failures print with a clear prefix so
         // regressions surface in Xcode's console without needing a

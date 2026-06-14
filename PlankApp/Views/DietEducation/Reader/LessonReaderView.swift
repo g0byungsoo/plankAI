@@ -599,25 +599,25 @@ struct InlineSticker: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        if let ui = UIImage(named: slug) {
-            Image(uiImage: ui)
-                .resizable()
-                .scaledToFit()
-                .frame(width: size, height: size)
-                .rotationEffect(.degrees(rotation))
-                .shadow(color: Palette.cocoaPrimary.opacity(0.08),
-                        radius: 8, x: 0, y: 4)
-                .opacity(bloomed || reduceMotion ? 1 : 0)
-                .scaleEffect(bloomed || reduceMotion ? 1.0 : 0.92, anchor: .center)
-                .accessibilityHidden(true)
-                .onAppear {
-                    if reduceMotion { bloomed = true }
-                    else {
-                        withAnimation(.spring(response: 0.55, dampingFraction: 0.82)
-                                        .delay(0.4)) { bloomed = true }
-                    }
+        // Perf: SwiftUI Image(_:) avoids per-body-recompute UIImage
+        // cache hits on the main thread.
+        Image(slug)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .rotationEffect(.degrees(rotation))
+            .shadow(color: Palette.cocoaPrimary.opacity(0.08),
+                    radius: 8, x: 0, y: 4)
+            .opacity(bloomed || reduceMotion ? 1 : 0)
+            .scaleEffect(bloomed || reduceMotion ? 1.0 : 0.92, anchor: .center)
+            .accessibilityHidden(true)
+            .onAppear {
+                if reduceMotion { bloomed = true }
+                else {
+                    withAnimation(.spring(response: 0.55, dampingFraction: 0.82)
+                                    .delay(0.4)) { bloomed = true }
                 }
-        }
+            }
     }
 }
 
