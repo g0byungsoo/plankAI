@@ -185,3 +185,36 @@ Support email: support@jenifit.app
 
 The app collects health-adjacent data (weight, body type, BMI). It is not a medical device. The in-app health disclaimer in Settings → Account is verbatim from our terms of service.
 ```
+
+---
+
+# v1.0.9 — program-era metadata (2026-06-12)
+
+Product pivoted to a custom weight-loss program (food camera + daily
+ritual). This supersedes the v1.0.0 workout-first copy above for ASC
+fields. Voice rules honored: no "AI", no em-dashes, post-Ozempic
+vocabulary, no fabricated stats, anti-shame framing.
+
+## Promotional text (147/170)
+
+```
+the weight loss app that doesn't yell at you. snap a photo, get the calories. a daily plan that fits your real life. made for women, paced for you.
+```
+
+## Keywords (93/100)
+
+```
+calorie,counter,tracker,weight,loss,food,scanner,diet,meal,log,plan,women,macro,photo,workout
+```
+
+Apple cross-combines: calorie counter, calorie tracker, weight loss,
+food scanner, food log, meal plan, diet plan, macro tracker, weight
+tracker, photo calorie. "fitness" dropped (lives in the subtitle; a
+keyword may never repeat title/subtitle words). Drug-brand terms +
+"AI" still skipped on purpose.
+
+## Description + What's New
+
+See ASC submission 2026-06-12 (full texts delivered in-session;
+description 2,905 chars, what's new 1,431 chars, both with
+privacy/terms/support links + Apple subscription disclosure).
