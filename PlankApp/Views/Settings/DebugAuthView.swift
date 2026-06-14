@@ -23,6 +23,8 @@ struct DebugAuthView: View {
     /// existing card flow. Set to a lesson to open the ritual; nil to
     /// dismiss.
     @State private var debugRitualToPresent: LessonID? = nil
+    @State private var debugCBTLessonDay: Int? = nil
+    @State private var debugCBTTotalDays: Int = 75
     // Observe the flag's underlying UserDefaults key so the toggle and
     // state row stay in sync without manual refresh.
     @AppStorage("jenimethod.feature_enabled") private var jeniMethodFlag = false
@@ -83,6 +85,50 @@ struct DebugAuthView: View {
         }
         .sheet(isPresented: $showingJeniReReadDebug) {
             JeniMethodReReadView()
+        }
+        .fullScreenCover(item: Binding<CBTLessonDayId?>(
+            get: { debugCBTLessonDay.map { CBTLessonDayId(day: $0) } },
+            set: { newValue in debugCBTLessonDay = newValue?.day }
+        )) { id in
+            // v2 CBT lesson reader — manifest-driven, dynamic schedule,
+            // ink-bleed punch reveals, breathing paper grain shader.
+            cbtLessonPreview(day: id.day)
+        }
+    }
+
+    private struct CBTLessonDayId: Identifiable, Equatable {
+        let day: Int
+        var id: Int { day }
+    }
+
+    @ViewBuilder
+    private func cbtLessonPreview(day: Int) -> some View {
+        let cohort = CohortFlags.fromAppStorage()
+        if let ref = CBTCurriculumService.shared.lesson(
+            forProgramDay: day,
+            totalDays: debugCBTTotalDays,
+            cohort: cohort
+        ) {
+            LessonReaderView(
+                scheduled: ref.scheduled,
+                slot: ref.slot,
+                variant: ref.variant,
+                onComplete: { debugCBTLessonDay = nil },
+                onSkip:     { _ in debugCBTLessonDay = nil }
+            )
+        } else {
+            VStack(spacing: 16) {
+                Text("CBT manifest unavailable")
+                    .font(.system(size: 16, weight: .semibold))
+                Text("manifest_v1.json missing or scheduled day \(day) out of range for totalDays=\(debugCBTTotalDays)")
+                    .font(.system(size: 12))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                Button("close") { debugCBTLessonDay = nil }
+                    .padding(.top, 8)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Palette.bgPrimary)
         }
     }
 
@@ -248,6 +294,63 @@ struct DebugAuthView: View {
                 .frame(maxWidth: .infinity, minHeight: 40)
                 .background(Palette.textSecondary)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            // v2 CBT curriculum — manifest-driven 84-day spine. Pick a
+            // program length + a day, see exactly what the user with
+            // that schedule sees. Validates the scheduler + the new
+            // premium reader (Metal-shader paper grain + ink-bleed
+            // punch reveals + her75 typography).
+            Text("v2 cbt lesson reader")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Palette.textSecondary)
+                .tracking(2)
+                .padding(.top, 8)
+            HStack(spacing: 6) {
+                ForEach([60, 75, 84, 102], id: \.self) { n in
+                    Button("\(n)d") { debugCBTTotalDays = n }
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(debugCBTTotalDays == n ? Palette.textInverse : Palette.textPrimary)
+                        .frame(maxWidth: .infinity, minHeight: 36)
+                        .background(debugCBTTotalDays == n ? Palette.bgInverse : Palette.bgElevated)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+            }
+            HStack(spacing: 6) {
+                ForEach([1, 7, 14, 21, 42, 63, 75, 84], id: \.self) { d in
+                    Button("d\(d)") {
+                        UIView.setAnimationsEnabled(false)
+                        debugCBTLessonDay = d
+                        DispatchQueue.main.async { UIView.setAnimationsEnabled(true) }
+                    }
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.textInverse)
+                    .frame(maxWidth: .infinity, minHeight: 36)
+                    .background(Palette.cocoaPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+            }
+            Button("validate scheduler invariants") {
+                let cohort = CohortFlags.fromAppStorage()
+                guard let m = CBTCurriculumService.shared.manifest() else {
+                    status = "❌ manifest missing"
+                    return
+                }
+                let lengths = [60, 75, 84, 102, 91, 45]
+                var lines: [String] = ["manifest v\(m.version) · canonical \(m.canonical84.count) · ext \(m.extension18.count)"]
+                for n in lengths {
+                    let out = CBTCurriculumScheduler.schedule(totalDays: n, cohort: cohort, manifest: m)
+                    let pillars = CBTCurriculumScheduler.validatePillarCoverage(out.schedule)
+                    let acts = CBTCurriculumScheduler.validateActOrdering(out.schedule)
+                    let adj = CBTCurriculumScheduler.validateAntiAdjacency(out.schedule)
+                    lines.append("n=\(n): \(out.schedule.count) lessons · \(pillars.count)/6 pillars · acts ok:\(acts) · adj:\(adj)")
+                }
+                status = lines.joined(separator: "\n")
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(Palette.textInverse)
+            .frame(maxWidth: .infinity, minHeight: 40)
+            .background(Palette.accent)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
             // State manipulation — exercise the HomeView card across
             // calendar-day boundaries without waiting overnight.

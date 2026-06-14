@@ -76,6 +76,31 @@ struct PlankAIApp: App {
             UserDefaults.standard.removeObject(forKey: "planFirstRunHintSeen")
             UserDefaults.standard.removeObject(forKey: "planChecksMigratedV1")
         }
+        // DEBUG QA hook: auto-presents the v2 CBT lesson reader at a
+        // given (totalDays, programDay) so screenshots can capture the
+        // new manifest-driven flow without navigating UI. Pair with
+        // --uitest-inapp-qa --uitest-pro-access for a clean cold-start.
+        // Example: --uitest-cbt-lesson 75 1
+        let args = ProcessInfo.processInfo.arguments
+        if let idx = args.firstIndex(of: "--uitest-cbt-lesson"),
+           idx + 2 < args.count,
+           let n = Int(args[idx + 1]),
+           let d = Int(args[idx + 2]) {
+            UserDefaults.standard.set(n, forKey: "uitest.cbt.totalDays")
+            UserDefaults.standard.set(d, forKey: "uitest.cbt.day")
+        }
+        if let idx = args.firstIndex(of: "--uitest-cbt-page"),
+           idx + 1 < args.count,
+           let p = Int(args[idx + 1]) {
+            UserDefaults.standard.set(p, forKey: "uitest.cbt.startPage")
+        } else {
+            UserDefaults.standard.set(0, forKey: "uitest.cbt.startPage")
+        }
+        // Optional flag — auto-open the prompt sheet on appear so a
+        // simctl screenshot can capture it without UI automation.
+        UserDefaults.standard.set(
+            args.contains("--uitest-cbt-open-prompt"),
+            forKey: "uitest.cbt.openPrompt")
         #endif
 
         // PostHog must be set up *before* any Analytics.track call lands
@@ -699,6 +724,23 @@ private struct RootView: View {
         .animation(Motion.crossFade, value: hasCompletedOnboarding)
         .animation(Motion.crossFade, value: auth.isReady)
         .animation(Motion.crossFade, value: payment.isEntitlementReady)
+        #if DEBUG
+        // QA hook: auto-present the v2 CBT lesson reader on top of
+        // whatever the root resolved to. The cover is keyed off
+        // UserDefaults "uitest.cbt.day" being set non-zero (set via
+        // the --uitest-cbt-lesson launch arg). Allows simctl-driven
+        // screenshot of the new reader without UI navigation.
+        .fullScreenCover(isPresented: Binding(
+            get: { UserDefaults.standard.integer(forKey: "uitest.cbt.day") > 0 },
+            set: { newValue in
+                if !newValue {
+                    UserDefaults.standard.set(0, forKey: "uitest.cbt.day")
+                }
+            }
+        )) {
+            CBTQACoverHost()
+        }
+        #endif
         .animation(Motion.crossFade, value: loaderMinHoldDone)
         .task {
             // Start the loader dwell clock at first frame, not at
@@ -1014,3 +1056,43 @@ private struct RootView: View {
         return record
     }
 }
+
+#if DEBUG
+// QA cover host — resolves the requested CBT lesson from the bundled
+// manifest and presents the v2 LessonReaderView. Driven by the
+// --uitest-cbt-lesson <totalDays> <day> launch arg.
+private struct CBTQACoverHost: View {
+    var body: some View {
+        let n = UserDefaults.standard.integer(forKey: "uitest.cbt.totalDays")
+        let d = UserDefaults.standard.integer(forKey: "uitest.cbt.day")
+        let totalDays = n > 0 ? n : 75
+        let cohort = CohortFlags.fromAppStorage()
+        if let ref = CBTCurriculumService.shared.lesson(
+            forProgramDay: d, totalDays: totalDays, cohort: cohort
+        ) {
+            LessonReaderView(
+                scheduled: ref.scheduled,
+                slot: ref.slot,
+                variant: ref.variant,
+                onComplete: { UserDefaults.standard.set(0, forKey: "uitest.cbt.day") },
+                onSkip:     { _ in UserDefaults.standard.set(0, forKey: "uitest.cbt.day") }
+            )
+        } else {
+            VStack(spacing: 12) {
+                Text("CBT manifest unavailable or day out of range")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("totalDays=\(totalDays) day=\(d)")
+                    .font(.system(size: 12))
+                Button("close") {
+                    UserDefaults.standard.set(0, forKey: "uitest.cbt.day")
+                }
+                .padding(.top, 6)
+            }
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Palette.bgPrimary)
+        }
+    }
+}
+#endif
+
