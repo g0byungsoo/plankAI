@@ -67,6 +67,12 @@ struct LessonReaderView: View {
     /// while the system share sheet is up. Identifiable so .sheet(item:)
     /// drives the lifecycle.
     @State private var quoteShareItem: LessonQuoteShareItem?
+    /// v1.0.10 Phase 3 — drives the footer-folio archetype mark
+    /// ("the jenifit method · day fourteen · protein day"). Reads
+    /// the same AppStorage key the Plan tab + Snap Food chip composer
+    /// use, so the lesson reader's contextual mark agrees with the
+    /// rest of the surface.
+    @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
     // Round-8 polish: milestone close-confirm + completion bloom state.
     // First X-tap on a milestone lesson sets `closeConfirmAt`; a second
     // tap within 2s actually dismisses. Prevents tapping past an
@@ -640,7 +646,24 @@ struct LessonReaderView: View {
         let f = NumberFormatter()
         f.numberStyle = .spellOut
         let dayWord = f.string(from: NSNumber(value: day)) ?? "\(day)"
-        return "the jenifit method · day \(dayWord)"
+        // v1.0.10 Phase 3 — append the day's archetype to the folio
+        // mark. Most lessons gain a contextual tag ("day fourteen ·
+        // protein day"); when the lesson's pillar shares the day's
+        // archetype affinity (P2 on a protein day, P3 on rest, P5 on
+        // movement), the mark gets the connection signal ("·
+        // protein-day support"). Universal pillars (P1/P4/P6) and
+        // archetype-mismatched days just get the plain archetype mark.
+        let archetype = ProgramDayArchetype.archetype(
+            forProgramDay: day,
+            glp1Status: glp1Status
+        )
+        let archetypeMark: String
+        if slot.primaryPillar.archetypeAffinity == archetype {
+            archetypeMark = " · \(archetype.rawValue)-day support"
+        } else {
+            archetypeMark = " · \(archetype.rawValue) day"
+        }
+        return "the jenifit method · day \(dayWord)\(archetypeMark)"
     }
 
     // MARK: - CTA

@@ -105,3 +105,30 @@ public extension ProgramDayArchetype {
         return standardRotation[index]
     }
 }
+
+// MARK: - PillarId archetype affinity
+//
+// Phase 3 of the archetype build (2026-06-17). Each curriculum pillar
+// has an implicit nutrition / register affinity — P2 (hunger / satiety
+// / urge surfing) lands hardest on a protein day; P3 (all-or-nothing /
+// self-compassion) lands hardest on a rest day; P5 (sleep / stress /
+// emotional regulation) lands hardest on a movement day. P1 (food
+// noise), P4 (body image), P6 (maintenance) are universal — they
+// don't have a single archetype that maps cleanly.
+//
+// Surface use: the lesson reader's footer folio shows the day
+// archetype + lesson pillar together so the user sees the
+// intentionality of the pairing. Future phase-4 work may consume
+// this in the CBTCurriculumScheduler to bias slot ordering when the
+// invariant chain allows it (anti-adjacency + act order still rule).
+
+public extension PillarId {
+    var archetypeAffinity: ProgramDayArchetype? {
+        switch self {
+        case .P2: return .protein
+        case .P3: return .rest
+        case .P5: return .movement
+        case .P1, .P4, .P6: return nil
+        }
+    }
+}
