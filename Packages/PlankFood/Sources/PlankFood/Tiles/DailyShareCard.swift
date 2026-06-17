@@ -35,6 +35,13 @@ struct DailyShareCard: View {
     /// add) fall back to the text panel.
     let photos: [String: UIImage]
     let pillTexts: [String]
+    /// v1.0.10 — today's archetype string ("protein" / "balanced" /
+    /// "movement" / "rest"). When present + matching a known key, the
+    /// pull quote uses an archetype-themed rotation (4 variants per
+    /// archetype, indexed by day-of-year mod 4) so the share card's
+    /// emotional read matches the day's nutrition register. nil falls
+    /// back to the universal 12-quote rotation that shipped earlier.
+    var archetype: String? = nil
 
     /// 1080×1920 canvas. SwiftUI logical pts here; ImageRenderer.scale
     /// is set to 1.0 by the renderer so logical pt == pixel.
@@ -319,8 +326,11 @@ struct DailyShareCard: View {
     }
 
     /// Split the locked quote into "regular prefix" + "italic punch
-    /// word(s)" + heart suffix per voice lock.
+    /// word(s)" + heart suffix per voice lock. v1.0.10 — when an
+    /// archetype is provided, the archetype-themed pool wins; the
+    /// universal 12-quote rotation stays as the fallback.
     private var quotePart1: String {
+        if let pair = archetypeQuotePair() { return pair.0 }
         switch quoteIndex {
         case 0:  return "today "         // "today *fits*"
         case 1:  return "slow and "      // "slow and *on purpose*"
@@ -338,6 +348,7 @@ struct DailyShareCard: View {
     }
 
     private var quotePart2: String {
+        if let pair = archetypeQuotePair() { return pair.1 }
         switch quoteIndex {
         case 0:  return "fits"
         case 1:  return "on purpose"
@@ -361,6 +372,52 @@ struct DailyShareCard: View {
         let day = Calendar.current.ordinality(of: .day, in: .year, for: date) ?? 1
         return day % 12
     }
+
+    /// v1.0.10 — archetype-aware variant. Returns nil when no
+    /// archetype is set OR the key doesn't match a known pool, so the
+    /// caller falls through to the universal rotation. Each archetype
+    /// has 4 variants — day-of-year mod 4 picks the one that lands.
+    private func archetypeQuotePair() -> (String, String)? {
+        guard let key = archetype?.lowercased(),
+              let pool = Self.archetypeQuotePool[key],
+              !pool.isEmpty else { return nil }
+        let day = Calendar.current.ordinality(of: .day, in: .year, for: date) ?? 1
+        return pool[day % pool.count]
+    }
+
+    /// Archetype-keyed quote pools. Each entry is (prefix, italic-
+    /// punch-phrase) — the heart suffix appends in the same render
+    /// path as the universal rotation. Voice-locked: italic Fraunces
+    /// on the punch phrase, post-Ozempic vocab, no diet language.
+    /// Pools intentionally lean into the archetype's character —
+    /// protein quotes anchor / steady / muscle; movement quotes fuel
+    /// / power; rest quotes soften / permission.
+    private static let archetypeQuotePool: [String: [(String, String)]] = [
+        "protein": [
+            ("protein ",   "kept"),
+            ("anchored ",  "today"),
+            ("muscle ",    "kept"),
+            ("lean and ",  "steady"),
+        ],
+        "balanced": [
+            ("a little ",   "of everything"),
+            ("balanced ",   "enough"),
+            ("the ",        "middle path"),
+            ("varied ",     "and whole"),
+        ],
+        "movement": [
+            ("fueled ",     "the work"),
+            ("ate to ",     "move"),
+            ("powered ",    "forward"),
+            ("carbs ",      "did the work"),
+        ],
+        "rest": [
+            ("softer ",     "today"),
+            ("rest as ",    "recovery"),
+            ("permission ", "kept"),
+            ("quiet ",      "plates"),
+        ],
+    ]
 
     // MARK: - Wordmark
 

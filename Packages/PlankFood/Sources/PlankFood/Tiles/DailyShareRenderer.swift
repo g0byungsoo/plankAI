@@ -25,7 +25,8 @@ public enum DailyShareRenderer {
     public static func render(
         for date: Date = Date(),
         userId: String,
-        dailyTarget: Double
+        dailyTarget: Double,
+        archetype: String? = nil
     ) -> UIImage? {
         let entries = FoodLogPersister.allEntries(userId: userId)
             .filter { Calendar.current.isDate($0.loggedAt, inSameDayAs: date) }
@@ -45,7 +46,8 @@ public enum DailyShareRenderer {
             date: date,
             entries: entries,
             photos: photos,
-            pillTexts: pills
+            pillTexts: pills,
+            archetype: archetype
         )
         .frame(width: 1080, height: 1920)
 

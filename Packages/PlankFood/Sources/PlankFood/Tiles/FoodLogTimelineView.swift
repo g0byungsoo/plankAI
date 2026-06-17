@@ -34,6 +34,11 @@ public struct FoodLogTimelineView: View {
     /// protein pill against the real onboarding target. Falls back to
     /// 1950 internally if 0.
     public let dailyTarget: Double
+    /// v1.0.10 — today's program-day archetype string ("protein" /
+    /// "balanced" / "movement" / "rest"). When present the daily share
+    /// render uses archetype-themed pull quotes; nil falls back to the
+    /// universal 12-quote rotation.
+    public let archetypeHint: String?
     /// Fires when the floating + button is tapped. Parent dismisses
     /// this screen then presents the camera; we don't stack
     /// fullScreenCovers here.
@@ -66,11 +71,13 @@ public struct FoodLogTimelineView: View {
     public init(
         userId: String,
         dailyTarget: Double,
+        archetypeHint: String? = nil,
         onAddTapped: @escaping () -> Void,
         onDismiss: @escaping () -> Void
     ) {
         self.userId = userId
         self.dailyTarget = dailyTarget
+        self.archetypeHint = archetypeHint
         self.onAddTapped = onAddTapped
         self.onDismiss = onDismiss
     }
@@ -213,7 +220,8 @@ public struct FoodLogTimelineView: View {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     if let img = DailyShareRenderer.render(
                         userId: userId,
-                        dailyTarget: dailyTarget
+                        dailyTarget: dailyTarget,
+                        archetype: archetypeHint
                     ) {
                         shareItem = ShareItem(image: img)
                     }

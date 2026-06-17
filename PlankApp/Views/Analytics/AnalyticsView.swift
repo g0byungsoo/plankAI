@@ -708,6 +708,11 @@ struct AnalyticsView: View {
             FoodLogTimelineView(
                 userId: auth.currentUser?.id.uuidString ?? "",
                 dailyTarget: foodDailyTarget,
+                // v1.0.10 — pass today's archetype so the journal's
+                // daily share button can render archetype-themed
+                // pull quotes. Falls back to nil → universal rotation
+                // when no plan is active.
+                archetypeHint: todayArchetypeHint,
                 onAddTapped: { showJournalCapture = true },
                 onDismiss: { showFoodJournal = false }
             )
@@ -1232,6 +1237,22 @@ struct AnalyticsView: View {
 
     private var weekDoneCount: Int {
         weekDotStates.filter { $0 == .done || $0 == .todayDone }.count
+    }
+
+    /// v1.0.10 — today's archetype as a raw string, passed through to
+    /// FoodLogTimelineView so the daily share renderer can carry an
+    /// archetype-themed pull quote. nil when no plan is active (the
+    /// share card falls back to the universal 12-quote rotation).
+    private var todayArchetypeHint: String? {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty,
+              let schedule = ProgramService.shared.currentSchedule(
+                userId: userId,
+                in: modelContext
+              ) else { return nil }
+        return ProgramDayArchetype.archetype(
+            forProgramDay: schedule.programDay,
+            glp1Status: glp1Status
+        ).rawValue
     }
 
     /// v1.0.10 Phase 4 — archetype per day for the same 7-day window
