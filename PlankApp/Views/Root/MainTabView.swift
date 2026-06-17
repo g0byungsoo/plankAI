@@ -134,11 +134,21 @@ struct MainTabView: View {
                 totalDays: plan.totalDays
             )
         )
-        let glp1 = UserDefaults.standard
-            .string(forKey: "onboarding_glp1_status") ?? ""
+        let d = UserDefaults.standard
+        let glp1 = d.string(forKey: "onboarding_glp1_status") ?? ""
+        // v1.0.10 — apply the same restrictive-cohort override
+        // PlanView + AnalyticsView use. Covers both the new bool
+        // onboarding key and the legacy string ("control" /
+        // "complicated" indicate restriction risk).
+        let restrictiveBool = d.bool(forKey: "onb_restrictive_food")
+        let legacyKey = (d.string(forKey: "onboardingFoodRelationship") ?? "").lowercased()
+        let restrictive = restrictiveBool
+            || legacyKey == "control"
+            || legacyKey == "complicated"
         return ProgramDayArchetype.archetype(
             forProgramDay: schedule.programDay,
-            glp1Status: glp1
+            glp1Status: glp1,
+            restrictiveFoodRelationship: restrictive
         ).rawValue
     }
 

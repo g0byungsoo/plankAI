@@ -47,6 +47,14 @@ struct PlanView: View {
     /// v1.0.10 — drives the day-archetype cohort override (.current GLP-1
     /// → every day is a protein day per the May 2025 joint advisory).
     @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
+    /// v1.0.10 — restrictive-food-relationship override. When true the
+    /// archetype rotation stays flat (no reset weeks, no phasing) per
+    /// the 2026-06-17 WM physician brief: phase shifts re-trigger
+    /// restrict/binge cognition. Source: new boolean key set in
+    /// onboarding v4; the legacy AnalyticsView string also flags
+    /// restriction-risk via "control"/"complicated".
+    @AppStorage("onb_restrictive_food") private var restrictiveFoodFlag: Bool = false
+    @AppStorage("onboardingFoodRelationship") private var foodRelationshipKeyLegacy: String = ""
     @State private var schedule: ProgramScheduleCalculator.Result?
     @State private var profile: IntensityProfile = .medium
     @State private var todayPrescriptions: [ProgramDayPrescription] = []
@@ -547,8 +555,17 @@ struct PlanView: View {
         let day = viewingDay ?? schedule.programDay
         return ProgramDayArchetype.archetype(
             forProgramDay: day,
-            glp1Status: glp1Status
+            glp1Status: glp1Status,
+            restrictiveFoodRelationship: isRestrictiveCohort
         )
+    }
+
+    /// Derived restrictive-cohort flag. Covers both the new boolean
+    /// onboarding key AND the legacy string AnalyticsView reads
+    /// ("control"/"complicated" → restriction risk).
+    private var isRestrictiveCohort: Bool {
+        if restrictiveFoodFlag { return true }
+        return ["control", "complicated"].contains(foodRelationshipKeyLegacy.lowercased())
     }
 
     @ViewBuilder private var dayArchetypePill: some View {
@@ -624,7 +641,8 @@ struct PlanView: View {
                 archetypeForDay: { day in
                     ProgramDayArchetype.archetype(
                         forProgramDay: day,
-                        glp1Status: glp1Status
+                        glp1Status: glp1Status,
+                        restrictiveFoodRelationship: isRestrictiveCohort
                     )
                 }
             )
@@ -1416,8 +1434,9 @@ private extension ProgramDayArchetype {
                 + "a little of everything, in the proportions your body "
                 + "asks for. variety is the brief."
         case .movement:
-            return "fuel forward. carbs work for you today — they "
-                + "power the work and refill what tomorrow asks for."
+            return "strength day. lift, don't just sweat. resistance "
+                + "work is what protects muscle while your body changes — "
+                + "carbs around the lift, protein still leads the plate."
         case .rest:
             return "softer eating. listen, don't earn. rest is "
                 + "recovery, not restriction."
@@ -1437,8 +1456,8 @@ private extension ProgramDayArchetype {
             return "eat what your body's asking for. nothing to "
                 + "prove on a balanced day."
         case .movement:
-            return "carbs around the workout. protein still leads "
-                + "dinner."
+            return "lift today. carbs around the work, protein "
+                + "leads dinner — cardio alone won't hold the muscle."
         case .rest:
             return "soup, herbal tea, simple plates. nothing to "
                 + "prove ♡"
@@ -1459,8 +1478,9 @@ private extension ProgramDayArchetype {
             return "no specific clinical brief. variety reduces "
                 + "decision fatigue and supports hormonal regulation."
         case .movement:
-            return "performance nutrition baseline. pre/post-workout "
-                + "carbs support recovery + glycogen restoration."
+            return "lean-mass preservation under caloric deficit is "
+                + "RCT-grade evidence (Cava 2017, Memelink 2024). "
+                + "resistance > cardio for holding muscle."
         case .rest:
             return "post-ozempic-era anti-shame frame. rest ≠ deficit."
         }

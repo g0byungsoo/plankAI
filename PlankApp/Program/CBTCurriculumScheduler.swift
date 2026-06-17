@@ -101,7 +101,11 @@ public struct CBTCurriculumScheduler {
         // can't change because swaps stay within an act and skip
         // anchors / actClosing slots. Pillar identity per index is
         // permuted, not added or removed.
-        pool = biasForArchetype(pool, glp1Status: cohort.glp1Status.rawValue)
+        pool = biasForArchetype(
+            pool,
+            glp1Status: cohort.glp1Status.rawValue,
+            restrictiveFoodRelationship: cohort.restrictiveFoodRelationship
+        )
 
         // Step 3 — milestone anchoring. Closing-act days move to the
         // closing day of their act block in the final schedule.
@@ -295,7 +299,8 @@ public struct CBTCurriculumScheduler {
 
     private static func biasForArchetype(
         _ slots: [LessonSlot],
-        glp1Status: String
+        glp1Status: String,
+        restrictiveFoodRelationship: Bool
     ) -> [LessonSlot] {
         guard slots.count > 1 else { return slots }
         var result = slots
@@ -303,7 +308,8 @@ public struct CBTCurriculumScheduler {
         for i in 0..<result.count {
             let archI = ProgramDayArchetype.archetype(
                 forProgramDay: i + 1,
-                glp1Status: glp1Status
+                glp1Status: glp1Status,
+                restrictiveFoodRelationship: restrictiveFoodRelationship
             )
             let slotI = result[i]
 

@@ -73,6 +73,9 @@ struct LessonReaderView: View {
     /// use, so the lesson reader's contextual mark agrees with the
     /// rest of the surface.
     @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
+    /// v1.0.10 — restrictive override; matches PlanView + AnalyticsView.
+    @AppStorage("onb_restrictive_food") private var restrictiveFoodFlag: Bool = false
+    @AppStorage("onboardingFoodRelationship") private var foodRelationshipKey: String = ""
     // Round-8 polish: milestone close-confirm + completion bloom state.
     // First X-tap on a milestone lesson sets `closeConfirmAt`; a second
     // tap within 2s actually dismisses. Prevents tapping past an
@@ -244,8 +247,14 @@ struct LessonReaderView: View {
     private var todayArchetype: ProgramDayArchetype {
         ProgramDayArchetype.archetype(
             forProgramDay: scheduled.programDay,
-            glp1Status: glp1Status
+            glp1Status: glp1Status,
+            restrictiveFoodRelationship: isRestrictiveCohort
         )
+    }
+
+    private var isRestrictiveCohort: Bool {
+        if restrictiveFoodFlag { return true }
+        return ["control", "complicated"].contains(foodRelationshipKey.lowercased())
     }
 
     /// True when the lesson's primary pillar has the same archetype

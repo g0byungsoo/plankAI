@@ -87,22 +87,79 @@ public extension ProgramDayArchetype {
         .rest,       // 6
     ]
 
+    /// v1.0.10 — "permission week" rotation. Every 4th program week
+    /// swaps the standard rotation for this 1P-4B-1M-1R variant
+    /// (movement + rest preserved at their usual indices; 2 protein
+    /// days become balanced). Operationalizes the 2024 Sundfor
+    /// systematic review (8 RCTs, 796 participants) + MATADOR (Byrne
+    /// 2018) Level-1 evidence that planned maintenance breaks ≈
+    /// continuous restriction for weight loss without adherence
+    /// penalty AND blunt the resting-metabolic-rate decline.
+    ///
+    /// Voice register: branded in-app as "permission week" — never
+    /// "diet break" or "refeed" (post-Ozempic vocab lock per
+    /// [[feedback-post-ozempic-vocabulary]]). The anchor protein day
+    /// stays mid-week as the cohort's identity touchpoint so the week
+    /// still feels JeniFit-shaped, not a different program.
+    static let resetRotation: [ProgramDayArchetype] = [
+        .balanced,   // 0 (was .protein)
+        .movement,   // 1 — preserved
+        .balanced,   // 2 (was .protein)
+        .balanced,   // 3 — preserved
+        .protein,    // 4 — the one protein anchor
+        .balanced,   // 5 — preserved
+        .rest,       // 6 — preserved
+    ]
+
     /// Derive today's archetype for a given program day + cohort
-    /// flags. Cohort override is intentionally narrow: only the
-    /// `.current` GLP-1 cohort is fully overridden (every day reads
-    /// as `.protein` because the medication's appetite suppression +
-    /// the joint advisory's protein floor both push the same way).
-    /// The `.triedOff` and `.considering` cohorts get the standard
-    /// rotation today; phase-2 may add cohort-specific weekly
-    /// patterns (`.triedOff` quarterly refeed days, etc.).
+    /// flags.
+    ///
+    /// Cohort routing (priority high → low):
+    ///
+    /// 1. **`.current` GLP-1** → always `.protein` (joint advisory
+    ///    1.2–2.0 g/kg/d protein floor, every day).
+    /// 2. **Restrictive food relationship** → always the standard
+    ///    rotation. No reset weeks, no phase shifts, no rotation
+    ///    variation. Per WM physician 2026-06-17 brief: phasing
+    ///    re-triggers restrict/binge cognition. Override beats every
+    ///    other consideration including reset-week scheduling.
+    /// 3. **Reset week** (every 4th program week, weeks 4 / 8 / 12 /
+    ///    …) → `.resetRotation` (1P-4B-1M-1R). Evidence-anchored to
+    ///    Sundfor 2024 + MATADOR 2018.
+    /// 4. **Default** → `.standardRotation` (3P-2B-1M-1R).
     static func archetype(
         forProgramDay programDay: Int,
-        glp1Status: String
+        glp1Status: String,
+        restrictiveFoodRelationship: Bool = false
     ) -> ProgramDayArchetype {
         if glp1Status == "current" { return .protein }
         let n = max(1, programDay)
-        let index = (n - 1) % standardRotation.count
-        return standardRotation[index]
+        let week = ((n - 1) / 7) + 1
+        let dayInWeek = (n - 1) % standardRotation.count
+        // Restrictive override: never apply reset-week phasing.
+        if restrictiveFoodRelationship {
+            return standardRotation[dayInWeek]
+        }
+        // Reset week every 4 weeks per Sundfor 2024 systematic review.
+        if week % 4 == 0 {
+            return resetRotation[dayInWeek]
+        }
+        return standardRotation[dayInWeek]
+    }
+
+    /// True when the given program day falls inside a reset / permission
+    /// week. Surface-layer callers (Plan tab, Becoming strip) read this
+    /// to render a small "permission week" eyebrow above the archetype
+    /// pill. Restrictive cohorts never see a reset week — the helper
+    /// returns false for them regardless of program day.
+    static func isResetWeek(
+        programDay: Int,
+        restrictiveFoodRelationship: Bool = false
+    ) -> Bool {
+        guard !restrictiveFoodRelationship else { return false }
+        let n = max(1, programDay)
+        let week = ((n - 1) / 7) + 1
+        return week % 4 == 0
     }
 }
 

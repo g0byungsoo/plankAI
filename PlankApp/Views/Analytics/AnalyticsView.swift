@@ -148,6 +148,19 @@ struct AnalyticsView: View {
     /// (the journal stays fully available).
     @AppStorage("onboardingFoodRelationship") private var foodRelationshipKey = ""
     @AppStorage("onboardingPriorAttempts") private var priorAttemptsKey = ""
+    /// v1.0.10 — boolean restrictive flag set by onboarding v4 alongside
+    /// the legacy string `onboardingFoodRelationship`. Either source
+    /// being truthy disables reset-week phasing on the archetype
+    /// rotation per the 2026-06-17 WM physician brief.
+    @AppStorage("onb_restrictive_food") private var restrictiveFoodFlag: Bool = false
+
+    /// Same derivation PlanView + LessonReaderView use, so all three
+    /// surfaces apply the override identically. Pure read; the rotation
+    /// decision lives in ProgramDayArchetype.archetype itself.
+    private var isRestrictiveCohort: Bool {
+        if restrictiveFoodFlag { return true }
+        return ["control", "complicated"].contains(foodRelationshipKey.lowercased())
+    }
 
     /// User-scoped views over the raw @Query results. SessionRatingRecord
     /// has no userId column locally (cloud schema added it later), so we
@@ -1251,7 +1264,8 @@ struct AnalyticsView: View {
               ) else { return nil }
         return ProgramDayArchetype.archetype(
             forProgramDay: schedule.programDay,
-            glp1Status: glp1Status
+            glp1Status: glp1Status,
+            restrictiveFoodRelationship: isRestrictiveCohort
         ).rawValue
     }
 
@@ -1280,7 +1294,8 @@ struct AnalyticsView: View {
             guard programDay >= 1 else { return nil }
             return ProgramDayArchetype.archetype(
                 forProgramDay: programDay,
-                glp1Status: glp1Status
+                glp1Status: glp1Status,
+            restrictiveFoodRelationship: isRestrictiveCohort
             )
         }
     }
