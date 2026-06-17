@@ -217,6 +217,17 @@ struct LessonReaderView: View {
             "pillar_id":     scheduled.primaryPillar.rawValue,
             "act_id":        scheduled.act,
             "reader":        "cbt_v1",
+            // v1.0.10 Phase 5 — archetype match telemetry. Tracks how
+            // often the deterministic schedule lands a pillar-aligned
+            // lesson on the right archetype day (e.g. P2 hunger/satiety
+            // on a protein day, P3 self-compassion on a rest day).
+            // Unblocks the question "do we need a scheduler bias pass,
+            // or is the existing schedule already well-aligned by
+            // accident?" Both properties are pure derivations of the
+            // existing ScheduledLesson + onboarding_glp1_status —
+            // additive, no persistence change.
+            "today_archetype": todayArchetype.rawValue,
+            "archetype_match": archetypeMatches,
         ]
         if let variant {
             p["cohort_variant"] = variant.cohort
@@ -225,6 +236,24 @@ struct LessonReaderView: View {
             p["is_milestone"] = true
         }
         return p
+    }
+
+    /// v1.0.10 Phase 5 — today's archetype for this program day with
+    /// the user's GLP-1 cohort applied. Single source of truth for both
+    /// the folio mark and the analytics props, so they can never drift.
+    private var todayArchetype: ProgramDayArchetype {
+        ProgramDayArchetype.archetype(
+            forProgramDay: scheduled.programDay,
+            glp1Status: glp1Status
+        )
+    }
+
+    /// True when the lesson's primary pillar has the same archetype
+    /// affinity as today's archetype. Drives the folio mark upgrade
+    /// ("protein-day support") AND the analytics `archetype_match`
+    /// property so a PostHog funnel can measure schedule alignment.
+    private var archetypeMatches: Bool {
+        slot.primaryPillar.archetypeAffinity == todayArchetype
     }
 
     /// Round-4 anchor resolution — delegates to `LessonSlot.resolvedAnchor(forPage:)`
@@ -646,23 +675,14 @@ struct LessonReaderView: View {
         let f = NumberFormatter()
         f.numberStyle = .spellOut
         let dayWord = f.string(from: NSNumber(value: day)) ?? "\(day)"
-        // v1.0.10 Phase 3 — append the day's archetype to the folio
-        // mark. Most lessons gain a contextual tag ("day fourteen ·
-        // protein day"); when the lesson's pillar shares the day's
-        // archetype affinity (P2 on a protein day, P3 on rest, P5 on
-        // movement), the mark gets the connection signal ("·
-        // protein-day support"). Universal pillars (P1/P4/P6) and
-        // archetype-mismatched days just get the plain archetype mark.
-        let archetype = ProgramDayArchetype.archetype(
-            forProgramDay: day,
-            glp1Status: glp1Status
-        )
-        let archetypeMark: String
-        if slot.primaryPillar.archetypeAffinity == archetype {
-            archetypeMark = " · \(archetype.rawValue)-day support"
-        } else {
-            archetypeMark = " · \(archetype.rawValue) day"
-        }
+        // Append the day's archetype to the folio mark. Pillar-aligned
+        // lessons (P2 on protein, P3 on rest, P5 on movement) get the
+        // upgraded "support" mark; others get the plain archetype tag.
+        // `todayArchetype` + `archetypeMatches` are shared with the
+        // analytics props so the folio + telemetry can never diverge.
+        let archetypeMark = archetypeMatches
+            ? " · \(todayArchetype.rawValue)-day support"
+            : " · \(todayArchetype.rawValue) day"
         return "the jenifit method · day \(dayWord)\(archetypeMark)"
     }
 
