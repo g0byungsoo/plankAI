@@ -286,58 +286,204 @@ struct LighterDaysRow: View {
 /// the full journal. Photos wear the white matte (the her75
 /// polaroid cue); collapses entirely when she has no logs.
 struct PlateFanTeaser: View {
-    let photoEntryIds: [String]   // newest first
-    let entryCount: Int           // total logs (for the no-photo state)
+    /// Supabase user id — needed by the weekly share renderer to scope
+    /// FoodLogPersister reads + photo lookups when the user taps share.
+    let userId: String
+    let photoEntryIds: [String]   // newest first, photo-backed only
+    let entryCount: Int           // total logs (drives the empty / populated split)
     let onOpen: () -> Void
 
+    /// Holds the rendered weekly share PNG while the system share sheet
+    /// is up. Identifiable so .sheet(item:) drives the lifecycle.
+    @State private var weeklyShareItem: PlateShareItem?
+
     var body: some View {
-        Button {
-            Haptics.light()
-            onOpen()
-        } label: {
-            HStack(spacing: Space.md) {
-                if !photoEntryIds.isEmpty {
-                    ZStack {
-                        ForEach(Array(photoEntryIds.prefix(3).enumerated()), id: \.element) { index, id in
-                            if let img = FoodPhotoStore.photo(entryId: id) {
-                                Image(uiImage: img)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 64, height: 64)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                    .padding(3)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                            .fill(.white)
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                            .stroke(Palette.divider, lineWidth: 0.5)
-                                    )
-                                    .rotationEffect(.degrees(Double(index - 1) * 6))
-                                    .offset(x: CGFloat(index - 1) * 22)
-                            }
-                        }
-                    }
-                    .frame(width: 116, height: 76)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("her plates")
-                        .font(.custom("JeniHeroSerif-Italic", size: 19))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text(entryCount == 1 ? "1 plate kept" : "\(entryCount) plates kept")
-                        .font(.custom("DMSans-Regular", size: 12))
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                Spacer()
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Palette.textSecondary)
+        Group {
+            if entryCount == 0 {
+                emptyStateRow
+            } else {
+                populatedRow
             }
         }
-        .buttonStyle(.plain)
+        .sheet(item: $weeklyShareItem) { item in
+            PlateShareActivityView(items: [item.image]) {
+                weeklyShareItem = nil
+            }
+            .ignoresSafeArea()
+        }
+    }
+
+    // MARK: - Empty state (Task #8 — session-1 entry into the food rail)
+    //
+    // Trial users who haven't logged a plate yet land on Becoming and
+    // see a soft polaroid placeholder instead of an empty row. The +
+    // glyph + "your first plate" italic + "tap to log + share" caption
+    // doubles as a clear next-action AND a brand-aligned promise.
+
+    @ViewBuilder private var emptyStateRow: some View {
+        HStack(spacing: Space.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(Palette.divider, lineWidth: 0.5)
+                    )
+                Image(systemName: "plus")
+                    .font(.system(size: 22, weight: .regular))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .frame(width: 70, height: 70)
+            .rotationEffect(.degrees(-4))
+            .padding(.leading, 4)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("your first plate")
+                    .font(.custom("JeniHeroSerif-Italic", size: 19))
+                    .foregroundStyle(Palette.textPrimary)
+                Text("tap to log + share")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "arrow.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.textSecondary)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            Haptics.light()
+            onOpen()
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("your first plate — tap to log and share")
+        .accessibilityAddTraits(.isButton)
+    }
+
+    // MARK: - Populated row
+    //
+    // Existing polaroid-fan doorway into the journal, plus a small
+    // share icon that renders the weekly 9:16 collage when the user
+    // has at least one photo-backed log this week. The whole row
+    // remains tappable for "open journal"; the share Button takes
+    // precedence over the row-level onTapGesture for its 36×36 area
+    // (SwiftUI Button-vs-tap precedence) so the wires don't cross.
+
+    @ViewBuilder private var populatedRow: some View {
+        HStack(spacing: Space.md) {
+            if !photoEntryIds.isEmpty {
+                polaroidFan
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("her plates")
+                    .font(.custom("JeniHeroSerif-Italic", size: 19))
+                    .foregroundStyle(Palette.textPrimary)
+                Text(entryCount == 1 ? "1 plate kept" : "\(entryCount) plates kept")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+
+            Spacer()
+
+            if WeeklyShareRenderer.hasShareableWeek(userId: userId) {
+                shareWeekButton
+            }
+
+            Image(systemName: "arrow.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.textSecondary)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            Haptics.light()
+            onOpen()
+        }
+        .accessibilityElement(children: .contain)
         .accessibilityLabel("her plates — opens the food journal, \(entryCount) plates kept")
     }
+
+    @ViewBuilder private var polaroidFan: some View {
+        ZStack {
+            ForEach(Array(photoEntryIds.prefix(3).enumerated()), id: \.element) { index, id in
+                if let img = FoodPhotoStore.photo(entryId: id) {
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 64, height: 64)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .padding(3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(.white)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Palette.divider, lineWidth: 0.5)
+                        )
+                        .rotationEffect(.degrees(Double(index - 1) * 6))
+                        .offset(x: CGFloat(index - 1) * 22)
+                }
+            }
+        }
+        .frame(width: 116, height: 76)
+    }
+
+    @ViewBuilder private var shareWeekButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            if let img = WeeklyShareRenderer.render(userId: userId) {
+                weeklyShareItem = PlateShareItem(image: img)
+            }
+        } label: {
+            Image(systemName: "square.and.arrow.up")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.textPrimary)
+                .frame(width: 32, height: 32)
+                .background(
+                    Circle()
+                        .fill(Color.white.opacity(0.55))
+                )
+                .overlay(
+                    Circle()
+                        .stroke(Palette.divider, lineWidth: 0.5)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("share her week")
+    }
+}
+
+// MARK: - Plate share infrastructure
+
+/// Identifiable wrapper so `.sheet(item:)` can drive the rendered
+/// share PNG through its lifecycle without re-rendering on every
+/// state change.
+private struct PlateShareItem: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
+/// SwiftUI host for UIActivityViewController. Inlined here (rather
+/// than imported from PlankFood) so PlateFanTeaser's share flow stays
+/// self-contained in the main app target. Mirrors the helper used by
+/// FoodLogTimelineView for the daily share — kept private to avoid
+/// duplicating the public surface of PlankFood.
+private struct PlateShareActivityView: UIViewControllerRepresentable {
+    let items: [Any]
+    let onComplete: () -> Void
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        vc.completionWithItemsHandler = { _, _, _, _ in
+            DispatchQueue.main.async { onComplete() }
+        }
+        return vc
+    }
+
+    func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Insight line (atom 9)

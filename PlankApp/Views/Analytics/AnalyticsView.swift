@@ -367,6 +367,15 @@ struct AnalyticsView: View {
     // session-count, so the most meaningful signal leads.
 
     private var becomingStateWord: String {
+        // v1.0.10 (2026-06-17) — cohort-aware identity routing.
+        // GLP-1 cohorts get an identity word that acknowledges what
+        // they're actually doing this week, ABOVE the universal
+        // goal/trend/engagement chain. Identity-acknowledgment per
+        // [[feedback-positioning-conviction]] + [[project-glp1-cohort-strategy]];
+        // receipts gates per [[feedback-data-provenance]] so we never
+        // claim a cohort identity that isn't backed by logged signal.
+        if let cohortWord = cohortStateWord { return cohortWord }
+
         // ≥50% of goal distance covered → "becoming her"
         if let latest = latestWeightKg,
            onboardingCurrentWeightKg > 0, onboardingGoalWeightKg > 0,
@@ -386,6 +395,30 @@ struct AnalyticsView: View {
         // Sessions but no weight signal
         if sessionLogs.count >= 7 { return "showing up" }
         return "just beginning"
+    }
+
+    /// GLP-1 cohort identity overrides. Each returns nil until the
+    /// user has receipts for the implied claim — `.current` needs
+    /// protein receipts to read as "protecting", `.triedOff` needs
+    /// post-medication engagement, `.considering` needs a week of
+    /// habit reps before the line lands as evidence. nil falls
+    /// through to the universal becomingStateWord chain.
+    private var cohortStateWord: String? {
+        switch glp1Status {
+        case "current":
+            if let week = foodWeek, week.proteinLedDays >= 3 {
+                return "protecting"
+            }
+        case "triedOff", "tried_off":
+            let day = EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs)
+            if day >= 14 { return "rebuilding" }
+        case "considering":
+            let day = EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs)
+            if day >= 7 { return "building" }
+        default:
+            break
+        }
+        return nil
     }
 
     // (becomingPill deleted 2026-06-10 — the folio masthead's day
@@ -655,12 +688,12 @@ struct AnalyticsView: View {
                 },
                 onCancel: { showLogWeight = false }
             )
-            // v1.0.7 founder feedback round 9: log popup was being
-            // cut at the top with .medium detent (the heart-lock
-            // sticker offset(-10) overhung past the safe area).
-            // Bump to a custom fraction so the sticker + grabber +
-            // header all clear comfortably.
-            .presentationDetents([.fraction(0.78)])
+            // Founder feedback round 10 (2026-06-15): .fraction(0.78)
+            // left too much empty space below the steppers. .fraction(0.55)
+            // tightens proportions while keeping enough top-room for
+            // the heart-lock sticker overhang (offset y:-10). Both
+            // entry points (PlanView + here) share the same detent.
+            .presentationDetents([.fraction(0.55)])
             .presentationDragIndicator(.visible)
         }
         .sheet(item: $dayCardShareItem) { item in
@@ -999,6 +1032,36 @@ struct AnalyticsView: View {
                 trailing: { platesStatCell }
             )
 
+            // v1.1.0 Sprint A (2026-06-15) — LastNightSleepCard is built
+            // and verified (see commented mount below + `--debug-sleep-
+            // preview`), but HIDDEN for the 1.1.0 release. Reason: the
+            // TikTok-acquired Gen-Z women cohort is overwhelmingly
+            // iPhone + AirPods, not Apple Watch. Without a Watch (or
+            // a 3rd-party Oura/WHOOP/Garmin/Fitbit writing to Health),
+            // HealthKit returns no sleep samples, so the card lives
+            // permanently in the empty-state with no fix path. Shipping
+            // that surface would feel broken to ~70-80% of installs.
+            //
+            // SleepService still bootstraps silently at launch (safe —
+            // no-prompts, no UI mount). The card view + preview harness
+            // + service stay on disk for v1.2 when we add a self-report
+            // (tap-bedtime / tap-wake) or sleep-focus-schedule fallback
+            // that works without HealthKit.
+            //
+            // Revive: uncomment this block + remove this comment.
+            //
+            // LastNightSleepCard(
+            //     sleep: SleepService.shared.lastNight,
+            //     authStatus: SleepService.shared.authStatus,
+            //     onConnect: { Task { await SleepService.shared.requestAccess() } },
+            //     onOpenHealth: {
+            //         if let url = StepsService.openAppleHealthURL {
+            //             UIApplication.shared.open(url)
+            //         }
+            //     }
+            // )
+            // .padding(.top, 4)
+
             // v1.1 food layer (2026-06-11) — the dot map + receipts
             // ledger died same-day in founder QA ("not quite useful");
             // replaced by the lighter-days module + the plates journal
@@ -1013,17 +1076,23 @@ struct AnalyticsView: View {
 
             if let userId = auth.currentUser?.id.uuidString, !userId.isEmpty, FoodFlags.isEnabled {
                 let entries = FoodLogPersister.allEntries(userId: userId)
-                if !entries.isEmpty {
-                    PlateFanTeaser(
-                        photoEntryIds: entries
-                            .sorted { $0.loggedAt > $1.loggedAt }
-                            .map(\.id)
-                            .filter { FoodPhotoStore.hasPhoto(entryId: $0) },
-                        entryCount: entries.count,
-                        onOpen: { showFoodJournal = true }
-                    )
-                    .padding(.top, 4)
-                }
+                // v1.0.10 (2026-06-17) — Task #8 + weekly share. Drop
+                // the prior `if !entries.isEmpty` gate so PlateFanTeaser
+                // renders an empty-state CTA on session 1 (closes the
+                // "Becoming reads as hollow" gap for fresh trial users).
+                // Populated state additionally surfaces a share-her-week
+                // icon when there's a photo-backed log in the calendar
+                // week — taps into WeeklyShareRenderer's 9:16 collage.
+                PlateFanTeaser(
+                    userId: userId,
+                    photoEntryIds: entries
+                        .sorted { $0.loggedAt > $1.loggedAt }
+                        .map(\.id)
+                        .filter { FoodPhotoStore.hasPhoto(entryId: $0) },
+                    entryCount: entries.count,
+                    onOpen: { showFoodJournal = true }
+                )
+                .padding(.top, 4)
             }
 
             if let insight = dashboardInsight {
@@ -1334,11 +1403,47 @@ struct AnalyticsView: View {
                 return ("most of your movement lands after 6pm. evenings are yours \u{2665}\u{FE0E}", ["yours"])
             }
         }
-        // GLP-1 cohort line — protein is load-bearing for lean-mass
-        // protection (Wilding 2021); fires once plates are flowing.
-        if ProgramGoalCalculator.isGLP1User(from: glp1Status),
-           let week = foodWeek, week.scanDays >= 2 {
-            return ("on your medication, protein is what protects muscle. yours is showing up \u{2665}\u{FE0E}", ["protein"])
+        // GLP-1 cohort routing (2026-06-17) — receipts-based identity
+        // acknowledgment for each cohort state. Each line references
+        // shipping features only per [[feedback-no-feature-promises-until-shipped]]
+        // and uses post-Ozempic vocab per [[feedback-post-ozempic-vocabulary]]:
+        // no labor verbs, no scale shame, satiety / appetite / hunger
+        // are the registers. Order locked highest-confidence first.
+        //
+        // .current: protein-led receipts beat the general protein line;
+        //   the muscle-protection narrative needs ≥3 protein-led days
+        //   to ring true, otherwise we fall back to the general line
+        //   so .current users with light data still get acknowledged.
+        if glp1Status == "current" {
+            if let week = foodWeek, week.proteinLedDays >= 3 {
+                return ("protein led \(week.proteinLedDays) of \(week.scanDays) this week. that's how lean mass stays \u{2661}", ["lean mass"])
+            }
+            if let week = foodWeek, week.scanDays >= 2 {
+                return ("on your medication, protein is what protects muscle. yours is showing up \u{2665}\u{FE0E}", ["protein"])
+            }
+        }
+        // .triedOff: appetite-returning frame is the cohort signal.
+        //   Anti-diet vocab — "relearning your own hunger" is the
+        //   permission frame. Fallback for ≥14 days of post-medication
+        //   engagement acknowledges the consistency itself.
+        if glp1Status == "triedOff" || glp1Status == "tried_off" {
+            if let week = foodWeek, week.scanDays >= 3 {
+                return ("off the medication, you're relearning your own hunger \u{2661}", ["relearning"])
+            }
+            let day = EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs)
+            if day >= 14 {
+                return ("two weeks off, still showing up. that's the muscle \u{2661}", ["the muscle"])
+            }
+        }
+        // .considering: builds the habit case without promising the
+        //   medication will work / won't work. The line lands as
+        //   evidence (a week of reps) so it doesn't read as a sales
+        //   pitch from the app.
+        if glp1Status == "considering" {
+            let day = EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs)
+            if day >= 7 {
+                return ("a week of habits the medication can't hand you \u{2661}", ["habits"])
+            }
         }
         // protein pattern — claims need receipts: ≥3 scan days AND
         // protein actually led ≥2 of them (the chip said "1 of 3"
@@ -1351,7 +1456,12 @@ struct AnalyticsView: View {
         if day >= 7 {
             return ("\(day) days of showing up. that's the pattern that bends the line.", ["pattern"])
         }
-        return nil
+        // session-1 fallback (2026-06-17) — was `return nil`, which left
+        // the insight slot empty for fresh users with no signal yet and
+        // made the paid-tab read as broken. Honest evidence-aligned
+        // line: the page genuinely does fill in as engagement deepens,
+        // so the same copy works at day 1 and day 30-without-data alike.
+        return ("this page fills in as you show up \u{2665}\u{FE0E}", ["show up"])
     }
 
     // v1.1 Becoming dashboard (2026-06-10): the daily today's-balance
