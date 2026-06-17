@@ -35,8 +35,17 @@ final class PaymentService {
     /// paywall gate.
     private static let lastKnownEntitlementKey = "PaymentService.lastKnownEntitlement"
 
+    /// UserDefaults key mirroring whether the last-known entitlement was
+    /// in its trial period. Persisted across cold starts so a user who
+    /// kills the app mid-trial and reopens after the renewal still fires
+    /// the `purchase_completed{is_trial:true}` analytic — without this,
+    /// the trial→paid transition is invisible in PostHog when the stream
+    /// emit that flipped periodType happened while the process was dead.
+    private static let lastKnownInTrialKey = "PaymentService.lastKnownInTrial"
+
     private init() {
         hasProAccess = UserDefaults.standard.bool(forKey: Self.lastKnownEntitlementKey)
+        wasInTrial = UserDefaults.standard.bool(forKey: Self.lastKnownInTrialKey)
     }
 
     /// Whether `configure(appUserID:)` has run. Idempotent — guarded so a
@@ -127,6 +136,14 @@ final class PaymentService {
     /// transitions, not every emit.
     private var lastScheduledTrialEnd: Date?
 
+    /// Whether the prior customerInfoStream emit observed the entitlement
+    /// inside its trial period. Used to detect the trial→paid renewal
+    /// (was-trial + still-active + no-longer-trial) so PostHog gets a
+    /// `purchase_completed{is_trial:true}` event at conversion. Seeded
+    /// from UserDefaults at init so backgrounded-during-trial users still
+    /// fire the conversion analytic on next launch.
+    private var wasInTrial: Bool = false
+
     /// Configure RevenueCat once, after AuthService.bootstrap completes.
     /// Pass the current Supabase user_id as appUserID so RevenueCat scopes
     /// purchases to the same identity used for cloud data. Starts the
@@ -167,27 +184,51 @@ final class PaymentService {
         streamTask = Task { @MainActor [weak self] in
             for await customerInfo in Purchases.shared.customerInfoStream {
                 guard let self else { return }
-                let isActive = customerInfo.entitlements[RevenueCatConfig.entitlementID]?.isActive ?? false
+                let entitlement = customerInfo.entitlements[RevenueCatConfig.entitlementID]
+                let isActive = entitlement?.isActive ?? false
+                let isInTrial = isActive && entitlement?.periodType == .trial
                 let wasActive = self.hasProAccess
+                let wasInTrial = self.wasInTrial
                 self.hasProAccess = isActive
+                self.wasInTrial = isInTrial
                 UserDefaults.standard.set(isActive, forKey: Self.lastKnownEntitlementKey)
+                UserDefaults.standard.set(isInTrial, forKey: Self.lastKnownInTrialKey)
                 #if DEBUG
                 let activeKeys = customerInfo.entitlements.active.keys.sorted()
-                print("[PaymentService] customerInfo updated: hasProAccess=\(isActive) entitlements=\(activeKeys)")
+                print("[PaymentService] customerInfo updated: hasProAccess=\(isActive) isInTrial=\(isInTrial) entitlements=\(activeKeys)")
                 #endif
-                // Monetization analytics — fires only on transitions
-                // into entitlement (not on every emit). product_id +
-                // period type are sourced from the RevenueCat entitlement
-                // so funnel queries can split trial vs. paid converts.
+                // Monetization analytics — three discrete transitions,
+                // each fires exactly once per state change so funnel
+                // queries can split trial vs. paid vs. trial-converted.
+                //
+                //   1. inactive → active in trial:
+                //        trial_start{is_trial:true}
+                //   2. inactive → active not in trial (direct purchase):
+                //        purchase_completed{is_trial:false}
+                //   3. active in trial → active not in trial (renewal):
+                //        purchase_completed{is_trial:true}
+                //
+                // Branch #3 was the silent gap pre-2026-06-17: hasProAccess
+                // stays true across trial→paid so the !wasActive guard
+                // missed the renewal entirely, and PostHog's
+                // purchase_completed{is_trial:true} stayed at zero. The
+                // wasInTrial flag (persisted across cold launches) closes
+                // the gap so the conversion is visible even when the
+                // process was dead at the moment RC emitted the renewal.
+                let productId = entitlement?.productIdentifier ?? "unknown"
                 if isActive && !wasActive {
-                    let entitlement = customerInfo.entitlements[RevenueCatConfig.entitlementID]
-                    let productId = entitlement?.productIdentifier ?? "unknown"
-                    let isTrial = entitlement?.periodType == .trial
-                    Analytics.track(isTrial ? .trialStart : .purchaseCompleted,
+                    Analytics.track(isInTrial ? .trialStart : .purchaseCompleted,
                                     properties: [
                                         "product_id": productId,
                                         "placement": "onboarding_final",
-                                        "is_trial": isTrial
+                                        "is_trial": isInTrial
+                                    ])
+                } else if isActive && wasActive && wasInTrial && !isInTrial {
+                    Analytics.track(.purchaseCompleted,
+                                    properties: [
+                                        "product_id": productId,
+                                        "placement": "trial_conversion",
+                                        "is_trial": true
                                     ])
                 }
                 self.markEntitlementReady(reason: "customerInfoStream emit")
@@ -217,11 +258,15 @@ final class PaymentService {
             Task { @MainActor [weak self] in
                 do {
                     let info = try await Purchases.shared.customerInfo()
-                    let isActive = info.entitlements[RevenueCatConfig.entitlementID]?.isActive ?? false
+                    let entitlement = info.entitlements[RevenueCatConfig.entitlementID]
+                    let isActive = entitlement?.isActive ?? false
+                    let isInTrial = isActive && entitlement?.periodType == .trial
                     self?.hasProAccess = isActive
+                    self?.wasInTrial = isInTrial
                     UserDefaults.standard.set(isActive, forKey: Self.lastKnownEntitlementKey)
+                    UserDefaults.standard.set(isInTrial, forKey: Self.lastKnownInTrialKey)
                     #if DEBUG
-                    print("[PaymentService] safety-timeout refresh: hasProAccess=\(isActive)")
+                    print("[PaymentService] safety-timeout refresh: hasProAccess=\(isActive) isInTrial=\(isInTrial)")
                     #endif
                 } catch {
                     Analytics.trackException(error, context: "payment.safety_timeout_refresh")
@@ -259,13 +304,41 @@ final class PaymentService {
             && entitlement?.willRenew == true
         let trialEndDate = trialActive ? entitlement?.expirationDate : nil
 
+        // Sprint A (2026-06-15) — also pump the in-app trial nudge
+        // coordinator. The Day-2 + Day-3 modals render on app foreground
+        // when the entitlement is in trial and the user opens the app
+        // inside the relevant hour window. Re-evaluated on every emit
+        // so the coordinator picks up restored / cancelled trials too.
+        TrialNudgeCoordinator.shared.evaluate(
+            purchaseDate: trialActive ? entitlement?.latestPurchaseDate : nil,
+            expirationDate: trialEndDate,
+            isTrial: trialActive
+        )
+
         if trialEndDate == lastScheduledTrialEnd { return }
+        let priorTrialEndDate = lastScheduledTrialEnd
         lastScheduledTrialEnd = trialEndDate
 
         if let trialEndDate {
             await TrialEndNotificationService.shared.scheduleIfNeeded(trialEndDate: trialEndDate)
         } else {
             await TrialEndNotificationService.shared.cancelTrialEndReminder()
+            // v2 (2026-06-16): trial→paid transition detection. When
+            // the prior emit had a trial-end date and this emit
+            // doesn't, AND the entitlement is still active, the user
+            // just converted from trial to paid. Schedule the Day 5
+            // anti-refund push for annual + quarterly converters
+            // (skip weekly tier — no refund risk at $5.99). Cancel-
+            // during-trial transitions also flow through this `else`
+            // branch but with isActive == false, so they no-op via
+            // the `entitlement.isActive` guard.
+            if priorTrialEndDate != nil,
+               let entitlement,
+               entitlement.isActive,
+               !entitlement.productIdentifier.lowercased().contains("weekly") {
+                let chargeDate = entitlement.latestPurchaseDate ?? Date()
+                RetentionNotifications.scheduleDay5AntiRefundIfNeeded(chargeDate: chargeDate)
+            }
         }
     }
 
@@ -353,7 +426,9 @@ final class PaymentService {
                 // the truth for the new (anonymous) user shortly after,
                 // but the cache window is the soft-spot.
                 UserDefaults.standard.removeObject(forKey: Self.lastKnownEntitlementKey)
+                UserDefaults.standard.removeObject(forKey: Self.lastKnownInTrialKey)
                 hasProAccess = false
+                wasInTrial = false
                 #if DEBUG
                 print("[PaymentService] logOut succeeded — cached entitlement cleared")
                 #endif
