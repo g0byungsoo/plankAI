@@ -91,6 +91,18 @@ public struct CBTCurriculumScheduler {
         // back-to-back) — respects act boundaries.
         pool = enforceAntiAdjacency(pool)
 
+        // Step 2.5 — archetype bias (v1.0.10 Phase 5b, 2026-06-17).
+        // For each program day where the slot's pillar doesn't share
+        // the day's archetype affinity, look forward in the same act
+        // for a swap candidate whose pillar DOES align — but only
+        // commit the swap when the local same-pillar adjacency count
+        // wouldn't worsen. Best-effort + invariant-safe: act ordering
+        // (I3), milestone immutability (I7), and pillar coverage (I2)
+        // can't change because swaps stay within an act and skip
+        // anchors / actClosing slots. Pillar identity per index is
+        // permuted, not added or removed.
+        pool = biasForArchetype(pool, glp1Status: cohort.glp1Status.rawValue)
+
         // Step 3 — milestone anchoring. Closing-act days move to the
         // closing day of their act block in the final schedule.
         pool = anchorMilestones(pool, total: pool.count)
@@ -258,6 +270,102 @@ public struct CBTCurriculumScheduler {
             }
         }
         return result
+    }
+
+    // MARK: - Archetype bias (Phase 5b)
+    //
+    // Best-effort pass that improves how often a lesson's pillar
+    // matches its program day's archetype affinity (P2 hunger/satiety
+    // on protein days, P3 self-compassion on rest days, P5 sleep/
+    // stress on movement days). Only commits a swap when:
+    //
+    //   - Both positions stay in the same act         (preserves I3)
+    //   - Neither position is actClosing or milestone (preserves I7)
+    //   - Candidate's pillar matches today's archetype affinity at i
+    //   - Local same-pillar adjacency count doesn't worsen post-swap
+    //     (preserves I5 as best-effort, just like the upstream pass)
+    //
+    // Pillar coverage (I2) can't change — swaps permute slot positions
+    // within the pool but never add or remove pillar identities.
+    //
+    // Cohort routing per ProgramDayArchetype.archetype: `.current`
+    // GLP-1 users have every day routed to .protein, so this pass
+    // will pull P2 lessons earlier in each act block when the canonical
+    // ordering doesn't already place them well.
+
+    private static func biasForArchetype(
+        _ slots: [LessonSlot],
+        glp1Status: String
+    ) -> [LessonSlot] {
+        guard slots.count > 1 else { return slots }
+        var result = slots
+
+        for i in 0..<result.count {
+            let archI = ProgramDayArchetype.archetype(
+                forProgramDay: i + 1,
+                glp1Status: glp1Status
+            )
+            let slotI = result[i]
+
+            // Skip if already aligned or slot is immutable at this index.
+            if slotI.primaryPillar.archetypeAffinity == archI { continue }
+            if slotI.isActClosing || slotI.isMilestone { continue }
+
+            // Forward scan for a swap candidate.
+            var chosen: Int? = nil
+            for j in (i + 1)..<result.count {
+                let slotJ = result[j]
+
+                // Once we cross out of slot I's act, we're done — bias
+                // never breaks act boundaries.
+                if slotJ.act > slotI.act { break }
+                if slotJ.act != slotI.act { continue }
+
+                // Don't disturb immutable slots at position j.
+                if slotJ.isActClosing || slotJ.isMilestone { continue }
+
+                // Candidate must align with day i's archetype.
+                guard slotJ.primaryPillar.archetypeAffinity == archI else { continue }
+
+                // Trial swap — accept only if local adjacency doesn't worsen.
+                let adjBefore = adjacencyHits(in: result, around: i, j: j)
+                result.swapAt(i, j)
+                let adjAfter = adjacencyHits(in: result, around: i, j: j)
+                if adjAfter <= adjBefore {
+                    chosen = j
+                    break
+                } else {
+                    // Revert — adjacency would worsen.
+                    result.swapAt(i, j)
+                }
+            }
+
+            _ = chosen  // satisfy the compiler; flow already handled
+        }
+
+        return result
+    }
+
+    /// Same-pillar adjacency count in the 4 edges touching positions
+    /// i and j (i±1, j±1, clamped to bounds). Used by `biasForArchetype`
+    /// to verify a trial swap doesn't degrade local anti-adjacency.
+    private static func adjacencyHits(
+        in slots: [LessonSlot],
+        around i: Int,
+        j: Int
+    ) -> Int {
+        var hits = 0
+        for idx in [i, j] {
+            if idx > 0,
+               slots[idx].primaryPillar == slots[idx - 1].primaryPillar {
+                hits += 1
+            }
+            if idx < slots.count - 1,
+               slots[idx].primaryPillar == slots[idx + 1].primaryPillar {
+                hits += 1
+            }
+        }
+        return hits
     }
 
     // MARK: - Milestone anchoring
