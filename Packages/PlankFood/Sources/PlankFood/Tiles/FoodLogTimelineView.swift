@@ -218,11 +218,24 @@ public struct FoodLogTimelineView: View {
             if !entries.isEmpty {
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    if let img = DailyShareRenderer.render(
-                        userId: userId,
-                        dailyTarget: dailyTarget,
-                        archetype: archetypeHint
-                    ) {
+                    // v1.0.10 (2026-06-17) — `--handwritten-share` launch
+                    // flag swaps the editorial card for the Pinterest
+                    // it-girl handwritten POC. Founder-only toggle for
+                    // A/B comparison on real devices before promoting
+                    // (or rejecting) the handwritten template.
+                    let useHandwritten = ProcessInfo.processInfo.arguments
+                        .contains("--handwritten-share")
+                    let rendered: UIImage? = useHandwritten
+                        ? HandwrittenDailyShareRenderer.render(
+                            userId: userId,
+                            archetype: archetypeHint
+                        )
+                        : DailyShareRenderer.render(
+                            userId: userId,
+                            dailyTarget: dailyTarget,
+                            archetype: archetypeHint
+                        )
+                    if let img = rendered {
                         shareItem = ShareItem(image: img)
                     }
                 } label: {
