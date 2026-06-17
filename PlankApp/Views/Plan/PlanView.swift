@@ -117,6 +117,11 @@ struct PlanView: View {
         case markAsDone(ProgramDayPrescription)
         case logWeight
         case profileHub   // v6 settings entry via ellipsis on eyebrow row
+        /// v1.0.10 Phase 6 (2026-06-17) — tap on the archetype pill
+        /// opens a soft explainer. Carries the archetype so the sheet
+        /// content can render the matching copy + citation without
+        /// re-deriving from program day.
+        case archetypeExplainer(ProgramDayArchetype)
 
         var id: String {
             switch self {
@@ -124,6 +129,7 @@ struct PlanView: View {
             case .markAsDone(let p): return "markAsDone-\(p.itemKey)"
             case .logWeight:     return "logWeight"
             case .profileHub:    return "profileHub"
+            case .archetypeExplainer(let arch): return "archetype-\(arch.rawValue)"
             }
         }
     }
@@ -445,6 +451,15 @@ struct PlanView: View {
             ProfileHubView(onClose: { dismissSheet() })
                 .presentationDetents([.large])
                 .presentationBackground(Palette.programBgPrimary)
+
+        case .archetypeExplainer(let arch):
+            ArchetypeExplainerSheet(
+                archetype: arch,
+                onDismiss: { dismissSheet() }
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Palette.programCard)
         }
     }
 
@@ -538,18 +553,30 @@ struct PlanView: View {
 
     @ViewBuilder private var dayArchetypePill: some View {
         if let arch = currentArchetype {
-            HStack(spacing: 8) {
-                Image(systemName: arch.glyphName)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Palette.cocoaSecondary.opacity(0.7))
+            Button {
+                Haptics.light()
+                present(sheet: .archetypeExplainer(arch))
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: arch.glyphName)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Palette.cocoaSecondary.opacity(0.7))
 
-                archetypeCopy(arch: arch)
-                    .foregroundStyle(Palette.cocoaPrimary)
+                    archetypeCopy(arch: arch)
+                        .foregroundStyle(Palette.cocoaPrimary)
 
-                Spacer(minLength: 0)
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundStyle(Palette.cocoaSecondary.opacity(0.5))
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("today is \(arch.rawValue) day")
+            .accessibilityLabel("today is \(arch.rawValue) day. double tap to learn more")
+            .accessibilityHint("opens a sheet explaining today's archetype")
             .modernEntrance(animateIn, delay: 0.08)
         }
     }
@@ -1237,6 +1264,196 @@ struct PlanView: View {
 
         Task {
             await AppSync.shared.upsertProgramDayCheck(record)
+        }
+    }
+}
+
+// MARK: - ArchetypeExplainerSheet
+//
+// v1.0.10 Phase 6 (2026-06-17) — soft explainer for the four day
+// archetypes (Protein / Balanced / Movement / Rest). Surfaces from
+// PlanView when the user taps the day archetype pill.
+//
+// Copy register: lowercase casual, italic Fraunces punch on the
+// archetype noun, post-Ozempic vocab (satiety / hunger / softer
+// eating), hearts terminal-only, no diet vocab (no "deficit", no
+// "earn", no "crush"). The Protein day variant cites the May 2025
+// ACLM/ASN/OMA/Obesity Society joint advisory — it's the only
+// archetype with a clinical brief behind it. Other archetypes carry
+// the brand's structural rationale without over-claiming science.
+
+private struct ArchetypeExplainerSheet: View {
+
+    let archetype: ProgramDayArchetype
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Spacer().frame(height: 28)
+            eyebrow.padding(.horizontal, Space.lg)
+            Spacer().frame(height: 10)
+            heroLine.padding(.horizontal, Space.lg)
+            Spacer().frame(height: 22)
+            subtext.padding(.horizontal, Space.lg)
+            Spacer().frame(height: 26)
+            focusBlock.padding(.horizontal, Space.lg)
+            Spacer()
+            citation.padding(.horizontal, Space.lg)
+            Spacer().frame(height: 36)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(archetype.rawValue) day explainer")
+    }
+
+    @ViewBuilder private var eyebrow: some View {
+        HStack(spacing: 6) {
+            Image(systemName: archetype.glyphName)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Palette.cocoaSecondary.opacity(0.7))
+            Text("TODAY")
+                .font(.custom("Fraunces72pt-SemiBold", size: 11))
+                .foregroundStyle(Palette.textSecondary)
+                .kerning(2.4)
+        }
+    }
+
+    @ViewBuilder private var heroLine: some View {
+        let (raw, italic) = archetype.pillCopy
+        composedHeroText(raw: raw, italic: italic)
+            .foregroundStyle(Palette.cocoaPrimary)
+            .multilineTextAlignment(.leading)
+    }
+
+    /// Token-walk the pill copy and render the italic punch word in
+    /// JeniHeroSerif-Italic 36pt, the rest in JeniHeroSerif-Regular.
+    /// Matches the share-card composer so the explainer's hero reads
+    /// in the same face as the rest of the her75 surfaces.
+    private func composedHeroText(raw: String, italic: String) -> Text {
+        let tokens = raw.split(separator: " ", omittingEmptySubsequences: false)
+        var out = Text("")
+        for (i, rawToken) in tokens.enumerated() {
+            let token = String(rawToken)
+            let stripped = token
+                .lowercased()
+                .trimmingCharacters(in: .punctuationCharacters)
+            if stripped == italic {
+                out = out + Text(token).font(.custom("JeniHeroSerif-Italic", size: 36))
+            } else {
+                out = out + Text(token).font(.custom("JeniHeroSerif-Regular", size: 36))
+            }
+            if i < tokens.count - 1 {
+                out = out + Text(" ").font(.custom("JeniHeroSerif-Regular", size: 36))
+            }
+        }
+        return out
+    }
+
+    @ViewBuilder private var subtext: some View {
+        Text(archetype.explainerBody)
+            .font(.custom("DMSans-Regular", size: 16))
+            .lineSpacing(5)
+            .foregroundStyle(Palette.textPrimary.opacity(0.92))
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder private var focusBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("TODAY'S FOCUS")
+                .font(.custom("Fraunces72pt-SemiBold", size: 11))
+                .foregroundStyle(Palette.textSecondary)
+                .kerning(2.4)
+            Text(archetype.explainerFocus)
+                .font(.custom("DMSans-Medium", size: 16))
+                .foregroundStyle(Palette.cocoaPrimary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder private var citation: some View {
+        Text(archetype.explainerCitation)
+            .font(.custom("Fraunces72pt-Regular", size: 11))
+            .italic()
+            .foregroundStyle(Palette.textSecondary.opacity(0.85))
+            .lineSpacing(3)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+// MARK: - Archetype explainer copy
+//
+// Per-archetype copy lives on the ProgramDayArchetype type so the
+// sheet stays a pure render of model data — keeps the sheet ~120
+// lines instead of ~250 and lets future writers tune the copy in
+// one place. Voice-locked per [[feedback-voice-signals]] + post-
+// Ozempic vocab per [[feedback-post-ozempic-vocabulary]].
+
+private extension ProgramDayArchetype {
+
+    /// Short paragraph (1–3 sentences) explaining what the archetype
+    /// is and why it sits on the rotation. Anti-shame frame; no diet
+    /// vocab; hearts saved for the focus line where they land.
+    var explainerBody: String {
+        switch self {
+        case .protein:
+            return "protein anchors the day. it steadies satiety, "
+                + "protects lean mass while your body changes, and "
+                + "carries the work the other days set up."
+        case .balanced:
+            return "no macro running the show. carbs, protein, fat — "
+                + "a little of everything, in the proportions your body "
+                + "asks for. variety is the brief."
+        case .movement:
+            return "fuel forward. carbs work for you today — they "
+                + "power the work and refill what tomorrow asks for."
+        case .rest:
+            return "softer eating. listen, don't earn. rest is "
+                + "recovery, not restriction."
+        }
+    }
+
+    /// One actionable, brand-aligned focus line. Italic-Fraunces
+    /// punch word territory; ends with a heart on the days that
+    /// genuinely call for one (protein + rest — the earned-softness
+    /// flank).
+    var explainerFocus: String {
+        switch self {
+        case .protein:
+            return "aim for protein in every meal. ~1g per pound of "
+                + "your goal weight is the soft target ♡"
+        case .balanced:
+            return "eat what your body's asking for. nothing to "
+                + "prove on a balanced day."
+        case .movement:
+            return "carbs around the workout. protein still leads "
+                + "dinner."
+        case .rest:
+            return "soup, herbal tea, simple plates. nothing to "
+                + "prove ♡"
+        }
+    }
+
+    /// Short, honest source attribution. Protein day cites the
+    /// joint advisory (the only archetype with a clinical brief);
+    /// the others carry transparent rationale instead of over-
+    /// claiming an evidence base that isn't there.
+    var explainerCitation: String {
+        switch self {
+        case .protein:
+            return "based on the may 2025 joint advisory from the "
+                + "obesity society + american society for nutrition. "
+                + "protein floor: 1.2–2.0g per kg adjusted body weight."
+        case .balanced:
+            return "no specific clinical brief. variety reduces "
+                + "decision fatigue and supports hormonal regulation."
+        case .movement:
+            return "performance nutrition baseline. pre/post-workout "
+                + "carbs support recovery + glycogen restoration."
+        case .rest:
+            return "post-ozempic-era anti-shame frame. rest ≠ deficit."
         }
     }
 }
