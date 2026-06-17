@@ -28,6 +28,13 @@ struct ProgramDayStrip: View {
     let completionByDay: [Int: Int]      // programDay → completed-row count
     let centeredDay: Int                 // today normally; past day in scrapbook
     let onTap: (Day) -> Void
+    /// v1.0.10 (2026-06-17) — optional per-day archetype lookup. When
+    /// non-nil, future (locked) cells render the archetype's letter
+    /// (p / b / m / r) in italic Fraunces in place of the lock glyph
+    /// so users can see "protein day on thursday" days ahead. nil for
+    /// users without an active plan or for callers that don't want
+    /// the archetype layer.
+    var archetypeForDay: ((Int) -> ProgramDayArchetype?)? = nil
 
     enum Day: Equatable {
         case today
@@ -71,6 +78,7 @@ struct ProgramDayStrip: View {
                 ProgramDayCell(
                     day: day,
                     state: stateForCell(day: day),
+                    archetype: archetypeForDay?(day),
                     onTap: {
                         Haptics.light()
                         onTap(routeFor(day: day))
@@ -169,6 +177,11 @@ struct ProgramDayCell: View {
 
     let day: Int                  // 1-indexed; 0 only for .newProgram
     let state: State
+    /// v1.0.10 — optional archetype for this day. When non-nil and the
+    /// cell is in `.locked` state, the archetype's letter renders in
+    /// place of the lock glyph so users can mentally prep for upcoming
+    /// protein / movement / rest days.
+    var archetype: ProgramDayArchetype? = nil
     let onTap: () -> Void
 
     enum State {
@@ -248,14 +261,26 @@ struct ProgramDayCell: View {
                 .foregroundStyle(Palette.cocoaTertiary)
                 .monospacedDigit()
         case .locked:
-            VStack(spacing: 4) {
+            VStack(spacing: 3) {
                 Text("\(day)")
                     .font(.custom("DMSans-Regular", size: 15, relativeTo: .body))
                     .foregroundStyle(Palette.cocoaTertiary)
                     .monospacedDigit()
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(Palette.cocoaTertiary)
+                // v1.0.10 — replace the lock glyph with the archetype
+                // letter when the cell knows its archetype. Users see
+                // "p" / "b" / "m" / "r" days ahead so the protein /
+                // movement / rest cadence is mentally prep-able. Falls
+                // back to the lock glyph for cells without an archetype
+                // (no active plan, or caller didn't pass the lookup).
+                if let archetype {
+                    Text(letter(for: archetype))
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11, relativeTo: .caption2))
+                        .foregroundStyle(Palette.cocoaTertiary.opacity(0.85))
+                } else {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
             }
         case .newProgram:
             Image(systemName: "plus")
@@ -265,13 +290,23 @@ struct ProgramDayCell: View {
     }
 
     private var accessibilityLabel: String {
+        let archSuffix = archetype.map { ", \($0.rawValue) day" } ?? ""
         switch state {
-        case .today:        return "Day \(day), today"
-        case .completed:    return "Day \(day), completed"
-        case .partial:      return "Day \(day), partial"
-        case .missed:       return "Day \(day), missed"
-        case .locked:       return "Day \(day), locked"
+        case .today:        return "Day \(day), today\(archSuffix)"
+        case .completed:    return "Day \(day), completed\(archSuffix)"
+        case .partial:      return "Day \(day), partial\(archSuffix)"
+        case .missed:       return "Day \(day), missed\(archSuffix)"
+        case .locked:       return "Day \(day), locked\(archSuffix)"
         case .newProgram:   return "Start a new program"
+        }
+    }
+
+    private func letter(for archetype: ProgramDayArchetype) -> String {
+        switch archetype {
+        case .protein:  return "p"
+        case .balanced: return "b"
+        case .movement: return "m"
+        case .rest:     return "r"
         }
     }
 }

@@ -617,7 +617,16 @@ struct PlanView: View {
                 totalDays: schedule.totalDays,
                 completionByDay: completionByDay,
                 centeredDay: viewingDay ?? schedule.programDay,
-                onTap: { day in handleStripTap(day) }
+                onTap: { day in handleStripTap(day) },
+                // v1.0.10 — surface each day's archetype on locked
+                // (future) cells. Same derivation the Plan-tab pill +
+                // Becoming letter row use, so the three surfaces agree.
+                archetypeForDay: { day in
+                    ProgramDayArchetype.archetype(
+                        forProgramDay: day,
+                        glp1Status: glp1Status
+                    )
+                }
             )
             .modernEntrance(animateIn, delay: 0.08)
         }
