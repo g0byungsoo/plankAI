@@ -44,6 +44,9 @@ struct PlanView: View {
     @AppStorage("workoutLevel") private var workoutLevel: Int = 0
     @AppStorage("todaysEnergy") private var todaysEnergy: Int = 0
     @AppStorage("onboardingCuisinePreference") private var cuisineProfileCSV: String = ""
+    /// v1.0.10 — drives the day-archetype cohort override (.current GLP-1
+    /// → every day is a protein day per the May 2025 joint advisory).
+    @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
     @State private var schedule: ProgramScheduleCalculator.Result?
     @State private var profile: IntensityProfile = .medium
     @State private var todayPrescriptions: [ProgramDayPrescription] = []
@@ -169,7 +172,9 @@ struct PlanView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Spacer().frame(height: 24)
                         eyebrow
-                        Spacer().frame(height: 18)
+                        Spacer().frame(height: 10)
+                        dayArchetypePill
+                        Spacer().frame(height: 12)
                         dayStrip
                         if viewingDay != nil {
                             Spacer().frame(height: 16)
@@ -206,34 +211,78 @@ struct PlanView: View {
     private func coverContent(for cover: PlanCover) -> some View {
         switch cover {
         case .lesson(let lessonId):
-            // v1.1 education pass — the chain: the lesson's last page
-            // routes to her next unchecked checklist row (the old
-            // "start today's workout" CTA had no handoff wired here
-            // and silently dismissed).
-            JeniMethodRitualView(
-                lesson: lessonId,
-                user: JeniMethodUserContext.fromAppStorage(),
-                onComplete: {
-                    markAutoCompleted(.lesson(lessonId: String(lessonId.rawValue)))
-                    dismissCover()
-                },
-                onSkip: { _ in dismissCover() },
-                nextRowTitle: nextUncheckedPrescription?.rowTitle,
-                onChainNext: {
-                    markAutoCompleted(.lesson(lessonId: String(lessonId.rawValue)))
-                    let next = nextUncheckedPrescription
-                    dismissCover()
-                    if let next {
-                        // Let the cover dismissal settle before the next
-                        // module's cover mounts (stacked fullScreenCovers
-                        // read as a hitch).
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                            handleRowTap(next)
+            // v1.2 (2026-06-15) — try the manifest-driven CBT reader
+            // first. CBTCurriculumService.lesson(forProgramDay:...)
+            // returns nil when the manifest isn't bundled OR the day
+            // is past `canonical84.count`; we fall back to the legacy
+            // `JeniMethodRitualView` in either case so existing 14-
+            // lesson users keep their flow unbroken.
+            //
+            // Day-mapping: `schedule.programDay` is 1-indexed (matches
+            // CBT D01...D102). totalDays drives the scheduler's lesson
+            // density for users on shorter programs.
+            let programDay = schedule?.programDay ?? 1
+            let totalDays = schedule?.totalDays
+                ?? ProgramScheduleCalculator.fallbackTotalDays
+            if let resolved = CBTCurriculumService.shared.lesson(
+                forProgramDay: programDay,
+                totalDays: totalDays,
+                cohort: CohortFlags.fromAppStorage()
+            ) {
+                LessonReaderView(
+                    scheduled: resolved.scheduled,
+                    slot: resolved.slot,
+                    variant: resolved.variant,
+                    onComplete: {
+                        // v1.2 chain affordance — same shape as the
+                        // legacy reader's `onChainNext`: mark the
+                        // lesson row complete, dismiss the cover, then
+                        // present the next unchecked checklist row
+                        // after the cover dismissal settles. Without
+                        // this, the CBT path would dead-end at "done"
+                        // and the cohort would miss the legacy
+                        // "lesson → snap meal → workout" rhythm.
+                        markAutoCompleted(.lesson(lessonId: String(lessonId.rawValue)))
+                        let next = nextUncheckedPrescription
+                        dismissCover()
+                        if let next {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                handleRowTap(next)
+                            }
+                        }
+                    },
+                    onSkip: { _ in dismissCover() }
+                )
+                .presentationBackground(Palette.programBgPrimary)
+            } else {
+                // Legacy 14-lesson fallback — also covers the chain-to-
+                // next-row affordance that the new reader doesn't have
+                // yet (Sprint A polish item).
+                JeniMethodRitualView(
+                    lesson: lessonId,
+                    user: JeniMethodUserContext.fromAppStorage(),
+                    onComplete: {
+                        markAutoCompleted(.lesson(lessonId: String(lessonId.rawValue)))
+                        dismissCover()
+                    },
+                    onSkip: { _ in dismissCover() },
+                    nextRowTitle: nextUncheckedPrescription?.rowTitle,
+                    onChainNext: {
+                        markAutoCompleted(.lesson(lessonId: String(lessonId.rawValue)))
+                        let next = nextUncheckedPrescription
+                        dismissCover()
+                        if let next {
+                            // Let the cover dismissal settle before the
+                            // next module's cover mounts (stacked
+                            // fullScreenCovers read as a hitch).
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                handleRowTap(next)
+                            }
                         }
                     }
-                }
-            )
-            .presentationBackground(Palette.programBgPrimary)
+                )
+                .presentationBackground(Palette.programBgPrimary)
+            }
 
         case .captureFlow:
             CaptureFlowView(
@@ -381,7 +430,15 @@ struct PlanView: View {
                 },
                 onCancel: { dismissSheet() }
             )
-            .presentationDetents([.medium, .large])
+            // 2026-06-15 founder note (round 2): .fraction(0.78) left
+            // a big empty band between the steppers and the save
+            // button — content is genuinely compact (~370pt) and the
+            // tall sheet floated the CTA. .fraction(0.55) tightens
+            // the proportions without re-introducing the .medium
+            // sticker-overhang clipping. Both entry points share
+            // the same detent.
+            .presentationDetents([.fraction(0.55)])
+            .presentationDragIndicator(.visible)
             .presentationBackground(Palette.programCard)
 
         case .profileHub:
@@ -458,6 +515,70 @@ struct PlanView: View {
             }
             .modernEntrance(animateIn)
         }
+    }
+
+    // MARK: - Day archetype pill (v1.0.10)
+    //
+    // Phase 1 of the program-quality pivot (Glow-Diet-inspired but
+    // science-aligned per the research session 2026-06-17). Shows
+    // today's archetype in the her75 register — italic Fraunces
+    // punch word on a soft cocoa-tinted typography mark, no card
+    // chrome. Tap-to-explain action is deferred to phase 2; phase 1
+    // is render-only so the pattern can prove itself before we wire
+    // chip re-ranking / lesson bias / Becoming strip on top.
+
+    private var currentArchetype: ProgramDayArchetype? {
+        guard let schedule else { return nil }
+        let day = viewingDay ?? schedule.programDay
+        return ProgramDayArchetype.archetype(
+            forProgramDay: day,
+            glp1Status: glp1Status
+        )
+    }
+
+    @ViewBuilder private var dayArchetypePill: some View {
+        if let arch = currentArchetype {
+            HStack(spacing: 8) {
+                Image(systemName: arch.glyphName)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Palette.cocoaSecondary.opacity(0.7))
+
+                archetypeCopy(arch: arch)
+                    .foregroundStyle(Palette.cocoaPrimary)
+
+                Spacer(minLength: 0)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("today is \(arch.rawValue) day")
+            .modernEntrance(animateIn, delay: 0.08)
+        }
+    }
+
+    /// Composes the pill text with the archetype's italic-punch word
+    /// in JeniHeroSerif-Italic, the rest in DM Sans Regular — the
+    /// her75 micro register that already lives on the eyebrow row.
+    private func archetypeCopy(arch: ProgramDayArchetype) -> Text {
+        let (raw, italic) = arch.pillCopy
+        var out = Text("")
+        let tokens = raw.split(separator: " ", omittingEmptySubsequences: false)
+        for (i, raw) in tokens.enumerated() {
+            let token = String(raw)
+            let stripped = token
+                .lowercased()
+                .trimmingCharacters(in: .punctuationCharacters)
+            if stripped == italic {
+                out = out + Text(token)
+                    .font(.custom("JeniHeroSerif-Italic", size: 19))
+            } else {
+                out = out + Text(token)
+                    .font(.custom("DMSans-Regular", size: 16))
+            }
+            if i < tokens.count - 1 {
+                out = out + Text(" ")
+                    .font(.custom("DMSans-Regular", size: 16))
+            }
+        }
+        return out
     }
 
     // MARK: - Day strip
@@ -745,24 +866,27 @@ struct PlanView: View {
         profile: IntensityProfile,
         programDay: Int
     ) -> [ProgramDayPrescription] {
-        let calendar = Calendar(identifier: .gregorian)
-        let weekday = calendar.component(.weekday, from: .now)
         let week = max(1, ((programDay - 1) / 7) + 1)
         let workoutMinutes = profile.workoutMinutes(forProgramWeek: week)
 
         // v5 row order: load-bearing-first per UX spec §v5.3 — keeps
         // snap + move fully above fold, ritual rows below.
-        // lesson → snap → move → steps → ritual (weigh / breath).
+        // lesson → snap → move → steps → weigh → breath.
+        //
+        // 2026-06-15: weight un-Sunday-gated. Weight log is the data
+        // primitive that powers Becoming's trend math, BMI banding,
+        // plateau intervention, and 6 of 8 Becoming modules. Sunday-
+        // only meant near-zero log rate per the 7-day data; daily
+        // surfacing is the unlock. Breath stays as the daily quietude
+        // beat at 71% completion — the Home reshape (Sprint B) will
+        // demote it to ambient contextual; until then both rows ship.
         var rows: [ProgramDayPrescription] = []
         rows.append(.lesson(lessonId: nil))
         rows.append(.snapMeal)
         rows.append(.workout(tier: profile.tier, minutes: workoutMinutes, bodyFocus: nil))
         rows.append(.steps(goal: profile.stepsDailyGoal))
-        if weekday == 1 {
-            rows.append(.weighIn)
-        } else {
-            rows.append(.breath(minutes: 1, style: .calming))
-        }
+        rows.append(.weighIn)
+        rows.append(.breath(minutes: 1, style: .calming))
         return rows
     }
 
