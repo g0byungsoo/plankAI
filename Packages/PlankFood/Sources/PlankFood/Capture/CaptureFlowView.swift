@@ -125,7 +125,9 @@ public struct CaptureFlowView: View {
                         phase = .result
                     },
                     onScanInstead: { phase = .camera },
-                    onDismiss: { phase = .camera }
+                    onDismiss: { phase = .camera },
+                    userId: userId,
+                    cuisineCSV: cuisineProfile
                 )
                 .onAppear { FoodAnalytics.track(.quickAddTapped) }
 
@@ -234,6 +236,23 @@ public struct CaptureFlowView: View {
                     // into this hero block instead of hard-cutting.
                     if let photo = capturedPhoto {
                         PolaroidHero(photo: photo)
+                    } else if !food.items.isEmpty {
+                        // v1.0.10 (2026-06-17) — quick-log + im-out
+                        // paths arrive here without a photo. Without
+                        // a hero the result screen reads as a bare
+                        // cream surface, which loses the share moment
+                        // photo-scan logs get for free. The typography
+                        // polaroid mirrors PolaroidHero's chrome
+                        // (matte + cocoa stroke + offset shadow +
+                        // sticker scatter) so the result feels like
+                        // the same scrapbook page — except the dish
+                        // name in JeniHeroSerif-Italic is the visual
+                        // anchor instead of a photo.
+                        TypographyPolaroidHero(
+                            mealLabel: Self.mealLabelForNow(),
+                            dishName: Self.dishNameDisplay(food: food),
+                            kcalDisplay: Self.kcalDisplay(food: food)
+                        )
                     }
 
                     ResultCard(
@@ -264,6 +283,52 @@ public struct CaptureFlowView: View {
     // file) so it can manage internal animation state — the photo
     // "develops" over 1.2s (saturation / blur / opacity ease in) and
     // sticker scatter fades in around it after the develop completes.
+
+    // MARK: - No-photo hero helpers (quick-log + im-out paths)
+
+    /// Time-of-day → editorial meal-label (lowercase, voice-locked).
+    /// Falls through to "snack" for late-night logging — a deliberate
+    /// soft choice; no "midnight" label, no shame.
+    static func mealLabelForNow() -> String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<11:  return "breakfast"
+        case 11..<15: return "lunch"
+        case 15..<18: return "snack"
+        case 18..<22: return "dinner"
+        default:      return "snack"
+        }
+    }
+
+    /// Composes a one-line dish label from up to two items, tailing
+    /// "+N" when more were identified. Matches MealSummaryCard's
+    /// formatting so the result hero and slide-1 share card agree on
+    /// what the meal is called.
+    static func dishNameDisplay(food: CapturedFood) -> String {
+        if food.items.isEmpty { return "your plate" }
+        if food.items.count == 1 { return food.items[0].name }
+        if food.items.count == 2 {
+            return "\(food.items[0].name) + \(food.items[1].name)"
+        }
+        return food.items.prefix(2).map(\.name).joined(separator: " + ")
+            + " +\(food.items.count - 2)"
+    }
+
+    /// Single-line kcal display — honest range first (restaurant
+    /// estimate paths return a band), single value second, em-dash
+    /// fallback for the rare empty-but-non-zero result.
+    static func kcalDisplay(food: CapturedFood) -> String {
+        if let low = food.kcalLow, let high = food.kcalHigh, low != high {
+            return "\(Int(low.rounded()))\u{2013}\(Int(high.rounded())) cal"
+        }
+        if let total = food.totalKcal {
+            return "\(Int(total.rounded())) cal"
+        }
+        if let low = food.kcalLow {
+            return "\(Int(low.rounded())) cal"
+        }
+        return "\u{2014}"
+    }
 
     // MARK: - Persistence
 
@@ -469,6 +534,177 @@ private struct PolaroidHero: View {
                     .transition(.scale(scale: 0.6).combined(with: .opacity))
 
                 // Bottom-left flower3D — softens the lower corner
+                Image("sticker_flower_3d", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 34, height: 34)
+                    .rotationEffect(.degrees(-8))
+                    .position(x: 18, y: geo.size.height - 20)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: - TypographyPolaroidHero
+//
+// v1.0.10 (2026-06-17) — no-photo hero for the quick-log + im-out
+// result paths. Visual parity with PolaroidHero (same matte, cocoa
+// stroke, hard offset shadow, sticker scatter) so the result screen
+// reads as the same scrapbook page regardless of whether a photo
+// exists. The "develops" animation is replaced by a soft fade +
+// blur ease-in on the typography — the dish name lands focused as
+// the eye settles.
+//
+// Animation timeline:
+//   t = 0.00s — content sits at opacity 0.6, blur 3pt, slight scale
+//   t = 0.90s — typography fully readable (opacity 1, blur 0)
+//   t = 0.60s — sticker scatter springs in (parallels PolaroidHero)
+//
+// Reduce-motion: snaps to final, stickers still appear (decorative,
+// not motion).
+
+private struct TypographyPolaroidHero: View {
+    let mealLabel: String
+    let dishName: String
+    let kcalDisplay: String
+
+    @State private var revealed: Double = 0
+    @State private var stickersIn: Bool = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            polaroidFrame
+                .opacity(0.5 + revealed * 0.5)
+                .blur(radius: (1.0 - revealed) * 3.0)
+                .rotationEffect(.degrees(-1.2))
+
+            if stickersIn {
+                stickerOverlay
+            }
+        }
+        .onAppear {
+            if reduceMotion {
+                revealed = 1.0
+                stickersIn = true
+                return
+            }
+            withAnimation(.easeOut(duration: 0.95)) {
+                revealed = 1.0
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.72)) {
+                    stickersIn = true
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var polaroidFrame: some View {
+        VStack(spacing: 8) {
+            // Typography "photo" — a soft rose→cream gradient stands
+            // in for the missing photo, with the dish name as the
+            // visual hero. The eyebrow + divider + kcal create the
+            // same vertical rhythm a real polaroid would have.
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        FoodTheme.accentSubtle.opacity(0.55),
+                        FoodTheme.bgPrimary,
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                VStack(spacing: 12) {
+                    Text(mealLabel)
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                        .foregroundStyle(FoodTheme.accent)
+                        .kerning(0.4)
+
+                    Text(dishName)
+                        .font(.custom("JeniHeroSerif-Italic", size: 34))
+                        .foregroundStyle(FoodTheme.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.7)
+                        .padding(.horizontal, 24)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Rectangle()
+                        .fill(FoodTheme.accent.opacity(0.32))
+                        .frame(width: 32, height: 1)
+
+                    Text(kcalDisplay)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(FoodTheme.stateGood)
+                        .monospacedDigit()
+                }
+                .padding(.vertical, 24)
+            }
+            .frame(height: 220)
+            .frame(maxWidth: .infinity)
+
+            // Matte caption — mirrors PolaroidHero's "just now"
+            // exactly so the two heroes feel like siblings.
+            HStack {
+                Text("just")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                    .foregroundStyle(FoodTheme.accent)
+                Text("now")
+                    .font(.custom("Fraunces72pt-Regular", size: 12))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                Spacer()
+            }
+            .padding(.horizontal, 4)
+        }
+        .padding(12)
+        .background(FoodTheme.bgElevated)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(FoodTheme.textPrimary, lineWidth: 1.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: FoodTheme.textPrimary.opacity(0.22), radius: 0, x: 4, y: 4)
+    }
+
+    /// Same four stickers, same positions, same rotations as
+    /// PolaroidHero — intentional parity so a user scanning a photo
+    /// vs. quick-logging text sees the same scrapbook page.
+    private var stickerOverlay: some View {
+        GeometryReader { geo in
+            ZStack {
+                Image("sticker_cherries", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 48, height: 48)
+                    .rotationEffect(.degrees(-14))
+                    .shadow(color: Color.black.opacity(0.1), radius: 0, x: 1, y: 1)
+                    .position(x: geo.size.width - 18, y: 12)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+
+                Image("sticker_bow_satin", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 40, height: 40)
+                    .rotationEffect(.degrees(10))
+                    .opacity(0.92)
+                    .position(x: 20, y: 14)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+
+                Image("sticker_gummy_bear", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 36, height: 36)
+                    .rotationEffect(.degrees(15))
+                    .position(x: geo.size.width - 20, y: geo.size.height - 18)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+
                 Image("sticker_flower_3d", bundle: .main)
                     .resizable()
                     .scaledToFit()

@@ -29,6 +29,14 @@ public struct QuickAddView: View {
     public let onLogged: (CapturedFood) -> Void
     public let onScanInstead: () -> Void
     public let onDismiss: () -> Void
+    /// Owning user id — used to pull personal recents from
+    /// FoodLogPersister. Empty string disables the recents chip
+    /// section and falls back to cuisine + evergreen only.
+    public let userId: String
+    /// CSV of cuisine keys from onboardingCuisinePreference (e.g.
+    /// "american,italian,eastAsian"). nil / empty falls back to a
+    /// neutral evergreen chip set.
+    public let cuisineCSV: String?
 
     @State private var inputText: String = ""
     @State private var isSubmitting: Bool = false
@@ -38,31 +46,25 @@ public struct QuickAddView: View {
     public init(
         onLogged: @escaping (CapturedFood) -> Void,
         onScanInstead: @escaping () -> Void,
-        onDismiss: @escaping () -> Void
+        onDismiss: @escaping () -> Void,
+        userId: String = "",
+        cuisineCSV: String? = nil
     ) {
         self.onLogged = onLogged
         self.onScanInstead = onScanInstead
         self.onDismiss = onDismiss
+        self.userId = userId
+        self.cuisineCSV = cuisineCSV
     }
 
-    // Quick suggestions — pre-fill the text field on tap. Pick the
-    // 12 cohort orders that are most-typed-but-vague (so they benefit
-    // from the model resolving portion + macros). Order matters:
-    // first 6 cover ~60% of cohort intake per Cal AI top-50.
-    private let suggestions: [String] = [
-        "matcha latte with oat milk",
-        "chipotle chicken bowl",
-        "avocado toast with egg",
-        "greek yogurt parfait",
-        "iced brown sugar oatmilk shaken espresso",
-        "chick-fil-a grilled nuggets",
-        "two slices of cheese pizza",
-        "cava chicken bowl",
-        "raising cane's 3-finger combo",
-        "protein smoothie",
-        "caesar salad with chicken",
-        "sweetgreen harvest bowl",
-    ]
+    /// v1.0.10 (2026-06-17) — suggestions are now per-user. Computed
+    /// once per appearance from FoodLogPersister recents + onboarding
+    /// cuisine + a small evergreen drink set. Order matters: the most-
+    /// relevant chips render first so a returning user sees what they
+    /// actually eat at the top of the cloud.
+    private var suggestions: [QuickAddSuggestion] {
+        QuickAddSuggestion.compose(userId: userId, cuisineCSV: cuisineCSV)
+    }
 
     public var body: some View {
         ZStack {
@@ -228,7 +230,7 @@ public struct QuickAddView: View {
             .foregroundStyle(FoodTheme.textSecondary)
 
             FlowLayout(spacing: 8) {
-                ForEach(suggestions, id: \.self) { suggestion in
+                ForEach(suggestions) { suggestion in
                     suggestionChip(suggestion)
                 }
             }
@@ -237,19 +239,27 @@ public struct QuickAddView: View {
     }
 
     @ViewBuilder
-    private func suggestionChip(_ text: String) -> some View {
+    private func suggestionChip(_ suggestion: QuickAddSuggestion) -> some View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            inputText = text
+            inputText = suggestion.text
             textFocused = true
         } label: {
-            Text(text)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(FoodTheme.textPrimary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(Capsule().fill(FoodTheme.bgElevated))
-                .overlay(Capsule().stroke(FoodTheme.accent.opacity(0.45), lineWidth: 1))
+            HStack(spacing: 5) {
+                if let icon = suggestion.kind.iconName {
+                    Image(systemName: icon)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(FoodTheme.textSecondary)
+                }
+                Text(suggestion.text)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(FoodTheme.textPrimary)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(Capsule().fill(suggestion.kind.background))
+            .overlay(Capsule().stroke(suggestion.kind.stroke, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
@@ -404,6 +414,192 @@ struct FlowLayout: Layout {
             rowHeight = max(rowHeight, size.height)
         }
     }
+}
+
+// MARK: - QuickAddSuggestion
+//
+// v1.0.10 (2026-06-17) — typed quick-add chip. Replaces the hardcoded
+// `[String]` chip list with a model that knows where each suggestion
+// came from (the user's own logs, an onboarding-declared cuisine,
+// or a neutral evergreen drink default). The chip view consults
+// `kind` to pick its icon + color so a returning user can tell at a
+// glance which chips are personalized vs. universal.
+//
+// Composition order — locked: recents first (~5), then cuisine
+// suggestions (~5–7), then a small evergreen drink default set (~3).
+// Recents shadow lower-ranked chips by case-folded text so a heavy
+// "matcha latte" logger doesn't see it duplicated under the cuisine
+// section.
+
+struct QuickAddSuggestion: Identifiable, Hashable {
+    let id: String
+    let text: String
+    let kind: Kind
+
+    enum Kind: Hashable {
+        case recent
+        case cuisine
+        case evergreen
+
+        var iconName: String? {
+            switch self {
+            case .recent:    return "clock"
+            case .cuisine:   return nil
+            case .evergreen: return nil
+            }
+        }
+
+        var background: Color {
+            switch self {
+            case .recent:    return FoodTheme.accent.opacity(0.10)
+            default:         return FoodTheme.bgElevated
+            }
+        }
+
+        var stroke: Color {
+            switch self {
+            case .recent:    return FoodTheme.accent.opacity(0.55)
+            default:         return FoodTheme.accent.opacity(0.45)
+            }
+        }
+    }
+}
+
+extension QuickAddSuggestion {
+    /// Compose the chip list. Returns a deterministic ordering so the
+    /// view doesn't shuffle between renders.
+    @MainActor
+    static func compose(userId: String, cuisineCSV: String?) -> [QuickAddSuggestion] {
+        var seen: Set<String> = []
+        var out: [QuickAddSuggestion] = []
+
+        // 1. RECENTS — dedupe by case-folded title, cap at 5. Skip
+        // entries with empty titles (legacy logs pre-D3.B).
+        if !userId.isEmpty {
+            let recent = FoodLogPersister.allEntries(userId: userId)
+                .sorted { $0.loggedAt > $1.loggedAt }
+                .map { $0.title.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .prefix(40)
+
+            for title in recent {
+                let key = title.lowercased()
+                guard !seen.contains(key) else { continue }
+                seen.insert(key)
+                out.append(QuickAddSuggestion(
+                    id: "recent_" + key,
+                    text: title.lowercased(),
+                    kind: .recent
+                ))
+                if out.count >= 5 { break }
+            }
+        }
+
+        // 2. CUISINE — split the CSV, pull each cuisine's top picks.
+        // Round-robin so a user with multiple cuisines sees a mix
+        // (italian + mexican users shouldn't get all italian before
+        // any mexican appears). Cap the section at 7.
+        let cuisines = (cuisineCSV ?? "")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+            .filter { !$0.isEmpty }
+        var cuisinePools = cuisines.compactMap { cuisinePool[$0] }
+        var cuisineEmitted = 0
+        outer: while !cuisinePools.isEmpty {
+            for i in cuisinePools.indices {
+                guard !cuisinePools[i].isEmpty else { continue }
+                let candidate = cuisinePools[i].removeFirst()
+                let key = candidate.lowercased()
+                guard !seen.contains(key) else { continue }
+                seen.insert(key)
+                out.append(QuickAddSuggestion(
+                    id: "cuisine_" + key,
+                    text: candidate,
+                    kind: .cuisine
+                ))
+                cuisineEmitted += 1
+                if cuisineEmitted >= 7 { break outer }
+            }
+            cuisinePools.removeAll { $0.isEmpty }
+        }
+
+        // 3. EVERGREEN — universal drink + breakfast defaults. Always
+        // tail the list (small set; user has options even on day 1).
+        for text in evergreen {
+            let key = text.lowercased()
+            guard !seen.contains(key) else { continue }
+            seen.insert(key)
+            out.append(QuickAddSuggestion(
+                id: "evergreen_" + key,
+                text: text,
+                kind: .evergreen
+            ))
+        }
+
+        return out
+    }
+
+    /// Cuisine-keyed default picks. Keys match the FoodSettingsView
+    /// cuisine option set (american, italian, mexican, eastAsian,
+    /// southAsian, mediterranean, other) PLUS the legacy onboarding
+    /// keys (korean, japanese, chinese, indian) — existing users still
+    /// have those in AppStorage until they edit settings.
+    static let cuisinePool: [String: [String]] = [
+        "american": [
+            "chick-fil-a grilled nuggets",
+            "two slices of cheese pizza",
+            "chipotle chicken bowl",
+            "panera mediterranean bowl",
+        ],
+        "italian": [
+            "pasta carbonara",
+            "margherita pizza slice",
+            "caprese salad",
+            "lemon ricotta pancakes",
+        ],
+        "mexican": [
+            "chipotle chicken bowl",
+            "two carne asada tacos",
+            "carnitas burrito",
+            "elote (mexican street corn)",
+        ],
+        "eastAsian": [
+            "salmon rice bowl",
+            "8-piece sushi roll",
+            "pad thai with chicken",
+            "bibimbap bowl",
+        ],
+        "korean": ["bibimbap bowl", "korean fried chicken", "kimchi stew"],
+        "japanese": ["salmon poke bowl", "8-piece sushi roll", "matcha latte with oat milk"],
+        "chinese": ["dumplings (6 pieces)", "kung pao chicken", "fried rice with shrimp"],
+        "southAsian": [
+            "chicken tikka masala with rice",
+            "naan with butter chicken",
+            "biryani bowl",
+            "samosa (2 pieces)",
+        ],
+        "indian": ["chicken tikka masala with rice", "naan with butter chicken", "biryani bowl"],
+        "mediterranean": [
+            "cava chicken bowl",
+            "greek salad with chicken",
+            "hummus with pita",
+            "chicken shawarma wrap",
+        ],
+        "other": [
+            "sweetgreen harvest bowl",
+            "protein smoothie",
+            "avocado toast with egg",
+        ],
+    ]
+
+    /// Universal defaults: high-frequency cohort orders that work
+    /// regardless of cuisine. Tail of the chip list — always visible
+    /// so a new user without recents or cuisine still gets 3 options.
+    static let evergreen: [String] = [
+        "matcha latte with oat milk",
+        "iced brown sugar oatmilk shaken espresso",
+        "avocado toast with egg",
+    ]
 }
 
 #endif  // canImport(UIKit)
