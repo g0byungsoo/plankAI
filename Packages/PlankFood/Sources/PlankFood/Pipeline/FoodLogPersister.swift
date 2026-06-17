@@ -5,27 +5,27 @@ import UIKit
 
 // MARK: - FoodLogPersister
 //
-// V1.0.7 STOP-GAP (2026-06-04, hardened 2026-06-06 per QA blocker 1):
-// SwiftData @Model integration caused the app to hang on launch
-// (suspect cross-package @Model registration on iOS 17). Until
-// v1.0.8 lands a proper integration with VersionedSchema +
-// MigrationPlan, FoodLogPersister keeps logs in an in-memory store
-// MIRRORED to UserDefaults JSON so cold-launch + background-kill
-// no longer wipe today's plate.
+// Account-lifetime food log store. Cross-package SwiftData @Model
+// integration originally hung the app on launch (suspect cross-package
+// @Model registration on iOS 17), so persistence runs through a
+// dedicated on-disk store seeded by an in-memory cache.
 //
-// Persistence flow:
-//   - `persist()` appends to inMemoryEntries AND writes the full
-//     entry array to UserDefaults under "jenifit.foodlog.v1" as
-//     JSON. Atomic enough for our load — single-array overwrite.
-//   - First read (`todayAndWeekly` / `last7DaysKcal`) hydrates
-//     inMemoryEntries from UserDefaults if the in-memory store
-//     is empty (cold launch). Subsequent reads are pure in-memory.
-//   - 14-day TTL prunes old entries on each write to bound the
-//     UserDefaults payload size (Becoming + Home only ever query
-//     the last 7 days; 14 gives headroom for clock skew + weekly
-//     recap).
+// Persistence flow (current — JSONL since 2026-06-11):
+//   - `persist()` appends to inMemoryEntries AND writes one JSON line
+//     to entries.jsonl. O(1) append per log, no full rewrite.
+//   - First read on every entry point calls hydrateIfNeeded(), which
+//     parses entries.jsonl line-by-line on a cold launch (a corrupt
+//     line skips just that entry, the rest load). Subsequent reads
+//     are pure in-memory.
+//   - The pre-2026-06-11 UserDefaults blob ("jenifit.foodlog.v1") is
+//     migrated into the JSONL once via `migratedFlagKey` and kept on
+//     disk as a backup.
+//   - No TTL. Industry posture per v1.1 food journal spec is account-
+//     lifetime retention (MacroFactor parity, anti-MFP 2-year cliff);
+//     ~220KB/yr of entries is non-load-bearing.
 //
-// HomeFoodCard reads via `todayAndWeekly(userId:)` + observes
+// HomeFoodCard + the Becoming plates teaser read via
+// `todayAndWeekly(userId:)` + `allEntries(userId:)` and observe
 // `changeNotifier` for live updates after a scan.
 //
 // The `persist(_:userId:photoMode:into:)` signature is preserved so

@@ -197,9 +197,15 @@ private struct CarouselCardShell<Content: View>: View {
         VStack(alignment: .leading, spacing: compact ? 8 : 14) {
             if let title {
                 if titleItalic {
+                    // her75 face for ≥16pt; Fraunces stays on the
+                    // compact 15pt branch (below the JeniHeroSerif
+                    // minimum per the typography ladder).
                     Text(title)
-                        .font(.custom("Fraunces72pt-SemiBoldItalic",
-                                      size: compact ? 15 : 17))
+                        .font(
+                            compact
+                                ? .custom("Fraunces72pt-SemiBoldItalic", size: 15)
+                                : .custom("JeniHeroSerif-Italic", size: 17)
+                        )
                         .foregroundStyle(FoodTheme.textPrimary)
                 } else {
                     Text(title)
@@ -640,7 +646,7 @@ private struct JeniEvaluationCard: View {
                     }
 
                     Text(headline)
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 24))
+                        .font(.custom("JeniHeroSerif-Italic", size: 24))
                         .foregroundStyle(FoodTheme.textPrimary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
@@ -1107,7 +1113,7 @@ struct ShareLifestyleBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14 * scale) {
             Text("today's nutrients for")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17 * scale))
+                .font(.custom("JeniHeroSerif-Italic", size: 17 * scale))
                 .foregroundStyle(FoodTheme.textPrimary)
             VStack(spacing: 12 * scale) {
                 shareLifestyleRow(icon: "lightbulb.fill", label: "Energy", percent: s.energy)
@@ -1142,7 +1148,7 @@ struct ShareLifestyleBlock: View {
         HStack(alignment: .center, spacing: 12 * scale) {
             Image(systemName: icon)
                 .font(.system(size: 13 * scale, weight: .semibold))
-                .foregroundStyle(Color(red: 0.37, green: 0.55, blue: 0.27))
+                .foregroundStyle(FoodTheme.stateGood)
                 .frame(width: 30 * scale, height: 30 * scale)
                 .background(Color(red: 0.92, green: 0.96, blue: 0.86))
                 .clipShape(RoundedRectangle(cornerRadius: 8 * scale, style: .continuous))
@@ -1160,7 +1166,7 @@ struct ShareLifestyleBlock: View {
                     ZStack(alignment: .leading) {
                         Capsule().fill(Color.black.opacity(0.06))
                         Capsule()
-                            .fill(Color(red: 0.37, green: 0.45, blue: 0.27))
+                            .fill(FoodTheme.stateGood)
                             .frame(width: geo.size.width * (Double(percent) / 100))
                     }
                 }
@@ -1177,7 +1183,7 @@ struct ShareNutrientsBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14 * scale) {
             Text("today's nutrients")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 17 * scale))
+                .font(.custom("JeniHeroSerif-Italic", size: 17 * scale))
                 .foregroundStyle(FoodTheme.textPrimary)
             VStack(spacing: 12 * scale) {
                 shareNutrientRow(icon: "heart.fill",
@@ -1252,7 +1258,7 @@ struct ShareNutrientsBlock: View {
                     ZStack(alignment: .leading) {
                         Capsule().fill(Color.black.opacity(0.06))
                         Capsule()
-                            .fill(Color(red: 0.37, green: 0.45, blue: 0.27))
+                            .fill(FoodTheme.stateGood)
                             .frame(width: geo.size.width * (Double(percent) / 100))
                     }
                 }
@@ -1278,7 +1284,7 @@ struct ShareJeniBlock: View {
             }
 
             Text(headline)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 24 * scale))
+                .font(.custom("JeniHeroSerif-Italic", size: 24 * scale))
                 .foregroundStyle(FoodTheme.textPrimary)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1406,7 +1412,7 @@ struct TweakSheet: View {
     var body: some View {
         VStack(spacing: 18) {
             HStack {
-                (Text("tweak").font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                (Text("tweak").font(.custom("JeniHeroSerif-Italic", size: 22))
                  + Text(" this ♥").font(.system(size: 22, weight: .semibold)))
                     .foregroundStyle(FoodTheme.textPrimary)
                 Spacer()

@@ -116,9 +116,9 @@ struct DailyShareCard: View {
     @ViewBuilder private var dateHeader: some View {
         HStack(spacing: 0) {
             Text(weekdayPart)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 72))
+                .font(.custom("JeniHeroSerif-Italic", size: 76))
             Text(", " + monthDayPart)
-                .font(.custom("Fraunces72pt-Regular", size: 72))
+                .font(.custom("JeniHeroSerif-Regular", size: 76))
         }
         .foregroundStyle(Color(hex: "#3D2B2B"))
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -235,7 +235,7 @@ struct DailyShareCard: View {
                     Color(hex: "#F5D5D8").opacity(0.6)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     Text(title)
-                        .font(.custom("Fraunces72pt-Regular", size: 34))
+                        .font(.custom("JeniHeroSerif-Italic", size: 32))
                         .foregroundStyle(Color(hex: "#3D2B2B"))
                         .multilineTextAlignment(.center)
                         .lineLimit(3)
@@ -253,7 +253,7 @@ struct DailyShareCard: View {
             if photo != nil {
                 VStack(spacing: 2) {
                     Text(title)
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+                        .font(.custom("JeniHeroSerif-Italic", size: 28))
                         .foregroundStyle(Color(hex: "#3D2B2B"))
                         .lineLimit(1)
                     Text(time)
@@ -264,7 +264,7 @@ struct DailyShareCard: View {
                 .padding(.horizontal, 24)
             } else {
                 Text(time)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+                    .font(.custom("JeniHeroSerif-Italic", size: 28))
                     .foregroundStyle(Color(hex: "#7B5959"))
                     .padding(.vertical, 24)
             }
@@ -308,9 +308,9 @@ struct DailyShareCard: View {
         HStack(spacing: 0) {
             Spacer(minLength: 0)
             (
-                Text(quotePart1).font(.custom("Fraunces72pt-Regular", size: 56)) +
-                Text(quotePart2).font(.custom("Fraunces72pt-SemiBoldItalic", size: 56)) +
-                Text(" ♡").font(.system(size: 48))
+                Text(quotePart1).font(.custom("JeniHeroSerif-Regular", size: 52)) +
+                Text(quotePart2).font(.custom("JeniHeroSerif-Italic", size: 52)) +
+                Text(" \u{2661}").font(.system(size: 44))
             )
             .foregroundStyle(Color(hex: "#3D2B2B"))
             .multilineTextAlignment(.center)

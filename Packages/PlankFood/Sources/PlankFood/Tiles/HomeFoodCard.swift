@@ -9,12 +9,12 @@ import SwiftUI
 // with steps + breath pills demoted to lateral siblings (rendered
 // by the parent TodayHealthStrip composite).
 //
-// V1.0.7 STOP-GAP (2026-06-04): originally used SwiftData @Query
-// over FoodLogRecord but cross-package @Model integration caused
-// the app to hang on launch. Reads from FoodLogPersister's in-
-// memory store instead. Data lost across app restart in v1.0.7;
-// v1.0.8 ships proper SwiftData integration with explicit migration
-// plan.
+// Originally used a SwiftData @Query over FoodLogRecord but cross-
+// package @Model integration hung the app on launch. Reads now go
+// through FoodLogPersister, which seeds an in-memory cache from
+// entries.jsonl on first read (since 2026-06-11). Cold-launch and
+// background-kill no longer wipe today's plate — persistence is
+// account-lifetime.
 
 public struct HomeFoodCard: View {
 

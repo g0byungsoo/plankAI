@@ -1784,7 +1784,13 @@ public struct PhotoCaptureView: View {
     /// Classifies a dispatcher error as transient (retryable) vs
     /// permanent. Transient: network blips, server 5xx, parse errors
     /// (sometimes a partial response that succeeds on second attempt).
-    /// Permanent: rate limits, budget caps, invalid input, auth.
+    /// Permanent: rate limits, budget caps, invalid input, auth, AND
+    /// URLSession timeouts (NSURLErrorTimedOut). A timeout means the
+    /// EF / vision model is genuinely slow this minute; auto-retrying
+    /// just stacks another 180s wait on top of the first one. 540s of
+    /// silent spinning is the worst trial-killer in the food rail —
+    /// surface the error fast and let the user manually re-tap once
+    /// they understand the scan didn't go through.
     private static func isTransient(_ error: Error) -> Bool {
         guard let cap = error as? FoodCaptureError,
               case .pipeline(let underlying) = cap,
@@ -1792,7 +1798,10 @@ public struct PhotoCaptureView: View {
             return false
         }
         switch vision {
-        case .networkError, .parseError:
+        case .networkError(let underlying):
+            let ns = underlying as NSError
+            return ns.code != NSURLErrorTimedOut
+        case .parseError:
             return true
         case .upstreamFailure(let status, _, _):
             return (500...599).contains(status)
@@ -1898,12 +1907,19 @@ struct NutritionCardView: View {
         // the scrapbook chrome family. 1.5pt accent-rose border for
         // soft definition without going neon.
         VStack(alignment: .leading, spacing: 10 * scale) {
+            // Meal label stays Fraunces72pt — 13pt is a micro slot
+            // per the her75 spec (JeniHeroSerif dies below 16pt).
             Text(mealLabel.lowercased())
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13 * scale))
                 .foregroundStyle(FoodTheme.accent)
 
+            // Dish name is the share hero — JeniHeroSerif Italic is
+            // her75's face (Playfair Display 620i, OFL-renamed). 22pt
+            // because the face reads slightly heavier than Fraunces
+            // at the same point size, so the bump preserves the prior
+            // visual weight while landing on the canonical font.
             Text(dishName)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 20 * scale))
+                .font(.custom("JeniHeroSerif-Italic", size: 22 * scale))
                 .foregroundStyle(FoodTheme.textPrimary)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
@@ -1971,7 +1987,7 @@ struct NutritionCardView: View {
         VStack(spacing: 2 * scale) {
             Text(value)
                 .font(.system(size: 17 * scale, weight: .semibold))
-                .foregroundStyle(Color(red: 0.37, green: 0.45, blue: 0.27))
+                .foregroundStyle(FoodTheme.stateGood)
             Text("kcal")
                 .font(.system(size: 11 * scale))
                 .foregroundStyle(FoodTheme.textSecondary)
