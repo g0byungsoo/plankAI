@@ -1,5 +1,7 @@
 import SwiftUI
+import SwiftData
 import PlankFood
+import PlankSync  // ProgramPlanRecord lives in PlankSync; needed for archetype hint derivation
 import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
 
 /// iOS 26 native TabView. Picking native over the prior custom HStack
@@ -98,9 +100,46 @@ struct MainTabView: View {
                 userId: AuthService.shared.currentUser?.id.uuidString ?? "",
                 cuisineProfile: UserDefaults.standard
                     .string(forKey: "onboardingCuisinePreference"),
+                // v1.0.10 Phase 2 — pass today's program-day archetype
+                // so QuickAddView's chip composer can surface
+                // archetype-themed picks first. Empty hint when no
+                // active plan is found; QuickAddView skips the
+                // archetype section silently in that case.
+                archetypeHint: Self.currentArchetypeHint(in: modelContext),
                 onDismiss: { showCaptureFlow = false }
             )
         }
+    }
+
+    // MARK: - Archetype hint derivation
+    //
+    // Reads the active ProgramPlanRecord (if any) to compute today's
+    // program day, then asks ProgramDayArchetype for the matching
+    // archetype with the user's GLP-1 cohort applied. Returns the raw
+    // value string ("protein" / "balanced" / "movement" / "rest") so
+    // it can cross the PlankApp → PlankFood boundary as plain data.
+
+    @Environment(\.modelContext) private var modelContext
+
+    private static func currentArchetypeHint(in modelContext: ModelContext) -> String? {
+        guard let userId = AuthService.shared.currentUser?.id.uuidString,
+              !userId.isEmpty,
+              let plan = ProgramService.shared.activePlan(
+                userId: userId,
+                in: modelContext
+              ) else { return nil }
+        let schedule = ProgramScheduleCalculator.compute(
+            ProgramScheduleCalculator.Inputs(
+                startDate: plan.startDate,
+                totalDays: plan.totalDays
+            )
+        )
+        let glp1 = UserDefaults.standard
+            .string(forKey: "onboarding_glp1_status") ?? ""
+        return ProgramDayArchetype.archetype(
+            forProgramDay: schedule.programDay,
+            glp1Status: glp1
+        ).rawValue
     }
 
     @ViewBuilder private var cameraFAB: some View {

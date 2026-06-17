@@ -37,6 +37,13 @@ public struct QuickAddView: View {
     /// "american,italian,eastAsian"). nil / empty falls back to a
     /// neutral evergreen chip set.
     public let cuisineCSV: String?
+    /// Today's program-day archetype string ("protein" / "balanced" /
+    /// "movement" / "rest"). Empty / unknown values skip the archetype
+    /// chip section. PlankFood doesn't know about ProgramDayArchetype
+    /// (that type lives in PlankApp) — callers pass the raw string and
+    /// the composer maps it to its own internal pool. Phase 2 of the
+    /// program-quality archetype build (2026-06-17).
+    public let archetypeHint: String?
 
     @State private var inputText: String = ""
     @State private var isSubmitting: Bool = false
@@ -48,22 +55,28 @@ public struct QuickAddView: View {
         onScanInstead: @escaping () -> Void,
         onDismiss: @escaping () -> Void,
         userId: String = "",
-        cuisineCSV: String? = nil
+        cuisineCSV: String? = nil,
+        archetypeHint: String? = nil
     ) {
         self.onLogged = onLogged
         self.onScanInstead = onScanInstead
         self.onDismiss = onDismiss
         self.userId = userId
         self.cuisineCSV = cuisineCSV
+        self.archetypeHint = archetypeHint
     }
 
-    /// v1.0.10 (2026-06-17) — suggestions are now per-user. Computed
-    /// once per appearance from FoodLogPersister recents + onboarding
-    /// cuisine + a small evergreen drink set. Order matters: the most-
-    /// relevant chips render first so a returning user sees what they
-    /// actually eat at the top of the cloud.
+    /// v1.0.10 (2026-06-17) — suggestions are now per-user + per-day-
+    /// archetype. Computed once per appearance: today's archetype picks
+    /// (3 chips) → recents (top 5) → cuisine pool (≤7) → evergreen
+    /// defaults (≤3). Archetype chips render first so a protein-day
+    /// user sees protein-forward options before anything else.
     private var suggestions: [QuickAddSuggestion] {
-        QuickAddSuggestion.compose(userId: userId, cuisineCSV: cuisineCSV)
+        QuickAddSuggestion.compose(
+            userId: userId,
+            cuisineCSV: cuisineCSV,
+            archetypeHint: archetypeHint
+        )
     }
 
     public var body: some View {
@@ -437,12 +450,16 @@ struct QuickAddSuggestion: Identifiable, Hashable {
     let kind: Kind
 
     enum Kind: Hashable {
+        /// Today's archetype-themed pick — surfaces first so a protein-
+        /// day user sees protein-forward chips before anything else.
+        case archetype
         case recent
         case cuisine
         case evergreen
 
         var iconName: String? {
             switch self {
+            case .archetype: return "sparkle"
             case .recent:    return "clock"
             case .cuisine:   return nil
             case .evergreen: return nil
@@ -451,6 +468,7 @@ struct QuickAddSuggestion: Identifiable, Hashable {
 
         var background: Color {
             switch self {
+            case .archetype: return FoodTheme.stateGood.opacity(0.10)
             case .recent:    return FoodTheme.accent.opacity(0.10)
             default:         return FoodTheme.bgElevated
             }
@@ -458,6 +476,7 @@ struct QuickAddSuggestion: Identifiable, Hashable {
 
         var stroke: Color {
             switch self {
+            case .archetype: return FoodTheme.stateGood.opacity(0.55)
             case .recent:    return FoodTheme.accent.opacity(0.55)
             default:         return FoodTheme.accent.opacity(0.45)
             }
@@ -469,9 +488,32 @@ extension QuickAddSuggestion {
     /// Compose the chip list. Returns a deterministic ordering so the
     /// view doesn't shuffle between renders.
     @MainActor
-    static func compose(userId: String, cuisineCSV: String?) -> [QuickAddSuggestion] {
+    static func compose(
+        userId: String,
+        cuisineCSV: String?,
+        archetypeHint: String? = nil
+    ) -> [QuickAddSuggestion] {
         var seen: Set<String> = []
         var out: [QuickAddSuggestion] = []
+
+        // 0. ARCHETYPE — today's protein/balanced/movement/rest theme.
+        // 3 picks from the archetype pool render first so the chip
+        // cloud's lead row matches the day's nutrition register. Empty
+        // hint or unknown key skips silently — the rest of the
+        // composition is unchanged.
+        if let hint = archetypeHint?.lowercased(),
+           let pool = archetypePool[hint] {
+            for text in pool.prefix(3) {
+                let key = text.lowercased()
+                guard !seen.contains(key) else { continue }
+                seen.insert(key)
+                out.append(QuickAddSuggestion(
+                    id: "archetype_" + hint + "_" + key,
+                    text: text,
+                    kind: .archetype
+                ))
+            }
+        }
 
         // 1. RECENTS — dedupe by case-folded title, cap at 5. Skip
         // entries with empty titles (legacy logs pre-D3.B).
@@ -599,6 +641,47 @@ extension QuickAddSuggestion {
         "matcha latte with oat milk",
         "iced brown sugar oatmilk shaken espresso",
         "avocado toast with egg",
+    ]
+
+    /// Archetype-keyed chip pools — surfaced first on the chip cloud
+    /// when the caller passes today's archetype. Each pool is curated
+    /// for the day's nutrition register per the 2026-06-17 research
+    /// session: protein-forward picks on protein days, neutral mix on
+    /// balanced days, slightly higher-carb fuel options on movement
+    /// days, hydration + softer options on rest days. Top 3 of each
+    /// pool render with the `.archetype` kind (sage tint, sparkle
+    /// icon) so the user sees them as "today's pick" rather than
+    /// generic suggestions. Keys match the `rawValue` of
+    /// PlankApp's ProgramDayArchetype enum.
+    static let archetypePool: [String: [String]] = [
+        "protein": [
+            "chick-fil-a grilled nuggets",
+            "salmon rice bowl",
+            "greek yogurt with berries",
+            "chipotle chicken bowl",
+            "fairlife protein shake",
+        ],
+        "balanced": [
+            "sweetgreen harvest bowl",
+            "cava chicken bowl",
+            "avocado toast with egg",
+            "pad thai with chicken",
+            "berry smoothie",
+        ],
+        "movement": [
+            "oatmeal with peanut butter",
+            "banana with peanut butter",
+            "sweet potato + chicken bowl",
+            "fairlife protein shake",
+            "lemon ricotta pancakes",
+        ],
+        "rest": [
+            "matcha latte with oat milk",
+            "chicken noodle soup",
+            "caesar salad with chicken",
+            "bone broth",
+            "chamomile tea with honey",
+        ],
     ]
 }
 

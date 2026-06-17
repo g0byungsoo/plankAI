@@ -23,6 +23,12 @@ public struct CaptureFlowView: View {
 
     public let userId: String
     public let cuisineProfile: String?
+    /// Today's program-day archetype string ("protein" / "balanced" /
+    /// "movement" / "rest"). Passed through to QuickAddView so the chip
+    /// composer can surface archetype-themed picks first. Nil / empty
+    /// disables the archetype chip section. Phase 2 of the program-
+    /// quality archetype build (2026-06-17).
+    public let archetypeHint: String?
     public let onDismiss: () -> Void
 
     @Environment(\.modelContext) private var modelContext
@@ -43,10 +49,12 @@ public struct CaptureFlowView: View {
     public init(
         userId: String,
         cuisineProfile: String? = nil,
+        archetypeHint: String? = nil,
         onDismiss: @escaping () -> Void
     ) {
         self.userId = userId
         self.cuisineProfile = cuisineProfile
+        self.archetypeHint = archetypeHint
         self.onDismiss = onDismiss
         // Apple 5.1.2(i) gate — first scan must surface the disclosure
         // before any photo is taken. After consent, the FoodOnboarding
@@ -127,7 +135,8 @@ public struct CaptureFlowView: View {
                     onScanInstead: { phase = .camera },
                     onDismiss: { phase = .camera },
                     userId: userId,
-                    cuisineCSV: cuisineProfile
+                    cuisineCSV: cuisineProfile,
+                    archetypeHint: archetypeHint
                 )
                 .onAppear { FoodAnalytics.track(.quickAddTapped) }
 
