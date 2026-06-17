@@ -1023,7 +1023,11 @@ struct AnalyticsView: View {
             // already swaps to activity when weight is stale — the
             // input-burden rule's conditional default).
 
-            BecomingWeekRow(states: weekDotStates, doneCount: weekDoneCount)
+            BecomingWeekRow(
+                states: weekDotStates,
+                doneCount: weekDoneCount,
+                archetypes: weekArchetypes
+            )
 
             becomingTrendHeroCard
 
@@ -1228,6 +1232,36 @@ struct AnalyticsView: View {
 
     private var weekDoneCount: Int {
         weekDotStates.filter { $0 == .done || $0 == .todayDone }.count
+    }
+
+    /// v1.0.10 Phase 4 — archetype per day for the same 7-day window
+    /// the dot row covers (oldest → today). Computed by mapping each
+    /// calendar offset back to a program day using the active plan's
+    /// startDate, then running through ProgramDayArchetype. nil entries
+    /// land on pre-program days (the user joined less than a week
+    /// before today, so the early slots of the window are off-program)
+    /// and render as blank slots in the letter row. The whole array is
+    /// nil when there's no active plan, which falls back to the
+    /// pre-Phase-4 single-dot-row layout.
+    private var weekArchetypes: [ProgramDayArchetype?]? {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty,
+              let plan = ProgramService.shared.activePlan(
+                userId: userId,
+                in: modelContext
+              ) else { return nil }
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+        let planStart = cal.startOfDay(for: plan.startDate)
+        return (0..<7).map { offset -> ProgramDayArchetype? in
+            guard let day = cal.date(byAdding: .day, value: offset - 6, to: today) else { return nil }
+            let daysSinceStart = cal.dateComponents([.day], from: planStart, to: day).day ?? -1
+            let programDay = daysSinceStart + 1
+            guard programDay >= 1 else { return nil }
+            return ProgramDayArchetype.archetype(
+                forProgramDay: programDay,
+                glp1Status: glp1Status
+            )
+        }
     }
 
     /// 7-day food rollup from the scan stream (her highest-intensity

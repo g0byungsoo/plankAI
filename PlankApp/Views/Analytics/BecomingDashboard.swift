@@ -95,9 +95,21 @@ enum WeekDayState: Equatable {
 
 /// "this week  5 of 7  ●●●●●○◐" — gain-framed; an un-done day is an
 /// open circle, never red, never an X.
+///
+/// v1.0.10 Phase 4 — when `archetypes` is non-nil, a quiet single-letter
+/// row renders above the dots showing each day's archetype (p / m / b /
+/// r). Each letter sits in a 7pt-wide frame matching the dot HStack so
+/// the letters align over their corresponding dots. Pre-program days
+/// (program day < 1, e.g. user just enrolled and `archetypes[i] == nil`)
+/// render a blank space; the dot row stays unchanged.
 struct BecomingWeekRow: View {
     let states: [WeekDayState]   // 7 entries, oldest → today
     let doneCount: Int
+    /// Optional archetype per day, matching `states` count + ordering.
+    /// nil per-entry = no archetype to surface for that day (pre-
+    /// program or no active plan). Whole array nil = no plan info,
+    /// row renders exactly as it did pre-Phase-4.
+    var archetypes: [ProgramDayArchetype?]? = nil
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
@@ -113,15 +125,52 @@ struct BecomingWeekRow: View {
                     .font(.custom("JeniHeroSerif-Regular", size: 20))
                     .foregroundStyle(Palette.textPrimary)
             }
-            HStack(spacing: 5) {
-                ForEach(Array(states.enumerated()), id: \.offset) { _, state in
-                    dot(state)
+            VStack(alignment: .trailing, spacing: 4) {
+                if let archetypes, archetypes.count == states.count {
+                    archetypeLetterRow(archetypes)
+                }
+                HStack(spacing: 5) {
+                    ForEach(Array(states.enumerated()), id: \.offset) { _, state in
+                        dot(state)
+                    }
                 }
             }
             .padding(.leading, 6)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("this week: \(doneCount) of 7 days")
+    }
+
+    @ViewBuilder
+    private func archetypeLetterRow(_ archetypes: [ProgramDayArchetype?]) -> some View {
+        HStack(spacing: 5) {
+            ForEach(Array(archetypes.enumerated()), id: \.offset) { _, arch in
+                Group {
+                    if let arch {
+                        Text(letterFor(arch))
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 10))
+                            .foregroundStyle(Palette.cocoaSecondary.opacity(0.7))
+                    } else {
+                        // Blank slot for pre-program / unknown days.
+                        // Matches the dot's 7pt width so the column
+                        // alignment is preserved.
+                        Color.clear
+                    }
+                }
+                .frame(width: 11, height: 12)
+            }
+        }
+        .accessibilityHidden(true)  // the dot-row a11y label already
+                                    // conveys the engagement story
+    }
+
+    private func letterFor(_ arch: ProgramDayArchetype) -> String {
+        switch arch {
+        case .protein:  return "p"
+        case .balanced: return "b"
+        case .movement: return "m"
+        case .rest:     return "r"
+        }
     }
 
     @ViewBuilder private func dot(_ state: WeekDayState) -> some View {
