@@ -63,6 +63,10 @@ struct LessonReaderView: View {
     @State private var savedTick: UInt32 = 0
     @State private var promptDraft: String = ""
     @State private var musicPlayer = RitualMusicPlayer()
+    /// v1.0.10 (2026-06-17) — holds the rendered IG-Story share PNG
+    /// while the system share sheet is up. Identifiable so .sheet(item:)
+    /// drives the lifecycle.
+    @State private var quoteShareItem: LessonQuoteShareItem?
     // Round-8 polish: milestone close-confirm + completion bloom state.
     // First X-tap on a milestone lesson sets `closeConfirmAt`; a second
     // tap within 2s actually dismisses. Prevents tapping past an
@@ -140,6 +144,17 @@ struct LessonReaderView: View {
         }
         .onAppear {
             musicPlayer.play()
+            // v1.2 (2026-06-15) — analytics parity with the legacy
+            // JeniMethodRitualView so existing funnel queries
+            // (diet_education_lesson_viewed / completed / skipped)
+            // continue to work for the CBT path. Once-per-presentation
+            // gate via `viewedThisPresentation` so SwiftUI re-render
+            // doesn't double-emit.
+            if !viewedThisPresentation && !isReread {
+                viewedThisPresentation = true
+                Analytics.track(.dietEducationLessonViewed,
+                                properties: cbtAnalyticsProps())
+            }
         }
         .onDisappear { musicPlayer.stop() }
         .fullScreenCover(isPresented: $promptSheetOpen) {
@@ -148,6 +163,17 @@ struct LessonReaderView: View {
                 page: page.page,
                 promptText: page.prompt ?? ""
             )
+        }
+        // v1.0.10 (2026-06-17) — share-this-passage system share sheet.
+        // Driven by the topBar share button rendering a 1080×1920 IG-
+        // Story-format PNG via LessonQuoteRenderer. Sheet auto-dismisses
+        // when the system flow completes (cancel + finish both clear
+        // quoteShareItem via the completion handler).
+        .sheet(item: $quoteShareItem) { item in
+            LessonQuoteShareSheet(items: [item.image]) {
+                quoteShareItem = nil
+            }
+            .ignoresSafeArea()
         }
         #if DEBUG
         .onAppear {
@@ -166,6 +192,34 @@ struct LessonReaderView: View {
     }
 
     @State private var promptSheetOpen: Bool = false
+    /// Guard against re-emitting `diet_education_lesson_viewed` on
+    /// SwiftUI re-renders. The legacy reader uses a per-day
+    /// UserDefaults gate; here we keep it presentation-scoped — a
+    /// re-open is treated as a new view.
+    @State private var viewedThisPresentation: Bool = false
+
+    /// CBT-flavored analytics properties. Maps to the same event names
+    /// used by `JeniMethodAnalytics.lessonProps` so funnel queries
+    /// (filter by `lesson_id`, group by `lesson_topic`) work across
+    /// both readers. Adds `pillar_id`, `act_id`, `program_day` as the
+    /// new CBT dimensions.
+    private func cbtAnalyticsProps() -> [String: Any] {
+        var p: [String: Any] = [
+            "lesson_id":     slot.id,
+            "lesson_topic":  slot.workingTitle,
+            "program_day":   scheduled.programDay,
+            "pillar_id":     scheduled.primaryPillar.rawValue,
+            "act_id":        scheduled.act,
+            "reader":        "cbt_v1",
+        ]
+        if let variant {
+            p["cohort_variant"] = variant.cohort
+        }
+        if scheduled.isMilestone {
+            p["is_milestone"] = true
+        }
+        return p
+    }
 
     /// Round-4 anchor resolution — delegates to `LessonSlot.resolvedAnchor(forPage:)`
     /// which handles override > slot default > legacy migration > fallback.
@@ -208,6 +262,36 @@ struct LessonReaderView: View {
                     .accessibilityLabel("Back")
                 }
                 Spacer()
+                // v1.0.10 (2026-06-17) — share-this-passage affordance.
+                // Renders the current page's headline + italic punch
+                // words as a 1080×1920 her75 quote card, hands the PNG
+                // to UIActivityViewController. Pinterest / IG / TikTok
+                // bait: the user posts what moved her, JeniFit gets
+                // organic acquisition. Hidden until page 1 since the
+                // headline reveal-animation needs to land first.
+                if pageIndex >= 0 {
+                    Button {
+                        Haptics.light()
+                        if let image = LessonQuoteRenderer.render(
+                            headline: Self.cleanHeadline(page.headline),
+                            italicWords: page.italicWords,
+                            bodyLine: Self.firstSentence(of: page.body),
+                            dayLabel: Self.dayLabel(programDay: scheduled.programDay),
+                            pillarTitle: Self.pillarLabel(for: slot.primaryPillar)
+                        ) {
+                            quoteShareItem = LessonQuoteShareItem(image: image)
+                        }
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Palette.textPrimary.opacity(0.7))
+                            .frame(width: PageDimensions.chevronSize,
+                                   height: PageDimensions.chevronSize)
+                            .background(Circle().fill(Color.white.opacity(0.4)))
+                    }
+                    .accessibilityLabel("share this passage")
+                    .padding(.trailing, 6)
+                }
                 Button {
                     handleCloseTap()
                 } label: {
@@ -225,6 +309,59 @@ struct LessonReaderView: View {
         }
         .padding(.horizontal, Space.lg)
         .padding(.vertical, PageDimensions.topBarVPad)
+    }
+
+    // MARK: - Share-card derivations
+    //
+    // Static helpers so the topBar's Button closure can compose the
+    // render inputs without taking captures on `self` or duplicating
+    // the formatting logic across call sites.
+
+    /// Strip the soft [italic] markers writers use in `workingTitle`
+    /// (not on `headline`, but the helper handles both shapes so we
+    /// can reuse this if we ever switch the source field).
+    static func cleanHeadline(_ raw: String) -> String {
+        raw.replacingOccurrences(of: "[", with: "")
+            .replacingOccurrences(of: "]", with: "")
+    }
+
+    /// First sentence of the body, used as the supporting line under
+    /// the hero quote. Falls back to the full body if no terminal
+    /// punctuation is present — defensive against writer drafts that
+    /// occasionally ship a one-clause page.
+    static func firstSentence(of body: String) -> String? {
+        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        for terminator in [". ", "? ", "! "] {
+            if let range = trimmed.range(of: terminator) {
+                return String(trimmed[..<range.upperBound]).trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return trimmed
+    }
+
+    /// "day fourteen" — spell-out matches the footer folio's voice
+    /// so the share card and the in-app reader agree on register.
+    static func dayLabel(programDay: Int) -> String {
+        let f = NumberFormatter()
+        f.numberStyle = .spellOut
+        let word = f.string(from: NSNumber(value: programDay)) ?? "\(programDay)"
+        return "day \(word)"
+    }
+
+    /// Friendlier pillar attribution for the share card's bottom-left
+    /// signature. The internal `PillarId.debugName` strings are too
+    /// clinical for a user-facing surface; these labels match the
+    /// editorial register used on the lesson reader's chapter marks.
+    static func pillarLabel(for pillar: PillarId) -> String {
+        switch pillar {
+        case .P1: return "voice + food noise"
+        case .P2: return "satiety + hunger"
+        case .P3: return "self-compassion"
+        case .P4: return "body + identity"
+        case .P5: return "sleep + stress"
+        case .P6: return "maintenance"
+        }
     }
 
     // MARK: - Page body
@@ -542,15 +679,28 @@ struct LessonReaderView: View {
 
     // MARK: - Close confirmation (milestone lessons)
 
+    /// Fires the skip-event analytics with the page where the user
+    /// abandoned, then dismisses through the host's onSkip callback.
+    /// Single helper so both the non-milestone path and the confirmed-
+    /// milestone path emit identically.
+    private func emitSkipAndDismiss() {
+        if !isReread {
+            var p = cbtAnalyticsProps()
+            p["screen"] = String(pageIndex)
+            Analytics.track(.dietEducationSkipped, properties: p)
+        }
+        onSkip(pageIndex)
+    }
+
     private func handleCloseTap() {
         guard scheduled.isMilestone else {
             Haptics.light()
-            onSkip(pageIndex)
+            emitSkipAndDismiss()
             return
         }
         if let last = closeConfirmAt, Date().timeIntervalSince(last) < 2.5 {
             Haptics.light()
-            onSkip(pageIndex)
+            emitSkipAndDismiss()
         } else {
             Haptics.medium()
             withAnimation(Motion.bloom) { closeConfirmAt = Date() }
