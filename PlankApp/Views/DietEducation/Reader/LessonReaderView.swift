@@ -388,19 +388,56 @@ struct LessonReaderView: View {
             .replacingOccurrences(of: "]", with: "")
     }
 
-    /// First sentence of the body, used as the supporting line under
-    /// the hero quote. Falls back to the full body if no terminal
-    /// punctuation is present — defensive against writer drafts that
-    /// occasionally ship a one-clause page.
+    /// v1.0.12 — multi-sentence body extract for the lesson share
+    /// card. Pulls the first 2-3 sentences so the share recipient
+    /// has enough context to understand what was learned without
+    /// opening the app. Caps the total length so a long lesson
+    /// doesn't overflow the share canvas; the cap is character-
+    /// based (~340 chars) since DM Sans 36pt with our line-height
+    /// fits roughly that much in 4 lines on the 1080×1920 share.
+    /// Falls back to the full body when terminal punctuation isn't
+    /// found early, returning nil only when the body is empty.
     static func firstSentence(of body: String) -> String? {
         let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        for terminator in [". ", "? ", "! "] {
-            if let range = trimmed.range(of: terminator) {
-                return String(trimmed[..<range.upperBound]).trimmingCharacters(in: .whitespaces)
+        let maxChars = 340
+        var collected = ""
+        var remaining = Substring(trimmed)
+        for _ in 0..<3 {
+            if let range = sentenceBoundary(in: remaining) {
+                let sentence = remaining[..<range.upperBound]
+                let candidate = (collected + sentence)
+                    .trimmingCharacters(in: .whitespaces)
+                if candidate.count > maxChars {
+                    break
+                }
+                collected = candidate + " "
+                remaining = remaining[range.upperBound...]
+            } else {
+                let candidate = (collected + remaining)
+                    .trimmingCharacters(in: .whitespaces)
+                collected = candidate.count > maxChars
+                    ? collected.trimmingCharacters(in: .whitespaces)
+                    : candidate
+                break
             }
         }
-        return trimmed
+        let result = collected.trimmingCharacters(in: .whitespaces)
+        return result.isEmpty ? trimmed : result
+    }
+
+    /// First terminal-punctuation boundary in a substring. Used by
+    /// `firstSentence(of:)` to walk sentence-by-sentence.
+    private static func sentenceBoundary(in s: Substring) -> Range<Substring.Index>? {
+        var best: Range<Substring.Index>? = nil
+        for terminator in [". ", "? ", "! "] {
+            if let range = s.range(of: terminator) {
+                if best == nil || range.lowerBound < best!.lowerBound {
+                    best = range
+                }
+            }
+        }
+        return best
     }
 
     /// "day fourteen" — spell-out matches the footer folio's voice

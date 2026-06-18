@@ -1039,8 +1039,8 @@ private struct HandwrittenLessonPreviewHarness: View {
                 LessonQuoteCard(
                     headline: "the voice in your head was taught",
                     italicWords: ["taught"],
-                    bodyLine: "you were seven, maybe nine. someone at the table said she's being good today. someone else laughs about being bad later.",
-                    dayLabel: "day fourteen",
+                    bodyLine: "you're seven, maybe nine. someone at the table says she's being good today. someone else laughs about being bad later. you didn't decide to absorb any of this.",
+                    dayLabel: "day one",
                     pillarTitle: "voice + food noise"
                 )
                 .frame(width: 1080, height: 1920)
