@@ -69,18 +69,117 @@ struct ResultDecisionCard: View {
     // MARK: - Content column
 
     @ViewBuilder private var contentColumn: some View {
-        VStack(alignment: .leading, spacing: 36) {
+        VStack(alignment: .leading, spacing: 30) {
             eyebrowRule.opacity(opacityFor(0))
             calorieHero.opacity(opacityFor(1))
-            if let line = comparativeInsight {
-                comparativeInsightView(line).opacity(opacityFor(2))
-            }
+            insightStack.opacity(opacityFor(2))
             macroRow.opacity(opacityFor(3))
             if hasExtras {
                 extrasRow.opacity(opacityFor(4))
             }
+            ingredientsHeader.opacity(opacityFor(5))
             itemList.opacity(opacityFor(5))
             tagChips.opacity(opacityFor(6))
+        }
+    }
+
+    // MARK: - Insight stack (multiple lines now)
+
+    /// Up to three observation lines stacked in cocoa-secondary
+    /// DM Sans Light with italic-Fraunces punch words + a heart at
+    /// the end of each. Founder direction: TikTok/IG-girl-post
+    /// register — more information, more aesthetic, hearts as
+    /// terminal punctuation.
+    @ViewBuilder private var insightStack: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let line = comparativeInsight {
+                heartedLine(
+                    prefix: line.prefix,
+                    punch: line.punch,
+                    suffix: line.suffix
+                )
+                .accessibilityHint("comparative insight from " + line.source.citation)
+            }
+            heartedLine(
+                prefix: "this should hold you ",
+                punch: satietyHoursLabel,
+                suffix: "."
+            )
+            if let fitsLine = fitsLine {
+                heartedLine(
+                    prefix: fitsLine.prefix,
+                    punch: fitsLine.punch,
+                    suffix: fitsLine.suffix
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func heartedLine(
+        prefix: String,
+        punch: String,
+        suffix: String
+    ) -> some View {
+        (
+            Text(prefix)
+                .font(.custom("DMSans-Light", size: 26))
+            + Text(punch)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 30))
+            + Text(suffix)
+                .font(.custom("DMSans-Light", size: 26))
+            + Text(" ♡")
+                .font(.custom("DMSans-Medium", size: 24))
+                .foregroundColor(accent.opacity(0.7))
+        )
+        .foregroundStyle(textSecondary)
+        .lineSpacing(2)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var satietyHoursLabel: String {
+        SatietyEstimate.hoursLabel(
+            kcal: totalKcal,
+            proteinG: totalProtein,
+            fiberG: totalFiber
+        )
+    }
+
+    /// Third insight: a "fits your X" observation if the plate is
+    /// notable on a single dimension. Returns nil for unremarkable
+    /// plates so the slide stays honest.
+    private var fitsLine: (prefix: String, punch: String, suffix: String)? {
+        if totalProtein >= 30 {
+            return ("a real ", "protein win", ".")
+        }
+        if totalFiber >= 10 {
+            return ("your gut will ", "notice", ".")
+        }
+        if totalKcal > 0, totalKcal <= 350 {
+            return ("a ", "lighter", " plate.")
+        }
+        return nil
+    }
+
+    // MARK: - Ingredients header
+
+    @ViewBuilder private var ingredientsHeader: some View {
+        if !result.items.isEmpty {
+            HStack(spacing: 14) {
+                (
+                    Text("\(result.items.count) ")
+                        .font(.custom("JeniHeroSerif-Regular", size: 32))
+                    + Text(result.items.count == 1 ? "ingredient" : "ingredients")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
+                )
+                .foregroundStyle(textPrimary)
+
+                Rectangle()
+                    .fill(textPrimary.opacity(0.22))
+                    .frame(height: 0.5)
+                    .frame(maxWidth: .infinity)
+            }
+            .padding(.top, 4)
         }
     }
 
@@ -142,24 +241,6 @@ struct ResultDecisionCard: View {
             proteinG: totalProtein,
             fiberG: totalFiber
         )
-    }
-
-    @ViewBuilder
-    private func comparativeInsightView(
-        _ line: ComparativeInsight.InsightLine
-    ) -> some View {
-        (
-            Text(line.prefix)
-                .font(.custom("DMSans-Light", size: 28))
-            + Text(line.punch)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
-            + Text(line.suffix)
-                .font(.custom("DMSans-Light", size: 28))
-        )
-        .foregroundStyle(textSecondary)
-        .lineSpacing(4)
-        .fixedSize(horizontal: false, vertical: true)
-        .accessibilityHint("comparative insight from " + line.source.citation)
     }
 
     // MARK: - Macro row (scrapbook chrome)
@@ -347,6 +428,9 @@ struct ResultDecisionCard: View {
                 .font(.custom("DMSans-Medium", size: 22))
             + Text(punch)
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 24))
+            + Text(" ♡")
+                .font(.custom("DMSans-Medium", size: 20))
+                .foregroundColor(accent.opacity(0.7))
         )
         .foregroundStyle(textPrimary)
         .padding(.horizontal, 20)
