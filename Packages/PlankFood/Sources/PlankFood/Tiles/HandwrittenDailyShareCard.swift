@@ -183,34 +183,31 @@ public struct HandwrittenDailyShareCard: View {
     /// reuse the same row-count → font/padding ladder without
     /// duplicating the table.
     ///
-    /// v1.0.16 (2026-06-18) — items font bumped ~25% across the
-    /// ladder (founder: "font size can be bigger relative to each
-    /// size of photo"). Macro caption stays close to v1.0.15 size
-    /// but the typeface swaps to DMSans-Medium so the chrome reads
-    /// as the JeniFit voice ("use jenifit style font to the caption
-    /// instead"). Items font stays BradleyHandITCTT-Bold — the
-    /// handwriting is the food-rail signature.
+    /// v1.0.17 (2026-06-18) — second size bump per founder. Items go
+    /// up another 15-18%; macro caption gets a ~15% bump. Padding
+    /// scales with the items to keep the stack breathing inside the
+    /// cell.
     static func cellMetrics(forRows rows: Int) -> CellMetrics {
         switch rows {
         case 1: return CellMetrics(
-            itemsFont: 76, macroFont: 36, itemsSpacing: 16, stackSpacing: 28,
-            hPad: 76, vPad: 130, maxItems: 8
+            itemsFont: 90, macroFont: 42, itemsSpacing: 18, stackSpacing: 32,
+            hPad: 80, vPad: 140, maxItems: 8
         )
         case 2: return CellMetrics(
-            itemsFont: 56, macroFont: 26, itemsSpacing: 10, stackSpacing: 20,
-            hPad: 36, vPad: 64, maxItems: 5
+            itemsFont: 64, macroFont: 30, itemsSpacing: 11, stackSpacing: 22,
+            hPad: 40, vPad: 70, maxItems: 5
         )
         case 3: return CellMetrics(
-            itemsFont: 46, macroFont: 22, itemsSpacing: 7, stackSpacing: 16,
-            hPad: 28, vPad: 44, maxItems: 4
+            itemsFont: 54, macroFont: 26, itemsSpacing: 8, stackSpacing: 18,
+            hPad: 32, vPad: 48, maxItems: 4
         )
         case 4: return CellMetrics(
-            itemsFont: 40, macroFont: 20, itemsSpacing: 6, stackSpacing: 14,
-            hPad: 24, vPad: 32, maxItems: 3
+            itemsFont: 46, macroFont: 24, itemsSpacing: 7, stackSpacing: 16,
+            hPad: 26, vPad: 36, maxItems: 3
         )
         default: return CellMetrics(
-            itemsFont: 34, macroFont: 18, itemsSpacing: 5, stackSpacing: 12,
-            hPad: 22, vPad: 26, maxItems: 3
+            itemsFont: 40, macroFont: 22, itemsSpacing: 6, stackSpacing: 14,
+            hPad: 24, vPad: 30, maxItems: 3
         )
         }
     }
