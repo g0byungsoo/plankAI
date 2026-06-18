@@ -129,7 +129,9 @@ public struct HandwrittenDailyShareCard: View {
         }
     }
 
-    enum CellLabelPosition { case topRight, bottomLeft, centerRight, bottomCenter }
+    public enum CellLabelPosition: Sendable {
+        case topRight, bottomLeft, centerRight, bottomCenter
+    }
 
     @ViewBuilder
     private func cellLabel(
@@ -145,19 +147,38 @@ public struct HandwrittenDailyShareCard: View {
             case .bottomCenter:  return .bottom
             }
         }()
+        let seed: UInt64 = UInt64(bitPattern: Int64(entry.id.hashValue & 0x7FFFFFFF))
 
-        VStack(spacing: 6) {
-            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                Text(line)
-                    .font(.system(size: 30, weight: .regular))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 1)
+        ZStack {
+            // Rough hand-drawn arrow pointing from the label area
+            // toward the photo's center (where the food sits).
+            RoughHandArrow(position: position, seed: seed)
+                .stroke(
+                    .white,
+                    style: StrokeStyle(
+                        lineWidth: 3.6,
+                        lineCap: .round,
+                        lineJoin: .round
+                    )
+                )
+                .frame(width: 540, height: 960)
+                .shadow(color: .black.opacity(0.45), radius: 4, x: 0, y: 2)
+
+            // Handwritten label stack — Bradley Hand Bold, white, with
+            // soft drop shadow for legibility over busy photos.
+            VStack(spacing: 8) {
+                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                    Text(line)
+                        .font(.custom("BradleyHandITCTT-Bold", size: 34))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .shadow(color: .black.opacity(0.50), radius: 6, x: 0, y: 2)
+                }
             }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 50)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
         }
-        .padding(.horizontal, 28)
-        .padding(.vertical, 36)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
     }
 
     /// Splits the entry title into the overlay-friendly multi-line
@@ -262,6 +283,110 @@ extension HandwrittenDailyShareCard {
 extension HandwrittenDailyShareCard {
     public enum LabelAnchor: Sendable {
         case topLeft, topRight, bottomLeft, bottomRight
+    }
+}
+
+// MARK: - RoughHandArrow
+//
+// Per-cell rough hand-drawn arrow. Starts near the label corner and
+// curves toward the cell center (where the food sits). The curve
+// path picks up a deterministic per-entry seed so the same entry
+// always renders the same wobble — re-renders don't flicker the
+// arrow shape — but different entries get visually distinct strokes
+// (jittered control points, wobbly arrowhead angles). Matches the
+// reference's "drawn with a Posca pen" feel.
+
+struct RoughHandArrow: Shape {
+    let position: HandwrittenDailyShareCard.CellLabelPosition
+    let seed: UInt64
+
+    func path(in rect: CGRect) -> Path {
+        var rng = SplitMix64(seed: seed)
+        let jitter: (CGFloat) -> CGFloat = { range in
+            let r = CGFloat(rng.nextUnitDouble()) * 2 - 1
+            return r * range
+        }
+
+        let labelAnchor: CGPoint = {
+            switch position {
+            case .topRight:
+                return CGPoint(x: rect.maxX - 90 + jitter(8),
+                               y: rect.minY + 220 + jitter(20))
+            case .bottomLeft:
+                return CGPoint(x: rect.minX + 90 + jitter(8),
+                               y: rect.maxY - 240 + jitter(20))
+            case .centerRight:
+                return CGPoint(x: rect.maxX - 90 + jitter(8),
+                               y: rect.midY + jitter(40))
+            case .bottomCenter:
+                return CGPoint(x: rect.midX + jitter(40),
+                               y: rect.maxY - 280 + jitter(20))
+            }
+        }()
+
+        let target = CGPoint(
+            x: rect.midX + jitter(40),
+            y: rect.midY + jitter(40)
+        )
+
+        var path = Path()
+        path.move(to: labelAnchor)
+
+        let control1 = CGPoint(
+            x: labelAnchor.x + (target.x - labelAnchor.x) * 0.30 + jitter(80),
+            y: labelAnchor.y + (target.y - labelAnchor.y) * 0.45 + jitter(80)
+        )
+        let control2 = CGPoint(
+            x: labelAnchor.x + (target.x - labelAnchor.x) * 0.70 + jitter(60),
+            y: labelAnchor.y + (target.y - labelAnchor.y) * 0.65 + jitter(60)
+        )
+        path.addCurve(to: target, control1: control1, control2: control2)
+
+        // Arrowhead — two short lines off the tip, angles wobbled so
+        // they look hand-drawn, not auto-generated.
+        let dx = target.x - control2.x
+        let dy = target.y - control2.y
+        let len = max(sqrt(dx * dx + dy * dy), 0.0001)
+        let nx = dx / len
+        let ny = dy / len
+        let headLength: CGFloat = 30 + jitter(6)
+        let headAngle1: CGFloat = 0.55 + CGFloat(rng.nextUnitDouble()) * 0.15
+        let headAngle2: CGFloat = 0.55 + CGFloat(rng.nextUnitDouble()) * 0.15
+
+        let leftTip = CGPoint(
+            x: target.x - headLength * (nx * cos(headAngle1) + ny * sin(headAngle1)),
+            y: target.y - headLength * (ny * cos(headAngle1) - nx * sin(headAngle1))
+        )
+        let rightTip = CGPoint(
+            x: target.x - headLength * (nx * cos(-headAngle2) + ny * sin(-headAngle2)),
+            y: target.y - headLength * (ny * cos(-headAngle2) - nx * sin(-headAngle2))
+        )
+        path.move(to: target)
+        path.addLine(to: leftTip)
+        path.move(to: target)
+        path.addLine(to: rightTip)
+        return path
+    }
+}
+
+/// SplitMix64 — small deterministic PRNG. Identical seed → identical
+/// stream, so the arrow path is stable across re-renders of the same
+/// entry (no flicker on state changes). Used inside RoughHandArrow.
+private struct SplitMix64 {
+    var state: UInt64
+
+    init(seed: UInt64) { self.state = seed &+ 0x9E3779B97F4A7C15 }
+
+    mutating func next() -> UInt64 {
+        state = state &+ 0x9E3779B97F4A7C15
+        var z = state
+        z = (z ^ (z &>> 30)) &* 0xBF58476D1CE4E5B9
+        z = (z ^ (z &>> 27)) &* 0x94D049BB133111EB
+        return z ^ (z &>> 31)
+    }
+
+    mutating func nextUnitDouble() -> Double {
+        return Double(next() &>> 11) / Double(1 &<< 53)
     }
 }
 

@@ -845,27 +845,6 @@ private struct HandwrittenSharePreviewHarness: View {
             .padding(.top, 16)
 
             Spacer()
-
-            HStack(spacing: 12) {
-                ForEach(archetypes, id: \.self) { name in
-                    Button { archetype = name } label: {
-                        Text(name)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule().fill(
-                                    archetype == name
-                                        ? Color.white.opacity(0.35)
-                                        : Color.white.opacity(0.12)
-                                )
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.bottom, 20)
         }
     }
 }
