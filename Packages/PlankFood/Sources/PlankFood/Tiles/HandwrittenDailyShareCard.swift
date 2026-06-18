@@ -234,27 +234,25 @@ public struct HandwrittenDailyShareCard: View {
         return Array(parts.prefix(6))
     }
 
-    /// Compact macro caption per cell — time + kcal + protein + fiber.
-    /// Reads "8:42a · 430c · 25p · 7f" (single-letter macro keys keep
-    /// it brief enough to sit under the ingredient stack without
-    /// wrapping on a 540pt cell). Fiber omitted when 0 since most
-    /// legacy entries lack it; kcal/protein always show.
+    /// Macro caption per cell. Founder direction (2026-06-18): spell
+    /// the macros out — no single-letter abbreviations. Reads
+    /// "8:42am · 380 calories · 18g protein · 7g fiber". Fiber omitted
+    /// when 0 since most legacy entries lack it; calories/protein
+    /// always show (zero plates are filtered upstream).
     private func macroCaption(for entry: FoodLogPersister.FoodLogEntry) -> String {
         let timeFmt = DateFormatter()
         timeFmt.dateFormat = "h:mma"
         let time = timeFmt.string(from: entry.loggedAt).lowercased()
-            .replacingOccurrences(of: "am", with: "a")
-            .replacingOccurrences(of: "pm", with: "p")
 
         var parts = [time]
         if entry.kcal > 0 {
-            parts.append("\(Int(entry.kcal.rounded()))c")
+            parts.append("\(Int(entry.kcal.rounded())) calories")
         }
         if entry.protein > 0 {
-            parts.append("\(Int(entry.protein.rounded()))p")
+            parts.append("\(Int(entry.protein.rounded()))g protein")
         }
         if entry.fiber > 0 {
-            parts.append("\(Int(entry.fiber.rounded()))f")
+            parts.append("\(Int(entry.fiber.rounded()))g fiber")
         }
         return parts.joined(separator: " · ")
     }

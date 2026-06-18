@@ -215,17 +215,15 @@ public struct HandwrittenWeeklyShareCard: View {
         let timeFmt = DateFormatter()
         timeFmt.dateFormat = "h:mma"
         let time = timeFmt.string(from: cell.loggedAt).lowercased()
-            .replacingOccurrences(of: "am", with: "a")
-            .replacingOccurrences(of: "pm", with: "p")
         var parts = [time]
         if cell.kcal > 0 {
-            parts.append("\(Int(cell.kcal.rounded()))c")
+            parts.append("\(Int(cell.kcal.rounded())) calories")
         }
         if cell.protein > 0 {
-            parts.append("\(Int(cell.protein.rounded()))p")
+            parts.append("\(Int(cell.protein.rounded()))g protein")
         }
         if cell.fiber > 0 {
-            parts.append("\(Int(cell.fiber.rounded()))f")
+            parts.append("\(Int(cell.fiber.rounded()))g fiber")
         }
         return parts.joined(separator: " · ")
     }
