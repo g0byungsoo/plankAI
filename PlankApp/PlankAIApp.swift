@@ -96,6 +96,19 @@ struct PlankAIApp: App {
         } else {
             UserDefaults.standard.set(0, forKey: "uitest.cbt.startPage")
         }
+        // v1.1 (2026-06-14) — auto-presents the legacy
+        // `JeniMethodRitualView` reader directly, so simctl screenshots
+        // can capture the v1.1 archetype-B spread + practice embeds
+        // without UI navigation. Pair with --uitest-inapp-qa for
+        // clean cold-start. Example: --uitest-jeni-lesson 1 → opens
+        // Day 1 spread. `--uitest-jeni-lesson 8` → Day 8 practice.
+        if let idx = args.firstIndex(of: "--uitest-jeni-lesson"),
+           idx + 1 < args.count,
+           let day = Int(args[idx + 1]) {
+            UserDefaults.standard.set(day, forKey: "uitest.jeni.day")
+        } else {
+            UserDefaults.standard.set(0, forKey: "uitest.jeni.day")
+        }
         // Optional flag — auto-open the prompt sheet on appear so a
         // simctl screenshot can capture it without UI automation.
         UserDefaults.standard.set(
@@ -411,8 +424,39 @@ struct PlankAIApp: App {
             // rather than a hard cut.
             ZStack {
                 Palette.bgPrimary.ignoresSafeArea()
+                #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--debug-satiety-preview") {
+                    SatietyPillPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview") {
+                    SleepCardPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview-empty") {
+                    SleepCardEmptyStatesHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-trial-day2") {
+                    TrialDay2Modal(
+                        expirationDate: Date().addingTimeInterval(28 * 3600),
+                        onDismiss: {}
+                    )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-trial-day3") {
+                    TrialDay3Modal(
+                        expirationDate: Date().addingTimeInterval(9 * 3600),
+                        onDismiss: {}
+                    )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-winback") {
+                    CancellationWinbackSheet(onStayOpen: {}, onLeave: {})
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-stickers") {
+                    StickyNotePreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-log-weight-sheet") {
+                    LogWeightSheetPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-share") {
+                    HandwrittenSharePreviewHarness()
+                } else {
+                    RootView()
+                        .modifier(ResumeBloom())
+                }
+                #else
                 RootView()
                     .modifier(ResumeBloom())
+                #endif
             }
         }
         .modelContainer(for: [
@@ -495,6 +539,380 @@ private struct ResumeBloom: ViewModifier {
     }
 }
 
+// MARK: - SatietyPillPreviewHarness (DEBUG-only)
+//
+// Launch-arg-gated preview surface for the satiety pill. Three pill
+// instances side-by-side in their idle / hungry-selected / meh-selected
+// states plus a live one — simctl screenshots can verify the rendering,
+// animations, and affirmation copy without navigating onboarding +
+// paywall + food capture. Inlined in PlankAIApp.swift so no pbxproj
+// edit is needed for the temporary debug entry point.
+//
+// Launch: `xcrun simctl launch booted com.bk.plankAI --debug-satiety-preview`
+
+#if DEBUG
+private struct SleepCardPreviewHarness: View {
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 36) {
+                header
+
+                section(label: "1. populated · 7h 41m asleep, deep") {
+                    LastNightSleepCard(
+                        sleep: .sample(),
+                        authStatus: .authorized
+                    )
+                }
+
+                section(label: "2. populated · 4h 36m asleep, light night") {
+                    LastNightSleepCard(
+                        sleep: .lightNightSample(),
+                        authStatus: .authorized
+                    )
+                }
+
+                section(label: "3. notDetermined · connect prompt") {
+                    LastNightSleepCard(sleep: nil, authStatus: .notDetermined)
+                }
+
+                section(label: "4. denied · recovery prompt") {
+                    LastNightSleepCard(sleep: nil, authStatus: .denied)
+                }
+
+                section(label: "5. authorized · no data yet") {
+                    LastNightSleepCard(sleep: nil, authStatus: .authorized)
+                }
+
+                Spacer(minLength: 48)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 64)
+        }
+        .background(Palette.bgPrimary.ignoresSafeArea())
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("last night sleep card")
+                .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                .foregroundStyle(Palette.textPrimary)
+            Text("--debug-sleep-preview · sprint A 2026-06-15")
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(Palette.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func section<Content: View>(label: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(label)
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(Palette.textSecondary)
+                .textCase(.lowercase)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private extension LastNightSleep {
+    /// Cheap debug scaler — keeps the realistic stage architecture
+    /// but compresses or stretches to a target asleep duration so the
+    /// preview can show different durations without rewriting stages.
+    func scaledForDebug(asleepHours: Double, inBedHours: Double) -> LastNightSleep {
+        let asleepFactor = (asleepHours * 3600) / max(asleepDuration, 1)
+        let inBedFactor  = (inBedHours * 3600) / max(inBedDuration, 1)
+        let scaledStages: [LastNightSleep.Stage] = stages.map { s in
+            let asleepKinds: Set<LastNightSleep.Stage.Kind> = [.asleepCore, .asleepDeep, .asleepREM, .asleep]
+            let factor = asleepKinds.contains(s.kind) ? asleepFactor : inBedFactor
+            return LastNightSleep.Stage(
+                kind: s.kind,
+                startOffset: s.startOffset * factor,
+                duration: s.duration * factor
+            )
+        }
+        let inBed = inBedHours * 3600
+        let asleep = asleepHours * 3600
+        return LastNightSleep(
+            bedtime: bedtime,
+            wakeTime: bedtime.addingTimeInterval(inBed),
+            asleepDuration: asleep,
+            inBedDuration: inBed,
+            stages: scaledStages
+        )
+    }
+}
+
+private struct SleepCardEmptyStatesHarness: View {
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("sleep card · empty states")
+                        .font(.custom("Fraunces72pt-SemiBold", size: 24))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("--debug-sleep-preview-empty")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                labeled("notDetermined") {
+                    LastNightSleepCard(sleep: nil, authStatus: .notDetermined)
+                }
+                labeled("denied") {
+                    LastNightSleepCard(sleep: nil, authStatus: .denied)
+                }
+                labeled("authorized, no data tonight") {
+                    LastNightSleepCard(sleep: nil, authStatus: .authorized)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 64)
+            .padding(.bottom, 48)
+        }
+        .background(Palette.bgPrimary.ignoresSafeArea())
+    }
+
+    @ViewBuilder
+    private func labeled<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label)
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(Palette.textSecondary)
+                .textCase(.lowercase)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// v1.0.10 (2026-06-17) — full-screen preview of the Pinterest
+/// handwritten share card with mock food entries. Renders the card
+/// at its native 1080×1920 then scales-to-fit the device screen so
+/// the founder can compare against the editorial daily card without
+/// going through the food-journal share flow. Launch with
+/// `--debug-handwritten-share`; tap a corner to swap archetype.
+private struct HandwrittenSharePreviewHarness: View {
+
+    @State private var archetype: String = "protein"
+
+    private let archetypes = ["protein", "balanced", "movement", "rest"]
+
+    var body: some View {
+        GeometryReader { geo in
+            let scale = min(
+                geo.size.width / 1080,
+                geo.size.height / 1920
+            )
+            ZStack {
+                Color.black.ignoresSafeArea()
+
+                HandwrittenDailyShareCard.preview(archetype: archetype)
+                    .frame(width: 1080, height: 1920)
+                    .scaleEffect(scale, anchor: UnitPoint.center)
+                    .frame(width: geo.size.width, height: geo.size.height)
+
+                VStack {
+                    Spacer()
+                    HStack(spacing: 12) {
+                        ForEach(archetypes, id: \.self) { name in
+                            Button {
+                                archetype = name
+                            } label: {
+                                Text(name)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        Capsule().fill(
+                                            archetype == name
+                                                ? Color.white.opacity(0.35)
+                                                : Color.white.opacity(0.12)
+                                        )
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.bottom, 20)
+                }
+            }
+        }
+    }
+}
+
+private struct LogWeightSheetPreviewHarness: View {
+    @State private var showingSheet: Bool = true
+
+    var body: some View {
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            VStack {
+                Text("--debug-log-weight-sheet")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(Palette.textSecondary)
+                Button("re-present sheet") { showingSheet = true }
+                    .padding(.top, 8)
+            }
+        }
+        .sheet(isPresented: $showingSheet) {
+            LogWeightSheet(
+                startingFromKg: 65,
+                isUpdatingToday: false,
+                onSave: { _ in showingSheet = false },
+                onCancel: { showingSheet = false }
+            )
+            .presentationDetents([.fraction(0.55)])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Palette.programCard)
+        }
+    }
+}
+
+private struct StickyNotePreviewHarness: View {
+    // Mirrors the locked row order in PlanView.composeTodaysChecklist
+    // so the lineup reads as the user's actual day. Includes weigh-in
+    // with the new heart-lock sticker (2026-06-15 founder direction).
+    private let prescriptions: [ProgramDayPrescription] = [
+        .lesson(lessonId: nil),
+        .snapMeal,
+        .workout(tier: .medium, minutes: 12, bodyFocus: nil),
+        .steps(goal: 7500),
+        .weighIn,
+        .breath(minutes: 1, style: .calming),
+        .water(ml: 2000),
+        .plank(targetSeconds: 60),
+        .measurements
+    ]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("sticky notes")
+                        .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("--debug-stickers · weigh-in = sticker_heart_lock")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(Palette.textSecondary)
+                }
+
+                // 3-up grid so each row marker is visible at full size.
+                LazyVGrid(columns: [
+                    GridItem(.flexible(), spacing: 28),
+                    GridItem(.flexible(), spacing: 28),
+                    GridItem(.flexible(), spacing: 28)
+                ], spacing: 28) {
+                    ForEach(prescriptions.indices, id: \.self) { i in
+                        VStack(spacing: 6) {
+                            ProgramStickyNote(prescription: prescriptions[i])
+                            Text(prescriptions[i].itemKey)
+                                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                .foregroundStyle(Palette.textSecondary)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12)
+
+                // Solo weigh-in inspection at 2× scale so the heart-lock
+                // sticker is large enough to read every iridescent edge.
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("weigh-in inspection · 2×")
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .foregroundStyle(Palette.textSecondary)
+                    ProgramStickyNote(prescription: .weighIn)
+                        .scaleEffect(2.0)
+                        .frame(width: 80, height: 80)
+                        .padding(40)
+                }
+
+                Spacer(minLength: 48)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 64)
+        }
+        .background(Palette.bgPrimary.ignoresSafeArea())
+    }
+}
+
+private struct SatietyPillPreviewHarness: View {
+
+    @State private var idleChoice: SatietyChoice? = nil
+    @State private var hungryChoice: SatietyChoice? = .hungry
+    @State private var mehChoice: SatietyChoice? = .meh
+    @State private var liveChoice: SatietyChoice? = nil
+
+    var body: some View {
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 36) {
+                    header
+
+                    section(label: "1. idle (no choice)") {
+                        SatietyPill(choice: $idleChoice, onSelect: { _ in })
+                    }
+
+                    section(label: "2. selected → hungry") {
+                        SatietyPill(choice: $hungryChoice, onSelect: { _ in })
+                    }
+
+                    section(label: "3. selected → meh") {
+                        SatietyPill(choice: $mehChoice, onSelect: { _ in })
+                    }
+
+                    section(label: "4. live (tap to feel the haptic + bloom)") {
+                        SatietyPill(choice: $liveChoice, onSelect: { _ in })
+                    }
+
+                    Spacer(minLength: 48)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 64)
+            }
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("satiety pill")
+                .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                .foregroundStyle(Palette.textPrimary)
+            Text("--debug-satiety-preview · sprint A 2026-06-15")
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(Palette.textSecondary)
+        }
+    }
+
+    @ViewBuilder
+    private func section<Content: View>(label: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(label)
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundStyle(Palette.textSecondary)
+                .textCase(.lowercase)
+            content()
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Palette.bgElevated)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Palette.accent.opacity(0.18), lineWidth: 0.75)
+                )
+        }
+    }
+}
+#endif
+
 // MARK: - Root view
 //
 // Gates the entire app on AuthService.bootstrap() completing. Returning users
@@ -513,6 +931,10 @@ private struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var auth = AuthService.shared
     @State private var payment = PaymentService.shared
+    /// Sprint A (2026-06-15) — observed for Day-2 / Day-3 in-app trial
+    /// nudges. PaymentService pumps the coordinator on every customer
+    /// info emit; this @State drives the sheet presentation.
+    @State private var trialNudge = TrialNudgeCoordinator.shared
 
     // Downsell paywall state. Hard-paywall model: the cover stays up
     // until the user subscribes or restores. The downsell is presented
@@ -540,6 +962,14 @@ private struct RootView: View {
     // never transition effectiveHasProAccess false→true (cold relaunch
     // on an already-paid user). Default-off behind the flag.
     @State private var showingCoachIntro = false
+    /// Sprint A (2026-06-15) — soft cancellation-intent winback. Fires
+    /// once per session on the FIRST `paywall_transaction_abandoned`
+    /// signal (user started StoreKit checkout, backed out of Apple
+    /// sheet). Voice-aligned identity reflection — NOT a discount
+    /// downsell (May-31 premium positioning stands). Re-firing on
+    /// repeat abandons in the same session would read as nagging.
+    @State private var showingWinback = false
+    @State private var winbackShownThisSession = false
 
     // Minimum dwell for the editorial launch splash (all launches).
     @State private var loaderMinHoldDone = false
@@ -634,20 +1064,23 @@ private struct RootView: View {
                                     // (Apple sheet cancel) per the spec.
                                 },
                                 onPurchaseCancelled: {
-                                    // v1.0.7: discount-free premium positioning
-                                    // (founder decision 2026-05-31 after
-                                    // April-2026 Apple Cal AI 5.6 enforcement
-                                    // + research-validated brand cost of
-                                    // discount-training the cohort).
-                                    //
-                                    // Transaction-abandon now tracks the event
-                                    // for funnel analysis but does NOT present
-                                    // a discount paywall. Premium positioning
-                                    // is the lever — Calm/Headspace/Mejuri
-                                    // pattern. DownsellPaywallView.swift stays
-                                    // dormant on disk for potential v1.2
-                                    // reactivation if conversion data demands.
+                                    // Transaction-abandon: user started
+                                    // StoreKit checkout, backed out of the
+                                    // Apple sheet. Funnel signal first, then
+                                    // present the voice-aligned winback
+                                    // sheet (Sprint A 2026-06-15) — NOT a
+                                    // discount downsell. The May-31 founder
+                                    // decision against the discount surface
+                                    // stands; CancellationWinbackSheet is a
+                                    // soft identity reflection, not a price
+                                    // cut. One-shot per session via
+                                    // `winbackShownThisSession` so repeat
+                                    // abandoners aren't nagged.
                                     Analytics.track(.paywallTransactionAbandoned)
+                                    if !winbackShownThisSession {
+                                        winbackShownThisSession = true
+                                        showingWinback = true
+                                    }
                                 }
                             )
                             .onAppear {
@@ -655,6 +1088,15 @@ private struct RootView: View {
                                 // until we run paywall experiments; the
                                 // property is here so future variants slot
                                 // in without changing the call site.
+                                //
+                                // 2026-06-15: default_plan now genuinely
+                                // matches the in-view default (annual for
+                                // every cohort, no goal-aware quarterly
+                                // override). If the default ever flips
+                                // again, keep these three properties
+                                // — default_plan, has_trial, trial_days —
+                                // in sync with PaywallView.selectedPlan's
+                                // initial value.
                                 Analytics.track(.paywallView, properties: [
                                     "paywall_id": "main",
                                     "placement": "onboarding_final",
@@ -664,12 +1106,22 @@ private struct RootView: View {
                                     "trial_days": 3
                                 ])
                             }
-                            // v1.0.7 (2026-05-31): downsell sheet removed.
-                            // Discount-free premium positioning. The
-                            // DownsellPaywallView.swift file stays on disk
-                            // for potential v1.2 reactivation, but is
-                            // unwired here. Apple-5.6 risk eliminated;
-                            // brand-discount-training risk eliminated.
+                            // Cancellation-intent winback. MUST be attached
+                            // INSIDE this fullScreenCover closure (i.e. on
+                            // PaywallView), not as a sibling on MainTabView
+                            // — SwiftUI doesn't let a `.sheet` present over
+                            // a `.fullScreenCover` from the same view, but
+                            // a `.sheet` ON the presented PaywallView
+                            // surfaces normally over it. Sprint A 2026-06-15.
+                            .sheet(isPresented: $showingWinback) {
+                                CancellationWinbackSheet(
+                                    onStayOpen: { showingWinback = false },
+                                    onLeave:    { showingWinback = false }
+                                )
+                                .presentationDetents([.large])
+                                .presentationDragIndicator(.hidden)
+                                .interactiveDismissDisabled(false)
+                            }
                         }
                         .onChange(of: payment.effectiveHasProAccess) { oldValue, newValue in
                             #if DEBUG
@@ -679,6 +1131,42 @@ private struct RootView: View {
                             // PaymentService.startCustomerInfoStream where
                             // product_id and trial-period info are
                             // first-class — don't double-emit here.
+                        }
+                        .sheet(isPresented: Binding(
+                            get: { trialNudge.pending != nil },
+                            set: { if !$0 { trialNudge.clearPending() } }
+                        )) {
+                            // Sprint A 2026-06-15 — in-app trial nudges.
+                            // PaymentService.reconcileTrialReminder pumps
+                            // the coordinator on every entitlement emit.
+                            // Day-2 fires in [24h, 48h] until renewal;
+                            // Day-3 fires in (0h, 18h]. One-shot per
+                            // trial via UserDefaults flag scoped to the
+                            // expiration date.
+                            switch trialNudge.pending {
+                            case .day2:
+                                TrialDay2Modal(
+                                    expirationDate: trialNudge.expirationDate,
+                                    onDismiss: {
+                                        trialNudge.dismiss(.day2,
+                                            expirationDate: trialNudge.expirationDate)
+                                    }
+                                )
+                                .presentationDetents([.large])
+                                .presentationDragIndicator(.hidden)
+                            case .day3:
+                                TrialDay3Modal(
+                                    expirationDate: trialNudge.expirationDate,
+                                    onDismiss: {
+                                        trialNudge.dismiss(.day3,
+                                            expirationDate: trialNudge.expirationDate)
+                                    }
+                                )
+                                .presentationDetents([.large])
+                                .presentationDragIndicator(.hidden)
+                            case .none:
+                                EmptyView()
+                            }
                         }
                         .fullScreenCover(isPresented: $showingCoachIntro) {
                             // Phase A: the post-purchase sequence — forging
@@ -748,6 +1236,20 @@ private struct RootView: View {
         )) {
             CBTQACoverHost()
         }
+        // Parallel QA hook for the legacy JeniMethodRitualView (the
+        // active production reader from PlanView.swift:213). Lets
+        // simctl screenshot the v1.1 archetype-B spread + practice
+        // embeds without UI navigation. Wired by --uitest-jeni-lesson.
+        .fullScreenCover(isPresented: Binding(
+            get: { UserDefaults.standard.integer(forKey: "uitest.jeni.day") > 0 },
+            set: { newValue in
+                if !newValue {
+                    UserDefaults.standard.set(0, forKey: "uitest.jeni.day")
+                }
+            }
+        )) {
+            JeniMethodQACoverHost()
+        }
         #endif
         .animation(Motion.crossFade, value: loaderMinHoldDone)
         .task {
@@ -815,6 +1317,11 @@ private struct RootView: View {
             // users who land on the Plan tab kept seeing "connect
             // steps" on Becoming even after granting access.
             await StepsService.shared.bootstrap()
+            // Sleep: same silent permission probe at launch (never
+            // prompts). The Becoming card surfaces the connect CTA
+            // when authorization is .notDetermined. Mirrors StepsService
+            // launch pattern.
+            await SleepService.shared.bootstrap()
             // Re-fill the local retention notifications (affirmation drops +
             // win-back). No-op + never prompts when notifications aren't
             // authorized; purely additive over the daily + trial reminders.
@@ -1066,6 +1573,39 @@ private struct RootView: View {
 }
 
 #if DEBUG
+// QA cover host — resolves the requested day and presents the legacy
+// `JeniMethodRitualView` (the active production reader via PlanView).
+// Driven by the --uitest-jeni-lesson <day> launch arg. Mirrors
+// CBTQACoverHost; targets the v1.1 archetype-B + practice-embed
+// changes from the 2026-06-14 roundtable redesign.
+private struct JeniMethodQACoverHost: View {
+    var body: some View {
+        let d = UserDefaults.standard.integer(forKey: "uitest.jeni.day")
+        if let lessonID = LessonID(rawValue: d) {
+            JeniMethodRitualView(
+                lesson: lessonID,
+                user: JeniMethodUserContext.fromAppStorage(),
+                onComplete: { UserDefaults.standard.set(0, forKey: "uitest.jeni.day") },
+                onSkip:     { _ in UserDefaults.standard.set(0, forKey: "uitest.jeni.day") }
+            )
+        } else {
+            VStack(spacing: 12) {
+                Text("JeniMethod lesson day out of range")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("day=\(d)  (valid 1..14 or 15+ for generic)")
+                    .font(.system(size: 12))
+                Button("close") {
+                    UserDefaults.standard.set(0, forKey: "uitest.jeni.day")
+                }
+                .padding(.top, 6)
+            }
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Palette.bgPrimary)
+        }
+    }
+}
+
 // QA cover host — resolves the requested CBT lesson from the bundled
 // manifest and presents the v2 LessonReaderView. Driven by the
 // --uitest-cbt-lesson <totalDays> <day> launch arg.

@@ -35,7 +35,7 @@ import UIKit
 // Designed for ImageRenderer offscreen rendering. Never mounted in
 // the user's live view hierarchy — only by HandwrittenDailyShareRenderer.
 
-struct HandwrittenDailyShareCard: View {
+public struct HandwrittenDailyShareCard: View {
 
     let date: Date
     let entries: [FoodLogPersister.FoodLogEntry]
@@ -48,7 +48,7 @@ struct HandwrittenDailyShareCard: View {
     /// nil falls back to a universal greeting set.
     var archetype: String? = nil
 
-    var body: some View {
+    public var body: some View {
         ZStack {
             background
 
@@ -507,6 +507,59 @@ private extension HandwrittenDailyShareCard {
         "permission ♡",
         "becoming, quietly",
     ]
+}
+
+// MARK: - Preview helper
+//
+// Public so the main app can mount the card with deterministic mock
+// data via a debug launch flag without round-tripping through
+// FoodLogPersister. The handwritten card's only state-bearing input
+// is the entries array — everything else is computed from `date` and
+// the archetype string — so a mock entries array is enough to render
+// a realistic IG-Story preview.
+
+extension HandwrittenDailyShareCard {
+    public static func preview(
+        archetype: String? = "protein",
+        date: Date = Date()
+    ) -> HandwrittenDailyShareCard {
+        let mock: [FoodLogPersister.FoodLogEntry] = [
+            FoodLogPersister.FoodLogEntry(
+                id: "preview-1",
+                loggedAt: date,
+                title: "avocado toast",
+                kcal: 380, protein: 18, carbs: 28, fat: 22,
+                source: "photo"
+            ),
+            FoodLogPersister.FoodLogEntry(
+                id: "preview-2",
+                loggedAt: date,
+                title: "matcha latte",
+                kcal: 180, protein: 6, carbs: 22, fat: 7,
+                source: "quickAdd"
+            ),
+            FoodLogPersister.FoodLogEntry(
+                id: "preview-3",
+                loggedAt: date,
+                title: "chipotle bowl",
+                kcal: 720, protein: 52, carbs: 64, fat: 28,
+                source: "photo"
+            ),
+            FoodLogPersister.FoodLogEntry(
+                id: "preview-4",
+                loggedAt: date,
+                title: "berry bowl",
+                kcal: 240, protein: 14, carbs: 32, fat: 5,
+                source: "photo"
+            ),
+        ]
+        return HandwrittenDailyShareCard(
+            date: date,
+            entries: mock,
+            photos: [:],
+            archetype: archetype
+        )
+    }
 }
 
 // MARK: - SquigglyArrow
