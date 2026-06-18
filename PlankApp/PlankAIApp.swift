@@ -455,6 +455,8 @@ struct PlankAIApp: App {
                     HandwrittenLessonPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-result") {
                     HandwrittenResultPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-snap") {
+                    HandwrittenSnapPreviewHarness()
                 } else {
                     RootView()
                         .modifier(ResumeBloom())
@@ -761,6 +763,47 @@ private struct HandwrittenWeeklyPreviewHarness: View {
             ZStack {
                 Color.black.ignoresSafeArea()
                 HandwrittenWeeklyShareCard.preview(archetype: archetype)
+                    .frame(width: 1080, height: 1920)
+                    .scaleEffect(scale, anchor: UnitPoint.center)
+                    .frame(width: geo.size.width, height: geo.size.height)
+                VStack {
+                    Spacer()
+                    HStack(spacing: 12) {
+                        ForEach(archetypes, id: \.self) { name in
+                            Button { archetype = name } label: {
+                                Text(name)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        Capsule().fill(
+                                            archetype == name
+                                                ? Color.white.opacity(0.35)
+                                                : Color.white.opacity(0.12)
+                                        )
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.bottom, 20)
+                }
+            }
+        }
+    }
+}
+
+private struct HandwrittenSnapPreviewHarness: View {
+    @State private var archetype: String = "protein"
+    private let archetypes = ["protein", "balanced", "movement", "rest"]
+
+    var body: some View {
+        GeometryReader { geo in
+            let scale = min(geo.size.width / 1080, geo.size.height / 1920)
+            ZStack {
+                Color.black.ignoresSafeArea()
+                HandwrittenSnapResultShareCard.preview(archetype: archetype)
                     .frame(width: 1080, height: 1920)
                     .scaleEffect(scale, anchor: UnitPoint.center)
                     .frame(width: geo.size.width, height: geo.size.height)

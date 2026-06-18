@@ -1032,6 +1032,28 @@ public struct PhotoCaptureView: View {
         let dish = dishNameLabel(result)
         let meal = mealTypeLabel
 
+        // v1.0.10 (2026-06-17) — `--handwritten-share` swaps the
+        // 3-slide editorial carousel for a single Pinterest handwritten
+        // share card. Same caller contract (returns [SlideShareItem]),
+        // returns 1 slide instead of 3.
+        if ProcessInfo.processInfo.arguments.contains("--handwritten-share") {
+            let itemNames = result.items.prefix(4).map(\.name)
+            guard let img = HandwrittenSnapResultShareRenderer.render(
+                photo: photo,
+                mealLabel: meal,
+                dishName: dish,
+                itemNames: Array(itemNames),
+                totals: totals
+            ),
+                let data = img.pngData() else { return [] }
+            return [SlideShareItem(
+                kind: .meal,
+                uiImage: img,
+                pngData: data,
+                suggestedName: SlideKind.meal.suggestedFileName
+            )]
+        }
+
         let slides: [(SlideKind, AnyView)] = [
             (.meal, AnyView(
                 ShareableFoodImageView(
