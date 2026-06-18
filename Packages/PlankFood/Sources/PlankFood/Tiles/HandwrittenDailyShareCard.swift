@@ -182,27 +182,36 @@ public struct HandwrittenDailyShareCard: View {
     /// Static so the weekly card (same module, different type) can
     /// reuse the same row-count → font/padding ladder without
     /// duplicating the table.
+    ///
+    /// v1.0.15 (2026-06-18) — font ladder bumped so every cell stays
+    /// legible on a phone-sized display (founder reference: TikTok's
+    /// minimum readable caption size, relative to canvas). Worst-case
+    /// 5-row cell is 540×384 — items at 28pt = 7.3% of cell height,
+    /// macro caption 20pt = 5.2%. Both comfortably above TikTok's
+    /// ~1.5% feed-text floor. maxItems also trims at higher row
+    /// counts so denser grids drop the long tail rather than shrink
+    /// to fit.
     static func cellMetrics(forRows rows: Int) -> CellMetrics {
         switch rows {
         case 1: return CellMetrics(
-            itemsFont: 48, macroFont: 28, itemsSpacing: 12, stackSpacing: 22,
-            hPad: 64, vPad: 110, maxItems: 8
+            itemsFont: 60, macroFont: 36, itemsSpacing: 14, stackSpacing: 24,
+            hPad: 72, vPad: 120, maxItems: 8
         )
         case 2: return CellMetrics(
-            itemsFont: 32, macroFont: 20, itemsSpacing: 6, stackSpacing: 14,
-            hPad: 28, vPad: 50, maxItems: 6
+            itemsFont: 44, macroFont: 28, itemsSpacing: 8, stackSpacing: 18,
+            hPad: 32, vPad: 56, maxItems: 5
         )
         case 3: return CellMetrics(
-            itemsFont: 26, macroFont: 17, itemsSpacing: 5, stackSpacing: 12,
-            hPad: 22, vPad: 32, maxItems: 5
+            itemsFont: 36, macroFont: 24, itemsSpacing: 6, stackSpacing: 14,
+            hPad: 24, vPad: 38, maxItems: 4
         )
         case 4: return CellMetrics(
-            itemsFont: 22, macroFont: 14, itemsSpacing: 4, stackSpacing: 9,
-            hPad: 18, vPad: 22, maxItems: 4
+            itemsFont: 32, macroFont: 22, itemsSpacing: 5, stackSpacing: 12,
+            hPad: 22, vPad: 28, maxItems: 3
         )
         default: return CellMetrics(
-            itemsFont: 20, macroFont: 13, itemsSpacing: 3, stackSpacing: 8,
-            hPad: 16, vPad: 18, maxItems: 3
+            itemsFont: 28, macroFont: 20, itemsSpacing: 5, stackSpacing: 11,
+            hPad: 20, vPad: 22, maxItems: 3
         )
         }
     }
