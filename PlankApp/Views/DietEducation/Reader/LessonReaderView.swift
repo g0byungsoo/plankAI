@@ -316,13 +316,32 @@ struct LessonReaderView: View {
                 if pageIndex >= 0 {
                     Button {
                         Haptics.light()
-                        if let image = LessonQuoteRenderer.render(
-                            headline: Self.cleanHeadline(page.headline),
-                            italicWords: page.italicWords,
-                            bodyLine: Self.firstSentence(of: page.body),
-                            dayLabel: Self.dayLabel(programDay: scheduled.programDay),
-                            pillarTitle: Self.pillarLabel(for: slot.primaryPillar)
-                        ) {
+                        // v1.0.10 — `--handwritten-share` flag swaps
+                        // the editorial lesson quote card for the
+                        // Pinterest handwritten variant. Same prep
+                        // helpers, same renderer contract.
+                        let useHandwritten = ProcessInfo.processInfo.arguments
+                            .contains("--handwritten-share")
+                        let cleanedHeadline = Self.cleanHeadline(page.headline)
+                        let bodyLine = Self.firstSentence(of: page.body)
+                        let dayLabel = Self.dayLabel(programDay: scheduled.programDay)
+                        let pillarLabel = Self.pillarLabel(for: slot.primaryPillar)
+                        let image: UIImage? = useHandwritten
+                            ? HandwrittenLessonQuoteRenderer.render(
+                                headline: cleanedHeadline,
+                                italicWords: page.italicWords,
+                                bodyLine: bodyLine,
+                                dayLabel: dayLabel,
+                                pillarTitle: pillarLabel
+                            )
+                            : LessonQuoteRenderer.render(
+                                headline: cleanedHeadline,
+                                italicWords: page.italicWords,
+                                bodyLine: bodyLine,
+                                dayLabel: dayLabel,
+                                pillarTitle: pillarLabel
+                            )
+                        if let image {
                             quoteShareItem = LessonQuoteShareItem(image: image)
                         }
                     } label: {

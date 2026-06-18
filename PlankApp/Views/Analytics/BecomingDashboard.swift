@@ -483,7 +483,15 @@ struct PlateFanTeaser: View {
     @ViewBuilder private var shareWeekButton: some View {
         Button {
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-            if let img = WeeklyShareRenderer.render(userId: userId) {
+            // v1.0.10 — `--handwritten-share` flag swaps the editorial
+            // weekly collage for the Pinterest handwritten variant.
+            // Same renderer contract, founder A/B's via launch arg.
+            let useHandwritten = ProcessInfo.processInfo.arguments
+                .contains("--handwritten-share")
+            let img = useHandwritten
+                ? HandwrittenWeeklyShareRenderer.render(userId: userId)
+                : WeeklyShareRenderer.render(userId: userId)
+            if let img {
                 weeklyShareItem = PlateShareItem(image: img)
             }
         } label: {

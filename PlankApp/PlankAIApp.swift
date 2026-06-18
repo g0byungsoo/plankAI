@@ -449,6 +449,10 @@ struct PlankAIApp: App {
                     LogWeightSheetPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-share") {
                     HandwrittenSharePreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-weekly") {
+                    HandwrittenWeeklyPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-lesson") {
+                    HandwrittenLessonPreviewHarness()
                 } else {
                     RootView()
                         .modifier(ResumeBloom())
@@ -740,6 +744,68 @@ private struct HandwrittenSharePreviewHarness: View {
                     }
                     .padding(.bottom, 20)
                 }
+            }
+        }
+    }
+}
+
+private struct HandwrittenWeeklyPreviewHarness: View {
+    @State private var archetype: String = "protein"
+    private let archetypes = ["protein", "balanced", "movement", "rest"]
+
+    var body: some View {
+        GeometryReader { geo in
+            let scale = min(geo.size.width / 1080, geo.size.height / 1920)
+            ZStack {
+                Color.black.ignoresSafeArea()
+                HandwrittenWeeklyShareCard.preview(archetype: archetype)
+                    .frame(width: 1080, height: 1920)
+                    .scaleEffect(scale, anchor: UnitPoint.center)
+                    .frame(width: geo.size.width, height: geo.size.height)
+                VStack {
+                    Spacer()
+                    HStack(spacing: 12) {
+                        ForEach(archetypes, id: \.self) { name in
+                            Button { archetype = name } label: {
+                                Text(name)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        Capsule().fill(
+                                            archetype == name
+                                                ? Color.white.opacity(0.35)
+                                                : Color.white.opacity(0.12)
+                                        )
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.bottom, 20)
+                }
+            }
+        }
+    }
+}
+
+private struct HandwrittenLessonPreviewHarness: View {
+    var body: some View {
+        GeometryReader { geo in
+            let scale = min(geo.size.width / 1080, geo.size.height / 1920)
+            ZStack {
+                Color.black.ignoresSafeArea()
+                HandwrittenLessonQuoteCard(
+                    headline: "the voice in your head was taught",
+                    italicWords: ["taught"],
+                    bodyLine: "you were seven, maybe nine. someone at the table said she's being good today.",
+                    dayLabel: "day one",
+                    pillarTitle: "voice + food noise"
+                )
+                .frame(width: 1080, height: 1920)
+                .scaleEffect(scale, anchor: UnitPoint.center)
+                .frame(width: geo.size.width, height: geo.size.height)
             }
         }
     }
