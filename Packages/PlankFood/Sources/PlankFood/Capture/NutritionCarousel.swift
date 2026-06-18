@@ -33,9 +33,17 @@ import SwiftUI
 // version will pull real daily totals from SwiftData + user targets
 // from onboarding AppStorage.
 
-struct NutritionCarousel: View {
+public struct NutritionCarousel: View {
 
     let result: CapturedFood
+    /// v1.0.18 (2026-06-18) — photo + meal-label/dish-name lifted into
+    /// the carousel API so the new ResultDecisionCard + share slide
+    /// can render the actual photo + match the data on every slide.
+    /// Optional photo defaults to nil (the decision card falls back
+    /// to a soft rose gradient — matches the share card's fallback).
+    let photo: UIImage?
+    let mealLabel: String
+    let dishName: String
     /// v1.0.8 Phase U — callback fires when the user applies a tweak
     /// on slide 1 (smaller / bigger / +sauce / rename). Parent updates
     /// capturedResult, all 3 slides re-render with the new numbers.
@@ -45,6 +53,7 @@ struct NutritionCarousel: View {
 
     @State private var currentPage: Int = 0
     @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 0
+    @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let pageCount = 3
@@ -80,41 +89,74 @@ struct NutritionCarousel: View {
     /// 500pt if no explicit height passed.
     let carouselHeight: CGFloat
 
-    init(
+    public init(
         result: CapturedFood,
+        photo: UIImage? = nil,
+        mealLabel: String = "",
+        dishName: String = "",
         carouselHeight: CGFloat = 500,
         onCorrect: @escaping (CapturedFood) -> Void = { _ in }
     ) {
         self.result = result
+        self.photo = photo
+        self.mealLabel = mealLabel
+        self.dishName = dishName
         self.carouselHeight = carouselHeight
         self.onCorrect = onCorrect
+        // Debug-only: `--carousel-page=N` jumps to slide N (0/1/2)
+        // for screenshot capture in the result-carousel harness.
+        if let arg = ProcessInfo.processInfo.arguments.first(where: {
+            $0.hasPrefix("--carousel-page=")
+        }), let n = Int(arg.dropFirst("--carousel-page=".count)),
+            (0..<3).contains(n) {
+            _currentPage = State(initialValue: n)
+        }
     }
 
-    var body: some View {
-        // v1.0.8 Phase R.4 — dots overlay inside the carousel frame at
-        // the bottom, not below it. Founder direction: "carousel dots
-        // on the bottom layer of card (consistent for all 3 slides)."
-        // ZStack(alignment: .bottom) pins the dots to the carousel's
-        // bottom edge regardless of card content size, so all 3 slides
-        // show dots at the exact same vertical position.
+    public var body: some View {
+        // v1.0.18 (2026-06-18) — new 3-slide composition designed by
+        // the her75 + WL-researcher + GLP-1-MD panel, locked against
+        // the Cal AI / SnapCalorie / MacroFactor competitive research.
+        //
+        //   slide 1 — ResultDecisionCard (calorie hero + macros +
+        //             item ledger + tag chips). Practical first read.
+        //   slide 2 — HandwrittenSnapResultShareCard (existing
+        //             photo-bleed share-ready slide).
+        //   slide 3 — ResultDayInContextCard (day anchor + trend +
+        //             4-tile micro-strip + pull quote). Cohort-aware
+        //             hero (kcal-left default, protein-today on GLP-1).
+        //
+        // Each slide is designed at 1080×1920 native (matches the
+        // share PNG dimensions) and scaled-to-fit the carousel slot
+        // — so the in-app slide IS the share slide, no duplication.
         TabView(selection: $currentPage) {
-            MealSummaryCard(result: result, onCorrect: onCorrect)
-                .padding(.horizontal, 4)
-                .padding(.bottom, 28)  // room for dots overlay
-                .tag(0)
-
-            PackedDailyCard(
+            slideTab(index: 0) { ResultDecisionCard(
                 result: result,
-                targets: macroTargets
-            )
-            .padding(.horizontal, 4)
-            .padding(.bottom, 28)
-            .tag(1)
+                photo: photo,
+                mealLabel: mealLabel.isEmpty ? "today" : mealLabel,
+                dishName: dishName
+            )}
 
-            JeniEvaluationCard(result: result)
-                .padding(.horizontal, 4)
-                .padding(.bottom, 28)
-                .tag(2)
+            slideTab(index: 1) { HandwrittenSnapResultShareCard(
+                photo: photo ?? Self.placeholderPhoto,
+                mealLabel: mealLabel,
+                dishName: dishName,
+                itemNames: result.items.map(\.name),
+                totals: (
+                    carbs:   Int(result.items.compactMap { $0.carbsG }.reduce(0, +).rounded()),
+                    protein: Int(result.items.compactMap { $0.proteinG }.reduce(0, +).rounded()),
+                    fat:     Int(result.items.compactMap { $0.fatG }.reduce(0, +).rounded()),
+                    fiber:   Int(result.items.compactMap { $0.fiberG }.reduce(0, +).rounded()),
+                    kcal:    Int((result.totalKcal ?? 0).rounded())
+                ),
+                loggedAt: Date()
+            )}
+
+            slideTab(index: 2) { ResultDayInContextCard(
+                result: result,
+                targets: macroTargets,
+                glp1Status: glp1Status
+            )}
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
         .frame(height: carouselHeight)
@@ -126,6 +168,51 @@ struct NutritionCarousel: View {
             .padding(.bottom, 10)
         }
     }
+
+    /// Scale-to-fit container for a 1080×1920 native slide. Picks the
+    /// scale that fits inside the available carousel slot while
+    /// keeping the 9:16 aspect — text + layout stay proportional to
+    /// the share PNG render, so what the user sees is what they'd
+    /// post.
+    @ViewBuilder
+    private func slideTab<Content: View>(
+        index: Int,
+        @ViewBuilder content: @escaping () -> Content
+    ) -> some View {
+        GeometryReader { geo in
+            let scale = min(geo.size.width / 1080, geo.size.height / 1920)
+            content()
+                .frame(width: 1080, height: 1920)
+                .scaleEffect(scale, anchor: .center)
+                .frame(width: geo.size.width, height: geo.size.height)
+        }
+        .padding(.horizontal, 4)
+        .padding(.bottom, 28)
+        .tag(index)
+    }
+
+    /// Tiny rose-gradient placeholder used when the carousel mounts
+    /// the share slide before the captured photo is available
+    /// (gallery preview mode briefly nil). Keeps the share view
+    /// compiling without a real UIImage.
+    private static let placeholderPhoto: UIImage = {
+        let size = CGSize(width: 1080, height: 1920)
+        return UIGraphicsImageRenderer(size: size).image { ctx in
+            let gradient = CGGradient(
+                colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                colors: [
+                    UIColor(red: 0.94, green: 0.78, blue: 0.79, alpha: 1).cgColor,
+                    UIColor(red: 0.85, green: 0.55, blue: 0.62, alpha: 1).cgColor,
+                ] as CFArray,
+                locations: [0, 1]
+            )!
+            ctx.cgContext.drawLinearGradient(
+                gradient, start: .zero,
+                end: CGPoint(x: size.width, y: size.height),
+                options: []
+            )
+        }
+    }()
 
     // MARK: - Targets (V1 — onboarding-derived with sensible fallbacks)
 

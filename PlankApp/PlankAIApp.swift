@@ -458,6 +458,8 @@ struct PlankAIApp: App {
                     HandwrittenResultPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-snap") {
                     HandwrittenSnapPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-result-carousel") {
+                    ResultCarouselPreviewHarness()
                 } else {
                     RootView()
                         .modifier(ResumeBloom())
@@ -1148,6 +1150,100 @@ private struct HandwrittenLessonPreviewHarness: View {
                 .frame(width: 1080, height: 1920)
                 .scaleEffect(scale, anchor: UnitPoint.center)
                 .frame(width: geo.size.width, height: geo.size.height)
+            }
+        }
+    }
+}
+
+/// v1.0.18 (2026-06-18) — debug harness for the new 3-slide result
+/// carousel. Mounts NutritionCarousel with a mock CapturedFood +
+/// rose-gradient placeholder photo so the founder can review the
+/// new slides without going through the camera + paywall.
+private struct ResultCarouselPreviewHarness: View {
+    @State private var selectedPage: Int = 0
+
+    private static let mockItems: [CapturedItem] = [
+        CapturedItem(
+            id: "preview-1", name: "scrambled eggs",
+            portionGrams: 120, portionGramsLow: 100, portionGramsHigh: 140,
+            usdaSearchTerms: ["scrambled eggs"],
+            preparation: "pan", cuisineHint: "american",
+            confidence: 0.92, notes: "",
+            kcal: 180, proteinG: 14, carbsG: 2, fatG: 12, fiberG: 0,
+            nutritionSource: .llmDirect
+        ),
+        CapturedItem(
+            id: "preview-2", name: "avocado toast",
+            portionGrams: 140, portionGramsLow: 120, portionGramsHigh: 160,
+            usdaSearchTerms: ["avocado toast"],
+            preparation: "toasted", cuisineHint: "cafe",
+            confidence: 0.88, notes: "",
+            kcal: 230, proteinG: 6, carbsG: 24, fatG: 14, fiberG: 5,
+            nutritionSource: .llmDirect
+        ),
+        CapturedItem(
+            id: "preview-3", name: "raspberries",
+            portionGrams: 60, portionGramsLow: 50, portionGramsHigh: 70,
+            usdaSearchTerms: ["raspberries"],
+            preparation: "raw", cuisineHint: "fresh",
+            confidence: 0.95, notes: "",
+            kcal: 30, proteinG: 1, carbsG: 7, fatG: 0, fiberG: 4,
+            nutritionSource: .llmDirect
+        ),
+        CapturedItem(
+            id: "preview-4", name: "matcha latte",
+            portionGrams: 240, portionGramsLow: 220, portionGramsHigh: 260,
+            usdaSearchTerms: ["matcha latte"],
+            preparation: "oat milk", cuisineHint: "cafe",
+            confidence: 0.86, notes: "",
+            kcal: 110, proteinG: 4, carbsG: 12, fatG: 5, fiberG: 1,
+            nutritionSource: .llmDirect
+        ),
+    ]
+
+    private static var mockFood: CapturedFood {
+        CapturedFood(
+            items: mockItems,
+            plateType: .mixed,
+            source: .photo,
+            confidence: 0.88,
+            needsSecondPhoto: false,
+            secondPhotoHint: nil,
+            kcalLow: 500, kcalHigh: 600
+        )
+    }
+
+    private static let mockPhoto: UIImage = {
+        let size = CGSize(width: 1080, height: 1920)
+        return UIGraphicsImageRenderer(size: size).image { ctx in
+            let gradient = CGGradient(
+                colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                colors: [
+                    UIColor(red: 0.94, green: 0.78, blue: 0.79, alpha: 1).cgColor,
+                    UIColor(red: 0.85, green: 0.55, blue: 0.62, alpha: 1).cgColor,
+                ] as CFArray,
+                locations: [0, 1]
+            )!
+            ctx.cgContext.drawLinearGradient(
+                gradient, start: .zero,
+                end: CGPoint(x: size.width, y: size.height),
+                options: []
+            )
+        }
+    }()
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                Color(red: 0.992, green: 0.965, blue: 0.957).ignoresSafeArea()
+                NutritionCarousel(
+                    result: Self.mockFood,
+                    photo: Self.mockPhoto,
+                    mealLabel: "Breakfast",
+                    dishName: "morning plate",
+                    carouselHeight: geo.size.height - 60
+                )
+                .padding(.top, 50)
             }
         }
     }

@@ -857,6 +857,9 @@ public struct PhotoCaptureView: View {
 
                     NutritionCarousel(
                         result: result,
+                        photo: galleryImage ?? camera.frozenFrame,
+                        mealLabel: mealTypeLabel,
+                        dishName: dishNameLabel(result),
                         carouselHeight: max(380, geo.size.height - 24),
                         onCorrect: { corrected in
                             // v1.0.8 Phase U — tweak applied. Update
