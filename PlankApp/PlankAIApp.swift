@@ -810,6 +810,8 @@ private struct HandwrittenSharePreviewHarness: View {
 
 private struct HandwrittenWeeklyPreviewHarness: View {
     @State private var archetype: String = "protein"
+    @State private var pickedItems: [PhotosPickerItem] = []
+    @State private var pickedPhotos: [UIImage] = []
     private let archetypes = ["protein", "balanced", "movement", "rest"]
 
     var body: some View {
@@ -817,34 +819,88 @@ private struct HandwrittenWeeklyPreviewHarness: View {
             let scale = min(geo.size.width / 1080, geo.size.height / 1920)
             ZStack {
                 Color.black.ignoresSafeArea()
-                HandwrittenWeeklyShareCard.preview(archetype: archetype)
-                    .frame(width: 1080, height: 1920)
-                    .scaleEffect(scale, anchor: UnitPoint.center)
-                    .frame(width: geo.size.width, height: geo.size.height)
-                VStack {
-                    Spacer()
-                    HStack(spacing: 12) {
-                        ForEach(archetypes, id: \.self) { name in
-                            Button { archetype = name } label: {
-                                Text(name)
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        Capsule().fill(
-                                            archetype == name
-                                                ? Color.white.opacity(0.35)
-                                                : Color.white.opacity(0.12)
-                                        )
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.bottom, 20)
+                HandwrittenWeeklyShareCard.preview(
+                    archetype: archetype,
+                    photos: pickedPhotos
+                )
+                .frame(width: 1080, height: 1920)
+                .scaleEffect(scale, anchor: UnitPoint.center)
+                .frame(width: geo.size.width, height: geo.size.height)
+                overlayControls
+            }
+        }
+        .task(id: pickedItems) {
+            var loaded: [UIImage] = []
+            for item in pickedItems.prefix(6) {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let img = UIImage(data: data) {
+                    loaded.append(img)
                 }
             }
+            pickedPhotos = loaded
+        }
+    }
+
+    @ViewBuilder private var overlayControls: some View {
+        VStack {
+            HStack {
+                PhotosPicker(
+                    selection: $pickedItems,
+                    maxSelectionCount: 6,
+                    matching: .images
+                ) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "photo.on.rectangle")
+                            .font(.system(size: 12, weight: .medium))
+                        Text("pick up to 6 photos")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.white.opacity(0.18)))
+                }
+                Spacer()
+                if !pickedPhotos.isEmpty {
+                    Button {
+                        pickedPhotos = []
+                        pickedItems = []
+                    } label: {
+                        Text("reset")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(Color.white.opacity(0.18)))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+
+            Spacer()
+
+            HStack(spacing: 12) {
+                ForEach(archetypes, id: \.self) { name in
+                    Button { archetype = name } label: {
+                        Text(name)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule().fill(
+                                    archetype == name
+                                        ? Color.white.opacity(0.35)
+                                        : Color.white.opacity(0.12)
+                                )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.bottom, 20)
         }
     }
 }

@@ -427,29 +427,47 @@ private extension HandwrittenWeeklyShareCard {
 // MARK: - Public preview helper
 
 extension HandwrittenWeeklyShareCard {
-    public static func preview(archetype: String? = "protein") -> HandwrittenWeeklyShareCard {
+    /// Mock cell IDs the preview() helper assigns — exposed so the
+    /// main-app harness can build a positional photos dict against the
+    /// same keys.
+    public static let previewCellIds: [String] = [
+        "preview-0", "preview-1", "preview-2",
+        "preview-3", "preview-4", "preview-5",
+    ]
+
+    public static func preview(
+        archetype: String? = "protein",
+        photos: [UIImage] = []
+    ) -> HandwrittenWeeklyShareCard {
         let cal = Calendar.current
         let weekStart = cal.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+        let titles = [
+            "yogurt + berries",
+            "matcha latte",
+            "chipotle bowl",
+            "salmon rice bowl",
+            "avocado toast",
+            "chicken caesar",
+        ]
         let mockCells = (0..<6).map { i -> WeeklyShareCell in
             let day = cal.date(byAdding: .day, value: i, to: weekStart) ?? weekStart
-            let titles = [
-                "yogurt + berries",
-                "matcha latte",
-                "chipotle bowl",
-                "salmon rice bowl",
-                "avocado toast",
-                "chicken caesar",
-            ]
             return WeeklyShareCell(
-                entryId: "preview-\(i)",
+                entryId: previewCellIds[i],
                 date: day,
                 title: titles[i]
             )
         }
+        // Map up to 6 supplied images into the photos dict keyed by the
+        // mock cell IDs. Cells without a supplied photo render the soft
+        // pink text-fallback panel as before.
+        var photosDict: [String: UIImage] = [:]
+        for (i, photo) in photos.prefix(6).enumerated() {
+            photosDict[previewCellIds[i]] = photo
+        }
         return HandwrittenWeeklyShareCard(
             weekStart: weekStart,
             cells: mockCells,
-            photos: [:],
+            photos: photosDict,
             archetype: archetype
         )
     }
