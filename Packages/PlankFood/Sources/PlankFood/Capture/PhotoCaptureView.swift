@@ -132,6 +132,7 @@ public struct PhotoCaptureView: View {
     /// space below the viewfinder during the vision API window.
     @State private var waitLineRevealed: Bool = false
 
+
     /// v1.0.8 Phase R.5 — gallery-upload photo. When the user picks
     /// from the photo library, this UIImage replaces the live preview
     /// as the camera content so the scan + result phase behave identical
@@ -168,6 +169,14 @@ public struct PhotoCaptureView: View {
 
     public let onDismiss: () -> Void
     public let onCaptured: (CapturedFood, UIImage?) -> Void
+
+    /// v1.0.21 (2026-06-18) — fired the moment a scan result lands
+    /// (before the user taps "log it"). Hosts wire this to drive
+    /// the post-snap Lottie wow moment that lives at the
+    /// CaptureFlowView layer (Lottie is a main-app dependency, not
+    /// a PlankFood one). Defaults to a no-op so existing call sites
+    /// don't change.
+    public var onResultLanded: () -> Void = {}
     public let onQuickAddTapped: () -> Void
     public let onImOutTapped: () -> Void
 
@@ -177,12 +186,14 @@ public struct PhotoCaptureView: View {
         onDismiss: @escaping () -> Void,
         onCaptured: @escaping (CapturedFood, UIImage?) -> Void,
         onQuickAddTapped: @escaping () -> Void = {},
-        onImOutTapped: @escaping () -> Void = {}
+        onImOutTapped: @escaping () -> Void = {},
+        onResultLanded: @escaping () -> Void = {}
     ) {
         self.onDismiss = onDismiss
         self.onCaptured = onCaptured
         self.onQuickAddTapped = onQuickAddTapped
         self.onImOutTapped = onImOutTapped
+        self.onResultLanded = onResultLanded
     }
 
     // MARK: - Body
@@ -420,6 +431,11 @@ public struct PhotoCaptureView: View {
             // The soft haptic alone is enough of a "got it ♥" beat.
             if hasResult {
                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                // v1.0.21 — bubble up to the main-app host so it can
+                // fire the Lottie heart + star explosion overlay.
+                // Bell rings in PlankFood-land; cake is baked in
+                // PlankApp-land.
+                onResultLanded()
             }
         }
         .animation(.easeInOut(duration: 0.3), value: galleryPreviewMode)

@@ -130,13 +130,24 @@ public struct NutritionCarousel: View {
         // share PNG dimensions) and scaled-to-fit the carousel slot
         // — so the in-app slide IS the share slide, no duplication.
         TabView(selection: $currentPage) {
+            // v1.0.21 (2026-06-18) — founder swapped slide order so
+            // the data → context → share-ready flow tells a tighter
+            // story: see the meal, see how it fits the day, then
+            // share. Share-ready slide moves to terminal position
+            // (the natural "I want to post this" swipe-out gesture).
             slideTab(index: 0) { ResultDecisionCard(
                 result: result,
                 mealLabel: mealLabel.isEmpty ? "today" : mealLabel,
                 dishName: dishName
             )}
 
-            slideTab(index: 1) { ResultOverlayCard(
+            slideTab(index: 1) { ResultDayInContextCard(
+                result: result,
+                targets: macroTargets,
+                glp1Status: glp1Status
+            )}
+
+            slideTab(index: 2) { ResultOverlayCard(
                 dishName: dishName,
                 mealLabel: mealLabel,
                 totalKcal: Int((result.totalKcal ?? 0).rounded()),
@@ -144,12 +155,6 @@ public struct NutritionCarousel: View {
                 totalFiber: Int(result.items.compactMap { $0.fiberG }.reduce(0, +).rounded()),
                 loggedAt: Date(),
                 itemCount: result.items.count
-            )}
-
-            slideTab(index: 2) { ResultDayInContextCard(
-                result: result,
-                targets: macroTargets,
-                glp1Status: glp1Status
             )}
         }
         .tabViewStyle(.page(indexDisplayMode: .never))

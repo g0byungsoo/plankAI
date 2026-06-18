@@ -30,6 +30,13 @@ public struct CaptureFlowView: View {
     /// quality archetype build (2026-06-17).
     public let archetypeHint: String?
     public let onDismiss: () -> Void
+    /// v1.0.21 (2026-06-18) — host hook for the post-snap Lottie wow
+    /// moment. Fired the moment a scan result lands (before the user
+    /// taps "log it"). PlankApp's FoodResultExplosion (heart + star
+    /// Lottie) listens here. Lottie is a main-app dependency, not a
+    /// PlankFood one, so the hook is just a closure — PlankApp owns
+    /// the actual animation view.
+    public var onResultLanded: () -> Void = {}
 
     @Environment(\.modelContext) private var modelContext
 
@@ -50,11 +57,13 @@ public struct CaptureFlowView: View {
         userId: String,
         cuisineProfile: String? = nil,
         archetypeHint: String? = nil,
-        onDismiss: @escaping () -> Void
+        onDismiss: @escaping () -> Void,
+        onResultLanded: @escaping () -> Void = {}
     ) {
         self.userId = userId
         self.cuisineProfile = cuisineProfile
         self.archetypeHint = archetypeHint
+        self.onResultLanded = onResultLanded
         self.onDismiss = onDismiss
         // Apple 5.1.2(i) gate — first scan must surface the disclosure
         // before any photo is taken. After consent, the FoodOnboarding
@@ -119,7 +128,8 @@ public struct CaptureFlowView: View {
                         logTapped(food)
                     },
                     onQuickAddTapped: { phase = .quickAdd },
-                    onImOutTapped: { phase = .imOut }
+                    onImOutTapped: { phase = .imOut },
+                    onResultLanded: onResultLanded
                 )
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
 

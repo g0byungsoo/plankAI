@@ -156,6 +156,12 @@ struct PlanView: View {
     // Live data for snap-meal subtitle (today's calorie total +
     // meal count from FoodLogPersister's in-memory store).
     @State private var todayKcal: Int = 0
+
+    /// v1.0.21 (2026-06-18) — increments each time CaptureFlowView
+    /// reports a scan result landed. The Lottie heart + star
+    /// explosion uses this as its `.id()` bump so the playback
+    /// restarts from frame 0 on every new scan.
+    @State private var scanExplosionTrigger: Int = -1
     @State private var todayMealsLogged: Int = 0
 
     // v6 fat-row embed data (simplified from v5 per founder QA)
@@ -299,17 +305,32 @@ struct PlanView: View {
             }
 
         case .captureFlow:
-            CaptureFlowView(
-                userId: userId,
-                cuisineProfile: cuisineProfileCSV.isEmpty ? nil : cuisineProfileCSV,
-                onDismiss: {
-                    dismissCover()
-                    refreshTodayFood()
-                    if todayKcal > 0 {
-                        markAutoCompleted(.snapMeal)
+            ZStack {
+                CaptureFlowView(
+                    userId: userId,
+                    cuisineProfile: cuisineProfileCSV.isEmpty ? nil : cuisineProfileCSV,
+                    onDismiss: {
+                        dismissCover()
+                        refreshTodayFood()
+                        if todayKcal > 0 {
+                            markAutoCompleted(.snapMeal)
+                        }
+                    },
+                    onResultLanded: {
+                        // v1.0.21 — the wow moment. The Lottie heart
+                        // + star explosion replays from frame 0 each
+                        // time triggerId bumps.
+                        scanExplosionTrigger += 1
                     }
-                }
-            )
+                )
+
+                // v1.0.21 (2026-06-18) — TikTok/IG-girl-post register
+                // wow moment per founder direction. Heart + star
+                // Lottie burst that fires the instant the scan result
+                // lands; reduce-motion gates straight to nothing.
+                FoodResultExplosion(triggerId: scanExplosionTrigger)
+                    .allowsHitTesting(false)
+            }
             // v1.1 — kills the black frame the system cover paints
             // before the view draws (founder: "screen goes black for
             // milliseconds").
