@@ -207,6 +207,10 @@ public struct HandwrittenWeeklyShareCard: View {
             .flatMap { $0.components(separatedBy: " and ") }
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
+            // Legacy title heuristic stuffs "+ N more" placeholders;
+            // drop them so we never render "2 more" as if it were a
+            // food name. Shared filter lives on the daily card.
+            .filter { !HandwrittenDailyShareCard.isCountMorePlaceholder($0) }
         if parts.isEmpty { parts = [title] }
         return Array(parts.prefix(5))
     }

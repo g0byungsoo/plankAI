@@ -230,8 +230,28 @@ public struct HandwrittenDailyShareCard: View {
             .flatMap { $0.components(separatedBy: " and ") }
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
+            // Legacy titles bake the "+ N more" placeholder into the
+            // string itself ("guacamole + 2 more"). Splitting yields
+            // ["guacamole", "2 more"] — we don't actually have those
+            // N items, so drop the placeholder rather than pretend
+            // "2 more" is a food.
+            .filter { !Self.isCountMorePlaceholder($0) }
         if parts.isEmpty { parts = [title] }
         return Array(parts.prefix(6))
+    }
+
+    /// Matches "N more" / "+N more" / "+ 2 more" — the count-then-more
+    /// placeholder PersistLog drops into legacy titles. New (v1.0.13+)
+    /// entries store the real items array and never hit this path.
+    static func isCountMorePlaceholder(_ s: String) -> Bool {
+        let trimmed = s.trimmingCharacters(in: .whitespaces)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "+"))
+            .trimmingCharacters(in: .whitespaces)
+        guard let spaceIdx = trimmed.firstIndex(of: " ") else { return false }
+        let head = trimmed[..<spaceIdx]
+        let tail = trimmed[trimmed.index(after: spaceIdx)...]
+            .trimmingCharacters(in: .whitespaces)
+        return Int(head) != nil && tail == "more"
     }
 
     /// Macro caption per cell. Founder direction (2026-06-18): spell
