@@ -38,57 +38,102 @@ public struct HandwrittenWeeklyShareCard: View {
                 .frame(width: 1080, height: 1920)
 
             seamPill
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .offset(y: 640 - 30)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
         .frame(width: 1080, height: 1920)
         .background(Color(red: 0.97, green: 0.94, blue: 0.88))
     }
 
-    // MARK: - Photo grid (2×3, zero-gap, edge-to-edge)
+    // MARK: - Photo grid (dynamic, zero-gap, edge-to-edge)
+    //
+    // v1.0.14 (2026-06-18) — cap at 10 cells (5 rows × 2 cols, each
+    // 540×384). Anything more crowds the labels even at the smallest
+    // font ladder; founder asked for a "last N meals" framing rather
+    // than a strict week boundary, so 10 is the visible cap and the
+    // pill names whatever count actually rendered.
+
+    private var visibleCells: [WeeklyShareCell] {
+        Array(cells.prefix(10))
+    }
+
+    private var gridGeometry: (rows: Int, cols: Int) {
+        let count = visibleCells.count
+        switch count {
+        case 0, 1: return (1, 1)
+        case 2:    return (2, 1)
+        case 3, 4: return (2, 2)
+        case 5, 6: return (3, 2)
+        case 7, 8: return (4, 2)
+        default:   return (5, 2)
+        }
+    }
+
+    private var cellSize: (width: CGFloat, height: CGFloat) {
+        let g = gridGeometry
+        return (1080.0 / CGFloat(g.cols), 1920.0 / CGFloat(g.rows))
+    }
 
     @ViewBuilder private var photoGrid: some View {
-        let top = Array(cells.prefix(6))
+        let cells = visibleCells
+        let g = gridGeometry
+        let metrics = HandwrittenDailyShareCard.cellMetrics(forRows: g.rows)
         VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                cell(at: 0, in: top)
-                cell(at: 1, in: top)
-            }
-            HStack(spacing: 0) {
-                cell(at: 2, in: top)
-                cell(at: 3, in: top)
-            }
-            HStack(spacing: 0) {
-                cell(at: 4, in: top)
-                cell(at: 5, in: top)
+            ForEach(0..<g.rows, id: \.self) { rowIdx in
+                HStack(spacing: 0) {
+                    ForEach(0..<g.cols, id: \.self) { colIdx in
+                        let index = rowIdx * g.cols + colIdx
+                        cell(
+                            at: index,
+                            rowIdx: rowIdx, colIdx: colIdx,
+                            in: cells,
+                            metrics: metrics
+                        )
+                    }
+                }
             }
         }
         .frame(width: 1080, height: 1920)
     }
 
     @ViewBuilder
-    private func cell(at index: Int, in cells: [WeeklyShareCell]) -> some View {
+    private func cell(
+        at index: Int,
+        rowIdx: Int,
+        colIdx: Int,
+        in cells: [WeeklyShareCell],
+        metrics: HandwrittenDailyShareCard.CellMetrics
+    ) -> some View {
+        let size = cellSize
         if cells.indices.contains(index) {
             let cell = cells[index]
             ZStack {
-                photoBackground(for: cell)
-                cellLabel(for: cell, position: position(for: index))
+                photoBackground(for: cell, size: size)
+                cellLabel(
+                    for: cell,
+                    position: HandwrittenDailyShareCard.position(
+                        rowIdx: rowIdx, colIdx: colIdx
+                    ),
+                    metrics: metrics
+                )
             }
-            .frame(width: 540, height: 640)
+            .frame(width: size.width, height: size.height)
             .clipped()
         } else {
             emptyCellPlaceholder
-                .frame(width: 540, height: 640)
+                .frame(width: size.width, height: size.height)
         }
     }
 
     @ViewBuilder
-    private func photoBackground(for cell: WeeklyShareCell) -> some View {
+    private func photoBackground(
+        for cell: WeeklyShareCell,
+        size: (width: CGFloat, height: CGFloat)
+    ) -> some View {
         if let photo = photos[cell.entryId] {
             Image(uiImage: photo)
                 .resizable()
                 .scaledToFill()
-                .frame(width: 540, height: 640)
+                .frame(width: size.width, height: size.height)
                 .clipped()
         } else {
             LinearGradient(
@@ -99,7 +144,7 @@ public struct HandwrittenWeeklyShareCard: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            .frame(width: 540, height: 640)
+            .frame(width: size.width, height: size.height)
         }
     }
 
@@ -114,27 +159,13 @@ public struct HandwrittenWeeklyShareCard: View {
 
     // MARK: - Per-cell label
 
-    /// Rotates corner positions across the 6 cells so no two
-    /// adjacent cells share a corner. Pattern picks the 4 corners
-    /// then repeats — every cell still gets a clean diagonal arrow.
-    private func position(for index: Int) -> HandwrittenDailyShareCard.CellLabelPosition {
-        switch index {
-        case 0: return .topRight     // top row,    left  cell
-        case 1: return .bottomLeft   // top row,    right cell
-        case 2: return .bottomRight  // middle row, left  cell
-        case 3: return .topLeft      // middle row, right cell
-        case 4: return .topRight     // bot row,    left  cell
-        case 5: return .bottomLeft   // bot row,    right cell
-        default: return .topRight
-        }
-    }
-
     @ViewBuilder
     private func cellLabel(
         for cell: WeeklyShareCell,
-        position: HandwrittenDailyShareCard.CellLabelPosition
+        position: HandwrittenDailyShareCard.CellLabelPosition,
+        metrics: HandwrittenDailyShareCard.CellMetrics
     ) -> some View {
-        let lines = labelLines(for: cell)
+        let lines = Array(labelLines(for: cell).prefix(metrics.maxItems))
         let macroLine = macroCaption(for: cell)
         let alignment: Alignment = {
             switch position {
@@ -150,29 +181,33 @@ public struct HandwrittenWeeklyShareCard: View {
         let stackAlign: HorizontalAlignment = (position == .topLeft || position == .bottomLeft)
             ? .leading : .trailing
 
-        VStack(alignment: stackAlign, spacing: 12) {
+        VStack(alignment: stackAlign, spacing: metrics.stackSpacing) {
             if isTop {
-                itemStack(lines, align: textAlign)
-                macroCaptionView(macroLine)
+                itemStack(lines, align: textAlign, metrics: metrics)
+                macroCaptionView(macroLine, metrics: metrics)
             } else {
-                macroCaptionView(macroLine)
-                itemStack(lines, align: textAlign)
+                macroCaptionView(macroLine, metrics: metrics)
+                itemStack(lines, align: textAlign, metrics: metrics)
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 36)
+        .padding(.horizontal, metrics.hPad)
+        .padding(.vertical, metrics.vPad)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
     }
 
     @ViewBuilder
-    private func itemStack(_ lines: [String], align: TextAlignment) -> some View {
+    private func itemStack(
+        _ lines: [String],
+        align: TextAlignment,
+        metrics: HandwrittenDailyShareCard.CellMetrics
+    ) -> some View {
         let hAlign: HorizontalAlignment = (align == .leading) ? .leading
                                         : (align == .trailing) ? .trailing
                                         : .center
-        VStack(alignment: hAlign, spacing: 5) {
+        VStack(alignment: hAlign, spacing: metrics.itemsSpacing) {
             ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
                 Text(line)
-                    .font(.custom("BradleyHandITCTT-Bold", size: 28))
+                    .font(.custom("BradleyHandITCTT-Bold", size: metrics.itemsFont))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(align)
                     .shadow(color: .black.opacity(0.50), radius: 6, x: 0, y: 2)
@@ -181,9 +216,12 @@ public struct HandwrittenWeeklyShareCard: View {
     }
 
     @ViewBuilder
-    private func macroCaptionView(_ line: String) -> some View {
+    private func macroCaptionView(
+        _ line: String,
+        metrics: HandwrittenDailyShareCard.CellMetrics
+    ) -> some View {
         Text(line)
-            .font(.custom("BradleyHandITCTT-Bold", size: 18))
+            .font(.custom("BradleyHandITCTT-Bold", size: metrics.macroFont))
             .foregroundStyle(.white.opacity(0.92))
             .shadow(color: .black.opacity(0.50), radius: 6, x: 0, y: 2)
     }
@@ -247,10 +285,14 @@ public struct HandwrittenWeeklyShareCard: View {
             )
     }
 
+    /// v1.0.14 (2026-06-18) — "last N meals" framing per founder
+    /// request: the card no longer pretends to enforce a strict week
+    /// boundary (one entry per day) — it's just whatever recent meals
+    /// have photos, capped at 10. Pill names whatever count actually
+    /// rendered.
     private var pillLabel: String {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "MMM d"
-        return "Week of \(fmt.string(from: weekStart))"
+        let count = visibleCells.count
+        return count == 1 ? "last meal" : "last \(count) meals"
     }
 }
 
@@ -261,8 +303,8 @@ extension HandwrittenWeeklyShareCard {
     /// main-app harness can build a positional photos dict against
     /// the same keys.
     public static let previewCellIds: [String] = [
-        "preview-0", "preview-1", "preview-2",
-        "preview-3", "preview-4", "preview-5",
+        "preview-0", "preview-1", "preview-2", "preview-3", "preview-4",
+        "preview-5", "preview-6", "preview-7", "preview-8", "preview-9",
     ]
 
     public static func preview(
@@ -272,12 +314,10 @@ extension HandwrittenWeeklyShareCard {
         let cal = Calendar.current
         let weekStart = cal.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
         let titles = [
-            "greek yogurt with berries, granola, honey",
-            "matcha latte and almond croissant",
-            "chipotle bowl with chicken, rice, beans",
-            "salmon rice bowl with avocado, edamame",
-            "avocado toast with egg, microgreens",
-            "chicken caesar with parmesan, croutons",
+            "greek yogurt", "matcha latte", "chipotle bowl",
+            "salmon rice bowl", "avocado toast", "chicken caesar",
+            "scrambled eggs", "berry smoothie", "tofu stir fry",
+            "pesto pasta",
         ]
         let mockItems: [[String]] = [
             ["greek yogurt", "berries", "granola", "honey"],
@@ -286,19 +326,20 @@ extension HandwrittenWeeklyShareCard {
             ["salmon rice bowl", "avocado", "edamame", "tamari"],
             ["avocado toast", "egg", "microgreens"],
             ["chicken caesar", "parmesan", "croutons", "lemon"],
+            ["scrambled eggs", "spinach", "feta"],
+            ["berry smoothie", "banana", "spinach", "almond milk"],
+            ["tofu stir fry", "bok choy", "ginger", "rice"],
+            ["pesto pasta", "tomato", "parmesan", "basil"],
         ]
         let mockMacros: [(Double, Double, Double)] = [
-            (430, 22, 6),
-            (340, 8, 2),
-            (640, 38, 11),
-            (580, 32, 8),
-            (380, 18, 5),
-            (520, 36, 4),
+            (430, 22, 6), (340, 8, 2), (640, 38, 11), (580, 32, 8),
+            (380, 18, 5), (520, 36, 4), (310, 24, 3), (260, 12, 6),
+            (490, 26, 7), (610, 20, 5),
         ]
-        let mockCells = (0..<6).map { i -> WeeklyShareCell in
-            let day = cal.date(byAdding: .day, value: i, to: weekStart) ?? weekStart
+        let mockCells = (0..<10).map { i -> WeeklyShareCell in
+            let day = cal.date(byAdding: .day, value: i / 2, to: weekStart) ?? weekStart
             let loggedAt = cal.date(
-                bySettingHour: 8 + i, minute: 30, second: 0, of: day
+                bySettingHour: 8 + (i * 2), minute: 30, second: 0, of: day
             ) ?? day
             let (k, p, f) = mockMacros[i]
             return WeeklyShareCell(
@@ -313,7 +354,7 @@ extension HandwrittenWeeklyShareCard {
             )
         }
         var photosDict: [String: UIImage] = [:]
-        for (i, photo) in photos.prefix(6).enumerated() {
+        for (i, photo) in photos.prefix(10).enumerated() where i < previewCellIds.count {
             photosDict[previewCellIds[i]] = photo
         }
         return HandwrittenWeeklyShareCard(
@@ -335,39 +376,35 @@ public enum HandwrittenWeeklyShareRenderer {
         userId: String,
         archetype: String? = nil
     ) -> UIImage? {
-        let cal = Calendar.current
-        let weekStart = cal.dateInterval(of: .weekOfYear, for: referenceDate)?.start
-            ?? cal.startOfDay(for: referenceDate)
-        let weekEnd = cal.date(byAdding: .day, value: 7, to: weekStart) ?? referenceDate
+        // v1.0.14 (2026-06-18) — "last 10 meals" framing per founder
+        // request. Previous renderer enforced one-photo-per-day across
+        // the week (max 6 cells); the new framing drops the day
+        // constraint and just pulls the 10 most recent photo-backed
+        // entries (sorted oldest→newest for display order). Caller's
+        // referenceDate parameter is kept for API parity but no longer
+        // gates the window.
+        _ = referenceDate
 
         let entries = FoodLogPersister.allEntries(userId: userId)
-            .filter { $0.loggedAt >= weekStart && $0.loggedAt < weekEnd }
+            .filter { FoodPhotoStore.hasPhoto(entryId: $0.id) }
+        // allEntries returns newest first; take the 10 most recent
+        // then flip to chronological so the share reads earliest →
+        // latest left-to-right top-to-bottom.
+        let recent = Array(entries.prefix(10).reversed())
+        guard !recent.isEmpty else { return nil }
 
-        var perDay: [Date: FoodLogPersister.FoodLogEntry] = [:]
-        for entry in entries {
-            guard FoodPhotoStore.hasPhoto(entryId: entry.id) else { continue }
-            let day = cal.startOfDay(for: entry.loggedAt)
-            if let prior = perDay[day], prior.loggedAt >= entry.loggedAt { continue }
-            perDay[day] = entry
+        let chronological = recent.map { entry -> WeeklyShareCell in
+            WeeklyShareCell(
+                entryId: entry.id,
+                date: Calendar.current.startOfDay(for: entry.loggedAt),
+                title: entry.title,
+                loggedAt: entry.loggedAt,
+                kcal: entry.kcal,
+                protein: entry.protein,
+                fiber: entry.fiber,
+                items: entry.items
+            )
         }
-
-        guard !perDay.isEmpty else { return nil }
-
-        let chronological = perDay
-            .sorted { $0.key < $1.key }
-            .prefix(6)
-            .map { (day, entry) in
-                WeeklyShareCell(
-                    entryId: entry.id,
-                    date: day,
-                    title: entry.title,
-                    loggedAt: entry.loggedAt,
-                    kcal: entry.kcal,
-                    protein: entry.protein,
-                    fiber: entry.fiber,
-                    items: entry.items
-                )
-            }
 
         var photos: [String: UIImage] = [:]
         for cell in chronological {
@@ -376,9 +413,13 @@ public enum HandwrittenWeeklyShareRenderer {
             }
         }
 
+        let weekStart = recent.first.map {
+            Calendar.current.startOfDay(for: $0.loggedAt)
+        } ?? Date()
+
         let card = HandwrittenWeeklyShareCard(
             weekStart: weekStart,
-            cells: Array(chronological),
+            cells: chronological,
             photos: photos,
             archetype: archetype
         )

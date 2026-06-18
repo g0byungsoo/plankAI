@@ -46,18 +46,57 @@ public struct HandwrittenDailyShareCard: View {
         .background(Color(red: 0.97, green: 0.94, blue: 0.88))
     }
 
-    // MARK: - Photo grid (2×2, zero-gap, edge-to-edge)
+    // MARK: - Photo grid (dynamic, zero-gap, edge-to-edge)
+    //
+    // v1.0.14 (2026-06-18) — grid geometry now derived from
+    // entries.count so 6 logs render as 3×2, 8 as 4×2, etc. Hard
+    // cap at 8 cells (4 rows × 2 cols) — anything past that risks
+    // unreadable cell labels even with the scaled font ladder.
+    //
+    //  count → (rows, cols)
+    //    0,1 → (1, 1)
+    //      2 → (2, 1)
+    //    3,4 → (2, 2)
+    //    5,6 → (3, 2)
+    //    7,8 → (4, 2)
+
+    private var visibleEntries: [FoodLogPersister.FoodLogEntry] {
+        Array(entries.prefix(8))
+    }
+
+    private var gridGeometry: (rows: Int, cols: Int) {
+        let count = visibleEntries.count
+        switch count {
+        case 0, 1: return (1, 1)
+        case 2:    return (2, 1)
+        case 3, 4: return (2, 2)
+        case 5, 6: return (3, 2)
+        default:   return (4, 2)
+        }
+    }
+
+    private var cellSize: (width: CGFloat, height: CGFloat) {
+        let g = gridGeometry
+        return (1080.0 / CGFloat(g.cols), 1920.0 / CGFloat(g.rows))
+    }
 
     @ViewBuilder private var photoGrid: some View {
-        let top = Array(entries.prefix(4))
+        let entries = visibleEntries
+        let g = gridGeometry
+        let metrics = cellMetrics(forRows: g.rows)
         VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                cell(at: 0, in: top)
-                cell(at: 1, in: top)
-            }
-            HStack(spacing: 0) {
-                cell(at: 2, in: top)
-                cell(at: 3, in: top)
+            ForEach(0..<g.rows, id: \.self) { rowIdx in
+                HStack(spacing: 0) {
+                    ForEach(0..<g.cols, id: \.self) { colIdx in
+                        let index = rowIdx * g.cols + colIdx
+                        cell(
+                            at: index,
+                            rowIdx: rowIdx, colIdx: colIdx,
+                            in: entries,
+                            metrics: metrics
+                        )
+                    }
+                }
             }
         }
         .frame(width: 1080, height: 1920)
@@ -66,29 +105,40 @@ public struct HandwrittenDailyShareCard: View {
     @ViewBuilder
     private func cell(
         at index: Int,
-        in entries: [FoodLogPersister.FoodLogEntry]
+        rowIdx: Int,
+        colIdx: Int,
+        in entries: [FoodLogPersister.FoodLogEntry],
+        metrics: CellMetrics
     ) -> some View {
+        let size = cellSize
         if entries.indices.contains(index) {
             let entry = entries[index]
             ZStack {
-                photoBackground(for: entry)
-                cellLabel(for: entry, position: position(for: index))
+                photoBackground(for: entry, size: size)
+                cellLabel(
+                    for: entry,
+                    position: position(rowIdx: rowIdx, colIdx: colIdx),
+                    metrics: metrics
+                )
             }
-            .frame(width: 540, height: 960)
+            .frame(width: size.width, height: size.height)
             .clipped()
         } else {
             emptyCellPlaceholder
-                .frame(width: 540, height: 960)
+                .frame(width: size.width, height: size.height)
         }
     }
 
     @ViewBuilder
-    private func photoBackground(for entry: FoodLogPersister.FoodLogEntry) -> some View {
+    private func photoBackground(
+        for entry: FoodLogPersister.FoodLogEntry,
+        size: (width: CGFloat, height: CGFloat)
+    ) -> some View {
         if let photo = photos[entry.id] {
             Image(uiImage: photo)
                 .resizable()
                 .scaledToFill()
-                .frame(width: 540, height: 960)
+                .frame(width: size.width, height: size.height)
                 .clipped()
         } else {
             LinearGradient(
@@ -99,7 +149,7 @@ public struct HandwrittenDailyShareCard: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            .frame(width: 540, height: 960)
+            .frame(width: size.width, height: size.height)
         }
     }
 
@@ -112,6 +162,55 @@ public struct HandwrittenDailyShareCard: View {
         }
     }
 
+    // MARK: - Cell metrics
+    //
+    // Per-row font + padding ladder so denser grids stay readable.
+    // Item count caps with the rows too — a 4-row grid only has
+    // ~480pt of cell height, can't fit 6 ingredients without
+    // overflow.
+
+    struct CellMetrics {
+        let itemsFont: CGFloat
+        let macroFont: CGFloat
+        let itemsSpacing: CGFloat
+        let stackSpacing: CGFloat
+        let hPad: CGFloat
+        let vPad: CGFloat
+        let maxItems: Int
+    }
+
+    /// Static so the weekly card (same module, different type) can
+    /// reuse the same row-count → font/padding ladder without
+    /// duplicating the table.
+    static func cellMetrics(forRows rows: Int) -> CellMetrics {
+        switch rows {
+        case 1: return CellMetrics(
+            itemsFont: 48, macroFont: 28, itemsSpacing: 12, stackSpacing: 22,
+            hPad: 64, vPad: 110, maxItems: 8
+        )
+        case 2: return CellMetrics(
+            itemsFont: 32, macroFont: 20, itemsSpacing: 6, stackSpacing: 14,
+            hPad: 28, vPad: 50, maxItems: 6
+        )
+        case 3: return CellMetrics(
+            itemsFont: 26, macroFont: 17, itemsSpacing: 5, stackSpacing: 12,
+            hPad: 22, vPad: 32, maxItems: 5
+        )
+        case 4: return CellMetrics(
+            itemsFont: 22, macroFont: 14, itemsSpacing: 4, stackSpacing: 9,
+            hPad: 18, vPad: 22, maxItems: 4
+        )
+        default: return CellMetrics(
+            itemsFont: 20, macroFont: 13, itemsSpacing: 3, stackSpacing: 8,
+            hPad: 16, vPad: 18, maxItems: 3
+        )
+        }
+    }
+
+    private func cellMetrics(forRows rows: Int) -> CellMetrics {
+        Self.cellMetrics(forRows: rows)
+    }
+
     // MARK: - Per-cell text label
     //
     // Rotates label position per cell so labels don't all clump in
@@ -119,19 +218,23 @@ public struct HandwrittenDailyShareCard: View {
     // feel where the writer puts the text wherever there's empty
     // negative space on the photo.
 
-    /// Each cell gets a CORNER position so the arrow can travel a
-    /// consistent diagonal (~300pt) from text-edge to cell-center
-    /// without the fish-hook squiggle that happened on v5's bottom
-    /// row when text sat at center-right / bottom-center (arrow had
-    /// no room and rendered as a hook).
-    private func position(for index: Int) -> CellLabelPosition {
-        switch index {
-        case 0: return .topRight     // top-left  cell of grid
-        case 1: return .bottomLeft   // top-right cell of grid
-        case 2: return .topLeft      // bot-left  cell of grid
-        case 3: return .bottomRight  // bot-right cell of grid
-        default: return .topRight
+    /// 4-corner rotation indexed by (rowIdx, colIdx) so no two
+    /// vertically- or horizontally-adjacent cells share a corner.
+    /// Generalized from the v1.0.12 4-cell hardcoded mapping so the
+    /// dynamic grid (1–4 rows × 1–2 cols) gets the same visual
+    /// variety without per-count special cases.
+    static func position(rowIdx: Int, colIdx: Int) -> CellLabelPosition {
+        let key = (rowIdx * 2 + colIdx) % 4
+        switch key {
+        case 0: return .topRight
+        case 1: return .bottomLeft
+        case 2: return .topLeft
+        default: return .bottomRight
         }
+    }
+
+    private func position(rowIdx: Int, colIdx: Int) -> CellLabelPosition {
+        Self.position(rowIdx: rowIdx, colIdx: colIdx)
     }
 
     public enum CellLabelPosition: Sendable {
@@ -141,9 +244,10 @@ public struct HandwrittenDailyShareCard: View {
     @ViewBuilder
     private func cellLabel(
         for entry: FoodLogPersister.FoodLogEntry,
-        position: CellLabelPosition
+        position: CellLabelPosition,
+        metrics: CellMetrics
     ) -> some View {
-        let lines = labelLines(for: entry)
+        let lines = Array(labelLines(for: entry).prefix(metrics.maxItems))
         let macroLine = macroCaption(for: entry)
         let alignment: Alignment = {
             switch position {
@@ -159,32 +263,30 @@ public struct HandwrittenDailyShareCard: View {
         let stackAlign: HorizontalAlignment = (position == .topLeft || position == .bottomLeft)
             ? .leading : .trailing
 
-        VStack(alignment: stackAlign, spacing: 14) {
-            // When the label sits at the TOP corner, items render
-            // first then the macro caption below (reads top-down).
-            // At the BOTTOM corner, the macro caption renders ABOVE
-            // the items so the items still sit lowest in the cell —
-            // gives a consistent visual "items then chrome" or
-            // "chrome then items" depending on anchor.
+        VStack(alignment: stackAlign, spacing: metrics.stackSpacing) {
             if isTop {
-                itemStack(lines, align: textAlign)
-                macroCaptionView(macroLine)
+                itemStack(lines, align: textAlign, metrics: metrics)
+                macroCaptionView(macroLine, metrics: metrics)
             } else {
-                macroCaptionView(macroLine)
-                itemStack(lines, align: textAlign)
+                macroCaptionView(macroLine, metrics: metrics)
+                itemStack(lines, align: textAlign, metrics: metrics)
             }
         }
-        .padding(.horizontal, 28)
-        .padding(.vertical, 50)
+        .padding(.horizontal, metrics.hPad)
+        .padding(.vertical, metrics.vPad)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
     }
 
     @ViewBuilder
-    private func itemStack(_ lines: [String], align: TextAlignment) -> some View {
-        VStack(alignment: alignFor(align), spacing: 6) {
+    private func itemStack(
+        _ lines: [String],
+        align: TextAlignment,
+        metrics: CellMetrics
+    ) -> some View {
+        VStack(alignment: alignFor(align), spacing: metrics.itemsSpacing) {
             ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
                 Text(line)
-                    .font(.custom("BradleyHandITCTT-Bold", size: 32))
+                    .font(.custom("BradleyHandITCTT-Bold", size: metrics.itemsFont))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(align)
                     .shadow(color: .black.opacity(0.50), radius: 6, x: 0, y: 2)
@@ -202,9 +304,9 @@ public struct HandwrittenDailyShareCard: View {
     }
 
     @ViewBuilder
-    private func macroCaptionView(_ line: String) -> some View {
+    private func macroCaptionView(_ line: String, metrics: CellMetrics) -> some View {
         Text(line)
-            .font(.custom("BradleyHandITCTT-Bold", size: 20))
+            .font(.custom("BradleyHandITCTT-Bold", size: metrics.macroFont))
             .foregroundStyle(.white.opacity(0.92))
             .shadow(color: .black.opacity(0.50), radius: 6, x: 0, y: 2)
     }
@@ -214,13 +316,13 @@ public struct HandwrittenDailyShareCard: View {
     /// vision-ranked order — what the founder asked for); falls back
     /// to splitting `title` on common separators for legacy entries
     /// written before items was persisted (v1.0.12 and earlier).
+    /// Caller (cellLabel) clamps the final count via CellMetrics.maxItems
+    /// so a denser grid drops the long tail rather than overflowing.
     private func labelLines(for entry: FoodLogPersister.FoodLogEntry) -> [String] {
         if let items = entry.items, !items.isEmpty {
             return items
                 .map { $0.lowercased().trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
-                .prefix(6)
-                .map { String($0) }
         }
         let title = entry.title.isEmpty ? "kept plate" : entry.title.lowercased()
         let splitChars = CharacterSet(charactersIn: ",+&")
@@ -237,7 +339,7 @@ public struct HandwrittenDailyShareCard: View {
             // "2 more" is a food.
             .filter { !Self.isCountMorePlaceholder($0) }
         if parts.isEmpty { parts = [title] }
-        return Array(parts.prefix(6))
+        return parts
     }
 
     /// Matches "N more" / "+N more" / "+ 2 more" — the count-then-more
@@ -302,7 +404,8 @@ public struct HandwrittenDailyShareCard: View {
 
 extension HandwrittenDailyShareCard {
     public static let previewEntryIds: [String] = [
-        "preview-1", "preview-2", "preview-3", "preview-4",
+        "preview-1", "preview-2", "preview-3",
+        "preview-4", "preview-5", "preview-6",
     ]
 
     public static func preview(
@@ -318,7 +421,7 @@ extension HandwrittenDailyShareCard {
             FoodLogPersister.FoodLogEntry(
                 id: "preview-1",
                 loggedAt: at(8, 42),
-                title: "avocado toast + 3 more",
+                title: "avocado toast",
                 kcal: 380, protein: 18, carbs: 28, fat: 22,
                 fiber: 7,
                 items: ["avocado toast", "egg", "chili flakes", "microgreens"],
@@ -326,26 +429,44 @@ extension HandwrittenDailyShareCard {
             ),
             FoodLogPersister.FoodLogEntry(
                 id: "preview-2",
+                loggedAt: at(10, 30),
+                title: "matcha latte",
+                kcal: 180, protein: 6, carbs: 22, fat: 7,
+                fiber: 2,
+                items: ["matcha", "oat milk", "vanilla"],
+                source: "photo"
+            ),
+            FoodLogPersister.FoodLogEntry(
+                id: "preview-3",
                 loggedAt: at(12, 15),
-                title: "greek salad + 4 more",
+                title: "greek salad",
                 kcal: 240, protein: 14, carbs: 22, fat: 14,
                 fiber: 6,
                 items: ["greek salad", "feta", "olives", "cucumber", "tomato"],
                 source: "photo"
             ),
             FoodLogPersister.FoodLogEntry(
-                id: "preview-3",
+                id: "preview-4",
                 loggedAt: at(15, 30),
-                title: "dates + 2 more",
+                title: "dates",
                 kcal: 180, protein: 6, carbs: 28, fat: 8,
                 fiber: 4,
                 items: ["dates", "almond butter", "coconut"],
                 source: "photo"
             ),
             FoodLogPersister.FoodLogEntry(
-                id: "preview-4",
+                id: "preview-5",
+                loggedAt: at(17, 10),
+                title: "kombucha",
+                kcal: 60, protein: 0, carbs: 14, fat: 0,
+                fiber: 0,
+                items: ["kombucha", "ginger"],
+                source: "photo"
+            ),
+            FoodLogPersister.FoodLogEntry(
+                id: "preview-6",
                 loggedAt: at(19, 45),
-                title: "chicken teriyaki + 2 more",
+                title: "chicken teriyaki",
                 kcal: 540, protein: 38, carbs: 58, fat: 18,
                 fiber: 9,
                 items: ["chicken teriyaki", "broccoli", "rice"],
@@ -353,7 +474,7 @@ extension HandwrittenDailyShareCard {
             ),
         ]
         var photosDict: [String: UIImage] = [:]
-        for (i, photo) in photos.prefix(4).enumerated() {
+        for (i, photo) in photos.prefix(8).enumerated() where i < previewEntryIds.count {
             photosDict[previewEntryIds[i]] = photo
         }
         return HandwrittenDailyShareCard(

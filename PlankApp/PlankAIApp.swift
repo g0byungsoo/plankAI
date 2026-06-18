@@ -761,7 +761,7 @@ private struct HandwrittenSharePreviewHarness: View {
         }
         .task(id: pickedItems) {
             var loaded: [UIImage] = []
-            for item in pickedItems.prefix(4) {
+            for item in pickedItems.prefix(8) {
                 if let data = try? await item.loadTransferable(type: Data.self),
                    let img = UIImage(data: data) {
                     loaded.append(img)
@@ -783,13 +783,13 @@ private struct HandwrittenSharePreviewHarness: View {
             HStack {
                 PhotosPicker(
                     selection: $pickedItems,
-                    maxSelectionCount: 4,
+                    maxSelectionCount: 8,
                     matching: .images
                 ) {
                     HStack(spacing: 6) {
                         Image(systemName: "photo.on.rectangle")
                             .font(.system(size: 12, weight: .medium))
-                        Text("pick up to 4 photos")
+                        Text("pick up to 8 photos")
                             .font(.system(size: 11, weight: .medium))
                     }
                     .foregroundStyle(.white)
@@ -882,7 +882,7 @@ private struct HandwrittenWeeklyPreviewHarness: View {
         }
         .task(id: pickedItems) {
             var loaded: [UIImage] = []
-            for item in pickedItems.prefix(6) {
+            for item in pickedItems.prefix(10) {
                 if let data = try? await item.loadTransferable(type: Data.self),
                    let img = UIImage(data: data) {
                     loaded.append(img)
@@ -904,13 +904,13 @@ private struct HandwrittenWeeklyPreviewHarness: View {
             HStack {
                 PhotosPicker(
                     selection: $pickedItems,
-                    maxSelectionCount: 6,
+                    maxSelectionCount: 10,
                     matching: .images
                 ) {
                     HStack(spacing: 6) {
                         Image(systemName: "photo.on.rectangle")
                             .font(.system(size: 12, weight: .medium))
-                        Text("pick up to 6 photos")
+                        Text("pick up to 10 photos")
                             .font(.system(size: 11, weight: .medium))
                     }
                     .foregroundStyle(.white)
