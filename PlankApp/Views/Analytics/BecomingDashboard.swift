@@ -342,10 +342,6 @@ struct PlateFanTeaser: View {
     let entryCount: Int           // total logs (drives the empty / populated split)
     let onOpen: () -> Void
 
-    /// Holds the rendered weekly share PNG while the system share sheet
-    /// is up. Identifiable so .sheet(item:) drives the lifecycle.
-    @State private var weeklyShareItem: PlateShareItem?
-
     var body: some View {
         Group {
             if entryCount == 0 {
@@ -353,12 +349,6 @@ struct PlateFanTeaser: View {
             } else {
                 populatedRow
             }
-        }
-        .sheet(item: $weeklyShareItem) { item in
-            PlateShareActivityView(items: [item.image]) {
-                weeklyShareItem = nil
-            }
-            .ignoresSafeArea()
         }
     }
 
@@ -437,10 +427,6 @@ struct PlateFanTeaser: View {
 
             Spacer()
 
-            if WeeklyShareRenderer.hasShareableWeek(userId: userId) {
-                shareWeekButton
-            }
-
             Image(systemName: "arrow.right")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Palette.textSecondary)
@@ -480,29 +466,6 @@ struct PlateFanTeaser: View {
         .frame(width: 116, height: 76)
     }
 
-    /// v1.0.10 — `--handwritten-share` flag swaps the editorial
-    /// weekly collage for the Pinterest handwritten variant. Same
-    /// renderer contract, founder A/B's via launch arg.
-    private func renderWeeklyShareImage() -> UIImage? {
-        let useHandwritten = ProcessInfo.processInfo.arguments
-            .contains("--handwritten-share")
-        return useHandwritten
-            ? HandwrittenWeeklyShareRenderer.render(userId: userId)
-            : WeeklyShareRenderer.render(userId: userId)
-    }
-
-    @ViewBuilder private var shareWeekButton: some View {
-        Button {
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-            if let img = renderWeeklyShareImage() {
-                weeklyShareItem = PlateShareItem(image: img)
-            }
-        } label: {
-            HerShareLabel()
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("share her week")
-    }
 }
 
 // MARK: - Plate share infrastructure

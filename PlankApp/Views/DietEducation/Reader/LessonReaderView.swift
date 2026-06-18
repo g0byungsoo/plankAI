@@ -351,35 +351,22 @@ struct LessonReaderView: View {
     // render inputs without taking captures on `self` or duplicating
     // the formatting logic across call sites.
 
-    /// v1.0.12 — single render path shared by the share + save flows.
-    /// Pulls the current page's headline / body / day / pillar and
-    /// hands them to whichever renderer the `--handwritten-share`
-    /// launch flag selects, returning the 1080×1920 PNG (or nil if
-    /// the renderer failed). Save + share use this identically so a
-    /// founder switching the variant flag mid-session sees consistent
-    /// output across both buttons.
+    /// v1.0.13 (2026-06-18) — magazine pull-quote is the only register
+    /// for lesson sharing now (founder direction: handwriting reserved
+    /// for food photos, lesson shares stay in the JeniFit type system).
+    /// HandwrittenLessonQuoteRenderer is dead at the call-site level.
     private func renderLessonShareImage() -> UIImage? {
-        let useHandwritten = ProcessInfo.processInfo.arguments
-            .contains("--handwritten-share")
         let cleanedHeadline = Self.cleanHeadline(page.headline)
         let bodyLine = Self.firstSentence(of: page.body)
         let dayLabel = Self.dayLabel(programDay: scheduled.programDay)
         let pillarLabel = Self.pillarLabel(for: slot.primaryPillar)
-        return useHandwritten
-            ? HandwrittenLessonQuoteRenderer.render(
-                headline: cleanedHeadline,
-                italicWords: page.italicWords,
-                bodyLine: bodyLine,
-                dayLabel: dayLabel,
-                pillarTitle: pillarLabel
-            )
-            : LessonQuoteRenderer.render(
-                headline: cleanedHeadline,
-                italicWords: page.italicWords,
-                bodyLine: bodyLine,
-                dayLabel: dayLabel,
-                pillarTitle: pillarLabel
-            )
+        return LessonQuoteRenderer.render(
+            headline: cleanedHeadline,
+            italicWords: page.italicWords,
+            bodyLine: bodyLine,
+            dayLabel: dayLabel,
+            pillarTitle: pillarLabel
+        )
     }
 
     /// Strip the soft [italic] markers writers use in `workingTitle`

@@ -136,25 +136,16 @@ public struct FoodLogTimelineView: View {
 
     // MARK: - Daily share rendering
     //
-    // v1.0.10 (2026-06-17) — `--handwritten-share` launch flag swaps
-    // the editorial card for the Pinterest it-girl handwritten POC.
-    // Founder-only toggle for A/B comparison on real devices before
-    // promoting (or rejecting) the handwritten template. v1.0.12
-    // factored out of the share button so the save-to-Photos button
-    // shares the same lazy-render path.
+    // v1.0.13 (2026-06-18) — handwritten variant is now the only
+    // production register; founder approved it across daily / weekly
+    // / snap in commits 7e5c3b7 + c4ac98d + cc41fa1 + 49cc527. The
+    // editorial DailyShareRenderer is dead code at the call-site
+    // level and queued for deletion.
     private func renderDailyShareImage() -> UIImage? {
-        let useHandwritten = ProcessInfo.processInfo.arguments
-            .contains("--handwritten-share")
-        return useHandwritten
-            ? HandwrittenDailyShareRenderer.render(
-                userId: userId,
-                archetype: archetypeHint
-            )
-            : DailyShareRenderer.render(
-                userId: userId,
-                dailyTarget: dailyTarget,
-                archetype: archetypeHint
-            )
+        HandwrittenDailyShareRenderer.render(
+            userId: userId,
+            archetype: archetypeHint
+        )
     }
 
     @ViewBuilder private var content: some View {
