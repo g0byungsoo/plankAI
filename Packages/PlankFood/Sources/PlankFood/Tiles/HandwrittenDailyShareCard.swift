@@ -144,6 +144,7 @@ public struct HandwrittenDailyShareCard: View {
         position: CellLabelPosition
     ) -> some View {
         let lines = labelLines(for: entry)
+        let macroLine = macroCaption(for: entry)
         let alignment: Alignment = {
             switch position {
             case .topLeft:      return .topLeading
@@ -152,54 +153,75 @@ public struct HandwrittenDailyShareCard: View {
             case .bottomRight:  return .bottomTrailing
             }
         }()
-        let seed: UInt64 = UInt64(bitPattern: Int64(entry.id.hashValue & 0x7FFFFFFF))
-        // Approximate bounding box of the text block — the arrow shape
-        // uses this to start OUTSIDE the text so the stroke never
-        // crosses through letters. Each line is roughly Bradley Hand
-        // Bold 34pt + 8pt spacing = ~48pt of vertical run; text width
-        // estimated from the longest line at ~18pt per char.
-        let textHeight: CGFloat = CGFloat(lines.count) * 48 + 8
-        let longestLine = lines.map(\.count).max() ?? 8
-        let textWidth: CGFloat = min(CGFloat(longestLine) * 18 + 32, 460)
+        let isTop = position == .topLeft || position == .topRight
+        let textAlign: TextAlignment = (position == .topLeft || position == .bottomLeft)
+            ? .leading : .trailing
+        let stackAlign: HorizontalAlignment = (position == .topLeft || position == .bottomLeft)
+            ? .leading : .trailing
 
-        ZStack {
-            RoughHandArrow(
-                position: position,
-                seed: seed,
-                textWidth: textWidth,
-                textHeight: textHeight
-            )
-            .stroke(
-                .white,
-                style: StrokeStyle(
-                    lineWidth: 3.6,
-                    lineCap: .round,
-                    lineJoin: .round
-                )
-            )
-            .frame(width: 540, height: 960)
-            .shadow(color: .black.opacity(0.45), radius: 4, x: 0, y: 2)
-
-            VStack(spacing: 8) {
-                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                    Text(line)
-                        .font(.custom("BradleyHandITCTT-Bold", size: 34))
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                        .shadow(color: .black.opacity(0.50), radius: 6, x: 0, y: 2)
-                }
+        VStack(alignment: stackAlign, spacing: 14) {
+            // When the label sits at the TOP corner, items render
+            // first then the macro caption below (reads top-down).
+            // At the BOTTOM corner, the macro caption renders ABOVE
+            // the items so the items still sit lowest in the cell —
+            // gives a consistent visual "items then chrome" or
+            // "chrome then items" depending on anchor.
+            if isTop {
+                itemStack(lines, align: textAlign)
+                macroCaptionView(macroLine)
+            } else {
+                macroCaptionView(macroLine)
+                itemStack(lines, align: textAlign)
             }
-            .padding(.horizontal, 28)
-            .padding(.vertical, 50)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+        }
+        .padding(.horizontal, 28)
+        .padding(.vertical, 50)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+    }
+
+    @ViewBuilder
+    private func itemStack(_ lines: [String], align: TextAlignment) -> some View {
+        VStack(alignment: alignFor(align), spacing: 6) {
+            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                Text(line)
+                    .font(.custom("BradleyHandITCTT-Bold", size: 32))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(align)
+                    .shadow(color: .black.opacity(0.50), radius: 6, x: 0, y: 2)
+            }
         }
     }
 
-    /// Splits the entry title into the overlay-friendly multi-line
-    /// stack the reference uses. Real food logs are typically
-    /// "avocado toast with egg" — split on "with" / "and" / "," to
-    /// give the multi-line ingredient feel.
+    private func alignFor(_ a: TextAlignment) -> HorizontalAlignment {
+        switch a {
+        case .leading:  return .leading
+        case .trailing: return .trailing
+        case .center:   return .center
+        @unknown default: return .leading
+        }
+    }
+
+    @ViewBuilder
+    private func macroCaptionView(_ line: String) -> some View {
+        Text(line)
+            .font(.custom("BradleyHandITCTT-Bold", size: 20))
+            .foregroundStyle(.white.opacity(0.92))
+            .shadow(color: .black.opacity(0.50), radius: 6, x: 0, y: 2)
+    }
+
+    /// Builds the per-cell vertical ingredient stack. Prefers the
+    /// `items` array persisted at scan time (every detected food in
+    /// vision-ranked order — what the founder asked for); falls back
+    /// to splitting `title` on common separators for legacy entries
+    /// written before items was persisted (v1.0.12 and earlier).
     private func labelLines(for entry: FoodLogPersister.FoodLogEntry) -> [String] {
+        if let items = entry.items, !items.isEmpty {
+            return items
+                .map { $0.lowercased().trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+                .prefix(6)
+                .map { String($0) }
+        }
         let title = entry.title.isEmpty ? "kept plate" : entry.title.lowercased()
         let splitChars = CharacterSet(charactersIn: ",+&")
         var parts = title
@@ -210,6 +232,31 @@ public struct HandwrittenDailyShareCard: View {
             .filter { !$0.isEmpty }
         if parts.isEmpty { parts = [title] }
         return Array(parts.prefix(6))
+    }
+
+    /// Compact macro caption per cell — time + kcal + protein + fiber.
+    /// Reads "8:42a · 430c · 25p · 7f" (single-letter macro keys keep
+    /// it brief enough to sit under the ingredient stack without
+    /// wrapping on a 540pt cell). Fiber omitted when 0 since most
+    /// legacy entries lack it; kcal/protein always show.
+    private func macroCaption(for entry: FoodLogPersister.FoodLogEntry) -> String {
+        let timeFmt = DateFormatter()
+        timeFmt.dateFormat = "h:mma"
+        let time = timeFmt.string(from: entry.loggedAt).lowercased()
+            .replacingOccurrences(of: "am", with: "a")
+            .replacingOccurrences(of: "pm", with: "p")
+
+        var parts = [time]
+        if entry.kcal > 0 {
+            parts.append("\(Int(entry.kcal.rounded()))c")
+        }
+        if entry.protein > 0 {
+            parts.append("\(Int(entry.protein.rounded()))p")
+        }
+        if entry.fiber > 0 {
+            parts.append("\(Int(entry.fiber.rounded()))f")
+        }
+        return parts.joined(separator: " · ")
     }
 
     // MARK: - Seam pill (the only chrome — matches reference exactly)
@@ -245,33 +292,45 @@ extension HandwrittenDailyShareCard {
         date: Date = Date(),
         photos: [UIImage] = []
     ) -> HandwrittenDailyShareCard {
+        let cal = Calendar.current
+        func at(_ h: Int, _ m: Int) -> Date {
+            cal.date(bySettingHour: h, minute: m, second: 0, of: date) ?? date
+        }
         let mock: [FoodLogPersister.FoodLogEntry] = [
             FoodLogPersister.FoodLogEntry(
                 id: "preview-1",
-                loggedAt: date,
-                title: "avocado toast with egg, chili flakes, microgreens",
+                loggedAt: at(8, 42),
+                title: "avocado toast + 3 more",
                 kcal: 380, protein: 18, carbs: 28, fat: 22,
+                fiber: 7,
+                items: ["avocado toast", "egg", "chili flakes", "microgreens"],
                 source: "photo"
             ),
             FoodLogPersister.FoodLogEntry(
                 id: "preview-2",
-                loggedAt: date,
-                title: "greek salad with feta, olives, cucumber, tomato",
+                loggedAt: at(12, 15),
+                title: "greek salad + 4 more",
                 kcal: 240, protein: 14, carbs: 22, fat: 14,
+                fiber: 6,
+                items: ["greek salad", "feta", "olives", "cucumber", "tomato"],
                 source: "photo"
             ),
             FoodLogPersister.FoodLogEntry(
                 id: "preview-3",
-                loggedAt: date,
-                title: "dates with almond butter and coconut",
+                loggedAt: at(15, 30),
+                title: "dates + 2 more",
                 kcal: 180, protein: 6, carbs: 28, fat: 8,
+                fiber: 4,
+                items: ["dates", "almond butter", "coconut"],
                 source: "photo"
             ),
             FoodLogPersister.FoodLogEntry(
                 id: "preview-4",
-                loggedAt: date,
-                title: "chicken teriyaki with broccoli and rice",
+                loggedAt: at(19, 45),
+                title: "chicken teriyaki + 2 more",
                 kcal: 540, protein: 38, carbs: 58, fat: 18,
+                fiber: 9,
+                items: ["chicken teriyaki", "broccoli", "rice"],
                 source: "photo"
             ),
         ]
@@ -288,7 +347,14 @@ extension HandwrittenDailyShareCard {
     }
 }
 
-// MARK: - RoughHandArrow
+// MARK: - RoughHandArrow (DEAD — kept public for snap card compat)
+//
+// v1.0.13 (2026-06-18) — arrows were removed from the daily card per
+// founder direction ("get rid of arrows, this feels difficult to make
+// it point to the actual food"). The shape itself stays in this file
+// because HandwrittenSnapResultShareCard still uses RoughHandArrow
+// for the single-photo snap render. When snap drops arrows too, this
+// whole block + SplitMix64 should come out.
 //
 // Per-cell rough hand-drawn arrow. Starts near the label corner and
 // curves toward the cell center (where the food sits). The curve

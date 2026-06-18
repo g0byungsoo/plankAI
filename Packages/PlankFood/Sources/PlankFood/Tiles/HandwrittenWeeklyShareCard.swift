@@ -135,6 +135,7 @@ public struct HandwrittenWeeklyShareCard: View {
         position: HandwrittenDailyShareCard.CellLabelPosition
     ) -> some View {
         let lines = labelLines(for: cell)
+        let macroLine = macroCaption(for: cell)
         let alignment: Alignment = {
             switch position {
             case .topLeft:     return .topLeading
@@ -143,48 +144,61 @@ public struct HandwrittenWeeklyShareCard: View {
             case .bottomRight: return .bottomTrailing
             }
         }()
-        let seed = UInt64(bitPattern: Int64(cell.entryId.hashValue & 0x7FFFFFFF))
-        let textHeight: CGFloat = CGFloat(lines.count) * 48 + 8
-        let longest = lines.map(\.count).max() ?? 8
-        let textWidth: CGFloat = min(CGFloat(longest) * 18 + 32, 460)
+        let isTop = position == .topLeft || position == .topRight
+        let textAlign: TextAlignment = (position == .topLeft || position == .bottomLeft)
+            ? .leading : .trailing
+        let stackAlign: HorizontalAlignment = (position == .topLeft || position == .bottomLeft)
+            ? .leading : .trailing
 
-        ZStack {
-            RoughHandArrow(
-                position: position,
-                seed: seed,
-                textWidth: textWidth,
-                textHeight: textHeight
-            )
-            .stroke(
-                .white,
-                style: StrokeStyle(
-                    lineWidth: 3.6,
-                    lineCap: .round,
-                    lineJoin: .round
-                )
-            )
-            .frame(width: 540, height: 640)
-            .shadow(color: .black.opacity(0.45), radius: 4, x: 0, y: 2)
-
-            VStack(spacing: 8) {
-                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                    Text(line)
-                        .font(.custom("BradleyHandITCTT-Bold", size: 34))
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                        .shadow(color: .black.opacity(0.50), radius: 6, x: 0, y: 2)
-                }
+        VStack(alignment: stackAlign, spacing: 12) {
+            if isTop {
+                itemStack(lines, align: textAlign)
+                macroCaptionView(macroLine)
+            } else {
+                macroCaptionView(macroLine)
+                itemStack(lines, align: textAlign)
             }
-            .padding(.horizontal, 28)
-            .padding(.vertical, 36)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 36)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+    }
+
+    @ViewBuilder
+    private func itemStack(_ lines: [String], align: TextAlignment) -> some View {
+        let hAlign: HorizontalAlignment = (align == .leading) ? .leading
+                                        : (align == .trailing) ? .trailing
+                                        : .center
+        VStack(alignment: hAlign, spacing: 5) {
+            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                Text(line)
+                    .font(.custom("BradleyHandITCTT-Bold", size: 28))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(align)
+                    .shadow(color: .black.opacity(0.50), radius: 6, x: 0, y: 2)
+            }
         }
     }
 
-    /// Splits a cell's title on common separators ("with", "and",
-    /// ",") into a vertical ingredient stack — mirrors the daily
-    /// card's labelLines() so both share the same overlay feel.
+    @ViewBuilder
+    private func macroCaptionView(_ line: String) -> some View {
+        Text(line)
+            .font(.custom("BradleyHandITCTT-Bold", size: 18))
+            .foregroundStyle(.white.opacity(0.92))
+            .shadow(color: .black.opacity(0.50), radius: 6, x: 0, y: 2)
+    }
+
+    /// Same fallback ladder as the daily card: prefer the persisted
+    /// `items` array (every scanned food in vision-ranked order);
+    /// fall back to splitting `title` for legacy entries.
     private func labelLines(for cell: WeeklyShareCell) -> [String] {
+        if let items = cell.items, !items.isEmpty {
+            return items
+                .map { $0.lowercased().trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+                .prefix(5)
+                .map { String($0) }
+        }
         let title = cell.title.isEmpty ? "kept plate" : cell.title.lowercased()
         let splitChars = CharacterSet(charactersIn: ",+&")
         var parts = title
@@ -195,6 +209,25 @@ public struct HandwrittenWeeklyShareCard: View {
             .filter { !$0.isEmpty }
         if parts.isEmpty { parts = [title] }
         return Array(parts.prefix(5))
+    }
+
+    private func macroCaption(for cell: WeeklyShareCell) -> String {
+        let timeFmt = DateFormatter()
+        timeFmt.dateFormat = "h:mma"
+        let time = timeFmt.string(from: cell.loggedAt).lowercased()
+            .replacingOccurrences(of: "am", with: "a")
+            .replacingOccurrences(of: "pm", with: "p")
+        var parts = [time]
+        if cell.kcal > 0 {
+            parts.append("\(Int(cell.kcal.rounded()))c")
+        }
+        if cell.protein > 0 {
+            parts.append("\(Int(cell.protein.rounded()))p")
+        }
+        if cell.fiber > 0 {
+            parts.append("\(Int(cell.fiber.rounded()))f")
+        }
+        return parts.joined(separator: " · ")
     }
 
     // MARK: - Seam pill
@@ -244,12 +277,37 @@ extension HandwrittenWeeklyShareCard {
             "avocado toast with egg, microgreens",
             "chicken caesar with parmesan, croutons",
         ]
+        let mockItems: [[String]] = [
+            ["greek yogurt", "berries", "granola", "honey"],
+            ["matcha latte", "almond croissant"],
+            ["chipotle bowl", "chicken", "rice", "beans", "salsa"],
+            ["salmon rice bowl", "avocado", "edamame", "tamari"],
+            ["avocado toast", "egg", "microgreens"],
+            ["chicken caesar", "parmesan", "croutons", "lemon"],
+        ]
+        let mockMacros: [(Double, Double, Double)] = [
+            (430, 22, 6),
+            (340, 8, 2),
+            (640, 38, 11),
+            (580, 32, 8),
+            (380, 18, 5),
+            (520, 36, 4),
+        ]
         let mockCells = (0..<6).map { i -> WeeklyShareCell in
             let day = cal.date(byAdding: .day, value: i, to: weekStart) ?? weekStart
+            let loggedAt = cal.date(
+                bySettingHour: 8 + i, minute: 30, second: 0, of: day
+            ) ?? day
+            let (k, p, f) = mockMacros[i]
             return WeeklyShareCell(
                 entryId: previewCellIds[i],
                 date: day,
-                title: titles[i]
+                title: titles[i],
+                loggedAt: loggedAt,
+                kcal: k,
+                protein: p,
+                fiber: f,
+                items: mockItems[i]
             )
         }
         var photosDict: [String: UIImage] = [:]
@@ -297,7 +355,16 @@ public enum HandwrittenWeeklyShareRenderer {
             .sorted { $0.key < $1.key }
             .prefix(6)
             .map { (day, entry) in
-                WeeklyShareCell(entryId: entry.id, date: day, title: entry.title)
+                WeeklyShareCell(
+                    entryId: entry.id,
+                    date: day,
+                    title: entry.title,
+                    loggedAt: entry.loggedAt,
+                    kcal: entry.kcal,
+                    protein: entry.protein,
+                    fiber: entry.fiber,
+                    items: entry.items
+                )
             }
 
         var photos: [String: UIImage] = [:]

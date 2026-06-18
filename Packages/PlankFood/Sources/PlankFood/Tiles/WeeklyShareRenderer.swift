@@ -58,7 +58,16 @@ public enum WeeklyShareRenderer {
             .sorted { $0.key < $1.key }
             .prefix(6)
             .map { (day, entry) in
-                WeeklyShareCell(entryId: entry.id, date: day, title: entry.title)
+                WeeklyShareCell(
+                    entryId: entry.id,
+                    date: day,
+                    title: entry.title,
+                    loggedAt: entry.loggedAt,
+                    kcal: entry.kcal,
+                    protein: entry.protein,
+                    fiber: entry.fiber,
+                    items: entry.items
+                )
             }
 
         // Preload photos so the offscreen render is synchronous.

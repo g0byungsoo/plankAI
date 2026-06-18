@@ -79,6 +79,13 @@ public enum FoodLogPersister {
         /// (backwards-compat decode supplies "" — the timeline row
         /// renders "scanned plate" as a fallback).
         let title: String
+        /// v1.0.13 (2026-06-18) — full list of food-item names from
+        /// the scan, in vision-ranked order. nil for older entries
+        /// written before this field existed (decoder defaults to
+        /// nil → callers fall back to splitting `title`). Carries
+        /// what the share card actually wants to render: every item
+        /// the user logged, not just the first + count.
+        let items: [String]?
         /// v1.0.9 D3.B — capture source tag ("photo" / "quick add" /
         /// "dining out"). Drives the row icon. nil/missing for old
         /// entries.
@@ -94,6 +101,7 @@ public enum FoodLogPersister {
             fat: Double = 0,
             fiber: Double = 0,
             title: String = "",
+            items: [String]? = nil,
             source: String? = nil
         ) {
             self.id = id
@@ -105,12 +113,14 @@ public enum FoodLogPersister {
             self.fat = fat
             self.fiber = fiber
             self.title = title
+            self.items = items
             self.source = source
         }
 
         // Backwards-compatible decode — entries written before macros
         // were added decode with 0 for each missing field. Same for
-        // title/source/id added in D3.B (2026-06-08).
+        // title/source/id added in D3.B (2026-06-08); items added
+        // v1.0.13 (2026-06-18) decode to nil for older entries.
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             id = (try? c.decode(String.self, forKey: .id)) ?? UUID().uuidString
@@ -122,11 +132,13 @@ public enum FoodLogPersister {
             fat = (try? c.decode(Double.self, forKey: .fat)) ?? 0
             fiber = (try? c.decode(Double.self, forKey: .fiber)) ?? 0
             title = (try? c.decode(String.self, forKey: .title)) ?? ""
+            items = try? c.decode([String].self, forKey: .items)
             source = try? c.decode(String.self, forKey: .source)
         }
 
         enum CodingKeys: String, CodingKey {
-            case id, userId, loggedAt, kcal, protein, carbs, fat, fiber, title, source
+            case id, userId, loggedAt, kcal, protein, carbs, fat, fiber,
+                 title, items, source
         }
     }
 
@@ -228,7 +240,43 @@ public enum FoodLogPersister {
         public let protein: Double
         public let carbs: Double
         public let fat: Double
+        /// v1.0.13 (2026-06-18) — exposed on the public surface so
+        /// the daily / weekly share card label can show fiber per
+        /// pic ("8:42am · 430c · 25p · 7f"). Internal Entry has
+        /// carried fiber since Phase T; this bridges it.
+        public let fiber: Double
+        /// v1.0.13 (2026-06-18) — full list of food-item names from
+        /// the scan, in vision-ranked order. nil for entries written
+        /// before this field existed (callers fall back to splitting
+        /// `title` on common separators). Used by the daily / weekly
+        /// share card to render the vertical ingredient stack the
+        /// founder wants instead of the "name + N more" title.
+        public let items: [String]?
         public let source: String?
+
+        public init(
+            id: String,
+            loggedAt: Date,
+            title: String,
+            kcal: Double,
+            protein: Double,
+            carbs: Double,
+            fat: Double,
+            fiber: Double = 0,
+            items: [String]? = nil,
+            source: String?
+        ) {
+            self.id = id
+            self.loggedAt = loggedAt
+            self.title = title
+            self.kcal = kcal
+            self.protein = protein
+            self.carbs = carbs
+            self.fat = fat
+            self.fiber = fiber
+            self.items = items
+            self.source = source
+        }
     }
 
     /// v1.0.8 Phase T — today's macro totals at a glance. All values
@@ -407,6 +455,17 @@ public enum FoodLogPersister {
             title = "scanned plate"
         }
         let entryId = UUID().uuidString
+        // v1.0.13 (2026-06-18) — persist the full item-name list so
+        // the share card can show every food, not just the title's
+        // "first + N more" heuristic. Empty for restaurant-range /
+        // im-out path (no detected items), which the share card
+        // handles via the title-split fallback.
+        let plateItems: [String]? = {
+            let names = food.items
+                .map { $0.name.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            return names.isEmpty ? nil : names
+        }()
         let entry = Entry(
             id: entryId,
             userId: userId,
@@ -417,6 +476,7 @@ public enum FoodLogPersister {
             fat: plateFat,
             fiber: plateFiber,
             title: title,
+            items: plateItems,
             source: food.source.rawValue
         )
         inMemoryEntries.append(entry)
@@ -535,6 +595,8 @@ public enum FoodLogPersister {
                     protein: $0.protein,
                     carbs: $0.carbs,
                     fat: $0.fat,
+                    fiber: $0.fiber,
+                    items: $0.items,
                     source: $0.source
                 )
             }
@@ -565,7 +627,8 @@ public enum FoodLogPersister {
             return Entry(
                 id: e.id, userId: newId, loggedAt: e.loggedAt, kcal: e.kcal,
                 protein: e.protein, carbs: e.carbs, fat: e.fat,
-                fiber: e.fiber, title: e.title, source: e.source
+                fiber: e.fiber, title: e.title, items: e.items,
+                source: e.source
             )
         }
         rewriteStore()

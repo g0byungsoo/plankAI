@@ -322,11 +322,21 @@ struct WeeklyShareCard: View {
 /// One cell of the 2×3 weekly collage. Identified by its source food
 /// log entryId so the renderer can resolve the stored photo via
 /// FoodPhotoStore. `title` is shown only on no-photo fallbacks.
+///
+/// v1.0.13 (2026-06-18) — extended with full macro + items payload so
+/// the weekly card's per-cell label can show the same time + kcal +
+/// protein + fiber caption + ingredient stack the daily card now
+/// renders (founder request: parity between daily & weekly).
 struct WeeklyShareCell: Identifiable {
     let id = UUID()
     let entryId: String
     let date: Date
     let title: String
+    let loggedAt: Date
+    let kcal: Double
+    let protein: Double
+    let fiber: Double
+    let items: [String]?
 }
 
 #endif  // canImport(UIKit)
