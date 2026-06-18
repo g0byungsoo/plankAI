@@ -255,13 +255,26 @@ public struct CaptureFlowView: View {
                         // (matte + cocoa stroke + offset shadow +
                         // sticker scatter) so the result feels like
                         // the same scrapbook page — except the dish
-                        // name in JeniHeroSerif-Italic is the visual
-                        // anchor instead of a photo.
-                        TypographyPolaroidHero(
-                            mealLabel: Self.mealLabelForNow(),
-                            dishName: Self.dishNameDisplay(food: food),
-                            kcalDisplay: Self.kcalDisplay(food: food)
-                        )
+                        // name is the visual anchor instead of a
+                        // photo. `--handwritten-share` swaps the
+                        // editorial JeniHeroSerif variant for the
+                        // Pinterest handwritten one so the founder
+                        // can A/B both registers on the same screen.
+                        let useHandwritten = ProcessInfo.processInfo.arguments
+                            .contains("--handwritten-share")
+                        if useHandwritten {
+                            HandwrittenPolaroidHero(
+                                mealLabel: Self.mealLabelForNow(),
+                                dishName: Self.dishNameDisplay(food: food),
+                                kcalDisplay: Self.kcalDisplay(food: food)
+                            )
+                        } else {
+                            TypographyPolaroidHero(
+                                mealLabel: Self.mealLabelForNow(),
+                                dishName: Self.dishNameDisplay(food: food),
+                                kcalDisplay: Self.kcalDisplay(food: food)
+                            )
+                        }
                     }
 
                     ResultCard(
@@ -725,6 +738,221 @@ private struct TypographyPolaroidHero: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+}
+
+// MARK: - HandwrittenPolaroidHero
+//
+// v1.0.10 (2026-06-17) — Pinterest it-girl variant of the quick-log
+// + im-out result hero. Same polaroid chrome as PolaroidHero and
+// TypographyPolaroidHero (1.5pt cocoa stroke, hard offset shadow,
+// 4 corner stickers at identical coordinates) so a user toggling
+// between the photo path, the editorial text path, and the
+// handwritten text path sees the same scrapbook-page frame.
+//
+// Typography stack INSIDE the polaroid swaps to the handwriting
+// family already shared by HandwrittenDailyShareCard / WeeklyShareCard
+// / LessonQuoteCard:
+//
+//   - meal label  → Bradley Hand 22pt rose eyebrow
+//   - dish name   → Snell Roundhand-Bold 52pt cursive hero
+//   - divider     → WavyLine bezier (hand-drawn underline accent)
+//   - kcal        → Bradley Hand-Bold 22pt rose tint + heart suffix
+//   - matte       → Bradley Hand "just now ♥" caption
+//
+// Same develop-in animation arc as TypographyPolaroidHero so the
+// motion vocabulary stays consistent — the founder swaps registers
+// via flag without learning a new transition feel.
+
+@MainActor
+public struct HandwrittenPolaroidHero: View {
+
+    public let mealLabel: String
+    public let dishName: String
+    public let kcalDisplay: String
+
+    @State private var revealed: Double = 0
+    @State private var stickersIn: Bool = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    public init(mealLabel: String, dishName: String, kcalDisplay: String) {
+        self.mealLabel = mealLabel
+        self.dishName = dishName
+        self.kcalDisplay = kcalDisplay
+    }
+
+    public var body: some View {
+        ZStack {
+            polaroidFrame
+                .opacity(0.5 + revealed * 0.5)
+                .blur(radius: (1.0 - revealed) * 3.0)
+                .rotationEffect(.degrees(-1.2))
+
+            if stickersIn {
+                stickerOverlay
+            }
+        }
+        .onAppear {
+            if reduceMotion {
+                revealed = 1.0
+                stickersIn = true
+                return
+            }
+            withAnimation(.easeOut(duration: 0.95)) {
+                revealed = 1.0
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.72)) {
+                    stickersIn = true
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var polaroidFrame: some View {
+        VStack(spacing: 8) {
+            // Butter→cream gradient inside the polaroid — matches the
+            // handwritten share-card background palette so the user
+            // who scans a photo and gets the typographic Polaroid
+            // earlier and then types a meal and lands on this hero
+            // reads them as siblings.
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.985, green: 0.945, blue: 0.880),
+                        Color(red: 0.972, green: 0.917, blue: 0.864),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                VStack(spacing: 12) {
+                    Text(mealLabel)
+                        .font(.custom("BradleyHandITCTT-Bold", size: 22))
+                        .foregroundStyle(Color(red: 0.78, green: 0.32, blue: 0.40))
+                        .kerning(0.4)
+
+                    Text(dishName)
+                        .font(.custom("SnellRoundhand-Bold", size: 52))
+                        .foregroundStyle(Color(red: 0.45, green: 0.22, blue: 0.30))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.6)
+                        .padding(.horizontal, 24)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    HandwrittenWavyLine()
+                        .stroke(
+                            Color(red: 0.92, green: 0.52, blue: 0.62).opacity(0.65),
+                            style: StrokeStyle(lineWidth: 2.2, lineCap: .round)
+                        )
+                        .frame(width: 60, height: 10)
+
+                    HStack(spacing: 6) {
+                        Text(kcalDisplay)
+                            .font(.custom("BradleyHandITCTT-Bold", size: 22))
+                            .foregroundStyle(Color(red: 0.45, green: 0.22, blue: 0.30))
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color(red: 0.95, green: 0.62, blue: 0.70))
+                    }
+                }
+                .padding(.vertical, 24)
+            }
+            .frame(height: 220)
+            .frame(maxWidth: .infinity)
+
+            HStack(spacing: 0) {
+                Text("just ")
+                    .font(.custom("BradleyHandITCTT-Bold", size: 12))
+                    .foregroundStyle(Color(red: 0.78, green: 0.32, blue: 0.40))
+                Text("now ")
+                    .font(.custom("BradleyHandITCTT-Bold", size: 12))
+                    .foregroundStyle(Color(red: 0.50, green: 0.30, blue: 0.30))
+                Text("\u{2665}")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color(red: 0.95, green: 0.62, blue: 0.70))
+                Spacer()
+            }
+            .padding(.horizontal, 4)
+        }
+        .padding(12)
+        .background(FoodTheme.bgElevated)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(FoodTheme.textPrimary, lineWidth: 1.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: FoodTheme.textPrimary.opacity(0.22), radius: 0, x: 4, y: 4)
+    }
+
+    private var stickerOverlay: some View {
+        GeometryReader { geo in
+            ZStack {
+                Image("sticker_cherries", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 48, height: 48)
+                    .rotationEffect(.degrees(-14))
+                    .shadow(color: Color.black.opacity(0.1), radius: 0, x: 1, y: 1)
+                    .position(x: geo.size.width - 18, y: 12)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+
+                Image("sticker_bow_satin", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 40, height: 40)
+                    .rotationEffect(.degrees(10))
+                    .opacity(0.92)
+                    .position(x: 20, y: 14)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+
+                Image("sticker_gummy_bear", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 36, height: 36)
+                    .rotationEffect(.degrees(15))
+                    .position(x: geo.size.width - 20, y: geo.size.height - 18)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+
+                Image("sticker_flower_3d", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 34, height: 34)
+                    .rotationEffect(.degrees(-8))
+                    .position(x: 18, y: geo.size.height - 20)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: - HandwrittenWavyLine
+//
+// Mirrors WavyLine in HandwrittenLessonQuoteCard but kept private to
+// PlankFood so the package has no cross-target shape coupling. Single
+// cubic-bezier with two humps; small accent under the dish name.
+
+private struct HandwrittenWavyLine: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let mid = rect.midY
+        path.move(to: CGPoint(x: rect.minX, y: mid))
+        path.addCurve(
+            to: CGPoint(x: rect.midX, y: mid),
+            control1: CGPoint(x: rect.minX + rect.width * 0.25, y: mid - 4),
+            control2: CGPoint(x: rect.minX + rect.width * 0.25, y: mid + 4)
+        )
+        path.addCurve(
+            to: CGPoint(x: rect.maxX, y: mid),
+            control1: CGPoint(x: rect.midX + rect.width * 0.25, y: mid - 4),
+            control2: CGPoint(x: rect.midX + rect.width * 0.25, y: mid + 4)
+        )
+        return path
     }
 }
 

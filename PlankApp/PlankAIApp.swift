@@ -453,6 +453,8 @@ struct PlankAIApp: App {
                     HandwrittenWeeklyPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-lesson") {
                     HandwrittenLessonPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-result") {
+                    HandwrittenResultPreviewHarness()
                 } else {
                     RootView()
                         .modifier(ResumeBloom())
@@ -785,6 +787,24 @@ private struct HandwrittenWeeklyPreviewHarness: View {
                     }
                     .padding(.bottom, 20)
                 }
+            }
+        }
+    }
+}
+
+private struct HandwrittenResultPreviewHarness: View {
+    var body: some View {
+        ZStack {
+            Color(red: 0.985, green: 0.945, blue: 0.880).ignoresSafeArea()
+            VStack(spacing: 18) {
+                Spacer().frame(height: 60)
+                HandwrittenPolaroidHero(
+                    mealLabel: "breakfast",
+                    dishName: "avocado toast with egg",
+                    kcalDisplay: "350 cal"
+                )
+                .padding(.horizontal, 24)
+                Spacer()
             }
         }
     }
