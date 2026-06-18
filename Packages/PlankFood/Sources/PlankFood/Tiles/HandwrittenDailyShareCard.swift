@@ -119,18 +119,23 @@ public struct HandwrittenDailyShareCard: View {
     // feel where the writer puts the text wherever there's empty
     // negative space on the photo.
 
+    /// Each cell gets a CORNER position so the arrow can travel a
+    /// consistent diagonal (~300pt) from text-edge to cell-center
+    /// without the fish-hook squiggle that happened on v5's bottom
+    /// row when text sat at center-right / bottom-center (arrow had
+    /// no room and rendered as a hook).
     private func position(for index: Int) -> CellLabelPosition {
         switch index {
-        case 0: return .topRight
-        case 1: return .bottomLeft
-        case 2: return .centerRight
-        case 3: return .bottomCenter
+        case 0: return .topRight     // top-left  cell of grid
+        case 1: return .bottomLeft   // top-right cell of grid
+        case 2: return .topLeft      // bot-left  cell of grid
+        case 3: return .bottomRight  // bot-right cell of grid
         default: return .topRight
         }
     }
 
     public enum CellLabelPosition: Sendable {
-        case topRight, bottomLeft, centerRight, bottomCenter
+        case topLeft, topRight, bottomLeft, bottomRight
     }
 
     @ViewBuilder
@@ -141,10 +146,10 @@ public struct HandwrittenDailyShareCard: View {
         let lines = labelLines(for: entry)
         let alignment: Alignment = {
             switch position {
-            case .topRight:      return .topTrailing
-            case .bottomLeft:    return .bottomLeading
-            case .centerRight:   return .trailing
-            case .bottomCenter:  return .bottom
+            case .topLeft:      return .topLeading
+            case .topRight:     return .topTrailing
+            case .bottomLeft:   return .bottomLeading
+            case .bottomRight:  return .bottomTrailing
             }
         }()
         let seed: UInt64 = UInt64(bitPattern: Int64(entry.id.hashValue & 0x7FFFFFFF))
@@ -337,6 +342,12 @@ struct RoughHandArrow: Shape {
         // the arrow goes.
         let textBox: CGRect = {
             switch position {
+            case .topLeft:
+                return CGRect(
+                    x: rect.minX + hPad,
+                    y: rect.minY + vPad,
+                    width: textWidth, height: textHeight
+                )
             case .topRight:
                 return CGRect(
                     x: rect.maxX - hPad - textWidth,
@@ -349,96 +360,120 @@ struct RoughHandArrow: Shape {
                     y: rect.maxY - vPad - textHeight,
                     width: textWidth, height: textHeight
                 )
-            case .centerRight:
+            case .bottomRight:
                 return CGRect(
                     x: rect.maxX - hPad - textWidth,
-                    y: rect.midY - textHeight / 2,
-                    width: textWidth, height: textHeight
-                )
-            case .bottomCenter:
-                return CGRect(
-                    x: rect.midX - textWidth / 2,
                     y: rect.maxY - vPad - textHeight,
                     width: textWidth, height: textHeight
                 )
             }
         }()
 
-        // Anchor sits on the EDGE of textBox facing the cell center,
-        // pushed out by `separation` so the stroke never grazes the
-        // glyphs. Jitter is small at this scale so we don't re-enter
-        // the text bounds.
+        // Arrow exits the INNER CORNER of the textBox (the corner
+        // facing the cell center) pushed diagonally outward by
+        // `separation`. Every cell now sees an arrow that travels a
+        // clean diagonal of similar length to its center, killing
+        // the v5 fish-hook squiggle on the bottom row.
         let labelAnchor: CGPoint = {
             switch position {
-            case .topRight:
-                // Text in top-right → arrow exits below-left of text.
+            case .topLeft:
                 return CGPoint(
-                    x: textBox.midX + jitter(20),
+                    x: textBox.maxX + Self.separation,
+                    y: textBox.maxY + Self.separation
+                )
+            case .topRight:
+                return CGPoint(
+                    x: textBox.minX - Self.separation,
                     y: textBox.maxY + Self.separation
                 )
             case .bottomLeft:
-                // Text in bottom-left → arrow exits above-right.
                 return CGPoint(
-                    x: textBox.midX + jitter(20),
+                    x: textBox.maxX + Self.separation,
                     y: textBox.minY - Self.separation
                 )
-            case .centerRight:
-                // Text right-centered → arrow exits left side.
+            case .bottomRight:
                 return CGPoint(
                     x: textBox.minX - Self.separation,
-                    y: textBox.midY + jitter(20)
-                )
-            case .bottomCenter:
-                // Text bottom-centered → arrow exits top of text.
-                return CGPoint(
-                    x: textBox.midX + jitter(20),
                     y: textBox.minY - Self.separation
                 )
             }
         }()
 
+        // Target lands ~40pt short of the cell's geometric center on
+        // the side the arrow came from — gives the head room to sit
+        // ON the food rather than past it. Tiny jitter only so the
+        // direction stays predictable and the head reads as an arrow.
+        let dirX: CGFloat = target_dirX(position: position)
+        let dirY: CGFloat = target_dirY(position: position)
         let target = CGPoint(
-            x: rect.midX + jitter(40),
-            y: rect.midY + jitter(40)
+            x: rect.midX + dirX * 40 + jitter(18),
+            y: rect.midY + dirY * 40 + jitter(18)
         )
 
         var path = Path()
         path.move(to: labelAnchor)
 
+        // Single gentle S-curve — control points biased ~30%/70% of
+        // the way along the labelAnchor→target line with small
+        // perpendicular wobble. Less jitter than v5 (was 80/60); the
+        // all-corner geometry already varies arrows cell-to-cell.
+        let span = CGPoint(
+            x: target.x - labelAnchor.x,
+            y: target.y - labelAnchor.y
+        )
+        let perpJitter = jitter(50)
         let control1 = CGPoint(
-            x: labelAnchor.x + (target.x - labelAnchor.x) * 0.30 + jitter(80),
-            y: labelAnchor.y + (target.y - labelAnchor.y) * 0.45 + jitter(80)
+            x: labelAnchor.x + span.x * 0.35 - span.y * 0.10 + perpJitter * 0.6,
+            y: labelAnchor.y + span.y * 0.35 + span.x * 0.10 - perpJitter * 0.6
         )
         let control2 = CGPoint(
-            x: labelAnchor.x + (target.x - labelAnchor.x) * 0.70 + jitter(60),
-            y: labelAnchor.y + (target.y - labelAnchor.y) * 0.65 + jitter(60)
+            x: labelAnchor.x + span.x * 0.70 + span.y * 0.08,
+            y: labelAnchor.y + span.y * 0.70 - span.x * 0.08
         )
         path.addCurve(to: target, control1: control1, control2: control2)
 
-        // Arrowhead — two short lines off the tip, angles wobbled so
-        // they look hand-drawn, not auto-generated.
+        // Arrowhead — symmetric ~30° wings off the tangent at the
+        // tip. The tangent direction is computed from control2→target
+        // so it always tracks the curve's final heading; symmetry +
+        // small length wobble keeps it reading as a hand-drawn arrow
+        // without the fish-hook asymmetry from v5.
         let dx = target.x - control2.x
         let dy = target.y - control2.y
         let len = max(sqrt(dx * dx + dy * dy), 0.0001)
         let nx = dx / len
         let ny = dy / len
-        let headLength: CGFloat = 30 + jitter(6)
-        let headAngle1: CGFloat = 0.55 + CGFloat(rng.nextUnitDouble()) * 0.15
-        let headAngle2: CGFloat = 0.55 + CGFloat(rng.nextUnitDouble()) * 0.15
+        let headLength: CGFloat = 26 + jitter(3)
+        let headAngle: CGFloat = 0.52
 
         let leftTip = CGPoint(
-            x: target.x - headLength * (nx * cos(headAngle1) + ny * sin(headAngle1)),
-            y: target.y - headLength * (ny * cos(headAngle1) - nx * sin(headAngle1))
+            x: target.x - headLength * (nx * cos(headAngle) + ny * sin(headAngle)),
+            y: target.y - headLength * (ny * cos(headAngle) - nx * sin(headAngle))
         )
         let rightTip = CGPoint(
-            x: target.x - headLength * (nx * cos(-headAngle2) + ny * sin(-headAngle2)),
-            y: target.y - headLength * (ny * cos(-headAngle2) - nx * sin(-headAngle2))
+            x: target.x - headLength * (nx * cos(-headAngle) + ny * sin(-headAngle)),
+            y: target.y - headLength * (ny * cos(-headAngle) - nx * sin(-headAngle))
         )
         path.move(to: target)
         path.addLine(to: leftTip)
         path.move(to: target)
         path.addLine(to: rightTip)
         return path
+    }
+
+    /// Direction signs for shifting the target away from cell center
+    /// toward where the label sits. Negative x = label-on-left side,
+    /// positive x = label-on-right; same for y.
+    private func target_dirX(position: HandwrittenDailyShareCard.CellLabelPosition) -> CGFloat {
+        switch position {
+        case .topLeft, .bottomLeft:   return -1
+        case .topRight, .bottomRight: return  1
+        }
+    }
+    private func target_dirY(position: HandwrittenDailyShareCard.CellLabelPosition) -> CGFloat {
+        switch position {
+        case .topLeft, .topRight:       return -1
+        case .bottomLeft, .bottomRight: return  1
+        }
     }
 }
 
