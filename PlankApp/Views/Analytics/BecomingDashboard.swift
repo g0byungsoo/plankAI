@@ -345,6 +345,12 @@ struct PlateFanTeaser: View {
     /// Holds the rendered weekly share PNG while the system share sheet
     /// is up. Identifiable so .sheet(item:) drives the lifecycle.
     @State private var weeklyShareItem: PlateShareItem?
+    /// v1.0.12 — auto-dismissing save-to-Photos toast for the weekly
+    /// share. Nil = no toast.
+    @State private var weeklySaveToast: ShareImageSaver.SaveResult?
+    /// Double-tap guard for the save flow — render + write isn't
+    /// instantaneous, the button needs to stay disabled in between.
+    @State private var weeklyIsSaving: Bool = false
 
     var body: some View {
         Group {
@@ -359,6 +365,28 @@ struct PlateFanTeaser: View {
                 weeklyShareItem = nil
             }
             .ignoresSafeArea()
+        }
+        .overlay {
+            if let weeklySaveToast {
+                VStack {
+                    Spacer()
+                    SaveToPhotosToast(result: weeklySaveToast)
+                        .padding(.bottom, 80)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .allowsHitTesting(false)
+            }
+        }
+        .onChange(of: weeklySaveToast) { _, newValue in
+            guard newValue != nil else { return }
+            Task {
+                try? await Task.sleep(nanoseconds: 1_600_000_000)
+                await MainActor.run {
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        weeklySaveToast = nil
+                    }
+                }
+            }
         }
     }
 
@@ -438,6 +466,7 @@ struct PlateFanTeaser: View {
             Spacer()
 
             if WeeklyShareRenderer.hasShareableWeek(userId: userId) {
+                saveWeekButton
                 shareWeekButton
             }
 
@@ -480,18 +509,64 @@ struct PlateFanTeaser: View {
         .frame(width: 116, height: 76)
     }
 
+    /// v1.0.10 — `--handwritten-share` flag swaps the editorial
+    /// weekly collage for the Pinterest handwritten variant. Same
+    /// renderer contract, founder A/B's via launch arg. v1.0.12
+    /// pulled out of shareWeekButton so the save button can reuse
+    /// the same lazy render path.
+    private func renderWeeklyShareImage() -> UIImage? {
+        let useHandwritten = ProcessInfo.processInfo.arguments
+            .contains("--handwritten-share")
+        return useHandwritten
+            ? HandwrittenWeeklyShareRenderer.render(userId: userId)
+            : WeeklyShareRenderer.render(userId: userId)
+    }
+
+    @ViewBuilder private var saveWeekButton: some View {
+        Button {
+            guard !weeklyIsSaving else { return }
+            weeklyIsSaving = true
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            guard let img = renderWeeklyShareImage() else {
+                weeklyIsSaving = false
+                return
+            }
+            Task {
+                let result = await ShareImageSaver.save(img)
+                await MainActor.run {
+                    weeklySaveToast = result
+                    weeklyIsSaving = false
+                    if result == .saved {
+                        UINotificationFeedbackGenerator()
+                            .notificationOccurred(.success)
+                    }
+                }
+            }
+        } label: {
+            Image(
+                systemName: weeklyIsSaving
+                    ? "arrow.down.circle"
+                    : "arrow.down.to.line"
+            )
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(Palette.textPrimary)
+            .frame(width: 32, height: 32)
+            .background(
+                Circle().fill(Color.white.opacity(0.55))
+            )
+            .overlay(
+                Circle().stroke(Palette.divider, lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("save her week to photos")
+        .disabled(weeklyIsSaving)
+    }
+
     @ViewBuilder private var shareWeekButton: some View {
         Button {
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-            // v1.0.10 — `--handwritten-share` flag swaps the editorial
-            // weekly collage for the Pinterest handwritten variant.
-            // Same renderer contract, founder A/B's via launch arg.
-            let useHandwritten = ProcessInfo.processInfo.arguments
-                .contains("--handwritten-share")
-            let img = useHandwritten
-                ? HandwrittenWeeklyShareRenderer.render(userId: userId)
-                : WeeklyShareRenderer.render(userId: userId)
-            if let img {
+            if let img = renderWeeklyShareImage() {
                 weeklyShareItem = PlateShareItem(image: img)
             }
         } label: {
