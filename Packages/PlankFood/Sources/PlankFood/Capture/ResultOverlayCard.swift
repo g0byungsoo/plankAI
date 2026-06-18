@@ -57,9 +57,9 @@ struct ResultOverlayCard: View {
     @ViewBuilder private var topMeta: some View {
         (
             Text("today's ")
-                .font(.custom("DMSans-Medium", size: 30))
+                .font(.custom("DMSans-Medium", size: 36))
             + Text(mealLabel.isEmpty ? "plate" : mealLabel.lowercased())
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 38))
         )
         .foregroundStyle(.white)
         .kerning(0.4)
@@ -70,9 +70,9 @@ struct ResultOverlayCard: View {
 
     @ViewBuilder private var title: some View {
         Text(dishLineDisplay)
-            .font(.custom("JeniHeroSerif-Italic", size: 108))
+            .font(.custom("JeniHeroSerif-Italic", size: 132))
             .foregroundStyle(.white)
-            .kerning(-1.8)
+            .kerning(-2.0)
             .lineSpacing(-12)
             .multilineTextAlignment(.leading)
             .shadow(color: .black.opacity(0.55), radius: 10, x: 0, y: 3)
@@ -103,11 +103,11 @@ struct ResultOverlayCard: View {
     @ViewBuilder private var dishMark: some View {
         (
             Text("this one ")
-                .font(.custom("DMSans-Light", size: 28))
+                .font(.custom("DMSans-Light", size: 34))
             + Text("fits")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 38))
             + Text(" ♡")
-                .font(.custom("DMSans-Medium", size: 26))
+                .font(.custom("DMSans-Medium", size: 32))
         )
         .foregroundStyle(.white.opacity(0.92))
         .shadow(color: .black.opacity(0.55), radius: 8, x: 0, y: 2)
@@ -118,14 +118,14 @@ struct ResultOverlayCard: View {
     @ViewBuilder private var kcalHero: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text("\(totalKcal)")
-                .font(.custom("JeniHeroSerif-Regular", size: 88))
+                .font(.custom("JeniHeroSerif-Regular", size: 108))
                 .foregroundStyle(.white)
                 .kerning(-1.4)
                 .monospacedDigit()
             Text("calories")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 30))
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 38))
                 .foregroundStyle(.white.opacity(0.92))
-                .baselineOffset(12)
+                .baselineOffset(16)
         }
         .shadow(color: .black.opacity(0.55), radius: 10, x: 0, y: 3)
         .fixedSize(horizontal: false, vertical: true)
@@ -135,7 +135,7 @@ struct ResultOverlayCard: View {
 
     @ViewBuilder private var macroCaption: some View {
         Text(macroString)
-            .font(.custom("DMSans-Medium", size: 28))
+            .font(.custom("DMSans-Medium", size: 34))
             .foregroundStyle(.white.opacity(0.92))
             .shadow(color: .black.opacity(0.55), radius: 8, x: 0, y: 2)
     }
@@ -151,19 +151,19 @@ struct ResultOverlayCard: View {
     }
 
     @ViewBuilder private var shareableHint: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             (
                 Text("\(itemCount) ")
-                    .font(.custom("DMSans-Medium", size: 26))
+                    .font(.custom("DMSans-Medium", size: 32))
                 + Text(itemCount == 1 ? "ingredient" : "ingredients")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
                 + Text(" noted")
-                    .font(.custom("DMSans-Medium", size: 26))
+                    .font(.custom("DMSans-Medium", size: 32))
             )
             .foregroundStyle(.white.opacity(0.92))
 
             Text("♡ ♡ ♡")
-                .font(.custom("DMSans-Medium", size: 22))
+                .font(.custom("DMSans-Medium", size: 28))
                 .foregroundStyle(.white.opacity(0.85))
                 .kerning(2)
         }

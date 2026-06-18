@@ -106,9 +106,9 @@ struct ResultDecisionCard: View {
         HStack(alignment: .center, spacing: 14) {
             (
                 Text("today's ")
-                    .font(.custom("DMSans-Medium", size: 26))
+                    .font(.custom("DMSans-Medium", size: 30))
                 + Text(mealLabel.isEmpty ? "plate" : mealLabel.lowercased())
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
             )
             .foregroundStyle(textSecondary)
             .kerning(0.4)
@@ -119,7 +119,7 @@ struct ResultDecisionCard: View {
                 .frame(maxWidth: .infinity)
 
             Text(timeString)
-                .font(.custom("DMSans-Medium", size: 22))
+                .font(.custom("DMSans-Medium", size: 26))
                 .foregroundStyle(textSecondary)
                 .kerning(0.6)
         }
@@ -136,11 +136,11 @@ struct ResultDecisionCard: View {
     @ViewBuilder private var dishTitle: some View {
         (
             Text("reading your ")
-                .font(.custom("JeniHeroSerif-Regular", size: 56))
+                .font(.custom("JeniHeroSerif-Regular", size: 68))
             + Text(dishLineDisplay)
-                .font(.custom("JeniHeroSerif-Italic", size: 56))
+                .font(.custom("JeniHeroSerif-Italic", size: 68))
             + Text(".")
-                .font(.custom("JeniHeroSerif-Regular", size: 56))
+                .font(.custom("JeniHeroSerif-Regular", size: 68))
         )
         .foregroundStyle(textPrimary)
         .kerning(-0.8)
@@ -172,7 +172,7 @@ struct ResultDecisionCard: View {
                     color: textPrimary
                 )
                 Text("calories")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 36))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 42))
                     .foregroundStyle(textSecondary)
             }
             VStack(alignment: .leading, spacing: 6) {
@@ -185,22 +185,22 @@ struct ResultDecisionCard: View {
                         color: textPrimary
                     )
                     Text("g")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 56))
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 60))
                         .foregroundStyle(textSecondary)
                         .baselineOffset(36)
                 }
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("protein")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 36))
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 42))
                         .foregroundStyle(textSecondary)
                     if let line = proteinThresholdLine {
                         (
                             Text(line.prefix)
-                                .font(.custom("DMSans-Light", size: 22))
+                                .font(.custom("DMSans-Light", size: 28))
                             + Text(line.punch)
-                                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 24))
+                                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 30))
                             + Text(line.suffix)
-                                .font(.custom("DMSans-Light", size: 22))
+                                .font(.custom("DMSans-Light", size: 28))
                         )
                         .foregroundStyle(accent.opacity(0.85))
                     }
@@ -234,12 +234,12 @@ struct ResultDecisionCard: View {
             if totalFiber >= 3 {
                 (
                     Text("\(totalFiber)g")
-                        .font(.custom("JeniHeroSerif-Regular", size: 52))
+                        .font(.custom("JeniHeroSerif-Regular", size: 64))
                     + Text(" fiber  ·  ")
-                        .font(.custom("Fraunces72pt-Regular", size: 32))
+                        .font(.custom("Fraunces72pt-Regular", size: 40))
                         .foregroundColor(textSecondary)
                     + Text(fiberQualitative)
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 40))
                         .foregroundColor(textSecondary)
                 )
                 .foregroundStyle(textPrimary)
@@ -248,13 +248,13 @@ struct ResultDecisionCard: View {
             }
             (
                 Text("this should hold you ")
-                    .font(.custom("Fraunces72pt-Regular", size: 36))
+                    .font(.custom("Fraunces72pt-Regular", size: 42))
                 + Text(satietyHoursLabel)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 36))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 42))
                 + Text(".  ")
-                    .font(.custom("Fraunces72pt-Regular", size: 36))
+                    .font(.custom("Fraunces72pt-Regular", size: 42))
                 + Text("♡")
-                    .font(.custom("DMSans-Medium", size: 28))
+                    .font(.custom("DMSans-Medium", size: 32))
                     .foregroundColor(accent.opacity(0.7))
             )
             .foregroundStyle(textPrimary)
@@ -291,28 +291,28 @@ struct ResultDecisionCard: View {
     @ViewBuilder private var dayContextLine: some View {
         let kcalLeft = max(0, kcalTarget - kcalToday)
         let proteinLeft = max(0, proteinTarget - proteinToday)
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("today")
-                .font(.custom("DMSans-Medium", size: 22))
+                .font(.custom("DMSans-Medium", size: 26))
                 .foregroundStyle(textSecondary)
                 .kerning(1.4)
                 .textCase(.uppercase)
             (
                 Text("\(kcalLeft) ")
-                    .font(.custom("JeniHeroSerif-Regular", size: 44))
+                    .font(.custom("JeniHeroSerif-Regular", size: 52))
                 + Text("kcal")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 30))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 36))
                     .foregroundColor(textSecondary)
                 + Text(" left  ·  ")
-                    .font(.custom("Fraunces72pt-Regular", size: 30))
+                    .font(.custom("Fraunces72pt-Regular", size: 36))
                     .foregroundColor(textSecondary)
                 + Text("\(proteinLeft)g ")
-                    .font(.custom("JeniHeroSerif-Regular", size: 44))
+                    .font(.custom("JeniHeroSerif-Regular", size: 52))
                 + Text("protein")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 30))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 36))
                     .foregroundColor(textSecondary)
                 + Text(" left")
-                    .font(.custom("Fraunces72pt-Regular", size: 30))
+                    .font(.custom("Fraunces72pt-Regular", size: 36))
                     .foregroundColor(textSecondary)
             )
             .foregroundStyle(textPrimary)
@@ -346,13 +346,13 @@ struct ResultDecisionCard: View {
     ) -> some View {
         (
             Text(pair.prefix)
-                .font(.custom("Fraunces72pt-Regular", size: 30))
+                .font(.custom("Fraunces72pt-Regular", size: 36))
             + Text(pair.punch)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 38))
             + Text(pair.suffix)
-                .font(.custom("Fraunces72pt-Regular", size: 30))
+                .font(.custom("Fraunces72pt-Regular", size: 36))
             + Text(" ♡")
-                .font(.custom("DMSans-Medium", size: 26))
+                .font(.custom("DMSans-Medium", size: 30))
                 .foregroundColor(accent.opacity(0.7))
         )
         .foregroundStyle(textSecondary)
@@ -381,16 +381,16 @@ struct ResultDecisionCard: View {
         let punch = parts.last ?? tag
         (
             Text(prefix)
-                .font(.custom("DMSans-Medium", size: 22))
+                .font(.custom("DMSans-Medium", size: 28))
             + Text(punch)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 24))
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 30))
             + Text(" ♡")
-                .font(.custom("DMSans-Medium", size: 20))
+                .font(.custom("DMSans-Medium", size: 24))
                 .foregroundColor(accent.opacity(0.7))
         )
         .foregroundStyle(textPrimary)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 14)
         .background(Capsule().fill(accentSubtle.opacity(0.6)))
         .overlay(Capsule().stroke(accent.opacity(0.35), lineWidth: 0.75))
     }

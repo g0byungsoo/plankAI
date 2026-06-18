@@ -4,28 +4,30 @@ import UIKit
 
 // MARK: - ResultDayInContextCard
 //
-// v1.0.19 (2026-06-18) — slide 3 of the new post-scan carousel.
-// Locked decisions from the panel synthesis:
+// v1.0.23 (2026-06-18) — refocused per the cohort-prioritized research
+// agent's spec. Per-meal post-snap moment shouldn't context-switch to
+// weekly aggregates (research: dense per-meal screens with weekly
+// data create anxiety in women 22-35). Dropped:
 //
-//   - Keep 4 SEPARATE tiles (founder: skip the crosshair card).
-//   - Replace the trend caption with the SATIETY PREDICTION line
-//     ("should hold you about 4 hours") — the snap-bound observation
-//     no competitor owns, the magical-moment insight.
-//   - Apply her75 typography swaps: hairline-rule eyebrow, inline
-//     italic hero ("1,400 *left*"), guillemet «…» pull-quote with
-//     italic punch on a single word.
-//   - GLP-1 cohort still flips the hero to protein-today.
+//   - Week-pace tile (research: belongs on Becoming, not per-meal)
+//   - "Ingredients today" tile (we don't actually track unique
+//     ingredient count across the day — was a fake stat)
 //
-// Layout (1080×1920, cream `bgPrimary`):
+// What ships:
 //
-//   - Eyebrow with hairline rule: `your day so *far*` + rule + day
-//     summary timestamp on the right
-//   - Hero numeral via CountUpNumber + " left" italic suffix (or
-//     " today" for GLP-1 protein variant)
-//   - Satiety prediction line in italic Fraunces — snap-bound,
-//     replaces the prior trend caption
-//   - 4 separate scrapbook-chrome tiles in a 2×2 layout
-//   - Guillemet pull-quote at the bottom with italic punch word
+//   - Hairline-rule eyebrow ("your day so *far*")
+//   - Italic kcal-left hero (CountUpNumber + italic curtsy)
+//   - Italic satiety prediction
+//   - 4 cohort-prioritized tiles: protein today, fiber today,
+//     calories today, meals logged. Protein + fiber gain a ♡ when
+//     threshold met (high-leverage cohort signal per research:
+//     per-meal protein distribution is the load-bearing metric).
+//   - Italic guillemet pull-quote with punch-word italic
+//
+// Fonts bumped across the board per founder feedback: "fonts are
+// too small to read for the cards." Tile labels 26pt, tile values
+// 96pt JeniHeroSerif (was 88), pull quote 40pt (was 34), satiety
+// 44pt (was 38).
 
 struct ResultDayInContextCard: View {
 
@@ -37,7 +39,7 @@ struct ResultDayInContextCard: View {
         ZStack {
             Color(red: 0.992, green: 0.965, blue: 0.957)
 
-            VStack(alignment: .leading, spacing: 40) {
+            VStack(alignment: .leading, spacing: 44) {
                 eyebrowRule
                 heroNumeral
                 satietyLine
@@ -58,9 +60,9 @@ struct ResultDayInContextCard: View {
         HStack(alignment: .center, spacing: 14) {
             (
                 Text("your day so ")
-                    .font(.custom("DMSans-Medium", size: 24))
+                    .font(.custom("DMSans-Medium", size: 30))
                 + Text("far")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
             )
             .foregroundStyle(textSecondary)
             .kerning(0.4)
@@ -71,7 +73,7 @@ struct ResultDayInContextCard: View {
                 .frame(maxWidth: .infinity)
 
             Text(currentTimeLabel)
-                .font(.custom("DMSans-Medium", size: 22))
+                .font(.custom("DMSans-Medium", size: 26))
                 .foregroundStyle(textSecondary)
                 .kerning(0.6)
         }
@@ -83,7 +85,7 @@ struct ResultDayInContextCard: View {
         return fmt.string(from: Date()).lowercased()
     }
 
-    // MARK: - Hero numeral + inline italic suffix
+    // MARK: - Hero numeral
 
     @ViewBuilder private var heroNumeral: some View {
         if isGlp1Cohort {
@@ -92,13 +94,13 @@ struct ResultDayInContextCard: View {
                     target: proteinToday,
                     fontName: "JeniHeroSerif-Regular",
                     italicFontName: "JeniHeroSerif-Italic",
-                    size: 200,
+                    size: 220,
                     color: textPrimary
                 )
                 Text("g protein today")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 48))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 56))
                     .foregroundStyle(textPrimary)
-                    .baselineOffset(24)
+                    .baselineOffset(28)
             }
             .fixedSize(horizontal: false, vertical: true)
         } else {
@@ -107,13 +109,13 @@ struct ResultDayInContextCard: View {
                     target: max(kcalLeftRounded, 0),
                     fontName: "JeniHeroSerif-Regular",
                     italicFontName: "JeniHeroSerif-Italic",
-                    size: 200,
+                    size: 220,
                     color: textPrimary
                 )
                 Text(kcalSuffix)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 52))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 60))
                     .foregroundStyle(textPrimary)
-                    .baselineOffset(24)
+                    .baselineOffset(28)
             }
             .fixedSize(horizontal: false, vertical: true)
         }
@@ -134,11 +136,14 @@ struct ResultDayInContextCard: View {
         if !hours.isEmpty {
             (
                 Text("this should hold you ")
-                    .font(.custom("JeniHeroSerif-Regular", size: 38))
+                    .font(.custom("JeniHeroSerif-Regular", size: 44))
                 + Text(hours)
-                    .font(.custom("JeniHeroSerif-Italic", size: 38))
-                + Text(".")
-                    .font(.custom("JeniHeroSerif-Regular", size: 38))
+                    .font(.custom("JeniHeroSerif-Italic", size: 44))
+                + Text(".  ")
+                    .font(.custom("JeniHeroSerif-Regular", size: 44))
+                + Text("♡")
+                    .font(.custom("DMSans-Medium", size: 32))
+                    .foregroundColor(accent.opacity(0.7))
             )
             .foregroundStyle(textPrimary)
             .kerning(-0.4)
@@ -147,11 +152,11 @@ struct ResultDayInContextCard: View {
         }
     }
 
-    // MARK: - 6 tiles (3 rows × 2 cols)
+    // MARK: - 4 tiles (2×2) — cohort-prioritized
 
     @ViewBuilder private var tileGrid: some View {
-        VStack(spacing: 14) {
-            HStack(spacing: 14) {
+        VStack(spacing: 18) {
+            HStack(spacing: 18) {
                 tile(
                     label: "protein today",
                     value: "\(proteinToday)g",
@@ -165,7 +170,7 @@ struct ResultDayInContextCard: View {
                     accent: fiberToday >= 25
                 )
             }
-            HStack(spacing: 14) {
+            HStack(spacing: 18) {
                 tile(
                     label: "calories today",
                     value: "\(kcalToday)",
@@ -179,20 +184,6 @@ struct ResultDayInContextCard: View {
                     accent: false
                 )
             }
-            HStack(spacing: 14) {
-                tile(
-                    label: "ingredients",
-                    value: "\(ingredientsToday)",
-                    sublabel: "today",
-                    accent: false
-                )
-                tile(
-                    label: "week pace",
-                    value: weekPaceValue,
-                    sublabel: weekPaceLabel,
-                    accent: weekDeficitProjectionKcal < 0
-                )
-            }
         }
     }
 
@@ -203,74 +194,60 @@ struct ResultDayInContextCard: View {
         sublabel: String,
         accent: Bool
     ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 10) {
             (
                 Text(label)
-                    .font(.custom("DMSans-Medium", size: 20))
+                    .font(.custom("DMSans-Medium", size: 26))
                 + (accent
                     ? Text(" ♡")
-                        .font(.custom("DMSans-Medium", size: 18))
+                        .font(.custom("DMSans-Medium", size: 22))
                         .foregroundColor(self.accent.opacity(0.7))
                     : Text(""))
             )
             .foregroundStyle(textSecondary)
             .kerning(0.8)
-
             Text(value)
-                .font(.custom("JeniHeroSerif-Regular", size: 72))
+                .font(.custom("JeniHeroSerif-Regular", size: 96))
                 .foregroundStyle(textPrimary)
                 .kerning(-1.0)
                 .monospacedDigit()
             Text(sublabel)
-                .font(.custom("DMSans-Light", size: 20))
+                .font(.custom("DMSans-Light", size: 26))
                 .foregroundStyle(textSecondary)
         }
-        .padding(22)
+        .padding(28)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(Color(red: 1.0, green: 0.98, blue: 0.973))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(textPrimary.opacity(0.16), lineWidth: 1.5)
         )
         .shadow(color: textPrimary.opacity(0.12), radius: 0, x: 2, y: 3)
-    }
-
-    /// Count of unique ingredients logged today (including this
-    /// scan's items). Cohort signal: "12 different vegetables this
-    /// week" style identity reflection at meal scale.
-    private var ingredientsToday: Int {
-        // FoodLogPersister.todayLogCount() is meals not items; we
-        // need a unique ingredient count. For now approximate as
-        // `today's meal count × 2.5` + this scan's items; replace
-        // with a real read when FoodLogPersister exposes per-day
-        // item iteration.
-        let priorEstimate = max(0, (mealsLoggedToday - 1)) * 3
-        return priorEstimate + result.items.count
     }
 
     // MARK: - Guillemet pull-quote
 
     @ViewBuilder private var pullQuote: some View {
         let quote = pullQuoteTuple
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text("«")
-                .font(.custom("JeniHeroSerif-Italic", size: 44))
+                .font(.custom("JeniHeroSerif-Italic", size: 52))
                 .foregroundStyle(accent.opacity(0.5))
             (
                 Text(quote.prefix)
-                    .font(.custom("JeniHeroSerif-Regular", size: 34))
+                    .font(.custom("JeniHeroSerif-Regular", size: 40))
                 + Text(quote.punch)
-                    .font(.custom("JeniHeroSerif-Italic", size: 34))
+                    .font(.custom("JeniHeroSerif-Italic", size: 40))
                 + Text(quote.suffix)
-                    .font(.custom("JeniHeroSerif-Regular", size: 34))
+                    .font(.custom("JeniHeroSerif-Regular", size: 40))
             )
             .foregroundStyle(textPrimary)
             .kerning(-0.4)
             Text("»")
-                .font(.custom("JeniHeroSerif-Italic", size: 44))
+                .font(.custom("JeniHeroSerif-Italic", size: 52))
                 .foregroundStyle(accent.opacity(0.5))
                 .baselineOffset(-4)
         }
@@ -278,10 +255,6 @@ struct ResultDayInContextCard: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// Observational pull-quote split as (prefix, punch, suffix) so
-    /// the italic-Fraunces accent lands on a SINGLE word per phrase
-    /// (locked memory rule). Mood keyed on meals logged + protein
-    /// status.
     private var pullQuoteTuple: (prefix: String, punch: String, suffix: String) {
         switch (mealsLoggedToday, proteinToday >= 60) {
         case (0, _): return ("first plate of the ", "day", ".")
@@ -335,24 +308,6 @@ struct ResultDayInContextCard: View {
 
     private var mealsLoggedToday: Int {
         FoodLogPersister.todayLogCount() + 1
-    }
-
-    private var weekDeficitProjectionKcal: Int {
-        let dayTarget = Double(targets.kcal)
-        let pace = Double(kcalToday)
-        let projected = pace * 7
-        let target = dayTarget * 7
-        return Int(projected - target)
-    }
-
-    private var weekPaceValue: String {
-        let delta = weekDeficitProjectionKcal
-        let hundreds = abs(delta) / 100 * 100
-        return delta < 0 ? "−\(hundreds)" : "+\(hundreds)"
-    }
-
-    private var weekPaceLabel: String {
-        weekDeficitProjectionKcal < 0 ? "cal under target" : "cal over target"
     }
 
     // MARK: - Palette
