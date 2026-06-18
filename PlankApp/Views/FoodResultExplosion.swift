@@ -30,7 +30,13 @@ struct FoodResultExplosion: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        if reduceMotion {
+        // v1.0.22 (2026-06-18) — gate behind `triggerId >= 0` so the
+        // LottieView doesn't mount on the initial camera-open
+        // (founder bug: explosion fired before the first scan
+        // because the view was always mounted and Lottie auto-plays
+        // on mount). PlanView initializes the trigger at -1 and
+        // bumps to 0 on first onResultLanded.
+        if reduceMotion || triggerId < 0 {
             EmptyView()
         } else {
             ZStack {

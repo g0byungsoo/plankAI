@@ -4,26 +4,41 @@ import UIKit
 
 // MARK: - ResultDecisionCard
 //
-// v1.0.20 (2026-06-18) — rebuilt after founder feedback: the camera
-// frame already shows the photo behind the carousel slot; embedding
-// a second copy of the same photo inside the card reads as
-// duplicated. The card is now PURELY DATA, sitting opaque over the
-// frozen camera frame. Frees up the vertical real estate for more
-// detail per the founder: ingredients, extras (sodium / sugar /
-// sat fat), and a packed item ledger with per-item protein / fiber.
+// v1.0.23 (2026-06-18) — rebuilt against the cohort-prioritized
+// research agent's spec. Founder feedback: the dense "everything"
+// layout read like a nutrition-facts label, not a decision aid.
+// The research agent's load-bearing call:
 //
-// Layout (the card body, sized by the carousel slot):
+//   1. Protein as CO-HERO with calories (equal-sized numerals) —
+//      single biggest signal-vs-noise upgrade for the cohort.
+//      No major competitor (Cal AI / MacroFactor / SnapCalorie /
+//      Yazio / MFP / Lifesum / Foodvisor / ZOE) ships this.
+//      Validation: cleaneatzkitchen 2025 + ScienceDirect MPS data,
+//      U Texas Austin GLP-1 trial, Midi / TaraMD RD recs.
+//   2. Satiety as a qualitative one-line PREDICTION — owns the
+//      post-Ozempic food-noise vocabulary nobody else has.
+//   3. Ruthless silence on everything else — carbs / fat / sodium /
+//      sugar / sat fat / NHANES comparative / week pace / ingredients
+//      list ALL drop from slide 1. They live one tap away or on
+//      slide 2. Validation: 2025 perfectionism + disordered-eating
+//      RCT on dense nutrition-label screens driving anxious tracking
+//      in women 22-35.
 //
-//   - Hairline-rule eyebrow (today's *breakfast* · time)
-//   - Calorie hero with CountUpNumber + italic curtsy
-//   - Comparative insight line (one honest claim, optional)
-//   - Macro row: 4 scrapbook-chrome pills (protein · carbs · fat · fiber)
-//   - Extras row: sodium · sugar · sat fat (when present)
-//   - Item ledger with per-item portion + kcal + protein + fiber
-//   - Italic-punch tag chips
+// Layout (top to bottom):
 //
-// No spacer below the tag chips — content fills the slot bottom-up
-// from a denser layout.
+//   - Hairline-rule eyebrow (today's *meal* · time)
+//   - Italic editorial dish title
+//   - CO-HERO row: calories + protein numerals, equal height
+//   - Protein threshold micro-line (conditional)
+//   - Fiber line + italic satiety prediction (when fiber ≥ 3g)
+//   - Divider hairline
+//   - Day-context one-liner ("X kcal left today · Y g protein left")
+//   - Smart pair suggestion (conditional only when gap exists)
+//   - Tag chips (single row, max 2)
+//
+// her75 typography preserved: JeniHeroSerif for hero numerals,
+// Fraunces-SemiBoldItalic for punch words, DMSans for body. Hearts
+// as terminal punctuation on insight lines per locked voice rules.
 
 struct ResultDecisionCard: View {
 
@@ -35,6 +50,7 @@ struct ResultDecisionCard: View {
 
     @State private var revealedSteps: Int = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 0
 
     var body: some View {
         ZStack {
@@ -42,8 +58,8 @@ struct ResultDecisionCard: View {
 
             contentColumn
                 .padding(.horizontal, 80)
-                .padding(.top, 110)
-                .padding(.bottom, 80)
+                .padding(.top, 130)
+                .padding(.bottom, 100)
         }
         .frame(width: 1080, height: 1920)
         .clipShape(Rectangle())
@@ -69,117 +85,18 @@ struct ResultDecisionCard: View {
     // MARK: - Content column
 
     @ViewBuilder private var contentColumn: some View {
-        VStack(alignment: .leading, spacing: 30) {
+        VStack(alignment: .leading, spacing: 44) {
             eyebrowRule.opacity(opacityFor(0))
-            calorieHero.opacity(opacityFor(1))
-            insightStack.opacity(opacityFor(2))
-            macroRow.opacity(opacityFor(3))
-            if hasExtras {
-                extrasRow.opacity(opacityFor(4))
+            dishTitle.opacity(opacityFor(1))
+            coHeroRow.opacity(opacityFor(2))
+            satietyAndFiberBlock.opacity(opacityFor(3))
+            divider.opacity(opacityFor(4))
+            dayContextLine.opacity(opacityFor(5))
+            if let pair = smartPair {
+                smartPairLine(pair).opacity(opacityFor(6))
             }
-            ingredientsHeader.opacity(opacityFor(5))
-            itemList.opacity(opacityFor(5))
             tagChips.opacity(opacityFor(6))
-        }
-    }
-
-    // MARK: - Insight stack (multiple lines now)
-
-    /// Up to three observation lines stacked in cocoa-secondary
-    /// DM Sans Light with italic-Fraunces punch words + a heart at
-    /// the end of each. Founder direction: TikTok/IG-girl-post
-    /// register — more information, more aesthetic, hearts as
-    /// terminal punctuation.
-    @ViewBuilder private var insightStack: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let line = comparativeInsight {
-                heartedLine(
-                    prefix: line.prefix,
-                    punch: line.punch,
-                    suffix: line.suffix
-                )
-                .accessibilityHint("comparative insight from " + line.source.citation)
-            }
-            heartedLine(
-                prefix: "this should hold you ",
-                punch: satietyHoursLabel,
-                suffix: "."
-            )
-            if let fitsLine = fitsLine {
-                heartedLine(
-                    prefix: fitsLine.prefix,
-                    punch: fitsLine.punch,
-                    suffix: fitsLine.suffix
-                )
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func heartedLine(
-        prefix: String,
-        punch: String,
-        suffix: String
-    ) -> some View {
-        (
-            Text(prefix)
-                .font(.custom("DMSans-Light", size: 26))
-            + Text(punch)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 30))
-            + Text(suffix)
-                .font(.custom("DMSans-Light", size: 26))
-            + Text(" ♡")
-                .font(.custom("DMSans-Medium", size: 24))
-                .foregroundColor(accent.opacity(0.7))
-        )
-        .foregroundStyle(textSecondary)
-        .lineSpacing(2)
-        .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private var satietyHoursLabel: String {
-        SatietyEstimate.hoursLabel(
-            kcal: totalKcal,
-            proteinG: totalProtein,
-            fiberG: totalFiber
-        )
-    }
-
-    /// Third insight: a "fits your X" observation if the plate is
-    /// notable on a single dimension. Returns nil for unremarkable
-    /// plates so the slide stays honest.
-    private var fitsLine: (prefix: String, punch: String, suffix: String)? {
-        if totalProtein >= 30 {
-            return ("a real ", "protein win", ".")
-        }
-        if totalFiber >= 10 {
-            return ("your gut will ", "notice", ".")
-        }
-        if totalKcal > 0, totalKcal <= 350 {
-            return ("a ", "lighter", " plate.")
-        }
-        return nil
-    }
-
-    // MARK: - Ingredients header
-
-    @ViewBuilder private var ingredientsHeader: some View {
-        if !result.items.isEmpty {
-            HStack(spacing: 14) {
-                (
-                    Text("\(result.items.count) ")
-                        .font(.custom("JeniHeroSerif-Regular", size: 32))
-                    + Text(result.items.count == 1 ? "ingredient" : "ingredients")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
-                )
-                .foregroundStyle(textPrimary)
-
-                Rectangle()
-                    .fill(textPrimary.opacity(0.22))
-                    .frame(height: 0.5)
-                    .frame(maxWidth: .infinity)
-            }
-            .padding(.top, 4)
+            Spacer(minLength: 0)
         }
     }
 
@@ -214,194 +131,233 @@ struct ResultDecisionCard: View {
         return fmt.string(from: loggedAt).lowercased()
     }
 
-    // MARK: - Calorie hero
+    // MARK: - Dish title (editorial mid-size)
 
-    @ViewBuilder private var calorieHero: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 14) {
-            CountUpNumber(
-                target: totalKcal,
-                fontName: "JeniHeroSerif-Regular",
-                italicFontName: "JeniHeroSerif-Italic",
-                size: 200,
-                color: textPrimary
+    @ViewBuilder private var dishTitle: some View {
+        (
+            Text("reading your ")
+                .font(.custom("JeniHeroSerif-Regular", size: 56))
+            + Text(dishLineDisplay)
+                .font(.custom("JeniHeroSerif-Italic", size: 56))
+            + Text(".")
+                .font(.custom("JeniHeroSerif-Regular", size: 56))
+        )
+        .foregroundStyle(textPrimary)
+        .kerning(-0.8)
+        .lineSpacing(-2)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var dishLineDisplay: String {
+        let stripped = dishName
+            .replacingOccurrences(
+                of: #"\s*\+\s*\d+\s+more$"#,
+                with: "",
+                options: .regularExpression
             )
-            Text("calories")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 52))
-                .foregroundStyle(textPrimary)
-                .baselineOffset(24)
+            .lowercased()
+        return stripped.isEmpty ? "your plate" : stripped
+    }
+
+    // MARK: - Co-hero row (kcal + protein at equal height)
+
+    @ViewBuilder private var coHeroRow: some View {
+        HStack(alignment: .top, spacing: 56) {
+            VStack(alignment: .leading, spacing: 6) {
+                CountUpNumber(
+                    target: totalKcal,
+                    fontName: "JeniHeroSerif-Regular",
+                    italicFontName: "JeniHeroSerif-Italic",
+                    size: 180,
+                    color: textPrimary
+                )
+                Text("calories")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 36))
+                    .foregroundStyle(textSecondary)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    CountUpNumber(
+                        target: totalProtein,
+                        fontName: "JeniHeroSerif-Regular",
+                        italicFontName: "JeniHeroSerif-Italic",
+                        size: 180,
+                        color: textPrimary
+                    )
+                    Text("g")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 56))
+                        .foregroundStyle(textSecondary)
+                        .baselineOffset(36)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("protein")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 36))
+                        .foregroundStyle(textSecondary)
+                    if let line = proteinThresholdLine {
+                        (
+                            Text(line.prefix)
+                                .font(.custom("DMSans-Light", size: 22))
+                            + Text(line.punch)
+                                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 24))
+                            + Text(line.suffix)
+                                .font(.custom("DMSans-Light", size: 22))
+                        )
+                        .foregroundStyle(accent.opacity(0.85))
+                    }
+                }
+            }
         }
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    // MARK: - Comparative insight line
+    /// Per-meal protein threshold call-out per the research agent's
+    /// load-bearing #3 recommendation. 30g = the MPS / GLP-1
+    /// distribution target. Below 15g: hide (don't shame).
+    private var proteinThresholdLine: (prefix: String, punch: String, suffix: String)? {
+        if totalProtein >= 30 {
+            return ("hits the ", "30g", " mark ♡")
+        }
+        if totalProtein >= 15 {
+            return ("a ", "\(totalProtein)g", " start — pair it later")
+        }
+        return nil
+    }
 
-    private var comparativeInsight: ComparativeInsight.InsightLine? {
-        ComparativeInsight.line(
-            mealLabel: mealLabel,
+    // MARK: - Satiety + fiber block
+
+    /// Combined: fiber line + italic satiety prediction stacked.
+    /// Fiber rendered only when ≥3g (below that the "0g fiber" stat
+    /// creates shame without action per research agent). Satiety
+    /// always renders.
+    @ViewBuilder private var satietyAndFiberBlock: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            if totalFiber >= 3 {
+                (
+                    Text("\(totalFiber)g")
+                        .font(.custom("JeniHeroSerif-Regular", size: 52))
+                    + Text(" fiber  ·  ")
+                        .font(.custom("Fraunces72pt-Regular", size: 32))
+                        .foregroundColor(textSecondary)
+                    + Text(fiberQualitative)
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
+                        .foregroundColor(textSecondary)
+                )
+                .foregroundStyle(textPrimary)
+                .kerning(-0.4)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            (
+                Text("this should hold you ")
+                    .font(.custom("Fraunces72pt-Regular", size: 36))
+                + Text(satietyHoursLabel)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 36))
+                + Text(".  ")
+                    .font(.custom("Fraunces72pt-Regular", size: 36))
+                + Text("♡")
+                    .font(.custom("DMSans-Medium", size: 28))
+                    .foregroundColor(accent.opacity(0.7))
+            )
+            .foregroundStyle(textPrimary)
+            .kerning(-0.2)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var fiberQualitative: String {
+        if totalFiber >= 8 { return "keeps you full longer" }
+        if totalFiber >= 5 { return "easy on your gut" }
+        return "a soft start"
+    }
+
+    private var satietyHoursLabel: String {
+        SatietyEstimate.hoursLabel(
+            kcal: totalKcal,
             proteinG: totalProtein,
             fiberG: totalFiber
         )
     }
 
-    // MARK: - Macro row (scrapbook chrome)
+    // MARK: - Divider
 
-    @ViewBuilder private var macroRow: some View {
-        HStack(spacing: 18) {
-            macroPill(value: totalProtein, label: "protein")
-            macroPill(value: totalCarbs, label: "carbs")
-            macroPill(value: totalFat, label: "fat")
-            macroPill(value: totalFiber, label: "fiber")
-        }
+    @ViewBuilder private var divider: some View {
+        Rectangle()
+            .fill(textPrimary.opacity(0.16))
+            .frame(height: 0.5)
+            .frame(maxWidth: 320)
     }
 
-    @ViewBuilder
-    private func macroPill(value: Int, label: String) -> some View {
-        VStack(spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text("\(value)")
-                    .font(.custom("JeniHeroSerif-Regular", size: 52))
-                    .foregroundStyle(textPrimary)
-                Text("g")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
-                    .foregroundStyle(textSecondary)
-                    .baselineOffset(4)
-            }
-            Text(label)
-                .font(.custom("DMSans-Medium", size: 20))
+    // MARK: - Day-context (kcal left + protein left)
+
+    @ViewBuilder private var dayContextLine: some View {
+        let kcalLeft = max(0, kcalTarget - kcalToday)
+        let proteinLeft = max(0, proteinTarget - proteinToday)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("today")
+                .font(.custom("DMSans-Medium", size: 22))
                 .foregroundStyle(textSecondary)
-                .kerning(0.8)
-                .textCase(.lowercase)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(red: 1.0, green: 0.98, blue: 0.973))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(textPrimary.opacity(0.16), lineWidth: 1.5)
-        )
-        .shadow(color: textPrimary.opacity(0.12), radius: 0, x: 2, y: 3)
-    }
-
-    // MARK: - Extras row (sodium / sugar / sat fat)
-
-    private var hasExtras: Bool {
-        totalSodiumMg > 0 || totalSugarG > 0 || totalSatFatG > 0
-    }
-
-    @ViewBuilder private var extrasRow: some View {
-        HStack(spacing: 24) {
-            if totalSodiumMg > 0 {
-                extraItem(value: "\(totalSodiumMg)", unit: "mg", label: "sodium")
-                if totalSugarG > 0 || totalSatFatG > 0 { extraDot }
-            }
-            if totalSugarG > 0 {
-                extraItem(value: "\(totalSugarG)", unit: "g", label: "sugar")
-                if totalSatFatG > 0 { extraDot }
-            }
-            if totalSatFatG > 0 {
-                extraItem(value: "\(totalSatFatG)", unit: "g", label: "sat fat")
-            }
-            Spacer(minLength: 0)
-        }
-    }
-
-    @ViewBuilder
-    private func extraItem(value: String, unit: String, label: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 2) {
-            Text(value)
-                .font(.custom("JeniHeroSerif-Regular", size: 32))
-                .foregroundStyle(textPrimary)
-            Text(unit)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
-                .foregroundStyle(textSecondary)
-                .baselineOffset(2)
-            Text(" \(label)")
-                .font(.custom("DMSans-Light", size: 22))
-                .foregroundStyle(textSecondary)
-        }
-    }
-
-    @ViewBuilder private var extraDot: some View {
-        Text("·")
-            .font(.custom("DMSans-Medium", size: 26))
-            .foregroundStyle(textSecondary.opacity(0.55))
-    }
-
-    // MARK: - Item ledger with per-item detail
-
-    @ViewBuilder private var itemList: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(result.items.enumerated()), id: \.offset) { idx, item in
-                if idx > 0 {
-                    Rectangle()
-                        .fill(textPrimary.opacity(0.10))
-                        .frame(height: 0.5)
-                }
-                itemRow(item: item)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func itemRow(item: CapturedItem) -> some View {
-        HStack(alignment: .top, spacing: 18) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(item.name.lowercased())
-                    .font(.custom("JeniHeroSerif-Regular", size: 42))
-                    .foregroundStyle(textPrimary)
-                    .kerning(-0.4)
-                itemDetailLine(item: item)
-            }
-            Spacer(minLength: 12)
-            itemKcalView(item: item)
-        }
-        .padding(.vertical, 16)
-        .contentShape(Rectangle())
-    }
-
-    @ViewBuilder
-    private func itemDetailLine(item: CapturedItem) -> some View {
-        let parts = itemDetailParts(item)
-        if !parts.isEmpty {
-            Text(parts.joined(separator: " · "))
-                .font(.custom("DMSans-Light", size: 22))
-                .foregroundStyle(textSecondary)
-        }
-    }
-
-    private func itemDetailParts(_ item: CapturedItem) -> [String] {
-        var parts: [String] = []
-        if item.portionGrams > 0 {
-            let g = Int((item.portionGrams / 5).rounded()) * 5
-            parts.append("\(g)g")
-        }
-        if let p = item.proteinG, p >= 1 {
-            parts.append("\(Int(p.rounded()))g protein")
-        }
-        if let f = item.fiberG, f >= 1 {
-            parts.append("\(Int(f.rounded()))g fiber")
-        }
-        return parts
-    }
-
-    @ViewBuilder
-    private func itemKcalView(item: CapturedItem) -> some View {
-        if let kcal = item.kcal {
-            let rounded = Int((kcal / 5).rounded()) * 5
+                .kerning(1.4)
+                .textCase(.uppercase)
             (
-                Text("\(rounded)")
-                    .font(.custom("DMSans-Medium", size: 30))
-                    .foregroundStyle(textPrimary)
-                + Text(" cal")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
-                    .foregroundStyle(textSecondary)
-                    .baselineOffset(2)
+                Text("\(kcalLeft) ")
+                    .font(.custom("JeniHeroSerif-Regular", size: 44))
+                + Text("kcal")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 30))
+                    .foregroundColor(textSecondary)
+                + Text(" left  ·  ")
+                    .font(.custom("Fraunces72pt-Regular", size: 30))
+                    .foregroundColor(textSecondary)
+                + Text("\(proteinLeft)g ")
+                    .font(.custom("JeniHeroSerif-Regular", size: 44))
+                + Text("protein")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 30))
+                    .foregroundColor(textSecondary)
+                + Text(" left")
+                    .font(.custom("Fraunces72pt-Regular", size: 30))
+                    .foregroundColor(textSecondary)
             )
-            .monospacedDigit()
+            .foregroundStyle(textPrimary)
+            .kerning(-0.2)
+            .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    // MARK: - Smart pair suggestion
+
+    /// Research agent's load-bearing add: ONE specific suggestion
+    /// that closes the largest gap, only when a gap exists. Hide on
+    /// balanced plates — silence is the reward.
+    private var smartPair: (prefix: String, punch: String, suffix: String)? {
+        if totalProtein < 25 {
+            return ("a ", "boiled egg", " later pushes you past 30g.")
+        }
+        if totalFiber < 5 {
+            return ("a handful of ", "berries", " later locks in fiber.")
+        }
+        let fatKcal = totalFat * 9
+        if totalKcal > 0, Double(fatKcal) / Double(totalKcal) > 0.55 {
+            return ("pair with a ", "lean protein", " to balance.")
+        }
+        return nil
+    }
+
+    @ViewBuilder
+    private func smartPairLine(
+        _ pair: (prefix: String, punch: String, suffix: String)
+    ) -> some View {
+        (
+            Text(pair.prefix)
+                .font(.custom("Fraunces72pt-Regular", size: 30))
+            + Text(pair.punch)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
+            + Text(pair.suffix)
+                .font(.custom("Fraunces72pt-Regular", size: 30))
+            + Text(" ♡")
+                .font(.custom("DMSans-Medium", size: 26))
+                .foregroundColor(accent.opacity(0.7))
+        )
+        .foregroundStyle(textSecondary)
+        .kerning(-0.2)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     // MARK: - Tag chips
@@ -443,8 +399,7 @@ struct ResultDecisionCard: View {
         var tags: [String] = []
         if totalProtein >= 25 { tags.append("high protein") }
         if totalFiber >= 8 { tags.append("high fiber") }
-        if totalKcal > 0, totalKcal <= 500 { tags.append("light meal") }
-        return tags
+        return Array(tags.prefix(2))
     }
 
     // MARK: - Totals
@@ -457,24 +412,26 @@ struct ResultDecisionCard: View {
     private var totalProtein: Int {
         Int(result.items.compactMap { $0.proteinG }.reduce(0, +).rounded())
     }
-    private var totalCarbs: Int {
-        Int(result.items.compactMap { $0.carbsG }.reduce(0, +).rounded())
-    }
     private var totalFat: Int {
         Int(result.items.compactMap { $0.fatG }.reduce(0, +).rounded())
     }
     private var totalFiber: Int {
         Int(result.items.compactMap { $0.fiberG }.reduce(0, +).rounded())
     }
-    private var totalSugarG: Int {
-        Int(result.items.compactMap { $0.sugarG }.reduce(0, +).rounded())
+
+    // MARK: - Day-context computed
+
+    private var kcalTarget: Int {
+        foodDailyTarget > 0 ? Int(foodDailyTarget) : 1950
     }
-    private var totalSodiumMg: Int {
-        Int(result.items.compactMap { $0.sodiumMg }.reduce(0, +).rounded())
+    private var proteinTarget: Int {
+        Int((Double(kcalTarget) * 0.25) / 4)
     }
-    private var totalSatFatG: Int {
-        Int(result.items.compactMap { $0.saturatedFatG }.reduce(0, +).rounded())
+    private var todayLogged: FoodLogPersister.TodayMacros {
+        FoodLogPersister.todayMacros()
     }
+    private var kcalToday: Int { Int(todayLogged.kcal.rounded()) + totalKcal }
+    private var proteinToday: Int { Int(todayLogged.protein.rounded()) + totalProtein }
 
     // MARK: - Palette
 
