@@ -1026,17 +1026,21 @@ private struct HandwrittenResultPreviewHarness: View {
     }
 }
 
+/// v1.0.11 (2026-06-17) — lesson share is no longer handwritten per
+/// founder direction. Harness flag name kept for muscle memory but
+/// mounts the rebuilt magazine-register LessonQuoteCard (JeniHeroSerif
+/// italic on warm off-white, no card chrome, no stickers).
 private struct HandwrittenLessonPreviewHarness: View {
     var body: some View {
         GeometryReader { geo in
             let scale = min(geo.size.width / 1080, geo.size.height / 1920)
             ZStack {
                 Color.black.ignoresSafeArea()
-                HandwrittenLessonQuoteCard(
+                LessonQuoteCard(
                     headline: "the voice in your head was taught",
                     italicWords: ["taught"],
-                    bodyLine: "you were seven, maybe nine. someone at the table said she's being good today.",
-                    dayLabel: "day one",
+                    bodyLine: "you were seven, maybe nine. someone at the table said she's being good today. someone else laughs about being bad later.",
+                    dayLabel: "day fourteen",
                     pillarTitle: "voice + food noise"
                 )
                 .frame(width: 1080, height: 1920)

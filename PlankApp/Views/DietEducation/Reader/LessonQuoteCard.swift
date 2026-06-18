@@ -5,158 +5,127 @@ import UIKit
 
 // MARK: - LessonQuoteCard
 //
-// v1.0.10 (2026-06-17) — IG-Story / TikTok-bait share card for a
-// single CBT lesson page. Built to live in the same typography
-// family as DailyShareCard + WeeklyShareCard + NutritionCardView:
-// JeniHeroSerif on the punch words, Fraunces72pt on the eyebrow,
-// cream background, three coquette stickers scattered at the
-// corners.
+// v1.0.11 (2026-06-17) — REBUILT after founder feedback on v1.0.10:
+// "all shared cards look like some cute elementary school design.
+// can we make them more like luxury girl magazine style without
+// card design in shared screen?"
 //
-// Founder direction: "jenifit education module also needs ...
-// visual improvement constantly with her75 pinterest it-girl
-// style and it needs to be more engageable. we can research what
-// other winning products do for their contents and copy some of
-// the winning strategies." — the universal winning strategy for
-// CBT / journal apps (Finch, Stoic, How We Feel, Calm) is the
-// shareable insight: the user posts the line that moved her, the
-// app gets free organic acquisition.
+// Direction:
+//   - Handwritten typography (Bradley Hand / Snell / Marker Felt) is
+//     RESERVED for food-photo overlays. Non-food shares use the
+//     JeniFit type system (JeniHeroSerif Italic / Fraunces / DM Sans).
+//   - No "card" chrome — no cream containers, no scrapbook borders,
+//     no sticker scatter. Negative space + hairline rules + magazine
+//     typography do the work.
+//   - The page IS the share. Background is off-white cream, edges
+//     are clean to the canvas.
 //
-// Layout (1080×1920 canvas, top-down):
-//   - 0    →  220pt: editorial eyebrow + program-day mark
-//                    ("THE JENIFIT METHOD ·  ·  day 14")
-//   - 220  →  240pt: hairline divider
-//   - 240  → 1400pt: hero quote — page.headline rendered with
-//                    italic punch words at 72pt, body sentence at
-//                    34pt below as supporting evidence
-//   - 1400 → 1620pt: pillar attribution (italic Fraunces; the
-//                    chapter / pillar name the lesson belongs to)
-//   - 1620 → 1920pt: jenifit wordmark + bottom inset
+// Layout (1080×1920, top-down):
 //
-// Designed for ImageRenderer offscreen rendering. NEVER mounted in
-// the user's actual view hierarchy — only by LessonQuoteRenderer.
+//   - 0    →  220pt: editorial eyebrow row — "THE JENIFIT METHOD"
+//                    tracked Fraunces SemiBold + day mark right-aligned
+//   - 220  →  240pt: hairline rule (0.5pt cocoa, full bleed)
+//   - 240  → 1500pt: hero italic-punch quote rendered in JeniHeroSerif
+//                    Regular + Italic at ~84pt centered vertically;
+//                    body line (DM Sans Regular 22pt) below at 0.75
+//                    opacity
+//   - 1500 → 1520pt: hairline rule
+//   - 1520 → 1920pt: bottom folio — tracked Fraunces caps with pillar
+//                    name, "JENIFIT" Fraunces SemiBold wordmark right
+//
+// Designed for ImageRenderer offscreen rendering. Never mounted in
+// the user's live view hierarchy — only by LessonQuoteRenderer.
 
 struct LessonQuoteCard: View {
 
-    /// The lesson page headline (e.g. "the voice in your head was
-    /// taught"). Becomes the visual hero on the share card.
+    /// Page headline ("the voice in your head was taught").
     let headline: String
 
-    /// Lowercased italic-punch tokens (e.g. ["taught"]). Each
-    /// matching token in `headline` renders in JeniHeroSerif-Italic;
-    /// the rest stays JeniHeroSerif-Regular. Empty array → headline
-    /// renders fully Regular.
+    /// Lowercased italic-punch tokens (e.g. ["taught"]).
     let italicWords: [String]
 
-    /// Optional supporting body line (one sentence, ideally the
-    /// reframe). nil collapses to a quote-only layout.
+    /// Optional supporting body line.
     let bodyLine: String?
 
-    /// Day-N label (e.g. "day 14"). Drives the editorial eyebrow.
+    /// Day-N label (e.g. "day fourteen").
     let dayLabel: String
 
-    /// Pillar / chapter the lesson belongs to (e.g. "the voice").
-    /// Anchors the bottom attribution as a sub-register signature.
+    /// Pillar / chapter name.
     let pillarTitle: String
 
     var body: some View {
         ZStack {
-            background
+            Color(hex: "#F8F2E8")  // warm off-white — magazine page,
+                                    // softer than the #FDF6F4 cream
+                                    // the app uses on screen so the
+                                    // share reads as a printed page.
 
             VStack(spacing: 0) {
                 Spacer().frame(height: 130)
-                eyebrowRow.padding(.horizontal, 80)
+                eyebrowRow.padding(.horizontal, 110)
                 Spacer().frame(height: 18)
-                hairline.padding(.horizontal, 80)
-                Spacer().frame(height: 84)
+                hairline.padding(.horizontal, 110)
 
-                heroQuote.padding(.horizontal, 70)
+                Spacer()
+
+                heroQuote.padding(.horizontal, 110)
 
                 if let bodyLine, !bodyLine.isEmpty {
-                    Spacer().frame(height: 42)
-                    bodySupport(line: bodyLine).padding(.horizontal, 90)
+                    Spacer().frame(height: 48)
+                    bodySupport(line: bodyLine).padding(.horizontal, 150)
                 }
 
                 Spacer()
 
-                attribution.padding(.horizontal, 80)
+                hairline.padding(.horizontal, 110)
                 Spacer().frame(height: 28)
-                wordmark
-                Spacer().frame(height: 76)
+                bottomFolio.padding(.horizontal, 110)
+                Spacer().frame(height: 88)
             }
         }
         .frame(width: 1080, height: 1920)
     }
 
-    // MARK: - Background + sticker scatter
-    //
-    // Three accents max per the milestone-scatter rule. Earned
-    // moment register (the user is sharing something she found
-    // worth keeping) so the stickers belong.
-
-    @ViewBuilder private var background: some View {
-        ZStack {
-            Color(hex: "#F7F1E8")
-
-            Image("sticker_cherries", bundle: .main)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 138, height: 138)
-                .rotationEffect(.degrees(-14))
-                .opacity(0.78)
-                .offset(x: -380, y: -800)
-
-            Image("sticker_bow_satin", bundle: .main)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 108, height: 108)
-                .rotationEffect(.degrees(13))
-                .opacity(0.74)
-                .offset(x: 400, y: -760)
-
-            Image("sticker_flower_3d", bundle: .main)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 94, height: 94)
-                .rotationEffect(.degrees(-9))
-                .opacity(0.70)
-                .offset(x: 380, y: 760)
-        }
-    }
-
-    // MARK: - Eyebrow + hero
+    // MARK: - Eyebrow
 
     @ViewBuilder private var eyebrowRow: some View {
         HStack(alignment: .firstTextBaseline) {
             Text("THE JENIFIT METHOD")
                 .font(.custom("Fraunces72pt-SemiBold", size: 22))
-                .foregroundStyle(Color(hex: "#7B5959"))
-                .kerning(3.6)
+                .foregroundStyle(Color(hex: "#5B3C3C"))
+                .kerning(3.8)
             Spacer()
-            Text(dayLabel.lowercased())
-                .font(.custom("Fraunces72pt-Regular", size: 24))
-                .foregroundStyle(Color(hex: "#7B5959"))
+            Text(dayLabel.uppercased())
+                .font(.custom("Fraunces72pt-Regular", size: 22))
+                .foregroundStyle(Color(hex: "#5B3C3C"))
+                .kerning(2.2)
         }
     }
 
+    // MARK: - Hairlines
+
     @ViewBuilder private var hairline: some View {
         Rectangle()
-            .fill(Color(hex: "#3D2B2B").opacity(0.18))
-            .frame(height: 1)
+            .fill(Color(hex: "#3D2B2B").opacity(0.22))
+            .frame(height: 0.6)
     }
+
+    // MARK: - Hero quote
 
     @ViewBuilder private var heroQuote: some View {
         composedQuoteText()
             .foregroundStyle(Color(hex: "#3D2B2B"))
             .multilineTextAlignment(.leading)
-            .lineSpacing(8)
+            .lineSpacing(6)
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// Builds a single Text by token-walking the headline and swapping
-    /// font face on each italic-punch word match. Case-folded match;
-    /// punctuation is stripped from the token before comparison so
-    /// "taught." still matches the italic set ["taught"].
+    /// Token-walk the headline and render italic-punch words in
+    /// `JeniHeroSerif-Italic`; the rest in `JeniHeroSerif-Regular`.
+    /// Magazine-pull-quote register — case-folded match, punctuation-
+    /// safe so "taught." in the headline matches ["taught"] in the
+    /// italic set.
     private func composedQuoteText() -> Text {
         let italicSet = Set(italicWords.map { $0.lowercased() })
         let tokens = headline.split(separator: " ", omittingEmptySubsequences: false)
@@ -167,12 +136,12 @@ struct LessonQuoteCard: View {
                 .lowercased()
                 .trimmingCharacters(in: .punctuationCharacters)
             if italicSet.contains(stripped) {
-                out = out + Text(token).font(.custom("JeniHeroSerif-Italic", size: 72))
+                out = out + Text(token).font(.custom("JeniHeroSerif-Italic", size: 92))
             } else {
-                out = out + Text(token).font(.custom("JeniHeroSerif-Regular", size: 72))
+                out = out + Text(token).font(.custom("JeniHeroSerif-Regular", size: 92))
             }
             if i < tokens.count - 1 {
-                out = out + Text(" ").font(.custom("JeniHeroSerif-Regular", size: 72))
+                out = out + Text(" ").font(.custom("JeniHeroSerif-Regular", size: 92))
             }
         }
         return out
@@ -180,32 +149,27 @@ struct LessonQuoteCard: View {
 
     @ViewBuilder private func bodySupport(line: String) -> some View {
         Text(line)
-            .font(.custom("JeniHeroSerif-Regular", size: 32))
-            .lineSpacing(6)
-            .foregroundStyle(Color(hex: "#3D2B2B").opacity(0.78))
+            .font(.custom("DMSans-Regular", size: 26))
+            .lineSpacing(8)
+            .foregroundStyle(Color(hex: "#3D2B2B").opacity(0.65))
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    // MARK: - Attribution + wordmark
+    // MARK: - Bottom folio (pillar attribution + wordmark)
 
-    @ViewBuilder private var attribution: some View {
-        HStack(spacing: 0) {
-            Text(pillarTitle)
-                .font(.custom("JeniHeroSerif-Italic", size: 26))
-                .foregroundStyle(Color(hex: "#7B5959"))
+    @ViewBuilder private var bottomFolio: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(pillarTitle.uppercased())
+                .font(.custom("Fraunces72pt-Regular", size: 18))
+                .foregroundStyle(Color(hex: "#5B3C3C"))
+                .kerning(2.6)
             Spacer()
-        }
-    }
-
-    @ViewBuilder private var wordmark: some View {
-        HStack {
-            Spacer()
-            Text("jenifit")
-                .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                .foregroundStyle(Color(hex: "#C4677A").opacity(0.42))
-            Spacer()
+            Text("JENIFIT")
+                .font(.custom("Fraunces72pt-SemiBold", size: 22))
+                .foregroundStyle(Color(hex: "#5B3C3C"))
+                .kerning(3.4)
         }
     }
 }
