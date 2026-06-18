@@ -147,63 +147,108 @@ struct ResultDayInContextCard: View {
         }
     }
 
-    // MARK: - 4 separate tiles
+    // MARK: - 6 tiles (3 rows × 2 cols)
 
     @ViewBuilder private var tileGrid: some View {
-        VStack(spacing: 18) {
-            HStack(spacing: 18) {
+        VStack(spacing: 14) {
+            HStack(spacing: 14) {
                 tile(
                     label: "protein today",
                     value: "\(proteinToday)g",
-                    sublabel: "of \(targets.protein)g"
+                    sublabel: "of \(targets.protein)g",
+                    accent: proteinToday >= targets.protein
                 )
                 tile(
                     label: "fiber today",
                     value: "\(fiberToday)g",
-                    sublabel: "of 25g"
+                    sublabel: "of 25g",
+                    accent: fiberToday >= 25
                 )
             }
-            HStack(spacing: 18) {
+            HStack(spacing: 14) {
+                tile(
+                    label: "calories today",
+                    value: "\(kcalToday)",
+                    sublabel: "of \(targets.kcal)",
+                    accent: false
+                )
                 tile(
                     label: "meals logged",
                     value: "\(mealsLoggedToday)",
-                    sublabel: "today"
+                    sublabel: mealsLoggedToday == 1 ? "first" : "today",
+                    accent: false
+                )
+            }
+            HStack(spacing: 14) {
+                tile(
+                    label: "ingredients",
+                    value: "\(ingredientsToday)",
+                    sublabel: "today",
+                    accent: false
                 )
                 tile(
                     label: "week pace",
                     value: weekPaceValue,
-                    sublabel: weekPaceLabel
+                    sublabel: weekPaceLabel,
+                    accent: weekDeficitProjectionKcal < 0
                 )
             }
         }
     }
 
     @ViewBuilder
-    private func tile(label: String, value: String, sublabel: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(label)
-                .font(.custom("DMSans-Medium", size: 22))
-                .foregroundStyle(textSecondary)
-                .kerning(0.8)
+    private func tile(
+        label: String,
+        value: String,
+        sublabel: String,
+        accent: Bool
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            (
+                Text(label)
+                    .font(.custom("DMSans-Medium", size: 20))
+                + (accent
+                    ? Text(" ♡")
+                        .font(.custom("DMSans-Medium", size: 18))
+                        .foregroundColor(self.accent.opacity(0.7))
+                    : Text(""))
+            )
+            .foregroundStyle(textSecondary)
+            .kerning(0.8)
+
             Text(value)
-                .font(.custom("JeniHeroSerif-Regular", size: 88))
+                .font(.custom("JeniHeroSerif-Regular", size: 72))
                 .foregroundStyle(textPrimary)
                 .kerning(-1.0)
+                .monospacedDigit()
             Text(sublabel)
-                .font(.custom("DMSans-Light", size: 22))
+                .font(.custom("DMSans-Light", size: 20))
                 .foregroundStyle(textSecondary)
         }
-        .padding(28)
+        .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(Color(red: 1.0, green: 0.98, blue: 0.973))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(textPrimary.opacity(0.16), lineWidth: 1.5)
         )
         .shadow(color: textPrimary.opacity(0.12), radius: 0, x: 2, y: 3)
+    }
+
+    /// Count of unique ingredients logged today (including this
+    /// scan's items). Cohort signal: "12 different vegetables this
+    /// week" style identity reflection at meal scale.
+    private var ingredientsToday: Int {
+        // FoodLogPersister.todayLogCount() is meals not items; we
+        // need a unique ingredient count. For now approximate as
+        // `today's meal count × 2.5` + this scan's items; replace
+        // with a real read when FoodLogPersister exposes per-day
+        // item iteration.
+        let priorEstimate = max(0, (mealsLoggedToday - 1)) * 3
+        return priorEstimate + result.items.count
     }
 
     // MARK: - Guillemet pull-quote

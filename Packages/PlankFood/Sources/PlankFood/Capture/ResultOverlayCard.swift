@@ -4,24 +4,20 @@ import UIKit
 
 // MARK: - ResultOverlayCard
 //
-// v1.0.20 (2026-06-18) — IN-APP slide 2 of the post-scan carousel.
-// Transparent backdrop so the frozen camera photo behind shows
-// through (no second embedded photo). Carries the dish name + macro
-// caption + "share what you see" affordance, in the her75 editorial
-// register so the slide feels like a magazine title page laid over
-// the user's plate, not a chrome strip.
+// v1.0.22 (2026-06-18) — terminal slide of the post-scan carousel,
+// the natural "I want to post this" swipe-out gesture per founder
+// direction. Transparent backdrop so the frozen camera photo behind
+// shows through (no second embedded photo). The IN-APP companion to
+// HandwrittenSnapResultShareCard, which still renders the embedded-
+// photo PNG when the user taps share.
 //
-// The SHARE-READY 1080×1920 PNG (with embedded photo) is still
-// rendered by HandwrittenSnapResultShareCard when the user taps
-// share — this view is the IN-APP companion.
-//
-// Layout (rendered at 1080×1920 for scale parity with slides 1+3,
-// then scaled into the carousel slot):
-//
-//   - top inset: ~620pt of transparency (camera photo bleeds through)
-//   - dish title in JeniHeroSerif-Italic + cocoa drop shadow
-//   - macro caption strip in DMSans-Medium with cocoa drop shadow
-//   - bottom inset: ~340pt transparency (toolbar + page dots live here)
+// v1.0.22 polish: richer overlay composition in the TikTok / IG-
+// girl-post register the founder asked for. Two-line italic title
+// in JeniHeroSerif-Italic with cocoa drop shadow, a dish-mark
+// hairline + "dish *fits*" + ♡ caption, full macro caption line,
+// kcal hero in italic Fraunces, ingredient count with heart cluster.
+// Every element wears the cocoa drop shadow that makes the white-on-
+// photo register read crisp on any background.
 
 struct ResultOverlayCard: View {
 
@@ -37,23 +33,28 @@ struct ResultOverlayCard: View {
         ZStack {
             Color.clear  // transparent — camera shows through
 
-            VStack(alignment: .leading, spacing: 28) {
+            VStack(alignment: .leading, spacing: 24) {
                 Spacer()
-                eyebrow
+
+                topMeta
                 title
+                hairlineRule
+                dishMark
+                kcalHero
                 macroCaption
                 shareableHint
-                Spacer().frame(height: 280)
+
+                Spacer().frame(height: 260)
             }
-            .padding(.horizontal, 80)
+            .padding(.horizontal, 72)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(width: 1080, height: 1920)
     }
 
-    // MARK: - Eyebrow strip
+    // MARK: - Top meta (eyebrow)
 
-    @ViewBuilder private var eyebrow: some View {
+    @ViewBuilder private var topMeta: some View {
         (
             Text("today's ")
                 .font(.custom("DMSans-Medium", size: 30))
@@ -69,10 +70,10 @@ struct ResultOverlayCard: View {
 
     @ViewBuilder private var title: some View {
         Text(dishLineDisplay)
-            .font(.custom("JeniHeroSerif-Italic", size: 96))
+            .font(.custom("JeniHeroSerif-Italic", size: 108))
             .foregroundStyle(.white)
-            .kerning(-1.6)
-            .lineSpacing(-4)
+            .kerning(-1.8)
+            .lineSpacing(-12)
             .multilineTextAlignment(.leading)
             .shadow(color: .black.opacity(0.55), radius: 10, x: 0, y: 3)
             .fixedSize(horizontal: false, vertical: true)
@@ -89,12 +90,53 @@ struct ResultOverlayCard: View {
         return stripped.isEmpty ? "your plate" : stripped
     }
 
-    // MARK: - Macro caption (the editorial subhead)
+    // MARK: - Hairline rule + dish-mark
+
+    @ViewBuilder private var hairlineRule: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.75))
+            .frame(height: 0.75)
+            .frame(width: 200)
+            .shadow(color: .black.opacity(0.40), radius: 4, x: 0, y: 1)
+    }
+
+    @ViewBuilder private var dishMark: some View {
+        (
+            Text("this one ")
+                .font(.custom("DMSans-Light", size: 28))
+            + Text("fits")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
+            + Text(" ♡")
+                .font(.custom("DMSans-Medium", size: 26))
+        )
+        .foregroundStyle(.white.opacity(0.92))
+        .shadow(color: .black.opacity(0.55), radius: 8, x: 0, y: 2)
+    }
+
+    // MARK: - Kcal hero
+
+    @ViewBuilder private var kcalHero: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text("\(totalKcal)")
+                .font(.custom("JeniHeroSerif-Regular", size: 88))
+                .foregroundStyle(.white)
+                .kerning(-1.4)
+                .monospacedDigit()
+            Text("calories")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 30))
+                .foregroundStyle(.white.opacity(0.92))
+                .baselineOffset(12)
+        }
+        .shadow(color: .black.opacity(0.55), radius: 10, x: 0, y: 3)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    // MARK: - Macro caption
 
     @ViewBuilder private var macroCaption: some View {
         Text(macroString)
-            .font(.custom("DMSans-Medium", size: 32))
-            .foregroundStyle(.white.opacity(0.95))
+            .font(.custom("DMSans-Medium", size: 28))
+            .foregroundStyle(.white.opacity(0.92))
             .shadow(color: .black.opacity(0.55), radius: 8, x: 0, y: 2)
     }
 
@@ -103,22 +145,28 @@ struct ResultOverlayCard: View {
         timeFmt.dateFormat = "h:mma"
         let time = timeFmt.string(from: loggedAt).lowercased()
         var parts = [time]
-        if totalKcal > 0 { parts.append("\(totalKcal) calories") }
         if totalProtein > 0 { parts.append("\(totalProtein)g protein") }
         if totalFiber > 0 { parts.append("\(totalFiber)g fiber") }
         return parts.joined(separator: " · ")
     }
 
     @ViewBuilder private var shareableHint: some View {
-        (
-            Text(itemCount > 0 ? "\(itemCount) " : "")
-                .font(.custom("DMSans-Medium", size: 26))
-            + Text(itemCount == 1 ? "ingredient" : "ingredients")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
-            + Text(" noted. ready to share. ♡")
-                .font(.custom("DMSans-Medium", size: 26))
-        )
-        .foregroundStyle(.white.opacity(0.92))
+        HStack(spacing: 8) {
+            (
+                Text("\(itemCount) ")
+                    .font(.custom("DMSans-Medium", size: 26))
+                + Text(itemCount == 1 ? "ingredient" : "ingredients")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+                + Text(" noted")
+                    .font(.custom("DMSans-Medium", size: 26))
+            )
+            .foregroundStyle(.white.opacity(0.92))
+
+            Text("♡ ♡ ♡")
+                .font(.custom("DMSans-Medium", size: 22))
+                .foregroundStyle(.white.opacity(0.85))
+                .kerning(2)
+        }
         .shadow(color: .black.opacity(0.55), radius: 8, x: 0, y: 2)
     }
 }
