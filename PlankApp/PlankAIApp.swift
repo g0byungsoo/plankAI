@@ -698,6 +698,22 @@ private struct SleepCardEmptyStatesHarness: View {
     }
 }
 
+/// v1.0.12 (2026-06-17) — shared helper for harnesses: render any
+/// SwiftUI view to a 1080×1920 UIImage and save it to the user's
+/// Photos library via ShareImageSaver. Used by the daily / weekly /
+/// snap preview harnesses so the founder can verify the save path
+/// without running the full food-log timeline flow.
+@MainActor
+private func saveCardToPhotos<V: View>(_ view: V) async -> ShareImageSaver.SaveResult {
+    let renderer = ImageRenderer(
+        content: view
+            .frame(width: 1080, height: 1920)
+    )
+    renderer.scale = 1
+    guard let img = renderer.uiImage else { return .failed }
+    return await ShareImageSaver.save(img)
+}
+
 /// v1.0.10 (2026-06-17) — full-screen preview of the Pinterest
 /// handwritten share card with mock food entries. Renders the card
 /// at its native 1080×1920 then scales-to-fit the device screen so
@@ -709,6 +725,8 @@ private struct HandwrittenSharePreviewHarness: View {
     @State private var archetype: String = "protein"
     @State private var pickedItems: [PhotosPickerItem] = []
     @State private var pickedPhotos: [UIImage] = []
+    @State private var saveToast: ShareImageSaver.SaveResult? = nil
+    @State private var isSaving: Bool = false
 
     private let archetypes = ["protein", "balanced", "movement", "rest"]
 
@@ -730,6 +748,15 @@ private struct HandwrittenSharePreviewHarness: View {
                 .frame(width: geo.size.width, height: geo.size.height)
 
                 overlayControls
+
+                if let saveToast {
+                    VStack {
+                        Spacer()
+                        SaveToPhotosToast(result: saveToast)
+                            .padding(.bottom, 80)
+                    }
+                    .allowsHitTesting(false)
+                }
             }
         }
         .task(id: pickedItems) {
@@ -741,6 +768,13 @@ private struct HandwrittenSharePreviewHarness: View {
                 }
             }
             pickedPhotos = loaded
+        }
+        .onChange(of: saveToast) { _, newValue in
+            guard newValue != nil else { return }
+            Task {
+                try? await Task.sleep(nanoseconds: 1_600_000_000)
+                await MainActor.run { saveToast = nil }
+            }
         }
     }
 
@@ -764,6 +798,34 @@ private struct HandwrittenSharePreviewHarness: View {
                     .background(Capsule().fill(Color.white.opacity(0.18)))
                 }
                 Spacer()
+                Button {
+                    guard !isSaving else { return }
+                    isSaving = true
+                    Task {
+                        let card = HandwrittenDailyShareCard.preview(
+                            archetype: archetype,
+                            photos: pickedPhotos
+                        )
+                        let result = await saveCardToPhotos(card)
+                        await MainActor.run {
+                            saveToast = result
+                            isSaving = false
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: isSaving ? "arrow.down.circle" : "arrow.down.to.line")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(isSaving ? "saving" : "save")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.white.opacity(0.18)))
+                }
+                .buttonStyle(.plain)
+                .disabled(isSaving)
                 if !pickedPhotos.isEmpty {
                     Button {
                         pickedPhotos = []
@@ -812,6 +874,8 @@ private struct HandwrittenWeeklyPreviewHarness: View {
     @State private var archetype: String = "protein"
     @State private var pickedItems: [PhotosPickerItem] = []
     @State private var pickedPhotos: [UIImage] = []
+    @State private var saveToast: ShareImageSaver.SaveResult? = nil
+    @State private var isSaving: Bool = false
     private let archetypes = ["protein", "balanced", "movement", "rest"]
 
     var body: some View {
@@ -827,6 +891,14 @@ private struct HandwrittenWeeklyPreviewHarness: View {
                 .scaleEffect(scale, anchor: UnitPoint.center)
                 .frame(width: geo.size.width, height: geo.size.height)
                 overlayControls
+                if let saveToast {
+                    VStack {
+                        Spacer()
+                        SaveToPhotosToast(result: saveToast)
+                            .padding(.bottom, 80)
+                    }
+                    .allowsHitTesting(false)
+                }
             }
         }
         .task(id: pickedItems) {
@@ -838,6 +910,13 @@ private struct HandwrittenWeeklyPreviewHarness: View {
                 }
             }
             pickedPhotos = loaded
+        }
+        .onChange(of: saveToast) { _, newValue in
+            guard newValue != nil else { return }
+            Task {
+                try? await Task.sleep(nanoseconds: 1_600_000_000)
+                await MainActor.run { saveToast = nil }
+            }
         }
     }
 
@@ -861,6 +940,34 @@ private struct HandwrittenWeeklyPreviewHarness: View {
                     .background(Capsule().fill(Color.white.opacity(0.18)))
                 }
                 Spacer()
+                Button {
+                    guard !isSaving else { return }
+                    isSaving = true
+                    Task {
+                        let card = HandwrittenWeeklyShareCard.preview(
+                            archetype: archetype,
+                            photos: pickedPhotos
+                        )
+                        let result = await saveCardToPhotos(card)
+                        await MainActor.run {
+                            saveToast = result
+                            isSaving = false
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: isSaving ? "arrow.down.circle" : "arrow.down.to.line")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(isSaving ? "saving" : "save")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.white.opacity(0.18)))
+                }
+                .buttonStyle(.plain)
+                .disabled(isSaving)
                 if !pickedPhotos.isEmpty {
                     Button {
                         pickedPhotos = []
@@ -909,6 +1016,8 @@ private struct HandwrittenSnapPreviewHarness: View {
     @State private var archetype: String = "protein"
     @State private var pickedItem: PhotosPickerItem?
     @State private var pickedPhoto: UIImage?
+    @State private var saveToast: ShareImageSaver.SaveResult? = nil
+    @State private var isSaving: Bool = false
     private let archetypes = ["protein", "balanced", "movement", "rest"]
 
     var body: some View {
@@ -921,6 +1030,14 @@ private struct HandwrittenSnapPreviewHarness: View {
                     .scaleEffect(scale, anchor: UnitPoint.center)
                     .frame(width: geo.size.width, height: geo.size.height)
                 overlayControls
+                if let saveToast {
+                    VStack {
+                        Spacer()
+                        SaveToPhotosToast(result: saveToast)
+                            .padding(.bottom, 80)
+                    }
+                    .allowsHitTesting(false)
+                }
             }
         }
         .task(id: pickedItem) {
@@ -928,6 +1045,13 @@ private struct HandwrittenSnapPreviewHarness: View {
                   let data = try? await item.loadTransferable(type: Data.self),
                   let img = UIImage(data: data) else { return }
             pickedPhoto = img
+        }
+        .onChange(of: saveToast) { _, newValue in
+            guard newValue != nil else { return }
+            Task {
+                try? await Task.sleep(nanoseconds: 1_600_000_000)
+                await MainActor.run { saveToast = nil }
+            }
         }
     }
 
@@ -964,6 +1088,47 @@ private struct HandwrittenSnapPreviewHarness: View {
                     .background(Capsule().fill(Color.white.opacity(0.18)))
                 }
                 Spacer()
+                Button {
+                    guard !isSaving else { return }
+                    isSaving = true
+                    let arch = archetype
+                    let pic = pickedPhoto
+                    Task {
+                        let view: AnyView
+                        if let pic {
+                            view = AnyView(
+                                HandwrittenSnapResultShareCard(
+                                    photo: pic,
+                                    mealLabel: "Breakfast",
+                                    dishName: "your meal",
+                                    itemNames: ["scrambled eggs", "avocado toast", "raspberries", "matcha latte"],
+                                    totals: (carbs: 42, protein: 28, fat: 22, kcal: 420),
+                                    archetype: arch
+                                )
+                            )
+                        } else {
+                            view = AnyView(HandwrittenSnapResultShareCard.preview(archetype: arch))
+                        }
+                        let result = await saveCardToPhotos(view)
+                        await MainActor.run {
+                            saveToast = result
+                            isSaving = false
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: isSaving ? "arrow.down.circle" : "arrow.down.to.line")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(isSaving ? "saving" : "save")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.white.opacity(0.18)))
+                }
+                .buttonStyle(.plain)
+                .disabled(isSaving)
                 if pickedPhoto != nil {
                     Button {
                         pickedPhoto = nil
