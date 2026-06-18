@@ -4,25 +4,28 @@ import UIKit
 
 // MARK: - ResultDayInContextCard
 //
-// v1.0.18 (2026-06-18) — slide 3 of the new post-scan carousel.
-// The "is it logged, and where does this leave me" answer that
-// nobody else ships well (Cal AI's daily 10-pt health score + MFP's
-// remaining-calories — fused with a GLP-1-aware protein-today hero
-// when the cohort flag is set). Replaces JeniEvaluationCard.
+// v1.0.19 (2026-06-18) — slide 3 of the new post-scan carousel.
+// Locked decisions from the panel synthesis:
 //
-// Layout (1080×1920, cream `bgPrimary` canvas):
+//   - Keep 4 SEPARATE tiles (founder: skip the crosshair card).
+//   - Replace the trend caption with the SATIETY PREDICTION line
+//     ("should hold you about 4 hours") — the snap-bound observation
+//     no competitor owns, the magical-moment insight.
+//   - Apply her75 typography swaps: hairline-rule eyebrow, inline
+//     italic hero ("1,400 *left*"), guillemet «…» pull-quote with
+//     italic punch on a single word.
+//   - GLP-1 cohort still flips the hero to protein-today.
 //
-//   - Eyebrow ("your day so far") + cohort-aware hero numeral.
-//     Default cohort: "X cal left" (target - logged total including
-//     this scan). GLP-1 cohort: "Yg protein today" (sarcopenia risk
-//     mitigation matters more than calorie counts for them).
-//   - Trend caption — single italic Fraunces line keyed on the
-//     7-day rolling avg ("on pace for your week" / "week's tracking
-//     soft" / "protein's coming through").
-//   - 4-tile micro-strip (2×2 grid): protein today vs target, fiber
-//     today, meals logged today, week deficit projection.
-//   - Pull quote — JeniFit voice, italic Fraunces, observational
-//     not coachy. ("three meals in. nice rhythm." etc.)
+// Layout (1080×1920, cream `bgPrimary`):
+//
+//   - Eyebrow with hairline rule: `your day so *far*` + rule + day
+//     summary timestamp on the right
+//   - Hero numeral via CountUpNumber + " left" italic suffix (or
+//     " today" for GLP-1 protein variant)
+//   - Satiety prediction line in italic Fraunces — snap-bound,
+//     replaces the prior trend caption
+//   - 4 separate scrapbook-chrome tiles in a 2×2 layout
+//   - Guillemet pull-quote at the bottom with italic punch word
 
 struct ResultDayInContextCard: View {
 
@@ -32,16 +35,18 @@ struct ResultDayInContextCard: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.992, green: 0.965, blue: 0.957)  // bgPrimary cream
+            Color(red: 0.992, green: 0.965, blue: 0.957)
 
             VStack(alignment: .leading, spacing: 36) {
-                Spacer().frame(height: 24)
-                eyebrowAndHero
-                trendCaption
-                microStrip
+                Spacer().frame(height: 60)
+                eyebrowRule
+                heroNumeral
+                satietyLine
+                Spacer(minLength: 0)
+                tileGrid
                 Spacer(minLength: 0)
                 pullQuote
-                Spacer().frame(height: 24)
+                Spacer().frame(height: 64)
             }
             .padding(.horizontal, 80)
         }
@@ -49,80 +54,104 @@ struct ResultDayInContextCard: View {
         .clipShape(Rectangle())
     }
 
-    // MARK: - Hero
+    // MARK: - Eyebrow with hairline rule
 
-    @ViewBuilder private var eyebrowAndHero: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("your day so far")
-                .font(.custom("DMSans-Medium", size: 28))
+    @ViewBuilder private var eyebrowRule: some View {
+        HStack(alignment: .center, spacing: 14) {
+            (
+                Text("your day so ")
+                    .font(.custom("DMSans-Medium", size: 24))
+                + Text("far")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+            )
+            .foregroundStyle(textSecondary)
+            .kerning(0.4)
+
+            Rectangle()
+                .fill(textPrimary.opacity(0.22))
+                .frame(height: 0.5)
+                .frame(maxWidth: .infinity)
+
+            Text(currentTimeLabel)
+                .font(.custom("DMSans-Medium", size: 22))
                 .foregroundStyle(textSecondary)
-                .tracking(1.4)
-                .textCase(.lowercase)
-
-            heroNumeral
+                .kerning(0.6)
         }
     }
+
+    private var currentTimeLabel: String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "h:mma"
+        return fmt.string(from: Date()).lowercased()
+    }
+
+    // MARK: - Hero numeral + inline italic suffix
 
     @ViewBuilder private var heroNumeral: some View {
         if isGlp1Cohort {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    Text("\(proteinToday)")
-                        .font(.custom("JeniHeroSerif-Regular", size: 200))
-                        .foregroundStyle(textPrimary)
-                    Text("g")
-                        .font(.custom("DMSans-Medium", size: 56))
-                        .foregroundStyle(textSecondary)
-                }
-                Text("protein today")
-                    .font(.custom("DMSans-Medium", size: 32))
-                    .foregroundStyle(textSecondary)
-                    .offset(y: -8)
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("\(kcalLeftRounded)")
-                    .font(.custom("JeniHeroSerif-Regular", size: 200))
+            HStack(alignment: .firstTextBaseline, spacing: 14) {
+                CountUpNumber(
+                    target: proteinToday,
+                    fontName: "JeniHeroSerif-Regular",
+                    italicFontName: "JeniHeroSerif-Italic",
+                    size: 200,
+                    color: textPrimary
+                )
+                Text("g protein today")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 48))
                     .foregroundStyle(textPrimary)
-                Text(kcalLeftLabel)
-                    .font(.custom("DMSans-Medium", size: 32))
-                    .foregroundStyle(textSecondary)
-                    .offset(y: -8)
+                    .baselineOffset(24)
             }
+            .fixedSize(horizontal: false, vertical: true)
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 14) {
+                CountUpNumber(
+                    target: max(kcalLeftRounded, 0),
+                    fontName: "JeniHeroSerif-Regular",
+                    italicFontName: "JeniHeroSerif-Italic",
+                    size: 200,
+                    color: textPrimary
+                )
+                Text(kcalSuffix)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 52))
+                    .foregroundStyle(textPrimary)
+                    .baselineOffset(24)
+            }
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    // MARK: - Trend caption
+    private var kcalSuffix: String {
+        kcalLeftRounded < 0 ? "calories over" : "left"
+    }
 
-    @ViewBuilder private var trendCaption: some View {
-        Text(trendText)
-            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 38))
+    // MARK: - Satiety prediction line
+
+    @ViewBuilder private var satietyLine: some View {
+        let hours = SatietyEstimate.hoursLabel(
+            kcal: scanKcal,
+            proteinG: scanProtein,
+            fiberG: scanFiber
+        )
+        if !hours.isEmpty {
+            (
+                Text("this should hold you ")
+                    .font(.custom("JeniHeroSerif-Regular", size: 38))
+                + Text(hours)
+                    .font(.custom("JeniHeroSerif-Italic", size: 38))
+                + Text(".")
+                    .font(.custom("JeniHeroSerif-Regular", size: 38))
+            )
             .foregroundStyle(textPrimary)
-            .lineSpacing(4)
+            .kerning(-0.4)
+            .lineSpacing(2)
+            .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
-    /// Picks the trend line off whatever signal is most informative.
-    /// Order: protein floor concern → kcal pace → default rhythm.
-    /// Per the WL expert + GLP-1 doc — observation, not instruction.
-    private var trendText: String {
-        if proteinToday < 60 && mealsLoggedToday >= 2 {
-            return "protein's coming in light today."
-        }
-        if kcalLeftRounded < 0 {
-            return "the day's tracking heavier. tomorrow has room."
-        }
-        if kcalLeftRounded < (targets.kcal / 5) {
-            return "you're close to the day's pace."
-        }
-        if kcalLeftRounded > (targets.kcal / 2) && mealsLoggedToday <= 1 {
-            return "the day's still wide open."
-        }
-        return "on pace for your week."
-    }
+    // MARK: - 4 separate tiles
 
-    // MARK: - Micro strip (2×2)
-
-    @ViewBuilder private var microStrip: some View {
+    @ViewBuilder private var tileGrid: some View {
         VStack(spacing: 18) {
             HStack(spacing: 18) {
                 tile(
@@ -140,7 +169,7 @@ struct ResultDayInContextCard: View {
                 tile(
                     label: "meals logged",
                     value: "\(mealsLoggedToday)",
-                    sublabel: mealsLoggedToday == 1 ? "today" : "today"
+                    sublabel: "today"
                 )
                 tile(
                     label: "week pace",
@@ -157,10 +186,11 @@ struct ResultDayInContextCard: View {
             Text(label)
                 .font(.custom("DMSans-Medium", size: 22))
                 .foregroundStyle(textSecondary)
-                .tracking(0.6)
+                .kerning(0.8)
             Text(value)
-                .font(.custom("JeniHeroSerif-Regular", size: 80))
+                .font(.custom("JeniHeroSerif-Regular", size: 88))
                 .foregroundStyle(textPrimary)
+                .kerning(-1.0)
             Text(sublabel)
                 .font(.custom("DMSans-Light", size: 22))
                 .foregroundStyle(textSecondary)
@@ -169,37 +199,58 @@ struct ResultDayInContextCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.white.opacity(0.55))
+                .fill(Color(red: 1.0, green: 0.98, blue: 0.973))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(textPrimary.opacity(0.10), lineWidth: 1)
+                .stroke(textPrimary.opacity(0.16), lineWidth: 1.5)
         )
+        .shadow(color: textPrimary.opacity(0.12), radius: 0, x: 2, y: 3)
     }
 
-    // MARK: - Pull quote
+    // MARK: - Guillemet pull-quote
 
     @ViewBuilder private var pullQuote: some View {
-        Text(pullQuoteText)
-            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
+        let quote = pullQuoteTuple
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text("«")
+                .font(.custom("JeniHeroSerif-Italic", size: 44))
+                .foregroundStyle(accent.opacity(0.5))
+            (
+                Text(quote.prefix)
+                    .font(.custom("JeniHeroSerif-Regular", size: 34))
+                + Text(quote.punch)
+                    .font(.custom("JeniHeroSerif-Italic", size: 34))
+                + Text(quote.suffix)
+                    .font(.custom("JeniHeroSerif-Regular", size: 34))
+            )
             .foregroundStyle(textPrimary)
-            .lineSpacing(4)
+            .kerning(-0.4)
+            Text("»")
+                .font(.custom("JeniHeroSerif-Italic", size: 44))
+                .foregroundStyle(accent.opacity(0.5))
+                .baselineOffset(-4)
+        }
+        .lineLimit(2)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// Observational quote keyed on meals logged + protein status.
-    /// Voice locked: lowercase, no labor verbs, no JeniFit-coined verbs.
-    private var pullQuoteText: String {
+    /// Observational pull-quote split as (prefix, punch, suffix) so
+    /// the italic-Fraunces accent lands on a SINGLE word per phrase
+    /// (locked memory rule). Mood keyed on meals logged + protein
+    /// status.
+    private var pullQuoteTuple: (prefix: String, punch: String, suffix: String) {
         switch (mealsLoggedToday, proteinToday >= 60) {
-        case (0, _): return "first plate of the day."
-        case (1, _): return "one logged. you're in motion."
-        case (2, true): return "two meals in. protein's holding."
-        case (2, false): return "two meals in. lighter on protein."
-        case (3, true): return "three meals in. nice rhythm."
-        case (3, false): return "three meals in. tomorrow has room for more protein."
+        case (0, _): return ("first plate of the ", "day", ".")
+        case (1, _): return ("one logged. you're in ", "motion", ".")
+        case (2, true): return ("two meals in. protein's ", "holding", ".")
+        case (2, false): return ("two meals in. lighter on ", "protein", ".")
+        case (3, true): return ("three meals in. nice ", "rhythm", ".")
+        case (3, false): return ("three meals in. tomorrow has ", "room", ".")
         default:
             return mealsLoggedToday >= 4
-                ? "a full day, logged."
-                : "a quiet day. you're tracking."
+                ? ("a full day, ", "logged", ".")
+                : ("a quiet day. you're ", "tracking", ".")
         }
     }
 
@@ -219,11 +270,9 @@ struct ResultDayInContextCard: View {
             ?? Double((result.kcalLow ?? 0) + (result.kcalHigh ?? 0)) / 2
         return Int(raw.rounded())
     }
-
     private var scanProtein: Int {
         Int(result.items.compactMap { $0.proteinG }.reduce(0, +).rounded())
     }
-
     private var scanFiber: Int {
         Int(result.items.compactMap { $0.fiberG }.reduce(0, +).rounded())
     }
@@ -232,20 +281,13 @@ struct ResultDayInContextCard: View {
         FoodLogPersister.todayMacros()
     }
 
-    /// Includes the in-flight scan so the user sees their day after
-    /// this meal is logged. Per the founder's "utility" call — show
-    /// the post-log world, not the pre-log world.
     private var kcalToday: Int { Int(todayLogged.kcal.rounded()) + scanKcal }
     private var proteinToday: Int { Int(todayLogged.protein.rounded()) + scanProtein }
     private var fiberToday: Int { Int(todayLogged.fiber.rounded()) + scanFiber }
 
     private var kcalLeftRounded: Int {
         let raw = targets.kcal - kcalToday
-        return Int((Double(raw) / 5).rounded()) * 5  // 5-cal increments
-    }
-
-    private var kcalLeftLabel: String {
-        kcalLeftRounded < 0 ? "calories over" : "calories left today"
+        return Int((Double(raw) / 5).rounded()) * 5
     }
 
     private var mealsLoggedToday: Int {
@@ -253,8 +295,6 @@ struct ResultDayInContextCard: View {
     }
 
     private var weekDeficitProjectionKcal: Int {
-        // Rough projection: today's pace × 7 - week target.
-        // Negative number = deficit (good for WL); positive = surplus.
         let dayTarget = Double(targets.kcal)
         let pace = Double(kcalToday)
         let projected = pace * 7
@@ -264,11 +304,8 @@ struct ResultDayInContextCard: View {
 
     private var weekPaceValue: String {
         let delta = weekDeficitProjectionKcal
-        if delta < 0 {
-            // Display deficit as a positive deficit number.
-            return "−\(abs(delta) / 100)00"
-        }
-        return "+\(delta / 100)00"
+        let hundreds = abs(delta) / 100 * 100
+        return delta < 0 ? "−\(hundreds)" : "+\(hundreds)"
     }
 
     private var weekPaceLabel: String {
@@ -279,6 +316,7 @@ struct ResultDayInContextCard: View {
 
     private var textPrimary: Color { Color(red: 0.239, green: 0.165, blue: 0.165) }
     private var textSecondary: Color { Color(red: 0.482, green: 0.349, blue: 0.349) }
+    private var accent: Color { Color(red: 0.769, green: 0.404, blue: 0.478) }
 }
 
 #endif  // canImport(UIKit)
