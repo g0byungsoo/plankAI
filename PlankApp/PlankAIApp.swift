@@ -1022,7 +1022,7 @@ private struct HandwrittenSnapPreviewHarness: View {
                 mealLabel: "Breakfast",
                 dishName: "your meal",
                 itemNames: ["scrambled eggs", "avocado toast", "raspberries", "matcha latte"],
-                totals: (carbs: 42, protein: 28, fat: 22, kcal: 420),
+                totals: (carbs: 42, protein: 28, fat: 22, fiber: 7, kcal: 420),
                 archetype: archetype
             )
         } else {
@@ -1060,7 +1060,7 @@ private struct HandwrittenSnapPreviewHarness: View {
                                     mealLabel: "Breakfast",
                                     dishName: "your meal",
                                     itemNames: ["scrambled eggs", "avocado toast", "raspberries", "matcha latte"],
-                                    totals: (carbs: 42, protein: 28, fat: 22, kcal: 420),
+                                    totals: (carbs: 42, protein: 28, fat: 22, fiber: 7, kcal: 420),
                                     archetype: arch
                                 )
                             )

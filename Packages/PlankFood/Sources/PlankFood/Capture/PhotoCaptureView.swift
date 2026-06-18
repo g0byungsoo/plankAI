@@ -1006,15 +1006,17 @@ public struct PhotoCaptureView: View {
             + " +\(food.items.count - 2)"
     }
 
-    private func nutritionTotals(_ food: CapturedFood) -> (carbs: Int, protein: Int, fat: Int, kcal: Int) {
+    private func nutritionTotals(_ food: CapturedFood) -> (carbs: Int, protein: Int, fat: Int, fiber: Int, kcal: Int) {
         let c = food.items.compactMap { $0.carbsG }.reduce(0, +)
         let p = food.items.compactMap { $0.proteinG }.reduce(0, +)
         let f = food.items.compactMap { $0.fatG }.reduce(0, +)
+        let fb = food.items.compactMap { $0.fiberG }.reduce(0, +)
         let k = food.totalKcal ?? Double((food.kcalLow ?? 0) + (food.kcalHigh ?? 0)) / 2
         return (
             carbs:   Int(c.rounded()),
             protein: Int(p.rounded()),
             fat:     Int(f.rounded()),
+            fiber:   Int(fb.rounded()),
             kcal:    Int(k.rounded())
         )
     }
@@ -1032,69 +1034,26 @@ public struct PhotoCaptureView: View {
         let dish = dishNameLabel(result)
         let meal = mealTypeLabel
 
-        // v1.0.10 (2026-06-17) — `--handwritten-share` swaps the
-        // 3-slide editorial carousel for a single Pinterest handwritten
-        // share card. Same caller contract (returns [SlideShareItem]),
-        // returns 1 slide instead of 3.
-        if ProcessInfo.processInfo.arguments.contains("--handwritten-share") {
-            let itemNames = result.items.prefix(4).map(\.name)
-            guard let img = HandwrittenSnapResultShareRenderer.render(
-                photo: photo,
-                mealLabel: meal,
-                dishName: dish,
-                itemNames: Array(itemNames),
-                totals: totals
-            ),
-                let data = img.pngData() else { return [] }
-            return [SlideShareItem(
-                kind: .meal,
-                uiImage: img,
-                pngData: data,
-                suggestedName: SlideKind.meal.suggestedFileName
-            )]
-        }
-
-        let slides: [(SlideKind, AnyView)] = [
-            (.meal, AnyView(
-                ShareableFoodImageView(
-                    photo: photo,
-                    mealLabel: meal,
-                    dishName: dish,
-                    totals: totals
-                )
-                .frame(width: 1080, height: 1920)
-            )),
-            (.packedDaily, AnyView(
-                ShareablePackedDailyView(
-                    photo: photo,
-                    result: result,
-                    kcalTarget: shareableKcalTarget,
-                    proteinTarget: shareableProteinTarget
-                )
-                .frame(width: 1080, height: 1920)
-            )),
-            (.jeni, AnyView(
-                ShareableJeniView(
-                    photo: photo,
-                    result: result
-                )
-                .frame(width: 1080, height: 1920)
-            )),
-        ]
-
-        return slides.compactMap { kind, view in
-            let renderer = ImageRenderer(content: view)
-            renderer.scale = 1.0
-            renderer.proposedSize = ProposedViewSize(width: 1080, height: 1920)
-            guard let img = renderer.uiImage else { return nil }
-            guard let data = img.pngData() else { return nil }
-            return SlideShareItem(
-                kind: kind,
-                uiImage: img,
-                pngData: data,
-                suggestedName: kind.suggestedFileName
-            )
-        }
+        // v1.0.17 (2026-06-18) — handwritten snap card is the only
+        // register now; founder approved the alignment with daily /
+        // weekly (commit 5b55ed6). Editorial 3-slide carousel
+        // (ShareableFoodImageView + ShareablePackedDailyView +
+        // ShareableJeniView) is dead at this call site.
+        let itemNames = result.items.prefix(4).map(\.name)
+        guard let img = HandwrittenSnapResultShareRenderer.render(
+            photo: photo,
+            mealLabel: meal,
+            dishName: dish,
+            itemNames: Array(itemNames),
+            totals: totals
+        ),
+            let data = img.pngData() else { return [] }
+        return [SlideShareItem(
+            kind: .meal,
+            uiImage: img,
+            pngData: data,
+            suggestedName: SlideKind.meal.suggestedFileName
+        )]
     }
 
     /// V1 share targets — match the in-camera carousel's `kcalTarget`

@@ -4,34 +4,33 @@ import UIKit
 
 // MARK: - HandwrittenSnapResultShareCard
 //
-// v1.0.13 (2026-06-17) — REBUILT to match the daily/weekly card
-// pattern. Founder direction: photo IS the share, drop all chrome.
-// Previous v1.0.11 had a Marker Felt 96pt title strip + gradient
-// strips + macro pill + pull quote + wordmark + sparkle scatter —
-// founder rejected the same chrome stack on the daily card; same
-// fix here.
+// v1.0.17 (2026-06-18) — aligned to the daily/weekly card pattern.
+// Drops the v1.0.13 RoughHandArrow + a-single-stack layout in favor
+// of the same items + macro caption block that daily/weekly use,
+// pulled into the 1-row CellMetrics tier (90pt items, 42pt macro)
+// since the snap card is the full 1080×1920 single-photo register.
+// Founder direction is uniform across all 3 share surfaces: photo
+// IS the share, items + JeniFit-voice macro caption, no arrows.
 //
-// New layout (1080×1920, single-photo):
+// New layout (1080×1920, single photo):
 //
-//   - Photo fills entire canvas (scaledToFill, clipped).
-//   - One Bradley Hand label stack — dish name + detected food
-//     items as a vertical list — anchored in a deterministic corner
-//     picked from the dish-name hash so the same meal renders to
-//     the same position across re-renders.
-//   - One RoughHandArrow (reused from the daily card via the shared
-//     CellLabelPosition + textBox geometry) from the label corner
-//     to the photo's geometric center, where the food typically
-//     sits. Same Posca-pen aesthetic as daily/weekly.
-//   - NO header strip, NO footer strip, NO wordmark, NO sparkles,
-//     NO subhead, NO macro pill, NO pull quote.
+//   - Photo bleeds full canvas.
+//   - One label stack in a deterministic corner picked from the
+//     dish-name hash so the same meal renders to the same corner
+//     across re-renders.
+//   - Items in BradleyHandITCTT-Bold (handwriting signature).
+//   - Macro caption "8:42am · 380 calories · 18g protein · 7g fiber"
+//     in DMSans-Medium (JeniFit voice).
+//   - NO arrows, NO header strip, NO footer strip, NO sparkles.
 
 public struct HandwrittenSnapResultShareCard: View {
 
     public let photo: UIImage
-    public let mealLabel: String      // unused in v1.0.13, kept for caller compat
+    public let mealLabel: String      // unused since v1.0.13, kept for caller compat
     public let dishName: String       // "avocado toast with egg"
     public let itemNames: [String]    // detected food items (top 1-4)
-    public let totals: (carbs: Int, protein: Int, fat: Int, kcal: Int)
+    public let totals: (carbs: Int, protein: Int, fat: Int, fiber: Int, kcal: Int)
+    public let loggedAt: Date
     public var archetype: String? = nil
 
     public init(
@@ -39,7 +38,8 @@ public struct HandwrittenSnapResultShareCard: View {
         mealLabel: String,
         dishName: String,
         itemNames: [String],
-        totals: (carbs: Int, protein: Int, fat: Int, kcal: Int),
+        totals: (carbs: Int, protein: Int, fat: Int, fiber: Int, kcal: Int),
+        loggedAt: Date = Date(),
         archetype: String? = nil
     ) {
         self.photo = photo
@@ -47,6 +47,7 @@ public struct HandwrittenSnapResultShareCard: View {
         self.dishName = dishName
         self.itemNames = itemNames
         self.totals = totals
+        self.loggedAt = loggedAt
         self.archetype = archetype
     }
 
@@ -66,8 +67,6 @@ public struct HandwrittenSnapResultShareCard: View {
 
     // MARK: - Label overlay
 
-    /// Deterministic per-dish corner so the same meal always renders
-    /// the label to the same position. Hash → 4 corners.
     private var position: HandwrittenDailyShareCard.CellLabelPosition {
         let h = abs(dishName.hashValue) % 4
         switch h {
@@ -79,14 +78,10 @@ public struct HandwrittenSnapResultShareCard: View {
     }
 
     private var labelLines: [String] {
-        // Prefer the structured itemNames list when available — that's
-        // the vertical ingredient stack the founder's references use
-        // ("chia seeds / coconut milk / vanilla protein / ..."). Falls
-        // back to splitting dishName on common separators if no items.
         let cleaned = itemNames
             .map { $0.lowercased().trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
-        if !cleaned.isEmpty { return Array(cleaned.prefix(6)) }
+        if !cleaned.isEmpty { return cleaned }
 
         let splitChars = CharacterSet(charactersIn: ",+&")
         let raw = dishName.isEmpty ? "kept plate" : dishName.lowercased()
@@ -96,12 +91,35 @@ public struct HandwrittenSnapResultShareCard: View {
             .flatMap { $0.components(separatedBy: " and ") }
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
+            .filter { !HandwrittenDailyShareCard.isCountMorePlaceholder($0) }
         if parts.isEmpty { parts = [raw] }
-        return Array(parts.prefix(6))
+        return parts
+    }
+
+    private var macroCaption: String {
+        let timeFmt = DateFormatter()
+        timeFmt.dateFormat = "h:mma"
+        let time = timeFmt.string(from: loggedAt).lowercased()
+        var parts = [time]
+        if totals.kcal > 0 {
+            parts.append("\(totals.kcal) calories")
+        }
+        if totals.protein > 0 {
+            parts.append("\(totals.protein)g protein")
+        }
+        if totals.fiber > 0 {
+            parts.append("\(totals.fiber)g fiber")
+        }
+        return parts.joined(separator: " · ")
     }
 
     @ViewBuilder private var labelOverlay: some View {
-        let lines = labelLines
+        // v1.0.17 — share the 1-row CellMetrics tier with daily/weekly
+        // so the snap card stays on the same font ladder when the
+        // founder bumps sizes elsewhere.
+        let metrics = HandwrittenDailyShareCard.cellMetrics(forRows: 1)
+        let lines = Array(labelLines.prefix(metrics.maxItems))
+        let macroLine = macroCaption
         let alignment: Alignment = {
             switch position {
             case .topLeft:     return .topLeading
@@ -110,42 +128,55 @@ public struct HandwrittenSnapResultShareCard: View {
             case .bottomRight: return .bottomTrailing
             }
         }()
-        let seed = UInt64(bitPattern: Int64(dishName.hashValue & 0x7FFFFFFF))
-        let textHeight: CGFloat = CGFloat(lines.count) * 64 + 12
-        let longest = lines.map(\.count).max() ?? 8
-        let textWidth: CGFloat = min(CGFloat(longest) * 26 + 48, 720)
+        let isTop = position == .topLeft || position == .topRight
+        let textAlign: TextAlignment = (position == .topLeft || position == .bottomLeft)
+            ? .leading : .trailing
+        let hAlign: HorizontalAlignment = (position == .topLeft || position == .bottomLeft)
+            ? .leading : .trailing
 
-        ZStack {
-            RoughHandArrow(
-                position: position,
-                seed: seed,
-                textWidth: textWidth,
-                textHeight: textHeight
-            )
-            .stroke(
-                .white,
-                style: StrokeStyle(
-                    lineWidth: 5,
-                    lineCap: .round,
-                    lineJoin: .round
-                )
-            )
-            .frame(width: 1080, height: 1920)
-            .shadow(color: .black.opacity(0.50), radius: 6, x: 0, y: 2)
-
-            VStack(spacing: 12) {
-                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                    Text(line)
-                        .font(.custom("BradleyHandITCTT-Bold", size: 48))
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                        .shadow(color: .black.opacity(0.55), radius: 8, x: 0, y: 2)
-                }
+        VStack(alignment: hAlign, spacing: metrics.stackSpacing) {
+            if isTop {
+                itemStack(lines, align: textAlign, metrics: metrics)
+                macroCaptionView(macroLine, metrics: metrics)
+            } else {
+                macroCaptionView(macroLine, metrics: metrics)
+                itemStack(lines, align: textAlign, metrics: metrics)
             }
-            .padding(.horizontal, 64)
-            .padding(.vertical, 100)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
         }
+        .padding(.horizontal, metrics.hPad)
+        .padding(.vertical, metrics.vPad)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+    }
+
+    @ViewBuilder
+    private func itemStack(
+        _ lines: [String],
+        align: TextAlignment,
+        metrics: HandwrittenDailyShareCard.CellMetrics
+    ) -> some View {
+        let hAlign: HorizontalAlignment = (align == .leading) ? .leading
+                                        : (align == .trailing) ? .trailing
+                                        : .center
+        VStack(alignment: hAlign, spacing: metrics.itemsSpacing) {
+            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                Text(line)
+                    .font(.custom("BradleyHandITCTT-Bold", size: metrics.itemsFont))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(align)
+                    .shadow(color: .black.opacity(0.55), radius: 8, x: 0, y: 2)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func macroCaptionView(
+        _ line: String,
+        metrics: HandwrittenDailyShareCard.CellMetrics
+    ) -> some View {
+        Text(line)
+            .font(.custom("DMSans-Medium", size: metrics.macroFont))
+            .foregroundStyle(.white.opacity(0.92))
+            .shadow(color: .black.opacity(0.55), radius: 8, x: 0, y: 2)
     }
 }
 
@@ -176,8 +207,9 @@ extension HandwrittenSnapResultShareCard {
             photo: placeholder,
             mealLabel: "Breakfast",
             dishName: "avocado toast with egg",
-            itemNames: ["scrambled eggs", "avocado toast", "raspberries", "matcha latte"],
-            totals: (carbs: 42, protein: 28, fat: 22, kcal: 420),
+            itemNames: ["avocado toast", "scrambled eggs", "raspberries", "matcha latte"],
+            totals: (carbs: 42, protein: 28, fat: 22, fiber: 7, kcal: 420),
+            loggedAt: Date(),
             archetype: archetype
         )
     }
@@ -197,7 +229,8 @@ public enum HandwrittenSnapResultShareRenderer {
         mealLabel: String,
         dishName: String,
         itemNames: [String],
-        totals: (carbs: Int, protein: Int, fat: Int, kcal: Int),
+        totals: (carbs: Int, protein: Int, fat: Int, fiber: Int, kcal: Int),
+        loggedAt: Date = Date(),
         archetype: String? = nil
     ) -> UIImage? {
         let card = HandwrittenSnapResultShareCard(
@@ -206,6 +239,7 @@ public enum HandwrittenSnapResultShareRenderer {
             dishName: dishName,
             itemNames: itemNames,
             totals: totals,
+            loggedAt: loggedAt,
             archetype: archetype
         )
         .frame(width: 1080, height: 1920)
