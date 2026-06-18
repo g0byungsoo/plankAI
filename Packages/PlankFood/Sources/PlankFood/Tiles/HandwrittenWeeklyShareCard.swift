@@ -221,7 +221,10 @@ public struct HandwrittenWeeklyShareCard: View {
         metrics: HandwrittenDailyShareCard.CellMetrics
     ) -> some View {
         Text(line)
-            .font(.custom("BradleyHandITCTT-Bold", size: metrics.macroFont))
+            // v1.0.16 — JeniFit-style caption per founder direction;
+            // see HandwrittenDailyShareCard.macroCaptionView for the
+            // typeface rationale.
+            .font(.custom("DMSans-Medium", size: metrics.macroFont))
             .foregroundStyle(.white.opacity(0.92))
             .shadow(color: .black.opacity(0.50), radius: 6, x: 0, y: 2)
     }

@@ -183,35 +183,34 @@ public struct HandwrittenDailyShareCard: View {
     /// reuse the same row-count → font/padding ladder without
     /// duplicating the table.
     ///
-    /// v1.0.15 (2026-06-18) — font ladder bumped so every cell stays
-    /// legible on a phone-sized display (founder reference: TikTok's
-    /// minimum readable caption size, relative to canvas). Worst-case
-    /// 5-row cell is 540×384 — items at 28pt = 7.3% of cell height,
-    /// macro caption 20pt = 5.2%. Both comfortably above TikTok's
-    /// ~1.5% feed-text floor. maxItems also trims at higher row
-    /// counts so denser grids drop the long tail rather than shrink
-    /// to fit.
+    /// v1.0.16 (2026-06-18) — items font bumped ~25% across the
+    /// ladder (founder: "font size can be bigger relative to each
+    /// size of photo"). Macro caption stays close to v1.0.15 size
+    /// but the typeface swaps to DMSans-Medium so the chrome reads
+    /// as the JeniFit voice ("use jenifit style font to the caption
+    /// instead"). Items font stays BradleyHandITCTT-Bold — the
+    /// handwriting is the food-rail signature.
     static func cellMetrics(forRows rows: Int) -> CellMetrics {
         switch rows {
         case 1: return CellMetrics(
-            itemsFont: 60, macroFont: 36, itemsSpacing: 14, stackSpacing: 24,
-            hPad: 72, vPad: 120, maxItems: 8
+            itemsFont: 76, macroFont: 36, itemsSpacing: 16, stackSpacing: 28,
+            hPad: 76, vPad: 130, maxItems: 8
         )
         case 2: return CellMetrics(
-            itemsFont: 44, macroFont: 28, itemsSpacing: 8, stackSpacing: 18,
-            hPad: 32, vPad: 56, maxItems: 5
+            itemsFont: 56, macroFont: 26, itemsSpacing: 10, stackSpacing: 20,
+            hPad: 36, vPad: 64, maxItems: 5
         )
         case 3: return CellMetrics(
-            itemsFont: 36, macroFont: 24, itemsSpacing: 6, stackSpacing: 14,
-            hPad: 24, vPad: 38, maxItems: 4
+            itemsFont: 46, macroFont: 22, itemsSpacing: 7, stackSpacing: 16,
+            hPad: 28, vPad: 44, maxItems: 4
         )
         case 4: return CellMetrics(
-            itemsFont: 32, macroFont: 22, itemsSpacing: 5, stackSpacing: 12,
-            hPad: 22, vPad: 28, maxItems: 3
+            itemsFont: 40, macroFont: 20, itemsSpacing: 6, stackSpacing: 14,
+            hPad: 24, vPad: 32, maxItems: 3
         )
         default: return CellMetrics(
-            itemsFont: 28, macroFont: 20, itemsSpacing: 5, stackSpacing: 11,
-            hPad: 20, vPad: 22, maxItems: 3
+            itemsFont: 34, macroFont: 18, itemsSpacing: 5, stackSpacing: 12,
+            hPad: 22, vPad: 26, maxItems: 3
         )
         }
     }
@@ -315,7 +314,10 @@ public struct HandwrittenDailyShareCard: View {
     @ViewBuilder
     private func macroCaptionView(_ line: String, metrics: CellMetrics) -> some View {
         Text(line)
-            .font(.custom("BradleyHandITCTT-Bold", size: metrics.macroFont))
+            // v1.0.16 — JeniFit-style caption (founder direction).
+            // DMSans-Medium is the body typeface across the app; reads
+            // crisp at small sizes where Bradley Hand fuzzed out.
+            .font(.custom("DMSans-Medium", size: metrics.macroFont))
             .foregroundStyle(.white.opacity(0.92))
             .shadow(color: .black.opacity(0.50), radius: 6, x: 0, y: 2)
     }
