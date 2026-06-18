@@ -127,6 +127,11 @@ public struct PhotoCaptureView: View {
     /// v1.0.8 Phase R.3 — share picker sheet flag.
     @State private var showSharePicker: Bool = false
 
+    /// v1.0.19 (2026-06-18) — drives the 540ms-delayed fade-in of
+    /// the her75 "a moment..." italic Fraunces line in the cream
+    /// space below the viewfinder during the vision API window.
+    @State private var waitLineRevealed: Bool = false
+
     /// v1.0.8 Phase R.5 — gallery-upload photo. When the user picks
     /// from the photo library, this UIImage replaces the live preview
     /// as the camera content so the scan + result phase behave identical
@@ -249,6 +254,17 @@ public struct PhotoCaptureView: View {
                         .frame(width: frameWidth, height: frameHeight)
                         .padding(.top, 4)
                         .frame(maxWidth: .infinity)
+
+                    // v1.0.19 (2026-06-18) — her75 wait beat. During
+                    // the vision API window the cream space below the
+                    // viewfinder carries a single italic Fraunces line
+                    // — the editorial-magazine pause between question
+                    // and answer. Sits with the existing in-frame
+                    // ScanLabelRotator (which gives more verbose
+                    // info) so the cream surround has its own quieter
+                    // tell of "we're working on it."
+                    aMomentLine
+                        .padding(.top, 12)
 
                     Spacer(minLength: 0)
 
@@ -468,6 +484,44 @@ public struct PhotoCaptureView: View {
                 ProgressView()
                     .tint(.white)
             }
+        }
+    }
+
+    // MARK: - Wait line (her75 editorial pause)
+
+    /// v1.0.19 (2026-06-18) — italic Fraunces "a moment..." line that
+    /// fades in 540ms after the shutter tap and lives until either
+    /// the result lands or the user cancels. Per the her75 designer's
+    /// spec, this is "the editorial pause between question and
+    /// answer" — patience as the brand voice. Reduce-motion skips
+    /// straight to final opacity.
+    @ViewBuilder private var aMomentLine: some View {
+        if isCapturing && capturedResult == nil && !galleryPreviewMode {
+            (
+                Text("a ")
+                    .font(.custom("Fraunces72pt-Regular", size: 18))
+                + Text("moment")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
+                + Text("...")
+                    .font(.custom("Fraunces72pt-Regular", size: 18))
+            )
+            .foregroundStyle(FoodTheme.textPrimary.opacity(0.55))
+            .kerning(0.2)
+            .opacity(reduceMotion ? 1 : (waitLineRevealed ? 1 : 0))
+            .scaleEffect(reduceMotion ? 1 : (waitLineRevealed ? 1 : 0.96))
+            .onAppear {
+                if reduceMotion {
+                    waitLineRevealed = true
+                    return
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.54) {
+                    withAnimation(.easeInOut(duration: 0.32)) {
+                        waitLineRevealed = true
+                    }
+                }
+            }
+            .onDisappear { waitLineRevealed = false }
+            .transition(.opacity)
         }
     }
 

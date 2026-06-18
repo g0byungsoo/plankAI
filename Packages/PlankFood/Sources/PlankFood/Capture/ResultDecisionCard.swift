@@ -34,6 +34,13 @@ struct ResultDecisionCard: View {
     var loggedAt: Date = Date()
     var onEditItem: ((Int) -> Void)? = nil
 
+    /// v1.0.19 (2026-06-18) — drives the cascade-stagger reveal.
+    /// Each row keys its opacity on `revealedSteps >= N`. Photo is
+    /// step 0 (visible immediately as the anchor), eyebrow step 1,
+    /// hero step 2, etc. Reduce-motion jumps straight to final.
+    @State private var revealedSteps: Int = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         ZStack {
             Color(red: 0.992, green: 0.965, blue: 0.957)
@@ -42,6 +49,7 @@ struct ResultDecisionCard: View {
                 photoHalo
                     .padding(.top, 32)
                     .padding(.horizontal, 68)
+                    .opacity(opacityFor(0))
 
                 contentColumn
                     .padding(.horizontal, 80)
@@ -51,6 +59,30 @@ struct ResultDecisionCard: View {
         }
         .frame(width: 1080, height: 1920)
         .clipShape(Rectangle())
+        .onAppear { startCascade() }
+    }
+
+    /// 80ms stagger across 7 sections (photo + 6 content rows). Each
+    /// section's visible at `revealedSteps >= ownStep`. Total cascade
+    /// finishes at ~560ms — overlaps the count-up roll so the page
+    /// feels composed by the time the italic curtsy fires at ~950ms.
+    private func startCascade() {
+        if reduceMotion {
+            revealedSteps = 7
+            return
+        }
+        revealedSteps = 0
+        for i in 0...6 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08 * Double(i)) {
+                withAnimation(.easeOut(duration: 0.42)) {
+                    revealedSteps = max(revealedSteps, i)
+                }
+            }
+        }
+    }
+
+    private func opacityFor(_ step: Int) -> Double {
+        revealedSteps >= step ? 1.0 : 0.0
     }
 
     // MARK: - Photo halo (paper-stamp register)
@@ -92,14 +124,14 @@ struct ResultDecisionCard: View {
 
     @ViewBuilder private var contentColumn: some View {
         VStack(alignment: .leading, spacing: 32) {
-            eyebrowRule
-            calorieHero
+            eyebrowRule.opacity(opacityFor(1))
+            calorieHero.opacity(opacityFor(2))
             if let line = comparativeInsight {
-                comparativeInsightView(line)
+                comparativeInsightView(line).opacity(opacityFor(3))
             }
-            macroRow
-            itemList
-            tagChips
+            macroRow.opacity(opacityFor(4))
+            itemList.opacity(opacityFor(5))
+            tagChips.opacity(opacityFor(6))
             Spacer(minLength: 0)
         }
     }
