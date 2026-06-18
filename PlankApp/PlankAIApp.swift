@@ -8,6 +8,7 @@ import PostHog
 import TikTokBusinessSDK
 import os.log
 import ActivityKit
+import PhotosUI  // PhotosPicker for the handwritten preview harnesses
 
 // MARK: - Orientation Control
 
@@ -796,6 +797,8 @@ private struct HandwrittenWeeklyPreviewHarness: View {
 
 private struct HandwrittenSnapPreviewHarness: View {
     @State private var archetype: String = "protein"
+    @State private var pickedItem: PhotosPickerItem?
+    @State private var pickedPhoto: UIImage?
     private let archetypes = ["protein", "balanced", "movement", "rest"]
 
     var body: some View {
@@ -803,34 +806,94 @@ private struct HandwrittenSnapPreviewHarness: View {
             let scale = min(geo.size.width / 1080, geo.size.height / 1920)
             ZStack {
                 Color.black.ignoresSafeArea()
-                HandwrittenSnapResultShareCard.preview(archetype: archetype)
+                cardView
                     .frame(width: 1080, height: 1920)
                     .scaleEffect(scale, anchor: UnitPoint.center)
                     .frame(width: geo.size.width, height: geo.size.height)
-                VStack {
-                    Spacer()
-                    HStack(spacing: 12) {
-                        ForEach(archetypes, id: \.self) { name in
-                            Button { archetype = name } label: {
-                                Text(name)
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        Capsule().fill(
-                                            archetype == name
-                                                ? Color.white.opacity(0.35)
-                                                : Color.white.opacity(0.12)
-                                        )
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        }
+                overlayControls
+            }
+        }
+        .task(id: pickedItem) {
+            guard let item = pickedItem,
+                  let data = try? await item.loadTransferable(type: Data.self),
+                  let img = UIImage(data: data) else { return }
+            pickedPhoto = img
+        }
+    }
+
+    /// Real photo from Photos library when picked; falls back to the
+    /// preview placeholder when the founder hasn't chosen one yet.
+    @ViewBuilder private var cardView: some View {
+        if let pickedPhoto {
+            HandwrittenSnapResultShareCard(
+                photo: pickedPhoto,
+                mealLabel: "Breakfast",
+                dishName: "your meal",
+                itemNames: ["scrambled eggs", "avocado toast", "raspberries", "matcha latte"],
+                totals: (carbs: 42, protein: 28, fat: 22, kcal: 420),
+                archetype: archetype
+            )
+        } else {
+            HandwrittenSnapResultShareCard.preview(archetype: archetype)
+        }
+    }
+
+    @ViewBuilder private var overlayControls: some View {
+        VStack {
+            HStack {
+                PhotosPicker(selection: $pickedItem, matching: .images) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "photo.on.rectangle")
+                            .font(.system(size: 12, weight: .medium))
+                        Text("pick photo")
+                            .font(.system(size: 11, weight: .medium))
                     }
-                    .padding(.bottom, 20)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.white.opacity(0.18)))
+                }
+                Spacer()
+                if pickedPhoto != nil {
+                    Button {
+                        pickedPhoto = nil
+                        pickedItem = nil
+                    } label: {
+                        Text("reset")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(Color.white.opacity(0.18)))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+
+            Spacer()
+
+            HStack(spacing: 12) {
+                ForEach(archetypes, id: \.self) { name in
+                    Button { archetype = name } label: {
+                        Text(name)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule().fill(
+                                    archetype == name
+                                        ? Color.white.opacity(0.35)
+                                        : Color.white.opacity(0.12)
+                                )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.bottom, 20)
         }
     }
 }
