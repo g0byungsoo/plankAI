@@ -68,11 +68,6 @@ struct LessonReaderView: View {
     /// while the system share sheet is up. Identifiable so .sheet(item:)
     /// drives the lifecycle.
     @State private var quoteShareItem: LessonQuoteShareItem?
-    /// v1.0.12 — explicit save-to-Photos. Toast pill appears for ~1.6s
-    /// after the save attempt resolves; isSaving guards double-taps
-    /// while the render + write are in flight.
-    @State private var quoteSaveToast: ShareImageSaver.SaveResult?
-    @State private var quoteIsSaving: Bool = false
     /// v1.0.10 Phase 3 — drives the footer-folio archetype mark
     /// ("the jenifit method · day fourteen · protein day"). Reads
     /// the same AppStorage key the Plan tab + Snap Food chip composer
@@ -189,31 +184,6 @@ struct LessonReaderView: View {
                 quoteShareItem = nil
             }
             .ignoresSafeArea()
-        }
-        // v1.0.12 — auto-dismissing save-to-Photos toast. Mounted on
-        // the reader root so it overlays both the page and the share
-        // sheet's parent surface.
-        .overlay {
-            if let quoteSaveToast {
-                VStack {
-                    Spacer()
-                    SaveToPhotosToast(result: quoteSaveToast)
-                        .padding(.bottom, 80)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                .allowsHitTesting(false)
-            }
-        }
-        .onChange(of: quoteSaveToast) { _, newValue in
-            guard newValue != nil else { return }
-            Task {
-                try? await Task.sleep(nanoseconds: 1_600_000_000)
-                await MainActor.run {
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        quoteSaveToast = nil
-                    }
-                }
-            }
         }
         #if DEBUG
         .onAppear {
@@ -346,52 +316,12 @@ struct LessonReaderView: View {
                 // headline reveal-animation needs to land first.
                 if pageIndex >= 0 {
                     Button {
-                        guard !quoteIsSaving else { return }
-                        quoteIsSaving = true
-                        Haptics.light()
-                        guard let image = renderLessonShareImage() else {
-                            quoteIsSaving = false
-                            return
-                        }
-                        Task {
-                            let result = await ShareImageSaver.save(image)
-                            await MainActor.run {
-                                quoteSaveToast = result
-                                quoteIsSaving = false
-                                if result == .saved {
-                                    UINotificationFeedbackGenerator()
-                                        .notificationOccurred(.success)
-                                }
-                            }
-                        }
-                    } label: {
-                        Image(
-                            systemName: quoteIsSaving
-                                ? "arrow.down.circle"
-                                : "arrow.down.to.line"
-                        )
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Palette.textPrimary.opacity(0.7))
-                        .frame(width: PageDimensions.chevronSize,
-                               height: PageDimensions.chevronSize)
-                        .background(Circle().fill(Color.white.opacity(0.4)))
-                    }
-                    .accessibilityLabel("save this passage to photos")
-                    .disabled(quoteIsSaving)
-                    .padding(.trailing, 6)
-
-                    Button {
                         Haptics.light()
                         if let image = renderLessonShareImage() {
                             quoteShareItem = LessonQuoteShareItem(image: image)
                         }
                     } label: {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Palette.textPrimary.opacity(0.7))
-                            .frame(width: PageDimensions.chevronSize,
-                                   height: PageDimensions.chevronSize)
-                            .background(Circle().fill(Color.white.opacity(0.4)))
+                        HerShareIcon()
                     }
                     .accessibilityLabel("share this passage")
                     .padding(.trailing, 6)

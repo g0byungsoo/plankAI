@@ -60,12 +60,6 @@ public struct FoodLogTimelineView: View {
         let image: UIImage
     }
     @State private var shareItem: ShareItem? = nil
-    /// v1.0.12 — toast banner shown briefly after a save-to-Photos tap.
-    /// Nil = no toast visible; non-nil shows the auto-dismissing pill.
-    @State private var saveToast: ShareImageSaver.SaveResult? = nil
-    /// Guard against double-tap while the renderer / Photos write is
-    /// in flight (the operation is cheap but not instantaneous).
-    @State private var isSavingToPhotos: Bool = false
     /// v1.1 journal — meal detail. The detail lives in the SAME view
     /// hierarchy as the rows (overlay, not a sheet) so the photo
     /// matte can morph row→hero via matchedGeometryEffect (the
@@ -103,34 +97,6 @@ public struct FoodLogTimelineView: View {
             if let entry = selectedEntry {
                 mealDetail(for: entry)
                     .zIndex(10)
-            }
-
-            // v1.0.12 — auto-dismissing save-to-Photos toast. Lives
-            // here so it overlays the floating + button without
-            // racing the meal-detail overlay.
-            if let saveToast {
-                VStack {
-                    Spacer()
-                    SaveToPhotosToast(result: saveToast)
-                        .padding(.bottom, 110)
-                        .transition(
-                            .move(edge: .bottom).combined(with: .opacity)
-                        )
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                .allowsHitTesting(false)
-                .zIndex(20)
-            }
-        }
-        .onChange(of: saveToast) { _, newValue in
-            guard newValue != nil else { return }
-            Task {
-                try? await Task.sleep(nanoseconds: 1_600_000_000)
-                await MainActor.run {
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        saveToast = nil
-                    }
-                }
             }
         }
         .onAppear { refresh() }
@@ -273,61 +239,13 @@ public struct FoodLogTimelineView: View {
             // re-render on every log change). Hidden when the day is
             // empty (no content to share).
             if !entries.isEmpty {
-                // v1.0.12 — save-to-Photos button. Sits to the LEFT
-                // of share so the more-explicit affordance (one tap
-                // → camera roll) is the first thing the user sees.
-                // Share remains for cross-app sending.
-                Button {
-                    guard !isSavingToPhotos else { return }
-                    isSavingToPhotos = true
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    guard let img = renderDailyShareImage() else {
-                        isSavingToPhotos = false
-                        return
-                    }
-                    Task {
-                        let result = await ShareImageSaver.save(img)
-                        await MainActor.run {
-                            saveToast = result
-                            isSavingToPhotos = false
-                            if result == .saved {
-                                UINotificationFeedbackGenerator()
-                                    .notificationOccurred(.success)
-                            }
-                        }
-                    }
-                } label: {
-                    Image(
-                        systemName: isSavingToPhotos
-                            ? "arrow.down.circle"
-                            : "arrow.down.to.line"
-                    )
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(FoodTheme.textPrimary)
-                    .frame(width: 36, height: 36)
-                    .background(Color.white.opacity(0.6), in: Circle())
-                    .overlay(
-                        Circle().stroke(FoodTheme.accent.opacity(0.35), lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("save today to photos")
-                .disabled(isSavingToPhotos)
-
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     if let img = renderDailyShareImage() {
                         shareItem = ShareItem(image: img)
                     }
                 } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(FoodTheme.textPrimary)
-                        .frame(width: 36, height: 36)
-                        .background(Color.white.opacity(0.6), in: Circle())
-                        .overlay(
-                            Circle().stroke(FoodTheme.accent.opacity(0.35), lineWidth: 1)
-                        )
+                    HerShareLabel()
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("share today")
