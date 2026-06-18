@@ -148,24 +148,33 @@ public struct HandwrittenDailyShareCard: View {
             }
         }()
         let seed: UInt64 = UInt64(bitPattern: Int64(entry.id.hashValue & 0x7FFFFFFF))
+        // Approximate bounding box of the text block — the arrow shape
+        // uses this to start OUTSIDE the text so the stroke never
+        // crosses through letters. Each line is roughly Bradley Hand
+        // Bold 34pt + 8pt spacing = ~48pt of vertical run; text width
+        // estimated from the longest line at ~18pt per char.
+        let textHeight: CGFloat = CGFloat(lines.count) * 48 + 8
+        let longestLine = lines.map(\.count).max() ?? 8
+        let textWidth: CGFloat = min(CGFloat(longestLine) * 18 + 32, 460)
 
         ZStack {
-            // Rough hand-drawn arrow pointing from the label area
-            // toward the photo's center (where the food sits).
-            RoughHandArrow(position: position, seed: seed)
-                .stroke(
-                    .white,
-                    style: StrokeStyle(
-                        lineWidth: 3.6,
-                        lineCap: .round,
-                        lineJoin: .round
-                    )
+            RoughHandArrow(
+                position: position,
+                seed: seed,
+                textWidth: textWidth,
+                textHeight: textHeight
+            )
+            .stroke(
+                .white,
+                style: StrokeStyle(
+                    lineWidth: 3.6,
+                    lineCap: .round,
+                    lineJoin: .round
                 )
-                .frame(width: 540, height: 960)
-                .shadow(color: .black.opacity(0.45), radius: 4, x: 0, y: 2)
+            )
+            .frame(width: 540, height: 960)
+            .shadow(color: .black.opacity(0.45), radius: 4, x: 0, y: 2)
 
-            // Handwritten label stack — Bradley Hand Bold, white, with
-            // soft drop shadow for legibility over busy photos.
             VStack(spacing: 8) {
                 ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
                     Text(line)
@@ -299,6 +308,17 @@ extension HandwrittenDailyShareCard {
 struct RoughHandArrow: Shape {
     let position: HandwrittenDailyShareCard.CellLabelPosition
     let seed: UInt64
+    /// Bounding box of the text label so the arrow starts OUTSIDE
+    /// the text. Without this the bezier passes through letters and
+    /// reads as a strikethrough. Caller supplies these dimensions
+    /// based on Bradley Hand 34pt metrics and the line count.
+    let textWidth: CGFloat
+    let textHeight: CGFloat
+
+    /// Pixel gap between the text-block edge and the arrow's start
+    /// point — keeps the stroke visually clear of letter ascenders /
+    /// descenders even at jitter peaks.
+    private static let separation: CGFloat = 22
 
     func path(in rect: CGRect) -> Path {
         var rng = SplitMix64(seed: seed)
@@ -307,20 +327,73 @@ struct RoughHandArrow: Shape {
             return r * range
         }
 
+        // Padding the cellLabel VStack uses to inset its frame.
+        let hPad: CGFloat = 28
+        let vPad: CGFloat = 50
+
+        // Text-block bounds inside the cell (alignment-aware). We
+        // anchor the label at whichever rect corner matches its
+        // position; the rect describes WHERE THE TEXT IS, not where
+        // the arrow goes.
+        let textBox: CGRect = {
+            switch position {
+            case .topRight:
+                return CGRect(
+                    x: rect.maxX - hPad - textWidth,
+                    y: rect.minY + vPad,
+                    width: textWidth, height: textHeight
+                )
+            case .bottomLeft:
+                return CGRect(
+                    x: rect.minX + hPad,
+                    y: rect.maxY - vPad - textHeight,
+                    width: textWidth, height: textHeight
+                )
+            case .centerRight:
+                return CGRect(
+                    x: rect.maxX - hPad - textWidth,
+                    y: rect.midY - textHeight / 2,
+                    width: textWidth, height: textHeight
+                )
+            case .bottomCenter:
+                return CGRect(
+                    x: rect.midX - textWidth / 2,
+                    y: rect.maxY - vPad - textHeight,
+                    width: textWidth, height: textHeight
+                )
+            }
+        }()
+
+        // Anchor sits on the EDGE of textBox facing the cell center,
+        // pushed out by `separation` so the stroke never grazes the
+        // glyphs. Jitter is small at this scale so we don't re-enter
+        // the text bounds.
         let labelAnchor: CGPoint = {
             switch position {
             case .topRight:
-                return CGPoint(x: rect.maxX - 90 + jitter(8),
-                               y: rect.minY + 220 + jitter(20))
+                // Text in top-right → arrow exits below-left of text.
+                return CGPoint(
+                    x: textBox.midX + jitter(20),
+                    y: textBox.maxY + Self.separation
+                )
             case .bottomLeft:
-                return CGPoint(x: rect.minX + 90 + jitter(8),
-                               y: rect.maxY - 240 + jitter(20))
+                // Text in bottom-left → arrow exits above-right.
+                return CGPoint(
+                    x: textBox.midX + jitter(20),
+                    y: textBox.minY - Self.separation
+                )
             case .centerRight:
-                return CGPoint(x: rect.maxX - 90 + jitter(8),
-                               y: rect.midY + jitter(40))
+                // Text right-centered → arrow exits left side.
+                return CGPoint(
+                    x: textBox.minX - Self.separation,
+                    y: textBox.midY + jitter(20)
+                )
             case .bottomCenter:
-                return CGPoint(x: rect.midX + jitter(40),
-                               y: rect.maxY - 280 + jitter(20))
+                // Text bottom-centered → arrow exits top of text.
+                return CGPoint(
+                    x: textBox.midX + jitter(20),
+                    y: textBox.minY - Self.separation
+                )
             }
         }()
 
