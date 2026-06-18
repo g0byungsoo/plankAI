@@ -1239,7 +1239,15 @@ private struct ResultCarouselPreviewHarness: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                Color(red: 0.992, green: 0.965, blue: 0.957).ignoresSafeArea()
+                // v1.0.25 — fake camera photo behind. In production
+                // this is the frozen camera frame; in the harness we
+                // simulate with the rose gradient so the floating
+                // cards on slides 1+2 read against a photo-like
+                // backdrop.
+                Image(uiImage: Self.mockPhoto)
+                    .resizable()
+                    .scaledToFill()
+                    .ignoresSafeArea()
                 NutritionCarousel(
                     result: Self.mockFood,
                     photo: Self.mockPhoto,

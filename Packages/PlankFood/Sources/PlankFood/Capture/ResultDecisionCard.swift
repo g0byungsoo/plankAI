@@ -54,16 +54,39 @@ struct ResultDecisionCard: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.992, green: 0.965, blue: 0.957)
+            // v1.0.25 (2026-06-18) — transparent backdrop. The frozen
+            // camera photo behind the carousel slot shows around the
+            // floating card per founder direction: "slide1 and slide2
+            // still need to be card design on captured photo."
+            Color.clear
 
-            contentColumn
-                .padding(.horizontal, 80)
-                .padding(.top, 130)
-                .padding(.bottom, 100)
+            card
+                .padding(.horizontal, 56)
+                .padding(.top, 96)
+                .padding(.bottom, 160)
+                .frame(maxHeight: .infinity, alignment: .top)
         }
         .frame(width: 1080, height: 1920)
         .clipShape(Rectangle())
         .onAppear { startCascade() }
+    }
+
+    /// The floating cream card. Sized tight to content (no internal
+    /// empty space per founder direction). Scrapbook chrome: 28pt
+    /// corners, 1.5pt cocoa border, hard offset shadow.
+    @ViewBuilder private var card: some View {
+        contentColumn
+            .padding(.horizontal, 56)
+            .padding(.vertical, 56)
+            .background(
+                RoundedRectangle(cornerRadius: 32, style: .continuous)
+                    .fill(Color(red: 0.992, green: 0.965, blue: 0.957))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 32, style: .continuous)
+                    .stroke(textPrimary.opacity(0.18), lineWidth: 1.5)
+            )
+            .shadow(color: textPrimary.opacity(0.22), radius: 0, x: 6, y: 8)
     }
 
     private func startCascade() {
@@ -85,7 +108,7 @@ struct ResultDecisionCard: View {
     // MARK: - Content column
 
     @ViewBuilder private var contentColumn: some View {
-        VStack(alignment: .leading, spacing: 44) {
+        VStack(alignment: .leading, spacing: 36) {
             eyebrowRule.opacity(opacityFor(0))
             dishTitle.opacity(opacityFor(1))
             coHeroRow.opacity(opacityFor(2))
@@ -96,7 +119,6 @@ struct ResultDecisionCard: View {
                 smartPairLine(pair).opacity(opacityFor(6))
             }
             tagChips.opacity(opacityFor(6))
-            Spacer(minLength: 0)
         }
     }
 
