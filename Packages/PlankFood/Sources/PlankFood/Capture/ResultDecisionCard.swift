@@ -108,78 +108,22 @@ struct ResultDecisionCard: View {
     // MARK: - Content column
 
     @ViewBuilder private var contentColumn: some View {
+        // v1.0.26 (2026-06-18) — founder: drop the eyebrow rule +
+        // "today's breakfast" line + "reading your *morning plate*."
+        // title. They don't add value for the cohort — the card
+        // leads with the calorie + protein co-hero now.
         VStack(alignment: .leading, spacing: 36) {
-            eyebrowRule.opacity(opacityFor(0))
-            dishTitle.opacity(opacityFor(1))
-            coHeroRow.opacity(opacityFor(2))
-            satietyAndFiberBlock.opacity(opacityFor(3))
-            divider.opacity(opacityFor(4))
-            dayContextLine.opacity(opacityFor(5))
+            coHeroRow.opacity(opacityFor(0))
+            satietyAndFiberBlock.opacity(opacityFor(1))
+            divider.opacity(opacityFor(2))
+            dayContextLine.opacity(opacityFor(3))
             if let pair = smartPair {
-                smartPairLine(pair).opacity(opacityFor(6))
+                smartPairLine(pair).opacity(opacityFor(4))
             }
-            tagChips.opacity(opacityFor(6))
+            tagChips.opacity(opacityFor(5))
         }
     }
 
-    // MARK: - Eyebrow with hairline rule
-
-    @ViewBuilder private var eyebrowRule: some View {
-        HStack(alignment: .center, spacing: 14) {
-            (
-                Text("today's ")
-                    .font(.custom("DMSans-Medium", size: 30))
-                + Text(mealLabel.isEmpty ? "plate" : mealLabel.lowercased())
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 32))
-            )
-            .foregroundStyle(textSecondary)
-            .kerning(0.4)
-
-            Rectangle()
-                .fill(textPrimary.opacity(0.22))
-                .frame(height: 0.5)
-                .frame(maxWidth: .infinity)
-
-            Text(timeString)
-                .font(.custom("DMSans-Medium", size: 26))
-                .foregroundStyle(textSecondary)
-                .kerning(0.6)
-        }
-    }
-
-    private var timeString: String {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "h:mma"
-        return fmt.string(from: loggedAt).lowercased()
-    }
-
-    // MARK: - Dish title (editorial mid-size)
-
-    @ViewBuilder private var dishTitle: some View {
-        (
-            Text("reading your ")
-                .font(.custom("JeniHeroSerif-Regular", size: 68))
-            + Text(dishLineDisplay)
-                .font(.custom("JeniHeroSerif-Italic", size: 68))
-            + Text(".")
-                .font(.custom("JeniHeroSerif-Regular", size: 68))
-        )
-        .foregroundStyle(textPrimary)
-        .kerning(-0.8)
-        .lineSpacing(-2)
-        .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private var dishLineDisplay: String {
-        let stripped = dishName
-            .replacingOccurrences(
-                of: #"\s*\+\s*\d+\s+more$"#,
-                with: "",
-                options: .regularExpression
-            )
-            .lowercased()
-        return stripped.isEmpty ? "your plate" : stripped
-    }
 
     // MARK: - Co-hero row (kcal + protein at equal height)
 
