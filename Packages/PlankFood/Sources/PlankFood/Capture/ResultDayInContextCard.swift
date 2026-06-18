@@ -111,22 +111,27 @@ struct ResultDayInContextCard: View {
 
     @ViewBuilder private var heroNumeral: some View {
         if isGlp1Cohort {
-            HStack(alignment: .firstTextBaseline, spacing: 14) {
-                CountUpNumber(
-                    target: proteinToday,
-                    fontName: "JeniHeroSerif-Regular",
-                    italicFontName: "JeniHeroSerif-Italic",
-                    size: 220,
-                    color: textPrimary
-                )
-                Text("g protein today")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 56))
-                    .foregroundStyle(textPrimary)
-                    .baselineOffset(28)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    CountUpNumber(
+                        target: proteinToday,
+                        fontName: "JeniHeroSerif-Regular",
+                        italicFontName: "JeniHeroSerif-Italic",
+                        size: 220,
+                        color: textPrimary
+                    )
+                    Text("g")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 60))
+                        .foregroundStyle(textSecondary)
+                        .baselineOffset(36)
+                }
+                Text("protein today")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 48))
+                    .foregroundStyle(textSecondary)
             }
             .fixedSize(horizontal: false, vertical: true)
         } else {
-            HStack(alignment: .firstTextBaseline, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
                 CountUpNumber(
                     target: max(kcalLeftRounded, 0),
                     fontName: "JeniHeroSerif-Regular",
@@ -134,17 +139,16 @@ struct ResultDayInContextCard: View {
                     size: 220,
                     color: textPrimary
                 )
-                Text(kcalSuffix)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 60))
-                    .foregroundStyle(textPrimary)
-                    .baselineOffset(28)
+                Text(kcalCaption)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 48))
+                    .foregroundStyle(textSecondary)
             }
             .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    private var kcalSuffix: String {
-        kcalLeftRounded < 0 ? "calories over" : "left"
+    private var kcalCaption: String {
+        kcalLeftRounded < 0 ? "calories over today" : "calories left today"
     }
 
     // MARK: - Satiety prediction line
