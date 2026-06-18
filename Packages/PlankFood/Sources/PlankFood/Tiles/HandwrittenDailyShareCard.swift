@@ -519,9 +519,17 @@ private extension HandwrittenDailyShareCard {
 // a realistic IG-Story preview.
 
 extension HandwrittenDailyShareCard {
+    /// Mock entry IDs the preview() helper assigns — exposed so the
+    /// main-app preview harness can build a `[entryId: UIImage]` dict
+    /// for picked-from-Photos overrides.
+    public static let previewEntryIds: [String] = [
+        "preview-1", "preview-2", "preview-3", "preview-4",
+    ]
+
     public static func preview(
         archetype: String? = "protein",
-        date: Date = Date()
+        date: Date = Date(),
+        photos: [UIImage] = []
     ) -> HandwrittenDailyShareCard {
         let mock: [FoodLogPersister.FoodLogEntry] = [
             FoodLogPersister.FoodLogEntry(
@@ -553,10 +561,17 @@ extension HandwrittenDailyShareCard {
                 source: "photo"
             ),
         ]
+        // Map up to 4 supplied images into the photos dict keyed by
+        // the mock entry IDs. Cells without a supplied photo render
+        // the soft pink text-fallback as before.
+        var photosDict: [String: UIImage] = [:]
+        for (i, photo) in photos.prefix(4).enumerated() {
+            photosDict[previewEntryIds[i]] = photo
+        }
         return HandwrittenDailyShareCard(
             date: date,
             entries: mock,
-            photos: [:],
+            photos: photosDict,
             archetype: archetype
         )
     }
