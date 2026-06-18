@@ -134,15 +134,28 @@ public struct FoodLogTimelineView: View {
 
     // MARK: - Content
 
-    // MARK: - Daily share rendering
+    // MARK: - Share rendering
     //
-    // v1.0.13 (2026-06-18) — handwritten variant is now the only
-    // production register; founder approved it across daily / weekly
-    // / snap in commits 7e5c3b7 + c4ac98d + cc41fa1 + 49cc527. The
-    // editorial DailyShareRenderer is dead code at the call-site
-    // level and queued for deletion.
-    private func renderDailyShareImage() -> UIImage? {
+    // v1.0.13 (2026-06-18) — handwritten variant is the only register
+    // (founder approved across daily / weekly / snap in commits
+    // 7e5c3b7 + c4ac98d + cc41fa1 + 49cc527).
+    //
+    // Top "your plates" header share button now produces the WEEKLY
+    // 2×3 collage (founder request 2026-06-18). Per-day section
+    // headers carry a small inline share icon that produces THAT
+    // day's 2×2 daily card — moved here from the top header so each
+    // day is shareable individually.
+
+    private func renderWeeklyShareImage() -> UIImage? {
+        HandwrittenWeeklyShareRenderer.render(
+            userId: userId,
+            archetype: archetypeHint
+        )
+    }
+
+    private func renderDailyShareImage(for dayStart: Date) -> UIImage? {
         HandwrittenDailyShareRenderer.render(
+            for: dayStart,
             userId: userId,
             archetype: archetypeHint
         )
@@ -225,21 +238,20 @@ public struct FoodLogTimelineView: View {
 
             Spacer()
 
-            // v1.0.9 D3.C — share button. Renders the daily 9:16
-            // card via ImageRenderer on tap (lazy — we don't want to
-            // re-render on every log change). Hidden when the day is
-            // empty (no content to share).
+            // v1.0.13 (2026-06-18) — top share button now produces
+            // the WEEKLY 2×3 collage. Per-day rows carry their own
+            // inline share affordance via dayHeader.
             if !entries.isEmpty {
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    if let img = renderDailyShareImage() {
+                    if let img = renderWeeklyShareImage() {
                         shareItem = ShareItem(image: img)
                     }
                 } label: {
                     HerShareLabel()
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("share today")
+                .accessibilityLabel("share this week")
             }
 
             Button(action: onDismiss) {
@@ -264,6 +276,11 @@ public struct FoodLogTimelineView: View {
     /// N cal" caption register ("about" is the honesty word — photo
     /// estimates carry 20-30% error; a precise-looking total would
     /// over-claim).
+    ///
+    /// v1.0.13 (2026-06-18) — small inline share icon tucked next to
+    /// the kcal total. Tapping renders THIS day's 2×2 collage and
+    /// hands it to the same ShareActivityView the top weekly share
+    /// uses; weekly stays on the top header.
     @ViewBuilder private func dayHeader(for dayStart: Date, kcalTotal: Double) -> some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(eyebrowDate(for: dayStart))
@@ -280,6 +297,27 @@ public struct FoodLogTimelineView: View {
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(FoodTheme.textSecondary)
                     .monospacedDigit()
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    if let img = renderDailyShareImage(for: dayStart) {
+                        shareItem = ShareItem(image: img)
+                    }
+                } label: {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .rotationEffect(.degrees(-12))
+                        .foregroundStyle(.white)
+                        .frame(width: 26, height: 26)
+                        .background(
+                            Circle().fill(Color(red: 0.24, green: 0.16, blue: 0.16))
+                        )
+                        .shadow(
+                            color: Color(red: 0.24, green: 0.16, blue: 0.16).opacity(0.16),
+                            radius: 0, x: 1, y: 1.5
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("share \(dayLabel(for: dayStart))")
             }
         }
     }
