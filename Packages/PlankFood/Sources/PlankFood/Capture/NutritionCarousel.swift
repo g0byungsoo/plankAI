@@ -132,24 +132,18 @@ public struct NutritionCarousel: View {
         TabView(selection: $currentPage) {
             slideTab(index: 0) { ResultDecisionCard(
                 result: result,
-                photo: photo,
                 mealLabel: mealLabel.isEmpty ? "today" : mealLabel,
                 dishName: dishName
             )}
 
-            slideTab(index: 1) { HandwrittenSnapResultShareCard(
-                photo: photo ?? Self.placeholderPhoto,
-                mealLabel: mealLabel,
+            slideTab(index: 1) { ResultOverlayCard(
                 dishName: dishName,
-                itemNames: result.items.map(\.name),
-                totals: (
-                    carbs:   Int(result.items.compactMap { $0.carbsG }.reduce(0, +).rounded()),
-                    protein: Int(result.items.compactMap { $0.proteinG }.reduce(0, +).rounded()),
-                    fat:     Int(result.items.compactMap { $0.fatG }.reduce(0, +).rounded()),
-                    fiber:   Int(result.items.compactMap { $0.fiberG }.reduce(0, +).rounded()),
-                    kcal:    Int((result.totalKcal ?? 0).rounded())
-                ),
-                loggedAt: Date()
+                mealLabel: mealLabel,
+                totalKcal: Int((result.totalKcal ?? 0).rounded()),
+                totalProtein: Int(result.items.compactMap { $0.proteinG }.reduce(0, +).rounded()),
+                totalFiber: Int(result.items.compactMap { $0.fiberG }.reduce(0, +).rounded()),
+                loggedAt: Date(),
+                itemCount: result.items.count
             )}
 
             slideTab(index: 2) { ResultDayInContextCard(

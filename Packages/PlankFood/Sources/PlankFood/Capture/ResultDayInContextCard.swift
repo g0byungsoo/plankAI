@@ -37,18 +37,16 @@ struct ResultDayInContextCard: View {
         ZStack {
             Color(red: 0.992, green: 0.965, blue: 0.957)
 
-            VStack(alignment: .leading, spacing: 36) {
-                Spacer().frame(height: 60)
+            VStack(alignment: .leading, spacing: 40) {
                 eyebrowRule
                 heroNumeral
                 satietyLine
-                Spacer(minLength: 0)
                 tileGrid
-                Spacer(minLength: 0)
                 pullQuote
-                Spacer().frame(height: 64)
             }
             .padding(.horizontal, 80)
+            .padding(.top, 130)
+            .padding(.bottom, 100)
         }
         .frame(width: 1080, height: 1920)
         .clipShape(Rectangle())

@@ -4,40 +4,35 @@ import UIKit
 
 // MARK: - ResultDecisionCard
 //
-// v1.0.19 (2026-06-18) — rebuilt against the her75 + iOS-premium +
-// data-honest panel synthesis. Adds:
+// v1.0.20 (2026-06-18) — rebuilt after founder feedback: the camera
+// frame already shows the photo behind the carousel slot; embedding
+// a second copy of the same photo inside the card reads as
+// duplicated. The card is now PURELY DATA, sitting opaque over the
+// frozen camera frame. Frees up the vertical real estate for more
+// detail per the founder: ingredients, extras (sodium / sugar /
+// sat fat), and a packed item ledger with per-item protein / fiber.
 //
-//   - Paper-halo photo stamp (inset 68pt, 28pt corner, 12pt cream
-//     halo, hard cocoa offset shadow) replacing the edge-to-edge
-//     Cal AI strip
-//   - Hairline-rule eyebrow: `today's *breakfast*` + 0.5pt cocoa
-//     hairline + `8:42am` right
-//   - Inline italic calorie hero via CountUpNumber + " calories"
-//     italic Fraunces suffix; count-up rolls 0 → final + italic
-//     curtsy at landing
-//   - ONE comparative insight line (NHANES 19-30 baseline, honest
-//     fallback to nil) with italic-Fraunces punch number
-//   - Macro pills in scrapbook chrome (22pt corner, 1.5pt cocoa-16%
-//     border, hard offset shadow). Drops protein-only italic accent
-//     so the row reads as consistent typography, not "one different
-//     pill among four"
-//   - Item ledger with hairline dividers + italic " cal" suffix
-//     trailing
-//   - Italic-punch tag chips ("high *protein*")
+// Layout (the card body, sized by the carousel slot):
+//
+//   - Hairline-rule eyebrow (today's *breakfast* · time)
+//   - Calorie hero with CountUpNumber + italic curtsy
+//   - Comparative insight line (one honest claim, optional)
+//   - Macro row: 4 scrapbook-chrome pills (protein · carbs · fat · fiber)
+//   - Extras row: sodium · sugar · sat fat (when present)
+//   - Item ledger with per-item portion + kcal + protein + fiber
+//   - Italic-punch tag chips
+//
+// No spacer below the tag chips — content fills the slot bottom-up
+// from a denser layout.
 
 struct ResultDecisionCard: View {
 
     let result: CapturedFood
-    let photo: UIImage?
     let mealLabel: String
     let dishName: String
     var loggedAt: Date = Date()
     var onEditItem: ((Int) -> Void)? = nil
 
-    /// v1.0.19 (2026-06-18) — drives the cascade-stagger reveal.
-    /// Each row keys its opacity on `revealedSteps >= N`. Photo is
-    /// step 0 (visible immediately as the anchor), eyebrow step 1,
-    /// hero step 2, etc. Reduce-motion jumps straight to final.
     @State private var revealedSteps: Int = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -45,32 +40,18 @@ struct ResultDecisionCard: View {
         ZStack {
             Color(red: 0.992, green: 0.965, blue: 0.957)
 
-            VStack(spacing: 0) {
-                photoHalo
-                    .padding(.top, 32)
-                    .padding(.horizontal, 68)
-                    .opacity(opacityFor(0))
-
-                contentColumn
-                    .padding(.horizontal, 80)
-                    .padding(.top, 44)
-                    .padding(.bottom, 60)
-            }
+            contentColumn
+                .padding(.horizontal, 80)
+                .padding(.top, 110)
+                .padding(.bottom, 80)
         }
         .frame(width: 1080, height: 1920)
         .clipShape(Rectangle())
         .onAppear { startCascade() }
     }
 
-    /// 80ms stagger across 7 sections (photo + 6 content rows). Each
-    /// section's visible at `revealedSteps >= ownStep`. Total cascade
-    /// finishes at ~560ms — overlaps the count-up roll so the page
-    /// feels composed by the time the italic curtsy fires at ~950ms.
     private func startCascade() {
-        if reduceMotion {
-            revealedSteps = 7
-            return
-        }
+        if reduceMotion { revealedSteps = 7; return }
         revealedSteps = 0
         for i in 0...6 {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.08 * Double(i)) {
@@ -85,54 +66,21 @@ struct ResultDecisionCard: View {
         revealedSteps >= step ? 1.0 : 0.0
     }
 
-    // MARK: - Photo halo (paper-stamp register)
-
-    @ViewBuilder private var photoHalo: some View {
-        ZStack {
-            // 12pt cream halo (the "paper mount" around the print)
-            RoundedRectangle(cornerRadius: 40, style: .continuous)
-                .fill(Color(red: 1.0, green: 0.98, blue: 0.973))
-                .frame(width: 944, height: 672)
-
-            photoLayer
-                .frame(width: 920, height: 648)
-                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        }
-        .frame(width: 944, height: 672)
-        // Hard cocoa offset shadow — no blur. Scrapbook register.
-        .shadow(color: textPrimary.opacity(0.18), radius: 0, x: 6, y: 8)
-    }
-
-    @ViewBuilder private var photoLayer: some View {
-        if let photo {
-            Image(uiImage: photo)
-                .resizable()
-                .scaledToFill()
-        } else {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.94, green: 0.78, blue: 0.79),
-                    Color(red: 0.85, green: 0.55, blue: 0.62),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-    }
-
     // MARK: - Content column
 
     @ViewBuilder private var contentColumn: some View {
-        VStack(alignment: .leading, spacing: 32) {
-            eyebrowRule.opacity(opacityFor(1))
-            calorieHero.opacity(opacityFor(2))
+        VStack(alignment: .leading, spacing: 36) {
+            eyebrowRule.opacity(opacityFor(0))
+            calorieHero.opacity(opacityFor(1))
             if let line = comparativeInsight {
-                comparativeInsightView(line).opacity(opacityFor(3))
+                comparativeInsightView(line).opacity(opacityFor(2))
             }
-            macroRow.opacity(opacityFor(4))
+            macroRow.opacity(opacityFor(3))
+            if hasExtras {
+                extrasRow.opacity(opacityFor(4))
+            }
             itemList.opacity(opacityFor(5))
             tagChips.opacity(opacityFor(6))
-            Spacer(minLength: 0)
         }
     }
 
@@ -140,17 +88,15 @@ struct ResultDecisionCard: View {
 
     @ViewBuilder private var eyebrowRule: some View {
         HStack(alignment: .center, spacing: 14) {
-            // `today's *breakfast*` — italic-Fraunces punch
             (
                 Text("today's ")
-                    .font(.custom("DMSans-Medium", size: 24))
+                    .font(.custom("DMSans-Medium", size: 26))
                 + Text(mealLabel.isEmpty ? "plate" : mealLabel.lowercased())
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 26))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
             )
             .foregroundStyle(textSecondary)
             .kerning(0.4)
 
-            // 0.5pt cocoa hairline — the editorial "rule"
             Rectangle()
                 .fill(textPrimary.opacity(0.22))
                 .frame(height: 0.5)
@@ -169,7 +115,7 @@ struct ResultDecisionCard: View {
         return fmt.string(from: loggedAt).lowercased()
     }
 
-    // MARK: - Calorie hero (count-up + inline italic suffix)
+    // MARK: - Calorie hero
 
     @ViewBuilder private var calorieHero: some View {
         HStack(alignment: .firstTextBaseline, spacing: 14) {
@@ -177,13 +123,13 @@ struct ResultDecisionCard: View {
                 target: totalKcal,
                 fontName: "JeniHeroSerif-Regular",
                 italicFontName: "JeniHeroSerif-Italic",
-                size: 220,
+                size: 200,
                 color: textPrimary
             )
             Text("calories")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 56))
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 52))
                 .foregroundStyle(textPrimary)
-                .baselineOffset(28)
+                .baselineOffset(24)
         }
         .fixedSize(horizontal: false, vertical: true)
     }
@@ -219,7 +165,7 @@ struct ResultDecisionCard: View {
     // MARK: - Macro row (scrapbook chrome)
 
     @ViewBuilder private var macroRow: some View {
-        HStack(spacing: 22) {
+        HStack(spacing: 18) {
             macroPill(value: totalProtein, label: "protein")
             macroPill(value: totalCarbs, label: "carbs")
             macroPill(value: totalFat, label: "fat")
@@ -232,7 +178,7 @@ struct ResultDecisionCard: View {
         VStack(spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text("\(value)")
-                    .font(.custom("JeniHeroSerif-Regular", size: 56))
+                    .font(.custom("JeniHeroSerif-Regular", size: 52))
                     .foregroundStyle(textPrimary)
                 Text("g")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
@@ -246,7 +192,7 @@ struct ResultDecisionCard: View {
                 .textCase(.lowercase)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 22)
+        .padding(.vertical, 20)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(Color(red: 1.0, green: 0.98, blue: 0.973))
@@ -258,7 +204,52 @@ struct ResultDecisionCard: View {
         .shadow(color: textPrimary.opacity(0.12), radius: 0, x: 2, y: 3)
     }
 
-    // MARK: - Item ledger
+    // MARK: - Extras row (sodium / sugar / sat fat)
+
+    private var hasExtras: Bool {
+        totalSodiumMg > 0 || totalSugarG > 0 || totalSatFatG > 0
+    }
+
+    @ViewBuilder private var extrasRow: some View {
+        HStack(spacing: 24) {
+            if totalSodiumMg > 0 {
+                extraItem(value: "\(totalSodiumMg)", unit: "mg", label: "sodium")
+                if totalSugarG > 0 || totalSatFatG > 0 { extraDot }
+            }
+            if totalSugarG > 0 {
+                extraItem(value: "\(totalSugarG)", unit: "g", label: "sugar")
+                if totalSatFatG > 0 { extraDot }
+            }
+            if totalSatFatG > 0 {
+                extraItem(value: "\(totalSatFatG)", unit: "g", label: "sat fat")
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    @ViewBuilder
+    private func extraItem(value: String, unit: String, label: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 2) {
+            Text(value)
+                .font(.custom("JeniHeroSerif-Regular", size: 32))
+                .foregroundStyle(textPrimary)
+            Text(unit)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
+                .foregroundStyle(textSecondary)
+                .baselineOffset(2)
+            Text(" \(label)")
+                .font(.custom("DMSans-Light", size: 22))
+                .foregroundStyle(textSecondary)
+        }
+    }
+
+    @ViewBuilder private var extraDot: some View {
+        Text("·")
+            .font(.custom("DMSans-Medium", size: 26))
+            .foregroundStyle(textSecondary.opacity(0.55))
+    }
+
+    // MARK: - Item ledger with per-item detail
 
     @ViewBuilder private var itemList: some View {
         VStack(spacing: 0) {
@@ -268,56 +259,71 @@ struct ResultDecisionCard: View {
                         .fill(textPrimary.opacity(0.10))
                         .frame(height: 0.5)
                 }
-                itemRow(item: item, index: idx)
+                itemRow(item: item)
             }
         }
     }
 
     @ViewBuilder
-    private func itemRow(item: CapturedItem, index: Int) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 14) {
-            VStack(alignment: .leading, spacing: 4) {
+    private func itemRow(item: CapturedItem) -> some View {
+        HStack(alignment: .top, spacing: 18) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(item.name.lowercased())
-                    .font(.custom("JeniHeroSerif-Regular", size: 46))
+                    .font(.custom("JeniHeroSerif-Regular", size: 42))
                     .foregroundStyle(textPrimary)
                     .kerning(-0.4)
-                if let portion = portionLabel(for: item) {
-                    Text(portion)
-                        .font(.custom("DMSans-Light", size: 26))
-                        .foregroundStyle(textSecondary)
-                }
+                itemDetailLine(item: item)
             }
             Spacer(minLength: 12)
-            if let kcal = itemKcal(item) {
-                (
-                    Text("\(kcal)")
-                        .font(.custom("DMSans-Medium", size: 32))
-                        .foregroundStyle(textPrimary)
-                    + Text(" cal")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
-                        .foregroundStyle(textSecondary)
-                        .baselineOffset(2)
-                )
-                .monospacedDigit()
-            }
+            itemKcalView(item: item)
         }
-        .padding(.vertical, 18)
+        .padding(.vertical, 16)
         .contentShape(Rectangle())
-        .onTapGesture { onEditItem?(index) }
     }
 
-    private func portionLabel(for item: CapturedItem) -> String? {
-        guard item.portionGrams > 0 else { return nil }
-        let rounded = Int((item.portionGrams / 5).rounded()) * 5
-        return "\(rounded)g"
+    @ViewBuilder
+    private func itemDetailLine(item: CapturedItem) -> some View {
+        let parts = itemDetailParts(item)
+        if !parts.isEmpty {
+            Text(parts.joined(separator: " · "))
+                .font(.custom("DMSans-Light", size: 22))
+                .foregroundStyle(textSecondary)
+        }
     }
 
-    private func itemKcal(_ item: CapturedItem) -> Int? {
-        guard let kcal = item.kcal else { return nil }
-        return Int((kcal / 5).rounded()) * 5
+    private func itemDetailParts(_ item: CapturedItem) -> [String] {
+        var parts: [String] = []
+        if item.portionGrams > 0 {
+            let g = Int((item.portionGrams / 5).rounded()) * 5
+            parts.append("\(g)g")
+        }
+        if let p = item.proteinG, p >= 1 {
+            parts.append("\(Int(p.rounded()))g protein")
+        }
+        if let f = item.fiberG, f >= 1 {
+            parts.append("\(Int(f.rounded()))g fiber")
+        }
+        return parts
     }
 
-    // MARK: - Tag chips (italic-Fraunces punch word)
+    @ViewBuilder
+    private func itemKcalView(item: CapturedItem) -> some View {
+        if let kcal = item.kcal {
+            let rounded = Int((kcal / 5).rounded()) * 5
+            (
+                Text("\(rounded)")
+                    .font(.custom("DMSans-Medium", size: 30))
+                    .foregroundStyle(textPrimary)
+                + Text(" cal")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                    .foregroundStyle(textSecondary)
+                    .baselineOffset(2)
+            )
+            .monospacedDigit()
+        }
+    }
+
+    // MARK: - Tag chips
 
     @ViewBuilder private var tagChips: some View {
         let tags = activeTags
@@ -333,8 +339,6 @@ struct ResultDecisionCard: View {
 
     @ViewBuilder
     private func chip(_ tag: String) -> some View {
-        // Tags arrive as "high protein" / "high fiber" / "light meal".
-        // Split on the trailing word, italic-Fraunces the punch.
         let parts = tag.split(separator: " ", maxSplits: 1).map(String.init)
         let prefix = parts.count == 2 ? parts[0] + " " : ""
         let punch = parts.last ?? tag
@@ -347,12 +351,8 @@ struct ResultDecisionCard: View {
         .foregroundStyle(textPrimary)
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
-        .background(
-            Capsule().fill(accentSubtle.opacity(0.6))
-        )
-        .overlay(
-            Capsule().stroke(accent.opacity(0.35), lineWidth: 0.75)
-        )
+        .background(Capsule().fill(accentSubtle.opacity(0.6)))
+        .overlay(Capsule().stroke(accent.opacity(0.35), lineWidth: 0.75))
     }
 
     private var activeTags: [String] {
@@ -370,21 +370,26 @@ struct ResultDecisionCard: View {
             ?? Double((result.kcalLow ?? 0) + (result.kcalHigh ?? 0)) / 2
         return Int((raw / 5).rounded()) * 5
     }
-
     private var totalProtein: Int {
         Int(result.items.compactMap { $0.proteinG }.reduce(0, +).rounded())
     }
-
     private var totalCarbs: Int {
         Int(result.items.compactMap { $0.carbsG }.reduce(0, +).rounded())
     }
-
     private var totalFat: Int {
         Int(result.items.compactMap { $0.fatG }.reduce(0, +).rounded())
     }
-
     private var totalFiber: Int {
         Int(result.items.compactMap { $0.fiberG }.reduce(0, +).rounded())
+    }
+    private var totalSugarG: Int {
+        Int(result.items.compactMap { $0.sugarG }.reduce(0, +).rounded())
+    }
+    private var totalSodiumMg: Int {
+        Int(result.items.compactMap { $0.sodiumMg }.reduce(0, +).rounded())
+    }
+    private var totalSatFatG: Int {
+        Int(result.items.compactMap { $0.saturatedFatG }.reduce(0, +).rounded())
     }
 
     // MARK: - Palette

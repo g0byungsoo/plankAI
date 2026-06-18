@@ -1170,7 +1170,8 @@ private struct ResultCarouselPreviewHarness: View {
             preparation: "pan", cuisineHint: "american",
             confidence: 0.92, notes: "",
             kcal: 180, proteinG: 14, carbsG: 2, fatG: 12, fiberG: 0,
-            nutritionSource: .llmDirect
+            nutritionSource: .llmDirect,
+            sugarG: 1, sodiumMg: 240, saturatedFatG: 4
         ),
         CapturedItem(
             id: "preview-2", name: "avocado toast",
@@ -1179,7 +1180,8 @@ private struct ResultCarouselPreviewHarness: View {
             preparation: "toasted", cuisineHint: "cafe",
             confidence: 0.88, notes: "",
             kcal: 230, proteinG: 6, carbsG: 24, fatG: 14, fiberG: 5,
-            nutritionSource: .llmDirect
+            nutritionSource: .llmDirect,
+            sugarG: 2, sodiumMg: 380, saturatedFatG: 3
         ),
         CapturedItem(
             id: "preview-3", name: "raspberries",
@@ -1188,7 +1190,8 @@ private struct ResultCarouselPreviewHarness: View {
             preparation: "raw", cuisineHint: "fresh",
             confidence: 0.95, notes: "",
             kcal: 30, proteinG: 1, carbsG: 7, fatG: 0, fiberG: 4,
-            nutritionSource: .llmDirect
+            nutritionSource: .llmDirect,
+            sugarG: 5, sodiumMg: 1, saturatedFatG: 0
         ),
         CapturedItem(
             id: "preview-4", name: "matcha latte",
@@ -1197,7 +1200,8 @@ private struct ResultCarouselPreviewHarness: View {
             preparation: "oat milk", cuisineHint: "cafe",
             confidence: 0.86, notes: "",
             kcal: 110, proteinG: 4, carbsG: 12, fatG: 5, fiberG: 1,
-            nutritionSource: .llmDirect
+            nutritionSource: .llmDirect,
+            sugarG: 10, sodiumMg: 95, saturatedFatG: 1
         ),
     ]
 
