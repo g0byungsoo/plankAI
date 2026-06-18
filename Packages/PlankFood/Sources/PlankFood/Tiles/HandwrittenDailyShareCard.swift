@@ -288,18 +288,6 @@ extension HandwrittenDailyShareCard {
     }
 }
 
-// MARK: - v1.0.10 compat shims (used by HandwrittenWeeklyShareCard)
-//
-// The weekly card still references these types from the v1.0.10
-// cream-card design. Weekly is queued for the same edge-to-edge
-// rebuild; these stubs keep the package compiling until then.
-
-extension HandwrittenDailyShareCard {
-    public enum LabelAnchor: Sendable {
-        case topLeft, topRight, bottomLeft, bottomRight
-    }
-}
-
 // MARK: - RoughHandArrow
 //
 // Per-cell rough hand-drawn arrow. Starts near the label corner and
@@ -495,30 +483,6 @@ private struct SplitMix64 {
 
     mutating func nextUnitDouble() -> Double {
         return Double(next() &>> 11) / Double(1 &<< 53)
-    }
-}
-
-struct SquigglyArrow: Shape {
-    let anchor: HandwrittenDailyShareCard.LabelAnchor
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let target = CGPoint(x: rect.midX, y: rect.midY)
-        let origin: CGPoint = {
-            switch anchor {
-            case .topLeft:     return CGPoint(x: rect.minX + 30, y: rect.minY + 30)
-            case .topRight:    return CGPoint(x: rect.maxX - 30, y: rect.minY + 30)
-            case .bottomLeft:  return CGPoint(x: rect.minX + 30, y: rect.maxY - 30)
-            case .bottomRight: return CGPoint(x: rect.maxX - 30, y: rect.maxY - 30)
-            }
-        }()
-        path.move(to: origin)
-        path.addCurve(
-            to: target,
-            control1: CGPoint(x: (origin.x + target.x) / 2, y: origin.y),
-            control2: CGPoint(x: target.x, y: (origin.y + target.y) / 2)
-        )
-        return path
     }
 }
 
