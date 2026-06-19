@@ -57,18 +57,20 @@ struct BecomingDiaryHero: View {
         return f.string(from: NSNumber(value: showedUpCount)) ?? "\(showedUpCount)"
     }
 
-    /// v1.6.1 — flower sticker dropped per founder feedback. The
-    /// diary hero stays type-only; restraint reads as the her75
-    /// brand voice instead of the magazine sticker register.
+    /// v1.6.2 — brand-canonical heartGlossy sticker accent on the
+    /// hero, sized + rotated per the StickerName.signature locked
+    /// placement. Replaces the dropped pressed-flower experiment;
+    /// the heart is one of the curated 5 the brand carries forward.
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            (Text("day ").font(Typo.heroHeadline)
-             + Text(dayWord).font(Typo.heroHeadlineItalic))
-                .foregroundStyle(Palette.textPrimary)
-                .kerning(-0.4)
-                .lineSpacing(Typo.heroHeadlineLineGap)
-                .fixedSize(horizontal: false, vertical: true)
-                .breathingShadow()
+        ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: 2) {
+                (Text("day ").font(Typo.heroHeadline)
+                 + Text(dayWord).font(Typo.heroHeadlineItalic))
+                    .foregroundStyle(Palette.textPrimary)
+                    .kerning(-0.4)
+                    .lineSpacing(Typo.heroHeadlineLineGap)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .breathingShadow()
 
             // Sidecar meta — single dense DM Sans line, kerning +0.1.
             // her75 IMG_6276 convention: tucked-under stat pair in a
@@ -94,19 +96,32 @@ struct BecomingDiaryHero: View {
             .kerning(0.1)
             .padding(.top, 2)
 
-            // Identity line — italic-Fraunces punch word, restraint
-            // register. Kept since it's the brand voice signature.
-            ItalicAccentText(
-                identityLine,
-                italic: identityItalic,
-                baseFont: .custom("DMSans-Regular", size: 14),
-                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15),
-                color: Palette.textPrimary,
-                alignment: .leading
-            )
-            .padding(.top, 6)
+                // Identity line — italic-Fraunces punch word, restraint
+                // register. Kept since it's the brand voice signature.
+                ItalicAccentText(
+                    identityLine,
+                    italic: identityItalic,
+                    baseFont: .custom("DMSans-Regular", size: 14),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15),
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .padding(.top, 6)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Brand-canonical heartGlossy. 28pt locked size + 0° rotation
+            // per StickerName.signature spec; +6° tilt softens the perch.
+            Image(StickerName.heartGlossy.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 32, height: 32)
+                .rotationEffect(.degrees(6))
+                .opacity(0.92)
+                .offset(x: -2, y: 4)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 }

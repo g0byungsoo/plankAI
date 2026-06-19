@@ -1293,6 +1293,14 @@ private struct BecomingPreviewHarness: View {
     }()
 
     var body: some View {
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            PaperGrainBackground().ignoresSafeArea()
+            scrollContent
+        }
+    }
+
+    private var scrollContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 BecomingDiaryHero(
@@ -1346,7 +1354,6 @@ private struct BecomingPreviewHarness: View {
             .padding(.horizontal, Space.lg)
             .padding(.top, 24)
         }
-        .background(Palette.bgPrimary.ignoresSafeArea())
     }
 }
 

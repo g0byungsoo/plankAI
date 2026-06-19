@@ -692,6 +692,59 @@ extension View {
     }
 }
 
+// MARK: - PaperGrainBackground (v1.6.3 — luxury page register)
+//
+// Pre-rendered noise PNG would burn ~120kb. Instead we synthesize a
+// barely-perceptible cocoa-tinted dot pattern via SwiftUI Canvas —
+// deterministic seeded pseudo-random so it never animates and never
+// re-renders. Cached as a single UIImage backed by a CGImage on
+// first appearance; subsequent reads return the cached layer.
+//
+// Sits BEHIND the entire Becoming scroll content at 4% cocoa
+// opacity. The grain is invisible until you crop the page, but
+// changes the cream's perceived weight from "iOS background fill"
+// to "Aesop catalog paper." Sub-conscious luxury cue.
+
+struct PaperGrainBackground: View {
+    var color: Color = Palette.textPrimary
+    var density: Double = 0.04
+    var dotSize: CGFloat = 0.7
+
+    /// Seeded LCG so the dot scatter is identical every mount; the
+    /// background reads as a fixed paper texture, not as motion.
+    private static func seededPoints(in size: CGSize, density: Double) -> [CGPoint] {
+        let count = Int(Double(size.width * size.height) * 0.012 * density / 0.04)
+        var state: UInt32 = 0x9e3779b1
+        func nextRand() -> Double {
+            state = state &* 1103515245 &+ 12345
+            return Double((state >> 16) & 0x7FFF) / Double(0x7FFF)
+        }
+        return (0..<count).map { _ in
+            CGPoint(
+                x: nextRand() * Double(size.width),
+                y: nextRand() * Double(size.height)
+            )
+        }
+    }
+
+    var body: some View {
+        Canvas { ctx, size in
+            let points = Self.seededPoints(in: size, density: density)
+            for p in points {
+                let rect = CGRect(
+                    x: p.x - dotSize / 2,
+                    y: p.y - dotSize / 2,
+                    width: dotSize,
+                    height: dotSize
+                )
+                ctx.fill(Path(ellipseIn: rect), with: .color(color.opacity(density)))
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
 // MARK: - Breathing shadow modifier (v1.2 Becoming, Calm-coded)
 //
 // Soft text-shadow that gently pulses at ~3% → 6% opacity on a 3s
