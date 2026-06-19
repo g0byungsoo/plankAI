@@ -561,10 +561,27 @@ struct BecomingMacroRow: View {
 // closing line carries the meaning ("body used some of what you fed
 // it ♡") without the bargaining math.
 
+/// Phase 4 Day-2 discriminant — which moved-strip stat is currently
+/// showing its 7-day micro-bar instead of today's number.
+enum BecomingMovedStat: Equatable { case steps, plank, breath }
+
 struct BecomingMovedStrip: View {
     let steps: Int
     let workoutMinutes: Int
     let breathMinutes: Int
+    /// Phase 4 Day-2 (2026-06-19) — 7-day series per stat for the
+    /// tap-reveal micro-bar. Each array oldest → today. nil → stat is
+    /// non-interactive (legacy caller). Empty → tap is a no-op.
+    var stepsWeek: [Int]? = nil
+    var plankWeek: [Int]? = nil
+    var breathWeek: [Int]? = nil
+
+    /// Phase 4 Day-2 — which stat is currently showing its micro-bar.
+    /// Cleared automatically after 4s via Task delay; user-tap toggle
+    /// also clears.
+    @State private var revealed: BecomingMovedStat? = nil
+    /// Harness-only initial reveal for screenshot capture.
+    var debugInitialRevealed: BecomingMovedStat? = nil
 
     private var hasAnything: Bool {
         steps > 0 || workoutMinutes > 0 || breathMinutes > 0
@@ -575,27 +592,33 @@ struct BecomingMovedStrip: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .center, spacing: 0) {
                     iconStat(
+                        id: .steps,
                         glyph: "figure.walk",
                         value: steps.formatted(),
                         unit: "steps",
+                        week: stepsWeek,
                         show: steps > 0
                     )
                     if steps > 0 && (workoutMinutes > 0 || breathMinutes > 0) {
                         divider
                     }
                     iconStat(
+                        id: .plank,
                         glyph: "figure.core.training",
                         value: "\(workoutMinutes)",
                         unit: "min plank",
+                        week: plankWeek,
                         show: workoutMinutes > 0
                     )
                     if workoutMinutes > 0 && breathMinutes > 0 {
                         divider
                     }
                     iconStat(
+                        id: .breath,
                         glyph: "lungs.fill",
                         value: "\(breathMinutes)",
                         unit: "min breath",
+                        week: breathWeek,
                         show: breathMinutes > 0
                     )
                 }
@@ -611,12 +634,24 @@ struct BecomingMovedStrip: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .luxuryCard()
+            .onAppear {
+                if let s = debugInitialRevealed, revealed == nil {
+                    revealed = s
+                }
+            }
             .accessibilityElement(children: .combine)
         }
     }
 
     @ViewBuilder
-    private func iconStat(glyph: String, value: String, unit: String, show: Bool) -> some View {
+    private func iconStat(
+        id: BecomingMovedStat,
+        glyph: String,
+        value: String,
+        unit: String,
+        week: [Int]?,
+        show: Bool
+    ) -> some View {
         if show {
             HStack(alignment: .center, spacing: 8) {
                 Image(systemName: glyph)
@@ -625,17 +660,59 @@ struct BecomingMovedStrip: View {
                     .frame(width: 22, height: 22)
                     .background(Circle().fill(Palette.accentSubtle.opacity(0.6)))
                 VStack(alignment: .leading, spacing: -2) {
-                    Text(value)
-                        .font(.custom("DMSans-Medium", size: 15))
-                        .foregroundStyle(Palette.cocoaPrimary)
-                        .monospacedDigit()
-                    Text(unit)
-                        .font(.custom("DMSans-Regular", size: 11))
-                        .foregroundStyle(Palette.cocoaTertiary)
+                    if revealed == id, let week, !week.isEmpty {
+                        microBar(week)
+                            .transition(.opacity)
+                            .id("bar-\(id.hashValue)")
+                    } else {
+                        Text(value)
+                            .font(.custom("DMSans-Medium", size: 15))
+                            .foregroundStyle(Palette.cocoaPrimary)
+                            .monospacedDigit()
+                            .transition(.opacity)
+                            .id("val-\(id.hashValue)")
+                        Text(unit)
+                            .font(.custom("DMSans-Regular", size: 11))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard let week, !week.isEmpty else { return }
+                Haptics.tick()
+                withAnimation(Motion.crossFade) {
+                    revealed = revealed == id ? nil : id
+                }
+                if revealed == id {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                        if revealed == id {
+                            withAnimation(Motion.crossFade) { revealed = nil }
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    /// 7 capsule bars normalized to that week's max. Today (last) is
+    /// rendered at full accent; prior days at 35% accent so the eye
+    /// lands on "now" without indexing the misses.
+    @ViewBuilder
+    private func microBar(_ week: [Int]) -> some View {
+        let maxVal = max(1, week.max() ?? 1)
+        HStack(alignment: .bottom, spacing: 3) {
+            ForEach(Array(week.enumerated()), id: \.offset) { idx, v in
+                let h = max(2.0, Double(v) / Double(maxVal) * 20.0)
+                Capsule()
+                    .fill(idx == week.count - 1
+                          ? Palette.accent
+                          : Palette.accent.opacity(0.35))
+                    .frame(width: 4, height: CGFloat(h))
+            }
+        }
+        .frame(height: 22, alignment: .bottomLeading)
     }
 
     @ViewBuilder private var divider: some View {
@@ -752,15 +829,37 @@ struct BecomingPlateTimelineToday: View {
 // Per cohort brief: "Strava's 'lifetime miles' is the most-screenshot-
 // shared Strava UI element. Cumulative-positive = identity scaffold."
 
+/// Phase 4 Day-2 discriminant — which deeds cell is currently
+/// surfacing its "since *date*" history beat instead of the value.
+enum BecomingDeedCell: Equatable { case plates, lessons, breath, foodNoise }
+
 struct BecomingDeedsCounter: View {
     let plates: Int
     let lessons: Int
     let breathMinutes: Int
+    /// Phase 4 Day-2 (2026-06-19) — first-engagement timestamps
+    /// for the long-press "since *date*" reveal. nil → cell long-
+    /// press is a no-op. All optional so legacy callers don't break.
+    var platesSince: Date? = nil
+    var lessonsSince: Date? = nil
+    var breathSince: Date? = nil
+    var foodNoiseSince: Date? = nil
+
+    @State private var revealed: BecomingDeedCell? = nil
+    /// Harness-only initial reveal for screenshot capture.
+    var debugInitialRevealed: BecomingDeedCell? = nil
 
     private var foodNoiseHours: Int {
         let minutes = lessons * 10 + (breathMinutes / 12)
         return minutes / 60
     }
+
+    private static let sinceFmt: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = .current
+        f.dateFormat = "MMM d"
+        return f
+    }()
 
     /// v1.4 (2026-06-18) — visual bento 2x2 + closing italic.
     /// Each cell is a tiny card so the cumulative-deeds register
@@ -774,31 +873,59 @@ struct BecomingDeedsCounter: View {
 
             VStack(spacing: 10) {
                 HStack(spacing: 10) {
-                    cellCard(value: "\(plates)", label: "plates kept")
-                    cellCard(value: "\(lessons)", label: "lessons read")
+                    cellCard(.plates, value: "\(plates)", label: "plates kept", since: platesSince)
+                    cellCard(.lessons, value: "\(lessons)", label: "lessons read", since: lessonsSince)
                 }
                 HStack(spacing: 10) {
-                    cellCard(value: "\(breathMinutes)", label: "min of breath")
+                    cellCard(.breath, value: "\(breathMinutes)", label: "min of breath", since: breathSince)
                     cellCard(
+                        .foodNoise,
                         value: "\(foodNoiseHours)h",
                         label: "food noise quieted",
-                        accent: foodNoiseHours > 0
+                        accent: foodNoiseHours > 0,
+                        since: foodNoiseSince
                     )
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .onAppear {
+            if let s = debugInitialRevealed, revealed == nil {
+                revealed = s
+            }
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(a11yLabel)
     }
 
     @ViewBuilder
-    private func cellCard(value: String, label: String, accent: Bool = false) -> some View {
+    private func cellCard(
+        _ id: BecomingDeedCell,
+        value: String,
+        label: String,
+        accent: Bool = false,
+        since: Date?
+    ) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(value)
-                .font(.custom("JeniHeroSerif-Regular", size: 28))
-                .foregroundStyle(accent ? Palette.accent : Palette.cocoaPrimary)
-                .monospacedDigit()
+            Group {
+                if revealed == id, let since {
+                    let dateStr = Self.sinceFmt.string(from: since).lowercased()
+                    (Text("since ")
+                        .font(.custom("DMSans-Regular", size: 17))
+                    + Text(dateStr)
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18)))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .transition(.opacity)
+                        .id("since-\(id.hashValue)")
+                } else {
+                    Text(value)
+                        .font(.custom("JeniHeroSerif-Regular", size: 28))
+                        .foregroundStyle(accent ? Palette.accent : Palette.cocoaPrimary)
+                        .monospacedDigit()
+                        .transition(.opacity)
+                        .id("val-\(id.hashValue)")
+                }
+            }
             Text(label)
                 .font(.custom("DMSans-Regular", size: 11))
                 .foregroundStyle(Palette.cocoaTertiary)
@@ -807,6 +934,21 @@ struct BecomingDeedsCounter: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .luxuryCard(cornerRadius: 12, horizontalPadding: 14, verticalPadding: 12)
+        .contentShape(Rectangle())
+        .onLongPressGesture(minimumDuration: 0.35) {
+            guard since != nil else { return }
+            Haptics.soft()
+            withAnimation(Motion.crossFade) {
+                revealed = revealed == id ? nil : id
+            }
+            if revealed == id {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+                    if revealed == id {
+                        withAnimation(Motion.crossFade) { revealed = nil }
+                    }
+                }
+            }
+        }
     }
 
     private var a11yLabel: String {
@@ -848,8 +990,22 @@ struct BecomingTrendCanvas: View {
     @State private var lastHapticIndex: Int = -1
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    /// Phase 4 Day-2 (2026-06-19) — window cycle on double-tap.
+    /// Modes cycle 60d → 90d → nil (all) → 60d. Lets her see the
+    /// long arc without a segmented control; the gesture IS the
+    /// picker. Panel 4: a 90-day frame defuses Ozempic-anxiety.
+    @State private var windowDays: Int? = 60
+    /// Harness-only initial window override for screenshot capture.
+    var debugInitialWindowDays: Int?? = nil
+
+    private var filteredLogs: [WeightLogRecord] {
+        guard let n = windowDays else { return logs }
+        let cutoff = Date.now.addingTimeInterval(-Double(n) * 86400)
+        return logs.filter { $0.loggedAt >= cutoff }
+    }
+
     private var points: [WeightTrendChart.EMAPoint] {
-        WeightTrendChart.computeEMA(logs: logs)
+        WeightTrendChart.computeEMA(logs: filteredLogs)
     }
 
     private func toDisplay(_ kg: Double) -> Double { unit.display(fromKg: kg) }
@@ -888,9 +1044,22 @@ struct BecomingTrendCanvas: View {
     }
 
     @ViewBuilder private var eyebrow: some View {
-        Text("trend")
+        let windowWord: String = {
+            switch windowDays {
+            case 60?: return "sixty"
+            case 90?: return "ninety"
+            case nil: return "all"
+            default:  return "trend"
+            }
+        }()
+        (Text("trend · ")
             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+        + Text(windowWord)
+            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+            .foregroundColor(Palette.cocoaSecondary))
             .foregroundStyle(Palette.cocoaTertiary)
+            .id(windowDays ?? -1)
+            .transition(.opacity)
     }
 
     // MARK: - Headline
@@ -971,7 +1140,28 @@ struct BecomingTrendCanvas: View {
         }
         .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
         .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            Haptics.soft()
+            withAnimation(Motion.crossFade) {
+                windowDays = nextWindow(after: windowDays)
+            }
+            // Re-trigger the draw-in animation so the cycle lands
+            // with a visual beat, not a hard cut.
+            drawProgress = 0
+            if reduceMotion {
+                drawProgress = 1
+            } else {
+                withAnimation(Motion.trendDrawIn) {
+                    drawProgress = 1
+                }
+            }
+        }
         .gesture(scrubGesture)
+        .onAppear {
+            if let override = debugInitialWindowDays {
+                windowDays = override
+            }
+        }
         .task {
             // Use task instead of onAppear so the animation block runs
             // on the MainActor after the view actually mounts. onAppear
@@ -986,6 +1176,18 @@ struct BecomingTrendCanvas: View {
                     drawProgress = 1
                 }
             }
+        }
+    }
+
+    /// Phase 4 Day-2 — cycle 60d → 90d → all → 60d. Stays under 4
+    /// modes so the gesture stays predictable; her75 panel rejected
+    /// "everything plus 7d" as too many stops for a double-tap.
+    private func nextWindow(after current: Int?) -> Int? {
+        switch current {
+        case 60?: return 90
+        case 90?: return nil
+        case nil: return 60
+        default:  return 60
         }
     }
 

@@ -1612,6 +1612,38 @@ private struct BecomingPreviewHarness: View {
     private var debugPeekProtein: Bool {
         ProcessInfo.processInfo.arguments.contains("--peek-protein")
     }
+    /// Phase 4 Day-2 flags
+    private var debugPeekMoved: BecomingMovedStat? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "--peek-moved"), i + 1 < args.count else { return nil }
+        switch args[i + 1].lowercased() {
+        case "steps":  return .steps
+        case "plank":  return .plank
+        case "breath": return .breath
+        default:       return nil
+        }
+    }
+    private var debugPeekDeed: BecomingDeedCell? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "--peek-deed"), i + 1 < args.count else { return nil }
+        switch args[i + 1].lowercased() {
+        case "plates":    return .plates
+        case "lessons":   return .lessons
+        case "breath":    return .breath
+        case "foodnoise": return .foodNoise
+        default:          return nil
+        }
+    }
+    private var debugPeekWindow: Int?? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "--peek-window"), i + 1 < args.count else { return nil }
+        switch args[i + 1].lowercased() {
+        case "60":  return .some(60)
+        case "90":  return .some(90)
+        case "all": return .some(nil)
+        default:    return nil
+        }
+    }
 
     @State private var mockLogs: [WeightLogRecord] = {
         // Synthesize 30 days of fake weights — gentle downward EMA
@@ -1643,7 +1675,8 @@ private struct BecomingPreviewHarness: View {
     }
 
     private var scrollContent: some View {
-        ScrollView {
+        let focusBelow = debugPeekMoved != nil || debugPeekDeed != nil
+        return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 BecomingDiaryHero(
                     dayNumber: 33,
@@ -1703,7 +1736,8 @@ private struct BecomingPreviewHarness: View {
                 BecomingTrendCanvas(
                     logs: mockLogs,
                     goalWeightKg: 66.0,
-                    unit: .lb
+                    unit: .lb,
+                    debugInitialWindowDays: debugPeekWindow
                 )
 
                 BecomingPlateTimelineToday(
@@ -1716,12 +1750,25 @@ private struct BecomingPreviewHarness: View {
                     onLogTapped: {}
                 )
 
-                BecomingMovedStrip(steps: 7432, workoutMinutes: 8, breathMinutes: 12)
+                BecomingMovedStrip(
+                    steps: 7432,
+                    workoutMinutes: 8,
+                    breathMinutes: 12,
+                    stepsWeek: [6200, 5800, 4100, 9300, 7400, 6900, 7432],
+                    plankWeek: [0, 6, 0, 8, 5, 0, 8],
+                    breathWeek: [0, 4, 8, 0, 2, 0, 12],
+                    debugInitialRevealed: debugPeekMoved
+                )
 
                 BecomingDeedsCounter(
                     plates: 87,
                     lessons: 34,
-                    breathMinutes: 47
+                    breathMinutes: 47,
+                    platesSince: Calendar.current.date(byAdding: .day, value: -45, to: .now),
+                    lessonsSince: Calendar.current.date(byAdding: .day, value: -30, to: .now),
+                    breathSince: Calendar.current.date(byAdding: .day, value: -22, to: .now),
+                    foodNoiseSince: Calendar.current.date(byAdding: .day, value: -30, to: .now),
+                    debugInitialRevealed: debugPeekDeed
                 )
 
                 Spacer(minLength: 80)
@@ -1729,6 +1776,7 @@ private struct BecomingPreviewHarness: View {
             .padding(.horizontal, Space.lg)
             .padding(.top, 24)
         }
+        .defaultScrollAnchor(focusBelow ? .bottom : .top)
     }
 }
 

@@ -195,6 +195,73 @@ struct AnalyticsView: View {
     ///   - plates: `FoodLogPersister.allEntries(userId).count`
     ///   - lessons: `JeniMethodState.lastCompletedLessonId`
     ///   - breaths: `BreathworkState.shared.totalCompleted`
+    /// Phase 4 Day-2 (2026-06-19) — refreshes HealthKit-backed today
+    /// data on pull-down. Steps re-syncs from HealthKit; the rest
+    /// (sessions, food logs) is SwiftData @Query and auto-updates,
+    /// but a defensive 0.5s breath lets the refresh spinner feel
+    /// intentional even when the data is already current.
+    @MainActor
+    private func refreshBecomingData() async {
+        await StepsService.shared.refresh()
+        try? await Task.sleep(for: .milliseconds(500))
+    }
+
+    /// Phase 4 Day-2 (2026-06-19) — 7-day series per moved-strip stat
+    /// for the tap-reveal micro-bar. Oldest → today.
+    /// Steps: StepsService.last7Counts.
+    /// Plank/workout: minutes of routine + plank_benchmark sessions
+    /// per day.
+    /// Breath: minutes of breath sessions per day, capped via
+    /// completed_at presence on the session log.
+    private var movedWeekSeries: (steps: [Int], plank: [Int], breath: [Int]) {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+        let days: [Date] = (0..<7).compactMap {
+            cal.date(byAdding: .day, value: $0 - 6, to: today)
+        }
+
+        let steps = StepsService.shared.weeklyCounts
+
+        var plank: [Int] = Array(repeating: 0, count: 7)
+        var breath: [Int] = Array(repeating: 0, count: 7)
+        for log in sessionLogs {
+            for (idx, day) in days.enumerated() {
+                let next = cal.date(byAdding: .day, value: 1, to: day) ?? day
+                if log.completedAt >= day, log.completedAt < next {
+                    let minutes = max(1, Int((log.holdTime / 60).rounded()))
+                    if log.sessionType == "breathwork" {
+                        breath[idx] += minutes
+                    } else {
+                        plank[idx] += minutes
+                    }
+                }
+            }
+        }
+        return (steps: steps, plank: plank, breath: breath)
+    }
+
+    /// Phase 4 Day-2 — first-engagement dates per deeds cell. Drives
+    /// the long-press "since *date*" reveal on BecomingDeedsCounter.
+    /// nil per cell when nothing of that kind has happened yet.
+    private var deedsSinceDates: (plates: Date?, lessons: Date?, breath: Date?) {
+        var plates: Date? = nil
+        if FoodFlags.isEnabled,
+           let userId = auth.currentUser?.id.uuidString, !userId.isEmpty {
+            plates = FoodLogPersister.allEntries(userId: userId)
+                .map(\.loggedAt)
+                .min()
+        }
+        let lessons = sessionLogs
+            .filter { $0.sessionType == "lesson" }
+            .map(\.completedAt)
+            .min()
+        let breath = sessionLogs
+            .filter { $0.sessionType == "breathwork" }
+            .map(\.completedAt)
+            .min()
+        return (plates: plates, lessons: lessons, breath: breath)
+    }
+
     /// Breath minutes ≈ breaths × 4 (typical session length); the
     /// derived "food noise quieted hours" combines lessons + breath
     /// minutes in BecomingDeedsCounter.
@@ -1218,7 +1285,10 @@ struct AnalyticsView: View {
             BecomingMovedStrip(
                 steps: StepsService.shared.todayCount,
                 workoutMinutes: todayWorkoutMinutes,
-                breathMinutes: todayBreathMinutes
+                breathMinutes: todayBreathMinutes,
+                stepsWeek: movedWeekSeries.steps,
+                plankWeek: movedWeekSeries.plank,
+                breathWeek: movedWeekSeries.breath
             )
             .padding(.top, 2)
 
@@ -1229,7 +1299,11 @@ struct AnalyticsView: View {
                 BecomingDeedsCounter(
                     plates: lifetimeDeeds.plates,
                     lessons: lifetimeDeeds.lessons,
-                    breathMinutes: lifetimeDeeds.breathMinutes
+                    breathMinutes: lifetimeDeeds.breathMinutes,
+                    platesSince: deedsSinceDates.plates,
+                    lessonsSince: deedsSinceDates.lessons,
+                    breathSince: deedsSinceDates.breath,
+                    foodNoiseSince: deedsSinceDates.lessons
                 )
                 .padding(.top, 6)
             }
@@ -1292,6 +1366,11 @@ struct AnalyticsView: View {
                     .padding(.top, 4)
             }
         }
+        // Phase 4 Day-2 (2026-06-19) — pull-to-refresh re-pulls
+        // HealthKit (steps + breath + workout minutes) so glance-
+        // visits get a fresh today number without backgrounding.
+        // Native iOS gesture; no chrome.
+        .refreshable { await refreshBecomingData() }
     }
 
     // MARK: - Lighter days (EnergyLedger consumers)
