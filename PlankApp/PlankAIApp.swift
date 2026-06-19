@@ -1394,6 +1394,14 @@ private struct HomePhase1PreviewHarness: View {
     }()
     @State private var isPastDay: Bool = ProcessInfo.processInfo.arguments.contains("--past")
     @State private var glp1IsCurrent: Bool = ProcessInfo.processInfo.arguments.contains("--glp1")
+    @State private var simulateAfter9pm: Bool = ProcessInfo.processInfo.arguments.contains("--after-9pm")
+    @State private var simulateKind: Bool = ProcessInfo.processInfo.arguments.contains("--kind")
+    @State private var showsUpCount: Int = {
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "--shows-up"), i + 1 < args.count,
+           let n = Int(args[i + 1]) { return n }
+        return 7
+    }()
 
     /// Mock prescription set used by the harness. PlanView's real
     /// composer reorders these by archetype; we replicate that here
@@ -1440,9 +1448,19 @@ private struct HomePhase1PreviewHarness: View {
                         .padding(.horizontal, 20)
 
                     VStack(alignment: .leading, spacing: 14) {
-                        HomeArchetypeHeader(archetype: archetype, pastDay: isPastDay)
+                        HomeArchetypeHeader(
+                            archetype: archetype,
+                            pastDay: isPastDay,
+                            kindToday: simulateKind && !isPastDay,
+                            onLongPressKind: nil
+                        )
                             .padding(.horizontal, 20)
                             .padding(.top, 14)
+
+                        if !isPastDay && showsUpCount >= 2 {
+                            HomeShowsUpLine(count: showsUpCount)
+                                .padding(.horizontal, 20)
+                        }
 
                         if archetype == .protein && !isPastDay {
                             HomeProteinTracker(
@@ -1454,7 +1472,7 @@ private struct HomePhase1PreviewHarness: View {
                         }
 
                         if isPastDay {
-                            Text("yesterday's page — it counted as it was.")
+                            Text("yesterday's page. it counted as it was.")
                                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                                 .foregroundStyle(Palette.cocoaTertiary)
                                 .padding(.horizontal, 20)
@@ -1481,6 +1499,11 @@ private struct HomePhase1PreviewHarness: View {
                             }
                         }
                         .padding(.vertical, 4)
+
+                        if !isPastDay && (simulateAfter9pm || simulateKind) {
+                            HomeTomorrowResetsLine()
+                                .padding(.horizontal, 20)
+                        }
                     }
                     .padding(.bottom, 8)
                     .background(

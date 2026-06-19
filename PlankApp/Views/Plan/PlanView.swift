@@ -183,6 +183,16 @@ struct PlanView: View {
     /// as checked." This flag fires the wipe once per install.
     @AppStorage("planChecksMigratedV1") private var planChecksMigratedV1: Bool = false
 
+    /// Phase 3 retention atom — date key (YYYY-MM-DD) of the day the
+    /// user last marked as "kind today" via long-press on the
+    /// archetype header. Compared against today's date key to drive
+    /// the kind-day header swap. Anti-shame agency: she can declare
+    /// the day kind and the plan accepts it without penalty.
+    @AppStorage("kindTodayDateKey") private var kindTodayDateKey: String = ""
+
+    /// Phase 3 — confirmation alert for the kind-today long-press.
+    @State private var showKindTodayConfirm = false
+
     var body: some View {
         ZStack {
             // v5: program home gets its own pink-tinted background
@@ -730,10 +740,23 @@ struct PlanView: View {
             if let arch = currentArchetype {
                 HomeArchetypeHeader(
                     archetype: arch,
-                    pastDay: viewingDay != nil
+                    pastDay: viewingDay != nil,
+                    kindToday: isKindToday,
+                    onLongPressKind: { showKindTodayConfirm = true }
                 )
                 .padding(.horizontal, 20)
                 .padding(.top, 14)
+            }
+
+            // v1.0.35 Home Phase 3 (2026-06-19) — gain-only "shows
+            // up" count below the archetype header. Replaces the
+            // missing Home streak surface; Panel 4 anti-shame lock
+            // = count only, no denominator, only when she has at
+            // least 2 days in the bank. Hidden in past-view so the
+            // settled day reads as the snapshot it is.
+            if viewingDay == nil, showsUpCount >= 2 {
+                HomeShowsUpLine(count: showsUpCount)
+                    .padding(.horizontal, 20)
             }
 
             // Protein-day anchor surface — the founder's added ask.
@@ -756,7 +779,7 @@ struct PlanView: View {
             // copy. Surfaces only when viewing the past so the user
             // knows the rows below are settled, not earnable.
             if viewingDay != nil {
-                Text("yesterday's page — it counted as it was.")
+                Text("yesterday's page. it counted as it was.")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13, relativeTo: .caption))
                     .foregroundStyle(Palette.cocoaTertiary)
                     .padding(.horizontal, 20)
@@ -793,6 +816,17 @@ struct PlanView: View {
                 }
             }
             .padding(.vertical, 4)
+
+            // v1.0.35 Home Phase 3 (2026-06-19) — after-9pm closing
+            // line. Tomorrow always resets — Panel 4 GLP-1 RD's
+            // anti-shame lock. Hidden in past view + when the day
+            // is already fully checked. When the day was marked
+            // kind, swap the copy to "tomorrow resets" earlier (any
+            // hour) so the closing beat is part of the kind declaration.
+            if viewingDay == nil, isKindToday || shouldShowTomorrowResets {
+                HomeTomorrowResetsLine()
+                    .padding(.horizontal, 20)
+            }
         }
         .padding(.bottom, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -801,6 +835,81 @@ struct PlanView: View {
                 .fill(Palette.programCard)
         )
         .programPaperShadow()
+        .confirmationDialog(
+            "mark today kind?",
+            isPresented: $showKindTodayConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("mark today kind") {
+                Haptics.medium()
+                kindTodayDateKey = todayDateKey
+            }
+            Button("cancel", role: .cancel) { }
+        } message: {
+            Text("the plan stays. nothing required. tomorrow resets \u{2661}")
+        }
+    }
+
+    /// Phase 3 — YYYY-MM-DD for today, used to gate the kind-today
+    /// flag against day rollover. Local-calendar, not UTC.
+    private var todayDateKey: String {
+        let f = DateFormatter()
+        f.calendar = Calendar.current
+        f.timeZone = .current
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: .now)
+    }
+
+    /// Phase 3 — true when the user has long-pressed the archetype
+    /// header today to declare it a kind day. Resets at midnight by
+    /// dateKey comparison.
+    private var isKindToday: Bool {
+        viewingDay == nil
+            && !kindTodayDateKey.isEmpty
+            && kindTodayDateKey == todayDateKey
+    }
+
+    /// Phase 3 retention atom — true when (a) it's past 9pm local,
+    /// (b) the day still has at least one incomplete row, and (c)
+    /// the user is on the today view. Drives the "tomorrow resets ♡"
+    /// closing line under the checklist.
+    private var shouldShowTomorrowResets: Bool {
+        let hour = Calendar.current.component(.hour, from: .now)
+        guard hour >= 21 else { return false }
+        guard !todayPrescriptions.isEmpty else { return false }
+        let hasOpen = todayPrescriptions.contains { rx in
+            switch rowState(for: rx) {
+            case .binaryEmpty, .skipped, .restDay:
+                return true
+            case .progress(let current, let target, _):
+                return current < target
+            case .binaryComplete:
+                return false
+            }
+        }
+        return hasOpen
+    }
+
+    /// Phase 3 retention atom — distinct days the user has shown up
+    /// across the entire program. Mirrors AnalyticsView.engagedDates
+    /// (session logs + food logs + day progress) but local to the
+    /// Home checklist card. Never decrements; we only ever count
+    /// dates that crossed at least one engagement bar.
+    private var showsUpCount: Int {
+        let cal = Calendar.current
+        var days = Set<Date>()
+        for log in allSessionLogs {
+            days.insert(cal.startOfDay(for: log.completedAt))
+        }
+        for dp in allDayProgress where dp.userId == userId {
+            days.insert(cal.startOfDay(for: dp.date))
+        }
+        if FoodFlags.isEnabled, !userId.isEmpty {
+            for entry in FoodLogPersister.allEntries(userId: userId) {
+                days.insert(cal.startOfDay(for: entry.loggedAt))
+            }
+        }
+        return days.count
     }
 
     /// 1.0g/kg from onboarding weight, floor 70g, ceiling 150g per
@@ -1583,12 +1692,12 @@ private extension ProgramDayArchetype {
                 + "protects lean mass while your body changes, and "
                 + "carries the work the other days set up."
         case .balanced:
-            return "no macro running the show. carbs, protein, fat — "
+            return "no macro running the show. carbs, protein, fat. "
                 + "a little of everything, in the proportions your body "
                 + "asks for. variety is the brief."
         case .movement:
             return "strength day. lift, don't just sweat. resistance "
-                + "work is what protects muscle while your body changes — "
+                + "work is what protects muscle while your body changes. "
                 + "carbs around the lift, protein still leads the plate."
         case .rest:
             return "softer eating. listen, don't earn. rest is "

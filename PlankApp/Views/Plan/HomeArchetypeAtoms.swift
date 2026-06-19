@@ -28,14 +28,29 @@ struct HomeArchetypeHeader: View {
     /// Optional dim flag for past-day viewing — drops the header to
     /// a muted register without breaking the sentence pattern.
     var pastDay: Bool = false
+    /// Phase 3 — when the user has marked today as kind, the header
+    /// swaps to a soft "today is a *kind* day." sentence regardless
+    /// of the underlying archetype. The day's plan stays underneath
+    /// but the rows go optional.
+    var kindToday: Bool = false
+    /// Phase 3 — long-press to mark today kind. Optional; when nil
+    /// the header is non-interactive (harness/peek use cases).
+    var onLongPressKind: (() -> Void)? = nil
+
+    private var sentence: (prefix: String, italic: String, suffix: String) {
+        if kindToday {
+            return ("today is a ", "kind", " day \u{2661}")
+        }
+        return archetype.headerSentence
+    }
 
     var body: some View {
-        let sentence = archetype.headerSentence
-        (Text(sentence.prefix)
+        let s = sentence
+        (Text(s.prefix)
             .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title3))
-        + Text(sentence.italic)
+        + Text(s.italic)
             .font(.custom("JeniHeroSerif-Italic", size: 26, relativeTo: .title3))
-        + Text(sentence.suffix)
+        + Text(s.suffix)
             .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title3)))
             .foregroundStyle(pastDay
                 ? Palette.cocoaPrimary.opacity(0.55)
@@ -44,7 +59,76 @@ struct HomeArchetypeHeader: View {
             .lineSpacing(-4)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityLabel("\(sentence.prefix)\(sentence.italic)\(sentence.suffix)")
+            .contentShape(Rectangle())
+            .onLongPressGesture(minimumDuration: 0.6) {
+                guard !pastDay, !kindToday else { return }
+                onLongPressKind?()
+            }
+            .accessibilityLabel("\(s.prefix)\(s.italic)\(s.suffix)")
+            .accessibilityAddTraits(onLongPressKind != nil && !pastDay && !kindToday
+                ? .isButton
+                : [])
+            .accessibilityHint(onLongPressKind != nil && !pastDay && !kindToday
+                ? "long press to mark today kind"
+                : "")
+    }
+}
+
+// MARK: - HomeShowsUpLine
+//
+// Home Phase 3 retention atom (2026-06-19). Replaces the missing
+// "streak" surface on Home with a gain-only "shows up" count that
+// never decrements + has no denominator (Panel 4 anti-shame lock:
+// no ratio that could read as < 50%). Sits just below the archetype
+// header — a quiet identity beat the cohort can carry forward.
+//
+// Surfaces only when count >= 2 (avoids the weak "you've shown up
+// 1 day" early-day signal) and only on the today view (past-view
+// shows the day's settled state, not running totals).
+
+struct HomeShowsUpLine: View {
+
+    let count: Int
+
+    var body: some View {
+        let n = max(0, count)
+        let dayWord = n == 1 ? "day" : "days"
+        (Text("you've shown up ")
+            .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
+        + Text("\(n)")
+            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14, relativeTo: .footnote))
+        + Text(" \(dayWord) \u{2661}")
+            .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote)))
+            .foregroundStyle(Palette.cocoaTertiary)
+            .accessibilityLabel("you've shown up \(n) \(dayWord)")
+    }
+}
+
+// MARK: - HomeTomorrowResetsLine
+//
+// Home Phase 3 retention atom (2026-06-19). After 9pm local, the
+// day winds down and any still-open rows get a single warm closing
+// line below the checklist instead of an implicit shame ("you didn't
+// finish"). Panel 4 GLP-1 RD's anti-shame lock: tomorrow always
+// resets ♡. JeniFit's anti-streak pattern in one phrase.
+//
+// Triggers when current hour >= 21 AND the day has any incomplete
+// rows AND we're on the today view. Hidden on past view, hidden
+// when everything is checked.
+
+struct HomeTomorrowResetsLine: View {
+
+    var body: some View {
+        (Text("tomorrow ")
+            .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
+        + Text("resets")
+            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14, relativeTo: .footnote))
+        + Text(" \u{2661}")
+            .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote)))
+            .foregroundStyle(Palette.cocoaTertiary)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, 10)
+            .accessibilityLabel("tomorrow resets")
     }
 }
 
