@@ -56,7 +56,7 @@ public struct NutritionCarousel: View {
     @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let pageCount = 3
+    private let pageCount = 2
 
     /// v1.0.8 Phase T (2026-06-08) — shared macro targets struct so
     /// every card on slide 2 reads from the SAME source-of-truth.
@@ -103,58 +103,51 @@ public struct NutritionCarousel: View {
         self.dishName = dishName
         self.carouselHeight = carouselHeight
         self.onCorrect = onCorrect
-        // Debug-only: `--carousel-page=N` jumps to slide N (0/1/2)
+        // Debug-only: `--carousel-page=N` jumps to slide N (0/1)
         // for screenshot capture in the result-carousel harness.
         if let arg = ProcessInfo.processInfo.arguments.first(where: {
             $0.hasPrefix("--carousel-page=")
         }), let n = Int(arg.dropFirst("--carousel-page=".count)),
-            (0..<3).contains(n) {
+            (0..<2).contains(n) {
             _currentPage = State(initialValue: n)
         }
     }
 
     public var body: some View {
-        // v1.0.18 (2026-06-18) — new 3-slide composition designed by
-        // the her75 + WL-researcher + GLP-1-MD panel, locked against
-        // the Cal AI / SnapCalorie / MacroFactor competitive research.
+        // v1.0.29 (2026-06-18) — slide 2 IS the share card. Per founder
+        // "consistent with shared screen on food logs," the in-app
+        // preview now mounts HandwrittenSnapResultShareCard directly —
+        // the same component the share/save-to-Photos renderer uses
+        // (HandwrittenSnapResultShareRenderer in PhotoCaptureView).
+        // What the user sees in the carousel IS exactly what they'd
+        // post. Single source of truth across daily / weekly / snap.
         //
-        //   slide 1 — ResultDecisionCard (calorie hero + macros +
-        //             item ledger + tag chips). Practical first read.
-        //   slide 2 — HandwrittenSnapResultShareCard (existing
-        //             photo-bleed share-ready slide).
-        //   slide 3 — ResultDayInContextCard (day anchor + trend +
-        //             4-tile micro-strip + pull quote). Cohort-aware
-        //             hero (kcal-left default, protein-today on GLP-1).
-        //
-        // Each slide is designed at 1080×1920 native (matches the
-        // share PNG dimensions) and scaled-to-fit the carousel slot
-        // — so the in-app slide IS the share slide, no duplication.
+        //   slide 1 — ResultDecisionCard (calorie + protein co-hero,
+        //             satiety + fiber, macro distribution stack-bar,
+        //             smart pair, tag chips). Per-meal moment.
+        //   slide 2 — HandwrittenSnapResultShareCard (the share
+        //             artifact itself: items in BradleyHand,
+        //             DMSans macro caption, deterministic corner).
         TabView(selection: $currentPage) {
-            // v1.0.21 (2026-06-18) — founder swapped slide order so
-            // the data → context → share-ready flow tells a tighter
-            // story: see the meal, see how it fits the day, then
-            // share. Share-ready slide moves to terminal position
-            // (the natural "I want to post this" swipe-out gesture).
             slideTab(index: 0) { ResultDecisionCard(
                 result: result,
                 mealLabel: mealLabel.isEmpty ? "today" : mealLabel,
                 dishName: dishName
             )}
 
-            slideTab(index: 1) { ResultDayInContextCard(
-                result: result,
-                targets: macroTargets,
-                glp1Status: glp1Status
-            )}
-
-            slideTab(index: 2) { ResultOverlayCard(
-                dishName: dishName,
+            slideTab(index: 1) { HandwrittenSnapResultShareCard(
+                photo: photo ?? Self.placeholderPhoto,
                 mealLabel: mealLabel,
-                totalKcal: Int((result.totalKcal ?? 0).rounded()),
-                totalProtein: Int(result.items.compactMap { $0.proteinG }.reduce(0, +).rounded()),
-                totalFiber: Int(result.items.compactMap { $0.fiberG }.reduce(0, +).rounded()),
-                loggedAt: Date(),
-                itemCount: result.items.count
+                dishName: dishName,
+                itemNames: result.items.map { $0.name },
+                totals: (
+                    carbs: Int(result.items.compactMap { $0.carbsG }.reduce(0, +).rounded()),
+                    protein: Int(result.items.compactMap { $0.proteinG }.reduce(0, +).rounded()),
+                    fat: Int(result.items.compactMap { $0.fatG }.reduce(0, +).rounded()),
+                    fiber: Int(result.items.compactMap { $0.fiberG }.reduce(0, +).rounded()),
+                    kcal: Int((result.totalKcal ?? 0).rounded())
+                ),
+                loggedAt: Date()
             )}
         }
         .tabViewStyle(.page(indexDisplayMode: .never))

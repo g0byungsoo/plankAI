@@ -10,10 +10,7 @@ import SwiftUI
 // magical detail), then a 60ms hold, then a 180ms settle back to
 // roman. Total apex grace: 380ms.
 //
-// Used by ResultDecisionCard (slide 1 calorie hero) and
-// ResultDayInContextCard (slide 3 kcal-left / protein-today hero).
-// Both surfaces want the same beat so the brand voice is consistent
-// across slides.
+// Used by ResultDecisionCard (slide 1 calorie + protein co-hero).
 
 struct CountUpNumber: View {
 

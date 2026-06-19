@@ -163,7 +163,6 @@ public struct HandwrittenSnapResultShareCard: View {
                     .font(.custom("BradleyHandITCTT-Bold", size: metrics.itemsFont))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(align)
-                    .shadow(color: .black.opacity(0.55), radius: 8, x: 0, y: 2)
             }
         }
     }
@@ -176,7 +175,6 @@ public struct HandwrittenSnapResultShareCard: View {
         Text(line)
             .font(.custom("DMSans-Medium", size: metrics.macroFont))
             .foregroundStyle(.white.opacity(0.92))
-            .shadow(color: .black.opacity(0.55), radius: 8, x: 0, y: 2)
     }
 }
 

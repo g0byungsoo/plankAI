@@ -36,8 +36,11 @@ import UIKit
 //   - Smart pair suggestion (conditional only when gap exists)
 //   - Tag chips (single row, max 2)
 //
-// her75 typography preserved: JeniHeroSerif for hero numerals,
-// Fraunces-SemiBoldItalic for punch words, DMSans for body. Hearts
+// v1.0.29 (2026-06-18) — full her75 typography swap: every italic
+// punch + supporting roman serif on slide 1 now uses JeniHeroSerif
+// (Playfair Display rename) per the locked her75 register. Fraunces
+// is out across slide 1 — JeniHeroSerif's roman/italic pair carries
+// the editorial voice. DMSans stays on body prose + chips. Hearts
 // as terminal punctuation on insight lines per locked voice rules.
 
 struct ResultDecisionCard: View {
@@ -50,7 +53,6 @@ struct ResultDecisionCard: View {
 
     @State private var revealedSteps: Int = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 0
 
     var body: some View {
         ZStack {
@@ -72,8 +74,9 @@ struct ResultDecisionCard: View {
     }
 
     /// The floating cream card. Sized tight to content (no internal
-    /// empty space per founder direction). Scrapbook chrome: 28pt
-    /// corners, 1.5pt cocoa border, hard offset shadow.
+    /// empty space per founder direction). Scrapbook chrome: 32pt
+    /// corners, 1.5pt cocoa border, hard-offset cocoa shadow (her75
+    /// signature, founder-locked).
     @ViewBuilder private var card: some View {
         contentColumn
             .padding(.horizontal, 56)
@@ -108,21 +111,88 @@ struct ResultDecisionCard: View {
     // MARK: - Content column
 
     @ViewBuilder private var contentColumn: some View {
-        // v1.0.26 (2026-06-18) — founder: drop the eyebrow rule +
-        // "today's breakfast" line + "reading your *morning plate*."
-        // title. They don't add value for the cohort — the card
-        // leads with the calorie + protein co-hero now.
+        // v1.0.27 (2026-06-18) — slide 1 is now strictly THIS PLATE
+        // per founder: dedupe with slide 2 which owns the day totals.
+        // Dropped from slide 1: day-context line ("X kcal left ·
+        // Yg protein left") — that's slide 2's hero now.
+        // Added: macro distribution stack-bar (visual at a glance
+        // of how the plate breaks down) per founder ask "add chart
+        // or visuals to make the snapshot more clear."
         VStack(alignment: .leading, spacing: 36) {
             coHeroRow.opacity(opacityFor(0))
             satietyAndFiberBlock.opacity(opacityFor(1))
-            divider.opacity(opacityFor(2))
-            dayContextLine.opacity(opacityFor(3))
+            macroDistributionBar.opacity(opacityFor(2))
             if let pair = smartPair {
-                smartPairLine(pair).opacity(opacityFor(4))
+                smartPairLine(pair).opacity(opacityFor(3))
             }
-            tagChips.opacity(opacityFor(5))
+            tagChips.opacity(opacityFor(4))
         }
     }
+
+    // MARK: - Macro distribution bar (visual at-a-glance)
+    //
+    // Horizontal stack bar showing the relative balance of protein /
+    // carbs / fat / fiber. Reads how the meal is composed without
+    // requiring number-parsing. Colors lean on the locked palette:
+    //   - protein: accent rose (cohort priority signal)
+    //   - carbs:   cocoa @ 0.55
+    //   - fat:     cocoa @ 0.30
+    //   - fiber:   stateGood sage (the cohort's "you're doing it"
+    //              positive signal)
+    //
+    // Below the bar: tiny color-dot legend with grams per macro.
+
+    @ViewBuilder private var macroDistributionBar: some View {
+        let total = max(1, totalProtein + totalCarbs + totalFat + totalFiber)
+        VStack(alignment: .leading, spacing: 18) {
+            GeometryReader { geo in
+                let width = geo.size.width
+                HStack(spacing: 0) {
+                    Rectangle()
+                        .fill(accent.opacity(0.88))
+                        .frame(width: width * CGFloat(totalProtein) / CGFloat(total))
+                    Rectangle()
+                        .fill(textPrimary.opacity(0.55))
+                        .frame(width: width * CGFloat(totalCarbs) / CGFloat(total))
+                    Rectangle()
+                        .fill(textPrimary.opacity(0.30))
+                        .frame(width: width * CGFloat(totalFat) / CGFloat(total))
+                    Rectangle()
+                        .fill(stateGood.opacity(0.85))
+                        .frame(width: width * CGFloat(totalFiber) / CGFloat(total))
+                }
+                .clipShape(Capsule())
+            }
+            .frame(height: 18)
+
+            HStack(spacing: 22) {
+                macroLegendItem(color: accent.opacity(0.88), label: "protein", grams: totalProtein)
+                macroLegendItem(color: textPrimary.opacity(0.55), label: "carbs", grams: totalCarbs)
+                macroLegendItem(color: textPrimary.opacity(0.30), label: "fat", grams: totalFat)
+                macroLegendItem(color: stateGood.opacity(0.85), label: "fiber", grams: totalFiber)
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func macroLegendItem(color: Color, label: String, grams: Int) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 10, height: 10)
+            (
+                Text("\(grams)g ")
+                    .font(.custom("DMSans-Medium", size: 22))
+                    .foregroundColor(textPrimary)
+                + Text(label)
+                    .font(.custom("DMSans-Light", size: 22))
+                    .foregroundColor(textSecondary)
+            )
+        }
+    }
+
+    private var stateGood: Color { Color(red: 0.373, green: 0.451, blue: 0.271) }
 
 
     // MARK: - Co-hero row (kcal + protein at equal height)
@@ -138,7 +208,7 @@ struct ResultDecisionCard: View {
                     color: textPrimary
                 )
                 Text("calories")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 42))
+                    .font(.custom("JeniHeroSerif-Italic", size: 42))
                     .foregroundStyle(textSecondary)
             }
             VStack(alignment: .leading, spacing: 6) {
@@ -151,20 +221,20 @@ struct ResultDecisionCard: View {
                         color: textPrimary
                     )
                     Text("g")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 60))
+                        .font(.custom("JeniHeroSerif-Italic", size: 60))
                         .foregroundStyle(textSecondary)
                         .baselineOffset(36)
                 }
                 VStack(alignment: .leading, spacing: 6) {
                     Text("protein")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 42))
+                        .font(.custom("JeniHeroSerif-Italic", size: 42))
                         .foregroundStyle(textSecondary)
                     if let line = proteinThresholdLine {
                         (
                             Text(line.prefix)
                                 .font(.custom("DMSans-Light", size: 28))
                             + Text(line.punch)
-                                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 30))
+                                .font(.custom("JeniHeroSerif-Italic", size: 30))
                             + Text(line.suffix)
                                 .font(.custom("DMSans-Light", size: 28))
                         )
@@ -202,10 +272,10 @@ struct ResultDecisionCard: View {
                     Text("\(totalFiber)g")
                         .font(.custom("JeniHeroSerif-Regular", size: 64))
                     + Text(" fiber  ·  ")
-                        .font(.custom("Fraunces72pt-Regular", size: 40))
+                        .font(.custom("JeniHeroSerif-Regular", size: 40))
                         .foregroundColor(textSecondary)
                     + Text(fiberQualitative)
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 40))
+                        .font(.custom("JeniHeroSerif-Italic", size: 40))
                         .foregroundColor(textSecondary)
                 )
                 .foregroundStyle(textPrimary)
@@ -214,11 +284,11 @@ struct ResultDecisionCard: View {
             }
             (
                 Text("this should hold you ")
-                    .font(.custom("Fraunces72pt-Regular", size: 42))
+                    .font(.custom("JeniHeroSerif-Regular", size: 42))
                 + Text(satietyHoursLabel)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 42))
+                    .font(.custom("JeniHeroSerif-Italic", size: 42))
                 + Text(".  ")
-                    .font(.custom("Fraunces72pt-Regular", size: 42))
+                    .font(.custom("JeniHeroSerif-Regular", size: 42))
                 + Text("♡")
                     .font(.custom("DMSans-Medium", size: 32))
                     .foregroundColor(accent.opacity(0.7))
@@ -241,50 +311,6 @@ struct ResultDecisionCard: View {
             proteinG: totalProtein,
             fiberG: totalFiber
         )
-    }
-
-    // MARK: - Divider
-
-    @ViewBuilder private var divider: some View {
-        Rectangle()
-            .fill(textPrimary.opacity(0.16))
-            .frame(height: 0.5)
-            .frame(maxWidth: 320)
-    }
-
-    // MARK: - Day-context (kcal left + protein left)
-
-    @ViewBuilder private var dayContextLine: some View {
-        let kcalLeft = max(0, kcalTarget - kcalToday)
-        let proteinLeft = max(0, proteinTarget - proteinToday)
-        VStack(alignment: .leading, spacing: 12) {
-            Text("today")
-                .font(.custom("DMSans-Medium", size: 26))
-                .foregroundStyle(textSecondary)
-                .kerning(1.4)
-                .textCase(.uppercase)
-            (
-                Text("\(kcalLeft) ")
-                    .font(.custom("JeniHeroSerif-Regular", size: 52))
-                + Text("kcal")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 36))
-                    .foregroundColor(textSecondary)
-                + Text(" left  ·  ")
-                    .font(.custom("Fraunces72pt-Regular", size: 36))
-                    .foregroundColor(textSecondary)
-                + Text("\(proteinLeft)g ")
-                    .font(.custom("JeniHeroSerif-Regular", size: 52))
-                + Text("protein")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 36))
-                    .foregroundColor(textSecondary)
-                + Text(" left")
-                    .font(.custom("Fraunces72pt-Regular", size: 36))
-                    .foregroundColor(textSecondary)
-            )
-            .foregroundStyle(textPrimary)
-            .kerning(-0.2)
-            .fixedSize(horizontal: false, vertical: true)
-        }
     }
 
     // MARK: - Smart pair suggestion
@@ -312,11 +338,11 @@ struct ResultDecisionCard: View {
     ) -> some View {
         (
             Text(pair.prefix)
-                .font(.custom("Fraunces72pt-Regular", size: 36))
+                .font(.custom("JeniHeroSerif-Regular", size: 36))
             + Text(pair.punch)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 38))
+                .font(.custom("JeniHeroSerif-Italic", size: 38))
             + Text(pair.suffix)
-                .font(.custom("Fraunces72pt-Regular", size: 36))
+                .font(.custom("JeniHeroSerif-Regular", size: 36))
             + Text(" ♡")
                 .font(.custom("DMSans-Medium", size: 30))
                 .foregroundColor(accent.opacity(0.7))
@@ -349,7 +375,7 @@ struct ResultDecisionCard: View {
             Text(prefix)
                 .font(.custom("DMSans-Medium", size: 28))
             + Text(punch)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 30))
+                .font(.custom("JeniHeroSerif-Italic", size: 30))
             + Text(" ♡")
                 .font(.custom("DMSans-Medium", size: 24))
                 .foregroundColor(accent.opacity(0.7))
@@ -378,26 +404,15 @@ struct ResultDecisionCard: View {
     private var totalProtein: Int {
         Int(result.items.compactMap { $0.proteinG }.reduce(0, +).rounded())
     }
+    private var totalCarbs: Int {
+        Int(result.items.compactMap { $0.carbsG }.reduce(0, +).rounded())
+    }
     private var totalFat: Int {
         Int(result.items.compactMap { $0.fatG }.reduce(0, +).rounded())
     }
     private var totalFiber: Int {
         Int(result.items.compactMap { $0.fiberG }.reduce(0, +).rounded())
     }
-
-    // MARK: - Day-context computed
-
-    private var kcalTarget: Int {
-        foodDailyTarget > 0 ? Int(foodDailyTarget) : 1950
-    }
-    private var proteinTarget: Int {
-        Int((Double(kcalTarget) * 0.25) / 4)
-    }
-    private var todayLogged: FoodLogPersister.TodayMacros {
-        FoodLogPersister.todayMacros()
-    }
-    private var kcalToday: Int { Int(todayLogged.kcal.rounded()) + totalKcal }
-    private var proteinToday: Int { Int(todayLogged.protein.rounded()) + totalProtein }
 
     // MARK: - Palette
 
