@@ -231,9 +231,30 @@ struct BecomingTodayEnergyTile: View {
 //   - 95-120%: "protein, done ♡"
 //   - 120%+: "well-fed today"
 
+/// Phase 4 interactivity (2026-06-19) — single plate source for the
+/// protein tile peek. Caller composes from FoodLogPersister; tile
+/// renders up to 3 highest-protein-contribution photos as proof.
+struct BecomingProteinSource: Equatable {
+    let entryId: String
+    let proteinG: Int
+}
+
 struct BecomingProteinTile: View {
     let proteinG: Int
     let targetG: Int
+    /// Phase 4 — plate sources for the long-press peek. nil → tile is
+    /// non-interactive (legacy). Empty → long-press is a no-op (we
+    /// don't want a "you have no plates" empty state nag).
+    var sources: [BecomingProteinSource]? = nil
+
+    /// Phase 4 — long-press flips the bottom row from statusWord to
+    /// a horizontal thumbnail strip. Release-to-dismiss is automatic
+    /// via DragGesture's onEnded; auto-dismiss after 2.4s as a fail-
+    /// safe if the user keeps holding while reading.
+    @State private var peeking: Bool = false
+
+    /// Phase 4 — harness-only initial peek (debug screenshots).
+    var debugInitialPeeking: Bool = false
 
     private var progress: Double {
         guard targetG > 0 else { return 0 }
@@ -253,6 +274,13 @@ struct BecomingProteinTile: View {
     private var statusColor: Color {
         let pct = targetG > 0 ? Double(proteinG) / Double(targetG) * 100 : 0
         return pct >= 95 ? Palette.stateGood : Palette.cocoaSecondary
+    }
+
+    /// Top-3 plate sources sorted by protein contribution. Caller
+    /// can pass them already sorted; we sort defensively in case
+    /// not. Empty when there's nothing to peek at.
+    private var topSources: [BecomingProteinSource] {
+        (sources ?? []).sorted { $0.proteinG > $1.proteinG }.prefix(3).map { $0 }
     }
 
     var body: some View {
@@ -276,15 +304,78 @@ struct BecomingProteinTile: View {
 
             proteinBar.padding(.top, 6)
 
-            Text(statusWord)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
-                .foregroundStyle(statusColor)
-                .padding(.top, 2)
+            // Phase 4 — bottom row cross-fades between status word
+            // and the plate-peek strip. Long-press on the tile body
+            // toggles peeking; release auto-dismisses after 2.4s.
+            Group {
+                if peeking, !topSources.isEmpty {
+                    plateStrip
+                        .transition(.opacity)
+                        .id("peek")
+                } else {
+                    Text(statusWord)
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                        .foregroundStyle(statusColor)
+                        .transition(.opacity)
+                        .id("status")
+                }
+            }
+            .padding(.top, 2)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .luxuryCard()
+        .contentShape(Rectangle())
+        .onLongPressGesture(minimumDuration: 0.35) {
+            guard !topSources.isEmpty else { return }
+            Haptics.soft()
+            withAnimation(Motion.crossFade) { peeking = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
+                withAnimation(Motion.crossFade) { peeking = false }
+            }
+        }
+        .onAppear {
+            if debugInitialPeeking, !topSources.isEmpty, !peeking {
+                peeking = true
+            }
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(proteinG) of \(targetG) grams of protein today, \(statusWord)")
+        .accessibilityHint(topSources.isEmpty ? "" : "long press to see the plates that built it")
+    }
+
+    /// Phase 4 — horizontal mini-row of up to 3 plate thumbnails.
+    /// Falls back to a pink rounded rect if the photo isn't on disk
+    /// (a user can log a plate without a snap; the row still reads).
+    @ViewBuilder
+    private var plateStrip: some View {
+        HStack(spacing: 4) {
+            ForEach(topSources, id: \.entryId) { src in
+                ZStack(alignment: .bottomTrailing) {
+                    if let img = FoodPhotoStore.photo(entryId: src.entryId) {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 38, height: 38)
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    } else {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Palette.accent.opacity(0.18))
+                            .frame(width: 38, height: 38)
+                    }
+                    Text("\(src.proteinG)g")
+                        .font(.custom("DMSans-Medium", size: 9))
+                        .foregroundStyle(Palette.textInverse)
+                        .padding(.horizontal, 3)
+                        .padding(.vertical, 1)
+                        .background(
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .fill(Palette.cocoaPrimary.opacity(0.85))
+                        )
+                        .padding(2)
+                }
+            }
+        }
     }
 
     @ViewBuilder private var proteinBar: some View {
@@ -313,6 +404,13 @@ struct BecomingProteinTile: View {
 // dedicated gauge above). Numeral-led tabular DM Sans; statLabel-class
 // eyebrow above. Density done premium per her75 typographer's spec.
 
+/// Phase 4 interactivity (2026-06-19) — discriminant for the macro
+/// segment tap reveal. Identifies which segment is selected so the
+/// eyebrow can swap to a macro-specific insight line.
+enum BecomingMacroSegment: Equatable {
+    case protein, carbs, fat, fiber
+}
+
 struct BecomingMacroRow: View {
     let protein: Int
     let carbs: Int
@@ -323,41 +421,49 @@ struct BecomingMacroRow: View {
         Double(max(1, protein + carbs + fat + fiber))
     }
 
+    /// Phase 4 — which segment the user has tapped. Tapping the bar
+    /// outside any segment, or the same segment again, releases the
+    /// selection. Eyebrow swaps from "macros" to the per-macro
+    /// insight when non-nil.
+    @State private var selected: BecomingMacroSegment? = nil
+
+    /// Phase 4 — harness-only initial selection (debug screenshots).
+    var debugInitialSelected: BecomingMacroSegment? = nil
+
     /// v1.5 — horizontal stack-bar with 4 proportional segments per
     /// macro. Compact (one row of bar + one row of legend), visual,
     /// dense. The bar IS the data; the legend reads as a label index.
     /// Card chrome stays for unity with the bento pair above.
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("macros")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                .foregroundStyle(Palette.cocoaTertiary)
+            eyebrow
+                .onAppear {
+                    if let s = debugInitialSelected, selected == nil {
+                        selected = s
+                    }
+                }
 
             GeometryReader { geo in
                 let w = geo.size.width
                 HStack(spacing: 0) {
-                    Rectangle()
-                        .fill(Palette.accent.opacity(0.92))
-                        .frame(width: w * CGFloat(Double(protein) / total))
-                    Rectangle()
-                        .fill(Palette.cocoaPrimary.opacity(0.58))
-                        .frame(width: w * CGFloat(Double(carbs) / total))
-                    Rectangle()
-                        .fill(Palette.cocoaPrimary.opacity(0.32))
-                        .frame(width: w * CGFloat(Double(fat) / total))
-                    Rectangle()
-                        .fill(Palette.stateGood.opacity(0.85))
-                        .frame(width: w * CGFloat(Double(fiber) / total))
+                    segment(.protein, color: Palette.accent.opacity(0.92),
+                            width: w * CGFloat(Double(protein) / total))
+                    segment(.carbs, color: Palette.cocoaPrimary.opacity(0.58),
+                            width: w * CGFloat(Double(carbs) / total))
+                    segment(.fat, color: Palette.cocoaPrimary.opacity(0.32),
+                            width: w * CGFloat(Double(fat) / total))
+                    segment(.fiber, color: Palette.stateGood.opacity(0.85),
+                            width: w * CGFloat(Double(fiber) / total))
                 }
                 .clipShape(Capsule())
             }
             .frame(height: 8)
 
             HStack(spacing: 14) {
-                legend(color: Palette.accent.opacity(0.92), value: protein, label: "protein")
-                legend(color: Palette.cocoaPrimary.opacity(0.58), value: carbs, label: "carbs")
-                legend(color: Palette.cocoaPrimary.opacity(0.32), value: fat, label: "fat")
-                legend(color: Palette.stateGood.opacity(0.85), value: fiber, label: "fiber")
+                legend(.protein, color: Palette.accent.opacity(0.92), value: protein, label: "protein")
+                legend(.carbs, color: Palette.cocoaPrimary.opacity(0.58), value: carbs, label: "carbs")
+                legend(.fat, color: Palette.cocoaPrimary.opacity(0.32), value: fat, label: "fat")
+                legend(.fiber, color: Palette.stateGood.opacity(0.85), value: fiber, label: "fiber")
                 Spacer(minLength: 0)
             }
         }
@@ -367,8 +473,62 @@ struct BecomingMacroRow: View {
         .accessibilityLabel("Today: \(protein)g protein, \(carbs)g carbs, \(fat)g fat, \(fiber)g fiber")
     }
 
+    /// Phase 4 — eyebrow swaps from "macros" to the per-macro insight
+    /// when a segment is selected. Single line, no chrome change.
     @ViewBuilder
-    private func legend(color: Color, value: Int, label: String) -> some View {
+    private var eyebrow: some View {
+        if let s = selected {
+            let copy = insight(for: s)
+            (Text(copy.prefix)
+                .font(.custom("DMSans-Regular", size: 13))
+            + Text(copy.italic)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+            + Text(copy.suffix)
+                .font(.custom("DMSans-Regular", size: 13)))
+                .foregroundStyle(Palette.cocoaSecondary)
+                .transition(.opacity)
+                .id(s)
+        } else {
+            Text("macros")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                .foregroundStyle(Palette.cocoaTertiary)
+                .transition(.opacity)
+        }
+    }
+
+    /// Per-macro insight sentences. Each is grounded in the value she
+    /// already has on screen + universally-true nutrition framing
+    /// (no claims about "climbing" without weekly trend data we don't
+    /// pass to this atom yet). Italic-Fraunces punch per voice lock.
+    private func insight(for s: BecomingMacroSegment) -> (prefix: String, italic: String, suffix: String) {
+        switch s {
+        case .protein:
+            return ("\(protein)g · ", "muscle", " stays \u{2661}")
+        case .carbs:
+            return ("\(carbs)g · ", "primary", " fuel today")
+        case .fat:
+            return ("\(fat)g · ", "steady", ", roughly a third")
+        case .fiber:
+            return ("\(fiber)g · ", "fiber", " keeps satiety strong \u{2661}")
+        }
+    }
+
+    @ViewBuilder
+    private func segment(_ id: BecomingMacroSegment, color: Color, width: CGFloat) -> some View {
+        Rectangle()
+            .fill(color)
+            .frame(width: width)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                Haptics.tick()
+                withAnimation(Motion.crossFade) {
+                    selected = selected == id ? nil : id
+                }
+            }
+    }
+
+    @ViewBuilder
+    private func legend(_ id: BecomingMacroSegment, color: Color, value: Int, label: String) -> some View {
         HStack(spacing: 5) {
             Circle()
                 .fill(color)
@@ -381,6 +541,13 @@ struct BecomingMacroRow: View {
                 Text(" \(label)")
                     .font(.custom("DMSans-Regular", size: 12))
                     .foregroundStyle(Palette.cocoaTertiary)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            Haptics.tick()
+            withAnimation(Motion.crossFade) {
+                selected = selected == id ? nil : id
             }
         }
     }

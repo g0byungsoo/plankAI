@@ -1589,6 +1589,30 @@ private struct HomePhase1PreviewHarness: View {
 // intercept fullScreenCover. Launch with `--debug-becoming`.
 
 private struct BecomingPreviewHarness: View {
+    /// Phase 4 demo flags — set via launch args so each interaction
+    /// can be captured in a screenshot without needing simctl tap
+    /// support. Production callers never touch these.
+    private var debugPeekDay: Int? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "--peek-day"), i + 1 < args.count,
+              let n = Int(args[i + 1]), (0...6).contains(n) else { return nil }
+        return n
+    }
+    private var debugPeekMacro: BecomingMacroSegment? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "--peek-macro"), i + 1 < args.count else { return nil }
+        switch args[i + 1].lowercased() {
+        case "protein": return .protein
+        case "carbs":   return .carbs
+        case "fat":     return .fat
+        case "fiber":   return .fiber
+        default:        return nil
+        }
+    }
+    private var debugPeekProtein: Bool {
+        ProcessInfo.processInfo.arguments.contains("--peek-protein")
+    }
+
     @State private var mockLogs: [WeightLogRecord] = {
         // Synthesize 30 days of fake weights — gentle downward EMA
         // with daily noise so the trend canvas has shape to play with.
@@ -1631,6 +1655,24 @@ private struct BecomingPreviewHarness: View {
                 )
                 .padding(.bottom, 4)
 
+                // Phase 4 demo wiring (2026-06-19) — week row + recaps
+                // so the dot-tap interaction has data to surface.
+                BecomingWeekRow(
+                    states: [.done, .done, .done, .open, .done, .done, .todayDone],
+                    doneCount: 6,
+                    archetypes: [.protein, .balanced, .movement, .protein, .balanced, .rest, .protein],
+                    recaps: [
+                        .init(weekdayName: "thursday", plates: 2, rituals: 1, weightLogged: false),
+                        .init(weekdayName: "friday", plates: 3, rituals: 1, weightLogged: true),
+                        .init(weekdayName: "saturday", plates: 1, rituals: 0, weightLogged: false),
+                        .init(weekdayName: "sunday", plates: 0, rituals: 0, weightLogged: false),
+                        .init(weekdayName: "monday", plates: 2, rituals: 1, weightLogged: false),
+                        .init(weekdayName: "yesterday", plates: 0, rituals: 1, weightLogged: false),
+                        .init(weekdayName: "today", plates: 2, rituals: 1, weightLogged: true),
+                    ],
+                    debugInitialSelectedIdx: debugPeekDay
+                )
+
                 // Bento pair: today's energy + today's protein
                 HStack(alignment: .top, spacing: 10) {
                     BecomingTodayEnergyTile(
@@ -1638,10 +1680,25 @@ private struct BecomingPreviewHarness: View {
                         movedMinutes: 23,
                         paceKcalTarget: 1580
                     )
-                    BecomingProteinTile(proteinG: 67, targetG: 95)
+                    BecomingProteinTile(
+                        proteinG: 67,
+                        targetG: 95,
+                        sources: debugPeekProtein ? [
+                            .init(entryId: "mock-1", proteinG: 32),
+                            .init(entryId: "mock-2", proteinG: 21),
+                            .init(entryId: "mock-3", proteinG: 14),
+                        ] : nil,
+                        debugInitialPeeking: debugPeekProtein
+                    )
                 }
 
-                BecomingMacroRow(protein: 67, carbs: 142, fat: 38, fiber: 18)
+                BecomingMacroRow(
+                    protein: 67,
+                    carbs: 142,
+                    fat: 38,
+                    fiber: 18,
+                    debugInitialSelected: debugPeekMacro
+                )
 
                 BecomingTrendCanvas(
                     logs: mockLogs,

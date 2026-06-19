@@ -102,6 +102,23 @@ enum WeekDayState: Equatable {
 /// the letters align over their corresponding dots. Pre-program days
 /// (program day < 1, e.g. user just enrolled and `archetypes[i] == nil`)
 /// render a blank space; the dot row stays unchanged.
+/// Phase 4 interactivity (2026-06-19) — per-day recap data surfaced when
+/// the user taps a dot. Synthesized from the her75 + iOS design panels:
+/// both ranked the week-row dot-tap as the #1 retention beat on Becoming.
+/// All fields trace to existing data (FoodLogPersister + sessionLogs +
+/// weight logs); zero schema work, no new state.
+struct BecomingWeekDayRecap: Equatable {
+    /// Lowercase weekday name (mon, tue, wed …). Already capitalized in
+    /// her75-register — caller passes "tuesday" not "Tue".
+    let weekdayName: String
+    /// Plate snaps that landed on this day. 0 → omitted from copy.
+    let plates: Int
+    /// Rituals completed (session + lesson + breath count for the day).
+    let rituals: Int
+    /// Whether weight was logged this day. Soft signal, no number.
+    let weightLogged: Bool
+}
+
 struct BecomingWeekRow: View {
     let states: [WeekDayState]   // 7 entries, oldest → today
     let doneCount: Int
@@ -110,35 +127,157 @@ struct BecomingWeekRow: View {
     /// program or no active plan). Whole array nil = no plan info,
     /// row renders exactly as it did pre-Phase-4.
     var archetypes: [ProgramDayArchetype?]? = nil
+    /// Phase 4 (2026-06-19) — per-day recaps for the dot-tap reveal.
+    /// Same count + ordering as `states`. Whole array nil → row is
+    /// non-interactive (legacy use sites that don't pass data).
+    var recaps: [BecomingWeekDayRecap?]? = nil
+
+    /// Phase 4 — which dot the user has tapped. Tapping the same dot
+    /// twice collapses; tapping a different dot replaces. Reset on
+    /// dismiss isn't needed; the inline line is the only chrome.
+    @State private var selectedIdx: Int? = nil
+
+    /// Phase 4 — harness-only initial selection (debug screenshots).
+    /// Production callers leave nil; debug-becoming sets to a number
+    /// 0...6 so the recap line is visible on first render.
+    var debugInitialSelectedIdx: Int? = nil
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text("this week")
-                .font(.custom("DMSans-Medium", size: 12))
-                .foregroundStyle(Palette.textSecondary)
-            Spacer()
-            // Never headline a zero (Koo & Fishbach 2012 small-area
-            // framing) — the count appears once there's something
-            // to count; until then the dots carry the row alone.
-            if doneCount > 0 {
-                Text("\(doneCount) of 7")
-                    .font(.custom("JeniHeroSerif-Regular", size: 20))
-                    .foregroundStyle(Palette.textPrimary)
-            }
-            VStack(alignment: .trailing, spacing: 4) {
-                if let archetypes, archetypes.count == states.count {
-                    archetypeLetterRow(archetypes)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("this week")
+                    .onAppear {
+                        if let n = debugInitialSelectedIdx, selectedIdx == nil {
+                            selectedIdx = n
+                        }
+                    }
+                    .font(.custom("DMSans-Medium", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+                Spacer()
+                // Never headline a zero (Koo & Fishbach 2012 small-area
+                // framing) — the count appears once there's something
+                // to count; until then the dots carry the row alone.
+                if doneCount > 0 {
+                    Text("\(doneCount) of 7")
+                        .font(.custom("JeniHeroSerif-Regular", size: 20))
+                        .foregroundStyle(Palette.textPrimary)
                 }
-                HStack(spacing: 5) {
-                    ForEach(Array(states.enumerated()), id: \.offset) { _, state in
-                        dot(state)
+                VStack(alignment: .trailing, spacing: 4) {
+                    if let archetypes, archetypes.count == states.count {
+                        archetypeLetterRow(archetypes)
+                    }
+                    HStack(spacing: 5) {
+                        ForEach(Array(states.enumerated()), id: \.offset) { idx, state in
+                            dot(state)
+                                .contentShape(Rectangle())
+                                .frame(width: 18, height: 18) // tappable area
+                                .onTapGesture {
+                                    guard recaps != nil else { return }
+                                    Haptics.tick()
+                                    withAnimation(Motion.crossFade) {
+                                        selectedIdx = selectedIdx == idx ? nil : idx
+                                    }
+                                }
+                        }
                     }
                 }
+                .padding(.leading, 6)
             }
-            .padding(.leading, 6)
+
+            if let idx = selectedIdx,
+               let recaps,
+               idx < recaps.count,
+               let recap = recaps[idx] {
+                let arch: ProgramDayArchetype? = {
+                    guard let archetypes, idx < archetypes.count else { return nil }
+                    return archetypes[idx]
+                }()
+                recapLine(
+                    for: recap,
+                    archetype: arch,
+                    state: states[idx]
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("this week: \(doneCount) of 7 days")
+    }
+
+    /// Phase 4 — composes the per-day italic readback. Sentence shape
+    /// follows her75's design panel lock: "tuesday — *protein* day.
+    /// two plates kept ♡". Italic-Fraunces punch on the archetype
+    /// word OR on a numeral if there's no archetype.
+    @ViewBuilder
+    private func recapLine(
+        for recap: BecomingWeekDayRecap,
+        archetype: ProgramDayArchetype?,
+        state: WeekDayState
+    ) -> some View {
+        let parts = recapSentence(recap: recap, archetype: archetype, state: state)
+        (Text(parts.prefix)
+            .font(.custom("DMSans-Regular", size: 13))
+        + Text(parts.italic)
+            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+        + Text(parts.suffix)
+            .font(.custom("DMSans-Regular", size: 13)))
+            .foregroundStyle(Palette.cocoaTertiary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func recapSentence(
+        recap: BecomingWeekDayRecap,
+        archetype: ProgramDayArchetype?,
+        state: WeekDayState
+    ) -> (prefix: String, italic: String, suffix: String) {
+        let day = recap.weekdayName
+        let isOpen: Bool = {
+            switch state {
+            case .open, .today: return true
+            case .done, .todayDone: return false
+            }
+        }()
+
+        // Zero-engagement day on a past slot — anti-shame readback.
+        // No counts to surface, no judgment to apply.
+        if isOpen, recap.plates == 0, recap.rituals == 0, !recap.weightLogged {
+            if case .today = state {
+                return ("\(day) — ", "open", " still.")
+            }
+            return ("\(day) — ", "rest", " in the diary \u{2661}")
+        }
+
+        // Build the count clauses she actually accumulated.
+        var clauses: [String] = []
+        if recap.plates > 0 {
+            clauses.append("\(recap.plates) \(recap.plates == 1 ? "plate" : "plates") kept")
+        }
+        if recap.rituals > 0 {
+            clauses.append("\(recap.rituals) \(recap.rituals == 1 ? "ritual" : "rituals")")
+        }
+        if recap.weightLogged {
+            clauses.append("weighed in")
+        }
+        let counts = clauses.joined(separator: ", ")
+        let tail = " · \(counts) \u{2661}"
+
+        if let arch = archetype {
+            let word: String
+            switch arch {
+            case .protein:  word = "protein"
+            case .movement: word = "movement"
+            case .balanced: word = "balanced"
+            case .rest:     word = "gentle"
+            }
+            return ("\(day) — ", word, " day\(tail)")
+        }
+
+        // No archetype — italic-punch a count instead.
+        if recap.plates > 0 {
+            let n = recap.plates
+            return ("\(day) — ", "\(n)", " \(n == 1 ? "plate" : "plates") kept \u{2661}")
+        }
+        return ("\(day) — ", "shown up", " \u{2661}")
     }
 
     @ViewBuilder

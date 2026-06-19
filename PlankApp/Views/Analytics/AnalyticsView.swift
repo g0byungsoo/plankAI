@@ -241,6 +241,21 @@ struct AnalyticsView: View {
             .map { (id: $0.id, loggedAt: $0.loggedAt, kcal: Int($0.kcal.rounded())) }
     }
 
+    /// Phase 4 interactivity (2026-06-19) — today's plate sources
+    /// ranked by protein contribution. Drives the long-press peek on
+    /// BecomingProteinTile. Empty when food rail is off or no plates
+    /// landed today.
+    private var todayProteinSources: [BecomingProteinSource] {
+        guard FoodFlags.isEnabled,
+              let userId = auth.currentUser?.id.uuidString, !userId.isEmpty
+        else { return [] }
+        let cal = Calendar.current
+        let start = cal.startOfDay(for: .now)
+        return FoodLogPersister.allEntries(userId: userId)
+            .filter { $0.loggedAt >= start }
+            .map { BecomingProteinSource(entryId: $0.id, proteinG: Int($0.protein.rounded())) }
+    }
+
     /// Sum of routine + plank session durations today (in minutes).
     private var todayWorkoutMinutes: Int {
         let cal = Calendar.current
@@ -1117,7 +1132,8 @@ struct AnalyticsView: View {
             BecomingWeekRow(
                 states: weekDotStates,
                 doneCount: weekDoneCount,
-                archetypes: weekArchetypes
+                archetypes: weekArchetypes,
+                recaps: weekDayRecaps
             )
 
             // v1.3 Becoming (2026-06-18) — density rework after the
@@ -1141,7 +1157,8 @@ struct AnalyticsView: View {
                     if let target = proteinTargetG {
                         BecomingProteinTile(
                             proteinG: Int(todayFoodMacros.protein.rounded()),
-                            targetG: target
+                            targetG: target,
+                            sources: todayProteinSources
                         )
                     } else {
                         Color.clear
@@ -1403,6 +1420,52 @@ struct AnalyticsView: View {
 
     private var weekDoneCount: Int {
         weekDotStates.filter { $0 == .done || $0 == .todayDone }.count
+    }
+
+    /// Phase 4 interactivity (2026-06-19) — per-day recaps for the
+    /// dot-tap reveal. Same 7-day window, oldest → today. Each entry
+    /// counts plates (food logs for that day), rituals (session logs
+    /// + day progress + lesson views for that day), and whether
+    /// weight was logged. Mirrors weekDotStates / weekArchetypes
+    /// shape so the row's three arrays index together.
+    private var weekDayRecaps: [BecomingWeekDayRecap?]? {
+        guard let userId = auth.currentUser?.id.uuidString,
+              !userId.isEmpty else { return nil }
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+        let foodEntries: [FoodLogPersister.FoodLogEntry] =
+            FoodFlags.isEnabled
+            ? FoodLogPersister.allEntries(userId: userId)
+            : []
+        return (0..<7).map { offset -> BecomingWeekDayRecap? in
+            guard let day = cal.date(byAdding: .day, value: offset - 6, to: today) else { return nil }
+            let next = cal.date(byAdding: .day, value: 1, to: day) ?? day
+            let plates = foodEntries.filter { $0.loggedAt >= day && $0.loggedAt < next }.count
+            let sessions = sessionLogs.filter { $0.completedAt >= day && $0.completedAt < next }.count
+            let weighed = weightLogs.contains { $0.loggedAt >= day && $0.loggedAt < next }
+            return BecomingWeekDayRecap(
+                weekdayName: weekdayName(for: day, today: today),
+                plates: plates,
+                rituals: sessions,
+                weightLogged: weighed
+            )
+        }
+    }
+
+    /// Returns a lowercase weekday name with "today" / "yesterday"
+    /// overrides for the two nearest slots. Anchors the recap line
+    /// in the user's actual time frame, not an abstract date.
+    private func weekdayName(for day: Date, today: Date) -> String {
+        let cal = Calendar.current
+        if cal.isDate(day, inSameDayAs: today) { return "today" }
+        if let yesterday = cal.date(byAdding: .day, value: -1, to: today),
+           cal.isDate(day, inSameDayAs: yesterday) {
+            return "yesterday"
+        }
+        let f = DateFormatter()
+        f.locale = .current
+        f.dateFormat = "EEEE"
+        return f.string(from: day).lowercased()
     }
 
     /// v1.0.10 — today's archetype as a raw string, passed through to
