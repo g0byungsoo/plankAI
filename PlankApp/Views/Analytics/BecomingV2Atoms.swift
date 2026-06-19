@@ -166,50 +166,38 @@ struct BecomingTodayEnergyTile: View {
         return Palette.cocoaSecondary
     }
 
-    /// v1.5 — matches the protein tile's vertical rhythm exactly:
-    /// eyebrow / numeral / secondary / bar / italic-status.
+    /// v1.6 luxury polish — diary-register lowercase eyebrow, single
+    /// accent rose on the protein tile only ("in" reverts to cocoa
+    /// for restraint), warm gradient card chrome via luxuryCard().
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            (Text("TODAY'S ")
-                .font(.custom("DMSans-Medium", size: 11))
-                .kerning(0.66)
-            + Text("ENERGY")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
-                .kerning(0.4))
+            Text("energy")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                 .foregroundStyle(Palette.cocoaTertiary)
 
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(eatenKcal.formatted())
-                    .font(.custom("JeniHeroSerif-Regular", size: 32))
+                    .font(.custom("JeniHeroSerif-Regular", size: 34))
                     .foregroundStyle(Palette.cocoaPrimary)
                     .monospacedDigit()
                     .contentTransition(.numericText())
                 Text("in")
                     .font(.custom("JeniHeroSerif-Italic", size: 20))
-                    .foregroundStyle(Palette.accent)
+                    .foregroundStyle(Palette.cocoaSecondary)
             }
             Text("\(movedMinutes) min moved today")
                 .font(.custom("DMSans-Regular", size: 12))
                 .foregroundStyle(Palette.cocoaTertiary)
 
-            paceBar.padding(.top, 4)
+            paceBar.padding(.top, 6)
 
             Text(paceWord)
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
                 .foregroundStyle(paceColor)
                 .padding(.top, 2)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Palette.bgElevated)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Palette.hairlineCocoa, lineWidth: 1)
-        )
+        .luxuryCard()
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(eatenKcal) calories in, \(movedMinutes) minutes moved")
     }
@@ -271,17 +259,13 @@ struct BecomingProteinTile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            (Text("TODAY'S ")
-                .font(.custom("DMSans-Medium", size: 11))
-                .kerning(0.66)
-            + Text("PROTEIN")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
-                .kerning(0.4))
+            Text("protein")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                 .foregroundStyle(Palette.cocoaTertiary)
 
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("\(proteinG)")
-                    .font(.custom("JeniHeroSerif-Regular", size: 32))
+                    .font(.custom("JeniHeroSerif-Regular", size: 34))
                     .foregroundStyle(Palette.cocoaPrimary)
                     .monospacedDigit()
                 Text("g")
@@ -292,24 +276,15 @@ struct BecomingProteinTile: View {
                 .font(.custom("DMSans-Regular", size: 12))
                 .foregroundStyle(Palette.cocoaTertiary)
 
-            proteinBar.padding(.top, 4)
+            proteinBar.padding(.top, 6)
 
             Text(statusWord)
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
                 .foregroundStyle(statusColor)
                 .padding(.top, 2)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Palette.bgElevated)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Palette.hairlineCocoa, lineWidth: 1)
-        )
+        .luxuryCard()
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(proteinG) of \(targetG) grams of protein today, \(statusWord)")
     }
@@ -356,25 +331,21 @@ struct BecomingMacroRow: View {
     /// Card chrome stays for unity with the bento pair above.
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            (Text("TODAY'S ")
-                .font(.custom("DMSans-Medium", size: 11))
-                .kerning(0.66)
-            + Text("MACROS")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
-                .kerning(0.4))
+            Text("macros")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                 .foregroundStyle(Palette.cocoaTertiary)
 
             GeometryReader { geo in
                 let w = geo.size.width
                 HStack(spacing: 0) {
                     Rectangle()
-                        .fill(Palette.accent.opacity(0.88))
+                        .fill(Palette.accent.opacity(0.92))
                         .frame(width: w * CGFloat(Double(protein) / total))
                     Rectangle()
-                        .fill(Palette.cocoaPrimary.opacity(0.55))
+                        .fill(Palette.cocoaPrimary.opacity(0.58))
                         .frame(width: w * CGFloat(Double(carbs) / total))
                     Rectangle()
-                        .fill(Palette.cocoaPrimary.opacity(0.30))
+                        .fill(Palette.cocoaPrimary.opacity(0.32))
                         .frame(width: w * CGFloat(Double(fat) / total))
                     Rectangle()
                         .fill(Palette.stateGood.opacity(0.85))
@@ -382,27 +353,18 @@ struct BecomingMacroRow: View {
                 }
                 .clipShape(Capsule())
             }
-            .frame(height: 10)
+            .frame(height: 8)
 
             HStack(spacing: 14) {
-                legend(color: Palette.accent.opacity(0.88), value: protein, label: "protein")
-                legend(color: Palette.cocoaPrimary.opacity(0.55), value: carbs, label: "carbs")
-                legend(color: Palette.cocoaPrimary.opacity(0.30), value: fat, label: "fat")
+                legend(color: Palette.accent.opacity(0.92), value: protein, label: "protein")
+                legend(color: Palette.cocoaPrimary.opacity(0.58), value: carbs, label: "carbs")
+                legend(color: Palette.cocoaPrimary.opacity(0.32), value: fat, label: "fat")
                 legend(color: Palette.stateGood.opacity(0.85), value: fiber, label: "fiber")
                 Spacer(minLength: 0)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Palette.bgElevated)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Palette.hairlineCocoa, lineWidth: 1)
-        )
+        .luxuryCard()
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Today: \(protein)g protein, \(carbs)g carbs, \(fat)g fat, \(fiber)g fiber")
     }
@@ -482,17 +444,8 @@ struct BecomingMovedStrip: View {
                 )
                 .foregroundStyle(Palette.cocoaTertiary)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Palette.bgElevated)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(Palette.hairlineCocoa, lineWidth: 1)
-            )
+            .luxuryCard()
             .accessibilityElement(children: .combine)
         }
     }
@@ -687,17 +640,8 @@ struct BecomingDeedsCounter: View {
                 .kerning(0.6)
                 .textCase(.uppercase)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Palette.bgElevated)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Palette.hairlineCocoa, lineWidth: 1)
-        )
+        .luxuryCard(cornerRadius: 12, horizontalPadding: 14, verticalPadding: 12)
     }
 
     private var a11yLabel: String {
@@ -773,27 +717,14 @@ struct BecomingTrendCanvas: View {
                 trendCanvas
                 xAxisLabel
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Palette.bgElevated)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(Palette.hairlineCocoa, lineWidth: 1)
-            )
+            .luxuryCard()
         }
     }
 
     @ViewBuilder private var eyebrow: some View {
-        (Text("YOUR ")
-            .font(.custom("DMSans-Medium", size: 11))
-            .kerning(0.66)
-        + Text("TREND")
-            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
-            .kerning(0.4))
+        Text("trend")
+            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
             .foregroundStyle(Palette.cocoaTertiary)
     }
 
@@ -1026,8 +957,18 @@ struct BecomingTrendCanvas: View {
                 startPoint: .zero,
                 endPoint: CGPoint(x: size.width, y: 0)
             ),
-            style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
+            style: StrokeStyle(lineWidth: 3.0, lineCap: .round, lineJoin: .round)
         )
+
+        // Accent rose tip dot — Robinhood-coded "latest point" marker.
+        // Soft halo at 0.4 opacity, solid core at 100%; appears only
+        // when the trace-in has fully landed.
+        if progress > 0.95, let last = visible.last {
+            let halo = Path(ellipseIn: CGRect(x: last.x - 8, y: last.y - 8, width: 16, height: 16))
+            ctx.fill(halo, with: .color(Palette.accent.opacity(0.18)))
+            let core = Path(ellipseIn: CGRect(x: last.x - 3.5, y: last.y - 3.5, width: 7, height: 7))
+            ctx.fill(core, with: .color(Palette.accent))
+        }
 
         // Goal reference (subtle dashed) — only when set + only after
         // the line has finished tracing in.

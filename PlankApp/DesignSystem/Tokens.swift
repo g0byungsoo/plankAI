@@ -627,6 +627,71 @@ enum Motion {
     static let trendDrawIn: Animation = .easeOut(duration: 1.2)
 }
 
+// MARK: - LuxuryCard (v1.6 modern-luxury chrome, 2026-06-18)
+//
+// The refined card chrome the v1.5 dashboard pass earned: barely-
+// perceptible warm gradient inside (creamy top, slightly warmer
+// bottom — paper that's been sitting in sunlight), thin cocoa
+// border at ~7% opacity (down from the v1.4 12%), and a soft warm
+// drop shadow (Hermès-cream stationery convention). 14pt corners.
+//
+// Apply via `.luxuryCard()` instead of stacking background + overlay
+// inline. Single source of truth so every Becoming module reads on
+// the same elevation register.
+
+struct LuxuryCardChrome: ViewModifier {
+    var cornerRadius: CGFloat = 14
+    var horizontalPadding: CGFloat = 16
+    var verticalPadding: CGFloat = 14
+
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(hex: "#FFFAF8"),
+                                Color(hex: "#FBF2EE"),
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(Palette.textPrimary.opacity(0.07), lineWidth: 0.75)
+            )
+            .shadow(
+                color: Color(red: 0.36, green: 0.20, blue: 0.18).opacity(0.06),
+                radius: 14,
+                x: 0,
+                y: 4
+            )
+    }
+}
+
+extension View {
+    /// Warm cream-paper card chrome — subtle linear gradient, hairline
+    /// border at 7% cocoa, soft warm drop shadow. Use on every
+    /// Becoming data tile. `cornerRadius` defaults to 14; pass 18
+    /// for the trend hero, 12 for tiny stat tiles.
+    func luxuryCard(
+        cornerRadius: CGFloat = 14,
+        horizontalPadding: CGFloat = 16,
+        verticalPadding: CGFloat = 14
+    ) -> some View {
+        modifier(LuxuryCardChrome(
+            cornerRadius: cornerRadius,
+            horizontalPadding: horizontalPadding,
+            verticalPadding: verticalPadding
+        ))
+    }
+}
+
 // MARK: - Breathing shadow modifier (v1.2 Becoming, Calm-coded)
 //
 // Soft text-shadow that gently pulses at ~3% → 6% opacity on a 3s
