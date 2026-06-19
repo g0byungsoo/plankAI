@@ -1184,11 +1184,12 @@ struct AnalyticsView: View {
                 .padding(.top, 4)
             }
 
-            // 3. Macros — carbs · fat · fiber (protein leads in #2).
-            //    Tight 3-column row, numeral-led tabular DM Sans,
-            //    statLabel uppercase eyebrows.
+            // 3. Macros — horizontal proportional stack-bar with all 4
+            //    macros (protein in accent rose to mirror the gauge
+            //    above). Compact card, dense visual.
             if todayFoodMacros.kcal > 0 {
                 BecomingMacroRow(
+                    protein: Int(todayFoodMacros.protein.rounded()),
                     carbs: Int(todayFoodMacros.carbs.rounded()),
                     fat: Int(todayFoodMacros.fat.rounded()),
                     fiber: Int(todayFoodMacros.fiber.rounded())
@@ -1196,7 +1197,22 @@ struct AnalyticsView: View {
                 .padding(.top, 2)
             }
 
-            // 4. Today's plate timeline — replaces PlateFanTeaser as
+            // 4. Trend canvas (promoted) — the outcome anchor for the
+            //    WL cohort lands BEFORE the food details. Card chrome
+            //    + 7-day delta + 110pt EMA Canvas. Falls back to the
+            //    prose card when logs are too sparse.
+            if measuredWeightLogs.count >= 2 {
+                BecomingTrendCanvas(
+                    logs: measuredWeightLogs,
+                    goalWeightKg: goalWeightKg,
+                    unit: weightUnit
+                )
+                .padding(.top, 6)
+            } else {
+                becomingTrendHeroCard
+            }
+
+            // 5. Today's plate timeline — replaces PlateFanTeaser as
             //    the food-rail visibility surface. Horizontal row of
             //    today's plates + trailing "log" tile. Per WL iOS
             //    expert: the input-loop fire the Becoming surface
@@ -1208,20 +1224,6 @@ struct AnalyticsView: View {
                     onLogTapped: { showJournalCapture = true }
                 )
                 .padding(.top, 4)
-            }
-
-            // 5. Trend canvas — compressed to 110pt height per
-            //    her75 typographer. Falls back to the prose card
-            //    when logs are too sparse for a trend (< 2 logs).
-            if measuredWeightLogs.count >= 2 {
-                BecomingTrendCanvas(
-                    logs: measuredWeightLogs,
-                    goalWeightKg: goalWeightKg,
-                    unit: weightUnit
-                )
-                .padding(.top, 6)
-            } else {
-                becomingTrendHeroCard
             }
 
             // 6. Moved stripe — soft activity register. NO kcal

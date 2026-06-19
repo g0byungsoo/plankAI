@@ -1315,7 +1315,13 @@ private struct BecomingPreviewHarness: View {
                     BecomingProteinTile(proteinG: 67, targetG: 95)
                 }
 
-                BecomingMacroRow(carbs: 142, fat: 38, fiber: 18)
+                BecomingMacroRow(protein: 67, carbs: 142, fat: 38, fiber: 18)
+
+                BecomingTrendCanvas(
+                    logs: mockLogs,
+                    goalWeightKg: 66.0,
+                    unit: .lb
+                )
 
                 BecomingPlateTimelineToday(
                     plates: [
@@ -1325,12 +1331,6 @@ private struct BecomingPreviewHarness: View {
                     ],
                     onTapPlate: { _ in },
                     onLogTapped: {}
-                )
-
-                BecomingTrendCanvas(
-                    logs: mockLogs,
-                    goalWeightKg: 66.0,
-                    unit: .lb
                 )
 
                 BecomingMovedStrip(steps: 7432, workoutMinutes: 8, breathMinutes: 12)

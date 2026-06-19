@@ -146,14 +146,28 @@ struct BecomingTodayEnergyTile: View {
     let movedMinutes: Int
     let paceKcalTarget: Int?
 
-    private var paceLine: String? {
-        guard let target = paceKcalTarget, target > 0 else { return nil }
+    private var paceProgress: Double {
+        guard let target = paceKcalTarget, target > 0 else { return 0 }
+        return min(1.0, Double(eatenKcal) / Double(target))
+    }
+
+    private var paceWord: String {
+        guard let target = paceKcalTarget, target > 0 else { return "logging" }
         let delta = eatenKcal - target
         if abs(delta) < 80 { return "right at pace \u{2661}" }
         if delta < 0 { return "\(abs(delta)) under pace" }
         return "\(delta) above pace"
     }
 
+    private var paceColor: Color {
+        guard let target = paceKcalTarget, target > 0 else { return Palette.cocoaSecondary }
+        let delta = eatenKcal - target
+        if abs(delta) < 80 { return Palette.stateGood }
+        return Palette.cocoaSecondary
+    }
+
+    /// v1.5 — matches the protein tile's vertical rhythm exactly:
+    /// eyebrow / numeral / secondary / bar / italic-status.
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             (Text("TODAY'S ")
@@ -171,28 +185,23 @@ struct BecomingTodayEnergyTile: View {
                     .monospacedDigit()
                     .contentTransition(.numericText())
                 Text("in")
-                    .font(.custom("JeniHeroSerif-Italic", size: 18))
+                    .font(.custom("JeniHeroSerif-Italic", size: 20))
                     .foregroundStyle(Palette.accent)
             }
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("\(movedMinutes)")
-                    .font(.custom("DMSans-Medium", size: 16))
-                    .foregroundStyle(Palette.cocoaSecondary)
-                    .monospacedDigit()
-                Text("min moved")
-                    .font(.custom("DMSans-Regular", size: 12))
-                    .foregroundStyle(Palette.cocoaTertiary)
-            }
-            if let paceLine {
-                Text(paceLine)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
-                    .foregroundStyle(Palette.cocoaSecondary)
-                    .padding(.top, 2)
-            }
+            Text("\(movedMinutes) min moved today")
+                .font(.custom("DMSans-Regular", size: 12))
+                .foregroundStyle(Palette.cocoaTertiary)
+
+            paceBar.padding(.top, 4)
+
+            Text(paceWord)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                .foregroundStyle(paceColor)
+                .padding(.top, 2)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Palette.bgElevated)
@@ -203,6 +212,25 @@ struct BecomingTodayEnergyTile: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(eatenKcal) calories in, \(movedMinutes) minutes moved")
+    }
+
+    @ViewBuilder private var paceBar: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Palette.hairlineCocoa)
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [Palette.cocoaPrimary, Palette.cocoaPrimary.opacity(0.65)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: max(6, geo.size.width * paceProgress))
+            }
+        }
+        .frame(height: 4)
     }
 }
 
@@ -273,7 +301,7 @@ struct BecomingProteinTile: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Palette.bgElevated)
@@ -313,38 +341,60 @@ struct BecomingProteinTile: View {
 // eyebrow above. Density done premium per her75 typographer's spec.
 
 struct BecomingMacroRow: View {
+    let protein: Int
     let carbs: Int
     let fat: Int
     let fiber: Int
 
-    private let carbsTarget: Int = 160
-    private let fatTarget: Int = 55
-    private let fiberTarget: Int = 25
+    private var total: Double {
+        Double(max(1, protein + carbs + fat + fiber))
+    }
 
+    /// v1.5 — horizontal stack-bar with 4 proportional segments per
+    /// macro. Compact (one row of bar + one row of legend), visual,
+    /// dense. The bar IS the data; the legend reads as a label index.
+    /// Card chrome stays for unity with the bento pair above.
     var body: some View {
-        HStack(alignment: .bottom, spacing: 14) {
-            macroBar(
-                value: carbs,
-                target: carbsTarget,
-                label: "carbs",
-                tint: Palette.textPrimary.opacity(0.55)
-            )
-            macroBar(
-                value: fat,
-                target: fatTarget,
-                label: "fat",
-                tint: Palette.textPrimary.opacity(0.35)
-            )
-            macroBar(
-                value: fiber,
-                target: fiberTarget,
-                label: "fiber",
-                tint: Palette.stateGood.opacity(0.85)
-            )
+        VStack(alignment: .leading, spacing: 10) {
+            (Text("TODAY'S ")
+                .font(.custom("DMSans-Medium", size: 11))
+                .kerning(0.66)
+            + Text("MACROS")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                .kerning(0.4))
+                .foregroundStyle(Palette.cocoaTertiary)
+
+            GeometryReader { geo in
+                let w = geo.size.width
+                HStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Palette.accent.opacity(0.88))
+                        .frame(width: w * CGFloat(Double(protein) / total))
+                    Rectangle()
+                        .fill(Palette.cocoaPrimary.opacity(0.55))
+                        .frame(width: w * CGFloat(Double(carbs) / total))
+                    Rectangle()
+                        .fill(Palette.cocoaPrimary.opacity(0.30))
+                        .frame(width: w * CGFloat(Double(fat) / total))
+                    Rectangle()
+                        .fill(Palette.stateGood.opacity(0.85))
+                        .frame(width: w * CGFloat(Double(fiber) / total))
+                }
+                .clipShape(Capsule())
+            }
+            .frame(height: 10)
+
+            HStack(spacing: 14) {
+                legend(color: Palette.accent.opacity(0.88), value: protein, label: "protein")
+                legend(color: Palette.cocoaPrimary.opacity(0.55), value: carbs, label: "carbs")
+                legend(color: Palette.cocoaPrimary.opacity(0.30), value: fat, label: "fat")
+                legend(color: Palette.stateGood.opacity(0.85), value: fiber, label: "fiber")
+                Spacer(minLength: 0)
+            }
         }
-        .frame(maxWidth: .infinity)
         .padding(.horizontal, 14)
         .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Palette.bgElevated)
@@ -354,41 +404,25 @@ struct BecomingMacroRow: View {
                 .stroke(Palette.hairlineCocoa, lineWidth: 1)
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Today: \(carbs)g carbs, \(fat)g fat, \(fiber)g fiber")
+        .accessibilityLabel("Today: \(protein)g protein, \(carbs)g carbs, \(fat)g fat, \(fiber)g fiber")
     }
 
-    /// Each macro: numeral on top → tiny vertical fill bar → label.
-    /// Bar height encodes percentage of a soft target (carbs 160g,
-    /// fat 55g, fiber 25g). Caps at 100% — never overflow visually.
     @ViewBuilder
-    private func macroBar(value: Int, target: Int, label: String, tint: Color) -> some View {
-        let progress = min(1.0, max(0.08, Double(value) / Double(target)))
-        VStack(alignment: .leading, spacing: 6) {
+    private func legend(color: Color, value: Int, label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
             HStack(alignment: .firstTextBaseline, spacing: 1) {
-                Text("\(value)")
-                    .font(.custom("JeniHeroSerif-Regular", size: 22))
+                Text("\(value)g")
+                    .font(.custom("DMSans-Medium", size: 12))
                     .foregroundStyle(Palette.cocoaPrimary)
                     .monospacedDigit()
-                Text("g")
+                Text(" \(label)")
                     .font(.custom("DMSans-Regular", size: 12))
                     .foregroundStyle(Palette.cocoaTertiary)
             }
-            // The fill bar — vertical capsule with proportional fill.
-            ZStack(alignment: .bottom) {
-                Capsule()
-                    .fill(Palette.hairlineCocoa)
-                    .frame(width: 5, height: 28)
-                Capsule()
-                    .fill(tint)
-                    .frame(width: 5, height: 28 * CGFloat(progress))
-            }
-            Text(label)
-                .font(.custom("DMSans-Regular", size: 10))
-                .foregroundStyle(Palette.cocoaTertiary)
-                .kerning(0.6)
-                .textCase(.uppercase)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -731,55 +765,86 @@ struct BecomingTrendCanvas: View {
 
     var body: some View {
         if points.count < 2 {
-            // Cold-start placeholder — never an empty chart.
             placeholder
         } else {
             VStack(alignment: .leading, spacing: 8) {
+                eyebrow
                 headline
                 trendCanvas
                 xAxisLabel
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 14)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Palette.bgElevated)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Palette.hairlineCocoa, lineWidth: 1)
+            )
         }
+    }
+
+    @ViewBuilder private var eyebrow: some View {
+        (Text("YOUR ")
+            .font(.custom("DMSans-Medium", size: 11))
+            .kerning(0.66)
+        + Text("TREND")
+            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+            .kerning(0.4))
+            .foregroundStyle(Palette.cocoaTertiary)
     }
 
     // MARK: - Headline
 
     @ViewBuilder private var headline: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("your trend")
-                    .font(.custom("DMSans-Medium", size: 12))
-                    .foregroundStyle(Palette.textSecondary)
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(String(format: "%.1f", headlineWeightLb))
-                        .font(.custom("JeniHeroSerif-Regular", size: 48))
-                        .foregroundStyle(Palette.textPrimary)
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                        .animation(.easeOut(duration: 0.2), value: headlineWeightLb)
-                    Text(unit.label)
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
-                        .foregroundStyle(Palette.textSecondary)
-                        .baselineOffset(6)
-                }
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(String(format: "%.1f", headlineWeightLb))
+                    .font(.custom("JeniHeroSerif-Regular", size: 40))
+                    .foregroundStyle(Palette.cocoaPrimary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .animation(.easeOut(duration: 0.2), value: headlineWeightLb)
+                Text(unit.label)
+                    .font(.custom("JeniHeroSerif-Italic", size: 18))
+                    .foregroundStyle(Palette.accent)
+                    .baselineOffset(4)
             }
             Spacer()
             if let scrubDate = headlineDateLabel {
                 Text(scrubDate)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                     .foregroundStyle(Palette.accent)
                     .transition(.opacity)
-            } else if !points.isEmpty,
-                      let firstDate = points.first?.date,
-                      let lastDate = points.last?.date,
-                      let days = Calendar.current.dateComponents([.day], from: firstDate, to: lastDate).day,
-                      days > 0 {
-                Text("\(days) days")
-                    .font(.custom("DMSans-Medium", size: 12))
-                    .foregroundStyle(Palette.textSecondary)
+            } else if let delta = weeklyDeltaDisplay {
+                (Text(delta.amount)
+                    .font(.custom("DMSans-Medium", size: 13))
+                + Text(" this week")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13)))
+                    .foregroundStyle(delta.tint)
             }
         }
+    }
+
+    /// 7-day delta (current EMA vs EMA from 7 days ago) — soft sage
+    /// when trending down, soft cocoa otherwise. Hidden when the
+    /// window is too short.
+    private var weeklyDeltaDisplay: (amount: String, tint: Color)? {
+        guard points.count >= 7 else { return nil }
+        let latest = points[points.count - 1].emaKg
+        let weekAgo = points[points.count - 7].emaKg
+        let deltaKg = latest - weekAgo
+        let display = unit.display(fromKg: latest) - unit.display(fromKg: weekAgo)
+        let amount: String = {
+            if abs(display) < 0.05 { return "steady" }
+            if display < 0 { return "−\(String(format: "%.1f", abs(display))) \(unit.label)" }
+            return "+\(String(format: "%.1f", display)) \(unit.label)"
+        }()
+        let tint: Color = deltaKg <= 0 ? Palette.stateGood : Palette.cocoaSecondary
+        return (amount, tint)
     }
 
     // MARK: - Canvas chart
