@@ -169,7 +169,8 @@ struct ResultDecisionCard: View {
             macroMicroBar.zoneEntrance(4, revealed: revealedSteps)
             satietyAndDensity.zoneEntrance(5, revealed: revealedSteps)
             if let flag = thresholdFlag {
-                thresholdFlagLine(flag).zoneEntrance(5, revealed: revealedSteps)
+                thresholdFlagLine(flag)
+                    .zoneEntrance(5, revealed: revealedSteps)
             }
             todayProteinBar.zoneEntrance(5, revealed: revealedSteps)
             if let pair = smartPair {
@@ -354,19 +355,38 @@ struct ResultDecisionCard: View {
                 return ("", "light")
             }
         }()
-        (Text(word.prefix)
-            .font(.custom("DMSans-Regular", size: 28))
-        + Text(word.italic)
-            .font(.custom("JeniHeroSerif-Italic", size: 34)))
-            .foregroundStyle(totalProtein >= 30 ? stateGood : textSecondary)
-            .padding(.horizontal, 22)
-            .padding(.vertical, 10)
-            .background(
-                Capsule().fill(
-                    (totalProtein >= 30 ? stateGood : textSecondary)
-                        .opacity(0.10)
-                )
+        HStack(spacing: 6) {
+            if totalProtein >= 30 {
+                Image(systemName: "sparkle")
+                    .font(.system(size: 18, weight: .regular))
+                    .foregroundStyle(stateGood)
+            }
+            (Text(word.prefix)
+                .font(.custom("DMSans-Regular", size: 28))
+            + Text(word.italic)
+                .font(.custom("JeniHeroSerif-Italic", size: 34)))
+                .foregroundStyle(totalProtein >= 30 ? stateGood : textSecondary)
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 10)
+        .background(
+            Capsule().fill(
+                (totalProtein >= 30 ? stateGood : textSecondary)
+                    .opacity(totalProtein >= 30 ? 0.14 : 0.10)
             )
+        )
+        .overlay(
+            Capsule().stroke(
+                stateGood.opacity(totalProtein >= 30 ? 0.35 : 0),
+                lineWidth: 0.75
+            )
+        )
+        .shadow(
+            color: stateGood.opacity(totalProtein >= 30 ? 0.30 : 0),
+            radius: 10,
+            x: 0,
+            y: 0
+        )
     }
 
     private var isGlp1Cohort: Bool {
@@ -531,36 +551,61 @@ struct ResultDecisionCard: View {
     //   • added sugars ≥ 20g  → 80% WHO daily; soda/sweets tell
     //   • saturated fat ≥ 7g  → 35% DV; butter + processed-meat tell
 
-    private var thresholdFlag: (prefix: String, italic: String, suffix: String)? {
+    private struct ThresholdFlag {
+        let glyph: String
+        let prefix: String
+        let italic: String
+        let suffix: String
+    }
+
+    private var thresholdFlag: ThresholdFlag? {
         let sodium = result.items.compactMap { $0.sodiumMg }.reduce(0, +)
         let sugar = result.items.compactMap { $0.sugarG }.reduce(0, +)
         let satfat = result.items.compactMap { $0.saturatedFatG }.reduce(0, +)
         if sodium >= 800 {
-            return ("", "sodium-heavy", " — water with it \u{2661}")
+            return ThresholdFlag(
+                glyph: "drop.fill",
+                prefix: "",
+                italic: "sodium-heavy",
+                suffix: " — water with it \u{2661}"
+            )
         }
         if sugar >= 20 {
-            return ("", "sugar-forward", " — be soft on it \u{2661}")
+            return ThresholdFlag(
+                glyph: "circle.hexagonpath.fill",
+                prefix: "",
+                italic: "sugar-forward",
+                suffix: " — be soft on it \u{2661}"
+            )
         }
         if satfat >= 7 {
-            return ("", "rich on butter", " — that's okay \u{2661}")
+            return ThresholdFlag(
+                glyph: "leaf.fill",
+                prefix: "",
+                italic: "rich on butter",
+                suffix: " — that's okay \u{2661}"
+            )
         }
         return nil
     }
 
     @ViewBuilder
-    private func thresholdFlagLine(
-        _ flag: (prefix: String, italic: String, suffix: String)
-    ) -> some View {
-        (Text(flag.prefix)
-            .font(.custom("DMSans-Regular", size: 28))
-        + Text(flag.italic)
-            .font(.custom("JeniHeroSerif-Italic", size: 32))
-        + Text(flag.suffix)
-            .font(.custom("DMSans-Regular", size: 28)))
-            .foregroundStyle(textSecondary)
-            .padding(.horizontal, 22)
-            .padding(.vertical, 10)
-            .background(Capsule().fill(accentSubtle.opacity(0.35)))
+    private func thresholdFlagLine(_ flag: ThresholdFlag) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: flag.glyph)
+                .font(.system(size: 22, weight: .regular))
+                .foregroundStyle(accent.opacity(0.75))
+            (Text(flag.prefix)
+                .font(.custom("DMSans-Regular", size: 28))
+            + Text(flag.italic)
+                .font(.custom("JeniHeroSerif-Italic", size: 32))
+            + Text(flag.suffix)
+                .font(.custom("DMSans-Regular", size: 28)))
+                .foregroundStyle(textSecondary)
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 10)
+        .background(Capsule().fill(accentSubtle.opacity(0.35)))
     }
 
     // MARK: - Zone G: today's protein adequacy bar
@@ -588,7 +633,16 @@ struct ResultDecisionCard: View {
                     Capsule()
                         .fill(textPrimary.opacity(0.10))
                     Capsule()
-                        .fill(accent.opacity(0.85))
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    accent.opacity(0.95),
+                                    accent.opacity(0.62),
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
                         .frame(width: max(8, geo.size.width * progress))
                 }
             }
