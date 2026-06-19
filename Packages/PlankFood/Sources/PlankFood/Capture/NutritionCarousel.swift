@@ -143,7 +143,8 @@ public struct NutritionCarousel: View {
                 mealLabel: mealLabel.isEmpty ? "today" : mealLabel,
                 dishName: dishName,
                 onEditItem: onEditItem,
-                onLogPair: onLogPair
+                onLogPair: onLogPair,
+                onResultEdited: onCorrect
             )}
 
             slideTab(index: 1) { HandwrittenSnapResultShareCard(

@@ -55,6 +55,23 @@ struct ResultDecisionCard: View {
     /// smart-pair punch word (e.g. "boiled egg") so the caller can
     /// pre-fill the food capture / quick-add with the suggestion.
     var onLogPair: ((String) -> Void)? = nil
+    /// v1.0.34 (2026-06-19) — fired when the user saves or removes an
+    /// ingredient in IngredientEditSheet. Receives a freshly-built
+    /// CapturedFood (items with the edit applied + nutrient totals
+    /// scaled). NutritionCarousel forwards this to its onCorrect so
+    /// PhotoCaptureView's existing capturedResult re-render picks up
+    /// the new data automatically.
+    var onResultEdited: ((CapturedFood) -> Void)? = nil
+
+    /// v1.0.34 — the index of the row currently being edited (nil
+    /// when the sheet is dismissed). Wrapped via `EditingItemIndex`
+    /// so `.sheet(item:)` keeps the data alive for the sheet body.
+    @State private var editingItem: EditingItemIndex? = nil
+
+    private struct EditingItemIndex: Identifiable {
+        let index: Int
+        var id: Int { index }
+    }
 
     @State private var revealedSteps: Int = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -77,7 +94,69 @@ struct ResultDecisionCard: View {
         }
         .frame(width: 1080, height: 1920)
         .clipShape(Rectangle())
-        .onAppear { startCascade() }
+        .onAppear {
+            startCascade()
+            // Debug-only: `--debug-edit-sheet` auto-opens the
+            // IngredientEditSheet on item 0 so the harness can
+            // capture its appearance without fighting TabView swipe
+            // gestures.
+            if ProcessInfo.processInfo.arguments.contains("--debug-edit-sheet"),
+               !result.items.isEmpty,
+               editingItem == nil {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    editingItem = EditingItemIndex(index: 0)
+                }
+            }
+        }
+        .sheet(item: $editingItem) { editing in
+            let item = result.items[editing.index]
+            IngredientEditSheet(
+                original: item,
+                onSave: { updatedItem in
+                    let newItems = replaceItem(at: editing.index, with: updatedItem)
+                    onResultEdited?(rebuildFood(with: newItems))
+                    editingItem = nil
+                },
+                onRemove: {
+                    var newItems = result.items
+                    newItems.remove(at: editing.index)
+                    onResultEdited?(rebuildFood(with: newItems))
+                    editingItem = nil
+                },
+                onCancel: { editingItem = nil }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+    }
+
+    /// Returns a copy of `result.items` with the item at `idx`
+    /// replaced by `updated`. Used by the edit sheet's save handler.
+    private func replaceItem(at idx: Int, with updated: CapturedItem) -> [CapturedItem] {
+        var items = result.items
+        guard idx < items.count else { return items }
+        items[idx] = updated
+        return items
+    }
+
+    /// Rebuilds the CapturedFood with a new items array. Recomputes
+    /// kcalLow / kcalHigh proportionally to the kcal-total change so
+    /// downstream consumers (carousel slide 2, share renderer) see
+    /// consistent totals.
+    private func rebuildFood(with newItems: [CapturedItem]) -> CapturedFood {
+        let oldKcalTotal = result.items.compactMap { $0.kcal }.reduce(0, +)
+        let newKcalTotal = newItems.compactMap { $0.kcal }.reduce(0, +)
+        let scale = oldKcalTotal > 0 ? newKcalTotal / oldKcalTotal : 1
+        return CapturedFood(
+            items: newItems,
+            plateType: result.plateType,
+            source: result.source,
+            confidence: result.confidence,
+            needsSecondPhoto: result.needsSecondPhoto,
+            secondPhotoHint: result.secondPhotoHint,
+            kcalLow: (result.kcalLow ?? 0) * scale,
+            kcalHigh: (result.kcalHigh ?? 0) * scale
+        )
     }
 
     /// The floating cream card. v1.0.30 (2026-06-19) — chrome
@@ -419,7 +498,11 @@ struct ResultDecisionCard: View {
                             .font(.custom("DMSans-Regular", size: 30))
                             .foregroundStyle(textPrimary.opacity(0.45))
                             .monospacedDigit()
-                        if onEditItem != nil {
+                        // Pencil shows whenever the sheet is available
+                        // (i.e. the parent is going to receive the
+                        // edit either via onEditItem or via
+                        // onResultEdited's auto-reconstruct path).
+                        if onEditItem != nil || onResultEdited != nil {
                             Image(systemName: "pencil")
                                 .font(.system(size: 22, weight: .regular))
                                 .foregroundStyle(textPrimary.opacity(0.35))
@@ -429,9 +512,9 @@ struct ResultDecisionCard: View {
                     .padding(.vertical, 12)
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        guard let onEditItem else { return }
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        onEditItem(idx)
+                        onEditItem?(idx)
+                        editingItem = EditingItemIndex(index: idx)
                     }
                     if idx < items.count - 1 {
                         Rectangle()
@@ -978,6 +1061,265 @@ extension View {
     /// based on whether the step has been reached.
     fileprivate func zoneEntrance(_ step: Int, revealed: Int) -> some View {
         modifier(ZoneEntrance(step: step, revealed: revealed))
+    }
+}
+
+// MARK: - IngredientEditSheet
+//
+// v1.0.34 (2026-06-19) — the real edit surface behind the pencil-tap
+// gesture on slide 1's ingredient ledger. Lets her correct what the
+// AI inferred: rename the item ("scrambled eggs" → "soft scrambled
+// w/ feta") and re-portion it. Nutrients scale linearly with the
+// portion change so the per-meal kcal/protein/etc. stay honest.
+//
+// Design: medium-detent cream sheet, her75-leaning typography,
+// hairline rules, single accent rose punch. Live nutrient preview
+// updates as the slider drags so she sees the impact in real time.
+
+private struct IngredientEditSheet: View {
+
+    let original: CapturedItem
+    let onSave: (CapturedItem) -> Void
+    let onRemove: () -> Void
+    let onCancel: () -> Void
+
+    @State private var name: String
+    @State private var portion: Double
+    @Environment(\.dismiss) private var dismiss
+
+    init(
+        original: CapturedItem,
+        onSave: @escaping (CapturedItem) -> Void,
+        onRemove: @escaping () -> Void,
+        onCancel: @escaping () -> Void
+    ) {
+        self.original = original
+        self.onSave = onSave
+        self.onRemove = onRemove
+        self.onCancel = onCancel
+        self._name = State(initialValue: original.name)
+        self._portion = State(initialValue: original.portionGrams)
+    }
+
+    private var scale: Double {
+        portion / max(original.portionGrams, 1)
+    }
+
+    private var portionMin: Double {
+        max(10, original.portionGrams * 0.25)
+    }
+
+    private var portionMax: Double {
+        original.portionGrams * 4
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            eyebrow
+            nameField
+            hairline
+            portionBlock
+            hairline
+            nutrientPreview
+            Spacer(minLength: 0)
+            actionRow
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 28)
+        .padding(.bottom, 24)
+        .background(
+            Color(red: 0.992, green: 0.965, blue: 0.957)
+                .ignoresSafeArea()
+        )
+    }
+
+    // MARK: - Subviews
+
+    @ViewBuilder private var eyebrow: some View {
+        (Text("edit ")
+            .font(.custom("DMSans-Regular", size: 13))
+        + Text("plate item")
+            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14)))
+            .foregroundStyle(Color(red: 0.482, green: 0.349, blue: 0.349))
+            .kerning(0.4)
+    }
+
+    @ViewBuilder private var nameField: some View {
+        TextField("ingredient name", text: $name)
+            .font(.custom("JeniHeroSerif-Regular", size: 28))
+            .foregroundStyle(Color(red: 0.239, green: 0.165, blue: 0.165))
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled(false)
+            .submitLabel(.done)
+    }
+
+    @ViewBuilder private var portionBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("portion")
+                    .font(.custom("DMSans-Medium", size: 13))
+                    .foregroundStyle(Color(red: 0.482, green: 0.349, blue: 0.349))
+                    .kerning(0.4)
+                Spacer()
+                (Text("\(Int(portion.rounded()))")
+                    .font(.custom("JeniHeroSerif-Regular", size: 28))
+                    .foregroundColor(Color(red: 0.239, green: 0.165, blue: 0.165))
+                + Text("g")
+                    .font(.custom("JeniHeroSerif-Italic", size: 18))
+                    .foregroundColor(Color(red: 0.769, green: 0.404, blue: 0.478)))
+                    .monospacedDigit()
+            }
+            Slider(
+                value: $portion,
+                in: portionMin...portionMax,
+                step: 5
+            )
+            .tint(Color(red: 0.769, green: 0.404, blue: 0.478))
+        }
+    }
+
+    @ViewBuilder private var nutrientPreview: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            (Text("in this ")
+                .font(.custom("DMSans-Regular", size: 13))
+            + Text("portion")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14)))
+                .foregroundStyle(Color(red: 0.482, green: 0.349, blue: 0.349))
+                .kerning(0.4)
+
+            HStack(spacing: 16) {
+                preview(value: scaled(original.kcal), unit: "cal")
+                if scaled(original.proteinG) > 0 {
+                    preview(value: scaled(original.proteinG), unit: "g protein")
+                }
+                if scaled(original.carbsG) > 0 {
+                    preview(value: scaled(original.carbsG), unit: "g carbs")
+                }
+                if scaled(original.fatG) > 0 {
+                    preview(value: scaled(original.fatG), unit: "g fat")
+                }
+                if scaled(original.fiberG) > 0 {
+                    preview(value: scaled(original.fiberG), unit: "g fiber")
+                }
+                Spacer(minLength: 0)
+            }
+            .animation(.easeOut(duration: 0.15), value: portion)
+        }
+    }
+
+    @ViewBuilder
+    private func preview(value: Double, unit: String) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("\(Int(value.rounded()))")
+                .font(.custom("JeniHeroSerif-Regular", size: 22))
+                .foregroundStyle(Color(red: 0.239, green: 0.165, blue: 0.165))
+                .monospacedDigit()
+                .contentTransition(.numericText())
+            Text(unit)
+                .font(.custom("DMSans-Regular", size: 11))
+                .foregroundStyle(Color(red: 0.482, green: 0.349, blue: 0.349))
+                .kerning(0.3)
+        }
+    }
+
+    @ViewBuilder private var hairline: some View {
+        Rectangle()
+            .fill(Color(red: 0.239, green: 0.165, blue: 0.165).opacity(0.10))
+            .frame(height: 0.75)
+    }
+
+    @ViewBuilder private var actionRow: some View {
+        HStack(spacing: 12) {
+            Button {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                onRemove()
+            } label: {
+                (Text("remove")
+                    .font(.custom("DMSans-Medium", size: 14)))
+                    .foregroundStyle(Color(red: 0.482, green: 0.349, blue: 0.349))
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 12)
+                    .overlay(
+                        Capsule().stroke(
+                            Color(red: 0.482, green: 0.349, blue: 0.349).opacity(0.30),
+                            lineWidth: 1
+                        )
+                    )
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                onCancel()
+            } label: {
+                Text("cancel")
+                    .font(.custom("DMSans-Medium", size: 14))
+                    .foregroundStyle(Color(red: 0.482, green: 0.349, blue: 0.349))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                let gen = UINotificationFeedbackGenerator()
+                gen.notificationOccurred(.success)
+                let updated = makeUpdatedItem()
+                onSave(updated)
+            } label: {
+                (Text("save ")
+                    .font(.custom("DMSans-SemiBold", size: 14))
+                + Text("plate")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15)))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 12)
+                    .background(
+                        Capsule().fill(Color(red: 0.769, green: 0.404, blue: 0.478))
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    // MARK: - Logic
+
+    /// Linear nutrient scale by portion delta. Returns 0 when the
+    /// underlying value is nil so the preview row hides cleanly.
+    private func scaled(_ value: Double?) -> Double {
+        guard let v = value else { return 0 }
+        return v * scale
+    }
+
+    /// Constructs the edited CapturedItem with name (trimmed; fallback
+    /// to original) + scaled portion + scaled nutrient values. The
+    /// ID + provenance metadata (preparation, cuisineHint, etc.) are
+    /// preserved so downstream consumers don't lose context.
+    private func makeUpdatedItem() -> CapturedItem {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalName = trimmedName.isEmpty ? original.name : trimmedName
+        return CapturedItem(
+            id: original.id,
+            name: finalName,
+            portionGrams: portion,
+            portionGramsLow: original.portionGramsLow * scale,
+            portionGramsHigh: original.portionGramsHigh * scale,
+            usdaSearchTerms: original.usdaSearchTerms,
+            preparation: original.preparation,
+            cuisineHint: original.cuisineHint,
+            confidence: original.confidence,
+            notes: original.notes,
+            kcal: original.kcal.map { $0 * scale },
+            proteinG: original.proteinG.map { $0 * scale },
+            carbsG: original.carbsG.map { $0 * scale },
+            fatG: original.fatG.map { $0 * scale },
+            fiberG: original.fiberG.map { $0 * scale },
+            nutritionSource: original.nutritionSource,
+            sugarG: original.sugarG.map { $0 * scale },
+            sodiumMg: original.sodiumMg.map { $0 * scale },
+            saturatedFatG: original.saturatedFatG.map { $0 * scale }
+        )
     }
 }
 
