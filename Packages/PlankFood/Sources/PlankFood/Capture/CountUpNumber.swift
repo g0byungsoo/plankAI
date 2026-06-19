@@ -12,24 +12,48 @@ import SwiftUI
 //
 // Used by ResultDecisionCard (slide 1 calorie + protein co-hero).
 
-struct CountUpNumber: View {
+public struct CountUpNumber: View {
 
-    let target: Int
-    let fontName: String        // "JeniHeroSerif-Regular"
-    let italicFontName: String  // "JeniHeroSerif-Italic"
-    let size: CGFloat
-    let color: Color
-    var rollDuration: Double = 0.9
-    var curtsyDelay: Double = 0.95   // when after onAppear the curtsy fires
-    var curtsyIn: Double = 0.14      // 140ms italic-in
-    var curtsyHold: Double = 0.06    // 60ms hold
-    var curtsyOut: Double = 0.18     // 180ms roman-out
+    public let target: Int
+    public let fontName: String        // "JeniHeroSerif-Regular"
+    public let italicFontName: String  // "JeniHeroSerif-Italic"
+    public let size: CGFloat
+    public let color: Color
+    public var rollDuration: Double = 0.9
+    public var curtsyDelay: Double = 0.95   // when after onAppear the curtsy fires
+    public var curtsyIn: Double = 0.14      // 140ms italic-in
+    public var curtsyHold: Double = 0.06    // 60ms hold
+    public var curtsyOut: Double = 0.18     // 180ms roman-out
 
     @State private var displayedValue: Int = 0
     @State private var italicProgress: Double = 0  // 0 = roman, 1 = italic
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    var body: some View {
+    public init(
+        target: Int,
+        fontName: String,
+        italicFontName: String,
+        size: CGFloat,
+        color: Color,
+        rollDuration: Double = 0.9,
+        curtsyDelay: Double = 0.95,
+        curtsyIn: Double = 0.14,
+        curtsyHold: Double = 0.06,
+        curtsyOut: Double = 0.18
+    ) {
+        self.target = target
+        self.fontName = fontName
+        self.italicFontName = italicFontName
+        self.size = size
+        self.color = color
+        self.rollDuration = rollDuration
+        self.curtsyDelay = curtsyDelay
+        self.curtsyIn = curtsyIn
+        self.curtsyHold = curtsyHold
+        self.curtsyOut = curtsyOut
+    }
+
+    public var body: some View {
         ZStack {
             // Roman layer
             Text("\(displayedValue)")

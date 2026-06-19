@@ -275,6 +275,17 @@ enum Typo {
     /// CHALLENGE • BY HER 75" register. Apply `.textCase(.uppercase)`
     /// + `.kerning(0.18 * 11)` (~1.98pt) at call site.
     static let captionTracked = font("DMSans-Medium", size: 11, relativeTo: .caption2)
+
+    /// `kicker` — DMSans Medium 10pt with `+0.20em` extra-wide
+    /// tracking. The ONE place lowercase-casual breaks: every Glw
+    /// Guide / Substack lifestyle reference puts a tracked-UPPERCASE
+    /// kicker at the top of the spread (THE GLW GUIDE, THEGLWGUIDE,
+    /// @joinrclm.substack.com). On JeniMethod's archetype B spreads
+    /// this becomes a single "jm" or "the jenifit method" wordmark.
+    /// Apply `.textCase(.uppercase)` + `.kerning(0.20 * 10)` (~2.0pt).
+    /// One register tighter than `captionTracked` (10 vs 11) so the
+    /// kicker reads as page furniture, not a section eyebrow.
+    static let kicker = font("DMSans-Medium", size: 10, relativeTo: .caption2)
 }
 
 // MARK: - Spacing (4pt base)
@@ -569,6 +580,94 @@ enum Motion {
     /// the cluster as ONE moment with a hint of order, vs the
     /// default 0.10s which reads as a list animation.
     static let cascadeTight: Double = 0.06
+
+    // MARK: - v1.2 Becoming premium motion vocabulary (2026-06-18)
+    //
+    // Three signature curves the new dashboard relies on:
+    //
+    //   • easedFinal — the Apple Fitness+ Wrapped number-roll. Eases
+    //     toward the final value via cubic-bezier ease-out-quart so the
+    //     last 20% of the count is ~6× slower than the first 20%. The
+    //     reveal "settles" instead of "spinning." Drives the cumulative-
+    //     deeds counter + masthead day-number + trend-line headline.
+    //
+    //   • perceptualLag — 80ms delay used between visual-primary (ring,
+    //     chart, dot row) and number-roll (Whoop signature). Cause
+    //     precedes effect: the ring is the cause, the number is the
+    //     effect. Apply as `.delay(Motion.perceptualLag)` on the
+    //     number-roll's animation.
+    //
+    //   • breathing — slow 3s ease-in-out indefinite loop for ambient
+    //     pulses on hero typography (Calm-style breathing text shadow).
+    //     Pair with `.repeatForever(autoreverses: true)`.
+    //
+    //   • trendDrawIn — 1.2s ease-out (Apple Health weight chart cadence)
+    //     for the trend line trace-in. Long enough to read as
+    //     "witnessed," short enough to not block interaction.
+
+    /// Apple Fitness+ Wrapped-style cubic-bezier ease-out-quart.
+    /// The last 20% of any animated value with this curve takes
+    /// disproportionately longer than the first 80% — the reveal lands
+    /// instead of overshoots. Use on number-rolls + counter reveals.
+    static let easedFinal: Animation = .timingCurve(0.22, 1.0, 0.36, 1.0, duration: 1.6)
+
+    /// Whoop's perceptual lag — 80ms delay between visual primary
+    /// (ring/chart/dot row) and its number-roll. Apply as
+    /// `Motion.easedFinal.delay(Motion.perceptualLag)` on the number.
+    static let perceptualLag: Double = 0.08
+
+    /// Calm-style breathing pulse — 3s ease-in-out indefinite, used for
+    /// ambient text-shadow pulses on hero typography. Pair with
+    /// `.repeatForever(autoreverses: true)`.
+    static let breathingPulse: Animation = .easeInOut(duration: 3.0)
+
+    /// Apple Health-style trend trace-in. 1.2s ease-out on a 0→1
+    /// progress driver; the trend Canvas reads progress and draws
+    /// the line up to that fraction of total length.
+    static let trendDrawIn: Animation = .easeOut(duration: 1.2)
+}
+
+// MARK: - Breathing shadow modifier (v1.2 Becoming, Calm-coded)
+//
+// Soft text-shadow that gently pulses at ~3% → 6% opacity on a 3s
+// ease-in-out loop, indefinitely. Connects the masthead day-number
+// (top of Becoming) and the insight italic punch word (bottom) via a
+// shared ambient motion → reads as one breath across the page. Reduce-
+// motion: replaced with a static 6% shadow (still gentle, no pulse).
+
+struct BreathingShadow: ViewModifier {
+    var color: Color = Palette.cocoaPrimary
+    var maxOpacity: Double = 0.06
+    var radius: CGFloat = 8
+    @State private var pulse: Double = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        let resolvedOpacity = reduceMotion
+            ? maxOpacity
+            : (0.03 + pulse * (maxOpacity - 0.03))
+        content
+            .shadow(color: color.opacity(resolvedOpacity), radius: radius, x: 0, y: 0)
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(Motion.breathingPulse.repeatForever(autoreverses: true)) {
+                    pulse = 1
+                }
+            }
+    }
+}
+
+extension View {
+    /// Gentle 3s breath pulse on a text-shadow tint. Use on hero
+    /// numerals (day-count masthead) + italic punch words (insight
+    /// line) to bind the surface together via shared ambient motion.
+    func breathingShadow(
+        color: Color = Palette.cocoaPrimary,
+        maxOpacity: Double = 0.06,
+        radius: CGFloat = 8
+    ) -> some View {
+        modifier(BreathingShadow(color: color, maxOpacity: maxOpacity, radius: radius))
+    }
 }
 
 // MARK: - JFPageTransition (v3 P11.3 — her75 page-turn breath)

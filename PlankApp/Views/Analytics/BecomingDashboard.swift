@@ -517,5 +517,11 @@ struct BecomingInsightLine: View {
             alignment: .leading
         )
         .fixedSize(horizontal: false, vertical: true)
+        // v1.2 (2026-06-18) — Calm-coded breathing shadow on the
+        // closing insight punctuation. Pairs with the matching pulse
+        // on BecomingDiaryHero's spelled-out day numeral so the
+        // surface "breathes" top-to-bottom. Reduce-motion replaces
+        // the pulse with a static dim shadow.
+        .breathingShadow(maxOpacity: 0.05, radius: 6)
     }
 }

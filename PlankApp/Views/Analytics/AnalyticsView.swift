@@ -183,6 +183,38 @@ struct AnalyticsView: View {
         return allWeightLogs.filter { $0.userId == userId }
     }
 
+    /// v1.2 Becoming (2026-06-18) — onboarding goal weight in kg, or
+    /// nil when unset. Passed to BecomingTrendCanvas so the dashed
+    /// goal hairline can render after the trend line traces in.
+    private var goalWeightKg: Double? {
+        onboardingGoalWeightKg > 0 ? onboardingGoalWeightKg : nil
+    }
+
+    /// v1.2 Becoming — lifetime cumulative deeds for the Strava-coded
+    /// "you've kept count" counter. Derived from real sources:
+    ///   - plates: `FoodLogPersister.allEntries(userId).count`
+    ///   - lessons: `JeniMethodState.lastCompletedLessonId`
+    ///   - breaths: `BreathworkState.shared.totalCompleted`
+    /// Breath minutes ≈ breaths × 4 (typical session length); the
+    /// derived "food noise quieted hours" combines lessons + breath
+    /// minutes in BecomingDeedsCounter.
+    private var lifetimeDeeds: (plates: Int, lessons: Int, breaths: Int, breathMinutes: Int) {
+        let plates: Int = {
+            guard FoodFlags.isEnabled,
+                  let userId = auth.currentUser?.id.uuidString, !userId.isEmpty
+            else { return 0 }
+            return FoodLogPersister.allEntries(userId: userId).count
+        }()
+        let lessons = max(0, JeniMethodState.lastCompletedLessonId)
+        let breaths = BreathworkState.shared.totalCompleted
+        return (
+            plates: plates,
+            lessons: lessons,
+            breaths: breaths,
+            breathMinutes: breaths * 4
+        )
+    }
+
     /// Most recent weight log, if any. Used to drive the headline number on
     /// the weight card.
     private var latestWeightKg: Double? { weightLogs.first?.weightKg }
@@ -555,15 +587,18 @@ struct AnalyticsView: View {
                     // chunk + the date strip demoted below it. The
                     // BecomingStatusStrip (date + trend chip) survives
                     // as the pill-row under the hero.
-                    // v1.1 Becoming dashboard (2026-06-10) — the folio
-                    // masthead replaces the JFPageHero + status strip.
-                    // Opens on WHERE SHE IS IN HER PROGRAM (zero-input
-                    // data) per [[feedback-becoming-hero-input-burden]];
-                    // identity line survives beneath the day count.
-                    BecomingFolio(
+                    // v1.2 Becoming dashboard (2026-06-18) — diary-register
+                    // hero. Adds the cohort-research-locked "you've shown
+                    // up N times ♡" diary line + breathing-shadow pulse
+                    // on the spelled-out serif day number. Same data as
+                    // the prior BecomingFolio; warmer register. Cohort
+                    // brief verdict: "the dashboard isn't a logger — it's
+                    // a mirror with memory."
+                    BecomingDiaryHero(
                         dayNumber: folioDayNumber,
                         totalDays: folioTotalDays,
                         dateRange: folioDateRange,
+                        showedUpCount: engagedDates.count,
                         identityLine: "\(becomingStateWord).",
                         identityItalic: [becomingStateWord]
                     )
@@ -1047,7 +1082,34 @@ struct AnalyticsView: View {
                 archetypes: weekArchetypes
             )
 
-            becomingTrendHeroCard
+            // v1.2 Becoming (2026-06-18) — cumulative-deeds counter.
+            // Strava lifetime-miles register, Robinhood number-roll
+            // animation. Per cohort brief: "ritualizes return — each
+            // open re-earns the number." Hides when she has nothing
+            // to count yet (no plates, no lessons, no breaths).
+            if lifetimeDeeds.plates > 0 || lifetimeDeeds.lessons > 0 || lifetimeDeeds.breaths > 0 {
+                BecomingDeedsCounter(
+                    plates: lifetimeDeeds.plates,
+                    lessons: lifetimeDeeds.lessons,
+                    breathMinutes: lifetimeDeeds.breathMinutes
+                )
+                .padding(.top, 8)
+            }
+
+            // v1.2 Becoming (2026-06-18) — premium trend canvas with
+            // shimmering gradient stroke + drag-to-scrub + 1.2s draw-in.
+            // When the logs are too sparse for a trend (< 2 measured
+            // logs) the existing prose-led card surfaces instead.
+            if measuredWeightLogs.count >= 2 {
+                BecomingTrendCanvas(
+                    logs: measuredWeightLogs,
+                    goalWeightKg: goalWeightKg,
+                    unit: weightUnit
+                )
+                .padding(.top, 4)
+            } else {
+                becomingTrendHeroCard
+            }
 
             BecomingStatPair(
                 leading: { stepsStatCell },

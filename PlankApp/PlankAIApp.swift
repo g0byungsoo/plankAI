@@ -460,6 +460,8 @@ struct PlankAIApp: App {
                     HandwrittenSnapPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-result-carousel") {
                     ResultCarouselPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-becoming") {
+                    BecomingPreviewHarness()
                 } else {
                     RootView()
                         .modifier(ResumeBloom())
@@ -1258,6 +1260,74 @@ private struct ResultCarouselPreviewHarness: View {
                 .padding(.top, 50)
             }
         }
+    }
+}
+
+// MARK: - Becoming preview harness
+//
+// Mounts the v1.2 Becoming atoms (BecomingDiaryHero +
+// BecomingDeedsCounter + BecomingTrendCanvas) with mock data so the
+// premium register can be iterated on without fighting the program-
+// intercept fullScreenCover. Launch with `--debug-becoming`.
+
+private struct BecomingPreviewHarness: View {
+    @State private var mockLogs: [WeightLogRecord] = {
+        // Synthesize 30 days of fake weights — gentle downward EMA
+        // with daily noise so the trend canvas has shape to play with.
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+        return (0..<30).reversed().compactMap { offset -> WeightLogRecord? in
+            guard let date = cal.date(byAdding: .day, value: -offset, to: today) else { return nil }
+            let baseline = 72.0
+            let drift = -Double(29 - offset) * 0.12
+            let noise = Double.random(in: -0.4...0.5)
+            let kg = baseline + drift + noise
+            let log = WeightLogRecord(
+                userId: "preview",
+                weightKg: kg,
+                loggedAt: date,
+                source: "preview"
+            )
+            return log
+        }.reversed()
+    }()
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                BecomingDiaryHero(
+                    dayNumber: 33,
+                    totalDays: 84,
+                    dateRange: "apr 2 → jun 25",
+                    showedUpCount: 28,
+                    identityLine: "becoming steady.",
+                    identityItalic: ["steady"]
+                )
+
+                BecomingDeedsCounter(
+                    plates: 87,
+                    lessons: 34,
+                    breathMinutes: 47
+                )
+                .padding(.top, 8)
+
+                BecomingTrendCanvas(
+                    logs: mockLogs,
+                    goalWeightKg: 66.0,
+                    unit: .lb
+                )
+                .padding(.top, 4)
+
+                Text("scrub the trend line  ·  numbers roll  ·  hearts ♡")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+                    .padding(.top, 8)
+                Spacer(minLength: 80)
+            }
+            .padding(.horizontal, Space.lg)
+            .padding(.top, 24)
+        }
+        .background(Palette.bgPrimary.ignoresSafeArea())
     }
 }
 
