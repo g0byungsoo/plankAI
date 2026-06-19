@@ -237,7 +237,6 @@ struct PageDotsIndicator: View {
                 Circle()
                     .fill(Color.white.opacity(i == currentIndex ? 1.0 : 0.4))
                     .frame(width: 5, height: 5)
-                    .shadow(color: Color.black.opacity(0.25), radius: 1, x: 0, y: 0)
                     .animation(.easeInOut(duration: 0.2), value: currentIndex)
             }
         }

@@ -73,23 +73,41 @@ struct ResultDecisionCard: View {
         .onAppear { startCascade() }
     }
 
-    /// The floating cream card. Sized tight to content (no internal
-    /// empty space per founder direction). Scrapbook chrome: 32pt
-    /// corners, 1.5pt cocoa border, hard-offset cocoa shadow (her75
-    /// signature, founder-locked).
+    /// The floating cream card. v1.0.30 (2026-06-19) — chrome
+    /// upgraded to match the Becoming dashboard's luxuryCard
+    /// register. Warm cream-to-warmer-cream linear gradient inside,
+    /// hairline cocoa border softened to 7%, soft warm drop shadow
+    /// (radius 18, cocoa @ 6%). Drops the heavy her75 hard-offset
+    /// cocoa shadow that read as a "text shadow" against the cream
+    /// background — founder feedback: "wired with old screens (text
+    /// shades)."
     @ViewBuilder private var card: some View {
         contentColumn
             .padding(.horizontal, 56)
             .padding(.vertical, 56)
             .background(
                 RoundedRectangle(cornerRadius: 32, style: .continuous)
-                    .fill(Color(red: 0.992, green: 0.965, blue: 0.957))
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 1.0, green: 0.980, blue: 0.973),
+                                Color(red: 0.984, green: 0.949, blue: 0.933),
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 32, style: .continuous)
-                    .stroke(textPrimary.opacity(0.18), lineWidth: 1.5)
+                    .stroke(textPrimary.opacity(0.07), lineWidth: 0.75)
             )
-            .shadow(color: textPrimary.opacity(0.22), radius: 0, x: 6, y: 8)
+            .shadow(
+                color: Color(red: 0.36, green: 0.20, blue: 0.18).opacity(0.06),
+                radius: 18,
+                x: 0,
+                y: 6
+            )
     }
 
     private func startCascade() {
