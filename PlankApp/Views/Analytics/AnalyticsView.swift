@@ -602,28 +602,6 @@ struct AnalyticsView: View {
     /// signature so the becoming entrance reads in the same voice.
     @State private var headerBlur: CGFloat = 6
 
-    // Phase 16c — Logs scatter (LIGHT, 3 stickers, line-art-heavy).
-    // Data surface should feel like a dashboard with light touches,
-    // not decorated — 2 line-art + 1 small painterly, all 24–26pt.
-    //
-    // Same placement strategy as Home: stickers live in the top +
-    // bottom horizontal bands where stats cards / activity calendar /
-    // recent sessions list don't extend, so they never overlap data
-    // content regardless of screen width. cherries lands the warmth
-    // touch in one corner; hearts_lineart + star_lineart anchor the
-    // line-art accents in the other two.
-    private static let logsPlacements: [StickerPlacement] = [
-        StickerPlacement(sticker: .heartsLineart,
-                         position: CGPoint(x: 0.92, y: 0.13),
-                         size: 24, rotation: 12, phaseDelay: 0.00),
-        StickerPlacement(sticker: .starLineart,
-                         position: CGPoint(x: 0.08, y: 0.86),
-                         size: 26, rotation: -10, phaseDelay: 0.40),
-        StickerPlacement(sticker: .cherries,
-                         position: CGPoint(x: 0.92, y: 0.89),
-                         size: 24, rotation: 14, phaseDelay: 0.80),
-    ]
-
     var body: some View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
@@ -678,22 +656,6 @@ struct AnalyticsView: View {
                         identityLine: "\(becomingStateWord).",
                         identityItalic: [becomingStateWord]
                     )
-                    // Founder 2026-06-11: "a few scattered stickers
-                    // (don't let it overlap with contents)" — the
-                    // folio's right half is reliably empty (day count
-                    // is left-aligned), so the sparkle sits in known
-                    // whitespace. 2 stickers total on this surface
-                    // (sparkle here + the teaser's polaroid fan).
-                    .overlay(alignment: .topTrailing) {
-                        Image(StickerName.sparkleGlossy.assetName)
-                            .resizable().scaledToFit()
-                            .frame(width: 38, height: 38)
-                            .rotationEffect(.degrees(-8))
-                            .opacity(StickerName.sparkleGlossy.style.opacity)
-                            .offset(x: -4, y: 6)
-                            .allowsHitTesting(false)
-                            .accessibilityHidden(true)
-                    }
                     // v1.1 P3 — "keep today's page": the quiet share
                     // glyph under the folio renders the her75 day card
                     // (adherence + steps + plates; the trend is NEVER
