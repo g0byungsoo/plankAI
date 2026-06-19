@@ -281,10 +281,28 @@ struct ResultDecisionCard: View {
                 .foregroundColor(textPrimary.opacity(0.25))
             + Text(mealLabelDisplay)
                 .font(.custom("JeniHeroSerif-Italic", size: 34))
-                .foregroundColor(textSecondary))
+                .foregroundColor(textSecondary)
+            + (cuisineLabel.map {
+                Text("  ·  ")
+                    .font(.custom("DMSans-Medium", size: 32))
+                    .foregroundColor(textPrimary.opacity(0.25))
+                + Text($0)
+                    .font(.custom("JeniHeroSerif-Italic", size: 32))
+                    .foregroundColor(textSecondary)
+            } ?? Text("")))
             Spacer(minLength: 0)
             confidencePill
         }
+    }
+
+    /// First non-empty cuisineHint across items, lowercased. Reads as
+    /// a quiet anchor for what kind of food this is ("italian",
+    /// "japanese", "diner"). Nil when no item carries the field.
+    private var cuisineLabel: String? {
+        let raw = result.items
+            .compactMap { $0.cuisineHint?.trimmingCharacters(in: .whitespaces) }
+            .first { !$0.isEmpty }
+        return raw?.lowercased()
     }
 
     private var timeLabel: String {
@@ -522,8 +540,31 @@ struct ResultDecisionCard: View {
                             .frame(height: 0.5)
                     }
                 }
+                if let line = ingredientTotalLine {
+                    HStack {
+                        Text(line)
+                            .font(.custom("DMSans-Regular", size: 22))
+                            .foregroundStyle(textPrimary.opacity(0.45))
+                            .monospacedDigit()
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.top, 10)
+                }
             }
         }
+    }
+
+    /// "4 items · 970g total" — surfaces under the ledger when items
+    /// carry portion data. Reads as a quiet plate-weight check, useful
+    /// for re-portion comparisons. Hides when the count is 1 (the row
+    /// already shows the portion) or when no portions are tracked.
+    private var ingredientTotalLine: String? {
+        let items = displayIngredients
+        guard items.count >= 2 else { return nil }
+        let total = result.items.prefix(5).reduce(0.0) { $0 + $1.portionGrams }
+        guard total > 0 else { return nil }
+        let totalG = Int(total.rounded())
+        return "\(items.count) items  ·  \(totalG)g total"
     }
 
     private var displayIngredients: [(name: String, portion: String)] {
