@@ -627,9 +627,13 @@ struct AnalyticsView: View {
     var body: some View {
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
-            // her75 Phase 2 (2026-06-10) — page-level scatter cut per
-            // Archetype D (audit §2): the dashboard bans per-page
-            // sticker decoration. Module-internal accents stay.
+            // v1.6.3 (2026-06-18) — paper-grain noise overlay on the
+            // cream bg. Seeded LCG, deterministic, never animates;
+            // 4% cocoa dots at 0.7pt sized to ~1.2% page coverage.
+            // Shifts the cream from "iOS fill" to "Aesop catalog
+            // paper." Sits BEHIND the ScrollView content so cards
+            // (luxuryCard chrome) stay opaque on top.
+            PaperGrainBackground().ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 // Lazy so sections off-screen on first render don't pay
