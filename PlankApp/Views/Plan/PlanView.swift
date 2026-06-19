@@ -193,6 +193,18 @@ struct PlanView: View {
     /// Phase 3 — confirmation alert for the kind-today long-press.
     @State private var showKindTodayConfirm = false
 
+    /// Phase 3 — date key (YYYY-MM-DD) of the last day the yesterday
+    /// recap line was shown. Set on first PlanView appearance for
+    /// the day so the line auto-dismisses for the rest of the day.
+    /// Anti-nagging: the recap is a single morning beat, not a
+    /// running ticker.
+    @AppStorage("lastRecapShownDateKey") private var lastRecapShownDateKey: String = ""
+
+    /// Phase 3 — whether to show the yesterday recap in the current
+    /// render. Captured at first appearance so the line stays during
+    /// the session even after we persist lastRecapShownDateKey.
+    @State private var showYesterdayRecapThisSession: Bool = false
+
     var body: some View {
         ZStack {
             // v5: program home gets its own pink-tinted background
@@ -732,6 +744,20 @@ struct PlanView: View {
 
     private var checklistCard: some View {
         VStack(alignment: .leading, spacing: 14) {
+            // v1.0.35 Home Phase 3 (2026-06-19) — first-of-day
+            // yesterday recap line. Single italic-Fraunces beat at
+            // the top of the card acknowledging yesterday before
+            // today's plan. Auto-dismisses after the first visit
+            // per Panel 4 anti-nagging lock; gated to viewingDay
+            // == nil so it never surfaces on past-day exploration.
+            if viewingDay == nil,
+               showYesterdayRecapThisSession,
+               let kind = yesterdayRecapKind {
+                HomeYesterdayRecapLine(kind: kind)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 14)
+            }
+
             // v1.0.35 Home Phase 1 (2026-06-19) — archetype framing
             // sentence above the rows. JeniHeroSerif with italic-
             // Fraunces punch word ("today is a *protein* day."). The
@@ -858,6 +884,49 @@ struct PlanView: View {
         f.timeZone = .current
         f.dateFormat = "yyyy-MM-dd"
         return f.string(from: .now)
+    }
+
+    /// Phase 3 — yesterday's engagement summarized as a recap kind.
+    /// Returns nil when yesterday had zero engagement (no recap = no
+    /// shame). Plates = food log count for yesterday; rituals = the
+    /// union of session logs + day progress for yesterday. Mixed
+    /// when both > 0; engaged is the fallback when ≥1 bar fired but
+    /// neither category accumulated a number (defensive).
+    private var yesterdayRecapKind: YesterdayRecapKind? {
+        let cal = Calendar.current
+        let now = Date.now
+        guard let yesterday = cal.date(byAdding: .day, value: -1, to: now) else {
+            return nil
+        }
+        let yStart = cal.startOfDay(for: yesterday)
+        let yEnd = cal.startOfDay(for: now)
+
+        let plates: Int
+        if FoodFlags.isEnabled, !userId.isEmpty {
+            plates = FoodLogPersister.allEntries(userId: userId).filter {
+                $0.loggedAt >= yStart && $0.loggedAt < yEnd
+            }.count
+        } else {
+            plates = 0
+        }
+
+        let sessionCount = allSessionLogs.filter {
+            $0.completedAt >= yStart && $0.completedAt < yEnd
+        }.count
+        let hadDayProgress = allDayProgress.contains {
+            $0.userId == userId && $0.date >= yStart && $0.date < yEnd
+        }
+        // Sessions are the primary ritual signal; dayProgress is a
+        // fallback so a completion that didn't write a session log
+        // still earns a recap line.
+        let rituals = sessionCount > 0 ? sessionCount : (hadDayProgress ? 1 : 0)
+
+        switch (plates, rituals) {
+        case (0, 0):                return nil
+        case (let p, 0) where p > 0: return .plates(p)
+        case (0, let r) where r > 0: return .rituals(r)
+        case (let p, let r):         return .mixed(plates: p, rituals: r)
+        }
     }
 
     /// Phase 3 — true when the user has long-pressed the archetype
@@ -1118,6 +1187,17 @@ struct PlanView: View {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
             animateIn = true
+        }
+
+        // Phase 3 — first-of-day yesterday recap. Capture once per
+        // PlanView lifetime so the line stays through this session
+        // even after we persist the dismiss key. Skip past-day view.
+        if viewingDay == nil {
+            let today = todayDateKey
+            if lastRecapShownDateKey != today, yesterdayRecapKind != nil {
+                showYesterdayRecapThisSession = true
+                lastRecapShownDateKey = today
+            }
         }
     }
 

@@ -104,6 +104,66 @@ struct HomeShowsUpLine: View {
     }
 }
 
+// MARK: - HomeYesterdayRecapLine
+//
+// Home Phase 3 retention atom (2026-06-19). First-of-day morning
+// beat: a single italic-Fraunces line at the very top of the
+// checklist card that acknowledges what she did yesterday before
+// today's plan appears. Surfaces once per day, then auto-dismisses
+// for the rest of the day (Panel 4: no nagging persistence).
+//
+// Gain-only: only renders when yesterday had ≥1 engagement bar
+// (plate, session, or completed ritual). Zero-engagement days
+// don't get a recap line — that would feel like surveillance. The
+// line celebrates what counted, never what was missed.
+//
+// Sentence variants composed at the call site via YesterdayRecap.
+
+enum YesterdayRecapKind: Equatable {
+    case plates(Int)
+    case rituals(Int)
+    case mixed(plates: Int, rituals: Int)
+    case engaged
+
+    var sentence: (prefix: String, italic: String, suffix: String) {
+        switch self {
+        case .plates(let n):
+            let word = n == 1 ? "plate" : "plates"
+            return ("yesterday you ", "snapped", " \(n) \(word) \u{2661}")
+        case .rituals(let n):
+            let word = n == 1 ? "ritual" : "rituals"
+            return ("yesterday you ", "finished", " \(n) \(word) \u{2661}")
+        case .mixed(let p, let r):
+            let pw = p == 1 ? "plate" : "plates"
+            let rw = r == 1 ? "ritual" : "rituals"
+            return (
+                "yesterday you ",
+                "showed up",
+                " · \(p) \(pw) + \(r) \(rw) \u{2661}"
+            )
+        case .engaged:
+            return ("yesterday ", "counted", " \u{2661}")
+        }
+    }
+}
+
+struct HomeYesterdayRecapLine: View {
+
+    let kind: YesterdayRecapKind
+
+    var body: some View {
+        let s = kind.sentence
+        (Text(s.prefix)
+            .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
+        + Text(s.italic)
+            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14, relativeTo: .footnote))
+        + Text(s.suffix)
+            .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote)))
+            .foregroundStyle(Palette.cocoaTertiary)
+            .accessibilityLabel("\(s.prefix)\(s.italic)\(s.suffix)")
+    }
+}
+
 // MARK: - HomeTomorrowResetsLine
 //
 // Home Phase 3 retention atom (2026-06-19). After 9pm local, the

@@ -1396,6 +1396,27 @@ private struct HomePhase1PreviewHarness: View {
     @State private var glp1IsCurrent: Bool = ProcessInfo.processInfo.arguments.contains("--glp1")
     @State private var simulateAfter9pm: Bool = ProcessInfo.processInfo.arguments.contains("--after-9pm")
     @State private var simulateKind: Bool = ProcessInfo.processInfo.arguments.contains("--kind")
+    @State private var simulateRecap: YesterdayRecapKind? = {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "--recap"), i + 1 < args.count else {
+            return nil
+        }
+        let v = args[i + 1].lowercased()
+        if v.hasPrefix("plates:") {
+            return .plates(Int(v.dropFirst("plates:".count)) ?? 1)
+        }
+        if v.hasPrefix("rituals:") {
+            return .rituals(Int(v.dropFirst("rituals:".count)) ?? 1)
+        }
+        if v.hasPrefix("mixed:") {
+            let nums = v.dropFirst("mixed:".count).split(separator: ",")
+            let p = Int(nums.first ?? "") ?? 1
+            let r = Int(nums.dropFirst().first ?? "") ?? 1
+            return .mixed(plates: p, rituals: r)
+        }
+        if v == "engaged" { return .engaged }
+        return nil
+    }()
     @State private var showsUpCount: Int = {
         let args = ProcessInfo.processInfo.arguments
         if let i = args.firstIndex(of: "--shows-up"), i + 1 < args.count,
@@ -1448,6 +1469,12 @@ private struct HomePhase1PreviewHarness: View {
                         .padding(.horizontal, 20)
 
                     VStack(alignment: .leading, spacing: 14) {
+                        if !isPastDay, let recap = simulateRecap {
+                            HomeYesterdayRecapLine(kind: recap)
+                                .padding(.horizontal, 20)
+                                .padding(.top, 14)
+                        }
+
                         HomeArchetypeHeader(
                             archetype: archetype,
                             pastDay: isPastDay,
@@ -1455,7 +1482,7 @@ private struct HomePhase1PreviewHarness: View {
                             onLongPressKind: nil
                         )
                             .padding(.horizontal, 20)
-                            .padding(.top, 14)
+                            .padding(.top, simulateRecap == nil ? 14 : 0)
 
                         if !isPastDay && showsUpCount >= 2 {
                             HomeShowsUpLine(count: showsUpCount)
