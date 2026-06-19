@@ -159,24 +159,24 @@ struct ResultDecisionCard: View {
 
     @ViewBuilder private var contentColumn: some View {
         VStack(alignment: .leading, spacing: 18) {
-            metaRow.opacity(opacityFor(0))
+            metaRow.zoneEntrance(0, revealed: revealedSteps)
             zoneRule
-            kcalHero.opacity(opacityFor(1))
-            proteinCoHero.opacity(opacityFor(2))
+            kcalHero.zoneEntrance(1, revealed: revealedSteps)
+            proteinCoHero.zoneEntrance(2, revealed: revealedSteps)
             zoneRule
-            ingredientLedger.opacity(opacityFor(3))
+            ingredientLedger.zoneEntrance(3, revealed: revealedSteps)
             zoneRule
-            macroMicroBar.opacity(opacityFor(4))
-            satietyAndDensity.opacity(opacityFor(5))
+            macroMicroBar.zoneEntrance(4, revealed: revealedSteps)
+            satietyAndDensity.zoneEntrance(5, revealed: revealedSteps)
             if let flag = thresholdFlag {
-                thresholdFlagLine(flag).opacity(opacityFor(5))
+                thresholdFlagLine(flag).zoneEntrance(5, revealed: revealedSteps)
             }
-            todayProteinBar.opacity(opacityFor(5))
+            todayProteinBar.zoneEntrance(5, revealed: revealedSteps)
             if let pair = smartPair {
                 zoneRule
-                smartPairLine(pair).opacity(opacityFor(6))
+                smartPairLine(pair).zoneEntrance(6, revealed: revealedSteps)
             }
-            tagChips.opacity(opacityFor(6))
+            tagChips.zoneEntrance(6, revealed: revealedSteps)
         }
     }
 
@@ -387,9 +387,10 @@ struct ResultDecisionCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(items.enumerated()), id: \.offset) { idx, item in
                     HStack(alignment: .firstTextBaseline) {
-                        Text("⁄")
-                            .font(.custom("JeniHeroSerif-Italic", size: 34))
-                            .foregroundStyle(accent.opacity(0.65))
+                        Circle()
+                            .fill(accent.opacity(0.7))
+                            .frame(width: 8, height: 8)
+                            .padding(.trailing, 4)
                         Text(item.name.lowercased())
                             .font(.custom("DMSans-Medium", size: 36))
                             .foregroundStyle(textPrimary)
@@ -435,25 +436,49 @@ struct ResultDecisionCard: View {
 
     @ViewBuilder private var macroMicroBar: some View {
         let total = max(1, totalProtein + totalCarbs + totalFat + totalFiber)
-        GeometryReader { geo in
-            let width = geo.size.width
-            HStack(spacing: 0) {
-                Rectangle()
-                    .fill(accent.opacity(0.88))
-                    .frame(width: width * CGFloat(totalProtein) / CGFloat(total))
-                Rectangle()
-                    .fill(textPrimary.opacity(0.55))
-                    .frame(width: width * CGFloat(totalCarbs) / CGFloat(total))
-                Rectangle()
-                    .fill(textPrimary.opacity(0.30))
-                    .frame(width: width * CGFloat(totalFat) / CGFloat(total))
-                Rectangle()
-                    .fill(stateGood.opacity(0.85))
-                    .frame(width: width * CGFloat(totalFiber) / CGFloat(total))
+        VStack(alignment: .leading, spacing: 12) {
+            GeometryReader { geo in
+                let width = geo.size.width
+                HStack(spacing: 0) {
+                    Rectangle()
+                        .fill(accent.opacity(0.92))
+                        .frame(width: width * CGFloat(totalProtein) / CGFloat(total))
+                    Rectangle()
+                        .fill(textPrimary.opacity(0.58))
+                        .frame(width: width * CGFloat(totalCarbs) / CGFloat(total))
+                    Rectangle()
+                        .fill(textPrimary.opacity(0.32))
+                        .frame(width: width * CGFloat(totalFat) / CGFloat(total))
+                    Rectangle()
+                        .fill(stateGood.opacity(0.85))
+                        .frame(width: width * CGFloat(totalFiber) / CGFloat(total))
+                }
+                .clipShape(Capsule())
             }
-            .clipShape(Capsule())
+            .frame(height: 14)
+            HStack(spacing: 28) {
+                macroLegendInline(color: accent.opacity(0.92), label: "protein", grams: totalProtein)
+                macroLegendInline(color: textPrimary.opacity(0.58), label: "carbs", grams: totalCarbs)
+                macroLegendInline(color: textPrimary.opacity(0.32), label: "fat", grams: totalFat)
+                macroLegendInline(color: stateGood.opacity(0.85), label: "fiber", grams: totalFiber)
+                Spacer(minLength: 0)
+            }
         }
-        .frame(height: 12)
+    }
+
+    @ViewBuilder
+    private func macroLegendInline(color: Color, label: String, grams: Int) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 10, height: 10)
+            (Text("\(grams)g ")
+                .font(.custom("DMSans-Medium", size: 24))
+                .foregroundColor(textPrimary)
+            + Text(label)
+                .font(.custom("DMSans-Regular", size: 24))
+                .foregroundColor(textSecondary))
+        }
     }
 
     // MARK: - Zone F: satiety + protein density
@@ -872,6 +897,34 @@ struct ResultDecisionCard: View {
     private var textSecondary: Color { Color(red: 0.482, green: 0.349, blue: 0.349) }
     private var accent: Color { Color(red: 0.769, green: 0.404, blue: 0.478) }
     private var accentSubtle: Color { Color(red: 0.961, green: 0.835, blue: 0.847) }
+}
+
+// MARK: - Zone entrance modifier
+//
+// v1.0.33 (2026-06-19) — per-zone arrival polish. Each zone fades in
+// AND slides up 14pt as the cascade reaches its step. Combined with
+// the 80ms perceptual-lag stagger, the page reads as content arriving
+// from below, not as a list animating. Reduce-motion: snaps to final.
+
+private struct ZoneEntrance: ViewModifier {
+    let step: Int
+    let revealed: Int
+
+    func body(content: Content) -> some View {
+        let visible = revealed >= step
+        return content
+            .opacity(visible ? 1 : 0)
+            .offset(y: visible ? 0 : 14)
+    }
+}
+
+extension View {
+    /// Apply at each cascade step. Pair with the parent's
+    /// `revealedSteps` @State; the modifier crossfades + slides
+    /// based on whether the step has been reached.
+    fileprivate func zoneEntrance(_ step: Int, revealed: Int) -> some View {
+        modifier(ZoneEntrance(step: step, revealed: revealed))
+    }
 }
 
 #endif  // canImport(UIKit)
