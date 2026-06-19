@@ -1470,7 +1470,13 @@ private struct HomePhase1PreviewHarness: View {
 
                     VStack(alignment: .leading, spacing: 14) {
                         if !isPastDay, let recap = simulateRecap {
-                            HomeYesterdayRecapLine(kind: recap)
+                            let cohort: YesterdayRecapCohort = {
+                                if glp1IsCurrent { return .glp1Current }
+                                let args = ProcessInfo.processInfo.arguments
+                                if args.contains("--restrictive") { return .restrictiveRisk }
+                                return .default
+                            }()
+                            HomeYesterdayRecapLine(kind: recap, cohort: cohort)
                                 .padding(.horizontal, 20)
                                 .padding(.top, 14)
                         }

@@ -753,7 +753,7 @@ struct PlanView: View {
             if viewingDay == nil,
                showYesterdayRecapThisSession,
                let kind = yesterdayRecapKind {
-                HomeYesterdayRecapLine(kind: kind)
+                HomeYesterdayRecapLine(kind: kind, cohort: recapCohort)
                     .padding(.horizontal, 20)
                     .padding(.top, 14)
                     .modernEntrance(animateIn, delay: 0.04)
@@ -895,6 +895,16 @@ struct PlanView: View {
         f.timeZone = .current
         f.dateFormat = "yyyy-MM-dd"
         return f.string(from: .now)
+    }
+
+    /// Phase 3 — cohort routing for the yesterday recap line verb.
+    /// Reads from the same flags the rest of the engine uses; GLP-1
+    /// current takes precedence over restrictive flag if both are
+    /// set (rare; the user is mid-GLP-1 with prior restriction).
+    private var recapCohort: YesterdayRecapCohort {
+        if glp1Status == "current" { return .glp1Current }
+        if isRestrictiveCohort { return .restrictiveRisk }
+        return .default
     }
 
     /// Phase 3 — yesterday's engagement summarized as a recap kind.

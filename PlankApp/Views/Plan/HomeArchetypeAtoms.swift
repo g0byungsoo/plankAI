@@ -124,25 +124,28 @@ enum YesterdayRecapKind: Equatable {
     case rituals(Int)
     case mixed(plates: Int, rituals: Int)
     case engaged
+}
 
-    var sentence: (prefix: String, italic: String, suffix: String) {
+/// Cohort routing for the recap verb. Each cohort gets a slightly
+/// different italic punch — softer for GLP-1, nourishing for the
+/// restrictive flag, neutral default. Avoids feature-promise copy
+/// per [[feedback-no-feature-promises-until-shipped]]; only the
+/// identity verb shifts, never the underlying action.
+enum YesterdayRecapCohort {
+    case `default`
+    case glp1Current
+    case restrictiveRisk
+
+    /// Returns (plates_verb, rituals_verb, mixed_verb, engaged_verb)
+    /// for this cohort.
+    fileprivate var verbs: (plates: String, rituals: String, mixed: String, engaged: String) {
         switch self {
-        case .plates(let n):
-            let word = n == 1 ? "plate" : "plates"
-            return ("yesterday you ", "snapped", " \(n) \(word) \u{2661}")
-        case .rituals(let n):
-            let word = n == 1 ? "ritual" : "rituals"
-            return ("yesterday you ", "finished", " \(n) \(word) \u{2661}")
-        case .mixed(let p, let r):
-            let pw = p == 1 ? "plate" : "plates"
-            let rw = r == 1 ? "ritual" : "rituals"
-            return (
-                "yesterday you ",
-                "showed up",
-                " · \(p) \(pw) + \(r) \(rw) \u{2661}"
-            )
-        case .engaged:
-            return ("yesterday ", "counted", " \u{2661}")
+        case .glp1Current:
+            return (plates: "softened", rituals: "held space", mixed: "showed up", engaged: "counted")
+        case .restrictiveRisk:
+            return (plates: "nourished", rituals: "moved", mixed: "took care", engaged: "counted")
+        case .default:
+            return (plates: "snapped", rituals: "finished", mixed: "showed up", engaged: "counted")
         }
     }
 }
@@ -150,9 +153,32 @@ enum YesterdayRecapKind: Equatable {
 struct HomeYesterdayRecapLine: View {
 
     let kind: YesterdayRecapKind
+    var cohort: YesterdayRecapCohort = .default
+
+    private var sentence: (prefix: String, italic: String, suffix: String) {
+        let v = cohort.verbs
+        switch kind {
+        case .plates(let n):
+            let word = n == 1 ? "plate" : "plates"
+            return ("yesterday you ", v.plates, " \(n) \(word) \u{2661}")
+        case .rituals(let n):
+            let word = n == 1 ? "ritual" : "rituals"
+            return ("yesterday you ", v.rituals, " \(n) \(word) \u{2661}")
+        case .mixed(let p, let r):
+            let pw = p == 1 ? "plate" : "plates"
+            let rw = r == 1 ? "ritual" : "rituals"
+            return (
+                "yesterday you ",
+                v.mixed,
+                " · \(p) \(pw) + \(r) \(rw) \u{2661}"
+            )
+        case .engaged:
+            return ("yesterday ", v.engaged, " \u{2661}")
+        }
+    }
 
     var body: some View {
-        let s = kind.sentence
+        let s = sentence
         (Text(s.prefix)
             .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
         + Text(s.italic)
