@@ -707,43 +707,129 @@ struct PlanView: View {
     // MARK: - Checklist card
 
     private var checklistCard: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(todayPrescriptions.enumerated()), id: \.offset) { idx, prescription in
-                PlanRow(
-                    prescription: prescription,
-                    state: rowState(for: prescription),
-                    onTap: { handleRowTap(prescription) },
-                    onLongPress: { handleLongPress(prescription) },
-                    liveCaloriesToday: prescription.isSnapMeal ? todayKcal : nil,
-                    liveMealsLoggedToday: prescription.isSnapMeal ? todayMealsLogged : nil,
-                    stepsCurrent: todayStepCount,
-                    stepsTarget: profile.stepsDailyGoal,
-                    snapMealProteinG: todayProteinG,
-                    snapMealCarbsG: todayCarbsG,
-                    snapMealFatG: todayFatG,
-                    moveExercises: nil   // Phase 1.B wires real WorkoutGenerator preview
+        VStack(alignment: .leading, spacing: 14) {
+            // v1.0.35 Home Phase 1 (2026-06-19) — archetype framing
+            // sentence above the rows. JeniHeroSerif with italic-
+            // Fraunces punch word ("today is a *protein* day."). The
+            // header carries the day's voice without color-coding the
+            // rows underneath.
+            if let arch = currentArchetype {
+                HomeArchetypeHeader(
+                    archetype: arch,
+                    pastDay: viewingDay != nil
                 )
-                .modernEntrance(animateIn, delay: 0.16 + Double(idx) * 0.06)
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
+            }
 
-                // Standard indented hairline divider between all rows.
-                // Progress rows no longer have an underbar (founder QA
-                // 2026-06-09 — broke the divider rhythm), so the
-                // skip-after-progress workaround is gone too.
-                if idx < todayPrescriptions.count - 1 {
-                    Divider()
-                        .background(Palette.hairlineCocoa)
-                        .padding(.leading, 72)
-                        .padding(.trailing, 20)
+            // Protein-day anchor surface — the founder's added ask.
+            // Surfaces only on protein days + today (not past view) +
+            // when she has logged food (no zero-state nag). Mirrors
+            // BecomingProteinTile compressed for inline Home use;
+            // cohort-routed copy via isGLP1Current.
+            if viewingDay == nil
+                && currentArchetype == .protein
+                && todayProteinG > 0 {
+                HomeProteinTracker(
+                    proteinG: todayProteinG,
+                    targetG: proteinTargetG,
+                    isGLP1Current: glp1Status == "current"
+                )
+                .padding(.horizontal, 20)
+            }
+
+            // Past-day quiet caption — Panel 4 GLP-1 RD's anti-shame
+            // copy. Surfaces only when viewing the past so the user
+            // knows the rows below are settled, not earnable.
+            if viewingDay != nil {
+                Text("yesterday's page — it counted as it was.")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13, relativeTo: .caption))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .padding(.horizontal, 20)
+            }
+
+            VStack(spacing: 0) {
+                ForEach(Array(todayPrescriptions.enumerated()), id: \.offset) { idx, prescription in
+                    PlanRow(
+                        prescription: prescription,
+                        state: rowState(for: prescription),
+                        onTap: { handleRowTap(prescription) },
+                        onLongPress: { handleLongPress(prescription) },
+                        liveCaloriesToday: prescription.isSnapMeal ? todayKcal : nil,
+                        liveMealsLoggedToday: prescription.isSnapMeal ? todayMealsLogged : nil,
+                        stepsCurrent: todayStepCount,
+                        stepsTarget: profile.stepsDailyGoal,
+                        snapMealProteinG: todayProteinG,
+                        snapMealCarbsG: todayCarbsG,
+                        snapMealFatG: todayFatG,
+                        moveExercises: nil,
+                        isAnchor: isAnchorRow(prescription, idx: idx),
+                        anchorAccentColor: anchorAccentColor(for: prescription, idx: idx),
+                        isPastDay: viewingDay != nil,
+                        overrideSubtitle: overrideSubtitle(for: prescription)
+                    )
+                    .modernEntrance(animateIn, delay: 0.16 + Double(idx) * 0.06)
+
+                    if idx < todayPrescriptions.count - 1 {
+                        Divider()
+                            .background(Palette.hairlineCocoa)
+                            .padding(.leading, 72)
+                            .padding(.trailing, 20)
+                    }
                 }
             }
+            .padding(.vertical, 4)
         }
-        .padding(.vertical, 8)
+        .padding(.bottom, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: Radius.programCard)
                 .fill(Palette.programCard)
         )
         .programPaperShadow()
+    }
+
+    /// 1.0g/kg from onboarding weight, floor 70g, ceiling 150g per
+    /// Phillips IJSNEM 2016 + Conte JCEM 2024. Returns 80g as a sane
+    /// default if no body mass is on record yet.
+    private var proteinTargetG: Int {
+        let kg = UserDefaults.standard.double(forKey: "onboardingCurrentWeightKg")
+        guard kg > 30 else { return 80 }
+        let raw = 1.0 * kg
+        return max(70, min(150, Int(raw.rounded())))
+    }
+
+    /// True when this row is the day's archetype anchor (position 0
+    /// matches the archetype's anchor prescription). The reorder is
+    /// applied in `composeTodaysChecklist` so the anchor always sits
+    /// at idx 0 when one applies. Hidden in past-view (Panel 2: the
+    /// hairline accent is a today-only signal).
+    private func isAnchorRow(_ row: ProgramDayPrescription, idx: Int) -> Bool {
+        guard idx == 0, viewingDay == nil,
+              let arch = currentArchetype,
+              let tag = arch.anchorTag
+        else { return false }
+        return matchesAnchorTag(row, tag)
+    }
+
+    private func anchorAccentColor(for row: ProgramDayPrescription, idx: Int) -> Color? {
+        guard isAnchorRow(row, idx: idx),
+              let arch = currentArchetype
+        else { return nil }
+        switch arch.anchorAccentColorName {
+        case "stickyButter": return Palette.stickyButter
+        case "stickyOlive":  return Palette.stickyOlive
+        case "stickyMint":   return Palette.stickyMint
+        default:             return nil
+        }
+    }
+
+    private func overrideSubtitle(for row: ProgramDayPrescription) -> String? {
+        guard let arch = currentArchetype else { return nil }
+        if row.isSnapMeal {
+            return arch.glp1ProteinNudge(glp1Status: glp1Status)
+        }
+        return nil
     }
 
     private var completedRowCount: Int {
@@ -886,7 +972,8 @@ struct PlanView: View {
 
         todayPrescriptions = composeTodaysChecklist(
             profile: profile,
-            programDay: computed.programDay
+            programDay: computed.programDay,
+            archetype: currentArchetype
         )
         checkStateByKey = hydrateChecks(
             planId: plan.id,
@@ -939,22 +1026,14 @@ struct PlanView: View {
 
     private func composeTodaysChecklist(
         profile: IntensityProfile,
-        programDay: Int
+        programDay: Int,
+        archetype: ProgramDayArchetype? = nil
     ) -> [ProgramDayPrescription] {
         let week = max(1, ((programDay - 1) / 7) + 1)
         let workoutMinutes = profile.workoutMinutes(forProgramWeek: week)
 
-        // v5 row order: load-bearing-first per UX spec §v5.3 — keeps
-        // snap + move fully above fold, ritual rows below.
-        // lesson → snap → move → steps → weigh → breath.
-        //
-        // 2026-06-15: weight un-Sunday-gated. Weight log is the data
-        // primitive that powers Becoming's trend math, BMI banding,
-        // plateau intervention, and 6 of 8 Becoming modules. Sunday-
-        // only meant near-zero log rate per the 7-day data; daily
-        // surfacing is the unlock. Breath stays as the daily quietude
-        // beat at 71% completion — the Home reshape (Sprint B) will
-        // demote it to ambient contextual; until then both rows ship.
+        // Base v5 row order: lesson → snap → workout → steps → weigh →
+        // breath. Load-bearing-first per UX spec §v5.3.
         var rows: [ProgramDayPrescription] = []
         rows.append(.lesson(lessonId: nil))
         rows.append(.snapMeal)
@@ -962,7 +1041,36 @@ struct PlanView: View {
         rows.append(.steps(goal: profile.stepsDailyGoal))
         rows.append(.weighIn)
         rows.append(.breath(minutes: 1, style: .calming))
+
+        // v1.0.35 Home Phase 1 (2026-06-19) — archetype-driven reorder.
+        // Per Panel 2 (her75): the day's anchor floats to row 1 (Panel
+        // 2's invisible-as-typography differentiation). Balanced day
+        // keeps the base order (absence of reorder IS the balance
+        // signal). The reorder matches by case discriminant only, so
+        // the engine-driven minutes / tier / lessonId on each row
+        // stay intact.
+        guard let archetype, let tag = archetype.anchorTag else {
+            return rows
+        }
+        if let idx = rows.firstIndex(where: { matchesAnchorTag($0, tag) }) {
+            let row = rows.remove(at: idx)
+            rows.insert(row, at: 0)
+        }
         return rows
+    }
+
+    /// Match a fully-parametrized prescription against the archetype
+    /// anchor tag (discriminant-only).
+    private func matchesAnchorTag(
+        _ row: ProgramDayPrescription,
+        _ tag: ProgramDayArchetype.AnchorTag
+    ) -> Bool {
+        switch (row, tag) {
+        case (.snapMeal, .snapMeal): return true
+        case (.workout, .workout):   return true
+        case (.breath, .breath):     return true
+        default:                     return false
+        }
     }
 
     /// One-time wipe of ALL ProgramDayCheckRecord rows for the
@@ -1136,17 +1244,12 @@ struct PlanView: View {
     }
 
     private func openLesson() {
-        // BUG FIX (founder QA 2026-06-11: "lesson module doesn't pop
-        // up when you click the row"): lessonForCard's enrollment
-        // guard gated the OLD HomeView card's visibility — program
-        // users who never touched the legacy JeniMethod card have a
-        // nil enrolledAt, so the row tap silently did nothing. An
-        // explicit tap always opens: stamp enrollment (idempotent,
-        // keeps the day-index math anchored) and resolve the lesson
-        // directly. LessonID covers 1-14 + generic, so the rawValue
-        // init can't miss for any clamped day.
+        // v1.0.35 (2026-06-19) Home Phase 1 — Panel 2 her75 + Panel 4
+        // GLP-1: lessons on past days must open the PAST day's lesson,
+        // not today's. Resolve through `viewingDay ?? programDay` so
+        // re-reads land on the correct content.
         JeniMethodState.markEnrolled()
-        let day = schedule?.programDay ?? 1
+        let day = viewingDay ?? schedule?.programDay ?? 1
         let lessonId = LessonID(rawValue: JeniMethodState.lessonId(forDay: day)) ?? .generic
         present(cover: .lesson(lessonId))
     }

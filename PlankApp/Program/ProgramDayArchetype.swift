@@ -189,3 +189,85 @@ public extension PillarId {
         }
     }
 }
+
+// MARK: - Home-screen rendering helpers (Phase 1 home redesign, 2026-06-19)
+//
+// Per the 4-expert panel synthesis (her75 typographer / Gen-Z aesthetic /
+// WL iOS / GLP-1 RD). Archetype expressiveness on Home arrives through:
+//   1. A serif sentence above the checklist card (Panel 3 + 1: framing)
+//   2. Row reordering — the day's "anchor" prescription floats to row 1
+//   3. A 2pt vertical hairline accent in the archetype's sticky pastel
+//      at the anchor row's leading edge (Panel 2: the typographic mark)
+// NO color-coded badges. NO Duolingo path-coding. NO row decoration
+// beyond the single anchor mark.
+
+public extension ProgramDayArchetype {
+
+    /// The serif framing sentence that lands above the checklist card.
+    /// Lowercase, italic-Fraunces on the archetype keyword, period-
+    /// punctuation. Drives `HomeArchetypeHeader`.
+    var headerSentence: (prefix: String, italic: String, suffix: String) {
+        switch self {
+        case .protein:  return ("today is a ",  "protein",  " day.")
+        case .balanced: return ("today is ",    "balanced", ".")
+        case .movement: return ("today is a ",  "movement", " day.")
+        case .rest:     return ("today is ",    "gentle",   ".")
+        }
+    }
+
+    /// Lightweight discriminant of the prescription that anchors this
+    /// archetype's day. The PlanView's reorder helper matches a row
+    /// against this tag rather than against a fully-parametrized
+    /// prescription (the engine's per-day minutes/tier values would
+    /// otherwise drive false negatives).
+    enum AnchorTag {
+        case snapMeal, workout, breath
+    }
+
+    /// The prescription tag that should be promoted to row 1 in the
+    /// checklist when this archetype is the day's frame. The reorder
+    /// is the invisible-as-typography differentiation — protein day
+    /// opens with snapMeal, movement day with workout, etc.
+    ///
+    /// Balanced returns nil — absence of reorder IS the balance signal
+    /// (per Panel 2 + 4: most days are balanced; the brand-default
+    /// state is a stable order).
+    var anchorTag: AnchorTag? {
+        switch self {
+        case .protein:  return .snapMeal
+        case .movement: return .workout
+        case .rest:     return .breath
+        case .balanced: return nil
+        }
+    }
+
+    /// Locked-palette pastel for the 2pt vertical hairline accent at
+    /// the anchor row's leading edge. Pulls from `Palette.sticky*`
+    /// — same family the ProgramStickyNote chrome uses, so the
+    /// accent reads as part of the scrapbook register, not a foreign
+    /// brand color. Returns nil for balanced (no accent, no signal).
+    ///
+    /// The mapping is intentional: butter (protein) matches the snap-
+    /// meal sticky color, olive (movement) matches workout. The
+    /// pairing is recognized at a glance by the cohort who has the
+    /// sticky-color affordance memorized.
+    var anchorAccentColorName: String? {
+        switch self {
+        case .protein:  return "stickyButter"
+        case .movement: return "stickyOlive"
+        case .rest:     return "stickyMint"
+        case .balanced: return nil
+        }
+    }
+
+    /// Snap-meal subtitle ENHANCEMENT for the cohort-routed protein
+    /// day. Only fires on `glp1Status == "current"` AND archetype ==
+    /// `.protein`. Returns nil otherwise so the default prescription
+    /// subtitle stays. Per Panel 4 GLP-1 RD: appetite-suppressed
+    /// users routinely under-eat protein; the lean-mass-protection
+    /// frame (Wilding NEJM 2022; Conte JCEM 2024) earns the salience.
+    func glp1ProteinNudge(glp1Status: String) -> String? {
+        guard self == .protein, glp1Status == "current" else { return nil }
+        return "aim for 80g+ today \u{2661}"
+    }
+}

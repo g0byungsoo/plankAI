@@ -462,6 +462,8 @@ struct PlankAIApp: App {
                     ResultCarouselPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-becoming") {
                     BecomingPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-home") {
+                    HomePhase1PreviewHarness()
                 } else {
                     RootView()
                         .modifier(ResumeBloom())
@@ -1262,6 +1264,155 @@ private struct ResultCarouselPreviewHarness: View {
                 .padding(.top, 50)
             }
         }
+    }
+}
+
+// MARK: - Home Phase 1 preview harness
+//
+// Mounts the new Home archetype atoms (HomeArchetypeHeader,
+// HomeProteinTracker, PlanRow with isAnchor/isPastDay flags) with
+// mock data so the redesign can be iterated on without fighting the
+// "your program is ready" intercept. Launch with `--debug-home`.
+// Toggle the archetype + past-day mode via launch args:
+//   `--archetype protein|movement|balanced|rest`
+//   `--past` for the past-day disabled treatment
+
+private struct HomePhase1PreviewHarness: View {
+    @State private var archetype: ProgramDayArchetype = {
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "--archetype"), i + 1 < args.count {
+            switch args[i + 1].lowercased() {
+            case "protein":  return .protein
+            case "movement": return .movement
+            case "balanced": return .balanced
+            case "rest":     return .rest
+            default:         return .protein
+            }
+        }
+        return .protein
+    }()
+    @State private var isPastDay: Bool = ProcessInfo.processInfo.arguments.contains("--past")
+    @State private var glp1IsCurrent: Bool = ProcessInfo.processInfo.arguments.contains("--glp1")
+
+    /// Mock prescription set used by the harness. PlanView's real
+    /// composer reorders these by archetype; we replicate that here
+    /// so the harness shows the correct anchor at row 0.
+    private var orderedRows: [ProgramDayPrescription] {
+        var rows: [ProgramDayPrescription] = [
+            .lesson(lessonId: nil),
+            .snapMeal,
+            .workout(tier: .medium, minutes: 18, bodyFocus: nil),
+            .steps(goal: 7500),
+            .weighIn,
+            .breath(minutes: 1, style: .calming),
+        ]
+        guard let tag = archetype.anchorTag else { return rows }
+        let idx = rows.firstIndex { row in
+            switch (row, tag) {
+            case (.snapMeal, .snapMeal): return true
+            case (.workout, .workout):   return true
+            case (.breath, .breath):     return true
+            default:                     return false
+            }
+        }
+        if let idx { rows.insert(rows.remove(at: idx), at: 0) }
+        return rows
+    }
+
+    private var anchorColor: Color? {
+        switch archetype.anchorAccentColorName {
+        case "stickyButter": return Palette.stickyButter
+        case "stickyOlive":  return Palette.stickyOlive
+        case "stickyMint":   return Palette.stickyMint
+        default:             return nil
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(isPastDay ? "viewing past" : "today")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .padding(.horizontal, 20)
+
+                    VStack(alignment: .leading, spacing: 14) {
+                        HomeArchetypeHeader(archetype: archetype, pastDay: isPastDay)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 14)
+
+                        if archetype == .protein && !isPastDay {
+                            HomeProteinTracker(
+                                proteinG: 32,
+                                targetG: 80,
+                                isGLP1Current: glp1IsCurrent
+                            )
+                            .padding(.horizontal, 20)
+                        }
+
+                        if isPastDay {
+                            Text("yesterday's page — it counted as it was.")
+                                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                                .foregroundStyle(Palette.cocoaTertiary)
+                                .padding(.horizontal, 20)
+                        }
+
+                        VStack(spacing: 0) {
+                            ForEach(Array(orderedRows.enumerated()), id: \.offset) { idx, prescription in
+                                PlanRow(
+                                    prescription: prescription,
+                                    state: mockState(for: prescription, idx: idx),
+                                    onTap: {},
+                                    onLongPress: {},
+                                    isAnchor: !isPastDay && idx == 0 && archetype.anchorTag != nil,
+                                    anchorAccentColor: idx == 0 ? anchorColor : nil,
+                                    isPastDay: isPastDay,
+                                    overrideSubtitle: idx == 0 ? archetype.glp1ProteinNudge(glp1Status: glp1IsCurrent ? "current" : "") : nil
+                                )
+                                if idx < orderedRows.count - 1 {
+                                    Divider()
+                                        .background(Palette.hairlineCocoa)
+                                        .padding(.leading, 72)
+                                        .padding(.trailing, 20)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .padding(.bottom, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: Radius.programCard)
+                            .fill(Palette.programCard)
+                    )
+                    .programPaperShadow()
+                    .padding(.horizontal, Space.lg)
+
+                    Spacer(minLength: 80)
+                }
+                .padding(.top, 24)
+            }
+        }
+    }
+
+    private func mockState(
+        for prescription: ProgramDayPrescription,
+        idx: Int
+    ) -> PlanRow.RowState {
+        if case .steps = prescription {
+            return .progress(current: 4200, target: 7500, unit: "")
+        }
+        // For past-day mode: mark the first 3 rows as completed (so the
+        // "kept" stamp + the lesson "re-read ♥" stamp surface), leave
+        // the rest empty.
+        if isPastDay {
+            return idx < 3
+                ? .binaryComplete(isAuto: idx == 1)
+                : .binaryEmpty
+        }
+        if idx == 1 { return .binaryComplete(isAuto: true) }
+        return .binaryEmpty
     }
 }
 

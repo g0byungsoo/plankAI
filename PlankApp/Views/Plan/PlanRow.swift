@@ -50,6 +50,21 @@ struct PlanRow: View {
     var snapMealFatG: Int = 0
     var moveExercises: [MoveExerciseEmbed.Exercise]? = nil
 
+    /// v1.0.35 (2026-06-19) Home Phase 1 — true when this row is the
+    /// day's archetype anchor (e.g. snapMeal on a protein day). Renders
+    /// the 2pt × 32pt vertical hairline at the row's leading edge.
+    var isAnchor: Bool = false
+    /// Per Panel 2 her75: the 4 sticky pastels — passed by archetype.
+    /// nil leaves the leading edge bare (balanced day or non-anchor).
+    var anchorAccentColor: Color? = nil
+    /// True when viewingDay is set in PlanView — the row is a past-day
+    /// view. Drives typographic dim + "kept" trailing stamp + drops the
+    /// sticky paper-square's lift shadow.
+    var isPastDay: Bool = false
+    /// Optional override subtitle (e.g. GLP-1 protein nudge "aim for
+    /// 80g+ today ♡"). When set, replaces the default subtitle.
+    var overrideSubtitle: String? = nil
+
     enum RowState {
         /// Binary row, not yet complete.
         case binaryEmpty
@@ -80,36 +95,82 @@ struct PlanRow: View {
     }
 
     var body: some View {
-        // Stripped to the simplest possible gesture stack — plain
-        // VStack + .onTapGesture + .onLongPressGesture. Debug-print
-        // tagging so we can verify in Xcode console whether the
-        // gesture is firing. Founder QA 2026-06-09: "nothing really
-        // happens when i click each row or nothing happens when i
-        // press long any of them" — even after Button + simultaneous
-        // gesture + modal-router refactor.
+        // v1.0.35 Home Phase 1 — past-day disabled chrome arrives via
+        // typographic dim (title 0.55, drop sticky shadow), trailing
+        // italic-Fraunces "kept"/"re-read" stamp instead of the sage
+        // checkmark, and lesson-row exception that overrides the dim
+        // and stays tappable.
         VStack(alignment: .leading, spacing: 10) {
             headerLine
-            if prescription.isFatRow {
+            if prescription.isFatRow && !isPastDayDimmed {
                 fatEmbed
             }
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(anchorAccentBar, alignment: .leading)
         .contentShape(Rectangle())
         .onTapGesture {
-            guard state.isInteractive else { return }
+            guard isRowTappable else { return }
             onTap()
         }
         .onLongPressGesture(minimumDuration: 0.5) {
-            guard state.isInteractive else { return }
+            guard isRowTappable else { return }
             guard canLongPress else { return }
             onLongPress()
         }
-        .opacity(state.isInteractive ? 1.0 : 0.5)
+        .opacity(rowOpacity)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(a11yLabel)
         .accessibilityHint(a11yHint)
+    }
+
+    /// True when this row should accept user taps. Past-day rows are
+    /// generally view-only, with the lesson exception (Panel 2 + 4:
+    /// lessons are content, not behavior — always re-readable).
+    private var isRowTappable: Bool {
+        if isPastDay {
+            return isLessonRow
+        }
+        return state.isInteractive
+    }
+
+    /// True when the past-day typographic dim applies (everything
+    /// EXCEPT the lesson row, which keeps full alpha + shadow).
+    private var isPastDayDimmed: Bool {
+        isPastDay && !isLessonRow
+    }
+
+    private var isLessonRow: Bool {
+        if case .lesson = prescription { return true }
+        return false
+    }
+
+    /// Row-level opacity. 1.0 in normal use. Today's rest-day rows
+    /// have the existing 0.5 dim. Past-day non-lesson rows get 1.0
+    /// here so the chrome lift stays consistent — the *typographic*
+    /// dim (title color, subtitle color, dropped sticky shadow) does
+    /// the disabled work, not a blanket .opacity (Panel 2: blanket
+    /// opacity reads as "out of focus" and kills the brand mark).
+    private var rowOpacity: Double {
+        if isPastDay { return 1.0 }
+        return state.isInteractive ? 1.0 : 0.5
+    }
+
+    /// 2pt × 32pt vertical hairline at the leading edge when this
+    /// row is the day's archetype anchor. Color comes from the
+    /// archetype's sticky pastel. Inset 4pt from the row's left edge
+    /// so it sits inside the card chrome, between the wall and the
+    /// sticky note's leading edge.
+    @ViewBuilder private var anchorAccentBar: some View {
+        if isAnchor, let color = anchorAccentColor, !isPastDay {
+            Capsule()
+                .fill(color)
+                .frame(width: 2, height: 32)
+                .padding(.leading, 4)
+                .accessibilityHidden(true)
+        }
     }
 
     /// Header line: sticky + title + subtitle + trailing. Identical
@@ -117,7 +178,7 @@ struct PlanRow: View {
     /// embed underneath.
     private var headerLine: some View {
         HStack(spacing: 16) {
-            ProgramStickyNote(prescription: prescription)
+            ProgramStickyNote(prescription: prescription, dropShadow: isPastDayDimmed)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(prescription.rowTitle)
@@ -126,7 +187,7 @@ struct PlanRow: View {
                     .lineLimit(1)
                 Text(subtitleCopy)
                     .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaSecondary)
+                    .foregroundStyle(subtitleColor)
                     .lineLimit(2)
             }
             Spacer(minLength: 8)
@@ -180,20 +241,33 @@ struct PlanRow: View {
     // MARK: - Title + subtitle
 
     private var titleColor: Color {
+        // Past-day disabled chrome: title to cocoaPrimary @ 55% per
+        // Panel 2. Lesson row stays at full primary even in past mode
+        // (the contrast against the dimmed siblings is the "this one
+        // is still alive" signal).
+        if isPastDayDimmed { return Palette.cocoaPrimary.opacity(0.55) }
         switch state {
         case .skipped, .restDay: return Palette.cocoaTertiary
         default:                 return Palette.cocoaPrimary
         }
     }
 
+    private var subtitleColor: Color {
+        // Subtitle drops one tier on past-day non-lesson rows. Lesson
+        // row keeps cocoaSecondary so the row reads as full-tone.
+        if isPastDayDimmed { return Palette.cocoaTertiary }
+        return Palette.cocoaSecondary
+    }
+
     private var subtitleCopy: String {
+        // Cohort-routed override (e.g. GLP-1 protein nudge) takes
+        // priority when set.
+        if let override = overrideSubtitle, !override.isEmpty {
+            return override
+        }
         // Live override: snap meal shows today's calorie total when
         // FoodLogPersister has any meals logged. Falls back to the
         // prescription's static "one photo · we read the plate".
-        // Founder QA 2026-06-11: the kcal subtitle duplicated the
-        // embed's big "1,300 cal today" numeral directly beneath it.
-        // The subtitle now carries the COUNT (what the numeral
-        // doesn't say); the embed carries the math.
         if case .snapMeal = prescription {
             if let kcal = liveCaloriesToday, kcal > 0 {
                 let count = max(1, liveMealsLoggedToday ?? 1)
@@ -239,18 +313,48 @@ struct PlanRow: View {
     // MARK: - Trailing
 
     @ViewBuilder private var trailing: some View {
-        switch state {
-        case .binaryEmpty:
-            stateIndicatorEmpty
-        case .binaryComplete(let isAuto):
-            stateIndicatorComplete(isAuto: isAuto)
-        case .progress(let current, let target, let unit):
-            progressTrailing(current: current, target: target, unit: unit)
-        case .skipped, .restDay:
-            Text("—")
-                .font(.system(size: 18, weight: .light))
+        // Past-day trailing replaces the normal state indicator with
+        // a quiet italic-Fraunces stamp:
+        //   • Lesson row → "re-read ♥" (full cocoaSecondary, accent
+        //     heart) — Panel 2's locked exception
+        //   • Other completed rows → "kept" (cocoaTertiary, no heart)
+        //   • Other incomplete rows → no stamp (the absence IS the
+        //     anti-shame answer — never "missed")
+        if isPastDay {
+            pastDayStamp
+        } else {
+            switch state {
+            case .binaryEmpty:
+                stateIndicatorEmpty
+            case .binaryComplete(let isAuto):
+                stateIndicatorComplete(isAuto: isAuto)
+            case .progress(let current, let target, let unit):
+                progressTrailing(current: current, target: target, unit: unit)
+            case .skipped, .restDay:
+                Text("—")
+                    .font(.system(size: 18, weight: .light))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .frame(width: 26)
+            }
+        }
+    }
+
+    @ViewBuilder private var pastDayStamp: some View {
+        if isLessonRow {
+            (Text("re-read ")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13, relativeTo: .caption))
+            + Text("\u{2665}\u{FE0E}")
+                .font(.system(size: 11, weight: .medium)))
+                .foregroundStyle(Palette.cocoaSecondary)
+                .fixedSize()
+        } else if state.isCompleted {
+            Text("kept")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13, relativeTo: .caption))
                 .foregroundStyle(Palette.cocoaTertiary)
-                .frame(width: 26)
+                .fixedSize()
+        } else {
+            // Empty past-day non-completed: the absence is the answer.
+            Color.clear.frame(width: 26, height: 26)
         }
     }
 
@@ -375,6 +479,10 @@ struct PlanRow: View {
 struct ProgramStickyNote: View {
 
     let prescription: ProgramDayPrescription
+    /// v1.0.35 (2026-06-19) — drops the 3pt lift shadow so the
+    /// sticky reads as "pressed flat into the page" (her75 Panel 2
+    /// past-day pattern). Sticker saturation unchanged.
+    var dropShadow: Bool = false
 
     var body: some View {
         ZStack {
@@ -382,7 +490,12 @@ struct ProgramStickyNote: View {
                 .fill(stickyColor)
                 .frame(width: 40, height: 40)
                 .rotationEffect(.degrees(rotation))
-                .shadow(color: Color.black.opacity(0.06), radius: 3, x: 0, y: 1)
+                .shadow(
+                    color: Color.black.opacity(dropShadow ? 0 : 0.06),
+                    radius: dropShadow ? 0 : 3,
+                    x: 0,
+                    y: dropShadow ? 0 : 1
+                )
             if let asset = prescription.stickerAsset {
                 // Sticker centered slightly larger than the SF glyph (32pt
                 // vs 16pt) so the iridescent silhouette reads from across
