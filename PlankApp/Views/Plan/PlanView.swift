@@ -126,10 +126,13 @@ struct PlanView: View {
         case logWeight
         case profileHub   // v6 settings entry via ellipsis on eyebrow row
         /// v1.0.10 Phase 6 (2026-06-17) — tap on the archetype pill
-        /// opens a soft explainer. Carries the archetype so the sheet
-        /// content can render the matching copy + citation without
-        /// re-deriving from program day.
+        /// opens a soft explainer.
         case archetypeExplainer(ProgramDayArchetype)
+        /// v1.0.36 Home Phase 2 (2026-06-19) — soft peek for short-
+        /// horizon future days (within +7). Single warm sentence,
+        /// archetype framing, no row preview. Per Panel 4 GLP-1 RD:
+        /// avoids dangling locked content as pre-failure obligation.
+        case dayPeek(day: Int, archetype: ProgramDayArchetype?)
 
         var id: String {
             switch self {
@@ -138,6 +141,7 @@ struct PlanView: View {
             case .logWeight:     return "logWeight"
             case .profileHub:    return "profileHub"
             case .archetypeExplainer(let arch): return "archetype-\(arch.rawValue)"
+            case .dayPeek(let day, _): return "peek-\(day)"
             }
         }
     }
@@ -487,6 +491,16 @@ struct PlanView: View {
                 onDismiss: { dismissSheet() }
             )
             .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Palette.programCard)
+
+        case .dayPeek(let day, let arch):
+            ProgramDayPeekSheet(
+                day: day,
+                archetype: arch,
+                onDismiss: { dismissSheet() }
+            )
+            .presentationDetents([.fraction(0.42)])
             .presentationDragIndicator(.visible)
             .presentationBackground(Palette.programCard)
         }
@@ -1139,8 +1153,23 @@ struct PlanView: View {
                 checkStateByKey = hydrateChecks(planId: plan.id, programDay: d)
             }
         case .locked(let d):
-            Haptics.medium()
-            present(sheet: .lock(day: d))
+            // v1.0.36 Home Phase 2 — within +7 days, present the soft
+            // peek sheet (single warm sentence + archetype framing,
+            // no row preview). Beyond +7 the existing ProgramLockSheet
+            // still ships — it carries program-pace context that the
+            // peek doesn't need to repeat.
+            Haptics.light()
+            let delta = d - schedule.programDay
+            if delta > 0 && delta <= 7 {
+                let arch = ProgramDayArchetype.archetype(
+                    forProgramDay: d,
+                    glp1Status: glp1Status,
+                    restrictiveFoodRelationship: isRestrictiveCohort
+                )
+                present(sheet: .dayPeek(day: d, archetype: arch))
+            } else {
+                present(sheet: .lock(day: d))
+            }
         case .newProgram:
             Haptics.light()
             present(cover: .chapterComplete)

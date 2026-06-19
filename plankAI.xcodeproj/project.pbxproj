@@ -192,6 +192,7 @@
 		2BB90AAA9E6E740EFAFD9454 /* prep_short_reverse_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 62EF45224E10CDFA4BB2BE11 /* prep_short_reverse_crunch.m4a */; };
 		2BE7D10879AAEAA6F2B10FA6 /* prep_full_bent_knee_hip_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 34D5F968590BAC879F805E88 /* prep_full_bent_knee_hip_raise.m4a */; };
 		2C49129D71139157BCBC063E /* matson_prep_short_boat_flutters.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 235DD8763BE5775584BADB16 /* matson_prep_short_boat_flutters.m4a */; };
+		2C6A7418B42539D21DEA8ADA /* ProgramDayPeekSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5402FBD861556DF57F620B18 /* ProgramDayPeekSheet.swift */; };
 		2CAAC6DC2217ED01A51545CE /* jeni_prep_full_downward_dog.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8DB970D341CEF688BE966E32 /* jeni_prep_full_downward_dog.m4a */; };
 		2CB3DB1D28C9DEC7FDA7DA02 /* jeni_prep_full_plank_jacks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 30ECE2B7B215E52B3AD00273 /* jeni_prep_full_plank_jacks.m4a */; };
 		2CCE195D3CE3CBC05E6C3220 /* matson_prep_full_boat_flutters.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F3CBDC7F6C4E0697999A8E6B /* matson_prep_full_boat_flutters.m4a */; };
@@ -1687,6 +1688,7 @@
 		53A5E70C002553C02FF1070A /* ProgramSetupSubflow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProgramSetupSubflow.swift; sourceTree = "<group>"; };
 		53D601A79AE9AB0DC832E285 /* matson_prep_short_downward_dog.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_downward_dog.m4a; sourceTree = "<group>"; };
 		53E6703B556DCA627328BDE0 /* prep_full_crunch_knee_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_crunch_knee_raise.m4a; sourceTree = "<group>"; };
+		5402FBD861556DF57F620B18 /* ProgramDayPeekSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProgramDayPeekSheet.swift; sourceTree = "<group>"; };
 		542BCF9BFE1E5A27F427DF40 /* prep_short_forward_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_forward_lunge.m4a; sourceTree = "<group>"; };
 		548DAACD181A2AA9E40A0341 /* matson_prep_short_squat_calf_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_squat_calf_raise.m4a; sourceTree = "<group>"; };
 		54BA14011F3B0196500DBBE2 /* LessonManifest.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LessonManifest.swift; sourceTree = "<group>"; };
@@ -2835,6 +2837,7 @@
 				9430AB51CA21083FA715BB07 /* MarkAsDoneSheet.swift */,
 				D4305D9FD400110310E09C3F /* PlanRowEmbeds.swift */,
 				ACCF7113A22502849B0CADC4 /* HomeArchetypeAtoms.swift */,
+				5402FBD861556DF57F620B18 /* ProgramDayPeekSheet.swift */,
 			);
 			name = Plan;
 			path = Plan;
@@ -5880,6 +5883,7 @@
 				5F4314A48EA8852796557BA0 /* FoodResultExplosion.swift in Sources */,
 				2EEC2C923034FB65279C95A7 /* BecomingV2Atoms.swift in Sources */,
 				3857F19416E17342CB0E71EF /* HomeArchetypeAtoms.swift in Sources */,
+				2C6A7418B42539D21DEA8ADA /* ProgramDayPeekSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

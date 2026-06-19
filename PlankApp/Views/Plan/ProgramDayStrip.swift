@@ -261,25 +261,35 @@ struct ProgramDayCell: View {
                 .foregroundStyle(Palette.cocoaTertiary)
                 .monospacedDigit()
         case .locked:
-            VStack(spacing: 3) {
-                Text("\(day)")
-                    .font(.custom("DMSans-Regular", size: 15, relativeTo: .body))
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .monospacedDigit()
-                // v1.0.10 — replace the lock glyph with the archetype
-                // letter when the cell knows its archetype. Users see
-                // "p" / "b" / "m" / "r" days ahead so the protein /
-                // movement / rest cadence is mentally prep-able. Falls
-                // back to the lock glyph for cells without an archetype
-                // (no active plan, or caller didn't pass the lookup).
-                if let archetype {
-                    Text(letter(for: archetype))
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11, relativeTo: .caption2))
-                        .foregroundStyle(Palette.cocoaTertiary.opacity(0.85))
-                } else {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 9, weight: .medium))
+            ZStack(alignment: .bottom) {
+                VStack(spacing: 3) {
+                    Text("\(day)")
+                        .font(.custom("DMSans-Regular", size: 15, relativeTo: .body))
                         .foregroundStyle(Palette.cocoaTertiary)
+                        .monospacedDigit()
+                    // v1.0.10 — archetype letter replaces the lock glyph
+                    // when known. v1.0.36 (Phase 2) — opacity 0.85 → 0.90
+                    // per Panel 2 (her75); the letter was reading washed
+                    // against the cocoa-tertiary day number above.
+                    if let archetype {
+                        Text(letter(for: archetype))
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11, relativeTo: .caption2))
+                            .foregroundStyle(Palette.cocoaTertiary.opacity(0.90))
+                    } else {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                    }
+                }
+                // v1.0.36 (Phase 2) — 3pt × 0.75pt hairline under rest-
+                // day future cells per Panel 2 her75 ("when's my next
+                // rest day"). Bookmark mark inset 6pt from each edge.
+                if archetype == .rest {
+                    Rectangle()
+                        .fill(Palette.cocoaPrimary.opacity(0.55))
+                        .frame(height: 0.75)
+                        .padding(.horizontal, 6)
+                        .padding(.bottom, 4)
                 }
             }
         case .newProgram:

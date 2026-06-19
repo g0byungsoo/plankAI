@@ -464,6 +464,10 @@ struct PlankAIApp: App {
                     BecomingPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-home") {
                     HomePhase1PreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-peek") {
+                    DayPeekPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-strip") {
+                    DayStripPreviewHarness()
                 } else {
                     RootView()
                         .modifier(ResumeBloom())
@@ -1262,6 +1266,103 @@ private struct ResultCarouselPreviewHarness: View {
                     onLogPair: { _ in }
                 )
                 .padding(.top, 50)
+            }
+        }
+    }
+}
+
+// MARK: - DayPeekPreviewHarness — Home Phase 2 peek sheet
+//
+// Mounts the ProgramDayPeekSheet for a chosen archetype + day. Toggle:
+//   `--archetype protein|movement|balanced|rest`  (default protein)
+//   `--day N`  (default 14)
+
+private struct DayPeekPreviewHarness: View {
+    @State private var showing: Bool = false
+
+    private var archetype: ProgramDayArchetype {
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "--archetype"), i + 1 < args.count {
+            switch args[i + 1].lowercased() {
+            case "protein":  return .protein
+            case "movement": return .movement
+            case "balanced": return .balanced
+            case "rest":     return .rest
+            default:         return .protein
+            }
+        }
+        return .protein
+    }
+
+    private var day: Int {
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "--day"),
+           i + 1 < args.count,
+           let n = Int(args[i + 1]) {
+            return n
+        }
+        return 14
+    }
+
+    var body: some View {
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+        }
+        .sheet(isPresented: $showing) {
+            ProgramDayPeekSheet(
+                day: day,
+                archetype: archetype,
+                onDismiss: { showing = false }
+            )
+            .presentationDetents([.fraction(0.42)])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Palette.programCard)
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                showing = true
+            }
+        }
+    }
+}
+
+// MARK: - DayStripPreviewHarness — bare ProgramDayStrip variant
+//
+// Surfaces the strip alone so the rest-day hairline + bumped letter
+// opacity are visible without the full PlanView shell. Launch via
+// `--debug-strip`. Adds an archetypeForDay lookup that paints the
+// standard rotation so the cohort cadence is visible.
+
+private struct DayStripPreviewHarness: View {
+    @State private var centered: Int = 4
+
+    var body: some View {
+        ZStack {
+            Palette.bgPrimary.ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 12) {
+                Text("strip preview")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 60)
+
+                ProgramDayStrip(
+                    programDay: centered,
+                    totalDays: 28,
+                    completionByDay: [1: 4, 2: 5, 3: 3],
+                    centeredDay: centered,
+                    onTap: { _ in },
+                    archetypeForDay: { day in
+                        ProgramDayArchetype.archetype(
+                            forProgramDay: day,
+                            glp1Status: "",
+                            restrictiveFoodRelationship: false
+                        )
+                    }
+                )
+                .padding(.horizontal, 0)
+
+                Spacer()
             }
         }
     }
