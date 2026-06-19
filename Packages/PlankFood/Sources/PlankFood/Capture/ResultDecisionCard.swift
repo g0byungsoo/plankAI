@@ -182,13 +182,13 @@ struct ResultDecisionCard: View {
     @ViewBuilder private var metaRow: some View {
         HStack(alignment: .center) {
             (Text(timeLabel)
-                .font(.custom("DMSans-Medium", size: 26))
+                .font(.custom("DMSans-Medium", size: 32))
                 .foregroundColor(textSecondary)
             + Text("  ·  ")
-                .font(.custom("DMSans-Medium", size: 26))
+                .font(.custom("DMSans-Medium", size: 32))
                 .foregroundColor(textPrimary.opacity(0.25))
             + Text(mealLabelDisplay)
-                .font(.custom("JeniHeroSerif-Italic", size: 28))
+                .font(.custom("JeniHeroSerif-Italic", size: 34))
                 .foregroundColor(textSecondary))
             Spacer(minLength: 0)
             confidencePill
@@ -208,14 +208,14 @@ struct ResultDecisionCard: View {
     @ViewBuilder private var confidencePill: some View {
         let word = confidenceWord
         (Text(word.0)
-            .font(.custom("DMSans-Regular", size: 24))
+            .font(.custom("DMSans-Regular", size: 28))
         + Text(word.1)
-            .font(.custom("JeniHeroSerif-Italic", size: 26))
+            .font(.custom("JeniHeroSerif-Italic", size: 32))
         + Text(" \u{2661}")
-            .font(.custom("DMSans-Medium", size: 22)))
+            .font(.custom("DMSans-Medium", size: 26)))
             .foregroundStyle(accent.opacity(0.80))
-            .padding(.horizontal, 22)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 10)
             .background(Capsule().fill(accentSubtle.opacity(0.45)))
     }
 
@@ -233,24 +233,23 @@ struct ResultDecisionCard: View {
     // MARK: - Zone B: kcal hero (number + ±range + italic meal name)
 
     @ViewBuilder private var kcalHero: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
+        HStack(alignment: .firstTextBaseline, spacing: 18) {
             CountUpNumber(
                 target: totalKcal,
                 fontName: "JeniHeroSerif-Regular",
                 italicFontName: "JeniHeroSerif-Italic",
-                size: 144,
+                size: 200,
                 color: textPrimary
             )
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("calories")
-                    .font(.custom("JeniHeroSerif-Italic", size: 36))
+                    .font(.custom("JeniHeroSerif-Italic", size: 48))
                     .foregroundStyle(textSecondary)
                 if let range = kcalRangeLabel {
                     Text(range)
-                        .font(.custom("DMSans-Regular", size: 24))
-                        .foregroundStyle(textPrimary.opacity(0.45))
+                        .font(.custom("DMSans-Regular", size: 30))
+                        .foregroundStyle(textPrimary.opacity(0.50))
                         .monospacedDigit()
-                        .padding(.top, 2)
                 }
             }
             Spacer(minLength: 0)
@@ -270,18 +269,18 @@ struct ResultDecisionCard: View {
     // MARK: - Zone C: protein co-hero + adequacy stamp
 
     @ViewBuilder private var proteinCoHero: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 16) {
+        HStack(alignment: .firstTextBaseline, spacing: 18) {
             (Text("\(totalProtein)")
-                .font(.custom("JeniHeroSerif-Regular", size: 80))
+                .font(.custom("JeniHeroSerif-Regular", size: 104))
                 .foregroundColor(textPrimary)
             + Text("g")
-                .font(.custom("JeniHeroSerif-Italic", size: 44))
+                .font(.custom("JeniHeroSerif-Italic", size: 56))
                 .foregroundColor(accent))
                 .monospacedDigit()
             Text("protein")
-                .font(.custom("JeniHeroSerif-Italic", size: 36))
+                .font(.custom("JeniHeroSerif-Italic", size: 44))
                 .foregroundStyle(textSecondary)
-                .baselineOffset(10)
+                .baselineOffset(14)
             Spacer(minLength: 0)
             adequacyStamp
         }
@@ -306,12 +305,12 @@ struct ResultDecisionCard: View {
             }
         }()
         (Text(word.prefix)
-            .font(.custom("DMSans-Regular", size: 24))
+            .font(.custom("DMSans-Regular", size: 28))
         + Text(word.italic)
-            .font(.custom("JeniHeroSerif-Italic", size: 28)))
+            .font(.custom("JeniHeroSerif-Italic", size: 34)))
             .foregroundStyle(totalProtein >= 30 ? stateGood : textSecondary)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 10)
             .background(
                 Capsule().fill(
                     (totalProtein >= 30 ? stateGood : textSecondary)
@@ -339,18 +338,18 @@ struct ResultDecisionCard: View {
                 ForEach(Array(items.enumerated()), id: \.offset) { idx, item in
                     HStack(alignment: .firstTextBaseline) {
                         Text("⁄")
-                            .font(.custom("JeniHeroSerif-Italic", size: 28))
+                            .font(.custom("JeniHeroSerif-Italic", size: 34))
                             .foregroundStyle(accent.opacity(0.65))
                         Text(item.name.lowercased())
-                            .font(.custom("DMSans-Medium", size: 30))
+                            .font(.custom("DMSans-Medium", size: 36))
                             .foregroundStyle(textPrimary)
                         Spacer(minLength: 0)
                         Text(item.portion)
-                            .font(.custom("DMSans-Regular", size: 24))
+                            .font(.custom("DMSans-Regular", size: 30))
                             .foregroundStyle(textPrimary.opacity(0.45))
                             .monospacedDigit()
                     }
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 12)
                     if idx < items.count - 1 {
                         Rectangle()
                             .fill(textPrimary.opacity(0.08))
@@ -398,25 +397,25 @@ struct ResultDecisionCard: View {
     // MARK: - Zone F: satiety + protein density
 
     @ViewBuilder private var satietyAndDensity: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             (Text("holds you ")
-                .font(.custom("JeniHeroSerif-Regular", size: 36))
+                .font(.custom("JeniHeroSerif-Regular", size: 44))
             + Text(satietyHoursLabel)
-                .font(.custom("JeniHeroSerif-Italic", size: 36))
+                .font(.custom("JeniHeroSerif-Italic", size: 44))
             + Text("  ·  ")
-                .font(.custom("JeniHeroSerif-Regular", size: 36))
+                .font(.custom("JeniHeroSerif-Regular", size: 44))
                 .foregroundColor(textPrimary.opacity(0.25))
             + Text("\(totalFiber)g")
-                .font(.custom("JeniHeroSerif-Regular", size: 36))
+                .font(.custom("JeniHeroSerif-Regular", size: 44))
             + Text(" fiber  \u{2661}")
-                .font(.custom("DMSans-Medium", size: 28))
+                .font(.custom("DMSans-Medium", size: 32))
                 .foregroundColor(accent.opacity(0.7)))
                 .foregroundStyle(textPrimary)
                 .kerning(-0.2)
                 .fixedSize(horizontal: false, vertical: true)
             if let density = proteinDensityLabel {
                 Text(density)
-                    .font(.custom("DMSans-Regular", size: 24))
+                    .font(.custom("DMSans-Regular", size: 28))
                     .foregroundStyle(textSecondary)
             }
         }
@@ -466,14 +465,14 @@ struct ResultDecisionCard: View {
         _ flag: (prefix: String, italic: String, suffix: String)
     ) -> some View {
         (Text(flag.prefix)
-            .font(.custom("DMSans-Regular", size: 24))
+            .font(.custom("DMSans-Regular", size: 28))
         + Text(flag.italic)
-            .font(.custom("JeniHeroSerif-Italic", size: 26))
+            .font(.custom("JeniHeroSerif-Italic", size: 32))
         + Text(flag.suffix)
-            .font(.custom("DMSans-Regular", size: 24)))
+            .font(.custom("DMSans-Regular", size: 28)))
             .foregroundStyle(textSecondary)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 10)
             .background(Capsule().fill(accentSubtle.opacity(0.35)))
     }
 
@@ -488,14 +487,14 @@ struct ResultDecisionCard: View {
         let target = proteinTargetG
         let logged = todayLoggedProtein + totalProtein
         let progress = min(1.0, Double(logged) / Double(max(target, 1)))
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             (Text("today: ")
-                .font(.custom("DMSans-Regular", size: 24))
+                .font(.custom("DMSans-Regular", size: 28))
             + Text("\(logged)g")
-                .font(.custom("JeniHeroSerif-Italic", size: 26))
+                .font(.custom("JeniHeroSerif-Italic", size: 32))
                 .foregroundColor(textPrimary)
             + Text(" / ~\(target)g protein")
-                .font(.custom("DMSans-Regular", size: 24)))
+                .font(.custom("DMSans-Regular", size: 28)))
                 .foregroundStyle(textSecondary)
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -506,7 +505,7 @@ struct ResultDecisionCard: View {
                         .frame(width: max(8, geo.size.width * progress))
                 }
             }
-            .frame(height: 8)
+            .frame(height: 10)
         }
     }
 
@@ -729,13 +728,13 @@ struct ResultDecisionCard: View {
     ) -> some View {
         (
             Text(pair.prefix)
-                .font(.custom("JeniHeroSerif-Regular", size: 36))
+                .font(.custom("JeniHeroSerif-Regular", size: 42))
             + Text(pair.punch)
-                .font(.custom("JeniHeroSerif-Italic", size: 38))
+                .font(.custom("JeniHeroSerif-Italic", size: 44))
             + Text(pair.suffix)
-                .font(.custom("JeniHeroSerif-Regular", size: 36))
+                .font(.custom("JeniHeroSerif-Regular", size: 42))
             + Text(" ♡")
-                .font(.custom("DMSans-Medium", size: 30))
+                .font(.custom("DMSans-Medium", size: 34))
                 .foregroundColor(accent.opacity(0.7))
         )
         .foregroundStyle(textSecondary)
@@ -764,16 +763,16 @@ struct ResultDecisionCard: View {
         let punch = parts.last ?? tag
         (
             Text(prefix)
-                .font(.custom("DMSans-Medium", size: 28))
+                .font(.custom("DMSans-Medium", size: 32))
             + Text(punch)
-                .font(.custom("JeniHeroSerif-Italic", size: 30))
+                .font(.custom("JeniHeroSerif-Italic", size: 34))
             + Text(" ♡")
-                .font(.custom("DMSans-Medium", size: 24))
+                .font(.custom("DMSans-Medium", size: 28))
                 .foregroundColor(accent.opacity(0.7))
         )
         .foregroundStyle(textPrimary)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 28)
+        .padding(.vertical, 16)
         .background(Capsule().fill(accentSubtle.opacity(0.6)))
         .overlay(Capsule().stroke(accent.opacity(0.35), lineWidth: 0.75))
     }
