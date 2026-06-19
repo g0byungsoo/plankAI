@@ -1145,12 +1145,28 @@ private struct IngredientEditSheet: View {
     }
 
     @ViewBuilder private var nameField: some View {
-        TextField("ingredient name", text: $name)
-            .font(.custom("JeniHeroSerif-Regular", size: 28))
-            .foregroundStyle(Color(red: 0.239, green: 0.165, blue: 0.165))
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled(false)
-            .submitLabel(.done)
+        VStack(alignment: .leading, spacing: 4) {
+            TextField("ingredient name", text: $name)
+                .font(.custom("JeniHeroSerif-Regular", size: 28))
+                .foregroundStyle(Color(red: 0.239, green: 0.165, blue: 0.165))
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled(false)
+                .submitLabel(.done)
+            if isLowConfidence {
+                (Text("the AI wasn't sure about this one — feel ")
+                    .font(.custom("DMSans-Regular", size: 12))
+                + Text("free")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                + Text(" to correct \u{2661}")
+                    .font(.custom("DMSans-Regular", size: 12)))
+                    .foregroundStyle(Color(red: 0.769, green: 0.404, blue: 0.478))
+            }
+        }
+    }
+
+    private var isLowConfidence: Bool {
+        guard let c = original.confidence else { return false }
+        return c < 0.65
     }
 
     @ViewBuilder private var portionBlock: some View {
@@ -1160,6 +1176,22 @@ private struct IngredientEditSheet: View {
                     .font(.custom("DMSans-Medium", size: 13))
                     .foregroundStyle(Color(red: 0.482, green: 0.349, blue: 0.349))
                     .kerning(0.4)
+                if isPortionEdited {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            portion = original.portionGrams
+                        }
+                    } label: {
+                        (Text("reset to ")
+                            .font(.custom("DMSans-Regular", size: 12))
+                        + Text("original")
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13)))
+                            .foregroundStyle(Color(red: 0.769, green: 0.404, blue: 0.478))
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                }
                 Spacer()
                 (Text("\(Int(portion.rounded()))")
                     .font(.custom("JeniHeroSerif-Regular", size: 28))
@@ -1168,14 +1200,56 @@ private struct IngredientEditSheet: View {
                     .font(.custom("JeniHeroSerif-Italic", size: 18))
                     .foregroundColor(Color(red: 0.769, green: 0.404, blue: 0.478)))
                     .monospacedDigit()
+                    .contentTransition(.numericText())
             }
-            Slider(
-                value: $portion,
-                in: portionMin...portionMax,
-                step: 5
-            )
-            .tint(Color(red: 0.769, green: 0.404, blue: 0.478))
+            sliderWithOriginalTick
         }
+    }
+
+    /// Slider with a thin vertical tick at the original-portion
+    /// position. The tick sits behind the rose track but in front of
+    /// the slider's background, giving the user a clear anchor for
+    /// the AI's inferred portion.
+    @ViewBuilder private var sliderWithOriginalTick: some View {
+        let span = portionMax - portionMin
+        let fraction = span > 0
+            ? (original.portionGrams - portionMin) / span
+            : 0.5
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Slider(
+                    value: $portion,
+                    in: portionMin...portionMax,
+                    step: 5
+                )
+                .tint(Color(red: 0.769, green: 0.404, blue: 0.478))
+                // Tick — vertical 12pt cocoa rule + tiny "ai" eyebrow
+                // below. Positioned proportionally; the slider track
+                // pads ~10pt on each side natively so we inset the
+                // tick math to match.
+                let trackInset: CGFloat = 12
+                let trackWidth = max(0, geo.size.width - trackInset * 2)
+                let x = trackInset + CGFloat(fraction) * trackWidth
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Color(red: 0.239, green: 0.165, blue: 0.165).opacity(0.30))
+                        .frame(width: 1, height: 14)
+                    Text("ai")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 9))
+                        .foregroundStyle(Color(red: 0.239, green: 0.165, blue: 0.165).opacity(0.45))
+                        .kerning(0.3)
+                        .padding(.top, 2)
+                }
+                .frame(maxHeight: .infinity, alignment: .center)
+                .position(x: x, y: geo.size.height / 2)
+                .allowsHitTesting(false)
+            }
+        }
+        .frame(height: 38)
+    }
+
+    private var isPortionEdited: Bool {
+        abs(portion - original.portionGrams) >= 1
     }
 
     @ViewBuilder private var nutrientPreview: some View {
