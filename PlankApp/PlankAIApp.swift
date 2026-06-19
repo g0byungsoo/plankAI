@@ -1294,7 +1294,7 @@ private struct BecomingPreviewHarness: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 18) {
                 BecomingDiaryHero(
                     dayNumber: 33,
                     totalDays: 84,
@@ -1304,24 +1304,40 @@ private struct BecomingPreviewHarness: View {
                     identityItalic: ["steady"]
                 )
 
-                BecomingDeedsCounter(
-                    plates: 87,
-                    lessons: 34,
-                    breathMinutes: 47
+                BecomingTodayEnergyStrip(
+                    eatenKcal: 1247,
+                    movedMinutes: 23,
+                    paceKcalTarget: 1580
                 )
-                .padding(.top, 8)
+
+                BecomingProteinGauge(proteinG: 67, targetG: 95)
+
+                BecomingMacroRow(carbs: 142, fat: 38, fiber: 18)
+
+                BecomingPlateTimelineToday(
+                    plates: [
+                        (id: "mock-1", loggedAt: Date().addingTimeInterval(-7 * 3600), kcal: 380),
+                        (id: "mock-2", loggedAt: Date().addingTimeInterval(-3 * 3600), kcal: 520),
+                        (id: "mock-3", loggedAt: Date().addingTimeInterval(-1 * 3600), kcal: 347),
+                    ],
+                    onTapPlate: { _ in },
+                    onLogTapped: {}
+                )
 
                 BecomingTrendCanvas(
                     logs: mockLogs,
                     goalWeightKg: 66.0,
                     unit: .lb
                 )
-                .padding(.top, 4)
 
-                Text("scrub the trend line  ·  numbers roll  ·  hearts ♡")
-                    .font(.custom("DMSans-Regular", size: 12))
-                    .foregroundStyle(Palette.textSecondary)
-                    .padding(.top, 8)
+                BecomingMovedStrip(steps: 7432, workoutMinutes: 8, breathMinutes: 12)
+
+                BecomingDeedsCounter(
+                    plates: 87,
+                    lessons: 34,
+                    breathMinutes: 47
+                )
+
                 Spacer(minLength: 80)
             }
             .padding(.horizontal, Space.lg)

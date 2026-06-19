@@ -215,6 +215,78 @@ struct AnalyticsView: View {
         )
     }
 
+    // MARK: - v1.3 Becoming density (2026-06-18)
+    //
+    // Today-data hooks for the new modules per the 3-expert panel:
+    // BecomingTodayEnergyStrip, BecomingProteinGauge, BecomingMacroRow,
+    // BecomingPlateTimelineToday, BecomingMovedStrip.
+
+    /// Today's logged food macros (kcal + protein + carbs + fat + fiber).
+    /// Lives in PlankFood; returns zeros when nothing's logged today.
+    private var todayFoodMacros: FoodLogPersister.TodayMacros {
+        FoodLogPersister.todayMacros()
+    }
+
+    /// Today's plate entries with photo IDs, time, kcal. Used by the
+    /// PlateTimelineToday row to show photo + time + kcal under each.
+    private var todayPlates: [(id: String, loggedAt: Date, kcal: Int)] {
+        guard FoodFlags.isEnabled,
+              let userId = auth.currentUser?.id.uuidString, !userId.isEmpty
+        else { return [] }
+        let cal = Calendar.current
+        let start = cal.startOfDay(for: .now)
+        return FoodLogPersister.allEntries(userId: userId)
+            .filter { $0.loggedAt >= start }
+            .sorted { $0.loggedAt < $1.loggedAt }
+            .map { (id: $0.id, loggedAt: $0.loggedAt, kcal: Int($0.kcal.rounded())) }
+    }
+
+    /// Sum of routine + plank session durations today (in minutes).
+    private var todayWorkoutMinutes: Int {
+        let cal = Calendar.current
+        let start = cal.startOfDay(for: .now)
+        let seconds = sessionLogs
+            .filter { $0.completedAt >= start }
+            .reduce(0.0) { $0 + $1.holdTime }
+        return Int((seconds / 60).rounded())
+    }
+
+    /// Breath minutes today (count × typical 4 minutes per session).
+    /// BreathworkState tracks count + breathedToday; we approximate
+    /// today's minutes from `breathedToday` × 4 (single session).
+    private var todayBreathMinutes: Int {
+        BreathworkState.shared.breathedToday ? 4 : 0
+    }
+
+    /// Total "moved" minutes for the BecomingTodayEnergyStrip's
+    /// secondary numeral. Sum of today's workout + breath minutes;
+    /// step minutes are intentionally omitted (steps surface
+    /// separately on BecomingMovedStrip below).
+    private var todayMovedMinutes: Int {
+        todayWorkoutMinutes + todayBreathMinutes
+    }
+
+    /// Protein target — Phillips IJSNEM 2016 + Conte JCEM 2024:
+    /// 1.2 g/kg for lean-mass protection. Floor 80g, ceiling 150g.
+    /// Returns nil when no body mass is on record yet.
+    private var proteinTargetG: Int? {
+        let kg: Double = {
+            if let latest = latestWeightKg { return latest }
+            if onboardingCurrentWeightKg > 0 { return onboardingCurrentWeightKg }
+            return 0
+        }()
+        guard kg > 30 else { return nil }
+        let raw = 1.2 * kg
+        return max(80, min(150, Int(raw.rounded())))
+    }
+
+    /// Pace-aware kcal target for today's energy strip. Reads the
+    /// onboarding daily target; falls back to nil so the pace line
+    /// doesn't render if we have nothing to compare against.
+    private var todayKcalPaceTarget: Int? {
+        foodDailyTarget > 0 ? Int(foodDailyTarget) : nil
+    }
+
     /// Most recent weight log, if any. Used to drive the headline number on
     /// the weight card.
     private var latestWeightKg: Double? { weightLogs.first?.weightKg }
@@ -1082,39 +1154,102 @@ struct AnalyticsView: View {
                 archetypes: weekArchetypes
             )
 
-            // v1.2 Becoming (2026-06-18) — cumulative-deeds counter.
-            // Strava lifetime-miles register, Robinhood number-roll
-            // animation. Per cohort brief: "ritualizes return — each
-            // open re-earns the number." Hides when she has nothing
-            // to count yet (no plates, no lessons, no breaths).
-            if lifetimeDeeds.plates > 0 || lifetimeDeeds.lessons > 0 || lifetimeDeeds.breaths > 0 {
-                BecomingDeedsCounter(
-                    plates: lifetimeDeeds.plates,
-                    lessons: lifetimeDeeds.lessons,
-                    breathMinutes: lifetimeDeeds.breathMinutes
+            // v1.3 Becoming (2026-06-18) — density rework after the
+            // 3-expert panel review (WL iOS + her75 typographer +
+            // GLP-1 RD). Daily energy strip, protein-first gauge
+            // (the cohort wedge no competitor surfaces), macro row,
+            // plate timeline, trend canvas, moved stripe. Compact
+            // deeds counter lands at the foot.
+
+            // 1. Today's energy — Cal AI moat in JeniFit voice. No
+            //    ring, no red, "in/moved/pace" replaces the diet-
+            //    culture register. Hidden when she has no food logged
+            //    today + no movement (session-1 user).
+            if todayFoodMacros.kcal > 0 || todayMovedMinutes > 0 {
+                BecomingTodayEnergyStrip(
+                    eatenKcal: Int(todayFoodMacros.kcal.rounded()),
+                    movedMinutes: todayMovedMinutes,
+                    paceKcalTarget: todayKcalPaceTarget
                 )
-                .padding(.top, 8)
+                .padding(.top, 4)
             }
 
-            // v1.2 Becoming (2026-06-18) — premium trend canvas with
-            // shimmering gradient stroke + drag-to-scrub + 1.2s draw-in.
-            // When the logs are too sparse for a trend (< 2 measured
-            // logs) the existing prose-led card surfaces instead.
+            // 2. Protein-first gauge — the GLP-1 cohort wedge.
+            //    NO ring (Apple Activity = guilt). Status word
+            //    rotates by % hit: "still time today" / "muscle
+            //    stays" / "protein, done ♡" / "well-fed today".
+            if todayFoodMacros.kcal > 0, let target = proteinTargetG {
+                BecomingProteinGauge(
+                    proteinG: Int(todayFoodMacros.protein.rounded()),
+                    targetG: target
+                )
+                .padding(.top, 2)
+            }
+
+            // 3. Macros — carbs · fat · fiber (protein leads in #2).
+            //    Tight 3-column row, numeral-led tabular DM Sans,
+            //    statLabel uppercase eyebrows.
+            if todayFoodMacros.kcal > 0 {
+                BecomingMacroRow(
+                    carbs: Int(todayFoodMacros.carbs.rounded()),
+                    fat: Int(todayFoodMacros.fat.rounded()),
+                    fiber: Int(todayFoodMacros.fiber.rounded())
+                )
+                .padding(.top, 2)
+            }
+
+            // 4. Today's plate timeline — replaces PlateFanTeaser as
+            //    the food-rail visibility surface. Horizontal row of
+            //    today's plates + trailing "log" tile. Per WL iOS
+            //    expert: the input-loop fire the Becoming surface
+            //    has been missing.
+            if FoodFlags.isEnabled {
+                BecomingPlateTimelineToday(
+                    plates: todayPlates,
+                    onTapPlate: { _ in showFoodJournal = true },
+                    onLogTapped: { showJournalCapture = true }
+                )
+                .padding(.top, 4)
+            }
+
+            // 5. Trend canvas — compressed to 110pt height per
+            //    her75 typographer. Falls back to the prose card
+            //    when logs are too sparse for a trend (< 2 logs).
             if measuredWeightLogs.count >= 2 {
                 BecomingTrendCanvas(
                     logs: measuredWeightLogs,
                     goalWeightKg: goalWeightKg,
                     unit: weightUnit
                 )
-                .padding(.top, 4)
+                .padding(.top, 6)
             } else {
                 becomingTrendHeroCard
             }
 
-            BecomingStatPair(
-                leading: { stepsStatCell },
-                trailing: { platesStatCell }
+            // 6. Moved stripe — soft activity register. NO kcal
+            //    numeric (GLP-1 safety: exchange-economy framing is
+            //    the #1 driver of disordered tracking patterns).
+            //    Italic closing line ("body used some of what you
+            //    fed it ♡") carries the meaning without bargaining
+            //    math.
+            BecomingMovedStrip(
+                steps: StepsService.shared.todayCount,
+                workoutMinutes: todayWorkoutMinutes,
+                breathMinutes: todayBreathMinutes
             )
+            .padding(.top, 2)
+
+            // 7. Cumulative deeds — compressed 2x2 grid + food-
+            //    noise-quieted closing italic. The identity moat
+            //    against Cal AI; lifetime totals visible at a glance.
+            if lifetimeDeeds.plates > 0 || lifetimeDeeds.lessons > 0 || lifetimeDeeds.breaths > 0 {
+                BecomingDeedsCounter(
+                    plates: lifetimeDeeds.plates,
+                    lessons: lifetimeDeeds.lessons,
+                    breathMinutes: lifetimeDeeds.breathMinutes
+                )
+                .padding(.top, 6)
+            }
 
             // v1.1.0 Sprint A (2026-06-15) — LastNightSleepCard is built
             // and verified (see commented mount below + `--debug-sleep-
@@ -1153,35 +1288,25 @@ struct AnalyticsView: View {
             // The filmstrip is reborn as the teaser's polaroid fan;
             // the insight line relocates to the page foot.
 
+            // Lighter days — gain-framed weekly insight, hidden for
+            // restriction-risk cohorts. Stays as the only weekly-
+            // aggregate slot on Becoming (per GLP-1 panel: "weekly
+            // belongs in Sunday Recap, not in the today snapshot").
             if lighterDaysCounterVisible {
                 LighterDaysRow(states: lighterDayStates)
-                    .padding(.top, 6)
+                    .padding(.top, 4)
             }
 
-            if let userId = auth.currentUser?.id.uuidString, !userId.isEmpty, FoodFlags.isEnabled {
-                let entries = FoodLogPersister.allEntries(userId: userId)
-                // v1.0.10 (2026-06-17) — Task #8 + weekly share. Drop
-                // the prior `if !entries.isEmpty` gate so PlateFanTeaser
-                // renders an empty-state CTA on session 1 (closes the
-                // "Becoming reads as hollow" gap for fresh trial users).
-                // Populated state additionally surfaces a share-her-week
-                // icon when there's a photo-backed log in the calendar
-                // week — taps into WeeklyShareRenderer's 9:16 collage.
-                PlateFanTeaser(
-                    userId: userId,
-                    photoEntryIds: entries
-                        .sorted { $0.loggedAt > $1.loggedAt }
-                        .map(\.id)
-                        .filter { FoodPhotoStore.hasPhoto(entryId: $0) },
-                    entryCount: entries.count,
-                    onOpen: { showFoodJournal = true }
-                )
-                .padding(.top, 4)
-            }
+            // PlateFanTeaser is superseded by BecomingPlateTimelineToday
+            // (item 4 above). The fan was a doorway into the journal;
+            // the timeline IS the journal's first row.
 
+            // Closing diary punctuation — one sentence about HER own
+            // data, italic punch + breathing shadow. Provenance-gated
+            // at the call site (no filler).
             if let insight = dashboardInsight {
                 BecomingInsightLine(text: insight.text, italic: insight.italic)
-                    .padding(.top, 2)
+                    .padding(.top, 4)
             }
         }
     }

@@ -57,11 +57,13 @@ struct BecomingDiaryHero: View {
         return f.string(from: NSNumber(value: showedUpCount)) ?? "\(showedUpCount)"
     }
 
+    /// v1.3 (2026-06-18) — compressed per her75 typographer panel:
+    /// the prose meta + identity stack collapses into ONE inline
+    /// sidecar row right under the day-name. -22 leading clamps the
+    /// two clusters into one visual unit; the prior 4-line stack
+    /// burned 60-80pt that the dashboard density needed.
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Day count — italic-Fraunces punch word IS the day word;
-            // breathing shadow gives the numeral a quiet pulse so the
-            // top of the page reads "alive" before the user scrolls.
+        VStack(alignment: .leading, spacing: 2) {
             (Text("day ").font(Typo.heroHeadline)
              + Text(dayWord).font(Typo.heroHeadlineItalic))
                 .foregroundStyle(Palette.textPrimary)
@@ -70,57 +72,394 @@ struct BecomingDiaryHero: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .breathingShadow()
 
-            // Meta row — program horizon + date range when available,
-            // engagement framing otherwise. Same compact DM Sans body
-            // as the prior folio.
-            HStack(spacing: 6) {
-                if let totalDays {
-                    Text("of \(totalDays) days")
-                        .font(.custom("DMSans-Medium", size: 13))
-                        .foregroundStyle(Palette.textSecondary)
-                } else {
-                    Text("of showing up")
-                        .font(.custom("DMSans-Medium", size: 13))
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                if let dateRange {
-                    Text("·").foregroundStyle(Palette.divider)
-                    Text(dateRange)
-                        .font(.custom("DMSans-Medium", size: 13))
-                        .foregroundStyle(Palette.textSecondary)
-                }
-            }
+            // Sidecar meta — single dense DM Sans line, kerning +0.1.
+            // her75 IMG_6276 convention: tucked-under stat pair in a
+            // single justified-right typographic row.
+            (
+                Text(totalDays.map { "of \($0) days" } ?? "of showing up")
+                    .font(.custom("DMSans-Medium", size: 13))
+                + (dateRange.map {
+                    Text(" · \($0)").font(.custom("DMSans-Medium", size: 13))
+                } ?? Text(""))
+                + (showedUpCount > 0
+                    ? (
+                        Text(" · ")
+                            .font(.custom("DMSans-Medium", size: 13))
+                        + Text(showedUpWord)
+                            .font(.custom("JeniHeroSerif-Italic", size: 14))
+                        + Text(" times \u{2661}")
+                            .font(.custom("DMSans-Medium", size: 13))
+                    )
+                    : Text(""))
+            )
+            .foregroundStyle(Palette.textSecondary)
+            .kerning(0.1)
+            .padding(.top, 2)
 
-            // Diary line — *the* cohort-specified move. Self-narration
-            // beats outcome-tracking (Annesi 2011) on 90-day adherence;
-            // the line says what she did without asking her to log
-            // anything. Hidden when she has nothing to say yet (a
-            // session-1 user lands on the identity line below alone).
-            if showedUpCount > 0 {
-                (Text("you've shown up ")
-                    .font(.custom("DMSans-Regular", size: 14))
-                + Text(showedUpWord)
-                    .font(.custom("JeniHeroSerif-Italic", size: 15))
-                + Text(" times \u{2661}")
-                    .font(.custom("DMSans-Regular", size: 14)))
-                    .foregroundStyle(Palette.textSecondary)
-                    .padding(.top, 6)
-            }
-
-            // Identity line — derived `becomingStateWord` from existing
-            // logic. Stays the closing punctuation of the hero block.
+            // Identity line — italic-Fraunces punch word, restraint
+            // register. Kept since it's the brand voice signature.
             ItalicAccentText(
                 identityLine,
                 italic: identityItalic,
-                baseFont: Typo.body,
-                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+                baseFont: .custom("DMSans-Regular", size: 14),
+                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15),
                 color: Palette.textPrimary,
                 alignment: .leading
             )
-            .padding(.top, 4)
+            .padding(.top, 6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - BecomingTodayEnergyStrip
+//
+// Cal AI moat in JeniFit voice. Two italic numerals + permission
+// subtext, NO ring, NO red. Per the WL iOS expert: 'in' / 'moved' /
+// 'pace' replaces 'eaten' / 'burned' / 'deficit'. Per the GLP-1
+// expert: the 'moved' number is wordless on the dashboard; only the
+// minutes carry it. Pattern A from the panel.
+//
+// Hides entirely when the user has logged nothing today (no point
+// blasting an empty kcal-in number at a session-1 user).
+
+struct BecomingTodayEnergyStrip: View {
+    let eatenKcal: Int
+    let movedMinutes: Int   // breath + workout combined minutes
+    let paceKcalTarget: Int? // nil hides the pace subtext
+
+    private var paceLine: String? {
+        guard let target = paceKcalTarget, target > 0 else { return nil }
+        let delta = eatenKcal - target
+        if abs(delta) < 80 {
+            return "right at today's pace"
+        }
+        if delta < 0 {
+            return "\(abs(delta)) under today's pace"
+        }
+        return "\(delta) above today's pace"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                numberCell(value: eatenKcal.formatted(), word: "in", accent: true)
+                Rectangle()
+                    .fill(Palette.hairlineCocoa)
+                    .frame(width: 1, height: 36)
+                numberCell(value: "\(movedMinutes)", word: "moved", accent: false)
+                Spacer()
+            }
+            if let paceLine {
+                Text(paceLine)
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .kerning(0.1)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(eatenKcal) calories in, \(movedMinutes) minutes moved")
+    }
+
+    @ViewBuilder
+    private func numberCell(value: String, word: String, accent: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text(value)
+                .font(.custom("DMSans-Medium", size: 36))
+                .foregroundStyle(Palette.cocoaPrimary)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+            Text(word)
+                .font(.custom("JeniHeroSerif-Italic", size: 19))
+                .foregroundStyle(accent ? Palette.accent : Palette.cocoaSecondary)
+        }
+    }
+}
+
+// MARK: - BecomingProteinGauge
+//
+// The cohort wedge. Protein leads, target derived from body mass (1.2
+// g/kg, floor 80 g). NO ring (Apple Activity = guilt). Thin bar +
+// status word in italic-Fraunces. Status word rotates by % hit per
+// the GLP-1 expert's spec:
+//   - <60%: "still time today"
+//   - 60-95%: "muscle stays"
+//   - 95-120%: "protein, done ♡"
+//   - 120%+: "well-fed today"
+
+struct BecomingProteinGauge: View {
+    let proteinG: Int
+    let targetG: Int    // ≥ 1; caller clamps to 80...150
+
+    private var progress: Double {
+        guard targetG > 0 else { return 0 }
+        return min(1.0, Double(proteinG) / Double(targetG))
+    }
+
+    private var statusWord: (prefix: String, italic: String, suffix: String) {
+        let pct = targetG > 0 ? Double(proteinG) / Double(targetG) * 100 : 0
+        switch pct {
+        case ..<60:    return ("still ", "time", " today")
+        case ..<95:    return ("muscle ", "stays", ".")
+        case ..<120:   return ("protein, ", "done", " \u{2661}")
+        default:       return ("", "well-fed", " today")
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("today's ")
+                    .font(.custom("DMSans-Medium", size: 12))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .kerning(0.4)
+                + Text("protein")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .kerning(0.2)
+                Spacer()
+                let s = statusWord
+                (Text(s.prefix)
+                    .font(.custom("DMSans-Regular", size: 13))
+                + Text(s.italic)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                + Text(s.suffix)
+                    .font(.custom("DMSans-Regular", size: 13)))
+                    .foregroundStyle(Palette.cocoaSecondary)
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("\(proteinG)g")
+                    .font(.custom("JeniHeroSerif-Regular", size: 40))
+                    .foregroundStyle(Palette.cocoaPrimary)
+                    .monospacedDigit()
+                Text("of ~\(targetG)g")
+                    .font(.custom("DMSans-Regular", size: 13))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .kerning(0.1)
+                    .baselineOffset(4)
+            }
+            proteinBar
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(proteinG) of \(targetG) grams of protein today")
+    }
+
+    @ViewBuilder private var proteinBar: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Palette.hairlineCocoa)
+                Capsule()
+                    .fill(Palette.accent)
+                    .frame(width: max(6, geo.size.width * progress))
+            }
+        }
+        .frame(height: 4)
+    }
+}
+
+// MARK: - BecomingMacroRow
+//
+// Tight 3-column macro row: carbs · fat · fiber (protein lives in the
+// dedicated gauge above). Numeral-led tabular DM Sans; statLabel-class
+// eyebrow above. Density done premium per her75 typographer's spec.
+
+struct BecomingMacroRow: View {
+    let carbs: Int
+    let fat: Int
+    let fiber: Int
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 0) {
+            cell(value: carbs, label: "carbs")
+            divider
+            cell(value: fat, label: "fat")
+            divider
+            cell(value: fiber, label: "fiber")
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Today: \(carbs)g carbs, \(fat)g fat, \(fiber)g fiber")
+    }
+
+    @ViewBuilder private func cell(value: Int, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text("\(value)")
+                    .font(.custom("DMSans-Medium", size: 20))
+                    .foregroundStyle(Palette.cocoaPrimary)
+                    .monospacedDigit()
+                Text("g")
+                    .font(.custom("DMSans-Regular", size: 13))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            Text(label)
+                .font(.custom("DMSans-Regular", size: 11))
+                .foregroundStyle(Palette.cocoaTertiary)
+                .kerning(0.66)
+                .textCase(.uppercase)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder private var divider: some View {
+        Rectangle()
+            .fill(Palette.hairlineCocoa)
+            .frame(width: 1)
+            .padding(.vertical, 1)
+    }
+}
+
+// MARK: - BecomingMovedStrip
+//
+// Soft activity stripe — steps, workout, plank. NO kcal numeric (GLP-1
+// safety: exchange-economy framing is the #1 driver of disordered
+// tracking patterns per Levinson 2017 + Plateau 2018). The italic
+// closing line carries the meaning ("body used some of what you fed
+// it ♡") without the bargaining math.
+
+struct BecomingMovedStrip: View {
+    let steps: Int
+    let workoutMinutes: Int
+    let breathMinutes: Int
+
+    private var hasAnything: Bool {
+        steps > 0 || workoutMinutes > 0 || breathMinutes > 0
+    }
+
+    var body: some View {
+        if hasAnything {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 14) {
+                    if steps > 0 { stat(value: "\(steps.formatted())", label: "steps") }
+                    if workoutMinutes > 0 { stat(value: "\(workoutMinutes)", label: "min plank") }
+                    if breathMinutes > 0 { stat(value: "\(breathMinutes)", label: "min breath") }
+                    Spacer()
+                }
+                Text(closingLine)
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    private var closingLine: AttributedString {
+        var s = AttributedString("body used some of what you fed it \u{2661}")
+        s.font = .custom("Fraunces72pt-SemiBoldItalic", size: 13)
+        return s
+    }
+
+    @ViewBuilder private func stat(value: String, label: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text(value)
+                .font(.custom("DMSans-Medium", size: 18))
+                .foregroundStyle(Palette.cocoaPrimary)
+                .monospacedDigit()
+            Text(label)
+                .font(.custom("DMSans-Regular", size: 12))
+                .foregroundStyle(Palette.cocoaTertiary)
+        }
+    }
+}
+
+// MARK: - BecomingPlateTimelineToday
+//
+// Horizontal row of today's plate photos with time + kcal underneath.
+// Replaces the PlateFanTeaser's purely-shareable register with a
+// utility-first today-timeline. The trailing "+ log" tile closes the
+// input-loop in 1 tap. Per WL iOS expert: this is the input-loop fire
+// the Becoming surface has been missing; PlateFanTeaser was 4 taps
+// from quick-add.
+
+struct BecomingPlateTimelineToday: View {
+    /// (entryId, loggedAt, kcal) for today only, oldest → newest.
+    let plates: [(id: String, loggedAt: Date, kcal: Int)]
+    let onTapPlate: (String) -> Void
+    let onLogTapped: () -> Void
+
+    private static let timeFmt: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mma"
+        return f
+    }()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("today on her plate")
+                .font(.custom("DMSans-Medium", size: 12))
+                .foregroundStyle(Palette.cocoaTertiary)
+                .kerning(0.4)
+            HStack(alignment: .top, spacing: 10) {
+                ForEach(Array(plates.prefix(4).enumerated()), id: \.element.id) { _, p in
+                    plateTile(p)
+                }
+                if plates.count < 4 {
+                    logTile
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func plateTile(_ p: (id: String, loggedAt: Date, kcal: Int)) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ZStack {
+                if let img = FoodPhotoStore.photo(entryId: p.id) {
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Rectangle().fill(Palette.bgElevated)
+                }
+            }
+            .frame(width: 64, height: 80)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(Palette.divider, lineWidth: 0.5)
+            )
+            Text(Self.timeFmt.string(from: p.loggedAt).lowercased())
+                .font(.custom("BradleyHandITCTT-Bold", size: 11))
+                .foregroundStyle(Palette.cocoaSecondary)
+            Text("\(p.kcal) cal")
+                .font(.custom("DMSans-Medium", size: 11))
+                .foregroundStyle(Palette.cocoaPrimary)
+                .monospacedDigit()
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { Haptics.light(); onTapPlate(p.id) }
+    }
+
+    @ViewBuilder private var logTile: some View {
+        VStack(alignment: .center, spacing: 4) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Palette.bgElevated)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .stroke(Palette.accent.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                    )
+                Image(systemName: "plus")
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(Palette.accent)
+            }
+            .frame(width: 64, height: 80)
+            Text("log")
+                .font(.custom("BradleyHandITCTT-Bold", size: 11))
+                .foregroundStyle(Palette.accent)
+            Text(" ")
+                .font(.custom("DMSans-Medium", size: 11))
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { Haptics.light(); onLogTapped() }
+        .accessibilityLabel("log a plate")
     }
 }
 
@@ -140,44 +479,33 @@ struct BecomingDeedsCounter: View {
     let lessons: Int
     let breathMinutes: Int   // optional — pass 0 to hide
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var foodNoiseHours: Int {
+        let minutes = lessons * 10 + (breathMinutes / 12)
+        return minutes / 60
+    }
 
+    /// v1.3 (2026-06-18) — compressed per panel synthesis. The 3-row
+    /// stack ate ~120pt that the dashboard density needed. Now: 2x2
+    /// statLabel + numeral grid (her75 typographer's spec) with the
+    /// food-noise-quieted line as the closing italic beat (GLP-1
+    /// expert's signature module — competitive whitespace).
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Eyebrow — quiet diary-page header. Lowercase, DM Sans.
-            Text("you've kept ")
-                .font(.custom("DMSans-Medium", size: 12))
-                .foregroundStyle(Palette.textSecondary)
-            + Text("count")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                .foregroundStyle(Palette.textSecondary)
-
-            // Deeds — 3 lines, italic-Fraunces numeral + DM Sans noun.
-            // The 80ms perceptual lag between rows reads as a cascade
-            // arriving, not a list animating.
-            VStack(alignment: .leading, spacing: 6) {
-                deedRow(value: plates, label: "plates kept", delay: 0.0)
-                if lessons > 0 {
-                    deedRow(value: lessons, label: lessons == 1 ? "lesson read" : "lessons read", delay: 0.06)
-                }
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 0) {
+                cell(value: "\(plates)", label: "plates kept")
+                divider
+                cell(value: "\(lessons)", label: "lessons read")
                 if breathMinutes > 0 {
-                    deedRow(
-                        value: breathMinutes,
-                        label: breathMinutes == 1 ? "minute of breath" : "minutes of breath",
-                        delay: 0.12
-                    )
+                    divider
+                    cell(value: "\(breathMinutes)", label: "min breath")
                 }
             }
-
-            // Closing diary punctuation — the "food noise quieted" line
-            // when she has reads + breaths logged. Per cohort brief:
-            // "food noise" is whitespace; no competitor surfaces it.
-            // Conservative formula: lessons × 10min + breath × 5min ÷ 60.
             if foodNoiseHours > 0 {
-                Text(foodNoiseLine)
+                (Text("food noise: ")
                     .font(.custom("DMSans-Regular", size: 13))
-                    .foregroundStyle(Palette.textSecondary)
-                    .padding(.top, 4)
+                + Text("\(foodNoiseHours) hours quieted")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14)))
+                    .foregroundStyle(Palette.cocoaSecondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -185,17 +513,27 @@ struct BecomingDeedsCounter: View {
         .accessibilityLabel(a11yLabel)
     }
 
-    private var foodNoiseHours: Int {
-        let minutes = lessons * 10 + (breathMinutes / 12)
-        return minutes / 60
+    @ViewBuilder
+    private func cell(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(.custom("JeniHeroSerif-Regular", size: 30))
+                .foregroundStyle(Palette.cocoaPrimary)
+                .monospacedDigit()
+            Text(label)
+                .font(.custom("DMSans-Regular", size: 11))
+                .foregroundStyle(Palette.cocoaTertiary)
+                .kerning(0.66)
+                .textCase(.uppercase)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var foodNoiseLine: AttributedString {
-        var prefix = AttributedString("food noise: ")
-        prefix.font = .custom("DMSans-Regular", size: 13)
-        var punch = AttributedString("\(foodNoiseHours) hours quieted")
-        punch.font = .custom("Fraunces72pt-SemiBoldItalic", size: 14)
-        return prefix + punch
+    @ViewBuilder private var divider: some View {
+        Rectangle()
+            .fill(Palette.hairlineCocoa)
+            .frame(width: 1)
+            .padding(.vertical, 2)
     }
 
     private var a11yLabel: String {
@@ -203,28 +541,6 @@ struct BecomingDeedsCounter: View {
         if lessons > 0 { parts.append("\(lessons) lessons read") }
         if breathMinutes > 0 { parts.append("\(breathMinutes) minutes of breath") }
         return parts.joined(separator: ", ")
-    }
-
-    @ViewBuilder
-    private func deedRow(value: Int, label: String, delay: Double) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            CountUpNumber(
-                target: value,
-                fontName: "JeniHeroSerif-Regular",
-                italicFontName: "JeniHeroSerif-Italic",
-                size: 28,
-                color: Palette.textPrimary,
-                rollDuration: 0.9 + delay,    // longer roll on later rows
-                curtsyDelay: 0.95 + delay,    // curtsy after the cascade settles
-                curtsyIn: 0.14,
-                curtsyHold: 0.06,
-                curtsyOut: 0.18
-            )
-            .frame(minWidth: 56, alignment: .leading)
-            Text(label)
-                .font(.custom("DMSans-Regular", size: 15))
-                .foregroundStyle(Palette.textSecondary)
-        }
     }
 }
 
@@ -247,7 +563,11 @@ struct BecomingTrendCanvas: View {
     let logs: [WeightLogRecord]
     let goalWeightKg: Double?
     var unit: WeightUnit = .lb
-    var height: CGFloat = 168
+    // v1.3 (2026-06-18) — compressed per her75 typographer panel:
+    // Apple Health charts ride at ~120pt on the Summary surface; her75
+    // photo modules at ~100-120pt. 110pt lands the chart on register
+    // and frees ~60pt below for an insight line or stat row.
+    var height: CGFloat = 110
 
     @State private var drawProgress: Double = 0     // 0...1 — line trace-in
     @State private var shimmerPhase: Double = 0     // 0...1 — idle gradient flow
