@@ -176,16 +176,16 @@ public struct HardTierGate {
     /// Hard pill. Keeps voice anti-shame + evidence-honest.
     public static func lockReason(_ inputs: Inputs) -> String {
         if inputs.isGLP1User {
-            return "we hid Hard while you're on a GLP-1 — your metabolism is already in a deficit. Soft or Medium pairs better."
+            return "we hid Hard while you're on a GLP-1. your metabolism is already in a deficit. Soft or Medium pairs better."
         }
         if inputs.isPerimenopausal {
-            return "we hid Hard for perimenopause — sleep + stress + cycle changes mean a slower glide tends to actually finish."
+            return "we hid Hard for perimenopause. sleep + stress + cycle changes mean a slower glide tends to actually finish."
         }
         if let age = inputs.age, age >= 40 {
-            return "we hid Hard past 40 — recovery is the new lever. Soft or Medium gets there without the wall."
+            return "we hid Hard past 40. recovery is the new lever. Soft or Medium gets there without the wall."
         }
         if case .sedentary = inputs.activityLevel {
-            return "we hid Hard while you're starting out — week 1 of Hard is meant for someone already moving most days. Soft or Medium first, then unlock."
+            return "we hid Hard while you're starting out. week 1 of Hard is meant for someone already moving most days. Soft or Medium first, then unlock."
         }
         return "we recommend Soft or Medium to start. you can unlock Hard in settings anytime."
     }

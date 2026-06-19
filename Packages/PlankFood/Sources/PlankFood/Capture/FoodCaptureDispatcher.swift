@@ -490,7 +490,7 @@ public enum FoodCaptureError: Error, LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .notImplemented:
-            return "give us a few hours — we're catching our breath."
+            return "give us a few hours. we're catching our breath."
         case .invalidInput:
             return "something looked off with the photo. try once more?"
         case .pipeline(let underlying):

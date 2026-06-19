@@ -43,7 +43,7 @@ public struct HomeFoodIntroTile: View {
                         .font(.custom("Fraunces72pt-SemiBold", size: 15))
                         .foregroundStyle(FoodTheme.textPrimary)
                 }
-                Text("tap to try — first scan takes 3 seconds")
+                Text("tap to try · first scan takes 3 seconds")
                     .font(.system(size: 12))
                     .foregroundStyle(FoodTheme.textSecondary)
             }

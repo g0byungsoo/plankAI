@@ -45,21 +45,21 @@ enum BecomingMetric: String, Identifiable {
     var explainer: String {
         switch self {
         case .trend:
-            return "this line is your smoothed trend — it evens out the daily ups and downs from water, food, and hormones so you see the real direction, not the noise. the number up top is today; the line is the truth ♥"
+            return "this line is your smoothed trend. it evens out the daily ups and downs from water, food, and hormones so you see the real direction, not the noise. the number up top is today; the line is the truth ♥"
         case .forecast:
-            return "at your recent pace, this is about when you'd reach your goal. it moves as your pace moves — a gentle guide, never a promise or a deadline to stress about."
+            return "at your recent pace, this is about when you'd reach your goal. it moves as your pace moves. a gentle guide, never a promise or a deadline to stress about."
         case .milestone:
-            return "we break your goal into small markers, about 5 lb each. small wins are easier to feel — and to celebrate — than one big number that's far away."
+            return "we break your goal into small markers, about 5 lb each. small wins are easier to feel and to celebrate than one big number that's far away."
         case .goal:
             return "how far you've come toward your goal weight. we show it in healthy steps because slow and steady is what actually lasts, and stays off."
         case .cadence:
-            return "how many times you stepped on the scale this week. weighing in a few times a week is the single habit most linked to losing weight — not the number itself, the showing up."
+            return "how many times you stepped on the scale this week. weighing in a few times a week is the single habit most linked to losing weight. not the number itself, the showing up."
         case .movement:
-            return "your steps from apple health, for the last 7 days. the soft line at 7,500 is research-backed — that's where weight tends to stay off, not the old 10k myth. brisk walks count more than slow ones, but every walk counts ♥"
+            return "your steps from apple health, for the last 7 days. the soft line at 7,500 is research-backed. that's where weight tends to stay off, not the old 10k myth. brisk walks count more than slow ones, but every walk counts ♥"
         case .breath:
-            return "one slow minute of breath flips on your parasympathetic system — the rest-and-digest mode that brings cortisol down. lower cortisol means fewer cravings that aren't really hunger, and a body less locked into holding on. the dots are the days you breathed this week. balban (stanford 2023, n=111), epel (yale, cortisol & abdominal fat), sato (senobi, biomed res 2010, n=40) ♥"
+            return "one slow minute of breath flips on your parasympathetic system. the rest-and-digest mode that brings cortisol down. lower cortisol means fewer cravings that aren't really hunger, and a body less locked into holding on. the dots are the days you breathed this week. balban (stanford 2023, n=111), epel (yale, cortisol & abdominal fat), sato (senobi, biomed res 2010, n=40) ♥"
         case .plate:
-            return "the bars are your last 7 days. the number up top is your daily average — only the days you logged. days you didn't log don't count against you; this is rhythm, not surveillance. snapping a plate adds it; editing fixes the ai when it's off ♥"
+            return "the bars are your last 7 days. the number up top is your daily average. only the days you logged. days you didn't log don't count against you; this is rhythm, not surveillance. snapping a plate adds it; editing fixes the ai when it's off ♥"
         }
     }
 }
@@ -1027,7 +1027,7 @@ struct AnalyticsView: View {
         }
         let moves = thisWeekSessions.count
         if moves >= 3 {
-            return "\(lead)you've moved \(moves) times this week. that's not luck — that's you."
+            return "\(lead)you've moved \(moves) times this week. that's not luck. that's you."
         }
         if moves >= 1 {
             return "\(lead)you showed up this week. that's where all of it starts."
@@ -1836,11 +1836,11 @@ struct AnalyticsView: View {
     /// AHA 2021 BMI banding — context-tolerant copy, never verdicts.
     private func bmiBandLabel(_ bmi: Double) -> String {
         switch bmi {
-        case ..<18.5: return "underweight band — context not a verdict."
-        case 18.5..<25: return "healthy band — context not a verdict."
-        case 25..<30: return "overweight band — context not a verdict."
-        case 30..<35: return "class i band — context not a verdict."
-        default:      return "higher band — context not a verdict."
+        case ..<18.5: return "underweight band. context not a verdict."
+        case 18.5..<25: return "healthy band. context not a verdict."
+        case 25..<30: return "overweight band. context not a verdict."
+        case 30..<35: return "class i band. context not a verdict."
+        default:      return "higher band. context not a verdict."
         }
     }
 
@@ -2322,7 +2322,7 @@ struct AnalyticsView: View {
 
                 (Text("becoming")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11))
-                 + Text(" — since you started ♥")
+                 + Text(" · since you started ♥")
                     .font(.custom("DMSans-Regular", size: 11)))
                     .foregroundStyle(Palette.cocoaSecondary.opacity(0.85))
             }
@@ -2639,7 +2639,7 @@ struct AnalyticsView: View {
         let lead = userName.isEmpty ? "she" : userName.lowercased()
         let weeklyShowUp = thisWeekSessions.count
         if weeklyShowUp >= 3 {
-            return ("\(lead) is the one who shows up — \(weeklyShowUp) days this week ♥", ["shows up"])
+            return ("\(lead) is the one who shows up. \(weeklyShowUp) days this week ♥", ["shows up"])
         }
         if streak.count >= 1 {
             return ("\(lead) keeps coming back. that's the whole work ♥", ["coming back"])
@@ -3377,7 +3377,7 @@ struct AnalyticsView: View {
             Text("\(weighInsThisWeek)×")
                 .font(.custom("Fraunces72pt-SemiBold", size: 30))
                 .foregroundStyle(Palette.textPrimary)
-            Text(weighInsThisWeek >= 3 ? "this week — that's the habit ♥" : "this week · a few more helps")
+            Text(weighInsThisWeek >= 3 ? "this week. that's the habit ♥" : "this week · a few more helps")
                 .font(Typo.caption).foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)

@@ -379,7 +379,7 @@ public enum VisionError: Error, LocalizedError, Sendable {
         case .parseError:
             return "got a weird answer back. try again?"
         case .networkError:
-            return "no signal — give it another try when you're back online."
+            return "no signal. give it another try when you're back online."
         }
     }
 }

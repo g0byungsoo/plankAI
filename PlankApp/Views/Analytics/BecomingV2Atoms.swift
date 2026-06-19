@@ -881,7 +881,7 @@ struct BecomingTrendCanvas: View {
                 .font(.custom("JeniHeroSerif-Regular", size: 24)))
                 .foregroundStyle(Palette.textPrimary)
                 .lineSpacing(Typo.heroHeadlineLineGap)
-            Text("log a few more days — your trend draws itself.")
+            Text("log a few more days. your trend draws itself.")
                 .font(.custom("DMSans-Regular", size: 13))
                 .foregroundStyle(Palette.textSecondary)
         }

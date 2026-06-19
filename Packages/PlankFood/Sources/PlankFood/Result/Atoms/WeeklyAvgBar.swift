@@ -101,11 +101,11 @@ public struct WeeklyAvgBar: View {
         switch weeklyDelta {
         case ..<(-0.15):
             // Way under — under-target safety net per feedback_food_ux_antishame.
-            return "averaging \(Int(weeklyAvg.rounded())) — your body needs more."
+            return "averaging \(Int(weeklyAvg.rounded())). your body needs more."
         case -0.15..<0.10:
-            return "tracking your week — avg \(Int(weeklyAvg.rounded()))"
+            return "tracking your week · avg \(Int(weeklyAvg.rounded()))"
         case 0.10..<0.20:
-            return "averaging \(Int(weeklyAvg.rounded())) — a higher week. tomorrow resets."
+            return "averaging \(Int(weeklyAvg.rounded())). a higher week. tomorrow resets."
         default:
             return "averaging \(Int(weeklyAvg.rounded())). that's a normal week. ♥"
         }

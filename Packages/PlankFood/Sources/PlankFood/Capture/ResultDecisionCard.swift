@@ -691,7 +691,7 @@ struct ResultDecisionCard: View {
                 glyph: "drop.fill",
                 prefix: "",
                 italic: "sodium-heavy",
-                suffix: " — water with it \u{2661}"
+                suffix: ". water with it \u{2661}"
             )
         }
         if sugar >= 20 {
@@ -699,7 +699,7 @@ struct ResultDecisionCard: View {
                 glyph: "circle.hexagonpath.fill",
                 prefix: "",
                 italic: "sugar-forward",
-                suffix: " — be soft on it \u{2661}"
+                suffix: ". be soft on it \u{2661}"
             )
         }
         if satfat >= 7 {
@@ -707,7 +707,7 @@ struct ResultDecisionCard: View {
                 glyph: "leaf.fill",
                 prefix: "",
                 italic: "rich on butter",
-                suffix: " — that's okay \u{2661}"
+                suffix: ". that's okay \u{2661}"
             )
         }
         return nil
@@ -909,7 +909,7 @@ struct ResultDecisionCard: View {
             return ("hits the ", "30g", " mark ♡")
         }
         if totalProtein >= 15 {
-            return ("a ", "\(totalProtein)g", " start — pair it later")
+            return ("a ", "\(totalProtein)g", " start. pair it later")
         }
         return nil
     }
@@ -1194,7 +1194,7 @@ private struct IngredientEditSheet: View {
                 .autocorrectionDisabled(false)
                 .submitLabel(.done)
             if isLowConfidence {
-                (Text("the AI wasn't sure about this one — feel ")
+                (Text("the AI wasn't sure about this one. feel ")
                     .font(.custom("DMSans-Regular", size: 12))
                 + Text("free")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))

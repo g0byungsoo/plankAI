@@ -323,7 +323,7 @@ struct StepsBentoTile: View {
     private var trendLine: String {
         let aboveGoal = service.weeklyCounts.filter { $0 >= StepsService.dailyGoal }.count
         if aboveGoal >= 2 { return "you crossed the line \(aboveGoal)× this week ♥" }
-        if aboveGoal == 1 { return "one day above the line — that counts ♥" }
+        if aboveGoal == 1 { return "one day above the line. that counts ♥" }
         if service.weekTotal > 0 { return "every walk added up to this ♥" }
         return "a little walk later ♥"
     }

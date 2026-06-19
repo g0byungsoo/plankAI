@@ -81,7 +81,7 @@ public struct FoodOnboardingSheet: View {
                 header
 
                 section(title: "what you eat",
-                        subtitle: "the tone changes — softer cues if you skip animal foods.") {
+                        subtitle: "the tone changes. softer cues if you skip animal foods.") {
                     chipRow(
                         options: Self.dietaryOptions,
                         isSelected: { $0 == dietaryPattern },
@@ -95,7 +95,7 @@ public struct FoodOnboardingSheet: View {
                 if needsCuisineRetro {
                     section(title: "your *cuisine* mix",
                             italic: ["cuisine"],
-                            subtitle: "multi-pick — helps jeni read your meals better.") {
+                            subtitle: "multi-pick. helps jeni read your meals better.") {
                         chipRow(
                             options: Self.cuisineOptions,
                             isSelected: { csvSet(cuisineCSV).contains($0) },

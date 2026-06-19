@@ -199,7 +199,7 @@ struct CoachNoteEmptyCard: View {
     CoachNoteCard(
         note: CoachNote(
             weekStartDate: Date(),
-            body: "jen, this week you showed up «three times» — that's the rhythm we were aiming for. the «consistency» matters more than any single session.\n\nkeep the same windows next week; we don't need to add anything yet.",
+            body: "jen, this week you showed up «three times». that's the rhythm we were aiming for. the «consistency» matters more than any single session.\n\nkeep the same windows next week; we don't need to add anything yet.",
             suggestion: "before adding intensity, hold this rhythm for one more «week» ♥",
             mood: .celebratory
         )

@@ -76,7 +76,7 @@ enum WeightAnalytics {
         if isStalled(logs: logs, today: today) {
             // Pre-written reframe — research-backed. Don't punish the
             // plateau; recontextualize it.
-            return "plateau week — your body is adjusting. maintainers see these too."
+            return "plateau week. your body is adjusting. maintainers see these too."
         }
 
         if let current = currentKg, let starting = startingKg {
@@ -86,15 +86,15 @@ enum WeightAnalytics {
             // We do mention the delta but as a soft secondary fact, not a
             // headline number.
             let direction: String
-            if delta < -0.3 { direction = "trending down — keep showing up." }
+            if delta < -0.3 { direction = "trending down. keep showing up." }
             else if delta > 0.3 { direction = "holding the line. consistency wins." }
-            else { direction = "steady week — your body's settling." }
+            else { direction = "steady week. your body's settling." }
 
             let logged = logsThisWeek == 1 ? "1 log" : "\(logsThisWeek) logs"
             return "\(direction) \(logged) this week."
         }
 
-        return "tracking \(count) day\(count == 1 ? "" : "s") — keep going."
+        return "tracking \(count) day\(count == 1 ? "" : "s"). keep going."
     }
 
     private static func countLogs(in logs: [WeightLogRecord], days: Int, today: Date) -> Int {

@@ -102,7 +102,7 @@ public struct SaveToPhotosToast: View {
         switch result {
         case .saved:  return "saved to photos"
         case .denied: return "allow photos access in settings"
-        case .failed: return "couldn't save — try again"
+        case .failed: return "couldn't save. try again"
         }
     }
 

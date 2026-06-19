@@ -154,7 +154,7 @@ extension WorkoutPreset {
     static let strength5 = WorkoutPreset(
         id: "strength_5",
         name: "Pure Power",
-        description: "Advanced full-tension training. The library's heaviest work — go when you're ready.",
+        description: "Advanced full-tension training. The library's heaviest work. Go when you're ready.",
         goal: .strength,
         difficulty: .advanced,
         exercises: [
@@ -256,7 +256,7 @@ extension WorkoutPreset {
     static let definition5 = WorkoutPreset(
         id: "definition_5",
         name: "Lower Belly Reset",
-        description: "Targeted lower-ab work. The zone everyone asks about — handled.",
+        description: "Targeted lower-ab work. The zone everyone asks about. Handled.",
         goal: .definition,
         difficulty: .intermediate,
         exercises: [

@@ -213,7 +213,7 @@ public struct HomeFoodCard: View {
         } else if ratio < 1.05 {
             return "today's gentle. tomorrow opens fresh ♥"
         } else if ratio < 1.25 {
-            return "a bit more today — happens. tomorrow resets ♥"
+            return "a bit more today. happens. tomorrow resets ♥"
         } else {
             return "today was a higher one. tomorrow resets ♥"
         }

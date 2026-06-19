@@ -111,7 +111,7 @@ struct BreathworkBentoTile: View {
             Text("try one minute")
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
                 .foregroundStyle(Palette.textPrimary)
-            Text("the breath card on home opens a quick guided session. it lowers cortisol — the stress hormone keeping your body holding on ♥")
+            Text("the breath card on home opens a quick guided session. it lowers cortisol, the stress hormone keeping your body holding on ♥")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

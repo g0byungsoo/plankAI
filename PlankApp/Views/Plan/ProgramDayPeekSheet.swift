@@ -34,13 +34,13 @@ struct ProgramDayPeekSheet: View {
         }
         switch archetype {
         case .protein:
-            return ("a ", "protein", " day — lean into satiety \u{2661}")
+            return ("a ", "protein", " day. lean into satiety \u{2661}")
         case .movement:
-            return ("a ", "movement", " day — we'll meet you there.")
+            return ("a ", "movement", " day. we'll meet you there.")
         case .balanced:
-            return ("a ", "balanced", " day — keep your rhythm.")
+            return ("a ", "balanced", " day. keep your rhythm.")
         case .rest:
-            return ("a ", "gentle", " day — your plan accounts for it \u{2661}")
+            return ("a ", "gentle", " day. your plan accounts for it \u{2661}")
         }
     }
 
@@ -117,7 +117,7 @@ struct ProgramDayPeekSheet: View {
         case .movement:
             return "your movement is queued. nothing to rush."
         case .balanced:
-            return "your usual rhythm — nothing to rush."
+            return "your usual rhythm. nothing to rush."
         case .rest:
             return "soft on yourself ahead of time. nothing's required."
         }
