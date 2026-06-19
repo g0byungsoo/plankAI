@@ -1634,6 +1634,12 @@ private struct BecomingPreviewHarness: View {
         default:          return nil
         }
     }
+    private var debugPeekInsightIdx: Int? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "--peek-insight"), i + 1 < args.count,
+              let n = Int(args[i + 1]) else { return nil }
+        return n
+    }
     private var debugPeekWindow: Int?? {
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "--peek-window"), i + 1 < args.count else { return nil }
@@ -1675,7 +1681,7 @@ private struct BecomingPreviewHarness: View {
     }
 
     private var scrollContent: some View {
-        let focusBelow = debugPeekMoved != nil || debugPeekDeed != nil
+        let focusBelow = debugPeekMoved != nil || debugPeekDeed != nil || debugPeekInsightIdx != nil
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 BecomingDiaryHero(
@@ -1769,6 +1775,24 @@ private struct BecomingPreviewHarness: View {
                     breathSince: Calendar.current.date(byAdding: .day, value: -22, to: .now),
                     foodNoiseSince: Calendar.current.date(byAdding: .day, value: -30, to: .now),
                     debugInitialRevealed: debugPeekDeed
+                )
+
+                // Phase 4 Day-3 (2026-06-19) — multi-insight swipe
+                // cycle. Three mock insights so the gesture has
+                // something to walk through.
+                BecomingInsightLine(
+                    insights: [
+                        .init(id: "demo-1",
+                              text: "your trend is moving. gently is the point \u{2665}\u{FE0E}",
+                              italic: ["gently"]),
+                        .init(id: "demo-2",
+                              text: "protein led 4 of 6 this week. that's how lean mass stays \u{2661}",
+                              italic: ["lean mass"]),
+                        .init(id: "demo-3",
+                              text: "two weeks of showing up. that's the pattern that bends the line.",
+                              italic: ["pattern"]),
+                    ],
+                    debugInitialIdx: debugPeekInsightIdx
                 )
 
                 Spacer(minLength: 80)

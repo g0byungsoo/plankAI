@@ -1361,8 +1361,8 @@ struct AnalyticsView: View {
             // Closing diary punctuation — one sentence about HER own
             // data, italic punch + breathing shadow. Provenance-gated
             // at the call site (no filler).
-            if let insight = dashboardInsight {
-                BecomingInsightLine(text: insight.text, italic: insight.italic)
+            if !dashboardInsightsRanked.isEmpty {
+                BecomingInsightLine(insights: dashboardInsightsRanked)
                     .padding(.top, 4)
             }
         }
@@ -1749,6 +1749,109 @@ struct AnalyticsView: View {
             }
         }
         return facts
+    }
+
+    /// Phase 4 Day-3 (2026-06-19) — ranked list of insights for the
+    /// swipe cycle. Same provenance gates as dashboardInsight; each
+    /// gate that clears contributes one insight. Capped at 3 so the
+    /// swipe indicator stays readable. Order is priority-descending
+    /// (most-confident first); when only one gate clears the line
+    /// renders without the swipe affordance.
+    private var dashboardInsightsRanked: [BecomingInsight] {
+        var out: [BecomingInsight] = []
+
+        if !hideWeightStats, let toward = paceTowardGoal, toward > 0.02, weighInsThisWeek >= 2 {
+            out.append(.init(
+                id: "trend-pace",
+                text: "your trend is moving. gently is the point \u{2665}\u{FE0E}",
+                italic: ["gently"]
+            ))
+        }
+
+        let routines = sessionLogs.filter { $0.sessionType == "routine" }
+        if routines.count >= 5 {
+            let evening = routines.filter {
+                Calendar.current.component(.hour, from: $0.completedAt) >= 18
+            }.count
+            if Double(evening) / Double(routines.count) >= 0.6 {
+                out.append(.init(
+                    id: "evening-mover",
+                    text: "most of your movement lands after 6pm. evenings are yours \u{2665}\u{FE0E}",
+                    italic: ["yours"]
+                ))
+            }
+        }
+
+        // GLP-1 cohort routing — see dashboardInsight for the original
+        // priority/copy rationale. Each gate adds its line; the swipe
+        // surfaces them in order.
+        if glp1Status == "current" {
+            if let week = foodWeek, week.proteinLedDays >= 3 {
+                out.append(.init(
+                    id: "glp1-protein-led",
+                    text: "protein led \(week.proteinLedDays) of \(week.scanDays) this week. that's how lean mass stays \u{2661}",
+                    italic: ["lean mass"]
+                ))
+            } else if let week = foodWeek, week.scanDays >= 2 {
+                out.append(.init(
+                    id: "glp1-protein-protects",
+                    text: "on your medication, protein is what protects muscle. yours is showing up \u{2665}\u{FE0E}",
+                    italic: ["protein"]
+                ))
+            }
+        }
+        if glp1Status == "triedOff" || glp1Status == "tried_off" {
+            if let week = foodWeek, week.scanDays >= 3 {
+                out.append(.init(
+                    id: "off-relearning",
+                    text: "off the medication, you're relearning your own hunger \u{2661}",
+                    italic: ["relearning"]
+                ))
+            } else if EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs) >= 14 {
+                out.append(.init(
+                    id: "off-two-weeks",
+                    text: "two weeks off, still showing up. that's the muscle \u{2661}",
+                    italic: ["the muscle"]
+                ))
+            }
+        }
+        if glp1Status == "considering" {
+            if EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs) >= 7 {
+                out.append(.init(
+                    id: "considering-week",
+                    text: "a week of habits the medication can't hand you \u{2661}",
+                    italic: ["habits"]
+                ))
+            }
+        }
+        if let week = foodWeek, week.scanDays >= 3, week.proteinLedDays >= 2 {
+            out.append(.init(
+                id: "protein-pattern",
+                text: "protein's been showing up on your plates this week.",
+                italic: ["showing up"]
+            ))
+        }
+        let day = EngagementDayCalculator.daysCompleted(sessionLogs: sessionLogs)
+        if day >= 7 {
+            out.append(.init(
+                id: "engagement-pattern",
+                text: "\(day) days of showing up. that's the pattern that bends the line.",
+                italic: ["pattern"]
+            ))
+        }
+
+        // Session-1 fallback. Only render when nothing else cleared,
+        // so the swipe doesn't surface the fallback line behind real
+        // signal.
+        if out.isEmpty {
+            out.append(.init(
+                id: "fallback-fills-in",
+                text: "this page fills in as you show up \u{2665}\u{FE0E}",
+                italic: ["show up"]
+            ))
+        }
+
+        return Array(out.prefix(3))
     }
 
     /// One rotating sentence about HER data — provenance-gated; when

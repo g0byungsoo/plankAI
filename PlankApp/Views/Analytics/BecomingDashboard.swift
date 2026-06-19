@@ -639,28 +639,133 @@ private struct PlateShareActivityView: UIViewControllerRepresentable {
 
 // MARK: - Insight line (atom 9)
 
-/// One sentence about her own data, italic punch word, optional ♥.
-/// Never a card. Provenance-gated at the call site — if no insight
-/// clears its gate, the line doesn't render.
-struct BecomingInsightLine: View {
+/// Phase 4 Day-3 (2026-06-19) — multi-insight payload for the swipe
+/// cycle. Caller can pass 1 (legacy single-shot) or N (swipeable).
+struct BecomingInsight: Equatable, Identifiable {
+    let id: String
     let text: String
     let italic: [String]
+    init(id: String, text: String, italic: [String]) {
+        self.id = id
+        self.text = text
+        self.italic = italic
+    }
+}
+
+/// One sentence about her own data, italic punch word, optional ♥.
+/// Never a card. Provenance-gated at the call site — if no insight
+/// clears its gate, the line doesn't render. Phase 4 Day-3: when
+/// the caller passes >1 insight, horizontal swipe cycles through
+/// them. A 3-dot indicator surfaces for 1.6s after each swap; no
+/// chrome when only one insight is available.
+struct BecomingInsightLine: View {
+    let insights: [BecomingInsight]
+
+    @State private var currentIdx: Int = 0
+    @State private var indicatorVisible: Bool = false
+    @State private var indicatorHideTask: DispatchWorkItem? = nil
+    /// Harness-only initial index for screenshot capture.
+    var debugInitialIdx: Int? = nil
+
+    /// Legacy single-shot init — kept for the prior call site signature
+    /// (BecomingInsightLine(text:italic:)). Wraps the single payload
+    /// in a 1-element array so the swipe code path no-ops.
+    init(text: String, italic: [String]) {
+        self.insights = [BecomingInsight(id: "single", text: text, italic: italic)]
+    }
+
+    init(insights: [BecomingInsight], debugInitialIdx: Int? = nil) {
+        self.insights = insights
+        self.debugInitialIdx = debugInitialIdx
+    }
+
+    private var current: BecomingInsight? {
+        guard !insights.isEmpty else { return nil }
+        return insights[currentIdx % insights.count]
+    }
 
     var body: some View {
-        ItalicAccentText(
-            text,
-            italic: italic,
-            baseFont: .custom("DMSans-Regular", size: 14),
-            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 14),
-            color: Palette.textPrimary,
-            alignment: .leading
-        )
-        .fixedSize(horizontal: false, vertical: true)
-        // v1.2 (2026-06-18) — Calm-coded breathing shadow on the
-        // closing insight punctuation. Pairs with the matching pulse
-        // on BecomingDiaryHero's spelled-out day numeral so the
-        // surface "breathes" top-to-bottom. Reduce-motion replaces
-        // the pulse with a static dim shadow.
-        .breathingShadow(maxOpacity: 0.05, radius: 6)
+        if let c = current {
+            VStack(alignment: .leading, spacing: 6) {
+                ItalicAccentText(
+                    c.text,
+                    italic: c.italic,
+                    baseFont: .custom("DMSans-Regular", size: 14),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 14),
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .id(c.id)
+                .transition(.opacity)
+                .fixedSize(horizontal: false, vertical: true)
+
+                if insights.count > 1, indicatorVisible {
+                    indicator
+                        .transition(.opacity)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .gesture(insights.count > 1 ? swipeGesture : nil)
+            // v1.2 (2026-06-18) — Calm-coded breathing shadow on the
+            // closing insight punctuation. Pairs with the matching pulse
+            // on BecomingDiaryHero's spelled-out day numeral so the
+            // surface "breathes" top-to-bottom. Reduce-motion replaces
+            // the pulse with a static dim shadow.
+            .breathingShadow(maxOpacity: 0.05, radius: 6)
+            .onAppear {
+                if let n = debugInitialIdx, !insights.isEmpty {
+                    currentIdx = max(0, min(insights.count - 1, n))
+                    indicatorVisible = true
+                }
+            }
+        }
+    }
+
+    /// Phase 4 Day-3 — three-dot triplet, current index highlighted.
+    /// Auto-hides 1.6s after each swap (and on first reveal).
+    @ViewBuilder
+    private var indicator: some View {
+        HStack(spacing: 5) {
+            ForEach(0..<insights.count, id: \.self) { i in
+                Circle()
+                    .fill(i == (currentIdx % insights.count)
+                          ? Palette.cocoaSecondary
+                          : Palette.hairlineCocoa)
+                    .frame(width: 4, height: 4)
+            }
+        }
+    }
+
+    /// Horizontal-drag → cycle. Soft haptic on each swap; vertical
+    /// drag must dominate to stay safe inside the parent ScrollView.
+    private var swipeGesture: some Gesture {
+        DragGesture(minimumDistance: 28)
+            .onEnded { value in
+                let dx = value.translation.width
+                let dy = value.translation.height
+                guard abs(dx) > abs(dy) else { return }
+                Haptics.soft()
+                withAnimation(Motion.crossFade) {
+                    if dx < 0 {
+                        currentIdx = (currentIdx + 1) % insights.count
+                    } else {
+                        currentIdx = (currentIdx - 1 + insights.count) % insights.count
+                    }
+                    indicatorVisible = true
+                }
+                scheduleIndicatorHide()
+            }
+    }
+
+    private func scheduleIndicatorHide() {
+        indicatorHideTask?.cancel()
+        let task = DispatchWorkItem {
+            withAnimation(Motion.crossFade) {
+                indicatorVisible = false
+            }
+        }
+        indicatorHideTask = task
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6, execute: task)
     }
 }
