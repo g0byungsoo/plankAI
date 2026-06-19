@@ -147,7 +147,8 @@ public struct NutritionCarousel: View {
                     fiber: Int(result.items.compactMap { $0.fiberG }.reduce(0, +).rounded()),
                     kcal: Int((result.totalKcal ?? 0).rounded())
                 ),
-                loggedAt: Date()
+                loggedAt: Date(),
+                embedsPhoto: false   // in-app: let the camera frame behind show through
             )}
         }
         .tabViewStyle(.page(indexDisplayMode: .never))

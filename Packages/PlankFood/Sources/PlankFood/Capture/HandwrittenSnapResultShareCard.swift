@@ -32,6 +32,12 @@ public struct HandwrittenSnapResultShareCard: View {
     public let totals: (carbs: Int, protein: Int, fat: Int, fiber: Int, kcal: Int)
     public let loggedAt: Date
     public var archetype: String? = nil
+    /// v1.0.30 (2026-06-19) — when false, the embedded photo is
+    /// skipped and the background goes transparent. NutritionCarousel
+    /// uses this mode so the underlying camera frame shows through
+    /// (no photo-over-photo). The share PNG renderer keeps the
+    /// default `true` so exported artifacts still embed the photo.
+    public var embedsPhoto: Bool = true
 
     public init(
         photo: UIImage,
@@ -40,7 +46,8 @@ public struct HandwrittenSnapResultShareCard: View {
         itemNames: [String],
         totals: (carbs: Int, protein: Int, fat: Int, fiber: Int, kcal: Int),
         loggedAt: Date = Date(),
-        archetype: String? = nil
+        archetype: String? = nil,
+        embedsPhoto: Bool = true
     ) {
         self.photo = photo
         self.mealLabel = mealLabel
@@ -49,15 +56,20 @@ public struct HandwrittenSnapResultShareCard: View {
         self.totals = totals
         self.loggedAt = loggedAt
         self.archetype = archetype
+        self.embedsPhoto = embedsPhoto
     }
 
     public var body: some View {
         ZStack {
-            Image(uiImage: photo)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 1080, height: 1920)
-                .clipped()
+            if embedsPhoto {
+                Image(uiImage: photo)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 1080, height: 1920)
+                    .clipped()
+            } else {
+                Color.clear
+            }
 
             labelOverlay
         }
