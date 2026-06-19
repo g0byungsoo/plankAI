@@ -57,20 +57,20 @@ struct BecomingDiaryHero: View {
         return f.string(from: NSNumber(value: showedUpCount)) ?? "\(showedUpCount)"
     }
 
-    /// v1.3 (2026-06-18) — compressed per her75 typographer panel:
-    /// the prose meta + identity stack collapses into ONE inline
-    /// sidecar row right under the day-name. -22 leading clamps the
-    /// two clusters into one visual unit; the prior 4-line stack
-    /// burned 60-80pt that the dashboard density needed.
+    /// v1.4 (2026-06-18) — Grok-generated pressed flower accent
+    /// nestled top-right of the day-name. Reads as a sticker on a
+    /// magazine cover; founder-locked scatter-milestone rule
+    /// satisfied (this IS one of the 3 earned moments per session).
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            (Text("day ").font(Typo.heroHeadline)
-             + Text(dayWord).font(Typo.heroHeadlineItalic))
-                .foregroundStyle(Palette.textPrimary)
-                .kerning(-0.4)
-                .lineSpacing(Typo.heroHeadlineLineGap)
-                .fixedSize(horizontal: false, vertical: true)
-                .breathingShadow()
+        ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: 2) {
+                (Text("day ").font(Typo.heroHeadline)
+                 + Text(dayWord).font(Typo.heroHeadlineItalic))
+                    .foregroundStyle(Palette.textPrimary)
+                    .kerning(-0.4)
+                    .lineSpacing(Typo.heroHeadlineLineGap)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .breathingShadow()
 
             // Sidecar meta — single dense DM Sans line, kerning +0.1.
             // her75 IMG_6276 convention: tucked-under stat pair in a
@@ -96,85 +96,113 @@ struct BecomingDiaryHero: View {
             .kerning(0.1)
             .padding(.top, 2)
 
-            // Identity line — italic-Fraunces punch word, restraint
-            // register. Kept since it's the brand voice signature.
-            ItalicAccentText(
-                identityLine,
-                italic: identityItalic,
-                baseFont: .custom("DMSans-Regular", size: 14),
-                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15),
-                color: Palette.textPrimary,
-                alignment: .leading
-            )
-            .padding(.top, 6)
+                // Identity line — italic-Fraunces punch word, restraint
+                // register. Kept since it's the brand voice signature.
+                ItalicAccentText(
+                    identityLine,
+                    italic: identityItalic,
+                    baseFont: .custom("DMSans-Regular", size: 14),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15),
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .padding(.top, 6)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Pressed flower accent — Grok-imagined, Vision-cutout to
+            // alpha PNG. Quietly rotated, slightly scaled, soft enough
+            // to register as "this page has a sticker" without
+            // grabbing focus from the day-name.
+            Image("sticker_pressed_flower")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 64, height: 64)
+                .rotationEffect(.degrees(8))
+                .opacity(0.82)
+                .offset(x: 4, y: -10)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 }
 
-// MARK: - BecomingTodayEnergyStrip
+// MARK: - BecomingTodayEnergyTile
 //
-// Cal AI moat in JeniFit voice. Two italic numerals + permission
-// subtext, NO ring, NO red. Per the WL iOS expert: 'in' / 'moved' /
-// 'pace' replaces 'eaten' / 'burned' / 'deficit'. Per the GLP-1
-// expert: the 'moved' number is wordless on the dashboard; only the
-// minutes carry it. Pattern A from the panel.
+// Bento card — one half of the today bento pair (the other half is
+// BecomingProteinTile). Soft cream-elevated chrome, 1.5pt cocoa
+// hairline border, 14pt corners. NO shadow (Chanel/Tiffany restraint
+// per founder lock). The pair sits side-by-side; together they own
+// ~75pt of vertical real estate.
 //
-// Hides entirely when the user has logged nothing today (no point
-// blasting an empty kcal-in number at a session-1 user).
+// Per the WL iOS expert: 'in' / 'moved' / 'pace' replaces 'eaten' /
+// 'burned' / 'deficit'. Per the GLP-1 expert: the 'moved' number is
+// wordless on the dashboard — only the minutes carry it. NO ring,
+// NO red.
 
-struct BecomingTodayEnergyStrip: View {
+struct BecomingTodayEnergyTile: View {
     let eatenKcal: Int
-    let movedMinutes: Int   // breath + workout combined minutes
-    let paceKcalTarget: Int? // nil hides the pace subtext
+    let movedMinutes: Int
+    let paceKcalTarget: Int?
 
     private var paceLine: String? {
         guard let target = paceKcalTarget, target > 0 else { return nil }
         let delta = eatenKcal - target
-        if abs(delta) < 80 {
-            return "right at today's pace"
-        }
-        if delta < 0 {
-            return "\(abs(delta)) under today's pace"
-        }
-        return "\(delta) above today's pace"
+        if abs(delta) < 80 { return "right at pace \u{2661}" }
+        if delta < 0 { return "\(abs(delta)) under pace" }
+        return "\(delta) above pace"
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                numberCell(value: eatenKcal.formatted(), word: "in", accent: true)
-                Rectangle()
-                    .fill(Palette.hairlineCocoa)
-                    .frame(width: 1, height: 36)
-                numberCell(value: "\(movedMinutes)", word: "moved", accent: false)
-                Spacer()
+        VStack(alignment: .leading, spacing: 6) {
+            (Text("TODAY'S ")
+                .font(.custom("DMSans-Medium", size: 11))
+                .kerning(0.66)
+            + Text("ENERGY")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                .kerning(0.4))
+                .foregroundStyle(Palette.cocoaTertiary)
+
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(eatenKcal.formatted())
+                    .font(.custom("JeniHeroSerif-Regular", size: 32))
+                    .foregroundStyle(Palette.cocoaPrimary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                Text("in")
+                    .font(.custom("JeniHeroSerif-Italic", size: 18))
+                    .foregroundStyle(Palette.accent)
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("\(movedMinutes)")
+                    .font(.custom("DMSans-Medium", size: 16))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .monospacedDigit()
+                Text("min moved")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.cocoaTertiary)
             }
             if let paceLine {
                 Text(paceLine)
-                    .font(.custom("DMSans-Regular", size: 12))
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .kerning(0.1)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .padding(.top, 2)
             }
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Palette.bgElevated)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Palette.hairlineCocoa, lineWidth: 1)
+        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(eatenKcal) calories in, \(movedMinutes) minutes moved")
-    }
-
-    @ViewBuilder
-    private func numberCell(value: String, word: String, accent: Bool) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text(value)
-                .font(.custom("DMSans-Medium", size: 36))
-                .foregroundStyle(Palette.cocoaPrimary)
-                .monospacedDigit()
-                .contentTransition(.numericText())
-            Text(word)
-                .font(.custom("JeniHeroSerif-Italic", size: 19))
-                .foregroundStyle(accent ? Palette.accent : Palette.cocoaSecondary)
-        }
     }
 }
 
@@ -189,62 +217,73 @@ struct BecomingTodayEnergyStrip: View {
 //   - 95-120%: "protein, done ♡"
 //   - 120%+: "well-fed today"
 
-struct BecomingProteinGauge: View {
+struct BecomingProteinTile: View {
     let proteinG: Int
-    let targetG: Int    // ≥ 1; caller clamps to 80...150
+    let targetG: Int
 
     private var progress: Double {
         guard targetG > 0 else { return 0 }
         return min(1.0, Double(proteinG) / Double(targetG))
     }
 
-    private var statusWord: (prefix: String, italic: String, suffix: String) {
+    private var statusWord: String {
         let pct = targetG > 0 ? Double(proteinG) / Double(targetG) * 100 : 0
         switch pct {
-        case ..<60:    return ("still ", "time", " today")
-        case ..<95:    return ("muscle ", "stays", ".")
-        case ..<120:   return ("protein, ", "done", " \u{2661}")
-        default:       return ("", "well-fed", " today")
+        case ..<60:    return "still time today"
+        case ..<95:    return "muscle stays"
+        case ..<120:   return "protein, done \u{2661}"
+        default:       return "well-fed today"
         }
+    }
+
+    private var statusColor: Color {
+        let pct = targetG > 0 ? Double(proteinG) / Double(targetG) * 100 : 0
+        return pct >= 95 ? Palette.stateGood : Palette.cocoaSecondary
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("today's ")
-                    .font(.custom("DMSans-Medium", size: 12))
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .kerning(0.4)
-                + Text("protein")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .kerning(0.2)
-                Spacer()
-                let s = statusWord
-                (Text(s.prefix)
-                    .font(.custom("DMSans-Regular", size: 13))
-                + Text(s.italic)
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
-                + Text(s.suffix)
-                    .font(.custom("DMSans-Regular", size: 13)))
-                    .foregroundStyle(Palette.cocoaSecondary)
-            }
+            (Text("TODAY'S ")
+                .font(.custom("DMSans-Medium", size: 11))
+                .kerning(0.66)
+            + Text("PROTEIN")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                .kerning(0.4))
+                .foregroundStyle(Palette.cocoaTertiary)
+
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("\(proteinG)g")
-                    .font(.custom("JeniHeroSerif-Regular", size: 40))
+                Text("\(proteinG)")
+                    .font(.custom("JeniHeroSerif-Regular", size: 32))
                     .foregroundStyle(Palette.cocoaPrimary)
                     .monospacedDigit()
-                Text("of ~\(targetG)g")
-                    .font(.custom("DMSans-Regular", size: 13))
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .kerning(0.1)
-                    .baselineOffset(4)
+                Text("g")
+                    .font(.custom("JeniHeroSerif-Italic", size: 20))
+                    .foregroundStyle(Palette.accent)
             }
-            proteinBar
+            Text("of ~\(targetG)g")
+                .font(.custom("DMSans-Regular", size: 12))
+                .foregroundStyle(Palette.cocoaTertiary)
+
+            proteinBar.padding(.top, 4)
+
+            Text(statusWord)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                .foregroundStyle(statusColor)
+                .padding(.top, 2)
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Palette.bgElevated)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Palette.hairlineCocoa, lineWidth: 1)
+        )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(proteinG) of \(targetG) grams of protein today")
+        .accessibilityLabel("\(proteinG) of \(targetG) grams of protein today, \(statusWord)")
     }
 
     @ViewBuilder private var proteinBar: some View {
@@ -253,7 +292,13 @@ struct BecomingProteinGauge: View {
                 Capsule()
                     .fill(Palette.hairlineCocoa)
                 Capsule()
-                    .fill(Palette.accent)
+                    .fill(
+                        LinearGradient(
+                            colors: [Palette.accent, Palette.accent.opacity(0.7)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                     .frame(width: max(6, geo.size.width * progress))
             }
         }
@@ -272,44 +317,78 @@ struct BecomingMacroRow: View {
     let fat: Int
     let fiber: Int
 
+    private let carbsTarget: Int = 160
+    private let fatTarget: Int = 55
+    private let fiberTarget: Int = 25
+
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
-            cell(value: carbs, label: "carbs")
-            divider
-            cell(value: fat, label: "fat")
-            divider
-            cell(value: fiber, label: "fiber")
+        HStack(alignment: .bottom, spacing: 14) {
+            macroBar(
+                value: carbs,
+                target: carbsTarget,
+                label: "carbs",
+                tint: Palette.textPrimary.opacity(0.55)
+            )
+            macroBar(
+                value: fat,
+                target: fatTarget,
+                label: "fat",
+                tint: Palette.textPrimary.opacity(0.35)
+            )
+            macroBar(
+                value: fiber,
+                target: fiberTarget,
+                label: "fiber",
+                tint: Palette.stateGood.opacity(0.85)
+            )
         }
         .frame(maxWidth: .infinity)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Palette.bgElevated)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Palette.hairlineCocoa, lineWidth: 1)
+        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Today: \(carbs)g carbs, \(fat)g fat, \(fiber)g fiber")
     }
 
-    @ViewBuilder private func cell(value: Int, label: String) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
+    /// Each macro: numeral on top → tiny vertical fill bar → label.
+    /// Bar height encodes percentage of a soft target (carbs 160g,
+    /// fat 55g, fiber 25g). Caps at 100% — never overflow visually.
+    @ViewBuilder
+    private func macroBar(value: Int, target: Int, label: String, tint: Color) -> some View {
+        let progress = min(1.0, max(0.08, Double(value) / Double(target)))
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 1) {
                 Text("\(value)")
-                    .font(.custom("DMSans-Medium", size: 20))
+                    .font(.custom("JeniHeroSerif-Regular", size: 22))
                     .foregroundStyle(Palette.cocoaPrimary)
                     .monospacedDigit()
                 Text("g")
-                    .font(.custom("DMSans-Regular", size: 13))
+                    .font(.custom("DMSans-Regular", size: 12))
                     .foregroundStyle(Palette.cocoaTertiary)
             }
+            // The fill bar — vertical capsule with proportional fill.
+            ZStack(alignment: .bottom) {
+                Capsule()
+                    .fill(Palette.hairlineCocoa)
+                    .frame(width: 5, height: 28)
+                Capsule()
+                    .fill(tint)
+                    .frame(width: 5, height: 28 * CGFloat(progress))
+            }
             Text(label)
-                .font(.custom("DMSans-Regular", size: 11))
+                .font(.custom("DMSans-Regular", size: 10))
                 .foregroundStyle(Palette.cocoaTertiary)
-                .kerning(0.66)
+                .kerning(0.6)
                 .textCase(.uppercase)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    @ViewBuilder private var divider: some View {
-        Rectangle()
-            .fill(Palette.hairlineCocoa)
-            .frame(width: 1)
-            .padding(.vertical, 1)
     }
 }
 
@@ -332,38 +411,85 @@ struct BecomingMovedStrip: View {
 
     var body: some View {
         if hasAnything {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 14) {
-                    if steps > 0 { stat(value: "\(steps.formatted())", label: "steps") }
-                    if workoutMinutes > 0 { stat(value: "\(workoutMinutes)", label: "min plank") }
-                    if breathMinutes > 0 { stat(value: "\(breathMinutes)", label: "min breath") }
-                    Spacer()
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .center, spacing: 0) {
+                    iconStat(
+                        glyph: "figure.walk",
+                        value: steps.formatted(),
+                        unit: "steps",
+                        show: steps > 0
+                    )
+                    if steps > 0 && (workoutMinutes > 0 || breathMinutes > 0) {
+                        divider
+                    }
+                    iconStat(
+                        glyph: "figure.core.training",
+                        value: "\(workoutMinutes)",
+                        unit: "min plank",
+                        show: workoutMinutes > 0
+                    )
+                    if workoutMinutes > 0 && breathMinutes > 0 {
+                        divider
+                    }
+                    iconStat(
+                        glyph: "lungs.fill",
+                        value: "\(breathMinutes)",
+                        unit: "min breath",
+                        show: breathMinutes > 0
+                    )
                 }
-                Text(closingLine)
-                    .font(.custom("DMSans-Regular", size: 12))
-                    .foregroundStyle(Palette.cocoaTertiary)
+                (
+                    Text("body used some of what you ")
+                        .font(.custom("DMSans-Regular", size: 12))
+                    + Text("fed")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                    + Text(" it \u{2661}")
+                        .font(.custom("DMSans-Regular", size: 12))
+                )
+                .foregroundStyle(Palette.cocoaTertiary)
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Palette.bgElevated)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Palette.hairlineCocoa, lineWidth: 1)
+            )
             .accessibilityElement(children: .combine)
         }
     }
 
-    private var closingLine: AttributedString {
-        var s = AttributedString("body used some of what you fed it \u{2661}")
-        s.font = .custom("Fraunces72pt-SemiBoldItalic", size: 13)
-        return s
+    @ViewBuilder
+    private func iconStat(glyph: String, value: String, unit: String, show: Bool) -> some View {
+        if show {
+            HStack(alignment: .center, spacing: 8) {
+                Image(systemName: glyph)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(Palette.accent.opacity(0.85))
+                    .frame(width: 22, height: 22)
+                    .background(Circle().fill(Palette.accentSubtle.opacity(0.6)))
+                VStack(alignment: .leading, spacing: -2) {
+                    Text(value)
+                        .font(.custom("DMSans-Medium", size: 15))
+                        .foregroundStyle(Palette.cocoaPrimary)
+                        .monospacedDigit()
+                    Text(unit)
+                        .font(.custom("DMSans-Regular", size: 11))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
-    @ViewBuilder private func stat(value: String, label: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text(value)
-                .font(.custom("DMSans-Medium", size: 18))
-                .foregroundStyle(Palette.cocoaPrimary)
-                .monospacedDigit()
-            Text(label)
-                .font(.custom("DMSans-Regular", size: 12))
-                .foregroundStyle(Palette.cocoaTertiary)
-        }
+    @ViewBuilder private var divider: some View {
+        Rectangle()
+            .fill(Palette.hairlineCocoa)
+            .frame(width: 1, height: 24)
     }
 }
 
@@ -477,35 +603,36 @@ struct BecomingPlateTimelineToday: View {
 struct BecomingDeedsCounter: View {
     let plates: Int
     let lessons: Int
-    let breathMinutes: Int   // optional — pass 0 to hide
+    let breathMinutes: Int
 
     private var foodNoiseHours: Int {
         let minutes = lessons * 10 + (breathMinutes / 12)
         return minutes / 60
     }
 
-    /// v1.3 (2026-06-18) — compressed per panel synthesis. The 3-row
-    /// stack ate ~120pt that the dashboard density needed. Now: 2x2
-    /// statLabel + numeral grid (her75 typographer's spec) with the
-    /// food-noise-quieted line as the closing italic beat (GLP-1
-    /// expert's signature module — competitive whitespace).
+    /// v1.4 (2026-06-18) — visual bento 2x2 + closing italic.
+    /// Each cell is a tiny card so the cumulative-deeds register
+    /// reads as a scrapbook page, not a stat row. Soft elevation
+    /// chrome (bgElevated + hairline cocoa border, no shadow).
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 0) {
-                cell(value: "\(plates)", label: "plates kept")
-                divider
-                cell(value: "\(lessons)", label: "lessons read")
-                if breathMinutes > 0 {
-                    divider
-                    cell(value: "\(breathMinutes)", label: "min breath")
+        VStack(alignment: .leading, spacing: 10) {
+            Text("kept")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                .foregroundStyle(Palette.cocoaSecondary)
+
+            VStack(spacing: 10) {
+                HStack(spacing: 10) {
+                    cellCard(value: "\(plates)", label: "plates kept")
+                    cellCard(value: "\(lessons)", label: "lessons read")
                 }
-            }
-            if foodNoiseHours > 0 {
-                (Text("food noise: ")
-                    .font(.custom("DMSans-Regular", size: 13))
-                + Text("\(foodNoiseHours) hours quieted")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14)))
-                    .foregroundStyle(Palette.cocoaSecondary)
+                HStack(spacing: 10) {
+                    cellCard(value: "\(breathMinutes)", label: "min of breath")
+                    cellCard(
+                        value: "\(foodNoiseHours)h",
+                        label: "food noise quieted",
+                        accent: foodNoiseHours > 0
+                    )
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -514,26 +641,29 @@ struct BecomingDeedsCounter: View {
     }
 
     @ViewBuilder
-    private func cell(value: String, label: String) -> some View {
+    private func cellCard(value: String, label: String, accent: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value)
-                .font(.custom("JeniHeroSerif-Regular", size: 30))
-                .foregroundStyle(Palette.cocoaPrimary)
+                .font(.custom("JeniHeroSerif-Regular", size: 28))
+                .foregroundStyle(accent ? Palette.accent : Palette.cocoaPrimary)
                 .monospacedDigit()
             Text(label)
                 .font(.custom("DMSans-Regular", size: 11))
                 .foregroundStyle(Palette.cocoaTertiary)
-                .kerning(0.66)
+                .kerning(0.6)
                 .textCase(.uppercase)
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    @ViewBuilder private var divider: some View {
-        Rectangle()
-            .fill(Palette.hairlineCocoa)
-            .frame(width: 1)
-            .padding(.vertical, 2)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Palette.bgElevated)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Palette.hairlineCocoa, lineWidth: 1)
+        )
     }
 
     private var a11yLabel: String {

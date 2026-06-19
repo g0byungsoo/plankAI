@@ -1161,29 +1161,27 @@ struct AnalyticsView: View {
             // plate timeline, trend canvas, moved stripe. Compact
             // deeds counter lands at the foot.
 
-            // 1. Today's energy — Cal AI moat in JeniFit voice. No
-            //    ring, no red, "in/moved/pace" replaces the diet-
-            //    culture register. Hidden when she has no food logged
-            //    today + no movement (session-1 user).
+            // 1-2. Bento pair — today's energy + today's protein.
+            //   Side-by-side cards with hairline-cocoa chrome. NO
+            //   ring, NO red. The GLP-1 cohort wedge sits in the
+            //   right tile with status-by-percentage copy.
             if todayFoodMacros.kcal > 0 || todayMovedMinutes > 0 {
-                BecomingTodayEnergyStrip(
-                    eatenKcal: Int(todayFoodMacros.kcal.rounded()),
-                    movedMinutes: todayMovedMinutes,
-                    paceKcalTarget: todayKcalPaceTarget
-                )
+                HStack(alignment: .top, spacing: 10) {
+                    BecomingTodayEnergyTile(
+                        eatenKcal: Int(todayFoodMacros.kcal.rounded()),
+                        movedMinutes: todayMovedMinutes,
+                        paceKcalTarget: todayKcalPaceTarget
+                    )
+                    if let target = proteinTargetG {
+                        BecomingProteinTile(
+                            proteinG: Int(todayFoodMacros.protein.rounded()),
+                            targetG: target
+                        )
+                    } else {
+                        Color.clear
+                    }
+                }
                 .padding(.top, 4)
-            }
-
-            // 2. Protein-first gauge — the GLP-1 cohort wedge.
-            //    NO ring (Apple Activity = guilt). Status word
-            //    rotates by % hit: "still time today" / "muscle
-            //    stays" / "protein, done ♡" / "well-fed today".
-            if todayFoodMacros.kcal > 0, let target = proteinTargetG {
-                BecomingProteinGauge(
-                    proteinG: Int(todayFoodMacros.protein.rounded()),
-                    targetG: target
-                )
-                .padding(.top, 2)
             }
 
             // 3. Macros — carbs · fat · fiber (protein leads in #2).

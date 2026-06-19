@@ -1294,7 +1294,7 @@ private struct BecomingPreviewHarness: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 14) {
                 BecomingDiaryHero(
                     dayNumber: 33,
                     totalDays: 84,
@@ -1303,14 +1303,17 @@ private struct BecomingPreviewHarness: View {
                     identityLine: "becoming steady.",
                     identityItalic: ["steady"]
                 )
+                .padding(.bottom, 4)
 
-                BecomingTodayEnergyStrip(
-                    eatenKcal: 1247,
-                    movedMinutes: 23,
-                    paceKcalTarget: 1580
-                )
-
-                BecomingProteinGauge(proteinG: 67, targetG: 95)
+                // Bento pair: today's energy + today's protein
+                HStack(alignment: .top, spacing: 10) {
+                    BecomingTodayEnergyTile(
+                        eatenKcal: 1247,
+                        movedMinutes: 23,
+                        paceKcalTarget: 1580
+                    )
+                    BecomingProteinTile(proteinG: 67, targetG: 95)
+                }
 
                 BecomingMacroRow(carbs: 142, fat: 38, fiber: 18)
 
