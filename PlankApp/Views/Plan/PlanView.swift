@@ -200,10 +200,22 @@ struct PlanView: View {
     /// running ticker.
     @AppStorage("lastRecapShownDateKey") private var lastRecapShownDateKey: String = ""
 
+    /// Phase 3 — Unix timestamp of the previous PlanView appearance.
+    /// Drives the welcome-back line when a multi-day gap is detected.
+    /// Updated to "now" on every appearance, so the value reflects
+    /// the gap until the NEXT visit.
+    @AppStorage("lastPlanAppearAt") private var lastPlanAppearAt: Double = 0
+
     /// Phase 3 — whether to show the yesterday recap in the current
     /// render. Captured at first appearance so the line stays during
     /// the session even after we persist lastRecapShownDateKey.
     @State private var showYesterdayRecapThisSession: Bool = false
+
+    /// Phase 3 — days since the last PlanView appearance, captured
+    /// at .onAppear. Drives the welcome-back line in place of the
+    /// recap when >= 3. Captured-once so the line stays through the
+    /// session even as we update lastPlanAppearAt.
+    @State private var welcomeBackDaysAway: Int = 0
 
     var body: some View {
         ZStack {
@@ -750,9 +762,19 @@ struct PlanView: View {
             // today's plan. Auto-dismisses after the first visit
             // per Panel 4 anti-nagging lock; gated to viewingDay
             // == nil so it never surfaces on past-day exploration.
-            if viewingDay == nil,
-               showYesterdayRecapThisSession,
-               let kind = yesterdayRecapKind {
+            // v1.0.35 Home Phase 3 (2026-06-19) — re-engagement
+            // wins the slot. When she returns after a 3+-day gap,
+            // surface the welcome-back line instead of the recap.
+            // The recap is for morning continuity; welcome-back is
+            // for "she's back," which is the bigger moment.
+            if viewingDay == nil, welcomeBackDaysAway >= 3 {
+                HomeWelcomeBackLine(daysAway: welcomeBackDaysAway)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 14)
+                    .modernEntrance(animateIn, delay: 0.04)
+            } else if viewingDay == nil,
+                      showYesterdayRecapThisSession,
+                      let kind = yesterdayRecapKind {
                 HomeYesterdayRecapLine(kind: kind, cohort: recapCohort)
                     .padding(.horizontal, 20)
                     .padding(.top, 14)
@@ -1220,6 +1242,23 @@ struct PlanView: View {
                 lastRecapShownDateKey = today
             }
         }
+
+        // Phase 3 — welcome-back detection. Compute the gap BEFORE
+        // updating the timestamp so we capture the right delta.
+        // Only counts when she opens PlanView on a different
+        // calendar day from the last appearance (not seconds later
+        // in the same session).
+        if viewingDay == nil, lastPlanAppearAt > 0 {
+            let prev = Date(timeIntervalSince1970: lastPlanAppearAt)
+            let cal = Calendar.current
+            let prevDay = cal.startOfDay(for: prev)
+            let today = cal.startOfDay(for: .now)
+            if let gap = cal.dateComponents([.day], from: prevDay, to: today).day,
+               gap >= 3 {
+                welcomeBackDaysAway = gap
+            }
+        }
+        lastPlanAppearAt = Date.now.timeIntervalSince1970
     }
 
     private func refreshTodayFood() {

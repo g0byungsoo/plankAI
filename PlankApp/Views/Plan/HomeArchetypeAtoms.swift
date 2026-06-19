@@ -104,6 +104,50 @@ struct HomeShowsUpLine: View {
     }
 }
 
+// MARK: - HomeWelcomeBackLine
+//
+// Home Phase 3 retention atom (2026-06-19). Re-engagement line
+// that surfaces when the user returns after a multi-day absence.
+// Sits in the same vertical slot as the yesterday recap (only
+// one of the two ever renders), and takes priority — recap is
+// for the morning continuity beat; welcome-back is for the
+// "she's back" moment, which is bigger.
+//
+// Tone: warm + non-judgmental. No "we missed you," no "where
+// have you been," no shame about the gap. Panel 4 lock.
+
+struct HomeWelcomeBackLine: View {
+
+    /// Days since the last PlanView appearance. Drives the sentence
+    /// variant — short gap (3-6) gets a soft "welcome back"; medium
+    /// (7-13) gets warmer language; long (14+) leans into the
+    /// permission frame.
+    let daysAway: Int
+
+    private var sentence: (prefix: String, italic: String, suffix: String) {
+        switch daysAway {
+        case ..<7:
+            return ("", "welcome back", " \u{2661}")
+        case 7..<14:
+            return ("happy you're ", "here", " \u{2661}")
+        default:
+            return ("ready when ", "you are", " \u{2661}")
+        }
+    }
+
+    var body: some View {
+        let s = sentence
+        (Text(s.prefix)
+            .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
+        + Text(s.italic)
+            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14, relativeTo: .footnote))
+        + Text(s.suffix)
+            .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote)))
+            .foregroundStyle(Palette.cocoaTertiary)
+            .accessibilityLabel("\(s.prefix)\(s.italic)\(s.suffix)")
+    }
+}
+
 // MARK: - HomeYesterdayRecapLine
 //
 // Home Phase 3 retention atom (2026-06-19). First-of-day morning

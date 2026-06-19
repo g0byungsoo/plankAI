@@ -1469,16 +1469,24 @@ private struct HomePhase1PreviewHarness: View {
                         .padding(.horizontal, 20)
 
                     VStack(alignment: .leading, spacing: 14) {
-                        if !isPastDay, let recap = simulateRecap {
-                            let cohort: YesterdayRecapCohort = {
-                                if glp1IsCurrent { return .glp1Current }
-                                let args = ProcessInfo.processInfo.arguments
-                                if args.contains("--restrictive") { return .restrictiveRisk }
-                                return .default
-                            }()
-                            HomeYesterdayRecapLine(kind: recap, cohort: cohort)
-                                .padding(.horizontal, 20)
-                                .padding(.top, 14)
+                        if !isPastDay {
+                            let args = ProcessInfo.processInfo.arguments
+                            if let i = args.firstIndex(of: "--away"),
+                               i + 1 < args.count,
+                               let days = Int(args[i + 1]), days >= 3 {
+                                HomeWelcomeBackLine(daysAway: days)
+                                    .padding(.horizontal, 20)
+                                    .padding(.top, 14)
+                            } else if let recap = simulateRecap {
+                                let cohort: YesterdayRecapCohort = {
+                                    if glp1IsCurrent { return .glp1Current }
+                                    if args.contains("--restrictive") { return .restrictiveRisk }
+                                    return .default
+                                }()
+                                HomeYesterdayRecapLine(kind: recap, cohort: cohort)
+                                    .padding(.horizontal, 20)
+                                    .padding(.top, 14)
+                            }
                         }
 
                         HomeArchetypeHeader(
