@@ -50,6 +50,11 @@ public struct NutritionCarousel: View {
     /// Defaults to a no-op so existing call-sites don't need to pass
     /// it.
     let onCorrect: (CapturedFood) -> Void
+    /// v1.0.32 (2026-06-19) — forwarded to ResultDecisionCard so the
+    /// in-app slide 1 can drive tap-to-edit on an ingredient row + the
+    /// `+ pair` action chip next to the protein adequacy stamp.
+    var onEditItem: ((Int) -> Void)? = nil
+    var onLogPair: ((String) -> Void)? = nil
 
     @State private var currentPage: Int = 0
     @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 0
@@ -95,7 +100,9 @@ public struct NutritionCarousel: View {
         mealLabel: String = "",
         dishName: String = "",
         carouselHeight: CGFloat = 500,
-        onCorrect: @escaping (CapturedFood) -> Void = { _ in }
+        onCorrect: @escaping (CapturedFood) -> Void = { _ in },
+        onEditItem: ((Int) -> Void)? = nil,
+        onLogPair: ((String) -> Void)? = nil
     ) {
         self.result = result
         self.photo = photo
@@ -103,6 +110,8 @@ public struct NutritionCarousel: View {
         self.dishName = dishName
         self.carouselHeight = carouselHeight
         self.onCorrect = onCorrect
+        self.onEditItem = onEditItem
+        self.onLogPair = onLogPair
         // Debug-only: `--carousel-page=N` jumps to slide N (0/1)
         // for screenshot capture in the result-carousel harness.
         if let arg = ProcessInfo.processInfo.arguments.first(where: {
@@ -132,7 +141,9 @@ public struct NutritionCarousel: View {
             slideTab(index: 0) { ResultDecisionCard(
                 result: result,
                 mealLabel: mealLabel.isEmpty ? "today" : mealLabel,
-                dishName: dishName
+                dishName: dishName,
+                onEditItem: onEditItem,
+                onLogPair: onLogPair
             )}
 
             slideTab(index: 1) { HandwrittenSnapResultShareCard(

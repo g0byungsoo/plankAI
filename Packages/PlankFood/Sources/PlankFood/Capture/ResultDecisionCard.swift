@@ -50,6 +50,11 @@ struct ResultDecisionCard: View {
     let dishName: String
     var loggedAt: Date = Date()
     var onEditItem: ((Int) -> Void)? = nil
+    /// v1.0.32 (2026-06-19) — fired when the inline `+ pair` action
+    /// chip is tapped on the protein adequacy stamp. Receives the
+    /// smart-pair punch word (e.g. "boiled egg") so the caller can
+    /// pre-fill the food capture / quick-add with the suggestion.
+    var onLogPair: ((String) -> Void)? = nil
 
     @State private var revealedSteps: Int = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -112,12 +117,19 @@ struct ResultDecisionCard: View {
             )
     }
 
+    /// v1.0.32 (2026-06-19) — Whoop's 80ms perceptual lag between
+    /// zones. The first zone (meta row) lands free; every following
+    /// zone arrives 80ms after the previous lands. Cause precedes
+    /// effect: meta reveals, then kcal hero, then protein, then
+    /// ingredients, etc. The CountUpNumber's own onAppear roll
+    /// (0.9s + curtsy) layers on top, naturally lagging the visual
+    /// primary by ~80ms because the card cascade already moved.
     private func startCascade() {
         if reduceMotion { revealedSteps = 10; return }
         revealedSteps = 0
         for i in 0...9 {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.07 * Double(i)) {
-                withAnimation(.easeOut(duration: 0.40)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08 * Double(i)) {
+                withAnimation(.easeOut(duration: 0.42)) {
                     revealedSteps = max(revealedSteps, i)
                 }
             }
@@ -282,9 +294,47 @@ struct ResultDecisionCard: View {
                 .foregroundStyle(textSecondary)
                 .baselineOffset(14)
             Spacer(minLength: 0)
-            adequacyStamp
+            VStack(alignment: .trailing, spacing: 10) {
+                adequacyStamp
+                if let punch = pairActionPunch {
+                    pairActionChip(punch)
+                }
+            }
         }
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Returns the punch word from smartPair when it exists AND the
+    /// action would actually move the user toward a meaningful goal
+    /// (only show the chip on protein-gap and fiber-gap pairs; the
+    /// fat-balance variant isn't a logging action).
+    private var pairActionPunch: String? {
+        guard let pair = smartPair else { return nil }
+        let punch = pair.punch.lowercased()
+        if punch.contains("egg") || punch.contains("berries") { return pair.punch }
+        return nil
+    }
+
+    @ViewBuilder
+    private func pairActionChip(_ punch: String) -> some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            onLogPair?(punch)
+        } label: {
+            (
+                Text("+ ")
+                    .font(.custom("DMSans-Medium", size: 28))
+                + Text(punch)
+                    .font(.custom("JeniHeroSerif-Italic", size: 30))
+            )
+            .foregroundStyle(accent)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+            .background(Capsule().fill(Color.white.opacity(0.85)))
+            .overlay(Capsule().stroke(accent.opacity(0.55), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("add a \(punch) later")
     }
 
     /// Single-word stamp reading the protein adequacy. Cohort-routed:
@@ -348,8 +398,20 @@ struct ResultDecisionCard: View {
                             .font(.custom("DMSans-Regular", size: 30))
                             .foregroundStyle(textPrimary.opacity(0.45))
                             .monospacedDigit()
+                        if onEditItem != nil {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 22, weight: .regular))
+                                .foregroundStyle(textPrimary.opacity(0.35))
+                                .padding(.leading, 10)
+                        }
                     }
                     .padding(.vertical, 12)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        guard let onEditItem else { return }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        onEditItem(idx)
+                    }
                     if idx < items.count - 1 {
                         Rectangle()
                             .fill(textPrimary.opacity(0.08))

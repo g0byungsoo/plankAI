@@ -1171,7 +1171,7 @@ private struct ResultCarouselPreviewHarness: View {
             usdaSearchTerms: ["scrambled eggs"],
             preparation: "pan", cuisineHint: "american",
             confidence: 0.92, notes: "",
-            kcal: 180, proteinG: 14, carbsG: 2, fatG: 12, fiberG: 0,
+            kcal: 180, proteinG: 10, carbsG: 2, fatG: 12, fiberG: 0,
             nutritionSource: .llmDirect,
             sugarG: 1, sodiumMg: 240, saturatedFatG: 4
         ),
@@ -1255,7 +1255,9 @@ private struct ResultCarouselPreviewHarness: View {
                     photo: Self.mockPhoto,
                     mealLabel: "Breakfast",
                     dishName: "morning plate",
-                    carouselHeight: geo.size.height - 60
+                    carouselHeight: geo.size.height - 60,
+                    onEditItem: { _ in },
+                    onLogPair: { _ in }
                 )
                 .padding(.top, 50)
             }

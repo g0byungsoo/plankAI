@@ -948,6 +948,14 @@ public struct PhotoCaptureView: View {
                                     shareableImage = shareableSlides.first?.uiImage
                                 }
                             }
+                        },
+                        // v1.0.32 (2026-06-19) — pair chip tap closes
+                        // the camera + bounces the user into quick-
+                        // add with the suggestion punch in mind. Re-
+                        // uses the existing onQuickAddTapped path.
+                        onLogPair: { _ in
+                            camera.unfreezePreview()
+                            onQuickAddTapped()
                         }
                     )
 
