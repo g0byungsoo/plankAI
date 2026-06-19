@@ -57,20 +57,18 @@ struct BecomingDiaryHero: View {
         return f.string(from: NSNumber(value: showedUpCount)) ?? "\(showedUpCount)"
     }
 
-    /// v1.4 (2026-06-18) — Grok-generated pressed flower accent
-    /// nestled top-right of the day-name. Reads as a sticker on a
-    /// magazine cover; founder-locked scatter-milestone rule
-    /// satisfied (this IS one of the 3 earned moments per session).
+    /// v1.6.1 — flower sticker dropped per founder feedback. The
+    /// diary hero stays type-only; restraint reads as the her75
+    /// brand voice instead of the magazine sticker register.
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            VStack(alignment: .leading, spacing: 2) {
-                (Text("day ").font(Typo.heroHeadline)
-                 + Text(dayWord).font(Typo.heroHeadlineItalic))
-                    .foregroundStyle(Palette.textPrimary)
-                    .kerning(-0.4)
-                    .lineSpacing(Typo.heroHeadlineLineGap)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .breathingShadow()
+        VStack(alignment: .leading, spacing: 2) {
+            (Text("day ").font(Typo.heroHeadline)
+             + Text(dayWord).font(Typo.heroHeadlineItalic))
+                .foregroundStyle(Palette.textPrimary)
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+                .breathingShadow()
 
             // Sidecar meta — single dense DM Sans line, kerning +0.1.
             // her75 IMG_6276 convention: tucked-under stat pair in a
@@ -96,34 +94,19 @@ struct BecomingDiaryHero: View {
             .kerning(0.1)
             .padding(.top, 2)
 
-                // Identity line — italic-Fraunces punch word, restraint
-                // register. Kept since it's the brand voice signature.
-                ItalicAccentText(
-                    identityLine,
-                    italic: identityItalic,
-                    baseFont: .custom("DMSans-Regular", size: 14),
-                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15),
-                    color: Palette.textPrimary,
-                    alignment: .leading
-                )
-                .padding(.top, 6)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Pressed flower accent — Grok-imagined, Vision-cutout to
-            // alpha PNG. Quietly rotated, slightly scaled, soft enough
-            // to register as "this page has a sticker" without
-            // grabbing focus from the day-name.
-            Image("sticker_pressed_flower")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 64, height: 64)
-                .rotationEffect(.degrees(8))
-                .opacity(0.82)
-                .offset(x: 4, y: -10)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+            // Identity line — italic-Fraunces punch word, restraint
+            // register. Kept since it's the brand voice signature.
+            ItalicAccentText(
+                identityLine,
+                italic: identityItalic,
+                baseFont: .custom("DMSans-Regular", size: 14),
+                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15),
+                color: Palette.textPrimary,
+                alignment: .leading
+            )
+            .padding(.top, 6)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 }
@@ -502,11 +485,10 @@ struct BecomingPlateTimelineToday: View {
     }()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("today on her plate")
-                .font(.custom("DMSans-Medium", size: 12))
+        VStack(alignment: .leading, spacing: 10) {
+            Text("on her plate")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                 .foregroundStyle(Palette.cocoaTertiary)
-                .kerning(0.4)
             HStack(alignment: .top, spacing: 10) {
                 ForEach(Array(plates.prefix(4).enumerated()), id: \.element.id) { _, p in
                     plateTile(p)
@@ -518,6 +500,7 @@ struct BecomingPlateTimelineToday: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .luxuryCard()
     }
 
     @ViewBuilder
