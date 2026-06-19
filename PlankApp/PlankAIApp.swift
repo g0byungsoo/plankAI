@@ -1634,6 +1634,11 @@ private struct BecomingPreviewHarness: View {
         default:          return nil
         }
     }
+    private var debugPeekPlateDelete: String? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "--peek-plate-delete"), i + 1 < args.count else { return nil }
+        return args[i + 1]
+    }
     private var debugPeekInsightIdx: Int? {
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "--peek-insight"), i + 1 < args.count,
@@ -1681,70 +1686,75 @@ private struct BecomingPreviewHarness: View {
     }
 
     private var scrollContent: some View {
-        let focusBelow = debugPeekMoved != nil || debugPeekDeed != nil || debugPeekInsightIdx != nil
+        let focusBelow = debugPeekMoved != nil || debugPeekDeed != nil || debugPeekInsightIdx != nil || debugPeekPlateDelete != nil
+        let focusPlate = debugPeekPlateDelete != nil
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                BecomingDiaryHero(
-                    dayNumber: 33,
-                    totalDays: 84,
-                    dateRange: "apr 2 → jun 25",
-                    showedUpCount: 28,
-                    identityLine: "becoming steady.",
-                    identityItalic: ["steady"]
-                )
-                .padding(.bottom, 4)
-
-                // Phase 4 demo wiring (2026-06-19) — week row + recaps
-                // so the dot-tap interaction has data to surface.
-                BecomingWeekRow(
-                    states: [.done, .done, .done, .open, .done, .done, .todayDone],
-                    doneCount: 6,
-                    archetypes: [.protein, .balanced, .movement, .protein, .balanced, .rest, .protein],
-                    recaps: [
-                        .init(weekdayName: "thursday", plates: 2, rituals: 1, weightLogged: false),
-                        .init(weekdayName: "friday", plates: 3, rituals: 1, weightLogged: true),
-                        .init(weekdayName: "saturday", plates: 1, rituals: 0, weightLogged: false),
-                        .init(weekdayName: "sunday", plates: 0, rituals: 0, weightLogged: false),
-                        .init(weekdayName: "monday", plates: 2, rituals: 1, weightLogged: false),
-                        .init(weekdayName: "yesterday", plates: 0, rituals: 1, weightLogged: false),
-                        .init(weekdayName: "today", plates: 2, rituals: 1, weightLogged: true),
-                    ],
-                    debugInitialSelectedIdx: debugPeekDay
-                )
-
-                // Bento pair: today's energy + today's protein
-                HStack(alignment: .top, spacing: 10) {
-                    BecomingTodayEnergyTile(
-                        eatenKcal: 1247,
-                        movedMinutes: 23,
-                        paceKcalTarget: 1580
+                if !focusPlate {
+                    BecomingDiaryHero(
+                        dayNumber: 33,
+                        totalDays: 84,
+                        dateRange: "apr 2 → jun 25",
+                        showedUpCount: 28,
+                        identityLine: "becoming steady.",
+                        identityItalic: ["steady"]
                     )
-                    BecomingProteinTile(
-                        proteinG: 67,
-                        targetG: 95,
-                        sources: debugPeekProtein ? [
-                            .init(entryId: "mock-1", proteinG: 32),
-                            .init(entryId: "mock-2", proteinG: 21),
-                            .init(entryId: "mock-3", proteinG: 14),
-                        ] : nil,
-                        debugInitialPeeking: debugPeekProtein
-                    )
+                    .padding(.bottom, 4)
                 }
 
-                BecomingMacroRow(
-                    protein: 67,
-                    carbs: 142,
-                    fat: 38,
-                    fiber: 18,
-                    debugInitialSelected: debugPeekMacro
-                )
+                if !focusPlate {
+                    // Phase 4 demo wiring (2026-06-19) — week row + recaps
+                    // so the dot-tap interaction has data to surface.
+                    BecomingWeekRow(
+                        states: [.done, .done, .done, .open, .done, .done, .todayDone],
+                        doneCount: 6,
+                        archetypes: [.protein, .balanced, .movement, .protein, .balanced, .rest, .protein],
+                        recaps: [
+                            .init(weekdayName: "thursday", plates: 2, rituals: 1, weightLogged: false),
+                            .init(weekdayName: "friday", plates: 3, rituals: 1, weightLogged: true),
+                            .init(weekdayName: "saturday", plates: 1, rituals: 0, weightLogged: false),
+                            .init(weekdayName: "sunday", plates: 0, rituals: 0, weightLogged: false),
+                            .init(weekdayName: "monday", plates: 2, rituals: 1, weightLogged: false),
+                            .init(weekdayName: "yesterday", plates: 0, rituals: 1, weightLogged: false),
+                            .init(weekdayName: "today", plates: 2, rituals: 1, weightLogged: true),
+                        ],
+                        debugInitialSelectedIdx: debugPeekDay
+                    )
 
-                BecomingTrendCanvas(
-                    logs: mockLogs,
-                    goalWeightKg: 66.0,
-                    unit: .lb,
-                    debugInitialWindowDays: debugPeekWindow
-                )
+                    // Bento pair: today's energy + today's protein
+                    HStack(alignment: .top, spacing: 10) {
+                        BecomingTodayEnergyTile(
+                            eatenKcal: 1247,
+                            movedMinutes: 23,
+                            paceKcalTarget: 1580
+                        )
+                        BecomingProteinTile(
+                            proteinG: 67,
+                            targetG: 95,
+                            sources: debugPeekProtein ? [
+                                .init(entryId: "mock-1", proteinG: 32),
+                                .init(entryId: "mock-2", proteinG: 21),
+                                .init(entryId: "mock-3", proteinG: 14),
+                            ] : nil,
+                            debugInitialPeeking: debugPeekProtein
+                        )
+                    }
+
+                    BecomingMacroRow(
+                        protein: 67,
+                        carbs: 142,
+                        fat: 38,
+                        fiber: 18,
+                        debugInitialSelected: debugPeekMacro
+                    )
+
+                    BecomingTrendCanvas(
+                        logs: mockLogs,
+                        goalWeightKg: 66.0,
+                        unit: .lb,
+                        debugInitialWindowDays: debugPeekWindow
+                    )
+                }
 
                 BecomingPlateTimelineToday(
                     plates: [
@@ -1753,7 +1763,9 @@ private struct BecomingPreviewHarness: View {
                         (id: "mock-3", loggedAt: Date().addingTimeInterval(-1 * 3600), kcal: 347),
                     ],
                     onTapPlate: { _ in },
-                    onLogTapped: {}
+                    onLogTapped: {},
+                    onDeletePlate: { _ in },
+                    debugInitialRevealedId: debugPeekPlateDelete
                 )
 
                 BecomingMovedStrip(

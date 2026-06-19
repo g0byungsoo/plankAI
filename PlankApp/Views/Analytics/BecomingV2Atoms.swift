@@ -736,12 +736,26 @@ struct BecomingPlateTimelineToday: View {
     let plates: [(id: String, loggedAt: Date, kcal: Int)]
     let onTapPlate: (String) -> Void
     let onLogTapped: () -> Void
+    /// Phase 4 Day-4 (2026-06-19) — swipe-left-to-delete callback.
+    /// When nil the swipe gesture is disabled (legacy callers).
+    var onDeletePlate: ((String) -> Void)? = nil
+
+    /// Phase 4 Day-4 — which plate has its delete action revealed.
+    /// Only one at a time; opening another snaps the prior closed.
+    @State private var revealedId: String? = nil
+    /// Phase 4 Day-4 — confirm-dialog plumbing. Set on delete-button
+    /// tap; cleared on confirm or cancel.
+    @State private var pendingDeleteId: String? = nil
+    /// Harness-only initial reveal for screenshot capture.
+    var debugInitialRevealedId: String? = nil
 
     private static let timeFmt: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "h:mma"
         return f
     }()
+
+    private static let actionWidth: CGFloat = 56
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -760,26 +774,108 @@ struct BecomingPlateTimelineToday: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .luxuryCard()
+        .onAppear {
+            if let id = debugInitialRevealedId, revealedId == nil {
+                revealedId = id
+            }
+        }
+        .confirmationDialog(
+            "delete this plate?",
+            isPresented: pendingDeleteBinding,
+            titleVisibility: .visible,
+            presenting: pendingDeleteId
+        ) { id in
+            Button("delete plate", role: .destructive) {
+                Haptics.medium()
+                onDeletePlate?(id)
+                withAnimation(Motion.crossFade) {
+                    revealedId = nil
+                    pendingDeleteId = nil
+                }
+            }
+            Button("keep it", role: .cancel) {
+                pendingDeleteId = nil
+            }
+        } message: { _ in
+            Text("the calories + macros for this entry will be removed from today.")
+        }
+    }
+
+    /// Bridges the optional pendingDeleteId to the Bool binding the
+    /// confirmationDialog wants. Reads true iff a delete is queued;
+    /// setting false clears the queued id.
+    private var pendingDeleteBinding: Binding<Bool> {
+        Binding(
+            get: { pendingDeleteId != nil },
+            set: { isOn in
+                if !isOn { pendingDeleteId = nil }
+            }
+        )
     }
 
     @ViewBuilder
     private func plateTile(_ p: (id: String, loggedAt: Date, kcal: Int)) -> some View {
+        let isRevealed = revealedId == p.id
         VStack(alignment: .leading, spacing: 4) {
-            ZStack {
-                if let img = FoodPhotoStore.photo(entryId: p.id) {
-                    Image(uiImage: img)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Rectangle().fill(Palette.bgElevated)
+            ZStack(alignment: .trailing) {
+                // Delete chip — sits behind the photo, exposed when
+                // the tile slides left.
+                if onDeletePlate != nil {
+                    Button {
+                        Haptics.medium()
+                        pendingDeleteId = p.id
+                    } label: {
+                        VStack(spacing: 2) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 14, weight: .regular))
+                            Text("delete")
+                                .font(.custom("DMSans-Medium", size: 9))
+                        }
+                        .foregroundStyle(Palette.textInverse)
+                        .frame(width: Self.actionWidth, height: 80)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Palette.cocoaPrimary.opacity(isRevealed ? 0.85 : 0))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(isRevealed ? 1 : 0)
+                    .accessibilityLabel("delete plate")
+                    .accessibilityHidden(!isRevealed)
+                }
+
+                // Photo (or fallback) — slides left to expose the
+                // delete chip.
+                ZStack {
+                    if let img = FoodPhotoStore.photo(entryId: p.id) {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Rectangle().fill(Palette.bgElevated)
+                    }
+                }
+                .frame(width: 64, height: 80)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .stroke(Palette.divider, lineWidth: 0.5)
+                )
+                .offset(x: isRevealed ? -(Self.actionWidth + 4) : 0)
+                .animation(Motion.crossFade, value: isRevealed)
+                .gesture(onDeletePlate != nil ? deleteSwipeGesture(for: p.id) : nil)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if isRevealed {
+                        withAnimation(Motion.crossFade) { revealedId = nil }
+                    } else {
+                        Haptics.light()
+                        onTapPlate(p.id)
+                    }
                 }
             }
-            .frame(width: 64, height: 80)
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .stroke(Palette.divider, lineWidth: 0.5)
-            )
+            .frame(width: 64, height: 80, alignment: .trailing)
+
             Text(Self.timeFmt.string(from: p.loggedAt).lowercased())
                 .font(.custom("BradleyHandITCTT-Bold", size: 11))
                 .foregroundStyle(Palette.cocoaSecondary)
@@ -789,7 +885,29 @@ struct BecomingPlateTimelineToday: View {
                 .monospacedDigit()
         }
         .contentShape(Rectangle())
-        .onTapGesture { Haptics.light(); onTapPlate(p.id) }
+    }
+
+    /// Phase 4 Day-4 — horizontal-only drag that reveals the trash
+    /// chip behind the tile. Vertical drag must dominate to stay
+    /// safe inside the parent vertical ScrollView. Threshold = 20pt
+    /// left → snap open; release before threshold snaps closed.
+    private func deleteSwipeGesture(for id: String) -> some Gesture {
+        DragGesture(minimumDistance: 12)
+            .onEnded { value in
+                let dx = value.translation.width
+                let dy = value.translation.height
+                guard abs(dx) > abs(dy) else { return }
+                if dx < -20 {
+                    Haptics.tick()
+                    withAnimation(Motion.crossFade) {
+                        revealedId = id
+                    }
+                } else if dx > 20, revealedId == id {
+                    withAnimation(Motion.crossFade) {
+                        revealedId = nil
+                    }
+                }
+            }
     }
 
     @ViewBuilder private var logTile: some View {

@@ -1271,7 +1271,14 @@ struct AnalyticsView: View {
                 BecomingPlateTimelineToday(
                     plates: todayPlates,
                     onTapPlate: { _ in showFoodJournal = true },
-                    onLogTapped: { showJournalCapture = true }
+                    onLogTapped: { showJournalCapture = true },
+                    onDeletePlate: { id in
+                        // Phase 4 Day-4 (2026-06-19) — wires the
+                        // swipe-left delete to the persistence
+                        // store. FoodLogPersister handles its own
+                        // notification + Supabase sync.
+                        FoodLogPersister.deleteEntry(id: id)
+                    }
                 )
                 .padding(.top, 4)
             }
