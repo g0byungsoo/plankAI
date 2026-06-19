@@ -53,6 +53,7 @@ struct ResultDecisionCard: View {
 
     @State private var revealedSteps: Int = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("onboardingCurrentWeightKg") private var onboardingCurrentWeightKg: Double = 0
 
     var body: some View {
         ZStack {
@@ -111,11 +112,11 @@ struct ResultDecisionCard: View {
     }
 
     private func startCascade() {
-        if reduceMotion { revealedSteps = 7; return }
+        if reduceMotion { revealedSteps = 10; return }
         revealedSteps = 0
-        for i in 0...6 {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08 * Double(i)) {
-                withAnimation(.easeOut(duration: 0.42)) {
+        for i in 0...9 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.07 * Double(i)) {
+                withAnimation(.easeOut(duration: 0.40)) {
                     revealedSteps = max(revealedSteps, i)
                 }
             }
@@ -127,24 +128,331 @@ struct ResultDecisionCard: View {
     }
 
     // MARK: - Content column
+    //
+    // v1.0.31 (2026-06-19) — densified per the panel synthesis:
+    // founder asked for more info aesthetically. Layout uses hairline
+    // rules between zones (magazine convention) so density reads as
+    // editorial rather than nutrition-label.
+    //
+    //   Zone A: meta row — time · meal · confidence pill
+    //   Zone B: kcal hero + ±range + italic meal name
+    //   Zone C: protein co-hero + adequacy stamp
+    //   Zone D: ingredient ledger (3-5 hairline rows w/ portion grams)
+    //   Zone E: macro micro-bar (compressed, no legend)
+    //   Zone F: satiety line + protein density inline
+    //   Zone G: today's protein progress (adequacy, NOT calorie)
+    //   Zone H: smart pair suggestion (conditional)
+    //   Zone I: tag chips (cap 2)
 
     @ViewBuilder private var contentColumn: some View {
-        // v1.0.27 (2026-06-18) — slide 1 is now strictly THIS PLATE
-        // per founder: dedupe with slide 2 which owns the day totals.
-        // Dropped from slide 1: day-context line ("X kcal left ·
-        // Yg protein left") — that's slide 2's hero now.
-        // Added: macro distribution stack-bar (visual at a glance
-        // of how the plate breaks down) per founder ask "add chart
-        // or visuals to make the snapshot more clear."
-        VStack(alignment: .leading, spacing: 36) {
-            coHeroRow.opacity(opacityFor(0))
-            satietyAndFiberBlock.opacity(opacityFor(1))
-            macroDistributionBar.opacity(opacityFor(2))
+        VStack(alignment: .leading, spacing: 18) {
+            metaRow.opacity(opacityFor(0))
+            zoneRule
+            kcalHero.opacity(opacityFor(1))
+            proteinCoHero.opacity(opacityFor(2))
+            zoneRule
+            ingredientLedger.opacity(opacityFor(3))
+            zoneRule
+            macroMicroBar.opacity(opacityFor(4))
+            satietyAndDensity.opacity(opacityFor(5))
+            todayProteinBar.opacity(opacityFor(5))
             if let pair = smartPair {
-                smartPairLine(pair).opacity(opacityFor(3))
+                zoneRule
+                smartPairLine(pair).opacity(opacityFor(6))
             }
-            tagChips.opacity(opacityFor(4))
+            tagChips.opacity(opacityFor(6))
         }
+    }
+
+    /// Half-pt hairline rule between zones — the single convention
+    /// that lets density read as magazine, not spreadsheet.
+    @ViewBuilder private var zoneRule: some View {
+        Rectangle()
+            .fill(textPrimary.opacity(0.12))
+            .frame(height: 0.75)
+            .padding(.vertical, 2)
+    }
+
+    // MARK: - Zone A: meta row (time · meal · confidence pill)
+
+    @ViewBuilder private var metaRow: some View {
+        HStack(alignment: .center) {
+            (Text(timeLabel)
+                .font(.custom("DMSans-Medium", size: 26))
+                .foregroundColor(textSecondary)
+            + Text("  ·  ")
+                .font(.custom("DMSans-Medium", size: 26))
+                .foregroundColor(textPrimary.opacity(0.25))
+            + Text(mealLabelDisplay)
+                .font(.custom("JeniHeroSerif-Italic", size: 28))
+                .foregroundColor(textSecondary))
+            Spacer(minLength: 0)
+            confidencePill
+        }
+    }
+
+    private var timeLabel: String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "h:mma"
+        return fmt.string(from: loggedAt).lowercased()
+    }
+
+    private var mealLabelDisplay: String {
+        mealLabel.isEmpty ? "today" : mealLabel.lowercased()
+    }
+
+    @ViewBuilder private var confidencePill: some View {
+        let word = confidenceWord
+        (Text(word.0)
+            .font(.custom("DMSans-Regular", size: 24))
+        + Text(word.1)
+            .font(.custom("JeniHeroSerif-Italic", size: 26))
+        + Text(" \u{2661}")
+            .font(.custom("DMSans-Medium", size: 22)))
+            .foregroundStyle(accent.opacity(0.80))
+            .padding(.horizontal, 22)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(accentSubtle.opacity(0.45)))
+    }
+
+    /// Italic state word reading the AI's confidence — never %.
+    /// Same data, voiced.
+    private var confidenceWord: (String, String) {
+        let c = result.confidence ?? 0.85
+        switch c {
+        case ..<0.65: return ("let's ", "check")
+        case ..<0.85: return ("close ", "enough")
+        default:      return ("", "clear")
+        }
+    }
+
+    // MARK: - Zone B: kcal hero (number + ±range + italic meal name)
+
+    @ViewBuilder private var kcalHero: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            CountUpNumber(
+                target: totalKcal,
+                fontName: "JeniHeroSerif-Regular",
+                italicFontName: "JeniHeroSerif-Italic",
+                size: 144,
+                color: textPrimary
+            )
+            VStack(alignment: .leading, spacing: 0) {
+                Text("calories")
+                    .font(.custom("JeniHeroSerif-Italic", size: 36))
+                    .foregroundStyle(textSecondary)
+                if let range = kcalRangeLabel {
+                    Text(range)
+                        .font(.custom("DMSans-Regular", size: 24))
+                        .foregroundStyle(textPrimary.opacity(0.45))
+                        .monospacedDigit()
+                        .padding(.top, 2)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Honest uncertainty band, e.g. "± 50" — only when low + high
+    /// differ enough to matter. Reads as transparency, not anxiety.
+    private var kcalRangeLabel: String? {
+        guard let lo = result.kcalLow, let hi = result.kcalHigh, hi > lo else { return nil }
+        let band = Int(((hi - lo) / 2).rounded())
+        guard band >= 20 else { return nil }
+        return "± \(band)"
+    }
+
+    // MARK: - Zone C: protein co-hero + adequacy stamp
+
+    @ViewBuilder private var proteinCoHero: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 16) {
+            (Text("\(totalProtein)")
+                .font(.custom("JeniHeroSerif-Regular", size: 80))
+                .foregroundColor(textPrimary)
+            + Text("g")
+                .font(.custom("JeniHeroSerif-Italic", size: 44))
+                .foregroundColor(accent))
+                .monospacedDigit()
+            Text("protein")
+                .font(.custom("JeniHeroSerif-Italic", size: 36))
+                .foregroundStyle(textSecondary)
+                .baselineOffset(10)
+            Spacer(minLength: 0)
+            adequacyStamp
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Single-word stamp reading the protein adequacy. Replaces the
+    /// prior "a 25g start — pair it later" caption with a tighter,
+    /// peer-of-the-numeral mark.
+    @ViewBuilder private var adequacyStamp: some View {
+        let word: (prefix: String, italic: String) = {
+            switch totalProtein {
+            case 30...: return ("hits ", "enough")
+            case 20..<30: return ("", "solid")
+            case 10..<20: return ("a ", "start")
+            default:     return ("", "light")
+            }
+        }()
+        (Text(word.prefix)
+            .font(.custom("DMSans-Regular", size: 24))
+        + Text(word.italic)
+            .font(.custom("JeniHeroSerif-Italic", size: 28)))
+            .foregroundStyle(totalProtein >= 30 ? stateGood : textSecondary)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 8)
+            .background(
+                Capsule().fill(
+                    (totalProtein >= 30 ? stateGood : textSecondary)
+                        .opacity(0.10)
+                )
+            )
+    }
+
+    // MARK: - Zone D: ingredient ledger (3-5 rows)
+
+    @ViewBuilder private var ingredientLedger: some View {
+        let items = displayIngredients
+        if !items.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.offset) { idx, item in
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("⁄")
+                            .font(.custom("JeniHeroSerif-Italic", size: 28))
+                            .foregroundStyle(accent.opacity(0.65))
+                        Text(item.name.lowercased())
+                            .font(.custom("DMSans-Medium", size: 30))
+                            .foregroundStyle(textPrimary)
+                        Spacer(minLength: 0)
+                        Text(item.portion)
+                            .font(.custom("DMSans-Regular", size: 24))
+                            .foregroundStyle(textPrimary.opacity(0.45))
+                            .monospacedDigit()
+                    }
+                    .padding(.vertical, 10)
+                    if idx < items.count - 1 {
+                        Rectangle()
+                            .fill(textPrimary.opacity(0.08))
+                            .frame(height: 0.5)
+                    }
+                }
+            }
+        }
+    }
+
+    private var displayIngredients: [(name: String, portion: String)] {
+        result.items.prefix(5).map { item in
+            let portion = item.portionGrams > 0
+                ? "\(Int(item.portionGrams.rounded()))g"
+                : ""
+            return (name: item.name, portion: portion)
+        }
+    }
+
+    // MARK: - Zone E: macro micro-bar (compressed, no legend)
+
+    @ViewBuilder private var macroMicroBar: some View {
+        let total = max(1, totalProtein + totalCarbs + totalFat + totalFiber)
+        GeometryReader { geo in
+            let width = geo.size.width
+            HStack(spacing: 0) {
+                Rectangle()
+                    .fill(accent.opacity(0.88))
+                    .frame(width: width * CGFloat(totalProtein) / CGFloat(total))
+                Rectangle()
+                    .fill(textPrimary.opacity(0.55))
+                    .frame(width: width * CGFloat(totalCarbs) / CGFloat(total))
+                Rectangle()
+                    .fill(textPrimary.opacity(0.30))
+                    .frame(width: width * CGFloat(totalFat) / CGFloat(total))
+                Rectangle()
+                    .fill(stateGood.opacity(0.85))
+                    .frame(width: width * CGFloat(totalFiber) / CGFloat(total))
+            }
+            .clipShape(Capsule())
+        }
+        .frame(height: 12)
+    }
+
+    // MARK: - Zone F: satiety + protein density
+
+    @ViewBuilder private var satietyAndDensity: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            (Text("holds you ")
+                .font(.custom("JeniHeroSerif-Regular", size: 36))
+            + Text(satietyHoursLabel)
+                .font(.custom("JeniHeroSerif-Italic", size: 36))
+            + Text("  ·  ")
+                .font(.custom("JeniHeroSerif-Regular", size: 36))
+                .foregroundColor(textPrimary.opacity(0.25))
+            + Text("\(totalFiber)g")
+                .font(.custom("JeniHeroSerif-Regular", size: 36))
+            + Text(" fiber  \u{2661}")
+                .font(.custom("DMSans-Medium", size: 28))
+                .foregroundColor(accent.opacity(0.7)))
+                .foregroundStyle(textPrimary)
+                .kerning(-0.2)
+                .fixedSize(horizontal: false, vertical: true)
+            if let density = proteinDensityLabel {
+                Text(density)
+                    .font(.custom("DMSans-Regular", size: 24))
+                    .foregroundStyle(textSecondary)
+            }
+        }
+    }
+
+    private var proteinDensityLabel: String? {
+        guard totalKcal > 0 else { return nil }
+        let perHundred = Double(totalProtein) / Double(totalKcal) * 100
+        let rounded = (perHundred * 10).rounded() / 10
+        guard rounded >= 4 else { return nil }
+        let dense = rounded >= 7 ? " · dense plate" : ""
+        return "\(String(format: "%.1f", rounded))g protein per 100 cal\(dense)"
+    }
+
+    // MARK: - Zone G: today's protein adequacy bar
+    //
+    // NOT a calorie remaining bar (that's the diet-culture register
+    // the brand is built to refuse). Protein-only progress reads as
+    // *adequacy* not *budget*. Target derives from onboarding weight
+    // (1.0g/kg, floor 70g) when available.
+
+    @ViewBuilder private var todayProteinBar: some View {
+        let target = proteinTargetG
+        let logged = todayLoggedProtein + totalProtein
+        let progress = min(1.0, Double(logged) / Double(max(target, 1)))
+        VStack(alignment: .leading, spacing: 6) {
+            (Text("today: ")
+                .font(.custom("DMSans-Regular", size: 24))
+            + Text("\(logged)g")
+                .font(.custom("JeniHeroSerif-Italic", size: 26))
+                .foregroundColor(textPrimary)
+            + Text(" / ~\(target)g protein")
+                .font(.custom("DMSans-Regular", size: 24)))
+                .foregroundStyle(textSecondary)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(textPrimary.opacity(0.10))
+                    Capsule()
+                        .fill(accent.opacity(0.85))
+                        .frame(width: max(8, geo.size.width * progress))
+                }
+            }
+            .frame(height: 8)
+        }
+    }
+
+    private var proteinTargetG: Int {
+        let kg = onboardingCurrentWeightKg
+        let raw = kg > 30 ? 1.0 * kg : 0
+        return max(70, min(150, Int(raw.rounded())))
+    }
+
+    private var todayLoggedProtein: Int {
+        Int(FoodLogPersister.todayMacros().protein.rounded())
     }
 
     // MARK: - Macro distribution bar (visual at-a-glance)
