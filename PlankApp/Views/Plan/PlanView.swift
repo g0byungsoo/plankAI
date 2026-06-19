@@ -756,6 +756,7 @@ struct PlanView: View {
                 HomeYesterdayRecapLine(kind: kind)
                     .padding(.horizontal, 20)
                     .padding(.top, 14)
+                    .modernEntrance(animateIn, delay: 0.04)
             }
 
             // v1.0.35 Home Phase 1 (2026-06-19) — archetype framing
@@ -772,6 +773,7 @@ struct PlanView: View {
                 )
                 .padding(.horizontal, 20)
                 .padding(.top, 14)
+                .modernEntrance(animateIn, delay: 0.10)
             }
 
             // v1.0.35 Home Phase 3 (2026-06-19) — gain-only "shows
@@ -783,6 +785,7 @@ struct PlanView: View {
             if viewingDay == nil, showsUpCount >= 2 {
                 HomeShowsUpLine(count: showsUpCount)
                     .padding(.horizontal, 20)
+                    .modernEntrance(animateIn, delay: 0.14)
             }
 
             // Protein-day anchor surface — the founder's added ask.
@@ -803,12 +806,14 @@ struct PlanView: View {
 
             // Past-day quiet caption — Panel 4 GLP-1 RD's anti-shame
             // copy. Surfaces only when viewing the past so the user
-            // knows the rows below are settled, not earnable.
+            // knows the rows below are settled, not earnable. Phase 3
+            // settling: fade-in instead of hard insert.
             if viewingDay != nil {
                 Text("yesterday's page. it counted as it was.")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13, relativeTo: .caption))
                     .foregroundStyle(Palette.cocoaTertiary)
                     .padding(.horizontal, 20)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             VStack(spacing: 0) {
@@ -832,6 +837,12 @@ struct PlanView: View {
                         overrideSubtitle: overrideSubtitle(for: prescription)
                     )
                     .modernEntrance(animateIn, delay: 0.16 + Double(idx) * 0.06)
+                    // Phase 3 — yesterday settling beat. When the
+                    // user scrubs to a past day, animate the chrome
+                    // shift (alpha drop, shadow fade) instead of a
+                    // hard cut. Tied to viewingDay so today→past +
+                    // past→today both smooth.
+                    .animation(.easeInOut(duration: 0.35), value: viewingDay)
 
                     if idx < todayPrescriptions.count - 1 {
                         Divider()
