@@ -54,6 +54,7 @@ struct ResultDecisionCard: View {
     @State private var revealedSteps: Int = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("onboardingCurrentWeightKg") private var onboardingCurrentWeightKg: Double = 0
+    @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
 
     var body: some View {
         ZStack {
@@ -155,6 +156,9 @@ struct ResultDecisionCard: View {
             zoneRule
             macroMicroBar.opacity(opacityFor(4))
             satietyAndDensity.opacity(opacityFor(5))
+            if let flag = thresholdFlag {
+                thresholdFlagLine(flag).opacity(opacityFor(5))
+            }
             todayProteinBar.opacity(opacityFor(5))
             if let pair = smartPair {
                 zoneRule
@@ -284,16 +288,21 @@ struct ResultDecisionCard: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// Single-word stamp reading the protein adequacy. Replaces the
-    /// prior "a 25g start — pair it later" caption with a tighter,
-    /// peer-of-the-numeral mark.
+    /// Single-word stamp reading the protein adequacy. Cohort-routed:
+    /// GLP-1 users (current/post) get "stays steady" instead of "solid"
+    /// since lean-mass-protection is the framing that resonates for
+    /// appetite-suppressed users (Wilding 2022 + Conte 2024).
     @ViewBuilder private var adequacyStamp: some View {
         let word: (prefix: String, italic: String) = {
             switch totalProtein {
-            case 30...: return ("hits ", "enough")
-            case 20..<30: return ("", "solid")
-            case 10..<20: return ("a ", "start")
-            default:     return ("", "light")
+            case 30...:
+                return isGlp1Cohort ? ("muscle ", "stays") : ("hits ", "enough")
+            case 20..<30:
+                return isGlp1Cohort ? ("", "steady") : ("", "solid")
+            case 10..<20:
+                return ("a ", "start")
+            default:
+                return ("", "light")
             }
         }()
         (Text(word.prefix)
@@ -309,6 +318,16 @@ struct ResultDecisionCard: View {
                         .opacity(0.10)
                 )
             )
+    }
+
+    private var isGlp1Cohort: Bool {
+        let normalized = glp1Status.lowercased()
+        return normalized.contains("current")
+            || normalized.contains("on_glp1")
+            || normalized == "on"
+            || normalized == "post"
+            || normalized.contains("triedoff")
+            || normalized.contains("tried_off")
     }
 
     // MARK: - Zone D: ingredient ledger (3-5 rows)
@@ -410,6 +429,52 @@ struct ResultDecisionCard: View {
         guard rounded >= 4 else { return nil }
         let dense = rounded >= 7 ? " · dense plate" : ""
         return "\(String(format: "%.1f", rounded))g protein per 100 cal\(dense)"
+    }
+
+    // MARK: - Conditional threshold flag (sodium / sugar / satfat)
+    //
+    // Per the panel: surface ONLY when meaningfully high — never a
+    // numeric, never red, never "you're over." Italic state-pill in
+    // peach-tinted capsule: "*sodium-heavy* — water with it ♥". Picks
+    // the most-relevant flag (sodium > sugar > satfat priority) and
+    // shows ONE; never stacks. Reads as honest acknowledgment, not
+    // judgment.
+    //
+    // Thresholds (per-meal, conservative):
+    //   • sodium ≥ 800mg  → 35% DV at 2300mg/day; restaurant + UPF tell
+    //   • added sugars ≥ 20g  → 80% WHO daily; soda/sweets tell
+    //   • saturated fat ≥ 7g  → 35% DV; butter + processed-meat tell
+
+    private var thresholdFlag: (prefix: String, italic: String, suffix: String)? {
+        let sodium = result.items.compactMap { $0.sodiumMg }.reduce(0, +)
+        let sugar = result.items.compactMap { $0.sugarG }.reduce(0, +)
+        let satfat = result.items.compactMap { $0.saturatedFatG }.reduce(0, +)
+        if sodium >= 800 {
+            return ("", "sodium-heavy", " — water with it \u{2661}")
+        }
+        if sugar >= 20 {
+            return ("", "sugar-forward", " — be soft on it \u{2661}")
+        }
+        if satfat >= 7 {
+            return ("", "rich on butter", " — that's okay \u{2661}")
+        }
+        return nil
+    }
+
+    @ViewBuilder
+    private func thresholdFlagLine(
+        _ flag: (prefix: String, italic: String, suffix: String)
+    ) -> some View {
+        (Text(flag.prefix)
+            .font(.custom("DMSans-Regular", size: 24))
+        + Text(flag.italic)
+            .font(.custom("JeniHeroSerif-Italic", size: 26))
+        + Text(flag.suffix)
+            .font(.custom("DMSans-Regular", size: 24)))
+            .foregroundStyle(textSecondary)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(accentSubtle.opacity(0.35)))
     }
 
     // MARK: - Zone G: today's protein adequacy bar
