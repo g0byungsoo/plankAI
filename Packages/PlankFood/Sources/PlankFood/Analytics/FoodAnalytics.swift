@@ -37,6 +37,10 @@ public enum FoodAnalytics {
         /// v1.0.8 Phase E — quick-correction pill tap. Properties:
         /// correction (sauce / bigger), multiplier, add_kcal.
         case scanCorrectionApplied = "food_scan_correction_applied"
+        /// Sprint A (2026-06-15) — satiety pill tap on the result card.
+        /// The vocabulary-loop anchor at the daily-loop layer. Properties:
+        /// state (hungry / meh).
+        case satietyMarked         = "food_satiety_marked"
         case logSaved              = "food_log_saved"
         // Mode-specific
         case quickAddTapped        = "food_quick_add_tapped"

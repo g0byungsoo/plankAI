@@ -39,6 +39,10 @@ public struct MixedPlateCard: View {
     }
 
     @State private var showMacros: Bool = false
+    /// Sprint A (2026-06-15) — satiety check-in state. Mirrors
+    /// SingleDishCard so the cohort sees the same vocabulary loop on
+    /// every plate type.
+    @State private var satietyChoice: SatietyChoice? = nil
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FoodTheme.Space.lg) {
@@ -109,6 +113,17 @@ public struct MixedPlateCard: View {
             // Second-photo hint, if the LLM flagged it.
             if food.needsSecondPhoto, let hint = food.secondPhotoHint {
                 secondPhotoTip(hint)
+            }
+
+            // Sprint A (2026-06-15) — satiety check-in. Same surface
+            // as SingleDishCard; only shown when we actually have a
+            // plate (kcal range or items) to react to.
+            if !food.items.isEmpty || food.kcalLow != nil {
+                SatietyPill(choice: $satietyChoice) { value in
+                    FoodAnalytics.track(.satietyMarked, properties: [
+                        "state": value.rawValue
+                    ])
+                }
             }
 
             Divider()
@@ -273,7 +288,7 @@ public struct MixedPlateCard: View {
             Text("couldn't read this one")
                 .font(.custom("Fraunces72pt-SemiBold", size: 22))
                 .foregroundStyle(FoodTheme.textPrimary)
-            Text("no food made it through — too dark, too blurry, or maybe nothing on the plate yet. let's try again.")
+            Text("no food made it through. too dark, too blurry, or maybe nothing on the plate yet. let's try again.")
                 .font(.system(size: 14))
                 .foregroundStyle(FoodTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

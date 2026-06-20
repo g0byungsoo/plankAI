@@ -217,12 +217,14 @@ struct NotificationPermission {
         ])
 
         let content = UNMutableNotificationContent()
-        // Title — lowercase + low-commitment framing. The previous "Time to
-        // work" read as labor; the women's weight-loss audience responds to
-        // gentle return language ("a short one is waiting") far better than
-        // imperative-coded copy. Lowercase matches the in-app brand voice
-        // even on the lock screen, where it reads softer than TitleCase.
-        content.title = "today's short session."
+        // v2 (2026-06-16): dropped "today's short session." — "session"
+        // is workout-coded and fights the diet-first product pivot. New
+        // title is voice-agnostic + content-neutral, leaves the body to
+        // carry the voice signal. Per the notification system spec,
+        // body rotation across the week is a future improvement; for
+        // now the body is voice-routed (encouraging/balanced/firm) but
+        // single-string per voice — re-evaluates on each reschedule().
+        content.title = "five minutes, today."
         content.body = dailyReminderBody()
         content.sound = .default
 
@@ -242,18 +244,20 @@ struct NotificationPermission {
 
     /// Voice-adaptive body. Pulls `voicePreference` from UserDefaults
     /// (same key NotificationSettingsView uses) so the reminder reads in
-    /// the trainer's voice. Gentle-return register — "five minutes is
-    /// enough," "easy to finish," "come back when you can." Never uses
-    /// labor verbs (work, push, grind), challenge language (don't break
-    /// your streak), or imperatives ("make X wait" softens to "X is here
-    /// when you are"). Lowercase matches in-app brand voice on the lock
-    /// screen.
+    /// the trainer's voice. Gentle-return register. Never uses labor
+    /// verbs (work, push, grind), challenge language (don't break your
+    /// streak), or imperatives. Lowercase matches in-app brand voice on
+    /// the lock screen. v2 (2026-06-16): added name opener for
+    /// consistency with other surfaces; tightened balanced + firm
+    /// strings; dropped "easy to finish" (read as effort-pressure).
     private static func dailyReminderBody() -> String {
+        let name = (UserDefaults.standard.string(forKey: "userName") ?? "").lowercased()
+        let opener = name.isEmpty ? "" : "\(name), "
         let pref = UserDefaults.standard.string(forKey: "voicePreference") ?? "encouraging"
         switch pref {
-        case "encouraging": return "five minutes is enough today. small moves still count."
-        case "balanced":    return "sam picked a short one. easy to finish."
-        default:            return "kira's got a short one ready today."
+        case "encouraging": return "\(opener)small moves still count. they always have ♥"
+        case "balanced":    return "\(opener)sam picked a short one. open when you can."
+        default:            return "\(opener)kira's got a short one ready."
         }
     }
 }

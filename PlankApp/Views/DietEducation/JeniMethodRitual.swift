@@ -15,6 +15,31 @@ import Foundation
 // 2-page drops: one illustrated fact, one action + identity. The generic
 // Day 15+ ritual is a single warmup page.
 
+// MARK: - Practice kind (v1.1 — roundtable redesign 2026-06-14)
+//
+// The 4-expert roundtable's psychiatrist + dCBT professor flagged that
+// JeniMethod's pure-psychoeducation arc has a low clinical ceiling.
+// `LessonPracticeKind` swaps a page's render from prose-body to an
+// interactive practice. All practice state is ephemeral (never written
+// to Supabase) per data-provenance + restriction-cohort safety. Three
+// kinds for v1: timed self-compassion pause (Day 8), guided breath
+// (Day 9), implementation intention (Day 14).
+
+enum LessonPracticeKind: Equatable {
+    /// 60-second timed pause displaying a sequence of phrases (one
+    /// every ~20s with a soft cross-fade). Terminal CTA gates on the
+    /// timer completing. Day 8 self-compassion (Neff 2003 break).
+    case timedPause(seconds: Int, phrases: [String])
+    /// 60-second guided breath — long-exhale box-breath ring with a
+    /// haptic on each inhale/exhale transition. Day 9 food noise
+    /// (Balban 2023 cyclic sighing).
+    case guidedBreath(seconds: Int)
+    /// Single-field if-then builder. User types a tiny implementation
+    /// intention; on commit the next render mirrors it back. Day 14
+    /// fresh-start (Gollwitzer & Sheeran 2006).
+    case implementationIntention(promptIf: String, promptThen: String)
+}
+
 struct LessonPage: Identifiable, Equatable {
     let id: String
     /// Paper-craft illustration asset, shown in a pink rounded frame.
@@ -35,6 +60,14 @@ struct LessonPage: Identifiable, Equatable {
     let ctaLabel: String
     /// Final page of a lesson — its CTA launches today's workout.
     let isHandoff: Bool
+    /// v1.1 practice embed (2026-06-14) — when non-nil the page renders
+    /// the practice surface instead of the prose body. `headline` +
+    /// optional `eyebrow` still display above the practice; `body` and
+    /// `citation` are ignored. CTA label is honored but the button
+    /// stays disabled until the practice's gating condition fires
+    /// (timer end / field commit). Used by Day 8 (timed self-compassion
+    /// pause), Day 9 (guided breath), Day 14 (implementation intention).
+    let practice: LessonPracticeKind?
 
     init(
         id: String,
@@ -47,7 +80,8 @@ struct LessonPage: Identifiable, Equatable {
         citation: String? = nil,
         breathLine: String? = nil,
         ctaLabel: String,
-        isHandoff: Bool = false
+        isHandoff: Bool = false,
+        practice: LessonPracticeKind? = nil
     ) {
         self.id = id
         self.illustration = illustration
@@ -60,6 +94,7 @@ struct LessonPage: Identifiable, Equatable {
         self.breathLine = breathLine
         self.ctaLabel = ctaLabel
         self.isHandoff = isHandoff
+        self.practice = practice
     }
 }
 
@@ -98,6 +133,7 @@ enum JeniMethodRitualContent {
         case .day14:   pages = day14Pages(user: user)
         case .generic: pages = genericPages(user: user)
         }
+
         return LessonScript(
             id: lesson.rawValue,
             topic: lesson.topicSlug,
@@ -354,6 +390,13 @@ enum JeniMethodRitualContent {
 
     /// Merge of the old d8 (what-the-hell trap) + d9 (self-compassion
     /// return) — one behavior taught twice became one lesson.
+    ///
+    /// v1.1 practice embed (2026-06-14): the clinician on the roundtable
+    /// flagged this as the lesson where dwell time IS the mechanism —
+    /// Neff's self-compassion break only encodes if rehearsed, not
+    /// defined. Insert a 60-second timed pause between fact + action.
+    /// Action page stays the come-back script; the practice IS the
+    /// rehearsal the action page asks her to do.
     private static func day8Pages(user: JeniMethodUserContext) -> [LessonPage] {
         let word = identityFeelingWord(for: user)
         return [
@@ -366,6 +409,21 @@ enum JeniMethodRitualContent {
                 citation: "polivy & herman · restraint theory",
                 breathLine: breathLine(day: 8),
                 ctaLabel: "continue"
+            ),
+            LessonPage(
+                id: "practice",
+                eyebrow: "the break",
+                headline: "one minute. say it like you mean it.",
+                italic: ["mean it"],
+                ctaLabel: "continue",
+                practice: .timedPause(
+                    seconds: 60,
+                    phrases: [
+                        "this is a moment of struggle.",
+                        "struggle is part of being human.",
+                        "may i be kind to myself."
+                    ]
+                )
             ),
             LessonPage(
                 id: "action",
@@ -382,6 +440,14 @@ enum JeniMethodRitualContent {
 
     // MARK: - Day 9 — food noise (Balban 2023)
 
+    /// v1.1 practice embed (2026-06-14): the fact page already
+    /// prescribes "five minutes of slow, exhale-heavy breathing" and
+    /// the action page says "open your breath session, two minutes,
+    /// long exhales" — but neither one IS the breath, so the lesson
+    /// teaches the prescription without delivering it. The dCBT
+    /// professor on the roundtable: psychoeducation without enactment
+    /// has a low ceiling. Insert a 60s cyclic-sighing surface between
+    /// fact + action; the action page becomes the post-breath choice.
     private static func day9Pages(user: JeniMethodUserContext) -> [LessonPage] {
         return [
             LessonPage(
@@ -395,11 +461,19 @@ enum JeniMethodRitualContent {
                 ctaLabel: "continue"
             ),
             LessonPage(
+                id: "practice",
+                eyebrow: "try it now",
+                headline: "one minute. double in. long out.",
+                italic: ["long out"],
+                ctaLabel: "continue",
+                practice: .guidedBreath(seconds: 60)
+            ),
+            LessonPage(
                 id: "action",
                 eyebrow: "next time it's loud",
                 headline: "breathe first. then decide.",
                 italic: ["then decide"],
-                body: "open your breath session, two minutes, long exhales. still want it after? have it. it fits. the breath isn't a no. it's a pause you own.",
+                body: "you just did it. next time the loop gets loud, do the same thing. still want it after? have it. it fits. the breath isn't a no. it's a pause you own.",
                 ctaLabel: "start today's workout",
                 isHandoff: true
             ),
@@ -518,8 +592,16 @@ enum JeniMethodRitualContent {
 
     // MARK: - Day 14 — begin again (fresh-start effect, Dai/Milkman 2014)
 
+    /// v1.1 practice embed (2026-06-14): the action page's body
+    /// already prescribes the canonical implementation intention
+    /// ("say it with a when: 'after my morning coffee, i'll move.'")
+    /// — Gollwitzer & Sheeran 2006 meta-analysis d ≈ 0.65 for goal
+    /// attainment, the highest-evidence single behavior-change
+    /// intervention available. Convert the prose prescription into
+    /// an actual typed if-then field so the user writes her own line
+    /// before the program closes its 14-day arc. Identity word kept
+    /// in the mirror context line below the input.
     private static func day14Pages(user: JeniMethodUserContext) -> [LessonPage] {
-        let word = identityFeelingWord(for: user)
         return [
             LessonPage(
                 id: "fact",
@@ -536,9 +618,12 @@ enum JeniMethodRitualContent {
                 eyebrow: "from here",
                 headline: "name your one tiny thing for tomorrow.",
                 italic: ["one tiny thing"],
-                body: "say it with a when: 'after my morning coffee, i'll move.' from here it's the daily rhythm, one day at a time. \(word) isn't a finish line. it's who you're becoming.",
                 ctaLabel: "start today's workout",
-                isHandoff: true
+                isHandoff: true,
+                practice: .implementationIntention(
+                    promptIf: "after _________________,",
+                    promptThen: "i'll _________________."
+                )
             ),
         ]
     }

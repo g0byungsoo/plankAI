@@ -77,13 +77,9 @@ final class TrialEndNotificationService {
         // so the number stays current. Lowercase brand voice; no scale-shame.
         let content = UNMutableNotificationContent()
         let shownUp = RetentionNotifications.shownUpCount
-        if shownUp >= 3 {
-            content.title = "look how far you've come."
-            content.body = "you've shown up \(shownUp) times ♥ your free trial becomes a membership tomorrow. manage or cancel anytime in iOS settings."
-        } else {
-            content.title = "your free trial ends tomorrow."
-            content.body = "your trial becomes a membership tomorrow. manage or cancel anytime in iOS settings."
-        }
+        let (title, body) = Glp1Cohort.current.trialEndContent(shownUp: shownUp)
+        content.title = title
+        content.body = body
         content.sound = .default
 
         // Calendar trigger pins to a specific wall-clock moment, not a

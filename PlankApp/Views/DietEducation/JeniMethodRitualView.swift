@@ -31,6 +31,13 @@ struct JeniMethodRitualView: View {
     var onChainNext: (() -> Void)? = nil
 
     @State private var pageIndex = 0
+    /// v1.1 (2026-06-14): practice-page gating for magazine-column
+    /// lessons. Days 8/9/14 ship a practice embed mid-flow; the
+    /// continue CTA on those pages stays disabled until the practice
+    /// fires its onComplete (timer end / field commit). Key = page id;
+    /// ephemeral, never persisted. `.singleHero` lessons gate via
+    /// LessonSpread's own internal map.
+    @State private var practiceComplete: [String: Bool] = [:]
     /// Ambient zen-lofi under the lesson — same player the welcome
     /// breathwork session uses. Boxed once by @State across redraws.
     @State private var musicPlayer = RitualMusicPlayer()
@@ -51,95 +58,7 @@ struct JeniMethodRitualView: View {
 
             VStack(spacing: 0) {
                 topBar
-
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Spacer().frame(height: Space.lg)
-
-                        // Magazine kicker — tracked lowercase, the
-                        // her75 footer-furniture register pulled up
-                        // to open the page (founder: "magazine feel").
-                        if let eyebrow = page.eyebrow {
-                            Text(eyebrow.lowercased())
-                                .font(.custom("DMSans-Medium", size: 11))
-                                .kerning(1.98)
-                                .foregroundStyle(Palette.textSecondary)
-                            Spacer().frame(height: Space.sm)
-                        }
-
-                        ItalicAccentText(page.headline,
-                                         italic: page.italic,
-                                         baseFont: headlineFont,
-                                         italicFont: headlineItalicFont,
-                                         color: Palette.textPrimary,
-                                         alignment: .leading)
-                            .kerning(-0.4)
-                            .lineSpacing(Typo.heroHeadlineLineGap)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        // Hairline rule between headline and body —
-                        // the magazine column break.
-                        Rectangle()
-                            .fill(Palette.divider)
-                            .frame(width: 56, height: 1)
-                            .padding(.vertical, Space.md)
-
-                        if let body = page.body {
-                            Text(body)
-                                .font(.custom("DMSans-Regular", size: 17))
-                                .lineSpacing(5)
-                                .foregroundStyle(Palette.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-
-                        if let citation = page.citation {
-                            Text(citation.lowercased())
-                                .font(.custom("DMSans-Medium", size: 11))
-                                .kerning(0.4)
-                                .foregroundStyle(Palette.textSecondary.opacity(0.7))
-                                .padding(.top, Space.md)
-                        }
-
-                        if let breathLine = page.breathLine {
-                            ItalicAccentText(
-                                breathLine,
-                                italic: [],
-                                baseFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
-                                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
-                                color: Palette.textSecondary,
-                                alignment: .leading
-                            )
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.top, Space.md)
-                        }
-                        Spacer().frame(height: Space.lg)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Space.lg)
-                    // v1.1 — JFPageTransition page-turn (200ms exit /
-                    // 60ms gap / 350ms entrance) replaces the 0.45s
-                    // crossfade; the same vocabulary as onboarding +
-                    // tab switches so module pages feel like one app.
-                    .id(page.id)
-                    .transition(JFPageTransition.standard)
-                }
-
-                // Magazine footer folio: hairline + issue line. The
-                // page furniture that makes it read as a printed page.
-                VStack(spacing: 0) {
-                    Rectangle().fill(Palette.divider).frame(height: 1)
-                        .padding(.horizontal, Space.lg)
-                    HStack {
-                        Text(folioLine)
-                            .font(.custom("DMSans-Medium", size: 11))
-                            .kerning(1.98)
-                            .foregroundStyle(Palette.textSecondary.opacity(0.7))
-                        Spacer()
-                    }
-                    .padding(.horizontal, Space.lg)
-                    .padding(.top, 10)
-                }
-
+                magazineColumnContent
                 ctaButton
                     .padding(.top, Space.xs)
             }
@@ -149,6 +68,108 @@ struct JeniMethodRitualView: View {
             fireLessonViewedOnce()
         }
         .onDisappear { musicPlayer.stop() }
+    }
+
+    @ViewBuilder private var magazineColumnContent: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer().frame(height: Space.lg)
+
+                // Magazine kicker — tracked lowercase, the
+                // her75 footer-furniture register pulled up
+                // to open the page (founder: "magazine feel").
+                if let eyebrow = page.eyebrow {
+                    Text(eyebrow.lowercased())
+                        .font(.custom("DMSans-Medium", size: 11))
+                        .kerning(1.98)
+                        .foregroundStyle(Palette.textSecondary)
+                    Spacer().frame(height: Space.sm)
+                }
+
+                ItalicAccentText(page.headline,
+                                 italic: page.italic,
+                                 baseFont: headlineFont,
+                                 italicFont: headlineItalicFont,
+                                 color: Palette.textPrimary,
+                                 alignment: .leading)
+                    .kerning(-0.4)
+                    .lineSpacing(Typo.heroHeadlineLineGap)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                // Hairline rule between headline and body —
+                // the magazine column break.
+                Rectangle()
+                    .fill(Palette.divider)
+                    .frame(width: 56, height: 1)
+                    .padding(.vertical, Space.md)
+
+                // v1.1 practice embed branch: when the current page
+                // carries a practice (Day 8 timed pause / Day 9
+                // guided breath / Day 14 implementation intention),
+                // render the practice surface in place of the prose
+                // body. The CTA's `isEnabled` is gated below on the
+                // practice firing its onComplete.
+                if let practice = page.practice {
+                    LessonPracticeView(
+                        practice: practice,
+                        onComplete: { practiceComplete[page.id] = true }
+                    )
+                    .padding(.top, Space.xs)
+                } else if let body = page.body {
+                    Text(body)
+                        .font(.custom("DMSans-Regular", size: 17))
+                        .lineSpacing(5)
+                        .foregroundStyle(Palette.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if let citation = page.citation {
+                    Text(citation.lowercased())
+                        .font(.custom("DMSans-Medium", size: 11))
+                        .kerning(0.4)
+                        .foregroundStyle(Palette.textSecondary.opacity(0.7))
+                        .padding(.top, Space.md)
+                }
+
+                if let breathLine = page.breathLine {
+                    ItalicAccentText(
+                        breathLine,
+                        italic: [],
+                        baseFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+                        color: Palette.textSecondary,
+                        alignment: .leading
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, Space.md)
+                }
+                Spacer().frame(height: Space.lg)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Space.lg)
+            // v1.1 — JFPageTransition page-turn (200ms exit /
+            // 60ms gap / 350ms entrance) replaces the 0.45s
+            // crossfade; the same vocabulary as onboarding +
+            // tab switches so module pages feel like one app.
+            .id(page.id)
+            .transition(JFPageTransition.standard)
+        }
+
+        // Magazine footer folio: hairline + issue line. The
+        // page furniture that makes it read as a printed page.
+        VStack(spacing: 0) {
+            Rectangle().fill(Palette.divider).frame(height: 1)
+                .padding(.horizontal, Space.lg)
+            HStack {
+                Text(folioLine)
+                    .font(.custom("DMSans-Medium", size: 11))
+                    .kerning(1.98)
+                    .foregroundStyle(Palette.textSecondary.opacity(0.7))
+                Spacer()
+            }
+            .padding(.horizontal, Space.lg)
+            .padding(.top, 10)
+        }
     }
 
     // MARK: - Sections
@@ -206,6 +227,13 @@ struct JeniMethodRitualView: View {
     // the open page under a hairline, no card chrome.)
 
     @ViewBuilder private var ctaButton: some View {
+        // v1.1 practice gating (2026-06-14): when the current page
+        // carries a practice (Day 8 timed pause / Day 9 guided breath
+        // / Day 14 implementation intention), the CTA stays disabled
+        // until the practice fires its onComplete. The dCBT professor
+        // on the roundtable: passive-tap-past is engagement, not
+        // therapy. Gating is the difference.
+        let practiceOK = page.practice == nil || practiceComplete[page.id] == true
         if page.isHandoff, let onChainNext, let nextRowTitle {
             // The chain — lesson energy routes to whatever's actually
             // next on her checklist; "done for today" stays one quiet
@@ -216,6 +244,7 @@ struct JeniMethodRitualView: View {
                     completeBookkeeping()
                     onChainNext()
                 },
+                isEnabled: practiceOK,
                 secondaryLabel: "done for today",
                 secondaryAction: {
                     completeBookkeeping()
@@ -226,15 +255,23 @@ struct JeniMethodRitualView: View {
             // Old scripts say "start today's workout" — the workout
             // handoff died with the legacy HomeView, so the truthful
             // label is the quiet close.
-            JFContinueButton(label: "done for today") {
-                completeBookkeeping()
-                onComplete()
-            }
+            JFContinueButton(
+                label: "done for today",
+                action: {
+                    completeBookkeeping()
+                    onComplete()
+                },
+                isEnabled: practiceOK
+            )
         } else {
-            JFContinueButton(label: page.ctaLabel.lowercased()) {
-                Haptics.light()
-                withAnimation(Motion.pageEntrance) { pageIndex += 1 }
-            }
+            JFContinueButton(
+                label: page.ctaLabel.lowercased(),
+                action: {
+                    Haptics.light()
+                    withAnimation(Motion.pageEntrance) { pageIndex += 1 }
+                },
+                isEnabled: practiceOK
+            )
         }
     }
 

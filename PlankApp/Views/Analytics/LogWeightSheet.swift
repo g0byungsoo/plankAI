@@ -50,7 +50,13 @@ struct LogWeightSheet: View {
             Palette.programBgPrimary.ignoresSafeArea()
 
             VStack(spacing: Space.lg) {
-                grabber
+                // 2026-06-15 founder note: custom `grabber` view
+                // removed — `.presentationDragIndicator(.visible)`
+                // on both call sites (PlanView + AnalyticsView)
+                // already paints the system grabber, so the local
+                // one was rendering as a duplicate. The function
+                // stays defined below for legacy preview paths but
+                // is no longer mounted.
 
                 header
 
@@ -63,11 +69,16 @@ struct LogWeightSheet: View {
                 saveButton
             }
             .padding(.horizontal, Space.screenPadding)
-            // v1.0.7 founder feedback round 9: more top padding so
-            // the heart-lock sticker (offset y:-10) clears the
-            // sheet's top edge instead of being clipped.
-            .padding(.top, Space.lg)
-            .padding(.bottom, Space.lg)
+            // 2026-06-15 founder note (round 11): 28pt top still
+            // clipped the eyebrow on actual hardware — the sheet's
+            // rounded top corner + system grabber chrome eat more
+            // vertical space than the simulator suggests. 52pt is
+            // enough that the eyebrow + heart-lock sticker overhang
+            // (offset y:-10, 44pt sticker → ~12pt above the eyebrow
+            // line) both clear cleanly on iPhone hardware. Bottom
+            // stays 24pt so cancel clears the home-indicator.
+            .padding(.top, 52)
+            .padding(.bottom, 24)
         }
     }
 

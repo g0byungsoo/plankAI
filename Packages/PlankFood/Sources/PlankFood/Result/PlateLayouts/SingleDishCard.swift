@@ -48,6 +48,10 @@ public struct SingleDishCard: View {
     @State private var jigglePhase: Int = 0
     /// "got it ♥" sticker pop after a successful correction.
     @State private var lastCorrectionLabel: String? = nil
+    /// Sprint A (2026-06-15) — satiety check-in state. Optional;
+    /// transient (per-card, not persisted). The vocabulary-loop
+    /// foundation per the PMF expert brief.
+    @State private var satietyChoice: SatietyChoice? = nil
 
     public var body: some View {
         VStack(alignment: .leading, spacing: FoodTheme.Space.lg) {
@@ -143,6 +147,18 @@ public struct SingleDishCard: View {
             // change the item itself, not just the calorie scale.
             if let item = food.items.first {
                 tellMeMoreLink(item: item)
+            }
+
+            // Sprint A (2026-06-15) — satiety check-in. Above the
+            // divider so it reads as the last gloss before "log it,"
+            // not as another action button. Only shown when there's
+            // actually a plate to react to (kcal computed).
+            if food.items.first?.kcal != nil {
+                SatietyPill(choice: $satietyChoice) { value in
+                    FoodAnalytics.track(.satietyMarked, properties: [
+                        "state": value.rawValue
+                    ])
+                }
             }
 
             Divider()
@@ -527,7 +543,7 @@ public struct SingleDishCard: View {
             Text("couldn't read this one")
                 .font(.custom("Fraunces72pt-SemiBold", size: 22))
                 .foregroundStyle(FoodTheme.textPrimary)
-            Text("no food made it through — too dark, too blurry, or maybe nothing on the plate yet. let's try again.")
+            Text("no food made it through. too dark, too blurry, or maybe nothing on the plate yet. let's try again.")
                 .font(.system(size: 14))
                 .foregroundStyle(FoodTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

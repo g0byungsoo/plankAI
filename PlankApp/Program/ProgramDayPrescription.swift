@@ -120,8 +120,13 @@ public extension ProgramDayPrescription {
         case .breath:       return "sticker_breath_ring"
         case .steps:        return "sticker_shoe_iridescent"
         case .water:        return "sticker_teacup"
+        // 2026-06-15 founder direction: weigh-in gets the iridescent
+        // heart-lock sticker. Sits on the butter sticky note — the
+        // "data check-in" pair (snapMeal + weighIn) now both carry
+        // brand stickers instead of the row falling back to the
+        // cocoa SF "scalemass" glyph.
+        case .weighIn:      return "sticker_heart_lock"
         case .plank,
-             .weighIn,
              .measurements: return nil
         }
     }
