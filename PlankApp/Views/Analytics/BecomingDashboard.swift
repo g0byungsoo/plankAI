@@ -282,6 +282,12 @@ struct BecomingWeekRow: View {
 
     @ViewBuilder
     private func archetypeLetterRow(_ archetypes: [ProgramDayArchetype?]) -> some View {
+        // Phase 4 fix (2026-06-19) — must mirror the dot row's stride
+        // exactly so each letter centers over its corresponding dot.
+        // Dot row uses HStack(spacing: 5) + .frame(width: 18); we
+        // match that here. Previous values (spacing 5 + width 11)
+        // produced a narrower stride and knocked the columns out of
+        // alignment after the dots were widened for tap targets.
         HStack(spacing: 5) {
             ForEach(Array(archetypes.enumerated()), id: \.offset) { _, arch in
                 Group {
@@ -291,12 +297,10 @@ struct BecomingWeekRow: View {
                             .foregroundStyle(Palette.cocoaSecondary.opacity(0.7))
                     } else {
                         // Blank slot for pre-program / unknown days.
-                        // Matches the dot's 7pt width so the column
-                        // alignment is preserved.
                         Color.clear
                     }
                 }
-                .frame(width: 11, height: 12)
+                .frame(width: 18, height: 12)
             }
         }
         .accessibilityHidden(true)  // the dot-row a11y label already
