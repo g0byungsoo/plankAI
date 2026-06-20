@@ -111,6 +111,11 @@ struct PlanRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(anchorAccentBar, alignment: .leading)
         .contentShape(Rectangle())
+        // v1.1.1 (2026-06-19) — instant press feedback so the row
+        // visibly registers the touch even if the destination cover
+        // takes 100-200ms to boot. Modern iOS pattern (Notion / Linear
+        // / Things). See `luxuryPressFeedback` in Components.swift.
+        .luxuryPressFeedback(enabled: isRowTappable)
         .onTapGesture {
             guard isRowTappable else { return }
             onTap()

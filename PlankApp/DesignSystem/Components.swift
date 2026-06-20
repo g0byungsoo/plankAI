@@ -1815,3 +1815,58 @@ private struct PaperSheenOverlay: View {
 extension View {
     func paperSheen() -> some View { modifier(PaperSheenModifier()) }
 }
+
+// MARK: - LuxuryPressable (v1.1.1, 2026-06-19)
+//
+// Instant press feedback for any tappable surface. Modern iOS apps
+// (Notion, Linear, Things, Apple Stocks) flip a subtle scale + dim
+// the moment a finger touches the target so the action visibly
+// registers BEFORE the destination cover / sheet / push animates in.
+// Without it the tap feels frozen for the 100-200ms while heavy
+// destinations mount.
+//
+// Usage:
+//   YourRow().luxuryPressable {
+//       // tap action
+//   }
+//
+// Or, to keep the existing onTap wiring and just layer the feedback:
+//   YourRow()
+//       .luxuryPressFeedback(enabled: isInteractive)
+//       .onTapGesture { ... }
+//
+// The feedback uses .interactiveSpring with high damping (0.86) so
+// it lands snappy + non-bouncy — closer to a button's affordance
+// than a celebratory animation.
+
+private struct LuxuryPressFeedback: ViewModifier {
+    let enabled: Bool
+    @State private var isPressed: Bool = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isPressed ? 0.985 : 1.0)
+            .brightness(isPressed ? -0.025 : 0)
+            .animation(.interactiveSpring(response: 0.18, dampingFraction: 0.86), value: isPressed)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        guard enabled, !isPressed else { return }
+                        isPressed = true
+                        Haptics.soft()
+                    }
+                    .onEnded { _ in
+                        isPressed = false
+                    }
+            )
+    }
+}
+
+extension View {
+    /// Layers instant press feedback (scale + dim + soft haptic) on
+    /// any view. Use alongside existing `.onTapGesture`. Disable per-
+    /// instance via `enabled: false` for view-only rows.
+    func luxuryPressFeedback(enabled: Bool = true) -> some View {
+        modifier(LuxuryPressFeedback(enabled: enabled))
+    }
+}

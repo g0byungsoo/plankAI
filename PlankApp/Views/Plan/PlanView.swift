@@ -174,6 +174,15 @@ struct PlanView: View {
     @State private var todayFatG: Int = 0
     @State private var todayStepCount: Int = 0
 
+    // MARK: - v1.1.1 (2026-06-19) perf cache
+    //
+    // showsUpCount + showsUpWeekDots + todayProteinSourcesHome
+    // all derived from sessionLogs + dayProgress + foodLogs and were
+    // computed on every body re-render — each rescanning 3 sources.
+    // Cache here, update on appear + on data change.
+    @State private var cachedFoodEntries: [FoodLogPersister.FoodLogEntry] = []
+    @State private var cachedEngagedDates: Set<Date> = []
+
     /// One-time cleanup: prior buggy "tap = mark complete" code wrote
     /// .complete records for every test tap. Those stale records
     /// persist in SwiftData and make every PlanView open show all
@@ -257,6 +266,20 @@ struct PlanView: View {
             }
         }
         .onAppear { onAppear() }
+        // v1.1.1 perf — invalidate the food + engaged-dates cache
+        // live when a new plate lands or a delete fires.
+        .onReceive(FoodLogPersister.changeNotifier) { _ in
+            refreshPerfCaches()
+        }
+        // Refresh when sessionLogs or dayProgress counts shift so the
+        // engaged-dates set picks up completed routines + day progress
+        // writes mid-session.
+        .onChange(of: allSessionLogs.count) { _, _ in
+            refreshPerfCaches()
+        }
+        .onChange(of: allDayProgress.count) { _, _ in
+            refreshPerfCaches()
+        }
         .fullScreenCover(item: $activeCover) { cover in
             coverContent(for: cover)
         }
@@ -1011,63 +1034,31 @@ struct PlanView: View {
     /// (session logs + food logs + day progress) but local to the
     /// Home checklist card. Never decrements; we only ever count
     /// dates that crossed at least one engagement bar.
-    private var showsUpCount: Int {
-        let cal = Calendar.current
-        var days = Set<Date>()
-        for log in allSessionLogs {
-            days.insert(cal.startOfDay(for: log.completedAt))
-        }
-        for dp in allDayProgress where dp.userId == userId {
-            days.insert(cal.startOfDay(for: dp.date))
-        }
-        if FoodFlags.isEnabled, !userId.isEmpty {
-            for entry in FoodLogPersister.allEntries(userId: userId) {
-                days.insert(cal.startOfDay(for: entry.loggedAt))
-            }
-        }
-        return days.count
-    }
+    /// v1.1.1 (2026-06-19) — reads from the cached set instead of
+    /// re-scanning 3 data sources on every body re-render. Updated
+    /// by `refreshPerfCaches()` on appear + on data change.
+    private var showsUpCount: Int { cachedEngagedDates.count }
 
     /// Phase 4 (2026-06-19) — 7-day dot pattern for the tap-expand
     /// reveal on HomeShowsUpLine. Oldest → today; true = engaged.
-    /// Mirrors AnalyticsView.weekDotStates but boolean-flattened.
+    /// v1.1.1 perf: reads from the cached engaged-dates set.
     private var showsUpWeekDots: [Bool] {
         let cal = Calendar.current
         let today = cal.startOfDay(for: .now)
-        let engaged = engagedDatesForWeek
+        let engaged = cachedEngagedDates
         return (0..<7).compactMap { offset -> Bool? in
             guard let day = cal.date(byAdding: .day, value: offset - 6, to: today) else { return nil }
             return engaged.contains(day)
         }
     }
 
-    /// Shared engagement set for the 7-day window — sessionLogs +
-    /// dayProgress + foodLogs, day-bucketed.
-    private var engagedDatesForWeek: Set<Date> {
-        let cal = Calendar.current
-        var days = Set<Date>()
-        for log in allSessionLogs {
-            days.insert(cal.startOfDay(for: log.completedAt))
-        }
-        for dp in allDayProgress where dp.userId == userId {
-            days.insert(cal.startOfDay(for: dp.date))
-        }
-        if FoodFlags.isEnabled, !userId.isEmpty {
-            for entry in FoodLogPersister.allEntries(userId: userId) {
-                days.insert(cal.startOfDay(for: entry.loggedAt))
-            }
-        }
-        return days
-    }
-
     /// Phase 4 — today's plate sources ranked by protein contribution
-    /// for the HomeProteinTracker long-press peek. Mirrors Becoming
-    /// surface but plumbed through Home.
+    /// for the HomeProteinTracker long-press peek. v1.1.1 perf: reads
+    /// from the cached food entries (no fresh FoodLogPersister scan).
     private var todayProteinSourcesHome: [(entryId: String, proteinG: Int)] {
-        guard FoodFlags.isEnabled, !userId.isEmpty else { return [] }
         let cal = Calendar.current
         let start = cal.startOfDay(for: .now)
-        return FoodLogPersister.allEntries(userId: userId)
+        return cachedFoodEntries
             .filter { $0.loggedAt >= start }
             .map { (entryId: $0.id, proteinG: Int($0.protein.rounded())) }
     }
@@ -1316,6 +1307,36 @@ struct PlanView: View {
         todayCarbsG = Int(macros.carbs.rounded())
         todayFatG = Int(macros.fat.rounded())
         todayMealsLogged = FoodLogPersister.todayLogCount()
+        // v1.1.1 perf — piggyback the engaged-dates + food-entries
+        // cache update on the same refresh path. Cheap (~100 entries).
+        refreshPerfCaches()
+    }
+
+    /// v1.1.1 (2026-06-19) — recomputes the shared engaged-dates set
+    /// + food-entries cache that drive showsUpCount, showsUpWeekDots,
+    /// todayProteinSourcesHome, etc. Called from refreshTodayFood +
+    /// FoodLogPersister.changeNotifier so the cache stays fresh.
+    private func refreshPerfCaches() {
+        let entries: [FoodLogPersister.FoodLogEntry]
+        if FoodFlags.isEnabled, !userId.isEmpty {
+            entries = FoodLogPersister.allEntries(userId: userId)
+        } else {
+            entries = []
+        }
+        cachedFoodEntries = entries
+
+        let cal = Calendar.current
+        var days = Set<Date>()
+        for log in allSessionLogs {
+            days.insert(cal.startOfDay(for: log.completedAt))
+        }
+        for dp in allDayProgress where dp.userId == userId {
+            days.insert(cal.startOfDay(for: dp.date))
+        }
+        for entry in entries {
+            days.insert(cal.startOfDay(for: entry.loggedAt))
+        }
+        cachedEngagedDates = days
     }
 
     /// Pull today's step count for the fat-row progress bar.

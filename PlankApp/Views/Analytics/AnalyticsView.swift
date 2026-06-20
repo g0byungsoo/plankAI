@@ -674,6 +674,22 @@ struct AnalyticsView: View {
     /// a ~1.0s revert. Matches the steps-bento header-morph pattern.
     @State private var scrubbedCalendarIndex: Int? = nil
     @State private var calendarRevertTask: Task<Void, Never>? = nil
+
+    // MARK: - v1.1.1 (2026-06-19) perf cache
+    //
+    // FoodLogPersister.allEntries(userId:) walks the full in-memory
+    // store, filters by userId, sorts by date, and maps into
+    // FoodLogEntry — all O(N log N). It was called 6+ times per body
+    // render from independent downstream consumers (todayPlates,
+    // todayProteinSources, lifetimeDeeds, engagedDates, dashboard
+    // insight gates, etc.). Cache the result here and invalidate via
+    // the persister's changeNotifier so each render reads O(1).
+    @State private var cachedFoodEntries: [FoodLogPersister.FoodLogEntry] = []
+    /// engagedDates derives from sessionLogs + dayProgress +
+    /// cachedFoodEntries. Recomputed once on appear + on data change
+    /// so the 7-day-window pickers (weekDotStates, lighterDayStates,
+    /// etc.) don't re-scan it on every body re-render.
+    @State private var cachedEngagedDates: Set<Date> = []
     /// Live grid width captured via a background GeometryReader on the
     /// LazyVGrid. Read by the drag gesture to map touch X → cell column
     /// without fighting LazyVGrid's intrinsic sizing (the previous
@@ -804,6 +820,10 @@ struct AnalyticsView: View {
         }
         .onAppear {
             Analytics.captureScreen("Becoming")
+            // v1.1.1 perf — prime the food + engaged-dates cache once
+            // on appear so the first body render uses precomputed data
+            // instead of re-scanning sessionLogs + foodLogs.
+            refreshPerfCaches()
             animateIn()
             presentSundayRecapIfDue()
             // P3b — earn-gated Sunday push (id-replaced, one per week
@@ -898,6 +918,21 @@ struct AnalyticsView: View {
             becomingDepthSheet
         }
         .task { seedFirstWeightLogIfNeeded() }
+        // v1.1.1 perf — invalidate the food + engaged-dates cache
+        // when a new plate lands or a delete fires. PassthroughSubject
+        // delivers on the main queue so the @State update is safe.
+        .onReceive(FoodLogPersister.changeNotifier) { _ in
+            refreshPerfCaches()
+        }
+        // Refresh when sessionLogs or dayProgress counts shift so the
+        // engaged-dates set picks up completed routines + day-progress
+        // writes that happen mid-session.
+        .onChange(of: allSessionLogs.count) { _, _ in
+            refreshPerfCaches()
+        }
+        .onChange(of: allDayProgress.count) { _, _ in
+            refreshPerfCaches()
+        }
         .sheet(item: $presentedFutureRail) { rail in
             FutureRailExplainerSheet(rail: rail, onClose: { presentedFutureRail = nil })
                 .presentationDetents([.medium])
@@ -1478,17 +1513,39 @@ struct AnalyticsView: View {
     /// plates 3 of 3 days but the checklist-only count read "0 of 7"
     /// — demoralizing AND false. Engagement counts what she did,
     /// wherever she did it.
+    /// v1.1.1 (2026-06-19) — reads from the cached set instead of
+    /// re-scanning sessionLogs + foodLogs on every body re-render.
+    /// The cache lives in `cachedEngagedDates`; `refreshPerfCaches()`
+    /// updates it on appear + when FoodLogPersister.changeNotifier
+    /// fires.
     private var engagedDates: Set<Date> {
+        cachedEngagedDates
+    }
+
+    /// v1.1.1 — recomputes both the food entries cache and the
+    /// engaged-dates set in one pass. Called on appear + on every
+    /// FoodLogPersister change + when session/weight/dayProgress
+    /// counts shift. Cheap enough to run on the main actor (the
+    /// scan is ~100 entries × O(1) lookups).
+    private func refreshPerfCaches() {
+        let userId = auth.currentUser?.id.uuidString ?? ""
+        let entries: [FoodLogPersister.FoodLogEntry]
+        if FoodFlags.isEnabled, !userId.isEmpty {
+            entries = FoodLogPersister.allEntries(userId: userId)
+        } else {
+            entries = []
+        }
+        cachedFoodEntries = entries
+
         var days = activeDates
         let cal = Calendar.current
-        for log in sessionLogs { days.insert(cal.startOfDay(for: log.completedAt)) }
-        if FoodFlags.isEnabled,
-           let userId = auth.currentUser?.id.uuidString, !userId.isEmpty {
-            for entry in FoodLogPersister.allEntries(userId: userId) {
-                days.insert(cal.startOfDay(for: entry.loggedAt))
-            }
+        for log in sessionLogs {
+            days.insert(cal.startOfDay(for: log.completedAt))
         }
-        return days
+        for entry in entries {
+            days.insert(cal.startOfDay(for: entry.loggedAt))
+        }
+        cachedEngagedDates = days
     }
 
     /// Last 7 days (oldest → today) as dot states. Gain-framed: an
