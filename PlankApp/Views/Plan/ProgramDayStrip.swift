@@ -203,6 +203,7 @@ struct ProgramDayCell: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .luxuryPressFeedback()
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
     }

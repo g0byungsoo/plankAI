@@ -172,6 +172,8 @@ struct MainTabView: View {
                 )
                 .shadow(color: Palette.textPrimary.opacity(0.25), radius: 0, x: 3, y: 3)
         }
+        .buttonStyle(.plain)
+        .luxuryPressFeedback()
         .accessibilityLabel("snap food")
         .accessibilityHint("opens the camera to log a meal")
     }

@@ -683,6 +683,7 @@ struct PlanView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .luxuryPressFeedback()
             .accessibilityElement(children: .combine)
             .accessibilityLabel("today is \(arch.rawValue) day. double tap to learn more")
             .accessibilityHint("opens a sheet explaining today's archetype")
@@ -1253,10 +1254,20 @@ struct PlanView: View {
             planId: plan.id,
             programDay: computed.programDay
         )
-        completionByDay = hydrateCompletionByDay(
-            planId: plan.id,
-            totalDays: plan.totalDays
-        )
+        // v1.1.1 (2026-06-19) — defer the totalDays-wide completion
+        // map (drives the date strip dot states + becoming letters)
+        // off the synchronous onAppear path so rows + archetype
+        // header render IMMEDIATELY. The strip cells will populate
+        // their dots in ~50-100ms when the SwiftData fetch returns
+        // — cross-fades smoothly via the existing modernEntrance.
+        let planId = plan.id
+        let totalDays = plan.totalDays
+        Task { @MainActor in
+            completionByDay = hydrateCompletionByDay(
+                planId: planId,
+                totalDays: totalDays
+            )
+        }
 
         // Live food data for the snap-meal subtitle + fat-row macro
         // strip. Reads from FoodLogPersister's in-memory store (the

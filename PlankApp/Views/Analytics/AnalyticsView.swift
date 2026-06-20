@@ -213,73 +213,31 @@ struct AnalyticsView: View {
     /// per day.
     /// Breath: minutes of breath sessions per day, capped via
     /// completed_at presence on the session log.
+    /// v1.1.1 perf — reads from cached @State updated by
+    /// `refreshPerfCaches()`. Previous implementation ran an O(7N)
+    /// nested loop over sessionLogs on every body re-render.
     private var movedWeekSeries: (steps: [Int], plank: [Int], breath: [Int]) {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: .now)
-        let days: [Date] = (0..<7).compactMap {
-            cal.date(byAdding: .day, value: $0 - 6, to: today)
-        }
-
-        let steps = StepsService.shared.weeklyCounts
-
-        var plank: [Int] = Array(repeating: 0, count: 7)
-        var breath: [Int] = Array(repeating: 0, count: 7)
-        for log in sessionLogs {
-            for (idx, day) in days.enumerated() {
-                let next = cal.date(byAdding: .day, value: 1, to: day) ?? day
-                if log.completedAt >= day, log.completedAt < next {
-                    let minutes = max(1, Int((log.holdTime / 60).rounded()))
-                    if log.sessionType == "breathwork" {
-                        breath[idx] += minutes
-                    } else {
-                        plank[idx] += minutes
-                    }
-                }
-            }
-        }
-        return (steps: steps, plank: plank, breath: breath)
+        cachedMovedWeekSeries
     }
 
     /// Phase 4 Day-2 — first-engagement dates per deeds cell. Drives
     /// the long-press "since *date*" reveal on BecomingDeedsCounter.
     /// nil per cell when nothing of that kind has happened yet.
+    /// v1.1.1 perf — reads from cached @State updated by
+    /// `refreshPerfCaches()`. Previous version called
+    /// FoodLogPersister.allEntries + 2 sessionLogs filters each render.
     private var deedsSinceDates: (plates: Date?, lessons: Date?, breath: Date?) {
-        var plates: Date? = nil
-        if FoodFlags.isEnabled,
-           let userId = auth.currentUser?.id.uuidString, !userId.isEmpty {
-            plates = FoodLogPersister.allEntries(userId: userId)
-                .map(\.loggedAt)
-                .min()
-        }
-        let lessons = sessionLogs
-            .filter { $0.sessionType == "lesson" }
-            .map(\.completedAt)
-            .min()
-        let breath = sessionLogs
-            .filter { $0.sessionType == "breathwork" }
-            .map(\.completedAt)
-            .min()
-        return (plates: plates, lessons: lessons, breath: breath)
+        cachedDeedsSinceDates
     }
 
     /// Breath minutes ≈ breaths × 4 (typical session length); the
     /// derived "food noise quieted hours" combines lessons + breath
     /// minutes in BecomingDeedsCounter.
+    /// v1.1.1 perf — reads from cached @State updated by
+    /// `refreshPerfCaches()`. Previous version called
+    /// FoodLogPersister.allEntries every render just for .count.
     private var lifetimeDeeds: (plates: Int, lessons: Int, breaths: Int, breathMinutes: Int) {
-        let plates: Int = {
-            guard FoodFlags.isEnabled,
-                  let userId = auth.currentUser?.id.uuidString, !userId.isEmpty
-            else { return 0 }
-            return FoodLogPersister.allEntries(userId: userId).count
-        }()
-        let lessons = max(0, JeniMethodState.lastCompletedLessonId)
-        let breaths = BreathworkState.shared.totalCompleted
-        return (
-            plates: plates,
-            lessons: lessons,
-            breaths: breaths,
-            breathMinutes: breaths * 4
-        )
+        cachedLifetimeDeeds
     }
 
     // MARK: - v1.3 Becoming density (2026-06-18)
@@ -690,6 +648,21 @@ struct AnalyticsView: View {
     /// so the 7-day-window pickers (weekDotStates, lighterDayStates,
     /// etc.) don't re-scan it on every body re-render.
     @State private var cachedEngagedDates: Set<Date> = []
+    /// v1.1.1 (2026-06-19) — `movedWeekSeries` was an O(7N) nested
+    /// loop over sessionLogs every render. Cached.
+    @State private var cachedMovedWeekSeries: (steps: [Int], plank: [Int], breath: [Int]) =
+        ([0,0,0,0,0,0,0], [0,0,0,0,0,0,0], [0,0,0,0,0,0,0])
+    /// v1.1.1 — `deedsSinceDates` called FoodLogPersister.allEntries
+    /// + 2 sessionLogs filters every render. Cached.
+    @State private var cachedDeedsSinceDates: (plates: Date?, lessons: Date?, breath: Date?) =
+        (nil, nil, nil)
+    /// v1.1.1 — `lifetimeDeeds` called FoodLogPersister.allEntries
+    /// every render just for .count. Cached.
+    @State private var cachedLifetimeDeeds: (plates: Int, lessons: Int, breaths: Int, breathMinutes: Int) =
+        (0, 0, 0, 0)
+    /// v1.1.1 — `lighterDayStates` filtered allEntries + sessionLogs
+    /// 7 times per render. Cached (7-bool array).
+    @State private var cachedLighterDayStates: [Bool] = Array(repeating: false, count: 7)
     /// Live grid width captured via a background GeometryReader on the
     /// LazyVGrid. Read by the drag gesture to map touch X → cell column
     /// without fighting LazyVGrid's intrinsic sizing (the previous
@@ -1445,36 +1418,11 @@ struct AnalyticsView: View {
     /// Last 7 days oldest → today. Today is ALWAYS unclassified
     /// (classification runs on closed days only); steps come from
     /// StepsService's 7-day buckets aligned the same way.
+    /// v1.1.1 perf — reads from cached @State updated by
+    /// `refreshPerfCaches()`. Previous version filtered allEntries
+    /// AND sessionLogs 7 separate times per render.
     private var lighterDayStates: [Bool] {
-        guard let bmr = lighterDayBMR,
-              let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else {
-            return Array(repeating: false, count: 7)
-        }
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: .now)
-        let allEntries = FoodLogPersister.allEntries(userId: userId)
-        let glp1 = ProgramGoalCalculator.isGLP1User(from: glp1Status)
-        let weeklySteps = StepsService.shared.weeklyCounts  // [0]=6d ago … [6]=today
-
-        return (0..<7).map { offset in
-            guard offset < 6,  // today (offset 6) never classifies live
-                  let day = cal.date(byAdding: .day, value: offset - 6, to: today),
-                  let nextDay = cal.date(byAdding: .day, value: 1, to: day)
-            else { return false }
-            let dayEntries = allEntries.filter { $0.loggedAt >= day && $0.loggedAt < nextDay }
-            guard !dayEntries.isEmpty else { return false }
-            let sessionSeconds = sessionLogs
-                .filter { $0.completedAt >= day && $0.completedAt < nextDay }
-                .compactMap { $0.totalDuration }
-                .reduce(0, +)
-            return EnergyLedger.isLighterDay(.init(
-                entries: dayEntries,
-                stepsCount: weeklySteps.indices.contains(offset) ? weeklySteps[offset] : 0,
-                sessionSeconds: sessionSeconds,
-                bmr: bmr,
-                isGLP1: glp1
-            ))
-        }
+        cachedLighterDayStates
     }
 
     // MARK: - v1.1 dashboard data (folio / week row / food week / insight)
@@ -1522,11 +1470,11 @@ struct AnalyticsView: View {
         cachedEngagedDates
     }
 
-    /// v1.1.1 — recomputes both the food entries cache and the
-    /// engaged-dates set in one pass. Called on appear + on every
-    /// FoodLogPersister change + when session/weight/dayProgress
-    /// counts shift. Cheap enough to run on the main actor (the
-    /// scan is ~100 entries × O(1) lookups).
+    /// v1.1.1 — recomputes all 6 derived caches in one pass. Called
+    /// on appear + on every FoodLogPersister change + when session
+    /// /weight/dayProgress counts shift. Cheap enough to run on the
+    /// main actor (the scan is ~100 entries × O(1) lookups). Doing
+    /// it all together prevents partial-cache flicker.
     private func refreshPerfCaches() {
         let userId = auth.currentUser?.id.uuidString ?? ""
         let entries: [FoodLogPersister.FoodLogEntry]
@@ -1537,8 +1485,10 @@ struct AnalyticsView: View {
         }
         cachedFoodEntries = entries
 
-        var days = activeDates
         let cal = Calendar.current
+
+        // (1) engagedDates
+        var days = activeDates
         for log in sessionLogs {
             days.insert(cal.startOfDay(for: log.completedAt))
         }
@@ -1546,6 +1496,82 @@ struct AnalyticsView: View {
             days.insert(cal.startOfDay(for: entry.loggedAt))
         }
         cachedEngagedDates = days
+
+        // (2) movedWeekSeries
+        let today = cal.startOfDay(for: .now)
+        let windowDays: [Date] = (0..<7).compactMap {
+            cal.date(byAdding: .day, value: $0 - 6, to: today)
+        }
+        var plank: [Int] = Array(repeating: 0, count: 7)
+        var breath: [Int] = Array(repeating: 0, count: 7)
+        for log in sessionLogs {
+            for (idx, day) in windowDays.enumerated() {
+                let next = cal.date(byAdding: .day, value: 1, to: day) ?? day
+                if log.completedAt >= day, log.completedAt < next {
+                    let minutes = max(1, Int((log.holdTime / 60).rounded()))
+                    if log.sessionType == "breathwork" {
+                        breath[idx] += minutes
+                    } else {
+                        plank[idx] += minutes
+                    }
+                }
+            }
+        }
+        cachedMovedWeekSeries = (
+            steps: StepsService.shared.weeklyCounts,
+            plank: plank,
+            breath: breath
+        )
+
+        // (3) deedsSinceDates
+        let platesSince = entries.map(\.loggedAt).min()
+        let lessonsSince = sessionLogs
+            .filter { $0.sessionType == "lesson" }
+            .map(\.completedAt).min()
+        let breathSince = sessionLogs
+            .filter { $0.sessionType == "breathwork" }
+            .map(\.completedAt).min()
+        cachedDeedsSinceDates = (
+            plates: platesSince,
+            lessons: lessonsSince,
+            breath: breathSince
+        )
+
+        // (4) lifetimeDeeds
+        let breaths = BreathworkState.shared.totalCompleted
+        cachedLifetimeDeeds = (
+            plates: entries.count,
+            lessons: max(0, JeniMethodState.lastCompletedLessonId),
+            breaths: breaths,
+            breathMinutes: breaths * 4
+        )
+
+        // (5) lighterDayStates — only when BMR + userId resolve;
+        // otherwise stays at the default-false array.
+        if let bmr = lighterDayBMR, !userId.isEmpty {
+            let glp1 = ProgramGoalCalculator.isGLP1User(from: glp1Status)
+            let weeklySteps = StepsService.shared.weeklyCounts
+            cachedLighterDayStates = (0..<7).map { offset in
+                guard offset < 6 else { return false }
+                let day = windowDays[offset]
+                let next = cal.date(byAdding: .day, value: 1, to: day) ?? day
+                let dayEntries = entries.filter { $0.loggedAt >= day && $0.loggedAt < next }
+                guard !dayEntries.isEmpty else { return false }
+                let sessionSeconds = sessionLogs
+                    .filter { $0.completedAt >= day && $0.completedAt < next }
+                    .compactMap { $0.totalDuration }
+                    .reduce(0, +)
+                return EnergyLedger.isLighterDay(.init(
+                    entries: dayEntries,
+                    stepsCount: weeklySteps.indices.contains(offset) ? weeklySteps[offset] : 0,
+                    sessionSeconds: sessionSeconds,
+                    bmr: bmr,
+                    isGLP1: glp1
+                ))
+            }
+        } else {
+            cachedLighterDayStates = Array(repeating: false, count: 7)
+        }
     }
 
     /// Last 7 days (oldest → today) as dot states. Gain-framed: an
