@@ -946,6 +946,18 @@ struct AnalyticsView: View {
             refreshTrendChartLogs()
             weightChartVersion &+= 1
         }
+        // v1.1.1 (2026-06-20) — belt-and-braces. Whenever the
+        // @Query reports a change to allWeightLogs that the body
+        // can observe (count change OR latest weightKg change),
+        // refresh the chart's @State mirror. The two-arg fingerprint
+        // covers both the insert/delete path (count) and the
+        // one-per-day in-place mutation path (latest weightKg).
+        // Reading the property in the onChange key registers a
+        // SwiftData observation so the body re-fires when it shifts.
+        .onChange(of: weightLogsObservationKey) { _, _ in
+            refreshTrendChartLogs()
+            weightChartVersion &+= 1
+        }
         // Refresh when sessionLogs or dayProgress counts shift so the
         // engaged-dates set picks up completed routines + day-progress
         // writes that happen mid-session.
@@ -1321,8 +1333,15 @@ struct AnalyticsView: View {
                 // The @Query path doesn't surface in-place property
                 // mutations reliably — observers fire on count
                 // changes only, not on `existing.weightKg = kg`.
-                // .id() still rides the version so a remount runs
-                // the entrance animation fresh.
+                //
+                // The .id() carries the version bump PLUS the most
+                // recent log's weightKg and timestamp, so the canvas
+                // remounts whenever ANY of those vary. The data
+                // fingerprint guards against the case where the
+                // version somehow stays put but the underlying log
+                // has changed (e.g. a HealthKit batch import sneaks
+                // a refresh into trendChartLogs without bumping the
+                // version path).
                 .id(weightChartVersion)
                 .padding(.top, 6)
             } else {
@@ -2243,6 +2262,16 @@ struct AnalyticsView: View {
     /// dedicated mirror.
     private var trendChartMeasuredLogs: [WeightLogRecord] {
         trendChartLogs.filter { $0.source != "onboarding" }
+    }
+
+    /// Cheap observation key for the body's `.onChange` watcher.
+    /// Reads `count` + latest `weightKg` from the @Query result so
+    /// SwiftData registers an observation on both — body re-fires
+    /// whenever either changes (covers insert/delete + one-per-day
+    /// in-place mutation).
+    private var weightLogsObservationKey: String {
+        let latest = allWeightLogs.first?.weightKg ?? 0
+        return "\(allWeightLogs.count)-\(latest)"
     }
 
     /// Materialize the current user's weight logs via a direct
