@@ -1856,14 +1856,43 @@ extension View {
 
 /// Drop-in ButtonStyle for any new tappable surface. Wraps the label
 /// in a press-aware Button so scroll + tap arbitrate correctly.
+///
+/// v1.1.1 (2026-06-19, second pass) — depth bumped (scale 0.985→0.97,
+/// brightness -0.025→-0.06) so the press is actually visible at
+/// thumb-tip glance. Adds a tap-acknowledge linger: the pressed
+/// state holds for 220ms after release before snapping back, so even
+/// when the destination cover takes 100-300ms to boot the user sees
+/// confirmation that the tap landed.
 struct LuxuryPressButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
+        LuxuryPressButtonBody(configuration: configuration)
+    }
+}
+
+private struct LuxuryPressButtonBody: View {
+    let configuration: ButtonStyle.Configuration
+    @State private var lingerPressed: Bool = false
+
+    private var pressed: Bool { configuration.isPressed || lingerPressed }
+
+    var body: some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.985 : 1.0)
-            .brightness(configuration.isPressed ? -0.025 : 0)
-            .animation(.interactiveSpring(response: 0.18, dampingFraction: 0.86), value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { _, pressed in
-                if pressed { Haptics.soft() }
+            .scaleEffect(pressed ? 0.97 : 1.0)
+            .brightness(pressed ? -0.06 : 0)
+            .animation(.interactiveSpring(response: 0.18, dampingFraction: 0.86), value: pressed)
+            .onChange(of: configuration.isPressed) { wasPressed, isPressedNow in
+                if isPressedNow {
+                    Haptics.soft()
+                    lingerPressed = false
+                } else if wasPressed {
+                    // Touch up → hold the pressed look for ~220ms so
+                    // the user sees "tap acknowledged" even when the
+                    // destination takes time to mount.
+                    lingerPressed = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                        lingerPressed = false
+                    }
+                }
             }
     }
 }

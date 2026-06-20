@@ -120,8 +120,12 @@ struct SnapMealEmbed: View {
 
     private var consumedLine: some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
+            // v1.1.1 (2026-06-19) — bumped Light → SemiBold per
+            // founder QA: the today-calorie numeral was reading thin
+            // against the row chrome. SemiBold lands closer to her75's
+            // headline weight + matches the Becoming hero numeral.
             Text("\(kcal.formatted(.number.grouping(.automatic)))")
-                .font(.custom("Fraunces72pt-Light", size: 28, relativeTo: .title2))
+                .font(.custom("Fraunces72pt-SemiBold", size: 28, relativeTo: .title2))
                 .foregroundStyle(Palette.accent)
                 .monospacedDigit()
             Text("cal today")
