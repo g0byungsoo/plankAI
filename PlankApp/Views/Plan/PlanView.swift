@@ -1443,7 +1443,16 @@ struct PlanView: View {
     /// type (Phase 1.B). Long-press remains the manual override
     /// (MarkAsDoneSheet) for the offline edge case.
     private func handleRowTap(_ prescription: ProgramDayPrescription) {
-        guard viewingDay == nil else { return }
+        // Past-day view: lessons stay re-readable (Phase 1 / Panel 2
+        // + 4 lock — lessons are CONTENT, not behavior). Every other
+        // row is view-only on past days.
+        if viewingDay != nil {
+            if case .lesson = prescription {
+                Haptics.light()
+                openLesson()
+            }
+            return
+        }
 
         // Tap ALWAYS routes to the module — including for already-
         // completed rows. Users expect to re-read a lesson, log
