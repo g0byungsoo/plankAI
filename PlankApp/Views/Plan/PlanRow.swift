@@ -94,6 +94,13 @@ struct PlanRow: View {
         }
     }
 
+    /// v1.1.1 (2026-06-19) — set when LongPressGesture fires; checked
+    /// in the Button tap action to swallow the follow-up tap. SwiftUI's
+    /// Button fires its tap on touch-release regardless of how long
+    /// the finger was held, so without this flag every long-press
+    /// also opens the destination.
+    @State private var longPressJustFired: Bool = false
+
     var body: some View {
         // v1.0.35 Home Phase 1 — past-day disabled chrome arrives via
         // typographic dim (title 0.55, drop sticky shadow), trailing
@@ -117,16 +124,26 @@ struct PlanRow: View {
         // for the unmark gesture.
         .luxuryPressFeedback(enabled: isRowTappable) {
             guard isRowTappable else { return }
+            // v1.1.1 (2026-06-19) — if a long-press just fired the
+            // unmark action, swallow the tap that comes on release.
+            // SwiftUI's Button fires on touch-up regardless of how
+            // long the finger was down, so without this gate every
+            // long-press also opens the destination.
+            if longPressJustFired {
+                longPressJustFired = false
+                return
+            }
             onTap()
         }
-        // v1.1.1 (2026-06-19) — `.simultaneousGesture` (not
-        // .onLongPressGesture) because the Button wrapper inside
-        // luxuryPressFeedback consumes the standard long-press
-        // gesture chain. simultaneousGesture runs in parallel.
+        // v1.1.1 — `.simultaneousGesture` (not .onLongPressGesture)
+        // because the Button wrapper inside luxuryPressFeedback
+        // consumes the standard long-press gesture chain.
+        // simultaneousGesture runs in parallel.
         .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.5)
                 .onEnded { _ in
                     guard isRowTappable, canLongPress else { return }
+                    longPressJustFired = true
                     onLongPress()
                 }
         )
