@@ -119,11 +119,17 @@ struct PlanRow: View {
             guard isRowTappable else { return }
             onTap()
         }
-        .onLongPressGesture(minimumDuration: 0.5) {
-            guard isRowTappable else { return }
-            guard canLongPress else { return }
-            onLongPress()
-        }
+        // v1.1.1 (2026-06-19) — `.simultaneousGesture` (not
+        // .onLongPressGesture) because the Button wrapper inside
+        // luxuryPressFeedback consumes the standard long-press
+        // gesture chain. simultaneousGesture runs in parallel.
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.5)
+                .onEnded { _ in
+                    guard isRowTappable, canLongPress else { return }
+                    onLongPress()
+                }
+        )
         .opacity(rowOpacity)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(a11yLabel)

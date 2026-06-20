@@ -86,7 +86,12 @@ struct PlanView: View {
     @AppStorage("hasCompletedFirstSession") private var hasCompletedFirstSession = false
 
     enum PlanCover: Identifiable {
-        case lesson(LessonID)
+        // v1.1.1 (2026-06-19) — `programDay` lifted onto the case so
+        // the cover content can resolve the CBT lesson for the
+        // correct day. Previously the cover read `schedule.programDay`
+        // directly, which always resolves to TODAY regardless of
+        // viewingDay — past-day lesson taps opened today's content.
+        case lesson(LessonID, programDay: Int)
         case captureFlow
         case preRoutine(WorkoutPreset)
         case breathSession
@@ -95,7 +100,7 @@ struct PlanView: View {
 
         var id: String {
             switch self {
-            case .lesson(let id): return "lesson-\(id.rawValue)"
+            case .lesson(let id, let day): return "lesson-\(id.rawValue)-\(day)"
             case .captureFlow:    return "captureFlow"
             case .preRoutine:     return "preRoutine"
             case .breathSession:  return "breathSession"
@@ -291,7 +296,7 @@ struct PlanView: View {
     @ViewBuilder
     private func coverContent(for cover: PlanCover) -> some View {
         switch cover {
-        case .lesson(let lessonId):
+        case .lesson(let lessonId, let coverProgramDay):
             // v1.2 (2026-06-15) — try the manifest-driven CBT reader
             // first. CBTCurriculumService.lesson(forProgramDay:...)
             // returns nil when the manifest isn't bundled OR the day
@@ -299,10 +304,11 @@ struct PlanView: View {
             // `JeniMethodRitualView` in either case so existing 14-
             // lesson users keep their flow unbroken.
             //
-            // Day-mapping: `schedule.programDay` is 1-indexed (matches
-            // CBT D01...D102). totalDays drives the scheduler's lesson
-            // density for users on shorter programs.
-            let programDay = schedule?.programDay ?? 1
+            // v1.1.1 (2026-06-19) — `programDay` comes from the cover
+            // case (carries viewingDay when re-reading a past lesson)
+            // so the CBT lookup resolves to the RIGHT day instead of
+            // always today's.
+            let programDay = coverProgramDay
             let totalDays = schedule?.totalDays
                 ?? ProgramScheduleCalculator.fallbackTotalDays
             if let resolved = CBTCurriculumService.shared.lesson(
@@ -1614,10 +1620,13 @@ struct PlanView: View {
         // GLP-1: lessons on past days must open the PAST day's lesson,
         // not today's. Resolve through `viewingDay ?? programDay` so
         // re-reads land on the correct content.
+        // v1.1.1 — also forward the day to the cover so the CBT
+        // reader path resolves the right scheduled lesson (was
+        // reading schedule.programDay = today, ignoring viewingDay).
         JeniMethodState.markEnrolled()
         let day = viewingDay ?? schedule?.programDay ?? 1
         let lessonId = LessonID(rawValue: JeniMethodState.lessonId(forDay: day)) ?? .generic
-        present(cover: .lesson(lessonId))
+        present(cover: .lesson(lessonId, programDay: day))
     }
 
     private func openWorkout(tier: IntensityTier, minutes: Int, bodyFocus: String?) {
