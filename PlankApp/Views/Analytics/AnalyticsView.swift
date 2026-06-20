@@ -619,6 +619,15 @@ struct AnalyticsView: View {
     @State private var showFoodJournal = false
     /// Calorie camera over the journal (the timeline's + button).
     @State private var showJournalCapture = false
+    /// v1.1.1 (2026-06-20) — calorie camera triggered directly from
+    /// the Becoming-tab plate timeline (BecomingPlateTimelineToday's
+    /// + button), without needing the food journal to be open first.
+    /// Previously the `+` button just set `showJournalCapture` —
+    /// but that fullScreenCover lives INSIDE the `showFoodJournal`
+    /// cover's scope, so it only fires when the journal is already
+    /// presented. Tapping + from the Becoming tab itself did
+    /// nothing. This separate flag presents a top-level cover.
+    @State private var showCaptureFromBecoming = false
     @AppStorage("foodDailyTarget") private var foodDailyTarget: Double = 1650
     /// v1.1 P3 — rendered day card pending share-sheet presentation.
     /// Identifiable wrapper so the share sheet presents via
@@ -925,6 +934,18 @@ struct AnalyticsView: View {
                     onDismiss: { showJournalCapture = false }
                 )
             }
+        }
+        // v1.1.1 (2026-06-20) — top-level capture cover, fired by
+        // the Becoming-tab plate timeline's + button. Needs to be a
+        // sibling to the food-journal cover (not nested) so it can
+        // present when the journal isn't already open.
+        .fullScreenCover(isPresented: $showCaptureFromBecoming) {
+            CaptureFlowView(
+                userId: auth.currentUser?.id.uuidString ?? "",
+                cuisineProfile: UserDefaults.standard
+                    .string(forKey: "onboardingCuisinePreference"),
+                onDismiss: { showCaptureFromBecoming = false }
+            )
         }
         .sheet(isPresented: $showDepthSheet) {
             becomingDepthSheet
@@ -1357,7 +1378,7 @@ struct AnalyticsView: View {
                 BecomingPlateTimelineToday(
                     plates: todayPlates,
                     onTapPlate: { _ in showFoodJournal = true },
-                    onLogTapped: { showJournalCapture = true },
+                    onLogTapped: { showCaptureFromBecoming = true },
                     onDeletePlate: { id in
                         // Phase 4 Day-4 (2026-06-19) — wires the
                         // swipe-left delete to the persistence
