@@ -686,6 +686,16 @@ struct AnalyticsView: View {
     /// views on inactive tabs). Used as a `.id(...)` on the canvas
     /// so a remount draws fresh.
     @State private var weightChartVersion: Int = 0
+    /// v1.1.1 (2026-06-20) — explicit @State mirror of the trend
+    /// chart's data, populated via a direct FetchDescriptor query
+    /// on the modelContext. The @Query path doesn't reliably
+    /// surface in-place property mutations to the BecomingTrendCanvas
+    /// (especially when AnalyticsView was off-screen at save time),
+    /// so the chart was redrawing with stale weightKg values even
+    /// after a remount. This @State bypasses the @Query entirely
+    /// for the chart's input. Refreshed on appear, on
+    /// .weightLogDidChange, and inline after every saveWeightLog.
+    @State private var trendChartLogs: [WeightLogRecord] = []
     /// Live grid width captured via a background GeometryReader on the
     /// LazyVGrid. Read by the drag gesture to map touch X → cell column
     /// without fighting LazyVGrid's intrinsic sizing (the previous
@@ -820,6 +830,12 @@ struct AnalyticsView: View {
             // on appear so the first body render uses precomputed data
             // instead of re-scanning sessionLogs + foodLogs.
             refreshPerfCaches()
+            // v1.1.1 — also seed the trend chart's @State mirror so
+            // the first render after a cross-tab save (e.g. user
+            // logged on PlanView, then switched here) reflects the
+            // mutation even if .onReceive missed the notification
+            // (tab not yet mounted).
+            refreshTrendChartLogs()
             animateIn()
             presentSundayRecapIfDue()
             // P3b — earn-gated Sunday push (id-replaced, one per week
@@ -922,11 +938,12 @@ struct AnalyticsView: View {
         }
         // v1.1.1 — cross-view weight-log signal. Posted from
         // PlanView.persistWeight + saveWeightLog (this view) +
-        // BodyMassImportService HK pull. Bump the version so the
-        // trend canvas re-mounts. SwiftData @Query doesn't reliably
-        // fire body re-renders on in-place property mutations for
-        // views attached to inactive tabs.
+        // BodyMassImportService HK pull. Re-fetch the chart's data
+        // source via FetchDescriptor (bypassing @Query so in-place
+        // mutations land) AND bump the version so the canvas
+        // remounts to play the entrance animation fresh.
         .onReceive(NotificationCenter.default.publisher(for: .weightLogDidChange)) { _ in
+            refreshTrendChartLogs()
             weightChartVersion &+= 1
         }
         // Refresh when sessionLogs or dayProgress counts shift so the
@@ -1291,15 +1308,21 @@ struct AnalyticsView: View {
             //    WL cohort lands BEFORE the food details. Card chrome
             //    + 7-day delta + 110pt EMA Canvas. Falls back to the
             //    prose card when logs are too sparse.
-            if measuredWeightLogs.count >= 2 {
+            if trendChartMeasuredLogs.count >= 2 {
                 BecomingTrendCanvas(
-                    logs: measuredWeightLogs,
+                    logs: trendChartMeasuredLogs,
                     goalWeightKg: goalWeightKg,
                     unit: weightUnit
                 )
-                // v1.1.1 — re-mount when `saveWeightLog` bumps the
-                // version so the canvas redraws with the new value
-                // immediately, regardless of @Query observation.
+                // v1.1.1 (2026-06-20) — feed from the @State mirror
+                // populated by an explicit FetchDescriptor in
+                // `refreshTrendChartLogs()` (called on appear + on
+                // .weightLogDidChange + inline after every save).
+                // The @Query path doesn't surface in-place property
+                // mutations reliably — observers fire on count
+                // changes only, not on `existing.weightKg = kg`.
+                // .id() still rides the version so a remount runs
+                // the entrance animation fresh.
                 .id(weightChartVersion)
                 .padding(.top, 6)
             } else {
@@ -2211,6 +2234,34 @@ struct AnalyticsView: View {
     /// never participates in trend math.
     private var measuredWeightLogs: [WeightLogRecord] {
         weightLogs.filter { $0.source != "onboarding" }
+    }
+
+    /// v1.1.1 (2026-06-20) — trend-chart-specific measured logs that
+    /// READ FROM `trendChartLogs` (the @State mirror), not from the
+    /// @Query path. The chart cares about cross-view freshness more
+    /// than any other downstream consumer — that's why this gets the
+    /// dedicated mirror.
+    private var trendChartMeasuredLogs: [WeightLogRecord] {
+        trendChartLogs.filter { $0.source != "onboarding" }
+    }
+
+    /// Materialize the current user's weight logs via a direct
+    /// FetchDescriptor query. Bypasses @Query (which doesn't
+    /// reliably surface in-place property mutations) so the chart
+    /// sees fresh `weightKg` values after every save — from this
+    /// view, PlanView's persistWeight, or BodyMassImportService.
+    private func refreshTrendChartLogs() {
+        guard let userId = auth.currentUser?.id.uuidString, !userId.isEmpty else {
+            trendChartLogs = []
+            return
+        }
+        var descriptor = FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate { $0.userId == userId },
+            sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = 365 // 1 year is well past the 60/90d window
+        let fresh = (try? modelContext.fetch(descriptor)) ?? []
+        trendChartLogs = fresh
     }
 
     private var measuredSpanDays: Int {
@@ -3981,11 +4032,13 @@ struct AnalyticsView: View {
             existing.pendingUpsert = true
             try? modelContext.save()
             Task { await AppSync.shared.upsertWeightLog(existing) }
-            // v1.1.1 (2026-06-19) — bump the chart version so the
-            // trend canvas re-mounts and redraws with the new value.
-            // SwiftData @Query doesn't reliably fire body re-renders
-            // on in-place property mutations for views on inactive
-            // tabs; this is the safety net.
+            // v1.1.1 (2026-06-20) — explicitly refresh the @State
+            // chart mirror inline (don't wait for the notification
+            // round-trip — `.onReceive` is async and SwiftUI may
+            // re-evaluate the body before it lands). Then bump the
+            // version so the canvas remounts with the freshly-
+            // populated array.
+            refreshTrendChartLogs()
             weightChartVersion &+= 1
             // Also fan out the cross-view signal so PlanView's
             // weight-card embed + Home's TrendHeroCard rerender on
@@ -4003,6 +4056,7 @@ struct AnalyticsView: View {
         modelContext.insert(log)
         try? modelContext.save()
         Task { await AppSync.shared.upsertWeightLog(log) }
+        refreshTrendChartLogs()
         weightChartVersion &+= 1
         NotificationCenter.default.post(name: .weightLogDidChange, object: nil)
     }
