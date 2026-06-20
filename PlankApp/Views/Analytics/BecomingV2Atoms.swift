@@ -1127,12 +1127,31 @@ struct BecomingTrendCanvas: View {
 
     private func toDisplay(_ kg: Double) -> Double { unit.display(fromKg: kg) }
 
-    /// The currently-visible weight number — either the scrubbed
-    /// point or the most-recent EMA.
+    /// The currently-visible weight number.
+    ///
+    /// - Scrubbing: shows the smoothed EMA at the scrubbed point —
+    ///   that's where the LINE is, so the digit aligns with the
+    ///   marker the finger lands on.
+    /// - Idle: shows the user's MOST RECENT RAW weigh-in (not the
+    ///   EMA). The EMA absorbs single new readings — alpha is 0.25
+    ///   on a 7-day window, so adding one 58kg entry after weeks
+    ///   of 60kg only pulls the EMA from 60 → 59.5. Users read the
+    ///   chart as "broken" when the headline doesn't reflect what
+    ///   they just entered. The LINE still shows the smoothed
+    ///   trend (that's its job — defuse fluctuation anxiety per
+    ///   Helander 2014); the headline speaks to the latest input.
     private var headlineWeightLb: Double {
         if let frac = scrubFraction, !points.isEmpty {
             let idx = min(points.count - 1, max(0, Int(Double(points.count - 1) * frac)))
             return toDisplay(points[idx].emaKg)
+        }
+        // Find the most recent point whose rawKg is non-nil — that
+        // is the user's last actual weigh-in. Fall back to the
+        // latest EMA if no raw point exists in the window (e.g.
+        // their last log was older than the windowDays cutoff and
+        // the chart is showing seeded EMA history only).
+        if let latestRaw = filteredLogs.first?.weightKg {
+            return toDisplay(latestRaw)
         }
         return toDisplay(points.last?.emaKg ?? 0)
     }
