@@ -60,21 +60,41 @@ public struct HandwrittenSnapResultShareCard: View {
     }
 
     public var body: some View {
-        ZStack {
-            if embedsPhoto {
+        if embedsPhoto {
+            // Share-export path: fixed 1080×1920 canvas with the
+            // captured photo embedded + label overlay on top. The
+            // share renderer reads this size; do not change.
+            ZStack {
                 Image(uiImage: photo)
                     .resizable()
                     .scaledToFill()
                     .frame(width: 1080, height: 1920)
                     .clipped()
-            } else {
-                Color.clear
+                labelOverlay
             }
-
-            labelOverlay
+            .frame(width: 1080, height: 1920)
+            .clipped()
+        } else {
+            // v1.0.34 (2026-06-19) — in-app path: fill the parent
+            // slot natively so the frozen camera behind has NO
+            // visible inner/outer boundary. Was a fixed 1080×1920
+            // box scaled-to-fit, which left vertical margins
+            // showing the same photo "outside" the slide; founder
+            // read it as "photo on captured photo."
+            //
+            // Now the labelOverlay positions in a corner of the
+            // entire slot, the captured photo behind reads as a
+            // single uninterrupted backdrop, and the text overlay
+            // matches the share artifact's positioning exactly.
+            // GeometryReader picks the actual slot width so we can
+            // scale the 1080-native font sizes down without losing
+            // the share artifact's typographic ratio.
+            GeometryReader { geo in
+                let scale = max(0.18, geo.size.width / 1080)
+                labelOverlay(scale: scale)
+                    .frame(width: geo.size.width, height: geo.size.height)
+            }
         }
-        .frame(width: 1080, height: 1920)
-        .clipped()
     }
 
     // MARK: - Label overlay
@@ -125,7 +145,17 @@ public struct HandwrittenSnapResultShareCard: View {
         return parts.joined(separator: " · ")
     }
 
-    @ViewBuilder private var labelOverlay: some View {
+    /// Default share-export label overlay — full 1080-native font
+    /// sizes. Used when embedsPhoto:true.
+    private var labelOverlay: some View {
+        labelOverlay(scale: 1.0)
+    }
+
+    /// Scaled label overlay — fonts + padding multiplied by `scale`
+    /// so the in-app slot (≪ 1080pt wide) reads at the same ratio
+    /// as the 1080-native share artifact. embedsPhoto:false renders
+    /// directly into the carousel slot at the slot's actual width.
+    @ViewBuilder private func labelOverlay(scale: CGFloat) -> some View {
         // v1.0.17 — share the 1-row CellMetrics tier with daily/weekly
         // so the snap card stays on the same font ladder when the
         // founder bumps sizes elsewhere.
@@ -146,17 +176,17 @@ public struct HandwrittenSnapResultShareCard: View {
         let hAlign: HorizontalAlignment = (position == .topLeft || position == .bottomLeft)
             ? .leading : .trailing
 
-        VStack(alignment: hAlign, spacing: metrics.stackSpacing) {
+        VStack(alignment: hAlign, spacing: metrics.stackSpacing * scale) {
             if isTop {
-                itemStack(lines, align: textAlign, metrics: metrics)
-                macroCaptionView(macroLine, metrics: metrics)
+                itemStack(lines, align: textAlign, metrics: metrics, scale: scale)
+                macroCaptionView(macroLine, metrics: metrics, scale: scale)
             } else {
-                macroCaptionView(macroLine, metrics: metrics)
-                itemStack(lines, align: textAlign, metrics: metrics)
+                macroCaptionView(macroLine, metrics: metrics, scale: scale)
+                itemStack(lines, align: textAlign, metrics: metrics, scale: scale)
             }
         }
-        .padding(.horizontal, metrics.hPad)
-        .padding(.vertical, metrics.vPad)
+        .padding(.horizontal, metrics.hPad * scale)
+        .padding(.vertical, metrics.vPad * scale)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
     }
 
@@ -164,15 +194,16 @@ public struct HandwrittenSnapResultShareCard: View {
     private func itemStack(
         _ lines: [String],
         align: TextAlignment,
-        metrics: HandwrittenDailyShareCard.CellMetrics
+        metrics: HandwrittenDailyShareCard.CellMetrics,
+        scale: CGFloat
     ) -> some View {
         let hAlign: HorizontalAlignment = (align == .leading) ? .leading
                                         : (align == .trailing) ? .trailing
                                         : .center
-        VStack(alignment: hAlign, spacing: metrics.itemsSpacing) {
+        VStack(alignment: hAlign, spacing: metrics.itemsSpacing * scale) {
             ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
                 Text(line)
-                    .font(.custom("BradleyHandITCTT-Bold", size: metrics.itemsFont))
+                    .font(.custom("BradleyHandITCTT-Bold", size: metrics.itemsFont * scale))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(align)
             }
@@ -182,10 +213,11 @@ public struct HandwrittenSnapResultShareCard: View {
     @ViewBuilder
     private func macroCaptionView(
         _ line: String,
-        metrics: HandwrittenDailyShareCard.CellMetrics
+        metrics: HandwrittenDailyShareCard.CellMetrics,
+        scale: CGFloat
     ) -> some View {
         Text(line)
-            .font(.custom("DMSans-Medium", size: metrics.macroFont))
+            .font(.custom("DMSans-Medium", size: metrics.macroFont * scale))
             .foregroundStyle(.white.opacity(0.92))
     }
 }

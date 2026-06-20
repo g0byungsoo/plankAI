@@ -147,7 +147,7 @@ public struct NutritionCarousel: View {
                 onResultEdited: onCorrect
             )}
 
-            slideTab(index: 1) { HandwrittenSnapResultShareCard(
+            fillSlideTab(index: 1) { HandwrittenSnapResultShareCard(
                 photo: photo ?? Self.placeholderPhoto,
                 mealLabel: mealLabel,
                 dishName: dishName,
@@ -194,6 +194,23 @@ public struct NutritionCarousel: View {
         .padding(.horizontal, 4)
         .padding(.bottom, 28)
         .tag(index)
+    }
+
+    /// v1.0.34 (2026-06-19) — fill-slot container for slides that
+    /// self-size (e.g. the in-app HandwrittenSnapResultShareCard with
+    /// embedsPhoto:false). NO scale-to-9:16 box, NO horizontal margin
+    /// — slide fills the carousel slot exactly so the frozen camera
+    /// behind reads as one uninterrupted photo. Founder fix: "the
+    /// second slide still has photo on captured photo, which is wrong."
+    @ViewBuilder
+    private func fillSlideTab<Content: View>(
+        index: Int,
+        @ViewBuilder content: @escaping () -> Content
+    ) -> some View {
+        content()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.bottom, 28)  // page-dot clearance only
+            .tag(index)
     }
 
     /// Tiny rose-gradient placeholder used when the carousel mounts
