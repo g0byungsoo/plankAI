@@ -202,8 +202,7 @@ struct ProgramDayCell: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .luxuryPressFeedback()
+        .buttonStyle(LuxuryPressButtonStyle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
     }

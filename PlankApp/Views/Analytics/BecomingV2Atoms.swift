@@ -865,8 +865,7 @@ struct BecomingPlateTimelineToday: View {
                 .animation(Motion.crossFade, value: isRevealed)
                 .gesture(onDeletePlate != nil ? deleteSwipeGesture(for: p.id) : nil)
                 .contentShape(Rectangle())
-                .luxuryPressFeedback()
-                .onTapGesture {
+                .luxuryPressFeedback {
                     if isRevealed {
                         withAnimation(Motion.crossFade) { revealedId = nil }
                     } else {
@@ -931,8 +930,7 @@ struct BecomingPlateTimelineToday: View {
                 .font(.custom("DMSans-Medium", size: 11))
         }
         .contentShape(Rectangle())
-        .luxuryPressFeedback()
-        .onTapGesture { onLogTapped() }
+        .luxuryPressFeedback { onLogTapped() }
         .accessibilityLabel("log a plate")
     }
 }

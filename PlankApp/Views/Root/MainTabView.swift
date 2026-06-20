@@ -172,8 +172,7 @@ struct MainTabView: View {
                 )
                 .shadow(color: Palette.textPrimary.opacity(0.25), radius: 0, x: 3, y: 3)
         }
-        .buttonStyle(.plain)
-        .luxuryPressFeedback()
+        .buttonStyle(LuxuryPressButtonStyle())
         .accessibilityLabel("snap food")
         .accessibilityHint("opens the camera to log a meal")
     }
@@ -203,13 +202,12 @@ private struct TabBloom: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        // Opaque cream backdrop under the blooming content so the blur + fade
-        // never reveal the black window behind the tab. No scaleEffect — the
-        // earlier scale shrank the content and exposed black gaps at the
-        // top/bottom edges. Blur resolving into focus + an 8pt upward
-        // settle (founder 2026-06-11: "modern, simple but premium
-        // transition between today and becoming") — the page arrives
-        // like a card laid on the desk, never a slide.
+        // v1.1.1 — keep the bloom but reduce its cost. Blur radius
+        // 5→2 (less GPU work), opacity 0.85→0.94 (subtler dip), and
+        // a snappier Motion.entrance curve (~0.42s vs gentleSpring's
+        // ~0.55s). Same visual intent — page arrives like a card
+        // laid down — but the user perceives the tab switch as
+        // instant rather than ~600ms of lag.
         ZStack {
             Palette.bgPrimary.ignoresSafeArea()
             content
@@ -221,12 +219,10 @@ private struct TabBloom: ViewModifier {
             guard active else { return }
             guard appearedOnce else { appearedOnce = true; return }
             guard !reduceMotion else { return }
-            // Set the bloom-from state this frame, then resolve to clear next
-            // runloop so the blur is actually rendered before it animates away.
-            blur = 5; opacity = 0.85; offsetY = 8
+            blur = 2; opacity = 0.94; offsetY = 4
             Haptics.soft()
             DispatchQueue.main.async {
-                withAnimation(Motion.gentleSpring) {
+                withAnimation(Motion.entranceSoft) {
                     blur = 0; opacity = 1; offsetY = 0
                 }
             }

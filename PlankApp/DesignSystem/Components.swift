@@ -1816,7 +1816,7 @@ extension View {
     func paperSheen() -> some View { modifier(PaperSheenModifier()) }
 }
 
-// MARK: - LuxuryPressable (v1.1.1, 2026-06-19)
+// MARK: - LuxuryPressable (v1.1.1, 2026-06-19; rewritten 2026-06-19)
 //
 // Instant press feedback for any tappable surface. Modern iOS apps
 // (Notion, Linear, Things, Apple Stocks) flip a subtle scale + dim
@@ -1825,48 +1825,78 @@ extension View {
 // Without it the tap feels frozen for the 100-200ms while heavy
 // destinations mount.
 //
-// Usage:
-//   YourRow().luxuryPressable {
-//       // tap action
-//   }
+// Implementation: built on `ButtonStyle` so SwiftUI's native button
+// system owns press detection. That gives us, for free:
+//   • scroll-vs-tap discrimination (touch that converts to a scroll
+//     drag CANCELS the press automatically — the user doesn't get
+//     a press flash while scrolling, AND the scroll isn't blocked)
+//   • cancel-on-drag-away (touch that wanders off the target snaps
+//     the press state back)
 //
-// Or, to keep the existing onTap wiring and just layer the feedback:
-//   YourRow()
-//       .luxuryPressFeedback(enabled: isInteractive)
-//       .onTapGesture { ... }
+// The earlier v1.1.1 implementation used `.simultaneousGesture(
+// DragGesture(minimumDistance: 0))` which captured every touch
+// start — including scroll initiations — and made Home un-scrollable
+// while also stealing taps from underlying handlers. ButtonStyle is
+// the correct primitive for this; falling back to it.
+//
+// Usage:
+//   // Wrap content in a Button + apply the style. This is the
+//   // recommended path for new code:
+//   Button { action() } label: { rowContent }
+//       .buttonStyle(LuxuryPressButtonStyle())
+//
+//   // OR — back-compat shim for existing surfaces that use
+//   // .onTapGesture. Wraps the content in a Button under the hood,
+//   // so scroll + tap arbitrate correctly:
+//   rowContent.luxuryPressFeedback { action() }
 //
 // The feedback uses .interactiveSpring with high damping (0.86) so
 // it lands snappy + non-bouncy — closer to a button's affordance
 // than a celebratory animation.
 
+/// Drop-in ButtonStyle for any new tappable surface. Wraps the label
+/// in a press-aware Button so scroll + tap arbitrate correctly.
+struct LuxuryPressButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.985 : 1.0)
+            .brightness(configuration.isPressed ? -0.025 : 0)
+            .animation(.interactiveSpring(response: 0.18, dampingFraction: 0.86), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, pressed in
+                if pressed { Haptics.soft() }
+            }
+    }
+}
+
+/// Back-compat modifier for surfaces that use .onTapGesture instead
+/// of Button. Wraps the content in a hidden Button with
+/// LuxuryPressButtonStyle so press detection respects scrolling.
 private struct LuxuryPressFeedback: ViewModifier {
     let enabled: Bool
-    @State private var isPressed: Bool = false
+    let onTap: () -> Void
 
     func body(content: Content) -> some View {
-        content
-            .scaleEffect(isPressed ? 0.985 : 1.0)
-            .brightness(isPressed ? -0.025 : 0)
-            .animation(.interactiveSpring(response: 0.18, dampingFraction: 0.86), value: isPressed)
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        guard enabled, !isPressed else { return }
-                        isPressed = true
-                        Haptics.soft()
-                    }
-                    .onEnded { _ in
-                        isPressed = false
-                    }
-            )
+        if enabled {
+            Button(action: onTap) {
+                content
+            }
+            .buttonStyle(LuxuryPressButtonStyle())
+        } else {
+            content
+        }
     }
 }
 
 extension View {
-    /// Layers instant press feedback (scale + dim + soft haptic) on
-    /// any view. Use alongside existing `.onTapGesture`. Disable per-
-    /// instance via `enabled: false` for view-only rows.
-    func luxuryPressFeedback(enabled: Bool = true) -> some View {
-        modifier(LuxuryPressFeedback(enabled: enabled))
+    /// Wraps the view in a Button so press state + tap dispatch are
+    /// owned by SwiftUI's native button system (which arbitrates
+    /// correctly with parent ScrollViews). Pass the tap action here;
+    /// do NOT layer a separate .onTapGesture (it will fire twice).
+    /// For long-press, attach .onLongPressGesture AFTER this modifier.
+    func luxuryPressFeedback(
+        enabled: Bool = true,
+        action: @escaping () -> Void
+    ) -> some View {
+        modifier(LuxuryPressFeedback(enabled: enabled, onTap: action))
     }
 }

@@ -682,8 +682,7 @@ struct PlanView: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .luxuryPressFeedback()
+            .buttonStyle(LuxuryPressButtonStyle())
             .accessibilityElement(children: .combine)
             .accessibilityLabel("today is \(arch.rawValue) day. double tap to learn more")
             .accessibilityHint("opens a sheet explaining today's archetype")
