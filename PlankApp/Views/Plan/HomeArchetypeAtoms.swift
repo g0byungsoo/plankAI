@@ -36,6 +36,13 @@ struct HomeArchetypeHeader: View {
     /// Phase 3 — long-press to mark today kind. Optional; when nil
     /// the header is non-interactive (harness/peek use cases).
     var onLongPressKind: (() -> Void)? = nil
+    /// Harness-only initial "why" reveal for screenshot capture.
+    var debugInitialWhy: Bool = false
+
+    /// Phase 4 (2026-06-19) — double-tap reveals a one-line italic
+    /// "*why* this is your day" explainer below the header. 4s auto-
+    /// dismiss. Surfaces the archetype's meaning without a sheet.
+    @State private var showWhy: Bool = false
 
     private var sentence: (prefix: String, italic: String, suffix: String) {
         if kindToday {
@@ -44,33 +51,77 @@ struct HomeArchetypeHeader: View {
         return archetype.headerSentence
     }
 
+    /// Phase 4 — one-line "why" copy per archetype. Lowercase casual,
+    /// italic-Fraunces on the punch word. Anti-fitness-bro language.
+    private var whyLine: (prefix: String, italic: String, suffix: String) {
+        switch archetype {
+        case .protein:
+            return ("lean into ", "satiety", " today \u{2661}")
+        case .movement:
+            return ("muscle is the ", "metabolic", " win.")
+        case .balanced:
+            return ("a little of ", "everything", ", that's the brief.")
+        case .rest:
+            return ("rest is ", "part", " of the plan \u{2661}")
+        }
+    }
+
     var body: some View {
         let s = sentence
-        (Text(s.prefix)
-            .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title3))
-        + Text(s.italic)
-            .font(.custom("JeniHeroSerif-Italic", size: 26, relativeTo: .title3))
-        + Text(s.suffix)
-            .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title3)))
-            .foregroundStyle(pastDay
-                ? Palette.cocoaPrimary.opacity(0.55)
-                : Palette.cocoaPrimary)
-            .kerning(-0.3)
-            .lineSpacing(-4)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-            .onLongPressGesture(minimumDuration: 0.6) {
-                guard !pastDay, !kindToday else { return }
-                onLongPressKind?()
+        VStack(alignment: .leading, spacing: 6) {
+            (Text(s.prefix)
+                .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title3))
+            + Text(s.italic)
+                .font(.custom("JeniHeroSerif-Italic", size: 26, relativeTo: .title3))
+            + Text(s.suffix)
+                .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title3)))
+                .foregroundStyle(pastDay
+                    ? Palette.cocoaPrimary.opacity(0.55)
+                    : Palette.cocoaPrimary)
+                .kerning(-0.3)
+                .lineSpacing(-4)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if !pastDay, !kindToday, (showWhy || debugInitialWhy) {
+                let w = whyLine
+                (Text(w.prefix)
+                    .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
+                + Text(w.italic)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14, relativeTo: .footnote))
+                + Text(w.suffix)
+                    .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote)))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            .accessibilityLabel("\(s.prefix)\(s.italic)\(s.suffix)")
-            .accessibilityAddTraits(onLongPressKind != nil && !pastDay && !kindToday
-                ? .isButton
-                : [])
-            .accessibilityHint(onLongPressKind != nil && !pastDay && !kindToday
-                ? "long press to mark today kind"
-                : "")
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            guard !pastDay, !kindToday else { return }
+            Haptics.tick()
+            withAnimation(Motion.crossFade) { showWhy.toggle() }
+            if showWhy {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                    withAnimation(Motion.crossFade) { showWhy = false }
+                }
+            }
+        }
+        .onLongPressGesture(minimumDuration: 0.6) {
+            guard !pastDay, !kindToday else { return }
+            onLongPressKind?()
+        }
+        .onAppear {
+            if debugInitialWhy, !pastDay, !kindToday, !showWhy {
+                showWhy = true
+            }
+        }
+        .accessibilityLabel("\(s.prefix)\(s.italic)\(s.suffix)")
+        .accessibilityAddTraits(onLongPressKind != nil && !pastDay && !kindToday
+            ? .isButton
+            : [])
+        .accessibilityHint(onLongPressKind != nil && !pastDay && !kindToday
+            ? "double tap to see why · long press to mark today kind"
+            : "")
     }
 }
 
@@ -89,18 +140,67 @@ struct HomeArchetypeHeader: View {
 struct HomeShowsUpLine: View {
 
     let count: Int
+    /// Phase 4 (2026-06-19) — last 7 days as a dot pattern. nil →
+    /// tap is a no-op (legacy callers). Each entry: true = engaged,
+    /// false = open. Ordering oldest → today.
+    var week: [Bool]? = nil
+    /// Harness-only initial expanded state for screenshot capture.
+    var debugInitialExpanded: Bool = false
+
+    @State private var expanded: Bool = false
 
     var body: some View {
         let n = max(0, count)
         let dayWord = n == 1 ? "day" : "days"
-        (Text("you've shown up ")
-            .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
-        + Text("\(n)")
-            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14, relativeTo: .footnote))
-        + Text(" \(dayWord) \u{2661}")
-            .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote)))
-            .foregroundStyle(Palette.cocoaTertiary)
-            .accessibilityLabel("you've shown up \(n) \(dayWord)")
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 0) {
+                (Text("you've shown up ")
+                    .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote))
+                + Text("\(n)")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14, relativeTo: .footnote))
+                + Text(" \(dayWord) \u{2661}")
+                    .font(.custom("DMSans-Regular", size: 13, relativeTo: .footnote)))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+
+            if let week, (expanded || debugInitialExpanded) {
+                weekDots(week)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard week != nil else { return }
+            Haptics.tick()
+            withAnimation(Motion.crossFade) { expanded.toggle() }
+        }
+        .accessibilityLabel("you've shown up \(n) \(dayWord)")
+        .accessibilityHint(week != nil ? "tap to see this week's pattern" : "")
+    }
+
+    /// 7 small dots, today rightmost. Engaged = solid cocoa; open
+    /// = hairline ring. Today gets an accent ring overlay regardless
+    /// of state (matches Becoming's week-row dot convention).
+    @ViewBuilder
+    private func weekDots(_ week: [Bool]) -> some View {
+        HStack(spacing: 6) {
+            ForEach(Array(week.enumerated()), id: \.offset) { idx, done in
+                let isToday = idx == week.count - 1
+                ZStack {
+                    if done {
+                        Circle().fill(Palette.cocoaPrimary).frame(width: 8, height: 8)
+                    } else {
+                        Circle().stroke(Palette.divider, lineWidth: 1.2)
+                            .frame(width: 8, height: 8)
+                    }
+                    if isToday {
+                        Circle().stroke(Palette.accent, lineWidth: 1.2).frame(width: 14, height: 14)
+                    }
+                }
+                .frame(width: 14, height: 14)
+            }
+            Spacer(minLength: 0)
+        }
     }
 }
 
@@ -279,6 +379,18 @@ struct HomeProteinTracker: View {
     /// True when glp1Status == "current" — drives the cohort copy
     /// (`muscle stays` vs `solid`).
     var isGLP1Current: Bool = false
+    /// Phase 4 (2026-06-19) — plate sources for the long-press peek.
+    /// Mirrors BecomingProteinTile.sources: top-3 plates by protein
+    /// contribution today. nil → tile is non-interactive (legacy).
+    var sources: [(entryId: String, proteinG: Int)]? = nil
+    /// Harness-only initial peeking state for screenshot capture.
+    var debugInitialPeeking: Bool = false
+
+    @State private var peeking: Bool = false
+
+    private var topSources: [(entryId: String, proteinG: Int)] {
+        (sources ?? []).sorted { $0.proteinG > $1.proteinG }.prefix(3).map { $0 }
+    }
 
     private var progress: Double {
         guard targetG > 0 else { return 0 }
@@ -336,8 +448,16 @@ struct HomeProteinTracker: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                bar
-                statusLine
+                Group {
+                    if (peeking || debugInitialPeeking), !topSources.isEmpty {
+                        platePeekStrip
+                            .transition(.opacity)
+                            .id("peek")
+                    } else {
+                        bar
+                        statusLine
+                    }
+                }
             }
             .frame(maxWidth: .infinity)
         }
@@ -366,8 +486,58 @@ struct HomeProteinTracker: View {
             x: 0,
             y: 4
         )
+        .contentShape(Rectangle())
+        .onLongPressGesture(minimumDuration: 0.35) {
+            guard !topSources.isEmpty else { return }
+            Haptics.soft()
+            withAnimation(Motion.crossFade) { peeking = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
+                withAnimation(Motion.crossFade) { peeking = false }
+            }
+        }
+        .onAppear {
+            if debugInitialPeeking, !topSources.isEmpty, !peeking {
+                peeking = true
+            }
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(proteinG) of \(targetG) grams of protein today, \(statusWord.prefix)\(statusWord.italic)")
+        .accessibilityHint(topSources.isEmpty ? "" : "long press to see the plates that built it")
+    }
+
+    /// Phase 4 — horizontal mini-row of up to 3 plate thumbnails
+    /// behind the protein numeral. Falls back to a rose rect when
+    /// no photo (mock data + plates logged without snaps).
+    @ViewBuilder
+    private var platePeekStrip: some View {
+        HStack(spacing: 4) {
+            ForEach(topSources, id: \.entryId) { src in
+                ZStack(alignment: .bottomTrailing) {
+                    if let img = FoodPhotoStore.photo(entryId: src.entryId) {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 36, height: 36)
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    } else {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Palette.accent.opacity(0.18))
+                            .frame(width: 36, height: 36)
+                    }
+                    Text("\(src.proteinG)g")
+                        .font(.custom("DMSans-Medium", size: 9))
+                        .foregroundStyle(Palette.textInverse)
+                        .padding(.horizontal, 3)
+                        .padding(.vertical, 1)
+                        .background(
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .fill(Palette.cocoaPrimary.opacity(0.85))
+                        )
+                        .padding(2)
+                }
+            }
+            Spacer(minLength: 0)
+        }
     }
 
     @ViewBuilder private var bar: some View {

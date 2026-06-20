@@ -1396,6 +1396,17 @@ private struct HomePhase1PreviewHarness: View {
     @State private var glp1IsCurrent: Bool = ProcessInfo.processInfo.arguments.contains("--glp1")
     @State private var simulateAfter9pm: Bool = ProcessInfo.processInfo.arguments.contains("--after-9pm")
     @State private var simulateKind: Bool = ProcessInfo.processInfo.arguments.contains("--kind")
+    /// Phase 4 Home interactivity peek flags — computed each render
+    /// so the launch arg is always fresh (no stale @State init).
+    private var debugPeekHomeShowsUp: Bool {
+        ProcessInfo.processInfo.arguments.contains("--peek-home-showsup")
+    }
+    private var debugPeekHomeProtein: Bool {
+        ProcessInfo.processInfo.arguments.contains("--peek-home-protein")
+    }
+    private var debugPeekHomeWhy: Bool {
+        ProcessInfo.processInfo.arguments.contains("--peek-home-why")
+    }
     @State private var simulateRecap: YesterdayRecapKind? = {
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "--recap"), i + 1 < args.count else {
@@ -1493,13 +1504,18 @@ private struct HomePhase1PreviewHarness: View {
                             archetype: archetype,
                             pastDay: isPastDay,
                             kindToday: simulateKind && !isPastDay,
-                            onLongPressKind: nil
+                            onLongPressKind: nil,
+                            debugInitialWhy: debugPeekHomeWhy
                         )
                             .padding(.horizontal, 20)
                             .padding(.top, simulateRecap == nil ? 14 : 0)
 
                         if !isPastDay && showsUpCount >= 2 {
-                            HomeShowsUpLine(count: showsUpCount)
+                            HomeShowsUpLine(
+                                count: showsUpCount,
+                                week: [true, true, false, true, true, false, true],
+                                debugInitialExpanded: debugPeekHomeShowsUp
+                            )
                                 .padding(.horizontal, 20)
                         }
 
@@ -1507,7 +1523,13 @@ private struct HomePhase1PreviewHarness: View {
                             HomeProteinTracker(
                                 proteinG: 32,
                                 targetG: 80,
-                                isGLP1Current: glp1IsCurrent
+                                isGLP1Current: glp1IsCurrent,
+                                sources: debugPeekHomeProtein ? [
+                                    (entryId: "mock-1", proteinG: 18),
+                                    (entryId: "mock-2", proteinG: 9),
+                                    (entryId: "mock-3", proteinG: 5),
+                                ] : nil,
+                                debugInitialPeeking: debugPeekHomeProtein
                             )
                             .padding(.horizontal, 20)
                         }

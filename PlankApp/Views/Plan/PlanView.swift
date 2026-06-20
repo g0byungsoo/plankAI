@@ -805,7 +805,10 @@ struct PlanView: View {
             // least 2 days in the bank. Hidden in past-view so the
             // settled day reads as the snapshot it is.
             if viewingDay == nil, showsUpCount >= 2 {
-                HomeShowsUpLine(count: showsUpCount)
+                HomeShowsUpLine(
+                    count: showsUpCount,
+                    week: showsUpWeekDots
+                )
                     .padding(.horizontal, 20)
                     .modernEntrance(animateIn, delay: 0.14)
             }
@@ -821,7 +824,8 @@ struct PlanView: View {
                 HomeProteinTracker(
                     proteinG: todayProteinG,
                     targetG: proteinTargetG,
-                    isGLP1Current: glp1Status == "current"
+                    isGLP1Current: glp1Status == "current",
+                    sources: todayProteinSourcesHome
                 )
                 .padding(.horizontal, 20)
             }
@@ -1022,6 +1026,50 @@ struct PlanView: View {
             }
         }
         return days.count
+    }
+
+    /// Phase 4 (2026-06-19) — 7-day dot pattern for the tap-expand
+    /// reveal on HomeShowsUpLine. Oldest → today; true = engaged.
+    /// Mirrors AnalyticsView.weekDotStates but boolean-flattened.
+    private var showsUpWeekDots: [Bool] {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+        let engaged = engagedDatesForWeek
+        return (0..<7).compactMap { offset -> Bool? in
+            guard let day = cal.date(byAdding: .day, value: offset - 6, to: today) else { return nil }
+            return engaged.contains(day)
+        }
+    }
+
+    /// Shared engagement set for the 7-day window — sessionLogs +
+    /// dayProgress + foodLogs, day-bucketed.
+    private var engagedDatesForWeek: Set<Date> {
+        let cal = Calendar.current
+        var days = Set<Date>()
+        for log in allSessionLogs {
+            days.insert(cal.startOfDay(for: log.completedAt))
+        }
+        for dp in allDayProgress where dp.userId == userId {
+            days.insert(cal.startOfDay(for: dp.date))
+        }
+        if FoodFlags.isEnabled, !userId.isEmpty {
+            for entry in FoodLogPersister.allEntries(userId: userId) {
+                days.insert(cal.startOfDay(for: entry.loggedAt))
+            }
+        }
+        return days
+    }
+
+    /// Phase 4 — today's plate sources ranked by protein contribution
+    /// for the HomeProteinTracker long-press peek. Mirrors Becoming
+    /// surface but plumbed through Home.
+    private var todayProteinSourcesHome: [(entryId: String, proteinG: Int)] {
+        guard FoodFlags.isEnabled, !userId.isEmpty else { return [] }
+        let cal = Calendar.current
+        let start = cal.startOfDay(for: .now)
+        return FoodLogPersister.allEntries(userId: userId)
+            .filter { $0.loggedAt >= start }
+            .map { (entryId: $0.id, proteinG: Int($0.protein.rounded())) }
     }
 
     /// 1.0g/kg from onboarding weight, floor 70g, ceiling 150g per
