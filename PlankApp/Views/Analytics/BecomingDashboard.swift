@@ -162,25 +162,43 @@ struct BecomingWeekRow: View {
                         .font(.custom("JeniHeroSerif-Regular", size: 20))
                         .foregroundStyle(Palette.textPrimary)
                 }
-                VStack(alignment: .trailing, spacing: 4) {
+                // Phase 4 fix (2026-06-19) — render the letter row and
+                // dot row INSIDE a single LazyVGrid so SwiftUI guarantees
+                // identical column X positions regardless of the inner
+                // content's intrinsic width. 7 fixed-width columns,
+                // zero column spacing.
+                LazyVGrid(
+                    columns: Array(
+                        repeating: GridItem(.fixed(22), spacing: 0, alignment: .center),
+                        count: states.count
+                    ),
+                    alignment: .center,
+                    spacing: 4
+                ) {
                     if let archetypes, archetypes.count == states.count {
-                        archetypeLetterRow(archetypes)
-                    }
-                    HStack(spacing: 5) {
-                        ForEach(Array(states.enumerated()), id: \.offset) { idx, state in
-                            dot(state)
-                                .contentShape(Rectangle())
-                                .frame(width: 18, height: 18) // tappable area
-                                .onTapGesture {
-                                    guard recaps != nil else { return }
-                                    Haptics.tick()
-                                    withAnimation(Motion.crossFade) {
-                                        selectedIdx = selectedIdx == idx ? nil : idx
-                                    }
-                                }
+                        ForEach(Array(archetypes.enumerated()), id: \.offset) { _, arch in
+                            if let arch {
+                                Text(letterFor(arch))
+                                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 10))
+                                    .foregroundStyle(Palette.cocoaSecondary.opacity(0.7))
+                            } else {
+                                Color.clear.frame(height: 12)
+                            }
                         }
                     }
+                    ForEach(Array(states.enumerated()), id: \.offset) { idx, state in
+                        dot(state)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                guard recaps != nil else { return }
+                                Haptics.tick()
+                                withAnimation(Motion.crossFade) {
+                                    selectedIdx = selectedIdx == idx ? nil : idx
+                                }
+                            }
+                    }
                 }
+                .accessibilityHidden(true)
                 .padding(.leading, 6)
             }
 
@@ -280,32 +298,11 @@ struct BecomingWeekRow: View {
         return ("\(day) — ", "shown up", " \u{2661}")
     }
 
-    @ViewBuilder
-    private func archetypeLetterRow(_ archetypes: [ProgramDayArchetype?]) -> some View {
-        // Phase 4 fix (2026-06-19) — must mirror the dot row's stride
-        // exactly so each letter centers over its corresponding dot.
-        // Dot row uses HStack(spacing: 5) + .frame(width: 18); we
-        // match that here. Previous values (spacing 5 + width 11)
-        // produced a narrower stride and knocked the columns out of
-        // alignment after the dots were widened for tap targets.
-        HStack(spacing: 5) {
-            ForEach(Array(archetypes.enumerated()), id: \.offset) { _, arch in
-                Group {
-                    if let arch {
-                        Text(letterFor(arch))
-                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 10))
-                            .foregroundStyle(Palette.cocoaSecondary.opacity(0.7))
-                    } else {
-                        // Blank slot for pre-program / unknown days.
-                        Color.clear
-                    }
-                }
-                .frame(width: 18, height: 12)
-            }
-        }
-        .accessibilityHidden(true)  // the dot-row a11y label already
-                                    // conveys the engagement story
-    }
+    /// Phase 4 fix (2026-06-19) — shared total width drives the
+    /// per-column grid. 7 columns × 18pt = 126pt; previous
+    /// HStack(spacing: 5) added ~30pt that didn't reliably resolve
+    /// to identical X positions between rows.
+    private static let weekRowWidth: CGFloat = 7 * 22
 
     private func letterFor(_ arch: ProgramDayArchetype) -> String {
         switch arch {
