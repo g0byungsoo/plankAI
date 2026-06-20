@@ -477,7 +477,17 @@ struct AnalyticsView: View {
 
     /// Reads from session_logs.exerciseResults (JSON-encoded bytes), so
     /// missing or unparseable rows are skipped silently.
-    private var distinctExerciseCount: Int {
+    ///
+    /// v1.1.1 (2026-06-19) — now reads the cached value populated by
+    /// `refreshPerfCaches()`. The raw computation decoded every
+    /// routine's JSON exerciseResults on every render — fine when
+    /// the barrier card was scarce, painful once it became part of
+    /// the always-rendered insight stack. Cache invalidates on
+    /// session-log count change + on appear (same channels as the
+    /// other perf caches).
+    private var distinctExerciseCount: Int { cachedDistinctExerciseCount }
+
+    private func computeDistinctExerciseCount() -> Int {
         var ids: Set<String> = []
         for log in sessionLogs where log.sessionType == "routine" {
             guard let data = log.exerciseResults,
@@ -663,6 +673,10 @@ struct AnalyticsView: View {
     /// v1.1.1 — `lighterDayStates` filtered allEntries + sessionLogs
     /// 7 times per render. Cached (7-bool array).
     @State private var cachedLighterDayStates: [Bool] = Array(repeating: false, count: 7)
+    /// v1.1.1 — `distinctExerciseCount` JSON-decoded every routine's
+    /// exerciseResults on every render. Read only by the "boring"
+    /// barrier-resolved card. Cache.
+    @State private var cachedDistinctExerciseCount: Int = 0
 
     /// v1.1.1 (2026-06-19) — bumped by `saveWeightLog` so the trend
     /// chart re-mounts after a save even when the @Query observer
@@ -905,6 +919,15 @@ struct AnalyticsView: View {
         // delivers on the main queue so the @State update is safe.
         .onReceive(FoodLogPersister.changeNotifier) { _ in
             refreshPerfCaches()
+        }
+        // v1.1.1 — cross-view weight-log signal. Posted from
+        // PlanView.persistWeight + saveWeightLog (this view) +
+        // BodyMassImportService HK pull. Bump the version so the
+        // trend canvas re-mounts. SwiftData @Query doesn't reliably
+        // fire body re-renders on in-place property mutations for
+        // views attached to inactive tabs.
+        .onReceive(NotificationCenter.default.publisher(for: .weightLogDidChange)) { _ in
+            weightChartVersion &+= 1
         }
         // Refresh when sessionLogs or dayProgress counts shift so the
         // engaged-dates set picks up completed routines + day-progress
@@ -1585,6 +1608,11 @@ struct AnalyticsView: View {
         } else {
             cachedLighterDayStates = Array(repeating: false, count: 7)
         }
+
+        // (6) distinctExerciseCount — JSON-decode every routine's
+        // exerciseResults. Only read by the "boring" barrier card,
+        // but that card lives in the always-rendered insight stack.
+        cachedDistinctExerciseCount = computeDistinctExerciseCount()
     }
 
     /// Last 7 days (oldest → today) as dot states. Gain-framed: an
@@ -3959,6 +3987,10 @@ struct AnalyticsView: View {
             // on in-place property mutations for views on inactive
             // tabs; this is the safety net.
             weightChartVersion &+= 1
+            // Also fan out the cross-view signal so PlanView's
+            // weight-card embed + Home's TrendHeroCard rerender on
+            // the same write.
+            NotificationCenter.default.post(name: .weightLogDidChange, object: nil)
             return
         }
 
@@ -3972,6 +4004,7 @@ struct AnalyticsView: View {
         try? modelContext.save()
         Task { await AppSync.shared.upsertWeightLog(log) }
         weightChartVersion &+= 1
+        NotificationCenter.default.post(name: .weightLogDidChange, object: nil)
     }
 
     // MARK: - Activity Calendar (bento chrome + scrubbable)

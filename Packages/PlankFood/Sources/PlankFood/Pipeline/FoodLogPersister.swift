@@ -612,6 +612,11 @@ public enum FoodLogPersister {
         guard let removed = inMemoryEntries.first(where: { $0.id == id }) else { return }
         inMemoryEntries.removeAll { $0.id == id }
         rewriteStore()
+        // v1.1.1 (2026-06-19) — also remove the plate thumbnail.
+        // Before this, deleting an entry left the JPEG on disk
+        // indefinitely — privacy regression (user thinks she wiped
+        // her food diary; she didn't) + slow disk leak.
+        FoodPhotoStore.delete(entryId: removed.id)
         changeNotifier.send(())
         onEntryDeleted?(removed.id, removed.userId)
     }
@@ -641,9 +646,20 @@ public enum FoodLogPersister {
     public static func deleteAllEntries(userId: String) {
         hydrateIfNeeded()
         let before = inMemoryEntries.count
+        // Capture the entries being removed so we can wipe their
+        // photos too — privacy invariant: delete-account leaves zero
+        // user content on disk.
+        let removed = inMemoryEntries.filter { $0.userId == userId }
         inMemoryEntries.removeAll { $0.userId == userId }
         guard inMemoryEntries.count != before else { return }
         rewriteStore()
+        // v1.1.1 (2026-06-19) — wipe each removed entry's thumbnail.
+        // Photos are keyed by entryId so per-entry delete is the
+        // safe path (single-tenant device with multi-user sign-in:
+        // we don't want to clobber another user's photos here).
+        for entry in removed {
+            FoodPhotoStore.delete(entryId: entry.id)
+        }
         changeNotifier.send(())
     }
 

@@ -569,8 +569,22 @@ struct PlanView: View {
         }
     }
 
+    /// v1.1.1 (2026-06-19) — userId-scoped view over allWeightLogs.
+    /// The raw @Query is unscoped (SwiftData doesn't natively
+    /// support runtime predicates on string keys here); filtering at
+    /// the read site is the locked pattern across this view + every
+    /// other surface (see [[feedback-data-provenance]] +
+    /// cross-account isolation invariant). Without this, the audit
+    /// found a silent-data-corruption path: after an account switch
+    /// + same-day log, `allWeightLogs.first` returned the OTHER
+    /// user's row and the mutation wrote over their record.
+    private var myWeightLogs: [WeightLogRecord] {
+        guard !userId.isEmpty else { return [] }
+        return allWeightLogs.filter { $0.userId == userId }
+    }
+
     private var hasLoggedWeightToday: Bool {
-        guard let latest = allWeightLogs.first else { return false }
+        guard let latest = myWeightLogs.first else { return false }
         return Calendar.current.isDateInToday(latest.loggedAt)
     }
 
@@ -579,7 +593,9 @@ struct PlanView: View {
     /// one-per-day policy locked in [[feedback-weightloss-ux-principles]].
     private func persistWeight(kg: Double) {
         let cal = Calendar.current
-        if let existing = allWeightLogs.first, cal.isDateInToday(existing.loggedAt) {
+        // v1.1.1 — operate on userId-scoped view ONLY, never the
+        // unfiltered @Query, to prevent cross-account row mutation.
+        if let existing = myWeightLogs.first, cal.isDateInToday(existing.loggedAt) {
             existing.weightKg = kg
             existing.pendingUpsert = true
         } else {
@@ -593,9 +609,14 @@ struct PlanView: View {
         }
         try? modelContext.save()
         // Fire-and-forget cloud sync.
-        if let log = allWeightLogs.first {
+        if let log = myWeightLogs.first {
             Task { await AppSync.shared.upsertWeightLog(log) }
         }
+        // v1.1.1 — signal cross-view weight change. AnalyticsView
+        // listens and remounts BecomingTrendCanvas so the chart
+        // updates even when it was on an inactive tab while the user
+        // logged.
+        NotificationCenter.default.post(name: .weightLogDidChange, object: nil)
     }
 
     // MARK: - Eyebrow
@@ -986,7 +1007,12 @@ struct PlanView: View {
             plates = 0
         }
 
+        // v1.1.1 — user-scoped. Without this filter the yesterday
+        // recap line was counting cross-account sessions on shared
+        // devices, e.g. "you logged 3 plates yesterday" pulled from
+        // a different user's prior day.
         let sessionCount = allSessionLogs.filter {
+            $0.userId == userId &&
             $0.completedAt >= yStart && $0.completedAt < yEnd
         }.count
         let hadDayProgress = allDayProgress.contains {
@@ -1343,7 +1369,12 @@ struct PlanView: View {
 
         let cal = Calendar.current
         var days = Set<Date>()
-        for log in allSessionLogs {
+        // v1.1.1 — filter sessionLogs by userId. The unfiltered
+        // allSessionLogs leaked the prior account's engagement days
+        // into showsUpCount + week dots on shared devices (e.g.,
+        // founder + spouse on one phone). Matches the userId guard
+        // already applied to allDayProgress.
+        for log in allSessionLogs where log.userId == userId {
             days.insert(cal.startOfDay(for: log.completedAt))
         }
         for dp in allDayProgress where dp.userId == userId {
@@ -1635,7 +1666,11 @@ struct PlanView: View {
         let focusToken = bodyFocus ?? bodyFocusValue
         let focus: [BodyFocus] = BodyFocus(rawValue: focusToken).map { [$0] } ?? [.fullBody]
 
-        let recentIds = allSessionLogs.prefix(7).compactMap { log -> [String]? in
+        // v1.1.1 — user-scoped. Without the filter, recent-exercise
+        // dedupe pulled in the prior account's last 7 picks on shared
+        // devices, biasing the generator away from what the current
+        // user has actually done.
+        let recentIds = scopedSessionLogs.prefix(7).compactMap { log -> [String]? in
             [log.exerciseType]
         }
 

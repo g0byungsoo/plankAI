@@ -352,6 +352,18 @@ struct PaywallView: View {
         return "$47.99/year"
     }
 
+    /// v1.1.1 (2026-06-19) — localized renewal-amount text used in
+    /// the day-3 trial-end timeline row. Mirrors `yearlyPriceText`
+    /// but in the "$XX.XX/yr" short form that fits the line. Falls
+    /// back to the US mock when no package is loaded so the row
+    /// always reads complete (never " trial ends · /yr").
+    private var trialEndChargeText: String {
+        if !debugMockPricing, let pkg = yearlyPackage {
+            return "\(pkg.storeProduct.localizedPriceString)/yr"
+        }
+        return "$47.99/yr"
+    }
+
     /// 2026-05-30 (epic #1 child #3): quarterly tier display strings.
     /// Mirrors the yearly pattern. Apple 2026 compliance: subtitle
     /// shows the actual amount charged in the period it's charged for,
@@ -365,7 +377,7 @@ struct PaywallView: View {
 
     private var quarterlySubtitle: String {
         guard let quarterly = quarterlyPackage else { return "billed quarterly" }
-        return "\(quarterly.storeProduct.localizedPriceString)/3 months — billed quarterly"
+        return "\(quarterly.storeProduct.localizedPriceString)/3 months · billed quarterly"
     }
 
     /// Delta v8 D84 — total-savings framing replaces weekly-equivalent
@@ -525,15 +537,14 @@ struct PaywallView: View {
             Analytics.captureScreen("Paywall")
             viewOpenTime = Date()
             await loadOfferings()
-            // 2026-05-30 (epic #1 child #6): goal-aware default plan.
-            // Runs AFTER loadOfferings so quarterlyPackage availability
-            // is resolved. In DEBUG, when debugMockPricing is on (no
-            // real RC packages available), still apply the goal-aware
-            // default so the founder can visually verify the quarterly-
-            // default-first ordering during the pre-ASC-setup window.
-            if goalSolvableInTwelveWeeks && (quarterlyPackage != nil || debugMockPricing) {
-                selectedPlan = .quarterly
-            }
+            // 2026-06-15: annual is now the default for every cohort.
+            // RC mix (6/6/6 even split since v2 launch) confirmed the
+            // paywall wasn't anchoring; the prior quarterly auto-default
+            // for goalSolvableInTwelveWeeks users was permanently
+            // disqualifying them from the annual 3-day trial via Apple's
+            // "one intro per group" rule. Annual at $47.99/yr has the
+            // highest LTV of the three tiers; defaulting here gates the
+            // higher-LTV path while quarterly stays one tap away.
         }
     }
 
@@ -646,57 +657,60 @@ struct PaywallView: View {
         }
     }
 
-    /// v3 row-anchor line — $99.96 strikethrough + "$51.97 off ♥".
-    /// Per UX v3 brief: anchoring at row-level (above the cards) does
-    /// the discount-story work BEFORE the user picks. Inside-card
-    /// strikethrough at 10pt on 104pt-wide Annual doesn't actually
-    /// anchor anything.
+    /// Row-anchor line — quarterly-annualized strikethrough + savings.
+    /// 2026-06-15: both numbers derived from the live RC packages so any
+    /// future ASC price change updates here without a code edit. Falls
+    /// back silently if either package is missing (debug / pre-load).
     private var pricingRowAnchorLine: some View {
-        HStack(spacing: 8) {
-            Text("$99.96")
-                .font(.system(size: 12))
-                .foregroundStyle(Palette.textSecondary)
-                .strikethrough(true, color: Palette.textSecondary)
-            Text("save $51.97 ♥")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Palette.accent)
+        Group {
+            if let anchor = quarterlyAnchorCopy {
+                HStack(spacing: 8) {
+                    Text(anchor.strikethrough)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.textSecondary)
+                        .strikethrough(true, color: Palette.textSecondary)
+                    Text("save \(anchor.savings) ♥")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.accent)
+                }
+            } else {
+                EmptyView()
+            }
         }
         .frame(maxWidth: .infinity)
     }
 
-    /// v3 horizontal 3-tier row with asymmetric scaling. Quarterly is
-    /// 130×150 (cream-filled, lifted above the row silhouette via bottom
-    /// alignment); Annual + Weekly are 104×135. Per UX/Mon v3 briefs —
-    /// asymmetric center-stage is the single highest-leverage move that
-    /// makes horizontal-3-across actually convert. Conditional ribbon
-    /// above the row when this user's goal genuinely fits 12 weeks.
-    private var tierRowHorizontal: some View {
-        VStack(spacing: 6) {
-            if goalSolvableInTwelveWeeks {
-                quarterlyRecommendRibbon
-            }
-            HStack(alignment: .bottom, spacing: 8) {
-                tierCardAnnualCompact
-                tierCardQuarterlyHero
-                tierCardWeeklyCompact
-            }
-            .frame(maxWidth: .infinity)
-        }
+    /// Derived strikethrough + savings copy for the anchor line. Returns
+    /// nil when we can't compute (missing package, non-positive savings,
+    /// debugMockPricing without packages). Reuses the same math as
+    /// `yearlyPerWeekText` for consistency.
+    private var quarterlyAnchorCopy: (strikethrough: String, savings: String)? {
+        guard let yearly = yearlyPackage, let quarterly = quarterlyPackage else { return nil }
+        let yearlyPrice = yearly.storeProduct.price as NSDecimalNumber
+        let formatter = yearly.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
+        let quarterlyAnnualized = (quarterly.storeProduct.price as NSDecimalNumber)
+            .multiplying(by: NSDecimalNumber(value: 4))
+        let savings = quarterlyAnnualized.subtracting(yearlyPrice)
+        guard quarterlyAnnualized.doubleValue > 0, savings.doubleValue > 0 else { return nil }
+        guard let strikethroughStr = formatter.string(from: quarterlyAnnualized),
+              let savingsStr = formatter.string(from: savings) else { return nil }
+        return (strikethroughStr, savingsStr)
     }
 
-    /// Centered ribbon above the row when goalSolvableInTwelveWeeks.
-    /// Single-line copy — narrow font + tight padding makes the full
-    /// "recommended for your 12-week goal ♥" string fit on iPhone 13
-    /// mini without overflow. The user's eye naturally connects this
-    /// ribbon to the visually-dominant Quarterly card below it.
-    private var quarterlyRecommendRibbon: some View {
-        Text("recommended for your 12-week goal ♥")
-            .font(.system(size: 10, weight: .semibold))
-            .tracking(0.4)
-            .foregroundStyle(Palette.textInverse)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-            .background(Palette.accent, in: Capsule())
+    /// 3-tier row — Annual + Quarterly hero + Weekly. 2026-06-15: the
+    /// "recommended for 12-week goal" ribbon retired with the quarterly
+    /// auto-default flip, but weekly stays on the primary paywall as
+    /// the low-budget gateway pending the conversion-expert review on
+    /// cannibalization-vs-incremental capture. RC mix is even 6/6/6
+    /// since v2 launch — no plan is dominating — so dropping any tier
+    /// before we know its incrementality is premature.
+    private var tierRowHorizontal: some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            tierCardAnnualCompact
+            tierCardQuarterlyHero
+            tierCardWeeklyCompact
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var tierCardAnnualCompact: some View {
@@ -941,9 +955,16 @@ struct PaywallView: View {
             timelineLineRow(filled: false,
                             label: "day 2",
                             text: "we'll remind you before anything changes")
+            // v1.1.1 (2026-06-19) — pull the actual localized renewal
+            // amount from the RC package instead of hardcoding $47.99.
+            // Cal AI was pulled under Apple Guideline 3.1.2(a) for
+            // displaying a US-formatted renewal amount that didn't
+            // match the user's localized charge. The other paywall
+            // prices already derive from `localizedPriceString`; this
+            // copy was the only one that hard-coded.
             timelineLineRow(filled: false,
                             label: "day 3",
-                            text: "trial ends · $47.99/yr or cancel anytime")
+                            text: "trial ends · \(trialEndChargeText) or cancel anytime")
         }
         .padding(.vertical, 2)
     }
@@ -1294,6 +1315,18 @@ struct PaywallView: View {
             let isActive = info.entitlements[RevenueCatConfig.entitlementID]?.isActive == true
             if isActive {
                 Haptics.success()
+                // v1.1.1 — a restore by definition means a returning
+                // paid user. Stamp the coach-intro idempotency key
+                // BEFORE firing onSubscribed so the post-purchase
+                // flow's `shouldShowOnPurchase` gate evaluates to
+                // false even when local SwiftData hasn't hydrated
+                // yet (fresh install + restore happens before
+                // AppSync.onAuthChanged completes its hydrate). The
+                // bug this prevents: a returning user who restored
+                // on a fresh device was seeing the "DAY 1 WITH JENI"
+                // coach intro again because the local activity check
+                // returned false against an empty store.
+                CoachIntroState.markShown()
                 // PaywallView owns the restore call now (was: parent's
                 // onRestore callback). On a successful restore that
                 // activates Pro, fire onSubscribed so the parent

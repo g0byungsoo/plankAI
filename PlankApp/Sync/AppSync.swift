@@ -5,6 +5,19 @@ import PlankSync
 import PlankFood
 import Auth  // MemberImportVisibility: User.id lives in Supabase's Auth submodule
 
+// v1.1.1 cross-view weight-change signal. SwiftData @Query doesn't
+// reliably fire body re-renders on in-place property mutations for
+// views attached to inactive tabs (e.g. AnalyticsView's trend canvas
+// when the user logs from PlanView). Anyone who writes a
+// WeightLogRecord (insert OR in-place mutation) posts this
+// notification; AnalyticsView listens and bumps its weightChartVersion
+// to force the trend canvas to re-mount. Decouples writers (PlanView,
+// AnalyticsView's own LogWeightSheet, BodyMassImportService) from
+// the consumer.
+extension Notification.Name {
+    static let weightLogDidChange = Notification.Name("weightLogDidChange")
+}
+
 // MARK: - AppSync
 //
 // Bridge between AuthService (lives in PlankApp) and SyncService (lives in
@@ -517,18 +530,92 @@ final class AppSync {
     /// RootView lands the user back on the welcome screen with a fresh
     /// anonymous session. Bundle-Identifier-scoped — doesn't touch other
     /// apps' defaults.
-    private func clearOnboardingUserDefaults() {
+    ///
+    /// v1.1.1 (2026-06-19) — the original 14-key list was the pre-1.0
+    /// onboarding surface. Phases 4-9 + the v2/v3/v4 onboarding rebuilds +
+    /// the Plan-tab retention layer + cohort routing all added their own
+    /// user-scoped keys, NONE of which were swept on delete-account / sign-
+    /// out. Symptoms in production: User A signs out → User B signs in →
+    /// B sees A's stale identity word in Becoming, A's kindTodayDateKey
+    /// in the Plan recap line, A's saved cuisine prefs in QuickAdd, A's
+    /// lessons-completed count in Settings. Expanded to the full audit
+    /// list. Audio levels (voiceVolume/bgmVolume) + display prefs
+    /// (weightUnit) + feature-flag toggles stay because those are
+    /// device-level prefs, not identity-scoped.
+    func clearOnboardingUserDefaults() {
         let defaults = UserDefaults.standard
         let keys = [
+            // Original pre-1.0 keys.
             "userName", "userGoal", "userExperience", "userMotivation",
             "voicePreference", "ageRange", "activityLevel", "focusArea",
             "plankTime", "sessionLengthPref", "userBaselineSeconds",
             "commitmentDays", "userBarriers", "notificationsEnabled",
             "hasCompletedFirstSession", "hasCompletedOnboarding",
+            // Onboarding v2 (Phase A).
+            "onboardingSleepHours", "onboardingStressLevel",
+            "onboardingEatingCadence", "onboardingEatingWindow",
+            "onboardingPriorAttempts", "onboardingPriorWin",
+            "onboardingFoodRelationship", "onboardingHormonalStage",
+            "onboardingTriedBefore",
+            // Onboarding v3 + v4 (cohort routing, paywall mechanics,
+            // NSV, weight, tier, dates, cuisine, body-focus key).
+            "onboarding_glp1_status", "onboardingNsvPriority",
+            "onboardingPickedTier", "onboardingPaceChoice",
+            "onboardingCurrentWeightKg", "onboardingGoalWeightKg",
+            "onboardingGoalDate", "onboardingCuisinePreference",
+            "onboardingAgeRange", "onboardingActivityLevel",
+            "onboardingBodyFocusKey", "onboardingReviewPromptShown",
+            // Onboarding v4 fear/consent flags + restrictive food
+            // override + movement baseline.
+            "onb_fear_anotherDiet", "onb_fear_priorAttempt",
+            "onb_fear_quickResults", "onb_consent_personalize",
+            "onb_consent_day2", "onb_restrictive_food",
+            "onb_v4_movement_baseline",
+            // Identity + cohort copy keys read by Welcome + Becoming +
+            // Plan retention layer (Home Phase 3).
+            "identityFeeling", "bodyFocus", "workoutLevel",
+            "todaysEnergy", "hideWeightStats", "hasEnrolledInProgram",
+            // Plan-tab user-scoped session state. kindTodayDateKey
+            // gates the kind-today identity nudge, lastRecapShownDateKey
+            // gates yesterday recap, lastPlanAppearAt drives the
+            // luxury press-feedback timing, planFirstRunHintSeen is
+            // the first-session affordance gate, planChecksMigratedV1
+            // is the SwiftData migration marker (per-user).
+            "kindTodayDateKey", "lastRecapShownDateKey",
+            "lastPlanAppearAt", "planFirstRunHintSeen",
+            "planChecksMigratedV1",
+            // JeniMethod lesson + breathwork + steps + Becoming recap
+            // per-user counters (formerly carried across signouts).
+            "jenimethod.last_lesson_completed_id",
+            "steps.last_goal_hit_day",
+            "breathwork.lastOccasion", "breathwork.lastMinutes",
+            "becoming.recap.lastShownWeek",
+            // Food rail user-scoped prefs (dietary pattern + targets +
+            // exclusions + HealthKit write + photo retention + AI
+            // consent are per-identity, NOT device-level).
+            "foodDailyTarget", "foodDietaryPattern", "foodExclusionsCSV",
+            "foodHealthKitWriteEnabled", "foodPhotoRetention",
+            "foodAIConsentAccepted", "foodAIConsentAt",
         ]
         for key in keys {
             defaults.removeObject(forKey: key)
         }
+    }
+
+    /// v1.1.1 sign-out sweep. Per the AuthService comment, sign-out
+    /// preserves SwiftData (the old user_id rows stay on disk for
+    /// offline reading under their original userId), but @AppStorage
+    /// is process-level and not userId-keyed — without this, the next
+    /// user signing in inherits the previous identity's onboarding
+    /// state, retention timers, and cohort flags. Also cancels
+    /// pending retention notifications so a deleted user's scheduled
+    /// nudges don't fire under the new identity. Called from
+    /// AccountView.performSignOut() BEFORE AuthService.signOut so
+    /// the cleared keys propagate before the bootstrap re-fires.
+    @MainActor
+    func clearLocalUserStateForSignOut() {
+        clearOnboardingUserDefaults()
+        RetentionNotifications.cancelAll()
     }
 
     /// Fire-and-forget Supabase upsert for the user's profile row. Caller is

@@ -2427,6 +2427,14 @@ private struct RootView: View {
             // with Supabase user_id so cross-device sessions + funnel
             // cohorts unify in one Person.
             PlankAIApp.identifyPostHogUser()
+            // v1.1.1 — re-point RevenueCat at the new appUserID so
+            // entitlements + customerInfoStream reflect the signed-in
+            // identity (not the prior anonymous user). Without this,
+            // a sign-out + sign-back-in flow keeps Pro entitlement
+            // looking up under the wrong anonymous appUserID until
+            // the next cold launch — i.e. the user appears unpaid
+            // for the rest of the session. Idempotent.
+            PaymentService.shared.configure(appUserID: auth.currentUser?.id.uuidString)
         }
         .onChange(of: auth.authMethod) { _, _ in
             // Fires on signup-upgrade (anon -> email/apple, same user_id).

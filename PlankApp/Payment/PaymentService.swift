@@ -328,13 +328,25 @@ final class PaymentService {
             // doesn't, AND the entitlement is still active, the user
             // just converted from trial to paid. Schedule the Day 5
             // anti-refund push for annual + quarterly converters
-            // (skip weekly tier — no refund risk at $5.99). Cancel-
-            // during-trial transitions also flow through this `else`
-            // branch but with isActive == false, so they no-op via
-            // the `entitlement.isActive` guard.
+            // (skip weekly tier — no refund risk at $5.99).
+            //
+            // v1.1.1 (2026-06-19) — the original guard fired even on
+            // cancel-during-trial because the user is still inside
+            // the trial WINDOW (entitlement.isActive=true) with
+            // periodType=.trial but willRenew=false. Resulting bug:
+            // a user who cancels her trial on Day 1 still gets a
+            // Day-5 anti-refund nudge framed as "your charge cleared,
+            // here's why you'll love staying" — actively misleading,
+            // and likely to drive refund requests from people who
+            // thought they HAD cancelled. New guard:
+            //   - periodType != .trial (truly post-trial)
+            //   - willRenew == true (didn't cancel)
+            // both required before the Day-5 push schedules.
             if priorTrialEndDate != nil,
                let entitlement,
                entitlement.isActive,
+               entitlement.periodType != .trial,
+               entitlement.willRenew,
                !entitlement.productIdentifier.lowercased().contains("weekly") {
                 let chargeDate = entitlement.latestPurchaseDate ?? Date()
                 RetentionNotifications.scheduleDay5AntiRefundIfNeeded(chargeDate: chargeDate)

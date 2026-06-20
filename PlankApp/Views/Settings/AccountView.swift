@@ -460,6 +460,13 @@ struct AccountView: View {
         signingOut = true
         defer { signingOut = false }
         do {
+            // v1.1.1 — wipe identity-scoped @AppStorage + cancel
+            // retention pushes BEFORE the actual signOut so the
+            // anonymous bootstrap re-fires onto a clean slate.
+            // Otherwise the next account inherits the previous
+            // user's onboarding answers, cohort flags, and
+            // pending Day-1/Day-5 nudges.
+            AppSync.shared.clearLocalUserStateForSignOut()
             try await AuthService.shared.signOut()
             // Returns to home — this sheet dismisses, anonymous bootstrap
             // already kicked off by signOut() so the user has a fresh user_id.

@@ -139,12 +139,23 @@ struct PlanRow: View {
         // because the Button wrapper inside luxuryPressFeedback
         // consumes the standard long-press gesture chain.
         // simultaneousGesture runs in parallel.
+        //
+        // v1.1.1 (second pass, 2026-06-19) — auto-reset
+        // `longPressJustFired` ~700ms after it's set so a user who
+        // long-presses, drags off the row to cancel the Button (so
+        // its tap action never runs and never clears the flag),
+        // then taps the row legitimately doesn't get silently
+        // swallowed. The 700ms window covers the Button's tap-up
+        // path; if the legit tap arrives later, it goes through.
         .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.5)
                 .onEnded { _ in
                     guard isRowTappable, canLongPress else { return }
                     longPressJustFired = true
                     onLongPress()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                        longPressJustFired = false
+                    }
                 }
         )
         .opacity(rowOpacity)

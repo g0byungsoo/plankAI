@@ -8103,13 +8103,15 @@ struct OnboardingView: View {
                         .tracking(1.5)
                         .foregroundStyle(Palette.textSecondary)
                 }
-                // Notification preview — must match what
-                // NotificationPermission.scheduleDailyReminder actually
-                // sets as content.title ("today's short session."). The
-                // old preview said "Time to work" which mismatched the
-                // shipped notification title since the lowercase voice
-                // refresh in NotificationPermission.swift.
-                Text("today's short session.")
+                // v1.1.1 (2026-06-19) — preview title sync. The shipped
+                // notification title (NotificationPermission v2,
+                // OnboardingComponents.swift:227) was rebranded to
+                // "five minutes, today." but THIS preview surface
+                // wasn't updated, producing a bait-and-switch: user
+                // opts in expecting "today's short session.", gets
+                // "five minutes, today." the next day. Trust hit on
+                // day 1. Match the actual scheduled title.
+                Text("five minutes, today.")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Palette.textPrimary)
                 Text(notificationPreviewBody)

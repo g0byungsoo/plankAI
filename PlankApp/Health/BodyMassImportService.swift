@@ -152,6 +152,11 @@ final class BodyMassImportService {
         for row in touched {
             await AppSync.shared.upsertWeightLog(row)
         }
+        // v1.1.1 — HealthKit imports also bump the cross-view
+        // signal so AnalyticsView's trend canvas redraws even
+        // when the user wasn't on the Becoming tab during the
+        // sync. Matches PlanView + saveWeightLog behavior.
+        NotificationCenter.default.post(name: .weightLogDidChange, object: nil)
     }
 
     private func fetchSamples(type: HKQuantityType, since cutoff: Date) async -> [HKQuantitySample] {
