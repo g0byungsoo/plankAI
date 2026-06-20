@@ -1230,21 +1230,37 @@ struct BecomingTrendCanvas: View {
         }
     }
 
-    /// 7-day delta (current EMA vs EMA from 7 days ago) — soft sage
-    /// when trending down, soft cocoa otherwise. Hidden when the
-    /// window is too short.
+    /// 7-day delta — compares the most-recent RAW weigh-in to the
+    /// most-recent raw weigh-in from ≥7 days ago. Soft sage when
+    /// trending down, soft cocoa otherwise. Hidden when there's no
+    /// prior log to compare against.
+    ///
+    /// Previously this compared EMA values at points[count-1] vs
+    /// points[count-7], which drifted: on a sparse-log window the
+    /// EMA stays anchored to the seed value (most recent pre-window
+    /// log) and walks across all 60 days, so "this week" was
+    /// really "since the seed point." Now it aligns with the
+    /// headline (raw input) and the user's mental model of weekly
+    /// progress.
     private var weeklyDeltaDisplay: (amount: String, tint: Color)? {
-        guard points.count >= 7 else { return nil }
-        let latest = points[points.count - 1].emaKg
-        let weekAgo = points[points.count - 7].emaKg
-        let deltaKg = latest - weekAgo
-        let display = unit.display(fromKg: latest) - unit.display(fromKg: weekAgo)
+        let now = Date.now
+        let weekAgoCutoff = now.addingTimeInterval(-7 * 86400)
+        // filteredLogs is sorted desc by loggedAt — `first` is the
+        // latest log, `first(where:)` walks newest-first and stops
+        // at the first prior log older than the cutoff.
+        guard let latestLog = filteredLogs.first else { return nil }
+        guard let priorLog = filteredLogs.first(where: { $0.loggedAt <= weekAgoCutoff }) else {
+            return nil
+        }
+        let displayLatest = unit.display(fromKg: latestLog.weightKg)
+        let displayPrior = unit.display(fromKg: priorLog.weightKg)
+        let display = displayLatest - displayPrior
         let amount: String = {
             if abs(display) < 0.05 { return "steady" }
             if display < 0 { return "−\(String(format: "%.1f", abs(display))) \(unit.label)" }
             return "+\(String(format: "%.1f", display)) \(unit.label)"
         }()
-        let tint: Color = deltaKg <= 0 ? Palette.stateGood : Palette.cocoaSecondary
+        let tint: Color = display <= 0 ? Palette.stateGood : Palette.cocoaSecondary
         return (amount, tint)
     }
 
