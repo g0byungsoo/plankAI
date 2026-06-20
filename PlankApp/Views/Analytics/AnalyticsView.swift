@@ -663,6 +663,15 @@ struct AnalyticsView: View {
     /// v1.1.1 — `lighterDayStates` filtered allEntries + sessionLogs
     /// 7 times per render. Cached (7-bool array).
     @State private var cachedLighterDayStates: [Bool] = Array(repeating: false, count: 7)
+
+    /// v1.1.1 (2026-06-19) — bumped by `saveWeightLog` so the trend
+    /// chart re-mounts after a save even when the @Query observer
+    /// doesn't fire (in-place property mutation under the one-per-
+    /// day policy doesn't change array count, and SwiftData's body
+    /// re-render guarantee on plain property writes is wobbly for
+    /// views on inactive tabs). Used as a `.id(...)` on the canvas
+    /// so a remount draws fresh.
+    @State private var weightChartVersion: Int = 0
     /// Live grid width captured via a background GeometryReader on the
     /// LazyVGrid. Read by the drag gesture to map touch X → cell column
     /// without fighting LazyVGrid's intrinsic sizing (the previous
@@ -1265,6 +1274,10 @@ struct AnalyticsView: View {
                     goalWeightKg: goalWeightKg,
                     unit: weightUnit
                 )
+                // v1.1.1 — re-mount when `saveWeightLog` bumps the
+                // version so the canvas redraws with the new value
+                // immediately, regardless of @Query observation.
+                .id(weightChartVersion)
                 .padding(.top, 6)
             } else {
                 becomingTrendHeroCard
@@ -3940,6 +3953,12 @@ struct AnalyticsView: View {
             existing.pendingUpsert = true
             try? modelContext.save()
             Task { await AppSync.shared.upsertWeightLog(existing) }
+            // v1.1.1 (2026-06-19) — bump the chart version so the
+            // trend canvas re-mounts and redraws with the new value.
+            // SwiftData @Query doesn't reliably fire body re-renders
+            // on in-place property mutations for views on inactive
+            // tabs; this is the safety net.
+            weightChartVersion &+= 1
             return
         }
 
@@ -3952,6 +3971,7 @@ struct AnalyticsView: View {
         modelContext.insert(log)
         try? modelContext.save()
         Task { await AppSync.shared.upsertWeightLog(log) }
+        weightChartVersion &+= 1
     }
 
     // MARK: - Activity Calendar (bento chrome + scrubbable)
