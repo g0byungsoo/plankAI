@@ -162,40 +162,46 @@ struct BecomingWeekRow: View {
                         .font(.custom("JeniHeroSerif-Regular", size: 20))
                         .foregroundStyle(Palette.textPrimary)
                 }
-                // Phase 4 fix (2026-06-19) — render the letter row and
-                // dot row INSIDE a single LazyVGrid so SwiftUI guarantees
-                // identical column X positions regardless of the inner
-                // content's intrinsic width. 7 fixed-width columns,
-                // zero column spacing.
-                LazyVGrid(
-                    columns: Array(
-                        repeating: GridItem(.fixed(22), spacing: 0, alignment: .center),
-                        count: states.count
-                    ),
-                    alignment: .center,
-                    spacing: 4
-                ) {
-                    if let archetypes, archetypes.count == states.count {
-                        ForEach(Array(archetypes.enumerated()), id: \.offset) { _, arch in
-                            if let arch {
-                                Text(letterFor(arch))
-                                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 10))
-                                    .foregroundStyle(Palette.cocoaSecondary.opacity(0.7))
-                            } else {
-                                Color.clear.frame(height: 12)
-                            }
-                        }
-                    }
+                // Phase 4 fix (2026-06-19) — render each column as
+                // a VStack of (letter, dot) so the letter and dot are
+                // guaranteed to share the column's center X. SwiftUI
+                // centers children of a VStack horizontally; pairing
+                // them per-column eliminates any cross-row alignment
+                // drift we saw with parallel HStacks or LazyVGrid.
+                HStack(spacing: 5) {
                     ForEach(Array(states.enumerated()), id: \.offset) { idx, state in
-                        dot(state)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                guard recaps != nil else { return }
-                                Haptics.tick()
-                                withAnimation(Motion.crossFade) {
-                                    selectedIdx = selectedIdx == idx ? nil : idx
+                        VStack(spacing: 4) {
+                            // Letter slot — Roman (non-italic) so the
+                            // glyph mass center sits on the column
+                            // center. Italic Fraunces leans right at
+                            // the top, putting the visual mass center
+                            // ~2pt left of geometric center, which
+                            // read as misaligned with the dots.
+                            Group {
+                                if let archetypes,
+                                   idx < archetypes.count,
+                                   let arch = archetypes[idx] {
+                                    Text(letterFor(arch))
+                                        .font(.custom("Fraunces72pt-SemiBold", size: 10))
+                                        .foregroundStyle(Palette.cocoaSecondary.opacity(0.7))
+                                } else {
+                                    Color.clear
                                 }
                             }
+                            .frame(height: 12)
+
+                            // Dot slot
+                            dot(state)
+                        }
+                        .frame(width: 18)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            guard recaps != nil else { return }
+                            Haptics.tick()
+                            withAnimation(Motion.crossFade) {
+                                selectedIdx = selectedIdx == idx ? nil : idx
+                            }
+                        }
                     }
                 }
                 .accessibilityHidden(true)
