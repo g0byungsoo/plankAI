@@ -84,7 +84,7 @@
 		<key>UIImageName</key>
 		<string>LaunchStickers</string>
 		<key>UIImageRespectsSafeAreaInsets</key>
-		<true/>
+		<false/>
 	</dict>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
