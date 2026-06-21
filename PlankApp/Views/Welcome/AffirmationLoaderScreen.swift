@@ -7,65 +7,46 @@ import SwiftUI
 // resolves. Can die at ANY moment from ~300ms, so the composition is
 // complete at frame 0.
 //
-// v5.0 — match-native + animated her75 affirmation.
+// v5.1 — all-baked composition.
 //
-// The iOS launch screen draws LaunchStickers at NATIVE @3x size,
-// centered on screen (UILaunchScreen.UIImageRespectsSafeAreaInsets
-// = false). It does NOT scale the image. To get an invisible
-// handoff, this view renders the same image WITHOUT any
-// `.resizable()` / `.aspectRatio()` modifiers — so SwiftUI also
-// shows the image at its native @3x size, centered. Same bitmap,
-// same size, same position → zero visible jump.
+// The founder finalized the launch screen as a single static
+// composition: pink ground + sticker collage + jeni·fit wordmark
+// + "Hi ♡" speech bubble + "you made it!" hero, all baked into
+// LaunchStickers@3x.png.
 //
-// The background image stays still (no scale, no breath). The only
-// motion moment is the her75 affirmation softly fading in over the
-// empty middle of the composition. Per the founder direction:
-// background still, text in the empty space transitions in.
+// The static iOS launch screen renders this image via Info.plist
+// UILaunchScreen.UIImageName with UIImageRespectsSafeAreaInsets =
+// true — so the whole composition fits inside the safe area
+// (wordmark stays clear of the notch). This view mirrors that
+// behavior exactly: same color asset behind, same image fit to
+// safe-area bounds. Pixel-identical handoff.
 //
-// Failure state preserved.
+// No animation, no text overlay — the image is the entire
+// composition. Per the founder direction: simple and beautiful
+// beats clever-and-animated. The failure state is preserved for
+// bootstrap retries.
 
 struct AffirmationLoaderScreen: View {
     let state: BootstrapState
     let onRetry: () -> Void
 
-    @State private var textVisible = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     var body: some View {
         ZStack {
             // 1. Pink ground — exact match to the LaunchBackground
-            //    color asset the static launch screen draws.
+            //    color asset the static launch screen draws. Also
+            //    matches the pink baked into the image, so any
+            //    safe-area margin blends invisibly.
             Color("LaunchBackground")
                 .ignoresSafeArea()
 
-            // 2. Sticker + wordmark composite at NATIVE @3x size,
-            //    centered. No .resizable / no aspectRatio — that's
-            //    what makes the size match iOS's launch screen
-            //    pixel-for-pixel.
+            // 2. The full composition — fit within safe area to
+            //    match Info.plist UIImageRespectsSafeAreaInsets =
+            //    true. Same image, same fit, same insets → zero
+            //    visible jump from the static launch frame.
             Image("LaunchStickers")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
                 .accessibilityHidden(true)
-
-            // 3. Affirmation text in the empty middle space.
-            //    Positioned by a fixed offset from screen center —
-            //    image is at native @3x size centered, so the
-            //    image's empty middle (image-y ~1200/3 = 400pt)
-            //    lands at screen-center-y - 66 regardless of
-            //    device. her75 register: regular + italic punch
-            //    line, no subtitle.
-            GeometryReader { geo in
-                VStack(spacing: 6) {
-                    Text("you are")
-                        .font(.custom("JeniHeroSerif-Regular", size: 56))
-                    Text("becoming her.")
-                        .font(.custom("JeniHeroSerif-Italic", size: 68))
-                }
-                .foregroundStyle(Color(red: 0x3D/255.0, green: 0x2A/255.0, blue: 0x2A/255.0))
-                .multilineTextAlignment(.center)
-                .opacity(textVisible ? 1 : 0)
-                .offset(y: textVisible ? 0 : 14)
-                .position(x: geo.size.width / 2, y: geo.size.height / 2 - 66)
-                .allowsHitTesting(false)
-            }
 
             if case .failed = state {
                 VStack {
@@ -73,25 +54,6 @@ struct AffirmationLoaderScreen: View {
                     failureContent
                         .padding(.bottom, 60)
                 }
-            }
-        }
-        .onAppear { animateTextIn() }
-    }
-
-    // MARK: - Animation
-
-    private func animateTextIn() {
-        if reduceMotion {
-            textVisible = true
-            return
-        }
-        // ~120ms after appear (one perceptual breath after the
-        // static-to-live handoff), the affirmation softens in
-        // over 700ms with a 14pt slide-up. No background motion,
-        // no cascade — one moment, ends.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-            withAnimation(.easeOut(duration: 0.7)) {
-                textVisible = true
             }
         }
     }
