@@ -7,81 +7,73 @@ import SwiftUI
 // resolves. Can die at ANY moment from ~300ms, so the composition is
 // complete at frame 0.
 //
-// v4.6 round 4 — editorial single-hero per the design consult
-// (founder reference: Urban Outfitters splash, subject-over-type).
-// Cream ground from frame 0 (invisible handoff from the static
-// launch screen), the blazer-girl cutout anchored to the bottom edge
-// with her legs bleeding off-screen, and the affirmation set in the
-// hero serif UNDER her layer so her shoulder overlaps the line tail.
-// One motion moment: the cutout settles (y +10pt, scale 1.015 → rest).
-// No breathe, no cascade, no scatter. 1 image + 1 text + 1 bow.
+// v4.7 — invisible-handoff launch sequence.
+// The static iOS launch screen renders the SAME composition (pink
+// `LaunchBackground` + centered `LaunchStickers` overlay) the instant
+// the user taps the icon. The next frame is this view: pink + the
+// SAME sticker image, rendered identically — so the handoff is
+// pixel-invisible. Once mounted, the empty middle of the design
+// breathes into life: a per-day affirmation cascades in, then a
+// subline slides up. Reduce-motion snaps to final.
+//
+// No wordmark in SwiftUI — the wordmark is baked into the sticker
+// image at the top of the canvas. Adding one here would double up.
 
 struct AffirmationLoaderScreen: View {
     let state: BootstrapState
     let onRetry: () -> Void
 
-    @State private var settled = false
+    @State private var heroVisible = false
     @State private var subVisible = false
+    @State private var breathing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                Palette.programEraBg
+                // 1. Pink ground — exact match to the LaunchBackground
+                //    color asset the static launch screen draws.
+                Color("LaunchBackground")
                     .ignoresSafeArea()
 
-                // The affirmation — fixed, not rotating: one line seen
-                // on every launch becomes the brand's doorbell. Sits
-                // UNDER the girl so her shoulder overlaps the tail (the
-                // editorial subject-over-type move). The sub-line lands
-                // at 0.45s; RootView guarantees a 1.6s dwell so it
-                // always finishes.
-                VStack(alignment: .leading, spacing: 14) {
-                    Spacer().frame(height: geo.size.height * 0.26)
-                    (Text("this is your\n").font(Typo.heroHeadline)
-                     + Text("that girl").font(Typo.heroHeadlineItalic)
-                     + Text(" era.").font(Typo.heroHeadline))
+                // 2. Sticker overlay — identical bitmap to the one
+                //    iOS centered on the static launch screen. Frame
+                //    0 of this view = frame N of launch. The optional
+                //    ambient breath (1.04x over ~4s) only activates
+                //    when reduce-motion is OFF.
+                Image("LaunchStickers")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .scaleEffect(breathing ? 1.04 : 1.0)
+                    .ignoresSafeArea()
+                    .accessibilityHidden(true)
+
+                // 3. Affirmation — anchored in the empty middle zone
+                //    (~y 48% of canvas). Center-aligned because the
+                //    sticker composition is symmetric around the
+                //    vertical axis.
+                VStack(spacing: 14) {
+                    Spacer().frame(height: geo.size.height * 0.42)
+
+                    affirmationHero
+                        .multilineTextAlignment(.center)
                         .foregroundStyle(Palette.textPrimary)
                         .kerning(-0.4)
                         .lineSpacing(Typo.heroHeadlineLineGap)
-                        .multilineTextAlignment(.leading)
-                    (Text("she's been in you ").font(.custom("DMSans-Regular", size: 16))
-                     + Text("the whole time.").font(.custom("Fraunces72pt-SemiBoldItalic", size: 16)))
+                        .opacity(heroVisible ? 1 : 0)
+                        .offset(y: heroVisible ? 0 : 8)
+
+                    affirmationSub
+                        .multilineTextAlignment(.center)
                         .foregroundStyle(Palette.textSecondary)
                         .opacity(subVisible ? 1 : 0)
                         .offset(y: subVisible ? 0 : 6)
-                    Spacer()
-                }
-                .padding(.leading, 24)
-                .padding(.trailing, 32)
-                .frame(maxWidth: .infinity, alignment: .leading)
 
-                // The girl — bottom-anchored, legs bleed off-screen,
-                // shoulder rising INTO the line tail (subject-over-type).
-                VStack {
                     Spacer(minLength: 0)
-                    Image("onb-identity-powerful")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: geo.size.height * 0.68)
-                        .offset(
-                            x: geo.size.width * 0.10,
-                            y: geo.size.height * 0.04 + (settled ? 0 : 10)
-                        )
-                        .scaleEffect(settled ? 1.0 : 1.015, anchor: .bottom)
-                        .accessibilityHidden(true)
                 }
-                .ignoresSafeArea(edges: .bottom)
-
-                // Wordmark — handoff anchor, static from frame 0.
-                VStack {
-                    (Text("jeni").font(.custom("Fraunces72pt-SemiBold", size: 17))
-                     + Text("\u{2009}•\u{2009}").font(.custom("Fraunces72pt-Light", size: 14))
-                     + Text("fit").font(.custom("Fraunces72pt-SemiBold", size: 17)))
-                        .foregroundStyle(Palette.textPrimary)
-                        .padding(.top, 6)
-                    Spacer()
-                }
+                .padding(.horizontal, 28)
+                .frame(maxWidth: .infinity)
 
                 if case .failed = state {
                     VStack {
@@ -92,16 +84,90 @@ struct AffirmationLoaderScreen: View {
                 }
             }
         }
-        .onAppear {
-            if reduceMotion {
-                settled = true
+        .onAppear { animateIn() }
+    }
+
+    // MARK: - Animation
+
+    private func animateIn() {
+        if reduceMotion {
+            heroVisible = true
+            subVisible = true
+            return
+        }
+        // ~70ms after appear: hero affirmation softens in.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.07) {
+            withAnimation(Motion.entranceSoft) {
+                heroVisible = true
+            }
+        }
+        // ~450ms: subline rises 6pt and fades.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            withAnimation(Motion.entranceSoft) {
                 subVisible = true
-            } else {
-                withAnimation(Motion.entranceSoft) { settled = true }
-                withAnimation(Motion.entranceSoft.delay(0.45)) { subVisible = true }
+            }
+        }
+        // Ambient sticker breath — gentle, 1.04x over ~4s, repeats.
+        // Per the clean-luxury north star: ONE motion moment plus an
+        // almost-imperceptible ambient. Never feels busy.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            withAnimation(.easeInOut(duration: 4.0).repeatForever(autoreverses: true)) {
+                breathing = true
             }
         }
     }
+
+    // MARK: - Affirmation rotation
+    //
+    // Per-day rotation (dayOfYear % count). Same day = same line —
+    // intentional, not gimmicky. Brand-checked: italic punch words
+    // only, lowercase casual, no em-dashes, no AI slop.
+
+    private struct Affirmation {
+        let hero: String
+        let italic: String
+        let tail: String
+        let sub: String
+    }
+
+    private static let affirmations: [Affirmation] = [
+        Affirmation(hero: "this is your ", italic: "that girl", tail: " era.",
+                    sub: "she's been in you the whole time."),
+        Affirmation(hero: "soft ", italic: "is", tail: " strong.",
+                    sub: "you don't have to push."),
+        Affirmation(hero: "you are ", italic: "becoming", tail: " her.",
+                    sub: "every quiet choice counts."),
+        Affirmation(hero: "your timeline ", italic: "is yours", tail: ".",
+                    sub: "not 75 days. not 90. yours."),
+        Affirmation(hero: "begin ", italic: "again", tail: ", anytime.",
+                    sub: "the door is never closed."),
+        Affirmation(hero: "small choices ", italic: "stack", tail: ".",
+                    sub: "today's plate, today's lesson."),
+        Affirmation(hero: "kindness ", italic: "is", tail: " the strategy.",
+                    sub: "warmth converts, shame doesn't."),
+    ]
+
+    private var todaysAffirmation: Affirmation {
+        let day = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 1
+        let idx = (day - 1).quotientAndRemainder(dividingBy: Self.affirmations.count).remainder
+        return Self.affirmations[max(0, idx)]
+    }
+
+    @ViewBuilder
+    private var affirmationHero: some View {
+        let a = todaysAffirmation
+        Text(a.hero).font(Typo.heroHeadline)
+            + Text(a.italic).font(Typo.heroHeadlineItalic)
+            + Text(a.tail).font(Typo.heroHeadline)
+    }
+
+    @ViewBuilder
+    private var affirmationSub: some View {
+        let a = todaysAffirmation
+        Text(a.sub).font(.custom("DMSans-Regular", size: 15))
+    }
+
+    // MARK: - Failure state (preserved from prior version)
 
     @ViewBuilder
     private var failureContent: some View {
