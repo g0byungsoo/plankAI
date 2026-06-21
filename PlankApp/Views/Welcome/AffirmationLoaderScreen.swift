@@ -7,26 +7,28 @@ import SwiftUI
 // resolves. Can die at ANY moment from ~300ms, so the composition is
 // complete at frame 0.
 //
-// v4.8 — fully baked launch composition.
-// All composition (pink ground + sticker collage + jeni·fit wordmark
-// + her75 affirmation in the empty middle) is baked into the
-// LaunchStickers PNG. The static iOS launch screen renders it via
-// Info.plist UILaunchScreen.UIImageName at FULL BLEED
-// (UIImageRespectsSafeAreaInsets=false). This view mirrors that
-// exact composition: same color asset, same image asset, same
-// .fit aspect, full bleed via .ignoresSafeArea. Pixel-identical to
-// the static launch screen → invisible handoff.
+// v5.0 — match-native + animated her75 affirmation.
 //
-// No SwiftUI text on top — the affirmation lives in the image. A
-// single ambient breath layer (1.04×, repeats, reduce-motion gated)
-// adds the only motion moment so the static-to-live transition has
-// a subtle pulse of life. The failure state is preserved.
+// The iOS launch screen draws LaunchStickers at NATIVE @3x size,
+// centered on screen (UILaunchScreen.UIImageRespectsSafeAreaInsets
+// = false). It does NOT scale the image. To get an invisible
+// handoff, this view renders the same image WITHOUT any
+// `.resizable()` / `.aspectRatio()` modifiers — so SwiftUI also
+// shows the image at its native @3x size, centered. Same bitmap,
+// same size, same position → zero visible jump.
+//
+// The background image stays still (no scale, no breath). The only
+// motion moment is the her75 affirmation softly fading in over the
+// empty middle of the composition. Per the founder direction:
+// background still, text in the empty space transitions in.
+//
+// Failure state preserved.
 
 struct AffirmationLoaderScreen: View {
     let state: BootstrapState
     let onRetry: () -> Void
 
-    @State private var breathing = false
+    @State private var textVisible = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -36,17 +38,34 @@ struct AffirmationLoaderScreen: View {
             Color("LaunchBackground")
                 .ignoresSafeArea()
 
-            // 2. Sticker + wordmark + affirmation composite —
-            //    identical bitmap to the one iOS draws on launch.
-            //    Full bleed (.ignoresSafeArea) + aspect-fit so it
-            //    matches Info.plist UIImageRespectsSafeAreaInsets=false
-            //    behavior pixel-for-pixel.
+            // 2. Sticker + wordmark composite at NATIVE @3x size,
+            //    centered. No .resizable / no aspectRatio — that's
+            //    what makes the size match iOS's launch screen
+            //    pixel-for-pixel.
             Image("LaunchStickers")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .scaleEffect(breathing ? 1.04 : 1.0)
-                .ignoresSafeArea()
                 .accessibilityHidden(true)
+
+            // 3. Affirmation text in the empty middle space.
+            //    Positioned by a fixed offset from screen center —
+            //    image is at native @3x size centered, so the
+            //    image's empty middle (image-y ~1200/3 = 400pt)
+            //    lands at screen-center-y - 66 regardless of
+            //    device. her75 register: regular + italic punch
+            //    line, no subtitle.
+            GeometryReader { geo in
+                VStack(spacing: 6) {
+                    Text("you are")
+                        .font(.custom("JeniHeroSerif-Regular", size: 56))
+                    Text("becoming her.")
+                        .font(.custom("JeniHeroSerif-Italic", size: 68))
+                }
+                .foregroundStyle(Color(red: 0x3D/255.0, green: 0x2A/255.0, blue: 0x2A/255.0))
+                .multilineTextAlignment(.center)
+                .opacity(textVisible ? 1 : 0)
+                .offset(y: textVisible ? 0 : 14)
+                .position(x: geo.size.width / 2, y: geo.size.height / 2 - 66)
+                .allowsHitTesting(false)
+            }
 
             if case .failed = state {
                 VStack {
@@ -56,20 +75,23 @@ struct AffirmationLoaderScreen: View {
                 }
             }
         }
-        .onAppear { startBreath() }
+        .onAppear { animateTextIn() }
     }
 
     // MARK: - Animation
 
-    private func startBreath() {
-        guard !reduceMotion else { return }
-        // Ambient sticker breath — gentle, 1.04× over ~4s, repeats.
-        // Per the clean-luxury north star: one almost-imperceptible
-        // ambient. The handoff is otherwise still — the only thing
-        // that changes from launch frame 0 is this subtle pulse.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            withAnimation(.easeInOut(duration: 4.0).repeatForever(autoreverses: true)) {
-                breathing = true
+    private func animateTextIn() {
+        if reduceMotion {
+            textVisible = true
+            return
+        }
+        // ~120ms after appear (one perceptual breath after the
+        // static-to-live handoff), the affirmation softens in
+        // over 700ms with a 14pt slide-up. No background motion,
+        // no cascade — one moment, ends.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            withAnimation(.easeOut(duration: 0.7)) {
+                textVisible = true
             }
         }
     }
