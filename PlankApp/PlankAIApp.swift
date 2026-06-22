@@ -217,6 +217,12 @@ struct PlankAIApp: App {
         config.debug = true
         config.flushAt = 1
         #endif
+        // Crash autocapture → $exception events carry the stack/fingerprint
+        // metadata PostHog's Error Tracking needs to group issues. Without
+        // this the manual Analytics.trackException calls still fire but never
+        // group into issues (they coexist; this adds Mach/POSIX/NSException
+        // crash capture delivered on next launch).
+        config.errorTrackingConfig.autoCapture = true
         PostHogSDK.shared.setup(config)
 
         Analytics.sinks.append(PostHogSink())

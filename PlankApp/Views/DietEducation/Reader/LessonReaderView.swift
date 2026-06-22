@@ -751,6 +751,14 @@ struct LessonReaderView: View {
             if isLast {
                 if !isReread {
                     Haptics.success()
+                    // Completion analytic — fires once per first read of a
+                    // lesson (mirrors the !isReread gate on
+                    // diet_education_lesson_viewed so viewed→completed is an
+                    // apples-to-apples funnel). The legacy ritual reader was
+                    // the only emitter before this, so the event had fired
+                    // ~once ever despite 400+ viewers on the CBT path.
+                    Analytics.track(.dietEducationCompleted,
+                                    properties: cbtAnalyticsProps())
                     // Milestone lessons earn a brief visual closure
                     // beat before the reader dismisses — single
                     // sparkle + tick, no scatter (scatter is reserved
