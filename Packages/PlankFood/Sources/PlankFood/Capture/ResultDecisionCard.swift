@@ -74,6 +74,9 @@ struct ResultDecisionCard: View {
     }
 
     @State private var revealedSteps: Int = 0
+    /// Slide 1 stays a compact glance so the card floats over the food
+    /// photo (not filling it). The full editable ledger expands on tap.
+    @State private var ledgerExpanded: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("onboardingCurrentWeightKg") private var onboardingCurrentWeightKg: Double = 0
     @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
@@ -88,7 +91,7 @@ struct ResultDecisionCard: View {
 
             card
                 .padding(.horizontal, 18)
-                .padding(.top, 58)
+                .padding(.top, 48)
                 .padding(.bottom, 40)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
@@ -168,7 +171,7 @@ struct ResultDecisionCard: View {
     @ViewBuilder private var card: some View {
         contentColumn
             .padding(.horizontal, 20)
-            .padding(.vertical, 22)
+            .padding(.vertical, 16)
             .background(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(
@@ -235,7 +238,7 @@ struct ResultDecisionCard: View {
     //   Zone I: tag chips (cap 2)
 
     @ViewBuilder private var contentColumn: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 11) {
             metaRow.zoneEntrance(0, revealed: revealedSteps)
             zoneRule
             kcalHero.zoneEntrance(1, revealed: revealedSteps)
@@ -499,6 +502,28 @@ struct ResultDecisionCard: View {
         let items = displayIngredients
         if !items.isEmpty {
             VStack(alignment: .leading, spacing: 0) {
+                // Collapsed summary (default) keeps the card compact so the
+                // food photo shows around it. Tap to reveal the editable list.
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    withAnimation(.easeOut(duration: 0.28)) { ledgerExpanded.toggle() }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(ledgerSummaryLine)
+                            .font(.custom("DMSans-Medium", size: 13))
+                            .foregroundStyle(textPrimary.opacity(0.6))
+                        Image(systemName: ledgerExpanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(textPrimary.opacity(0.38))
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 6)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(ledgerExpanded ? "hide ingredients" : "show \(items.count) ingredients")
+
+                if ledgerExpanded {
                 ForEach(Array(items.enumerated()), id: \.offset) { idx, item in
                     HStack(alignment: .firstTextBaseline) {
                         Circle()
@@ -537,18 +562,18 @@ struct ResultDecisionCard: View {
                             .frame(height: 0.5)
                     }
                 }
-                if let line = ingredientTotalLine {
-                    HStack {
-                        Text(line)
-                            .font(.custom("DMSans-Regular", size: 11))
-                            .foregroundStyle(textPrimary.opacity(0.45))
-                            .monospacedDigit()
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.top, 7)
                 }
             }
         }
+    }
+
+    /// Compact one-line ledger summary shown when collapsed:
+    /// "4 ingredients  ·  560g".
+    private var ledgerSummaryLine: String {
+        let n = displayIngredients.count
+        let total = Int(result.items.prefix(5).reduce(0.0) { $0 + $1.portionGrams }.rounded())
+        let noun = n == 1 ? "ingredient" : "ingredients"
+        return total > 0 ? "\(n) \(noun)  \u{00B7}  \(total)g" : "\(n) \(noun)"
     }
 
     /// "4 items · 970g total" — surfaces under the ledger when items

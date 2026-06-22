@@ -64,48 +64,63 @@ struct ResultDetailCard: View {
 
     var body: some View {
         GeometryReader { geo in
-        // The carousel slot can be proposed wider than the visible
-        // screen (a paging TabView over-proposes). Clamp the content to
-        // the real screen width, leading-aligned, so right-aligned values
-        // never run off-screen. No-op when the slot is already correct.
+        // Clamp to the real screen width (the paging slot can over-propose).
         let w = min(geo.size.width, UIScreen.main.bounds.width)
-        ZStack(alignment: .topLeading) {
-            // Filling cream gradient sized to the exact slot. Two cream
-            // stops only — no new palette colors.
-            LinearGradient(
-                colors: [
-                    Color(red: 1.0, green: 0.992, blue: 0.984),
-                    Color(red: 0.988, green: 0.957, blue: 0.945),
-                ],
-                startPoint: .top, endPoint: .bottom
-            )
-            .frame(width: geo.size.width, height: geo.size.height)
+        ZStack {
+            // Transparent — the frozen food photo behind the carousel shows
+            // around the floating card, so the card stays smaller than the
+            // photo (matches slide 1's card-on-photo register).
+            Color.clear
 
-            VStack(alignment: .leading, spacing: 18) {
-                eyebrow.reveal(0, revealed)
-                jeniNote.reveal(1, revealed)
-                rule.reveal(2, revealed)
-                fitsLabel.reveal(2, revealed)
-                dayFitLine.reveal(3, revealed)
-                detailRows.reveal(4, revealed)
-                if let c = copy.consideration {
-                    considerationView(c).reveal(5, revealed)
-                }
-                Spacer(minLength: 0)
-                if let p = copy.provenance {
-                    Text(p)
-                        .font(.custom("DMSans-Regular", size: 11))
-                        .foregroundStyle(FoodTheme.textSecondary.opacity(0.75))
-                        .reveal(6, revealed)
-                }
-            }
-            .padding(.horizontal, 28)
-            .padding(.top, 64)
-            .padding(.bottom, 52)
-            .frame(width: w, height: geo.size.height, alignment: .topLeading)
+            card
+                .frame(width: w - 36)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .padding(.top, 46)
         }
         }
         .onAppear(perform: startCascade)
+    }
+
+    /// The floating cream card — sized to its content so the food photo
+    /// shows above and below. Same chrome register as slide 1.
+    private var card: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            eyebrow.reveal(0, revealed)
+            jeniNote.reveal(1, revealed)
+            rule.reveal(2, revealed)
+            fitsLabel.reveal(2, revealed)
+            dayFitLine.reveal(3, revealed)
+            detailRows.reveal(4, revealed)
+            if let c = copy.consideration {
+                considerationView(c).reveal(5, revealed)
+            }
+            if let p = copy.provenance {
+                Text(p)
+                    .font(.custom("DMSans-Regular", size: 11))
+                    .foregroundStyle(FoodTheme.textSecondary.opacity(0.75))
+                    .reveal(6, revealed)
+            }
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 22)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 1.0, green: 0.992, blue: 0.984),
+                            Color(red: 0.988, green: 0.957, blue: 0.945),
+                        ],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(FoodTheme.textPrimary.opacity(0.07), lineWidth: 0.75)
+        )
+        .shadow(color: Color(red: 0.36, green: 0.20, blue: 0.18).opacity(0.10), radius: 16, x: 0, y: 6)
     }
 
     // MARK: Eyebrow
