@@ -1113,20 +1113,21 @@ public struct PhotoCaptureView: View {
     ) -> [SlideShareItem] {
         let totals = nutritionTotals(result)
         let dish = dishNameLabel(result)
-        let meal = mealTypeLabel
 
-        // v1.0.17 (2026-06-18) — handwritten snap card is the only
-        // register now; founder approved the alignment with daily /
-        // weekly (commit 5b55ed6). Editorial 3-slide carousel
-        // (ShareableFoodImageView + ShareablePackedDailyView +
-        // ShareableJeniView) is dead at this call site.
+        // v1.1.2 — render the share PNG with the user's chosen font +
+        // alignment (persisted by the in-app slide-3 picker) so the
+        // exported artifact matches the on-screen preview exactly —
+        // what she sees in the carousel IS what she posts.
         let itemNames = result.items.prefix(4).map(\.name)
-        guard let img = HandwrittenSnapResultShareRenderer.render(
+        let font = SnapShareFont(rawValue: UserDefaults.standard.string(forKey: "snapShareFont") ?? "") ?? .editorial
+        let trailing = UserDefaults.standard.bool(forKey: "snapShareTrailing")
+        guard let img = SnapShareRenderer.render(
             photo: photo,
-            mealLabel: meal,
             dishName: dish,
             itemNames: Array(itemNames),
-            totals: totals
+            totals: totals,
+            font: font,
+            trailing: trailing
         ),
             let data = img.pngData() else { return [] }
         return [SlideShareItem(

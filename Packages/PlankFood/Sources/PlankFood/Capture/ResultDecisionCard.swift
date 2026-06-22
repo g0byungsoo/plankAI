@@ -87,13 +87,11 @@ struct ResultDecisionCard: View {
             Color.clear
 
             card
-                .padding(.horizontal, 56)
-                .padding(.top, 96)
-                .padding(.bottom, 160)
-                .frame(maxHeight: .infinity, alignment: .top)
+                .padding(.horizontal, 18)
+                .padding(.top, 58)
+                .padding(.bottom, 40)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .frame(width: 1080, height: 1920)
-        .clipShape(Rectangle())
         .onAppear {
             startCascade()
             // Debug-only: `--debug-edit-sheet` auto-opens the
@@ -169,10 +167,10 @@ struct ResultDecisionCard: View {
     /// shades)."
     @ViewBuilder private var card: some View {
         contentColumn
-            .padding(.horizontal, 56)
-            .padding(.vertical, 56)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 22)
             .background(
-                RoundedRectangle(cornerRadius: 32, style: .continuous)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
@@ -185,14 +183,14 @@ struct ResultDecisionCard: View {
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 32, style: .continuous)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .stroke(textPrimary.opacity(0.07), lineWidth: 0.75)
             )
             .shadow(
-                color: Color(red: 0.36, green: 0.20, blue: 0.18).opacity(0.06),
-                radius: 18,
+                color: Color(red: 0.36, green: 0.20, blue: 0.18).opacity(0.07),
+                radius: 14,
                 x: 0,
-                y: 6
+                y: 5
             )
     }
 
@@ -237,7 +235,7 @@ struct ResultDecisionCard: View {
     //   Zone I: tag chips (cap 2)
 
     @ViewBuilder private var contentColumn: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 14) {
             metaRow.zoneEntrance(0, revealed: revealedSteps)
             zoneRule
             kcalHero.zoneEntrance(1, revealed: revealedSteps)
@@ -247,11 +245,9 @@ struct ResultDecisionCard: View {
             zoneRule
             macroMicroBar.zoneEntrance(4, revealed: revealedSteps)
             satietyAndDensity.zoneEntrance(5, revealed: revealedSteps)
-            if let flag = thresholdFlag {
-                thresholdFlagLine(flag)
-                    .zoneEntrance(5, revealed: revealedSteps)
-            }
-            todayProteinBar.zoneEntrance(5, revealed: revealedSteps)
+            // v1.1.2 — day-protein bar, protein density + the threshold
+            // consideration moved to slide 2 ("a note from jeni") so each
+            // fact lives in one place and slide 1 stays a clean glance.
             if let pair = smartPair {
                 zoneRule
                 smartPairLine(pair).zoneEntrance(6, revealed: revealedSteps)
@@ -264,9 +260,9 @@ struct ResultDecisionCard: View {
     /// that lets density read as magazine, not spreadsheet.
     @ViewBuilder private var zoneRule: some View {
         Rectangle()
-            .fill(textPrimary.opacity(0.12))
-            .frame(height: 0.75)
-            .padding(.vertical, 2)
+            .fill(textPrimary.opacity(0.10))
+            .frame(height: 0.5)
+            .padding(.vertical, 1)
     }
 
     // MARK: - Zone A: meta row (time · meal · confidence pill)
@@ -274,22 +270,23 @@ struct ResultDecisionCard: View {
     @ViewBuilder private var metaRow: some View {
         HStack(alignment: .center) {
             (Text(timeLabel)
-                .font(.custom("DMSans-Medium", size: 32))
+                .font(.custom("DMSans-Medium", size: 13))
                 .foregroundColor(textSecondary)
             + Text("  ·  ")
-                .font(.custom("DMSans-Medium", size: 32))
+                .font(.custom("DMSans-Medium", size: 13))
                 .foregroundColor(textPrimary.opacity(0.25))
             + Text(mealLabelDisplay)
-                .font(.custom("JeniHeroSerif-Italic", size: 34))
+                .font(.custom("JeniHeroSerif-Italic", size: 14))
                 .foregroundColor(textSecondary)
             + (cuisineLabel.map {
                 Text("  ·  ")
-                    .font(.custom("DMSans-Medium", size: 32))
+                    .font(.custom("DMSans-Medium", size: 13))
                     .foregroundColor(textPrimary.opacity(0.25))
                 + Text($0)
-                    .font(.custom("JeniHeroSerif-Italic", size: 32))
+                    .font(.custom("JeniHeroSerif-Italic", size: 13))
                     .foregroundColor(textSecondary)
             } ?? Text("")))
+            .kerning(0.2)
             Spacer(minLength: 0)
             confidencePill
         }
@@ -318,14 +315,14 @@ struct ResultDecisionCard: View {
     @ViewBuilder private var confidencePill: some View {
         let word = confidenceWord
         (Text(word.0)
-            .font(.custom("DMSans-Regular", size: 28))
+            .font(.custom("DMSans-Regular", size: 12))
         + Text(word.1)
-            .font(.custom("JeniHeroSerif-Italic", size: 32))
+            .font(.custom("JeniHeroSerif-Italic", size: 14))
         + Text(" \u{2661}")
-            .font(.custom("DMSans-Medium", size: 26)))
+            .font(.custom("DMSans-Medium", size: 11)))
             .foregroundStyle(accent.opacity(0.80))
-            .padding(.horizontal, 24)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
             .background(Capsule().fill(accentSubtle.opacity(0.45)))
     }
 
@@ -343,21 +340,21 @@ struct ResultDecisionCard: View {
     // MARK: - Zone B: kcal hero (number + ±range + italic meal name)
 
     @ViewBuilder private var kcalHero: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 18) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             CountUpNumber(
                 target: totalKcal,
                 fontName: "JeniHeroSerif-Regular",
                 italicFontName: "JeniHeroSerif-Italic",
-                size: 200,
+                size: 64,
                 color: textPrimary
             )
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text("calories")
-                    .font(.custom("JeniHeroSerif-Italic", size: 48))
+                    .font(.custom("JeniHeroSerif-Italic", size: 19))
                     .foregroundStyle(textSecondary)
                 if let range = kcalRangeLabel {
                     Text(range)
-                        .font(.custom("DMSans-Regular", size: 30))
+                        .font(.custom("DMSans-Regular", size: 12))
                         .foregroundStyle(textPrimary.opacity(0.50))
                         .monospacedDigit()
                 }
@@ -379,20 +376,20 @@ struct ResultDecisionCard: View {
     // MARK: - Zone C: protein co-hero + adequacy stamp
 
     @ViewBuilder private var proteinCoHero: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 18) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             (Text("\(totalProtein)")
-                .font(.custom("JeniHeroSerif-Regular", size: 104))
+                .font(.custom("JeniHeroSerif-Regular", size: 40))
                 .foregroundColor(textPrimary)
             + Text("g")
-                .font(.custom("JeniHeroSerif-Italic", size: 56))
+                .font(.custom("JeniHeroSerif-Italic", size: 17))
                 .foregroundColor(accent))
                 .monospacedDigit()
             Text("protein")
-                .font(.custom("JeniHeroSerif-Italic", size: 44))
+                .font(.custom("JeniHeroSerif-Italic", size: 18))
                 .foregroundStyle(textSecondary)
-                .baselineOffset(14)
+                .baselineOffset(5)
             Spacer(minLength: 0)
-            VStack(alignment: .trailing, spacing: 10) {
+            VStack(alignment: .trailing, spacing: 6) {
                 adequacyStamp
                 if let punch = pairActionPunch {
                     pairActionChip(punch)
@@ -421,15 +418,15 @@ struct ResultDecisionCard: View {
         } label: {
             (
                 Text("+ ")
-                    .font(.custom("DMSans-Medium", size: 28))
+                    .font(.custom("DMSans-Medium", size: 12))
                 + Text(punch)
-                    .font(.custom("JeniHeroSerif-Italic", size: 30))
+                    .font(.custom("JeniHeroSerif-Italic", size: 13))
             )
             .foregroundStyle(accent)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 6)
             .background(Capsule().fill(Color.white.opacity(0.85)))
-            .overlay(Capsule().stroke(accent.opacity(0.55), lineWidth: 1))
+            .overlay(Capsule().stroke(accent.opacity(0.55), lineWidth: 0.75))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("add a \(punch) later")
@@ -452,20 +449,20 @@ struct ResultDecisionCard: View {
                 return ("", "light")
             }
         }()
-        HStack(spacing: 6) {
+        HStack(spacing: 5) {
             if totalProtein >= 30 {
                 Image(systemName: "sparkle")
-                    .font(.system(size: 18, weight: .regular))
+                    .font(.system(size: 11, weight: .regular))
                     .foregroundStyle(stateGood)
             }
             (Text(word.prefix)
-                .font(.custom("DMSans-Regular", size: 28))
+                .font(.custom("DMSans-Regular", size: 12))
             + Text(word.italic)
-                .font(.custom("JeniHeroSerif-Italic", size: 34)))
+                .font(.custom("JeniHeroSerif-Italic", size: 14)))
                 .foregroundStyle(totalProtein >= 30 ? stateGood : textSecondary)
         }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
         .background(
             Capsule().fill(
                 (totalProtein >= 30 ? stateGood : textSecondary)
@@ -506,14 +503,14 @@ struct ResultDecisionCard: View {
                     HStack(alignment: .firstTextBaseline) {
                         Circle()
                             .fill(accent.opacity(0.7))
-                            .frame(width: 8, height: 8)
-                            .padding(.trailing, 4)
+                            .frame(width: 5, height: 5)
+                            .padding(.trailing, 3)
                         Text(item.name.lowercased())
-                            .font(.custom("DMSans-Medium", size: 36))
+                            .font(.custom("DMSans-Medium", size: 15))
                             .foregroundStyle(textPrimary)
                         Spacer(minLength: 0)
                         Text(item.portion)
-                            .font(.custom("DMSans-Regular", size: 30))
+                            .font(.custom("DMSans-Regular", size: 13))
                             .foregroundStyle(textPrimary.opacity(0.45))
                             .monospacedDigit()
                         // Pencil shows whenever the sheet is available
@@ -522,12 +519,12 @@ struct ResultDecisionCard: View {
                         // onResultEdited's auto-reconstruct path).
                         if onEditItem != nil || onResultEdited != nil {
                             Image(systemName: "pencil")
-                                .font(.system(size: 22, weight: .regular))
+                                .font(.system(size: 11, weight: .regular))
                                 .foregroundStyle(textPrimary.opacity(0.35))
-                                .padding(.leading, 10)
+                                .padding(.leading, 8)
                         }
                     }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 7)
                     .contentShape(Rectangle())
                     .onTapGesture {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -543,12 +540,12 @@ struct ResultDecisionCard: View {
                 if let line = ingredientTotalLine {
                     HStack {
                         Text(line)
-                            .font(.custom("DMSans-Regular", size: 22))
+                            .font(.custom("DMSans-Regular", size: 11))
                             .foregroundStyle(textPrimary.opacity(0.45))
                             .monospacedDigit()
                         Spacer(minLength: 0)
                     }
-                    .padding(.top, 10)
+                    .padding(.top, 7)
                 }
             }
         }
@@ -580,7 +577,7 @@ struct ResultDecisionCard: View {
 
     @ViewBuilder private var macroMicroBar: some View {
         let total = max(1, totalProtein + totalCarbs + totalFat + totalFiber)
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             GeometryReader { geo in
                 let width = geo.size.width
                 HStack(spacing: 0) {
@@ -599,8 +596,8 @@ struct ResultDecisionCard: View {
                 }
                 .clipShape(Capsule())
             }
-            .frame(height: 14)
-            HStack(spacing: 28) {
+            .frame(height: 6)
+            HStack(spacing: 14) {
                 macroLegendInline(color: accent.opacity(0.92), label: "protein", grams: totalProtein)
                 macroLegendInline(color: textPrimary.opacity(0.58), label: "carbs", grams: totalCarbs)
                 macroLegendInline(color: textPrimary.opacity(0.32), label: "fat", grams: totalFat)
@@ -612,15 +609,15 @@ struct ResultDecisionCard: View {
 
     @ViewBuilder
     private func macroLegendInline(color: Color, label: String, grams: Int) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             Circle()
                 .fill(color)
-                .frame(width: 10, height: 10)
+                .frame(width: 6, height: 6)
             (Text("\(grams)g ")
-                .font(.custom("DMSans-Medium", size: 24))
+                .font(.custom("DMSans-Medium", size: 11))
                 .foregroundColor(textPrimary)
             + Text(label)
-                .font(.custom("DMSans-Regular", size: 24))
+                .font(.custom("DMSans-Regular", size: 11))
                 .foregroundColor(textSecondary))
         }
     }
@@ -628,27 +625,21 @@ struct ResultDecisionCard: View {
     // MARK: - Zone F: satiety + protein density
 
     @ViewBuilder private var satietyAndDensity: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 6) {
             (Text("holds you ")
-                .font(.custom("JeniHeroSerif-Regular", size: 44))
+                .font(.custom("JeniHeroSerif-Regular", size: 17))
             + Text(satietyHoursLabel)
-                .font(.custom("JeniHeroSerif-Italic", size: 44))
+                .font(.custom("JeniHeroSerif-Italic", size: 17))
             + Text("  ·  ")
-                .font(.custom("JeniHeroSerif-Regular", size: 44))
+                .font(.custom("JeniHeroSerif-Regular", size: 17))
                 .foregroundColor(textPrimary.opacity(0.25))
             + Text("\(totalFiber)g")
-                .font(.custom("JeniHeroSerif-Regular", size: 44))
+                .font(.custom("JeniHeroSerif-Regular", size: 17))
             + Text(" fiber  \u{2661}")
-                .font(.custom("DMSans-Medium", size: 32))
+                .font(.custom("DMSans-Medium", size: 12))
                 .foregroundColor(accent.opacity(0.7)))
                 .foregroundStyle(textPrimary)
-                .kerning(-0.2)
                 .fixedSize(horizontal: false, vertical: true)
-            if let density = proteinDensityLabel {
-                Text(density)
-                    .font(.custom("DMSans-Regular", size: 28))
-                    .foregroundStyle(textSecondary)
-            }
         }
     }
 
@@ -715,20 +706,20 @@ struct ResultDecisionCard: View {
 
     @ViewBuilder
     private func thresholdFlagLine(_ flag: ThresholdFlag) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 7) {
             Image(systemName: flag.glyph)
-                .font(.system(size: 22, weight: .regular))
+                .font(.system(size: 11, weight: .regular))
                 .foregroundStyle(accent.opacity(0.75))
             (Text(flag.prefix)
-                .font(.custom("DMSans-Regular", size: 28))
+                .font(.custom("DMSans-Regular", size: 12))
             + Text(flag.italic)
-                .font(.custom("JeniHeroSerif-Italic", size: 32))
+                .font(.custom("JeniHeroSerif-Italic", size: 14))
             + Text(flag.suffix)
-                .font(.custom("DMSans-Regular", size: 28)))
+                .font(.custom("DMSans-Regular", size: 12)))
                 .foregroundStyle(textSecondary)
         }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
         .background(Capsule().fill(accentSubtle.opacity(0.35)))
     }
 
@@ -743,14 +734,14 @@ struct ResultDecisionCard: View {
         let target = proteinTargetG
         let logged = todayLoggedProtein + totalProtein
         let progress = min(1.0, Double(logged) / Double(max(target, 1)))
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             (Text("today: ")
-                .font(.custom("DMSans-Regular", size: 28))
+                .font(.custom("DMSans-Regular", size: 12))
             + Text("\(logged)g")
-                .font(.custom("JeniHeroSerif-Italic", size: 32))
+                .font(.custom("JeniHeroSerif-Italic", size: 14))
                 .foregroundColor(textPrimary)
             + Text(" / ~\(target)g protein")
-                .font(.custom("DMSans-Regular", size: 28)))
+                .font(.custom("DMSans-Regular", size: 12)))
                 .foregroundStyle(textSecondary)
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -767,10 +758,10 @@ struct ResultDecisionCard: View {
                                 endPoint: .trailing
                             )
                         )
-                        .frame(width: max(8, geo.size.width * progress))
+                        .frame(width: max(6, geo.size.width * progress))
                 }
             }
-            .frame(height: 10)
+            .frame(height: 5)
         }
     }
 
@@ -993,17 +984,16 @@ struct ResultDecisionCard: View {
     ) -> some View {
         (
             Text(pair.prefix)
-                .font(.custom("JeniHeroSerif-Regular", size: 42))
+                .font(.custom("JeniHeroSerif-Regular", size: 16))
             + Text(pair.punch)
-                .font(.custom("JeniHeroSerif-Italic", size: 44))
+                .font(.custom("JeniHeroSerif-Italic", size: 17))
             + Text(pair.suffix)
-                .font(.custom("JeniHeroSerif-Regular", size: 42))
+                .font(.custom("JeniHeroSerif-Regular", size: 16))
             + Text(" ♡")
-                .font(.custom("DMSans-Medium", size: 34))
+                .font(.custom("DMSans-Medium", size: 12))
                 .foregroundColor(accent.opacity(0.7))
         )
         .foregroundStyle(textSecondary)
-        .kerning(-0.2)
         .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -1028,16 +1018,16 @@ struct ResultDecisionCard: View {
         let punch = parts.last ?? tag
         (
             Text(prefix)
-                .font(.custom("DMSans-Medium", size: 32))
+                .font(.custom("DMSans-Medium", size: 12))
             + Text(punch)
-                .font(.custom("JeniHeroSerif-Italic", size: 34))
+                .font(.custom("JeniHeroSerif-Italic", size: 14))
             + Text(" ♡")
-                .font(.custom("DMSans-Medium", size: 28))
+                .font(.custom("DMSans-Medium", size: 11))
                 .foregroundColor(accent.opacity(0.7))
         )
         .foregroundStyle(textPrimary)
-        .padding(.horizontal, 28)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 13)
+        .padding(.vertical, 7)
         .background(Capsule().fill(accentSubtle.opacity(0.6)))
         .overlay(Capsule().stroke(accent.opacity(0.35), lineWidth: 0.75))
     }
