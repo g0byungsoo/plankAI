@@ -46,17 +46,22 @@ struct AffirmationLoaderScreen: View {
                 .ignoresSafeArea()
 
             // 2. Full baked composition + the heart-pulse overlay.
-            //    GeometryReader gives the container size so we can
-            //    project the heart's image-coord position into the
-            //    fitted-image's actual screen frame.
+            //    .aspectRatio(.fill) + .clipped() matches the static
+            //    launch screen's behavior: image fills the safe-area
+            //    width edge-to-edge, vertical overflow clipped (no
+            //    pink margins). The launch screen renders the image
+            //    at native @3x size within the safe area; on phones
+            //    whose aspect doesn't exactly match the image, the
+            //    overflow direction is the same here as it is there.
             GeometryReader { geo in
-                let bounds = fittedImageBounds(in: geo.size)
+                let bounds = filledImageBounds(in: geo.size)
                 let heart = heartFrame(in: bounds)
 
                 Image("LaunchStickers")
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .aspectRatio(contentMode: .fill)
                     .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
                     .accessibilityHidden(true)
 
                 Image(systemName: "heart.fill")
@@ -96,14 +101,24 @@ struct AffirmationLoaderScreen: View {
 
     // MARK: - Image-coord projection
 
-    private func fittedImageBounds(in containerSize: CGSize) -> CGRect {
+    /// Bounds of the image once .aspectRatio(.fill)+.clipped() has
+    /// scaled it to cover the container. In fill mode, ONE dimension
+    /// matches the container exactly and the other overflows on both
+    /// sides (negative origin in the overflowing axis). The heart
+    /// projection uses these bounds so the SwiftUI overlay stays on
+    /// top of the baked heart even when part of the image is clipped.
+    private func filledImageBounds(in containerSize: CGSize) -> CGRect {
         let imgAspect = Self.imageSize.width / Self.imageSize.height
         let containerAspect = containerSize.width / containerSize.height
         let imageSize: CGSize
         if containerAspect > imgAspect {
-            imageSize = CGSize(width: containerSize.height * imgAspect, height: containerSize.height)
-        } else {
+            // Container wider than image — scale to fill width,
+            // vertical overflow.
             imageSize = CGSize(width: containerSize.width, height: containerSize.width / imgAspect)
+        } else {
+            // Container taller-relative than image — scale to fill
+            // height, horizontal overflow.
+            imageSize = CGSize(width: containerSize.height * imgAspect, height: containerSize.height)
         }
         return CGRect(
             x: (containerSize.width - imageSize.width) / 2,
