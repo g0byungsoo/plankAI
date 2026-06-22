@@ -40,12 +40,11 @@ struct AffirmationLoaderScreen: View {
 
     var body: some View {
         ZStack {
-            // Use the LaunchBackground asset directly (NOT Palette.bgPrimary)
-            // so the loader's pink matches the static launch screen
-            // pixel-for-pixel. The cross-fade to MainTabView at the end
-            // of bootstrap then bridges pink → cream cleanly via
-            // Motion.crossFade in RootView.
-            Color("LaunchBackground")
+            // Loader stays on brand cream (Palette.bgPrimary), even though
+            // the static launch screen is pink. The transition pink →
+            // cream happens at the launch-screen-to-loader handoff; the
+            // cream then carries into MainTabView seamlessly.
+            Palette.bgPrimary
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
