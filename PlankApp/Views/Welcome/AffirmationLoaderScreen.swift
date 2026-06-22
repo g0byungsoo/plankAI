@@ -7,21 +7,28 @@ import SwiftUI
 // resolves. Can die at ANY moment from ~300ms, so the composition is
 // complete at frame 0.
 //
-// v6.0 — clean-slate minimalist typography.
+// v8.0 — pure cream launch, brand arrives in two beats.
 //
-// The static iOS launch screen is now just the cream
-// LaunchBackground color (no image, no overlay) with the status bar
-// hidden. This view inherits the same cream and adds the brand
-// composition: small jeni·fit wordmark at the top, a single her75
-// affirmation centered in the page. The wordmark and affirmation
-// fade in sequentially after the static-to-live handoff lands —
-// the only motion in the experience.
+// The static iOS launch screen is intentionally just the cream
+// LaunchBackground color (no image, no overlay) — the Calm /
+// Headspace / Aesop pattern. The cream IS the brand opening note.
+// This loader takes over the moment AuthService.bootstrap() starts
+// drawing, and resolves the cream into two sequential brand beats:
 //
-// No safe-area gymnastics, no image positioning math, no overlay
-// alignment risk. Pure SwiftUI typography in registered fonts.
-// Status bar hidden through launch + loader so the brand canvas is
-// uninterrupted (Calm/Headspace/Linear pattern). Reduce-motion snaps
-// to final state. Failure state preserved.
+//   beat 1 (60ms after handoff)   — jeni·fit wordmark softens in
+//   beat 2 (340ms after handoff)  — her75 affirmation rises beneath
+//
+// Both beats are ease-out fades, no springs, no pops — the cohort
+// research locks "subtle, mindful, slow" motion app-wide. Status bar
+// hidden through launch + loader so the brand canvas is uninterrupted.
+// Reduce-motion snaps to final state. Failure state preserved.
+//
+// Why no wordmark on the launch image: we tried pixel-matching a
+// PDF-vector launch wordmark to the SwiftUI loader wordmark for an
+// "invisible handoff." actool's PDF rasterization vs CoreText runtime
+// rendering land ~5pt apart in both position and size, producing a
+// visible crossfade artifact mid-handoff. Pure cream + a deliberate
+// fade-in is the cleaner premium answer — there's nothing to mismatch.
 
 struct AffirmationLoaderScreen: View {
     let state: BootstrapState
@@ -115,6 +122,13 @@ struct AffirmationLoaderScreen: View {
     }
 
     // MARK: - Animation
+    //
+    // Two beats, both ease-out fades, no springs. The wordmark lands
+    // first (the brand identity) and the affirmation rises beneath
+    // it (the brand voice). The 280ms gap between them is enough for
+    // the eye to register beat 1 before beat 2 lands, but tight
+    // enough that the whole sequence reads as one composition
+    // resolving, not two separate animations.
 
     private func animateIn() {
         if reduceMotion {
@@ -122,17 +136,17 @@ struct AffirmationLoaderScreen: View {
             affirmationVisible = true
             return
         }
-        // ~80ms after the handoff: wordmark softens in (450ms ease-out).
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-            withAnimation(.easeOut(duration: 0.45)) {
+        // ~60ms after the handoff: wordmark softens in (500ms ease-out).
+        // Slightly faster than v6 so the brand identity lands before
+        // the eye has time to read the cream as "blank."
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
+            withAnimation(.easeOut(duration: 0.5)) {
                 wordmarkVisible = true
             }
         }
-        // ~350ms: affirmation rises 12pt and fades in (800ms ease-out).
-        // The sequence reads as: brand identity arrives → brand voice
-        // arrives. Two beats, both calm, one motion moment per phrase.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            withAnimation(.easeOut(duration: 0.8)) {
+        // ~340ms: affirmation rises 12pt and fades in (900ms ease-out).
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.34) {
+            withAnimation(.easeOut(duration: 0.9)) {
                 affirmationVisible = true
             }
         }
