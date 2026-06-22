@@ -7,46 +7,66 @@ import SwiftUI
 // resolves. Can die at ANY moment from ~300ms, so the composition is
 // complete at frame 0.
 //
-// v5.1 — all-baked composition.
+// v5.2 — heart pulse.
 //
-// The founder finalized the launch screen as a single static
-// composition: pink ground + sticker collage + jeni·fit wordmark
-// + "Hi ♡" speech bubble + "you made it!" hero, all baked into
-// LaunchStickers@3x.png.
+// The composition is fully baked into LaunchStickers@3x.png (pink
+// ground + sticker collage + jeni·fit wordmark + "Hi ♡" speech
+// bubble + "you made it!" hero). The static iOS launch screen
+// renders this via Info.plist UILaunchScreen.UIImageName with
+// UIImageRespectsSafeAreaInsets = true. This view mirrors that
+// exactly — same color, same image, same fit — so the handoff is
+// pixel-invisible.
 //
-// The static iOS launch screen renders this image via Info.plist
-// UILaunchScreen.UIImageName with UIImageRespectsSafeAreaInsets =
-// true — so the whole composition fits inside the safe area
-// (wordmark stays clear of the notch). This view mirrors that
-// behavior exactly: same color asset behind, same image fit to
-// safe-area bounds. Pixel-identical handoff.
-//
-// No animation, no text overlay — the image is the entire
-// composition. Per the founder direction: simple and beautiful
-// beats clever-and-animated. The failure state is preserved for
-// bootstrap retries.
+// ONE motion moment: the pink heart inside the "Hi ♡" speech
+// bubble gently pulses (1.0 → 1.15 → 1.0 over 1.6s, repeats).
+// A SwiftUI heart layer sits over the baked one at the same
+// position; when it scales, the eye reads it as the heart
+// breathing. Reduce-motion snaps to static. No other motion;
+// background composition stays still.
 
 struct AffirmationLoaderScreen: View {
     let state: BootstrapState
     let onRetry: () -> Void
 
+    @State private var heartScale: CGFloat = 1.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    // Image intrinsic size + heart position in image coords
+    // (sampled from LaunchStickers@3x.png — heart center pixel
+    // (450, 770) of (1290, 2796), heart diameter ~70px).
+    private static let imageSize: CGSize = CGSize(width: 1290, height: 2796)
+    private static let heartCenterInImage: CGPoint = CGPoint(x: 450, y: 770)
+    private static let heartDiameterInImage: CGFloat = 80
+
     var body: some View {
         ZStack {
             // 1. Pink ground — exact match to the LaunchBackground
-            //    color asset the static launch screen draws. Also
-            //    matches the pink baked into the image, so any
-            //    safe-area margin blends invisibly.
+            //    color asset the static launch screen draws.
             Color("LaunchBackground")
                 .ignoresSafeArea()
 
-            // 2. The full composition — fit within safe area to
-            //    match Info.plist UIImageRespectsSafeAreaInsets =
-            //    true. Same image, same fit, same insets → zero
-            //    visible jump from the static launch frame.
-            Image("LaunchStickers")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .accessibilityHidden(true)
+            // 2. Full baked composition + the heart-pulse overlay.
+            //    GeometryReader gives the container size so we can
+            //    project the heart's image-coord position into the
+            //    fitted-image's actual screen frame.
+            GeometryReader { geo in
+                let bounds = fittedImageBounds(in: geo.size)
+                let heart = heartFrame(in: bounds)
+
+                Image("LaunchStickers")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .accessibilityHidden(true)
+
+                Image(systemName: "heart.fill")
+                    .resizable()
+                    .frame(width: heart.size, height: heart.size)
+                    .foregroundStyle(Color(red: 0xC8 / 255.0, green: 0x79 / 255.0, blue: 0x7E / 255.0))
+                    .scaleEffect(heartScale)
+                    .position(x: heart.center.x, y: heart.center.y)
+                    .accessibilityHidden(true)
+            }
 
             if case .failed = state {
                 VStack {
@@ -56,6 +76,54 @@ struct AffirmationLoaderScreen: View {
                 }
             }
         }
+        .onAppear { startPulse() }
+    }
+
+    // MARK: - Heart pulse
+
+    private func startPulse() {
+        guard !reduceMotion else { return }
+        // 1.6s cycle, ease in/out, repeats forever while the loader
+        // is mounted. The 1.15× peak is enough to read as a beat
+        // without the SwiftUI heart visibly diverging from the
+        // baked one underneath.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                heartScale = 1.15
+            }
+        }
+    }
+
+    // MARK: - Image-coord projection
+
+    private func fittedImageBounds(in containerSize: CGSize) -> CGRect {
+        let imgAspect = Self.imageSize.width / Self.imageSize.height
+        let containerAspect = containerSize.width / containerSize.height
+        let imageSize: CGSize
+        if containerAspect > imgAspect {
+            imageSize = CGSize(width: containerSize.height * imgAspect, height: containerSize.height)
+        } else {
+            imageSize = CGSize(width: containerSize.width, height: containerSize.width / imgAspect)
+        }
+        return CGRect(
+            x: (containerSize.width - imageSize.width) / 2,
+            y: (containerSize.height - imageSize.height) / 2,
+            width: imageSize.width,
+            height: imageSize.height
+        )
+    }
+
+    private func heartFrame(in imageBounds: CGRect) -> (center: CGPoint, size: CGFloat) {
+        let xRatio = Self.heartCenterInImage.x / Self.imageSize.width
+        let yRatio = Self.heartCenterInImage.y / Self.imageSize.height
+        let sizeRatio = Self.heartDiameterInImage / Self.imageSize.width
+        return (
+            center: CGPoint(
+                x: imageBounds.minX + xRatio * imageBounds.width,
+                y: imageBounds.minY + yRatio * imageBounds.height
+            ),
+            size: sizeRatio * imageBounds.width
+        )
     }
 
     // MARK: - Failure state (preserved from prior version)
