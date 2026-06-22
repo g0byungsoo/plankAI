@@ -82,19 +82,24 @@ struct ResultDecisionCard: View {
     @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
 
     var body: some View {
-        ZStack {
-            // v1.0.25 (2026-06-18) — transparent backdrop. The frozen
-            // camera photo behind the carousel slot shows around the
-            // floating card per founder direction: "slide1 and slide2
-            // still need to be card design on captured photo."
+        GeometryReader { geo in
+        // Center within the VISIBLE screen width. The paging carousel can
+        // propose a slot wider than the screen, and centering in that slot
+        // drifts the card right; instead we pin a screen-width region to
+        // the slot's leading edge and center the card inside it.
+        let w = min(geo.size.width, UIScreen.main.bounds.width)
+        ZStack(alignment: .top) {
+            // Transparent backdrop — the frozen camera photo behind the
+            // carousel slot shows around the floating card.
             Color.clear
 
             card
                 .padding(.horizontal, 18)
                 .padding(.top, 48)
                 .padding(.bottom, 40)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+        .frame(width: w)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .onAppear {
             startCascade()
             // Debug-only: `--debug-edit-sheet` auto-opens the
@@ -128,6 +133,7 @@ struct ResultDecisionCard: View {
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
+        }
         }
     }
 

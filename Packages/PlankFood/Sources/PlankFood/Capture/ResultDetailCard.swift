@@ -66,7 +66,7 @@ struct ResultDetailCard: View {
         GeometryReader { geo in
         // Clamp to the real screen width (the paging slot can over-propose).
         let w = min(geo.size.width, UIScreen.main.bounds.width)
-        ZStack {
+        ZStack(alignment: .top) {
             // Transparent — the frozen food photo behind the carousel shows
             // around the floating card, so the card stays smaller than the
             // photo (matches slide 1's card-on-photo register).
@@ -74,9 +74,12 @@ struct ResultDetailCard: View {
 
             card
                 .frame(width: w - 36)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .padding(.top, 46)
         }
+        // Center within the VISIBLE screen width (the paging slot can be
+        // proposed wider than the screen); pin to the slot's leading edge.
+        .frame(width: w)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }
         .onAppear(perform: startCascade)
     }
