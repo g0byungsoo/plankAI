@@ -49,6 +49,14 @@ enum AnalyticsEvent: String {
     case paywallView                = "paywall_view"
     case trialStart                 = "trial_start"
     case purchaseCompleted          = "purchase_completed"
+    // Distinct trial-resolution events (in-app, observed off
+    // customerInfoStream). trial_converted disambiguates a trial→paid
+    // renewal from a direct no-trial purchase (both also fire
+    // purchase_completed); trial_cancelled fires when auto-renew is
+    // switched off during the trial window, so the 3-day trial cancel
+    // rate is measurable in PostHog.
+    case trialConverted             = "trial_converted"
+    case trialCancelled             = "trial_cancelled"
 
     // ── Paywall diagnostic events (issue #2) ─────────────────────
     // Wired May 2026 after the Day-2 zero-trial bug: 54 paywall views
