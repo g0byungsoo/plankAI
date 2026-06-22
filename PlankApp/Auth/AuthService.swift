@@ -98,8 +98,18 @@ final class AuthService {
         //    "User from sub claim in JWT does not exist". We catch that
         //    here, sign the stale session out, and fall through to a
         //    fresh anonymous sign-in.
-        let restoredSession: Session? = await Self.withTimeout(seconds: 10) {
-            try? await supabase.auth.session
+        // Prefer the synchronous, local Keychain read (currentSession) — a
+        // valid cached token must never be blocked by a stalled network
+        // refresh. Only fall back to the throwing `auth.session` getter
+        // (which forces a server refresh, the call that hangs on degraded
+        // networks) when there is no local session at all.
+        let restoredSession: Session?
+        if let localSession = supabase.auth.currentSession {
+            restoredSession = localSession
+        } else {
+            restoredSession = await Self.withTimeout(seconds: 10) {
+                try? await supabase.auth.session
+            }
         }
         if let restored = restoredSession {
             let verifiedUser: User? = await Self.withTimeout(seconds: 10) {
@@ -116,17 +126,33 @@ final class AuthService {
             try? await supabase.auth.signOut()
         }
 
-        // 2. No session — sign in anonymously.
-        let signInResult: Session? = await Self.withTimeout(seconds: 10) {
-            try? await supabase.auth.signInAnonymously()
+        // 2. No session — sign in anonymously, with a short retry so a
+        //    transient cold-start network stall (radio wake / DNS / captive
+        //    portal) doesn't hard-fail a brand-new user on the first attempt.
+        let signInResult: Session? = await Self.withRetry(maxAttempts: 2, baseDelay: 0.8) {
+            await Self.withTimeout(seconds: 10) {
+                try? await supabase.auth.signInAnonymously()
+            }
         }
         if let session = signInResult {
             currentSession = session
             currentUser = session.user
             bootstrapState = .ready
+        } else if let cached = supabase.auth.currentSession {
+            // Fail-soft: restore + anonymous sign-in both failed (network
+            // down, or a Supabase hang the timeout caught), but a cached
+            // session is still in the Keychain. Open the app offline on that
+            // identity rather than hard-blocking the splash with a retry
+            // prompt — AppSync.retryPendingUpserts() reconciles when the
+            // network returns. This is the common returning-user case the
+            // 2026-06-04 timeout regression was bouncing to the error screen
+            // purely because a token refresh stalled.
+            currentSession = cached
+            currentUser = cached.user
+            bootstrapState = .ready
         } else {
-            // Either a real network failure or a Supabase hang that the
-            // timeout caught. Either way, surface the retry prompt.
+            // No cached session AND retries exhausted — a genuine first-run
+            // network failure. Surface the retry prompt.
             #if DEBUG
             print("[AuthService] bootstrap FAILED: timeout or network error")
             #endif
@@ -169,6 +195,25 @@ final class AuthService {
                     continuation.resume(returning: nil)
                 }
             }
+        }
+    }
+
+    /// Retry an async operation up to `maxAttempts` times with exponential
+    /// backoff between attempts, returning the first non-nil result (or nil
+    /// if every attempt fails). Per-attempt timeouts are the caller's job —
+    /// wrap the op in `withTimeout`. Static so it doesn't capture self.
+    private static func withRetry<T: Sendable>(
+        maxAttempts: Int,
+        baseDelay: TimeInterval,
+        _ op: @escaping @Sendable () async -> T?
+    ) async -> T? {
+        var attempt = 0
+        while true {
+            if let result = await op() { return result }
+            attempt += 1
+            if attempt >= maxAttempts { return nil }
+            let delay = baseDelay * Double(1 << (attempt - 1))
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
         }
     }
 
