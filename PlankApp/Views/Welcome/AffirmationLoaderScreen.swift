@@ -7,137 +7,135 @@ import SwiftUI
 // resolves. Can die at ANY moment from ~300ms, so the composition is
 // complete at frame 0.
 //
-// v5.2 — heart pulse.
+// v6.0 — clean-slate minimalist typography.
 //
-// The composition is fully baked into LaunchStickers@3x.png (pink
-// ground + sticker collage + jeni·fit wordmark + "Hi ♡" speech
-// bubble + "you made it!" hero). The static iOS launch screen
-// renders this via Info.plist UILaunchScreen.UIImageName with
-// UIImageRespectsSafeAreaInsets = true. This view mirrors that
-// exactly — same color, same image, same fit — so the handoff is
-// pixel-invisible.
+// The static iOS launch screen is now just the cream
+// LaunchBackground color (no image, no overlay) with the status bar
+// hidden. This view inherits the same cream and adds the brand
+// composition: small jeni·fit wordmark at the top, a single her75
+// affirmation centered in the page. The wordmark and affirmation
+// fade in sequentially after the static-to-live handoff lands —
+// the only motion in the experience.
 //
-// ONE motion moment: the pink heart inside the "Hi ♡" speech
-// bubble gently pulses (1.0 → 1.15 → 1.0 over 1.6s, repeats).
-// A SwiftUI heart layer sits over the baked one at the same
-// position; when it scales, the eye reads it as the heart
-// breathing. Reduce-motion snaps to static. No other motion;
-// background composition stays still.
+// No safe-area gymnastics, no image positioning math, no overlay
+// alignment risk. Pure SwiftUI typography in registered fonts.
+// Status bar hidden through launch + loader so the brand canvas is
+// uninterrupted (Calm/Headspace/Linear pattern). Reduce-motion snaps
+// to final state. Failure state preserved.
 
 struct AffirmationLoaderScreen: View {
     let state: BootstrapState
     let onRetry: () -> Void
 
-    @State private var heartScale: CGFloat = 1.0
+    @State private var wordmarkVisible = false
+    @State private var affirmationVisible = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    // Image intrinsic size + heart position in image coords
-    // (sampled from LaunchStickers@3x.png — heart center pixel
-    // (450, 770) of (1290, 2796), heart diameter ~70px).
-    private static let imageSize: CGSize = CGSize(width: 1290, height: 2796)
-    private static let heartCenterInImage: CGPoint = CGPoint(x: 450, y: 770)
-    private static let heartDiameterInImage: CGFloat = 80
-
     var body: some View {
-        // GeometryReader at the root: geo.size = safe-area dimensions
-        // (default behavior — no .ignoresSafeArea() applied here, so
-        // the proposed size excludes the status-bar and home-indicator
-        // insets). The pink background extends to screen edges via
-        // its own .ignoresSafeArea so the safe-area zone reads pink
-        // (status bar renders over it), but the image content stays
-        // strictly inside the safe area — matching the iOS launch
-        // screen's UIImageRespectsSafeAreaInsets=true behavior.
-        GeometryReader { geo in
-            let bounds = filledImageBounds(in: geo.size)
-            let heart = heartFrame(in: bounds)
+        ZStack {
+            Palette.bgPrimary
+                .ignoresSafeArea()
 
-            ZStack {
-                Color("LaunchBackground")
-                    .ignoresSafeArea()
+            VStack(spacing: 0) {
+                wordmark
+                    .padding(.top, 24)
+                Spacer()
+                affirmation
+                    .padding(.horizontal, 32)
+                Spacer()
+                // Visual ballast — keeps the affirmation slightly
+                // above geometric center so the negative space below
+                // breathes. The luxury pattern: text lands in the
+                // upper-third optical center, never dead-center.
+                Color.clear.frame(height: 80)
+            }
 
-                Image("LaunchStickers")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: geo.size.width, height: geo.size.height)
-                    .clipped()
-                    .accessibilityHidden(true)
-
-                Image(systemName: "heart.fill")
-                    .resizable()
-                    .frame(width: heart.size, height: heart.size)
-                    .foregroundStyle(Color(red: 0xC8 / 255.0, green: 0x79 / 255.0, blue: 0x7E / 255.0))
-                    .scaleEffect(heartScale)
-                    .position(x: heart.center.x, y: heart.center.y)
-                    .accessibilityHidden(true)
-
-                if case .failed = state {
-                    VStack {
-                        Spacer()
-                        failureContent
-                            .padding(.bottom, 60)
-                    }
+            if case .failed = state {
+                VStack {
+                    Spacer()
+                    failureContent
+                        .padding(.bottom, 60)
                 }
             }
         }
         .statusBarHidden(true)
-        .onAppear { startPulse() }
+        .onAppear { animateIn() }
     }
 
-    // MARK: - Heart pulse
+    // MARK: - Wordmark
 
-    private func startPulse() {
-        guard !reduceMotion else { return }
-        // 1.6s cycle, ease in/out, repeats forever while the loader
-        // is mounted. The 1.15× peak is enough to read as a beat
-        // without the SwiftUI heart visibly diverging from the
-        // baked one underneath.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
-                heartScale = 1.15
+    @ViewBuilder
+    private var wordmark: some View {
+        (Text("jeni").font(.custom("Fraunces72pt-SemiBold", size: 17))
+         + Text("\u{2009}·\u{2009}").font(.custom("Fraunces72pt-Light", size: 14))
+         + Text("fit").font(.custom("Fraunces72pt-SemiBold", size: 17)))
+            .foregroundStyle(Palette.textPrimary)
+            .opacity(wordmarkVisible ? 1 : 0)
+    }
+
+    // MARK: - Affirmation
+    //
+    // her75 register: regular roman + italic punch words. Single
+    // brand-checked line per dayOfYear, so the same day shows the
+    // same affirmation — feels intentional, not random.
+
+    private struct Affirmation {
+        let leading: String     // regular
+        let italic: String      // JeniHeroSerif-Italic punch
+        let trailing: String    // regular
+    }
+
+    private static let affirmations: [Affirmation] = [
+        Affirmation(leading: "you are ", italic: "becoming",  trailing: " her."),
+        Affirmation(leading: "soft ",    italic: "is",        trailing: " strong."),
+        Affirmation(leading: "your ",    italic: "timeline",  trailing: " is yours."),
+        Affirmation(leading: "begin ",   italic: "again",     trailing: ", anytime."),
+        Affirmation(leading: "small ",   italic: "choices",   trailing: " stack."),
+        Affirmation(leading: "kindness ",italic: "is",        trailing: " the strategy."),
+        Affirmation(leading: "she is ",  italic: "already",   trailing: " in you."),
+    ]
+
+    private var todaysAffirmation: Affirmation {
+        let day = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 1
+        let idx = (day - 1) % Self.affirmations.count
+        return Self.affirmations[max(0, idx)]
+    }
+
+    @ViewBuilder
+    private var affirmation: some View {
+        let a = todaysAffirmation
+        (Text(a.leading).font(.custom("JeniHeroSerif-Regular", size: 44))
+         + Text(a.italic).font(.custom("JeniHeroSerif-Italic", size: 44))
+         + Text(a.trailing).font(.custom("JeniHeroSerif-Regular", size: 44)))
+            .foregroundStyle(Palette.textPrimary)
+            .multilineTextAlignment(.center)
+            .lineSpacing(2)
+            .opacity(affirmationVisible ? 1 : 0)
+            .offset(y: affirmationVisible ? 0 : 12)
+    }
+
+    // MARK: - Animation
+
+    private func animateIn() {
+        if reduceMotion {
+            wordmarkVisible = true
+            affirmationVisible = true
+            return
+        }
+        // ~80ms after the handoff: wordmark softens in (450ms ease-out).
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            withAnimation(.easeOut(duration: 0.45)) {
+                wordmarkVisible = true
             }
         }
-    }
-
-    // MARK: - Image-coord projection
-
-    /// Bounds of the image once .aspectRatio(.fill)+.clipped() has
-    /// scaled it to cover the container. In fill mode, ONE dimension
-    /// matches the container exactly and the other overflows on both
-    /// sides (negative origin in the overflowing axis). The heart
-    /// projection uses these bounds so the SwiftUI overlay stays on
-    /// top of the baked heart even when part of the image is clipped.
-    private func filledImageBounds(in containerSize: CGSize) -> CGRect {
-        let imgAspect = Self.imageSize.width / Self.imageSize.height
-        let containerAspect = containerSize.width / containerSize.height
-        let imageSize: CGSize
-        if containerAspect > imgAspect {
-            // Container wider than image — scale to fill width,
-            // vertical overflow.
-            imageSize = CGSize(width: containerSize.width, height: containerSize.width / imgAspect)
-        } else {
-            // Container taller-relative than image — scale to fill
-            // height, horizontal overflow.
-            imageSize = CGSize(width: containerSize.height * imgAspect, height: containerSize.height)
+        // ~350ms: affirmation rises 12pt and fades in (800ms ease-out).
+        // The sequence reads as: brand identity arrives → brand voice
+        // arrives. Two beats, both calm, one motion moment per phrase.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            withAnimation(.easeOut(duration: 0.8)) {
+                affirmationVisible = true
+            }
         }
-        return CGRect(
-            x: (containerSize.width - imageSize.width) / 2,
-            y: (containerSize.height - imageSize.height) / 2,
-            width: imageSize.width,
-            height: imageSize.height
-        )
-    }
-
-    private func heartFrame(in imageBounds: CGRect) -> (center: CGPoint, size: CGFloat) {
-        let xRatio = Self.heartCenterInImage.x / Self.imageSize.width
-        let yRatio = Self.heartCenterInImage.y / Self.imageSize.height
-        let sizeRatio = Self.heartDiameterInImage / Self.imageSize.width
-        return (
-            center: CGPoint(
-                x: imageBounds.minX + xRatio * imageBounds.width,
-                y: imageBounds.minY + yRatio * imageBounds.height
-            ),
-            size: sizeRatio * imageBounds.width
-        )
     }
 
     // MARK: - Failure state (preserved from prior version)
