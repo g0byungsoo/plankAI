@@ -1,141 +1,176 @@
-## Project status (2026-05-08)
+## Project status (2026-06-21)
 
-The product ships as **JeniFit** for v1.0. The Xcode project name + Bundle ID
-intentionally stay legacy (`plankAI` / `com.bk.plankAI`) — renaming those forces
-a re-onboarding for every TestFlight tester and a re-submission run through
-App Review. v1.1 handles the project + Bundle + SKU rename together.
+JeniFit ships as v1.1.1 (build 21). The Xcode project name + Bundle ID
+intentionally stay legacy (`plankAI` / `com.bk.plankAI`) — renaming forces
+a re-onboarding for every TestFlight tester and a re-submission through
+App Review. v1.2+ handles the project + Bundle + SKU rename together.
 
-JeniFit rebrand (Phases 1–13) shipped end-to-end and was followed by extensive
-v1 polish + accessibility + research-led depth. Code-level smoke test passes
-(zero user-visible `AI` / `absmaxxing` / `Sarah` / `plankAI` matches in Swift
-strings; the few remaining are code comments preserving rebrand history or
-internal identifiers tracked in TODOS.md for the v1.1 SKU + Bundle rename).
+**Authoritative state doc: `/docs/STATE.md`.** Read it first. Anything
+in `/docs/archive/` documented a research pass or pivot that fed shipped
+work but is preserved for history, not for guidance.
 
-- **Auth + sync**: functional end-to-end. Anonymous-first Supabase auth, Apple + email
-  upgrade, sign-in recovery. Profile + session_logs + day_progress + weight_logs
-  + session_ratings sync via typed Codable upserts; cross-account isolation
-  enforced via @Query userId filters; UUID case normalized at hydrate boundaries.
-- **Auth UX (Phases A-F)**: shipped. Delete Account, Forgot Password (anti-
-  enumeration), polished sign-up + sign-in, unified friendly error copy,
-  PulsingDots loading, ShakeEffect on submission errors.
-- **Payment (RevenueCat)**: customerInfoStream observation, auth-state sync,
-  paywall with bodyFocus-personalized headline. **Phase F shipped**:
-  `TrialEndNotificationService.scheduleIfNeeded` wired into
-  `PaymentService.reconcileTrialReminder` (24h before yearly renew, idempotent,
-  cancelled when trial state changes).
-- **Onboarding**: Phase 4 rewrote the question set into 6 parts. Phase 5 added
-  prediction + loading carousel + plan reveal. Phases 6/7/8 redid home/paywall/
-  settings + auth. Phase 9 renamed the trainer system Sarah → Jeni. Phase 13
-  removed the dead in-flow paywall (case 24); post-onboarding paywall lives on
-  RootView's fullScreenCover.
-- **Workout engine (rules-doc compliant)**: source of truth at
-  `docs/workout_session_rules.md`. Position-block ordering (standing →
-  quadruped → plank → prone → sideLying → supine → seated), same-area
-  secondary sort, family clustering, block-repeat for ≥15-min sessions
-  ("Round 1 / Round 2" — Pamela Reif convention), exercise-aware rest mini-
-  factor (impact/type/difficulty layered on goal/tier/pace base), duration
-  grid {30..60}, rest grid {5..20}, difficulty floor + cap per tier, side-
-  lying L/R batching. 5 DEBUG validators prevent regression. XCTest target
-  shipped via `Scripts/add_test_target.rb` (uses `xcodeproj` Ruby gem); 29
-  tests cover Weight (Unit + Analytics), StreakCalculator, WorkoutGenerator
-  parameter grid + edge cases. `validatePositionFlow` was round-blind and
-  over-applied to warmup/cooldown — both fixed (per (category, round) walk;
-  scoped to `.main` only per rules §2.1).
-- **Voice cascade (rules §7)**: switch-side detection on unilateral L→R hops,
-  window-aware variant selection (`prep_full` ≥12s, `prep_short` 6–11s, silent
-  ≤5s), VM fires cue early enough to fit the chosen variant — voice never gets
-  cut. BGM ducks under voice. TSV-driven generation script ready for ElevenLabs
-  run (384 prep_short + 384 prep_full + 6 switch_sides clips) at
-  `Scripts/generate_voice_clips.sh`. Matson display-renamed to "Sam"
-  (asset prefix `matson_` stays internal until next ElevenLabs pass).
-- **Becoming tab (was "past")**: research-led modules pulling only from
-  collected data — identity hero (Q140 + Q111), WHO Activity Ring with
-  adaptive 90-min target for low-baseline users, Weight Trend EMA (Helander
-  2014), Goal Pace Projection (ACSM 0.5–1%/wk overlay, Wing & Phelan 2005
-  10% cap), BMI card (AHA 2021 banding, anti-shame caption), Barrier-
-  Resolved Card (Rhodes & de Bruijn 2013, counter per stated barrier),
-  plank Mastery Curve (Bandura/Annesi 2011), adaptive home subtitle
-  (barrier/experience tagged). First-session hint replaces binary empty-state.
-- **Plank check-in screen**: research-led brief — McGill Waterloo norms,
-  Biering-Sørensen 1984 LBP threshold, "what your time means" reference
-  table, last-hold pill with bucket label, position-aware setup cue.
-- **Weight features**: kg storage canonical, lb-default display via
-  `WeightUnit`, kg/lb toggle pill, **one-per-day policy** (update-in-place
-  on same-day re-log per Helander 2014 + Pacanowski 2014), seed first
-  weight log at onboarding completion (was lazy/wrong-dated pre-fix).
-  Schema `weight_logs` GRANT fix in `scripts/schema.sql`.
-- **Design system**:
-  - **Motion tokens** in `DesignSystem/Tokens.swift`: `entrance` (0.55s),
-    `entranceSoft` (0.42s), `exit` (0.32s), `crossFade` (0.45s easeInOut),
-    `tap` (0.16s), `gentleSpring` (response 0.55, damping 0.88),
-    `stagger` (0.10s), `breathing` (1.6s). ~100 of 180 sites migrated;
-    remaining are intentional bespoke set-pieces (celebration springs,
-    fireworks, magical-loading typewriter).
-  - **Scrapbook chrome** (24pt corners, 1.5pt accent border, hard offset
-    shadow) on Home, all 6 Settings sub-pages, Becoming tab modules,
-    Browse, PreSession, LogWeightSheet, PostSession, PostRoutine.
-  - **JeniFit voice signal**: italic Fraunces on the punch word (`*becoming*`,
-    `*today*`, `*shows up*`) — applied via `ItalicAccentText` or per-Text
-    custom-font swap. Lowercase casual copy throughout, no AI language.
-- **Accessibility (4 passes shipped)**:
-  - `accessibilityLabel` on every icon-only button (close X, refresh shuffle,
-    eye toggle, mute, end-workout, etc.) — 17 sites total.
-  - `accessibilityHidden(true)` on 14 inline decorative sticker overlays.
-  - `tappableArea(_)` extension on 11 buttons that visually sit at 30–32pt —
-    HIG-compliant 44pt hit area without changing chrome.
-  - Reduce-motion gates on HomeView animateIn (snap to final), refresh icon
-    rotation skip, AnalyticsView 9-section cascade, ChangeTrainerView
-    cascade, BrowseWorkoutsView swell.
-  - Dynamic Type via `Font.custom(_:size:relativeTo:)` for every Typo token,
-    plus `dynamicTypeSize(...accessibility1)` clamps on hero numerics
-    (88pt timer, 64pt weight digit, 64pt onboarding analyzing %).
-  - WCAG AA palette darkenings: `textSecondary` `#8E6D6D` → `#7B5959`
-    (4.31 → 5.76:1), `stateGood` sage → `#5F7345` (2.32 → 4.89:1),
-    `stateWarn` amber → `#8D6A2E` (2.12 → 4.65:1).
-  - VoiceOver compound-view grouping via `accessibilityElement(children: .combine)`
-    on 5 row types — barrier rows, hero stats, BMI card (custom label),
-    bucket rows, setup rows, exercise rows.
-- **Self-check harness** (DEBUG-only, detached at launch): three modules with
-  scenario coverage — `WorkoutGeneratorSelfCheck` (~112 generations across
-  tier × length × bodyFocus + edge cases + validators), `StreakCalculatorSelfCheck`
-  (9 freeze-logic scenarios), `WeightSelfCheck` (kg↔lb conversion round-trips
-  + WeightAnalytics goal-progress capping). Migrate to XCTest when a test
-  target lands; each scenario is already a standalone function.
-- **Notification scheduling unified**: both onboarding completion and
-  Settings tab route through `NotificationPermission.scheduleDailyReminder`
-  (canonical id `daily_reminder`, voice-adaptive body, surgical pending-removal
-  so trial-end notification isn't nuked). Three silent bugs fixed:
-  duplicate identifiers, pre-rebrand "Time to plank" copy, blanket
-  `removeAllPendingNotificationRequests()`.
-- **Pre-TestFlight metadata**: `MARKETING_VERSION = 1.0.0`,
-  `CFBundleDisplayName = JeniFit`,
-  `LSApplicationCategoryType = public.app-category.healthcare-fitness`,
-  `NSCameraUsageDescription` rewritten anti-AI + on-device privacy
-  disclosure. DebugAuthView verified release-safe.
-- **Privacy + Terms + App Store metadata drafts** at `docs/privacy_policy.md`
-  + `docs/terms_of_service.md` + `docs/app_store_metadata.md`. All grounded
-  in the real data flow (Supabase + RevenueCat + Apple + APNs, no analytics
-  trackers).
-- **Pre-TestFlight cleanup pass**: FeedbackView wired to `support@jenifit.app`
-  via mailto handoff (was a fake-submit). PostSessionView dead share button
-  replaced with SwiftUI `ShareLink`. 26 production-path `print()` calls
-  wrapped in `#if DEBUG` (was leaking user UUIDs + payment IDs to Console.app
-  on TestFlight builds) — across PlankAIApp, AuthService, AppSync,
-  PaymentService, TrialEndNotificationService, HomeView, SignInPromptView,
-  PaywallView, BackgroundMusicService, AccountView. Email standardized
-  (`hello@` → `support@jenifit.app`). 4 dead `@State` vars + 2 orphan Shape
-  structs removed. `UIImage(named:)` existence checks moved off the
-  body-recompute path (PhotoSlot caches at init; 3 OnboardingView inline
-  sites switched to direct `Image()`).
-- **Asset binary dedup**: 26MB saved (62MB → 36MB, 42% reduction) via
-  `Scripts/dedupe_imagesets.sh`. 11 social/logo + 3 coach imagesets shipped
-  byte-identical @1x/@2x/@3x copies; collapsed to single @3x where safe
-  (kept @1x on coaches — see TODOS for the @1x mismatch decision).
-- **Open items**: see TODOS.md "Pre-TestFlight blockers" — almost entirely
-  user-handled now (privacy/terms hosting, screenshots, banking, mailbox).
-  Claude-actionable remainders: Phase G physical-device smoke test, run
-  ElevenLabs script, visual position-block validation, decide on coach @1x
-  slot.
+### Auth + sync
+- Anonymous-first Supabase auth, Apple + email upgrade, sign-in
+  recovery, delete-account + forgot-password (anti-enumeration).
+- All entity reads filter via `@Query userId` for cross-account
+  isolation. Sign-out sweeps user-scoped `@AppStorage` + cancels
+  retention notifications.
+- Profile, session_logs, day_progress, weight_logs, session_ratings
+  sync via typed Codable upserts; UUID case normalized at hydrate
+  boundaries.
+- Files: `PlankApp/Auth/`, `PlankApp/Sync/`,
+  `Packages/PlankSync/Sources/PlankSync/`.
+
+### Payment (RevenueCat)
+- `customerInfoStream` observation. `PaymentService` re-configures on
+  `auth.currentUser` changes so sign-in/out doesn't strand prior
+  user's entitlement.
+- Three-tier paywall: annual + quarterly + weekly. 3-day trial on
+  annual + quarterly, none on weekly. Tier-matched downsell sheets on
+  cancellation intent.
+- Paywall reads RevenueCat's localized `storeProduct.localizedPriceString`
+  per Apple Guideline 3.1.2(a). No hard-coded prices.
+- `restore()` flow respects existing paid users (no re-onboarding).
+- Day-5 anti-refund push gated on trial-active status.
+- Files: `PlankApp/Payment/`, `PlankApp/Views/Paywall/`.
+
+### Onboarding
+- v4.5 her75 register, ~53 screens. JeniHeroSerif on hero headlines.
+- Cohort routing via `onboarding_glp1_status` AppStorage key (`no` /
+  `considering` / `past` / `current` / `prefer_not_say`).
+- Custom weight-loss plan duration derived per-user from
+  `ProgramGoalCalculator`. Three cohort modifiers encoded: GLP-1 /
+  perimenopause floor (0.3%/wk), short-sleep penalty per Nedeltcheva
+  2010, Wing-and-Phelan default (0.5%/wk).
+- Live date math on the pace screen recomputes per pace.
+- Files: `PlankApp/Views/Onboarding/`.
+
+### Program / Plan tab
+- Today screen with archetype pill (7 archetypes; tap-to-explain
+  sheet), day strip with week-ahead archetype letters.
+- Row body tap → enters module. State indicator is render-only.
+  Long-press → MarkAsDoneSheet override.
+- Reset weeks + restrictive override + strength-day copy variants.
+- ACSM-grade weight-loss pacing.
+- Files: `PlankApp/Views/Plan/`, `PlankApp/Program/`.
+
+### JeniMethod (CBT-style lessons)
+- Manifest-driven curriculum, 42 topic-matched Grok hero photos,
+  CBT-spine lesson reader.
+- Archetype-aware pillar affinity — lessons bias toward the user's
+  program archetype.
+- Lesson quote share card as luxury magazine pull-quote (organic
+  acquisition lever).
+- Files: `PlankApp/Views/DietEducation/`,
+  `PlankApp/Views/DietEducation/Reader/`.
+
+### Snap Food (food rail)
+- Camera → vision pipeline (GPT-5 base + Claude Opus 4.7
+  confidence-gated fallback + Gemini 2.5 Flash food-or-not pre-filter).
+- 3-slide result carousel: dense tap-edit slide + food-log share card
+  (handwritten Pinterest register) + satiety + aesthetic close.
+- `IngredientEditSheet` behind pencil tap (original-portion tick +
+  reset + confidence hint).
+- Food journal swipe-to-delete + photo timeline.
+- QuickAdd: dynamic chip suggestions (recents + cuisine).
+- Cross-view refresh via `NotificationCenter` for weight chart +
+  food journal.
+- Files: `Packages/PlankFood/`,
+  `PlankApp/Views/Analytics/` (food log surfaces).
+
+### Becoming dashboard
+- Today's energy tile, protein gauge, weight trend canvas (EMA line +
+  raw weigh-in headline, 7-day delta vs prior-week's raw).
+- Plate timeline with [+] → snap-food camera, food journal
+  swipe-to-delete.
+- Cohort-aware identity word + insight lines.
+- Interactivity: insight swipe cycle, plate swipe-left.
+- Files: `PlankApp/Views/Analytics/AnalyticsView.swift`,
+  `PlankApp/Views/Analytics/LogWeightSheet.swift`,
+  `PlankApp/Views/Analytics/LastNightSleepCard.swift`.
+
+### Breathwork
+- `BreathworkHomeCard` + bento tile + science-honest primer (Balban
+  Stanford, Epel Yale, Meerman BMJ, Sato Senobi — cortisol
+  mechanism, NOT fat-burn claim).
+- Files: `PlankApp/Views/Home/BreathworkHomeCard.swift`,
+  `PlankApp/Views/Welcome/BreathworkSessionView.swift`,
+  `PlankApp/Views/Welcome/BreathLibraryView.swift`.
+
+### Steps (HealthKit)
+- First HealthKit-backed rail. 7,500-step anchor (not 10k).
+- Pulse on home + bento depth pattern is the model for future health
+  rails.
+- Files: `PlankApp/Health/`.
+
+### Launch + loader
+- Pure pink `LaunchBackground` (`#EFB9CF`), status bar hidden, no
+  image.
+- `AffirmationLoaderScreen` cream with jeni·fit wordmark fading in at
+  60ms + her75 affirmation rising in at 340ms.
+- 7-line dayOfYear rotation: "you are becoming her" / "soft is strong"
+  / "your timeline is yours" / "begin again, anytime" / "small choices
+  stack" / "kindness is the strategy" / "she is already in you".
+- Files: `PlankApp/Views/Welcome/AffirmationLoaderScreen.swift`,
+  `PlankApp/PlankAIApp.swift`.
+
+### Notifications
+- Trial-window: day 0 anchor + day 2 engagement + trial-end T-24h.
+- Daily reminder via `NotificationPermission.scheduleDailyReminder`
+  (canonical id `daily_reminder`, voice-adaptive body, surgical
+  pending-removal so trial-end isn't nuked).
+- Cohort-aware variants (general WL / on-GLP-1 / post-GLP-1 /
+  considering) per `docs/notification_system_spec_2026_06_16.md` +
+  `docs/notification_per_cohort_preview_v2_2026_06_16.md`.
+- Day-5 anti-refund push gated on trial-active so it doesn't fire on
+  cancelled trials.
+- Files: `PlankApp/Notifications/`.
+
+### GLP-1 cohort strategy
+- Convergence-not-pivot. See `docs/glp1_strategy_2026_06_16.md`.
+- `Glp1Cohort` enum + helper flags (`isShortSleeper`, `isGLP1User`,
+  `isPerimenopausal`) in
+  `PlankApp/Notifications/RetentionNotifications.swift`.
+- Cohort signal lives in the noun phrase / identity acknowledgment;
+  bodies reference only shipping features (lessons, breath cards,
+  Becoming, food rail).
+- Compliance floors: no drug brand names on app-controlled surfaces
+  (Apple 5.2.1), no drug-equivalence claims (FTC NextMed precedent),
+  no "GLP-1 alternative" framing (FDA Feb 2026 warning letters), no
+  first-party numeric weight-loss claims.
+
+### Design system
+- `PlankApp/DesignSystem/Tokens.swift` is the source of truth (palette,
+  typography, spacing, motion, radii).
+- 8 locked color tokens. `bgPrimary` cream is the ONLY background.
+- JeniHeroSerif (Playfair Display 650/620i renamed under OFL) on hero
+  headlines. Fraunces on wordmark + punch words. DMSans on body.
+- Voice signals: italic-Fraunces on punch word, hearts as terminal
+  punctuation only, lowercase casual, NO em-dashes between words, NO
+  "AI" word in user copy.
+- Sticker scatter on the 3 earned moments only (welcome / plan reveal
+  / graduation).
+- See `docs/THEME.md` for narrative reference,
+  `docs/itgirl_illustration_system_2026_06_12.md` for illustration
+  pipeline, `docs/her75_typeface_spec_2026_06_10.md` for the
+  JeniHeroSerif spec.
+
+### Compliance + metadata
+- `MARKETING_VERSION = 1.1.1`, `CURRENT_PROJECT_VERSION = 21`.
+- `LSApplicationCategoryType = public.app-category.healthcare-fitness`.
+- Privacy policy + terms hosted at `jenifit.app/privacy` +
+  `jenifit.app/terms`. Drafts at `docs/privacy_policy.md` +
+  `docs/terms_of_service.md`.
+- App Store metadata at `docs/app_store_metadata.md`. Screenshot spec
+  at `docs/APP_STORE_SCREENSHOTS.md`.
+
+### Open items
+- See `TODOS.md` for current punch list.
+- Snap Food manual retry button + photo cache deferred.
+- v1.2+ Bundle ID + Xcode project rename when ready to absorb
+  re-onboard cost.
+- ElevenLabs voice clip generation pass (cascade wired, legacy
+  fallback works).
 
 ## Skill routing
 
