@@ -39,23 +39,21 @@ struct AffirmationLoaderScreen: View {
     private static let heartDiameterInImage: CGFloat = 80
 
     var body: some View {
-        ZStack {
-            // 1. Pink ground — exact match to the LaunchBackground
-            //    color asset the static launch screen draws.
-            Color("LaunchBackground")
-                .ignoresSafeArea()
+        // GeometryReader at the root: geo.size = safe-area dimensions
+        // (default behavior — no .ignoresSafeArea() applied here, so
+        // the proposed size excludes the status-bar and home-indicator
+        // insets). The pink background extends to screen edges via
+        // its own .ignoresSafeArea so the safe-area zone reads pink
+        // (status bar renders over it), but the image content stays
+        // strictly inside the safe area — matching the iOS launch
+        // screen's UIImageRespectsSafeAreaInsets=true behavior.
+        GeometryReader { geo in
+            let bounds = filledImageBounds(in: geo.size)
+            let heart = heartFrame(in: bounds)
 
-            // 2. Full baked composition + the heart-pulse overlay.
-            //    .aspectRatio(.fill) + .clipped() matches the static
-            //    launch screen's behavior: image fills the safe-area
-            //    width edge-to-edge, vertical overflow clipped (no
-            //    pink margins). The launch screen renders the image
-            //    at native @3x size within the safe area; on phones
-            //    whose aspect doesn't exactly match the image, the
-            //    overflow direction is the same here as it is there.
-            GeometryReader { geo in
-                let bounds = filledImageBounds(in: geo.size)
-                let heart = heartFrame(in: bounds)
+            ZStack {
+                Color("LaunchBackground")
+                    .ignoresSafeArea()
 
                 Image("LaunchStickers")
                     .resizable()
@@ -71,13 +69,13 @@ struct AffirmationLoaderScreen: View {
                     .scaleEffect(heartScale)
                     .position(x: heart.center.x, y: heart.center.y)
                     .accessibilityHidden(true)
-            }
 
-            if case .failed = state {
-                VStack {
-                    Spacer()
-                    failureContent
-                        .padding(.bottom, 60)
+                if case .failed = state {
+                    VStack {
+                        Spacer()
+                        failureContent
+                            .padding(.bottom, 60)
+                    }
                 }
             }
         }
