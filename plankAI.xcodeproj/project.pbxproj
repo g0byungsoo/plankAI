@@ -962,6 +962,7 @@
 		B09188FF71A7B6A130C129AC /* matson_prep_short_alt_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6886916953E08315F44B9D9B /* matson_prep_short_alt_leg_raise.m4a */; };
 		B19337A9BCC9B2E2A2F6FAD5 /* matson_prep_full_single_leg_glute_bridge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 84D57D58666A7FC14EDB445B /* matson_prep_full_single_leg_glute_bridge.m4a */; };
 		B1A866A2878594048C0E0E56 /* JeniHeroSerif-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A7156A215D6DFE30328D6F89 /* JeniHeroSerif-Regular.ttf */; };
+		BD0D1A2B3C4D5E6F70819293 /* BodoniModa.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BD0D1A2B3C4D5E6F70819294 /* BodoniModa.ttf */; };
 		B1E4040F2D48D22172369573 /* matson_prep_short_fire_hydrant.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 526C37757E943EBB13B5C452 /* matson_prep_short_fire_hydrant.m4a */; };
 		B1ED5DB8ED53838DC3BE044C /* prep_full_alt_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = C1B3C5E7E6EBBD14E8B1F549 /* prep_full_alt_leg_raise.m4a */; };
 		B232E25FF6447B7AB4C59BAC /* jeni_prep_full_standing_side_bend.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 203D7A0C20BC2BD9A3276CE2 /* jeni_prep_full_standing_side_bend.m4a */; };
@@ -2089,6 +2090,7 @@
 		A6F88CCC7E2CF0A05E144320 /* prep_short_squat_front_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_squat_front_kick.m4a; sourceTree = "<group>"; };
 		A6FC839B816BEF2BA82C58CF /* prep_short_stiff_leg_deadlift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_stiff_leg_deadlift.m4a; sourceTree = "<group>"; };
 		A7156A215D6DFE30328D6F89 /* JeniHeroSerif-Regular.ttf */ = {isa = PBXFileReference; includeInIndex = 1; path = "JeniHeroSerif-Regular.ttf"; sourceTree = "<group>"; };
+		BD0D1A2B3C4D5E6F70819294 /* BodoniModa.ttf */ = {isa = PBXFileReference; includeInIndex = 1; path = "BodoniModa.ttf"; sourceTree = "<group>"; };
 		A7572EBD77F4565CDB5C1AE3 /* matson_prep_short_plank_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_plank_jacks.m4a; sourceTree = "<group>"; };
 		A757BEB295EB5909E4804C87 /* jeni_prep_full_low_plank_leg_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_low_plank_leg_raise.m4a; sourceTree = "<group>"; };
 		A791BF7104B559DED3551B35 /* prep_full_narrow_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_narrow_squat.m4a; sourceTree = "<group>"; };
@@ -3059,6 +3061,7 @@
 				FAFA000000000000000F0013 /* Fraunces72pt-SemiBold.ttf */,
 				FAFA000000000000000F0014 /* Fraunces72pt-SemiBoldItalic.ttf */,
 				A7156A215D6DFE30328D6F89 /* JeniHeroSerif-Regular.ttf */,
+				BD0D1A2B3C4D5E6F70819294 /* BodoniModa.ttf */,
 				271AF4A2038345356D42E575 /* JeniHeroSerif-Italic.ttf */,
 			);
 			path = Fonts;
@@ -5675,6 +5678,7 @@
 				3062D3D72276DE79B5B45F40 /* method_preview_kira.m4a in Resources */,
 				95C9323931376E442975B68F /* method_preview_matson.m4a in Resources */,
 				B1A866A2878594048C0E0E56 /* JeniHeroSerif-Regular.ttf in Resources */,
+				BD0D1A2B3C4D5E6F70819293 /* BodoniModa.ttf in Resources */,
 				CE7A5D867A5422EDAED18C2D /* JeniHeroSerif-Italic.ttf in Resources */,
 				63B2D104022FA4727A05660D /* manifest_v1.json in Resources */,
 			);
