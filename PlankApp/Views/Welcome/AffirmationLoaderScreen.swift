@@ -79,6 +79,7 @@ struct AffirmationLoaderScreen: View {
                 }
             }
         }
+        .statusBarHidden(true)
         .onAppear { startPulse() }
     }
 
