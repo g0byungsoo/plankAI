@@ -3137,7 +3137,10 @@ struct OnboardingView: View {
                                     && !sel.wrappedValue.isEmpty
                                     && sel.wrappedValue != key,
                                 action: {
-                                    Haptics.light()
+                                    // soft (not light) — warmer, matches the
+                                    // brand's signature select feel; pairs with
+                                    // the radio pop + cross-off delight.
+                                    Haptics.soft()
                                     withAnimation(Motion.tap) {
                                         sel.wrappedValue = key
                                     }

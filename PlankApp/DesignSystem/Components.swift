@@ -315,6 +315,8 @@ struct OnboardingOptionCard: View {
     var isDimmed: Bool = false
     let action: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     /// v1.0.7 (2026-06-07): when both icon and sticker are nil, render
     /// the card in compact mode — no decorative circle, shorter min
     /// height, tighter vertical padding. Without this, callers like
@@ -348,9 +350,20 @@ struct OnboardingOptionCard: View {
                 VStack(alignment: .leading, spacing: Space.xs) {
                     Text(title)
                         .font(.custom("DMSans-SemiBold", size: 16))
-                        .strikethrough(isDimmed, color: Palette.textSecondary.opacity(0.7))
                         .foregroundStyle(isDimmed ? Palette.textSecondary.opacity(0.55) : Palette.textPrimary)
                         .multilineTextAlignment(.leading)
+                        // her75 cross-off (v1.1 delight pass): native
+                        // .strikethrough can't tween, so draw the line and
+                        // scale it in from the leading edge — the option
+                        // reads as being *crossed off a list*, not snapping
+                        // dim. Reduce-motion snaps it on (signal preserved).
+                        .overlay(alignment: .leading) {
+                            Capsule()
+                                .fill(Palette.textSecondary.opacity(0.7))
+                                .frame(height: 1.5)
+                                .scaleEffect(x: isDimmed ? 1 : 0, anchor: .leading)
+                                .animation(reduceMotion ? nil : Motion.gentleSpring, value: isDimmed)
+                        }
                     if let subtitle {
                         Text(subtitle)
                             .font(.custom("DMSans-Regular", size: 13))
@@ -367,11 +380,14 @@ struct OnboardingOptionCard: View {
                     Circle()
                         .stroke(isSelected ? Palette.accent : Palette.divider, lineWidth: 1.5)
                         .frame(width: 22, height: 22)
-                    if isSelected {
-                        Circle()
-                            .fill(Palette.accent)
-                            .frame(width: 12, height: 12)
-                    }
+                    // Radio dot pops in with a soft spring on select (kept
+                    // in the tree so it can scale, not hard-cut into place).
+                    Circle()
+                        .fill(Palette.accent)
+                        .frame(width: 12, height: 12)
+                        .scaleEffect(isSelected ? 1 : 0)
+                        .opacity(isSelected ? 1 : 0)
+                        .animation(reduceMotion ? nil : Motion.gentleSpring, value: isSelected)
                 }
             }
             .padding(.horizontal, Space.md)
