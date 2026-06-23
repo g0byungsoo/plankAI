@@ -261,6 +261,13 @@ struct OnboardingView: View {
     // option — vulnerability questions need the explicit-skip escape.
     @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
     @AppStorage("onboarding_glp1_status")  private var glp1Status: String = ""
+    // v1.1 (2026-06-23) medical-grade intake: GLP-1 titration/duration phase,
+    // captured ONLY when glp1Status == "current" (case 1641). The single
+    // highest-value GLP-1 detail — drives protein-emphasis coaching for the
+    // early-titration cohort. Self-reported, no brand name, no dose.
+    // NOTE: like glp1Status, this is AppStorage-only and not yet synced
+    // (see docs/medical_grade_survey_audit_2026_06_23.md — persistence P0).
+    @AppStorage("onboarding_glp1_phase")   private var glp1Phase: String = ""
 
     /// Wipes every single-select v2 field back to "" so no option renders
     /// pre-highlighted on the first visit to each question. Called once
@@ -1383,7 +1390,12 @@ struct OnboardingView: View {
                 ("current",      "on a GLP-1 now",    nil, "cross.case"),
                 ("prefer_not_say","prefer not to say",nil, "lock"),
             ],
-            sel: $glp1Status, next: 142,
+            // Medical-grade follow-up (v1.1): the "on a GLP-1 now" cohort
+            // routes to the titration-phase detail (1641); everyone else
+            // rejoins at the reciprocity beat (282). Explicit in-flow hint
+            // so resolveNext honors it (1641 sits between 164 and 282 in
+            // v2FlowOrder, so the old `142` fallback would have mis-routed).
+            sel: $glp1Status, next: glp1Status == "current" ? 1641 : 282,
             // Delta v8 D86 — reciprocity beat (Culture brief). After
             // the deepest vulnerability Q (GLP-1 + hormonal stage Qs
             // immediately prior), explicit gratitude lands as the
@@ -1400,6 +1412,30 @@ struct OnboardingView: View {
                 "current":     ("we adjust for GLP-1.", "satiety-aware portions, protein floor, no restrictive windows. we lean into what your appetite is already telling you."),
                 "past":        ("we adjust for post-GLP-1.", "the first 12 weeks off-meds are about keeping what you built. we match the cadence + protein."),
                 "considering": ("med or no med, we work.", "the plan reads your data the same way either path you choose ♥"),
+            ]
+        )
+
+        // ─── 1641 — GLP-1 titration / duration (medical-grade, v1.1) ────
+        // Conditional follow-up, shown ONLY when 164 == "on a GLP-1 now".
+        // Titration phase is the single highest-value GLP-1 signal: it
+        // predicts side-effect burden, appetite-suppression depth, and
+        // lean-mass risk → it routes protein-emphasis coaching for the
+        // early-titration cohort. Self-reported, NO brand name, NO dose,
+        // non-actionable (Apple 5.2.1 / FTC floors). Rejoins at 282.
+        case 1641: jfQuestion(
+            "how long have you been on it?",
+            sub: nil,
+            italic: ["how long"],
+            opts: [
+                ("just_started", "just started",       nil, "hourglass.bottomhalf.filled"),
+                ("few_months",   "a few months in",    nil, "hourglass"),
+                ("established",  "6+ months, steady",   nil, "checkmark.seal"),
+                ("prefer_not",   "prefer not to say",   nil, "lock"),
+            ],
+            sel: $glp1Phase, next: 282,
+            confirmation: "got it. that shapes your plan.",
+            inlineFeedback: [
+                "just_started": ("early days, noted.", "the first weeks lean on protein and steady fuel while appetite shifts. we factor that in."),
             ]
         )
 
@@ -1965,7 +2001,7 @@ struct OnboardingView: View {
         // "you vs them" copy; replaced by the cohort-credibility slot
         // in P11.1.B (BetterMe A5 pattern, real cohort framing not
         // adversarial comparison).
-        140, 158, 154, 155, 163, 164,
+        140, 158, 154, 155, 163, 164, 1641,
         // v3 P11.1.B reciprocity beat (case 282, Cal AI A7) — dedicated
         // screen acknowledging the vulnerable disclosures. Goes BEFORE
         // the bridge #2 + psychometric fears so the trust compound

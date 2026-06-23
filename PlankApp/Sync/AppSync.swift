@@ -559,7 +559,7 @@ final class AppSync {
             "onboardingTriedBefore",
             // Onboarding v3 + v4 (cohort routing, paywall mechanics,
             // NSV, weight, tier, dates, cuisine, body-focus key).
-            "onboarding_glp1_status", "onboardingNsvPriority",
+            "onboarding_glp1_status", "onboarding_glp1_phase", "onboardingNsvPriority",
             "onboardingPickedTier", "onboardingPaceChoice",
             "onboardingCurrentWeightKg", "onboardingGoalWeightKg",
             "onboardingGoalDate", "onboardingCuisinePreference",
