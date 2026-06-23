@@ -34,6 +34,11 @@ struct SnapShareSlide: View {
     }
 
     var body: some View {
+        GeometryReader { geo in
+        // The photo bleeds full slot; the picker rail centers within the
+        // VISIBLE screen width (the paging slot can over-propose, which
+        // would drift the rail right).
+        let w = min(geo.size.width, UIScreen.main.bounds.width)
         ZStack(alignment: .bottom) {
             SnapShareCard(
                 photo: photo ?? Self.placeholder,
@@ -52,21 +57,24 @@ struct SnapShareSlide: View {
 
             fontRail
                 .padding(.bottom, 18)
+                .frame(width: w)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 
     // MARK: Font rail
 
     private var fontRail: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 5) {
             ForEach(availableFonts, id: \.self) { f in
                 pill(f)
             }
             alignmentToggle
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 7)
         .background(.ultraThinMaterial, in: Capsule())
         .overlay(Capsule().stroke(.white.opacity(0.25), lineWidth: 0.5))
         .shadow(color: .black.opacity(0.18), radius: 10, y: 3)
@@ -80,11 +88,12 @@ struct SnapShareSlide: View {
             fontRaw = f.rawValue
         } label: {
             Text(f.label)
-                .font(.custom(f.postScript, size: 16 * f.sizeMultiplier))
+                .font(.custom(f.postScript, size: 14 * f.sizeMultiplier))
                 .foregroundStyle(isOn ? FoodTheme.bgPrimary : FoodTheme.textPrimary)
                 .lineLimit(1)
-                .padding(.horizontal, 13)
-                .padding(.vertical, 7)
+                .fixedSize()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
                 .background(
                     Capsule().fill(isOn ? FoodTheme.textPrimary : FoodTheme.bgElevated.opacity(0.9))
                 )
