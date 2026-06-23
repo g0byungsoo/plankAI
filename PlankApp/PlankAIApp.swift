@@ -1797,7 +1797,7 @@ private struct BecomingPreviewHarness: View {
                 }
 
                 BecomingPlateTimelineToday(
-                    plates: [
+                    plates: debugPeekPlateDelete == "empty" ? [] : [
                         (id: "mock-1", loggedAt: Date().addingTimeInterval(-7 * 3600), kcal: 380),
                         (id: "mock-2", loggedAt: Date().addingTimeInterval(-3 * 3600), kcal: 520),
                         (id: "mock-3", loggedAt: Date().addingTimeInterval(-1 * 3600), kcal: 347),
@@ -1805,7 +1805,8 @@ private struct BecomingPreviewHarness: View {
                     onTapPlate: { _ in },
                     onLogTapped: {},
                     onDeletePlate: { _ in },
-                    debugInitialRevealedId: debugPeekPlateDelete
+                    onOpenJournal: {},
+                    debugInitialRevealedId: debugPeekPlateDelete == "empty" ? nil : debugPeekPlateDelete
                 )
 
                 BecomingMovedStrip(
