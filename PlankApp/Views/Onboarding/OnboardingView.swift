@@ -268,6 +268,11 @@ struct OnboardingView: View {
     // NOTE: like glp1Status, this is AppStorage-only and not yet synced
     // (see docs/medical_grade_survey_audit_2026_06_23.md — persistence P0).
     @AppStorage("onboarding_glp1_phase")   private var glp1Phase: String = ""
+    // v1.1 (2026-06-23) medical-grade: weight trajectory at intake (case 1320).
+    // Direction-of-travel is the clinical signal a single current-weight point
+    // can't give — recent rapid loss (esp. on a GLP-1) shifts lean-mass risk +
+    // pacing; cycling flags regain risk. AppStorage-only for now (persistence P0).
+    @AppStorage("onboarding_weight_trend") private var weightTrend: String = ""
 
     /// Wipes every single-select v2 field back to "" so no option renders
     /// pre-highlighted on the first visit to each question. Called once
@@ -867,7 +872,7 @@ struct OnboardingView: View {
             imperial: Self.weightImperialRuler,
             toMetric: { lb in lb / Self.lbPerKg },
             fromMetric: { kg in (kg * Self.lbPerKg).rounded() },
-            next: 133,
+            next: 1320,  // v1.1 — via weight-trajectory (1320) before goal
             // Affirmation beat — sensitive numeric input. Research:
             // Noom-pattern validation after weight entry reduces drop.
             // Gen-Z casual lowercase to match the audience voice.
@@ -902,6 +907,25 @@ struct OnboardingView: View {
             annotation: {
                 goalWeightAnnotation(currentKg: currentWeightKg, goalKg: goalWeightKg, heightCm: heightCm)
             }
+        )
+
+        // ─── 1320 — weight trajectory (medical-grade, v1.1) ────────────
+        // Sits between current weight (132) and goal (133). A single
+        // current-weight point can't tell us direction of travel, which is
+        // the real clinical signal: recent rapid loss (esp. on a GLP-1)
+        // changes lean-mass risk + realistic pacing; "up and down" flags
+        // weight-cycling / regain risk. Self-reported, no number required.
+        case 1320: jfQuestion(
+            "where's your weight been heading?",
+            sub: nil,
+            italic: ["heading"],
+            opts: [
+                ("climbing",  "climbing",            nil, "arrow.up.right"),
+                ("stable",    "about the same",      nil, "arrow.right"),
+                ("declining", "slowly coming down",  nil, "arrow.down.right"),
+                ("cycling",   "up and down",         nil, "arrow.up.arrow.down"),
+            ],
+            sel: $weightTrend, next: 133
         )
         .onAppear {
             // Seed the goal weight from the user's current weight on
@@ -1989,7 +2013,7 @@ struct OnboardingView: View {
         // cards), positioned in the same slot. Both her75 designer
         // and the Gen-Z conversion expert independently specced this
         // replacement pattern.
-        130, 7, 131, 132, 133, 286, 136,
+        130, 7, 131, 132, 1320, 133, 286, 136,
         160, 161,
         // Delta v8 D73 — pace selector (case 167).
         167,

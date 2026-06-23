@@ -562,6 +562,7 @@ final class AppSync {
             "onboarding_glp1_status", "onboarding_glp1_phase", "onboardingNsvPriority",
             "onboardingPickedTier", "onboardingPaceChoice",
             "onboardingCurrentWeightKg", "onboardingGoalWeightKg",
+            "onboarding_weight_trend",
             "onboardingGoalDate", "onboardingCuisinePreference",
             "onboardingAgeRange", "onboardingActivityLevel",
             "onboardingBodyFocusKey", "onboardingReviewPromptShown",
