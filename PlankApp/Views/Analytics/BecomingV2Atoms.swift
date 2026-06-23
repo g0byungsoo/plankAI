@@ -739,6 +739,11 @@ struct BecomingPlateTimelineToday: View {
     /// Phase 4 Day-4 (2026-06-19) — swipe-left-to-delete callback.
     /// When nil the swipe gesture is disabled (legacy callers).
     var onDeletePlate: ((String) -> Void)? = nil
+    /// 2026-06-22 — always-present doorway to the full food journal so it
+    /// is reachable even when today's plate is empty (previously the
+    /// journal opened ONLY by tapping a plate photo, leaving no path when
+    /// nothing was logged today). nil hides the affordance.
+    var onOpenJournal: (() -> Void)? = nil
 
     /// Phase 4 Day-4 — which plate has its delete action revealed.
     /// Only one at a time; opening another snaps the prior closed.
@@ -759,9 +764,27 @@ struct BecomingPlateTimelineToday: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("on her plate")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                .foregroundStyle(Palette.cocoaTertiary)
+            HStack(alignment: .firstTextBaseline) {
+                Text("on her plate")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 0)
+                if let onOpenJournal {
+                    Button {
+                        Haptics.soft()
+                        onOpenJournal()
+                    } label: {
+                        (Text("journal ")
+                            .font(.custom("DMSans-Medium", size: 12))
+                         + Text(Image(systemName: "chevron.right"))
+                            .font(.system(size: 9).weight(.semibold)))
+                            .foregroundStyle(Palette.accent)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("open food journal")
+                }
+            }
             HStack(alignment: .top, spacing: 10) {
                 ForEach(Array(plates.prefix(4).enumerated()), id: \.element.id) { _, p in
                     plateTile(p)

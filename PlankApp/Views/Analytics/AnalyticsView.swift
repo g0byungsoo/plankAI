@@ -1385,7 +1385,8 @@ struct AnalyticsView: View {
                         // store. FoodLogPersister handles its own
                         // notification + Supabase sync.
                         FoodLogPersister.deleteEntry(id: id)
-                    }
+                    },
+                    onOpenJournal: { showFoodJournal = true }
                 )
                 .padding(.top, 4)
             }
