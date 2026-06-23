@@ -74,7 +74,19 @@ struct OnboardingView: View {
 
     init(onComplete: @escaping (OnboardingData) -> Void) {
         self.onComplete = onComplete
+        #if DEBUG
+        // Deep-link a specific onboarding screen for sim capture, e.g.
+        // `--onboarding-screen 286`. Pair with `--uitest-fresh-onboarding`.
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "--onboarding-screen"), i + 1 < args.count,
+           let n = Int(args[i + 1]) {
+            self._screen = State(wrappedValue: n)
+        } else {
+            self._screen = State(wrappedValue: 0)
+        }
+        #else
         self._screen = State(wrappedValue: 0)
+        #endif
     }
     @State private var feedback = ""
     @State private var showFeedback = false
@@ -1662,35 +1674,38 @@ struct OnboardingView: View {
             HStack(spacing: 10) {
                 // Real app-icon treatment (founder QA 2026-06-11): the
                 // bow logo on a white icon tile, like the actual banner.
-                ZStack {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(Color.white)
-                    Image("logo_jenifit_bow")
-                        .resizable()
-                        .scaledToFit()
-                        .padding(5)
-                }
-                .frame(width: 32, height: 32)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .stroke(Palette.divider, lineWidth: 0.5)
-                )
-                VStack(alignment: .leading, spacing: 2) {
+                // Full-bleed app-icon tile — the pink jenifit logo fills
+                // the squircle edge-to-edge like a real push banner (was a
+                // small bow inset on a white tile, which read as "not
+                // filled with the logo").
+                Image("logo_jenifit_bow")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 38, height: 38)
+                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                VStack(alignment: .leading, spacing: 1) {
                     HStack {
                         Text("jenifit")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Palette.textPrimary)
                         Spacer()
                         Text("now")
                             .font(.system(size: 12))
                             .foregroundStyle(Palette.textSecondary)
                     }
+                    // The mock mirrors the REAL daily reminder she'll
+                    // receive (title + body from NotificationPermission),
+                    // so the preview is the actual promise the app keeps.
+                    Text("five minutes, today.")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Palette.textPrimary)
+                        .lineLimit(1)
                     ItalicAccentText(
-                        "gentle morning. your plan's waiting ♥",
-                        italic: ["gentle morning"],
+                        "small moves still count. they always have ♥",
+                        italic: ["always"],
                         baseFont: .system(size: 13),
                         italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13),
-                        color: Palette.textPrimary,
+                        color: Palette.textSecondary,
                         alignment: .leading
                     )
                     .lineLimit(1)
@@ -1715,7 +1730,9 @@ struct OnboardingView: View {
                     withAnimation(.spring(response: 0.55, dampingFraction: 0.74).delay(0.4)) {
                         nudgeBannerDropped = true
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                    // Land the haptic with the banner's visual settle
+                    // (0.4 delay + ~0.45 spring), not before it.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
                         Haptics.soft()
                     }
                 }
@@ -5609,13 +5626,14 @@ struct OnboardingView: View {
         educationalScreen(
             headline: "you can decide before you eat.",
             italicWords: ["before"],
-            // Founder-supplied fried chicken plate (round 11), flush to
-            // the left edge: the honest "decide before you eat" food,
-            // not the aspirational one.
+            // 2026-06-23 — swapped the founder-supplied fried-chicken plate
+            // for a clean produce flat-lay: it agrees with "no shame either
+            // way" instead of fighting it, and reads on-brand (post-Ozempic,
+            // anti-diet-culture) for the pre-eat decision wedge.
             body: "most apps make you log after. jenifit lets you snap before. see if it fits. no shame either way.",
             next: 156,
-            accentImage: "onb-itgirl-preeat",
-            accentMaxHeight: 300,
+            accentImage: "onb-itgirl-produce",
+            accentMaxHeight: 320,
             accentFlushLeading: true
         )
     }
