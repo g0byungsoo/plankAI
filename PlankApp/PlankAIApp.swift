@@ -1266,7 +1266,7 @@ private struct ResultCarouselPreviewHarness: View {
                     result: Self.mockFood,
                     photo: Self.mockPhoto,
                     mealLabel: "Breakfast",
-                    dishName: "morning plate",
+                    dishName: "scrambled eggs + avocado toast +2",
                     carouselHeight: geo.size.height - 60,
                     onEditItem: { _ in },
                     onLogPair: { _ in }

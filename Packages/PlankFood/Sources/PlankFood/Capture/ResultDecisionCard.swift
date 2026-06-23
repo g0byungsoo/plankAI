@@ -246,6 +246,7 @@ struct ResultDecisionCard: View {
     @ViewBuilder private var contentColumn: some View {
         VStack(alignment: .leading, spacing: 11) {
             metaRow.zoneEntrance(0, revealed: revealedSteps)
+            dishTitle.zoneEntrance(0, revealed: revealedSteps)
             zoneRule
             kcalHero.zoneEntrance(1, revealed: revealedSteps)
             proteinCoHero.zoneEntrance(2, revealed: revealedSteps)
@@ -344,6 +345,28 @@ struct ResultDecisionCard: View {
         case ..<0.85: return ("close ", "enough")
         default:      return ("", "clear")
         }
+    }
+
+    // MARK: - Dish title (the food's name)
+
+    @ViewBuilder private var dishTitle: some View {
+        let text = dishTitleText
+        if !text.isEmpty {
+            Text(text)
+                .font(.custom("JeniHeroSerif-Italic", size: 21))
+                .foregroundStyle(textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// The food's name for the title line. Prefers the passed dish name;
+    /// falls back to the first couple of detected items so the user always
+    /// sees what the plate is.
+    private var dishTitleText: String {
+        let name = dishName.trimmingCharacters(in: .whitespaces)
+        if !name.isEmpty { return name.lowercased() }
+        let items = result.items.prefix(2).map { $0.name.lowercased() }
+        return items.joined(separator: ", ")
     }
 
     // MARK: - Zone B: kcal hero (number + ±range + italic meal name)
