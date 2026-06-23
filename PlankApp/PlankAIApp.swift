@@ -474,6 +474,23 @@ struct PlankAIApp: App {
                     DayPeekPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-strip") {
                     DayStripPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-first-week") {
+                    // Jumps straight to the firstWeek reveal beat (skips
+                    // the building loader + its ATT modal). Tier reads
+                    // from the onboardingPickedTier AppStorage key
+                    // (default medium); `simctl ... defaults write
+                    // com.bk.plankAI onboardingPickedTier soft|hard` to
+                    // check the other tiers.
+                    OnboardingRevealView(
+                        bodyFocus: ["flatBelly"],
+                        sessionLengthKey: "ten",
+                        voicePreference: "encouraging",
+                        commitmentDaysKey: "five",
+                        currentWeightKg: nil,
+                        goalWeightKg: nil,
+                        onRevealComplete: {},
+                        debugStartAtFirstWeek: true
+                    )
                 } else {
                     RootView()
                         .modifier(ResumeBloom())

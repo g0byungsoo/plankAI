@@ -262,43 +262,58 @@ struct NotificationPermission {
     }
 }
 
-// MARK: - FirstWeekPreview (v9 P9.1, onboarding program chapter)
+// MARK: - FirstWeekPreview (v9 P9.1 → v1.1 program-real rewrite)
 //
-// Her75 designer spec (2026-06-10): the highest-leverage screen in the
-// onboarding restructure. Surfaces a real 7-day rhythm — Mon→Sun tiles
-// generated from the user's just-picked intensity + collected bodyFocus
-// + sessionLengthPref — so by the time the user hits the paywall they
-// have HELD their plan. "Pay for THIS plan that's tangibly mine, not
-// an idea."
+// The "your first week" strip the user holds before the paywall.
+// REWRITTEN 2026-06-23 to mirror the program the app actually runs,
+// not a workout-only mock. The old version called WorkoutGenerator
+// once per workout day with identical input, so every tile collapsed
+// to the same name + same duration (it read as one workout repeated),
+// and it showed the raw session-length pref instead of the real
+// tier-ramped minutes.
 //
-// Distribution per IntensityProfile.sessionsPerWeek:
-//   soft   → 3/week (Mon, Wed, Fri)
-//   medium → 4/week (Mon, Wed, Thu, Sat)
-//   hard   → 5/week (Mon, Tue, Thu, Fri, Sun)
+// The honest — and far more convincing — week:
 //
-// Off-days surface as breathwork beats (not "rest day" — that reads
-// inactive). Anchors the program-era language: every day has a
-// rhythm, even the recovery days.
+//   • Day identity = ProgramDayArchetype.standardRotation (P-M-P-B-P-B-R),
+//     the exact rotation Home frames every day with ("today is a
+//     protein day"). The week reads as a real rhythm of nutrition,
+//     movement, and recovery, not seven identical cards.
+//   • Workout cadence = IntensityProfile.sessionsPerWeek (3 / 4 / 5 by
+//     tier). The movement day always carries a workout; the rest day
+//     (Sun) never does.
+//   • Workout minutes = IntensityProfile.workoutMinutes(forProgramWeek: 1)
+//     — the real week-1 value (soft 7 / medium 10 / hard 15).
+//
+// Every value traces to a shipping system, so the preview IS the
+// program ([[feedback-data-provenance]]). Off-days reference only
+// shipping features — snap (food rail) + breathe (breathwork)
+// ([[feedback-no-feature-promises-until-shipped]]). Tiles deal in on a
+// left→right cascade for a "plan being laid down" beat (reduce-motion
+// settles instantly).
 
 struct FirstWeekDay: Identifiable {
     let id = UUID()
-    let weekdayLabel: String      // "mon" / "tue" / ...
-    let title: String             // "lower body focus" / "breathe"
-    let detailLine: String        // "18 min" / "5 min · calm"
+    let weekdayLabel: String          // "mon" / "tue" / ...
+    let archetype: ProgramDayArchetype
+    let detailLine: String            // "10 min workout" / "snap + breathe"
     let isWorkoutDay: Bool
 }
 
 struct FirstWeekPreview: View {
 
     let tier: IntensityTier
-    let bodyFocus: [BodyFocus]
-    let sessionLengthMinutes: Int
+    private let days: [FirstWeekDay]
+
+    init(tier: IntensityTier) {
+        self.tier = tier
+        self.days = Self.makeDays(for: tier)
+    }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                ForEach(days) { day in
-                    tile(for: day)
+                ForEach(Array(days.enumerated()), id: \.element.weekdayLabel) { idx, day in
+                    DayTile(day: day, index: idx)
                 }
             }
             .padding(.horizontal, Space.screenPadding)
@@ -310,74 +325,107 @@ struct FirstWeekPreview: View {
         .accessibilityLabel("your first week preview")
     }
 
-    private var days: [FirstWeekDay] {
-        // sessionsPerWeek lookup mirrors IntensityProfile.soft/medium/hard
-        // exactly so the preview matches what the program actually
-        // delivers. Workout-day pattern is the same one the program
-        // scheduler uses (M/W/F for soft, etc.).
-        let sessionsPerWeek: Int
-        let workoutWeekdayIndices: Set<Int>
-        switch tier {
-        case .soft:
-            sessionsPerWeek = 3
-            workoutWeekdayIndices = [0, 2, 4]               // Mon Wed Fri
-        case .medium:
-            sessionsPerWeek = 4
-            workoutWeekdayIndices = [0, 2, 3, 5]            // Mon Wed Thu Sat
-        case .hard:
-            sessionsPerWeek = 5
-            workoutWeekdayIndices = [0, 1, 3, 4, 6]         // Mon Tue Thu Fri Sun
-        }
-        _ = sessionsPerWeek  // documented for reader; count derives from set
-
+    private static func makeDays(for tier: IntensityTier) -> [FirstWeekDay] {
         let labels = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-        return labels.enumerated().map { (idx, label) in
-            if workoutWeekdayIndices.contains(idx) {
-                let preset = WorkoutGenerator.generate(from: WorkoutGenerator.Input(
-                    bodyFocus: bodyFocus.isEmpty ? [.fullBody] : bodyFocus,
-                    lengthMinutes: sessionLengthMinutes,
-                    recentSessionExerciseIds: [],
-                    recentRatings: [],
-                    startingTier: tier == .soft ? 1 : (tier == .medium ? 2 : 3)
-                ))
-                return FirstWeekDay(
-                    weekdayLabel: label,
-                    title: preset.name.lowercased(),
-                    detailLine: "\(preset.estimatedDuration) min",
-                    isWorkoutDay: true
-                )
+        let rotation = ProgramDayArchetype.standardRotation
+        let workoutDays = workoutWeekdays(for: tier)
+        let minutes = IntensityProfile.from(tier: tier).workoutMinutes(forProgramWeek: 1)
+        return labels.enumerated().map { idx, label in
+            let arch = rotation[idx]
+            let isWorkout = workoutDays.contains(idx)
+            let detail: String
+            if isWorkout {
+                detail = "\(minutes) min workout"
+            } else if arch == .rest {
+                detail = "breathe + reflect"
             } else {
-                return FirstWeekDay(
-                    weekdayLabel: label,
-                    title: "breathe",
-                    detailLine: "5 min · calm the noise",
-                    isWorkoutDay: false
-                )
+                detail = "snap + breathe"
             }
+            return FirstWeekDay(
+                weekdayLabel: label,
+                archetype: arch,
+                detailLine: detail,
+                isWorkoutDay: isWorkout
+            )
         }
     }
 
-    private func tile(for day: FirstWeekDay) -> some View {
+    /// Weekdays that carry a workout. Count == IntensityProfile
+    /// .sessionsPerWeek (3 / 4 / 5); always includes the movement day
+    /// (index 1), never the rest day (index 6). The program scheduler
+    /// picks the exact calendar days — the cadence + the never-on-rest
+    /// rule are the honest invariants the preview surfaces.
+    static func workoutWeekdays(for tier: IntensityTier) -> Set<Int> {
+        switch tier {
+        case .soft:   return [1, 3, 5]              // 3/wk — Tue Thu Sat
+        case .medium: return [0, 1, 3, 5]           // 4/wk — Mon Tue Thu Sat
+        case .hard:   return [0, 1, 2, 3, 5]        // 5/wk — Mon Tue Wed Thu Sat
+        }
+    }
+}
+
+// MARK: - DayTile
+//
+// One day of the first-week strip. Carries the archetype identity
+// (Fraunces title + a quiet SF Symbol glyph) and the day's concrete
+// anchor. Workout days take the brand-accent border + accent glyph so
+// the active days read at a glance; lighter days recede to a divider
+// hairline. Each tile deals in on a per-index delay for the cascade.
+
+private struct DayTile: View {
+    let day: FirstWeekDay
+    let index: Int
+
+    @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(day.weekdayLabel)
-                .font(Typo.eyebrow)
-                .tracking(1.6)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.cocoaTertiary)
-            Spacer(minLength: 4)
-            Text(day.title)
+            HStack(alignment: .top, spacing: 4) {
+                Text(day.weekdayLabel)
+                    .font(Typo.eyebrow)
+                    .tracking(1.6)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 0)
+                Image(systemName: day.archetype.glyphName)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(day.isWorkoutDay ? Palette.accent : Palette.cocoaTertiary)
+            }
+            Spacer(minLength: 6)
+            Text(title)
                 .font(.custom("Fraunces72pt-SemiBold", size: 18, relativeTo: .headline))
                 .foregroundStyle(Palette.cocoaPrimary)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
             Text(day.detailLine)
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaSecondary)
+                .lineLimit(1)
         }
         .padding(14)
-        .frame(width: 156, height: 130, alignment: .topLeading)
-        .scrapbookCard(tint: day.isWorkoutDay ? Palette.accent : Palette.stateGood)
+        .frame(width: 150, height: 132, alignment: .topLeading)
+        .scrapbookCard(tint: day.isWorkoutDay ? Palette.accent : Palette.divider)
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 8)
+        .task {
+            guard !appeared else { return }
+            if reduceMotion { appeared = true; return }
+            let delay = 0.30 + Double(index) * 0.06
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            withAnimation(Motion.entranceSoft) { appeared = true }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(day.weekdayLabel), \(title), \(day.detailLine)")
+    }
+
+    private var title: String {
+        switch day.archetype {
+        case .protein:  return "protein"
+        case .movement: return "movement"
+        case .balanced: return "balanced"
+        case .rest:     return "rest"
+        }
     }
 }
 

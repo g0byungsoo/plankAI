@@ -35,7 +35,31 @@ struct OnboardingRevealView: View {
     let goalWeightKg: Double?
     let onRevealComplete: () -> Void
 
-    @State private var step: Step = .building
+    @State private var step: Step
+
+    init(
+        bodyFocus: Set<String>,
+        sessionLengthKey: String,
+        voicePreference: String,
+        commitmentDaysKey: String,
+        currentWeightKg: Double?,
+        goalWeightKg: Double?,
+        onRevealComplete: @escaping () -> Void,
+        debugStartAtFirstWeek: Bool = false
+    ) {
+        self.bodyFocus = bodyFocus
+        self.sessionLengthKey = sessionLengthKey
+        self.voicePreference = voicePreference
+        self.commitmentDaysKey = commitmentDaysKey
+        self.currentWeightKg = currentWeightKg
+        self.goalWeightKg = goalWeightKg
+        self.onRevealComplete = onRevealComplete
+        // DEBUG harness can jump straight to the first-week beat so the
+        // screen is screenshot-able without the building loader (and its
+        // ATT modal / manual "see your plan" tap). Production always
+        // starts at .building.
+        self._step = State(initialValue: debugStartAtFirstWeek ? .firstWeek : .building)
+    }
 
     private enum Step: Int {
         case building
@@ -99,8 +123,6 @@ struct OnboardingRevealView: View {
                 .transition(.opacity)
             case .firstWeek:
                 FirstWeekPresentation(
-                    bodyFocus: bodyFocus,
-                    sessionLengthKey: sessionLengthKey,
                     onContinue: { withAnimation(Motion.crossFade) { step = .permissions } }
                 )
                 .transition(.opacity)
@@ -744,17 +766,14 @@ private struct PairedPermissionsAsk: View {
 //
 // v9 P9.1 (her75 onboarding restructure). The "your first week" beat
 // that lands between the weight projection and the paired permissions
-// ask. Surfaces 7 tiles — actual workouts generated from her bodyFocus
-// + sessionLengthPref — so the user holds her plan before the paywall.
-//
-// Tier defaults to .medium until the inline pace picker ships in
-// P9.2 (designer-recommended). Once that screen lands, the picked
-// tier is wired through here instead of the constant.
+// ask, so the user holds her plan before the paywall. The 7-day strip
+// (FirstWeekPreview) mirrors the real program rhythm — archetype day
+// identity + tier-driven workout cadence + real week-1 minutes — all
+// keyed off the tier the user just picked on PacePicker (read back
+// from the onboardingPickedTier AppStorage key, default .medium).
 
 private struct FirstWeekPresentation: View {
 
-    let bodyFocus: Set<String>
-    let sessionLengthKey: String
     let onContinue: () -> Void
 
     // v9 P9.2: tier is now read from AppStorage so the week reflects
@@ -794,20 +813,19 @@ private struct FirstWeekPresentation: View {
                         .opacity(heroVisible ? 1 : 0)
                         .scaleEffect(heroVisible ? 1.0 : 0.96)
 
-                        Text("seven days, built around what you told us.")
+                        Text("the rhythm your plan runs on.")
                             .font(.system(size: 14))
                             .foregroundStyle(Palette.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, Space.lg)
                             .opacity(heroVisible ? 1 : 0)
 
+                        // The strip owns its own reveal — tiles deal in
+                        // on a left→right cascade (see DayTile.task), so
+                        // no group opacity/offset gating here.
                         FirstWeekPreview(
-                            tier: IntensityTier(rawValue: pickedTierRaw) ?? .medium,
-                            bodyFocus: parsedFocus,
-                            sessionLengthMinutes: parsedSessionLength
+                            tier: IntensityTier(rawValue: pickedTierRaw) ?? .medium
                         )
-                        .opacity(weekVisible ? 1 : 0)
-                        .offset(y: weekVisible ? 0 : 12)
 
                         Text("you can change pace or rest days anytime.")
                             .font(.system(size: 12))
@@ -854,20 +872,6 @@ private struct FirstWeekPresentation: View {
             withAnimation(Motion.entrance) { weekVisible = true }
             try? await Task.sleep(nanoseconds: 320_000_000)
             withAnimation(Motion.entranceSoft) { ctaVisible = true }
-        }
-    }
-
-    private var parsedFocus: [BodyFocus] {
-        bodyFocus.compactMap { BodyFocus(rawValue: $0) }
-    }
-
-    private var parsedSessionLength: Int {
-        switch sessionLengthKey {
-        case "five":    return 5
-        case "ten":     return 10
-        case "fifteen": return 15
-        case "twenty":  return 20
-        default:        return 7
         }
     }
 }
