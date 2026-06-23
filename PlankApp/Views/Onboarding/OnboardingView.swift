@@ -3553,30 +3553,41 @@ struct OnboardingView: View {
     }
 
     /// Real-time BMI display under the current-weight ruler. Updates
-    /// continuously as the user drags. Color-coded category text:
-    /// sage green for Normal, warm orange for everything else. Reads
-    /// as a credibility signal (we know how this works) rather than a
-    /// judgment — the labels stay clinical, no editorializing.
+    /// continuously as the user drags. Shows the WHO clinical category
+    /// (incl. obesity class) in a neutral, professional register: a
+    /// medical-grade credibility signal stated matter-of-factly, never
+    /// color-alarmed or editorialized.
     private func bmiAnnotation(weightKg: Double, heightCm: Double) -> some View {
         let heightM = heightCm / 100
         let bmi = (heightM > 0) ? weightKg / (heightM * heightM) : 0
         let bmiText = String(format: "%.1f", bmi)
-        // v1.1 batch-3 anti-shame de-shame: dropped the clinical category
-        // labels ("Overweight"/"Obese") + the warning-red color — labelling
-        // a user "obese" in red on the weight screen flatly contradicts the
-        // brand's core anti-shame positioning. Keep the derived number
-        // (neutral) + a supportive, de-dieted, range-tailored line. Whether
-        // to show BMI at all is a founder call (flagged separately).
+        // v1.1 (2026-06-23) medical-grade direction [[feedback_medical_grade_over_soft]]:
+        // restore the clinical BMI category (incl. WHO obesity class), stated
+        // NEUTRALLY. No warning-red, no diet-culture copy. A clinician states
+        // the category matter-of-factly; the prior de-shame pass had dropped
+        // it entirely, cutting the clinical signal a GLP-1-grade intake wants.
+        // Accurate + professional, not alarming.
+        let category: String
         let support: String
         switch bmi {
         case ..<18.5:
-            support = "strength and steady fuel will round out your build."
+            category = "underweight"
+            support = "below the healthy range. we prioritize strength and adequate fuel."
         case 18.5..<25:
-            support = "you're in a steady range. let's lock in habits that last."
+            category = "healthy range"
+            support = "within the healthy range. the focus is body composition and lasting habits."
         case 25..<30:
-            support = "a little more movement, and the rest follows."
+            category = "overweight"
+            support = "above the healthy range. a steady, sustainable loss is the focus."
+        case 30..<35:
+            category = "obese · class I"
+            support = "a steady, sustainable pace is the safest and most effective here."
+        case 35..<40:
+            category = "obese · class II"
+            support = "a steady, sustainable pace is the safest and most effective here."
         default:
-            support = "steady wins. your plan moves at a pace your body thanks you for."
+            category = "obese · class III"
+            support = "a steady, sustainable pace is the safest and most effective here."
         }
         return HStack(alignment: .top, spacing: Space.md) {
             VStack(alignment: .leading, spacing: 2) {
@@ -3587,6 +3598,9 @@ struct OnboardingView: View {
                     .font(.custom("Fraunces72pt-SemiBold", size: 32))
                     .foregroundStyle(Palette.cocoaPrimary)
                     .contentTransition(.numericText())
+                Text(category)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
             }
             Text(support)
                 .font(.system(size: 13))
