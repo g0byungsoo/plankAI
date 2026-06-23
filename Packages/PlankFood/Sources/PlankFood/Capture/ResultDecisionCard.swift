@@ -94,6 +94,7 @@ struct ResultDecisionCard: View {
             Color.clear
 
             card
+                .cardLand()
                 .padding(.horizontal, 18)
                 .padding(.top, 48)
                 .padding(.bottom, 40)

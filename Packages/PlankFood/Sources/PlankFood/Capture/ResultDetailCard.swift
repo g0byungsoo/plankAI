@@ -73,6 +73,7 @@ struct ResultDetailCard: View {
             Color.clear
 
             card
+                .cardLand()
                 .frame(width: w - 36)
                 .padding(.top, 46)
         }

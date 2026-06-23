@@ -1234,19 +1234,31 @@ private struct ResultCarouselPreviewHarness: View {
     private static let mockPhoto: UIImage = {
         let size = CGSize(width: 1080, height: 1920)
         return UIGraphicsImageRenderer(size: size).image { ctx in
-            let gradient = CGGradient(
+            let c = ctx.cgContext
+            // Faux breakfast plate so the develop-reveal (soft-focus →
+            // crisp, desaturated → saturated) is visible in the harness
+            // the way it would be over a real food photo.
+            let bg = CGGradient(
                 colorsSpace: CGColorSpaceCreateDeviceRGB(),
                 colors: [
-                    UIColor(red: 0.94, green: 0.78, blue: 0.79, alpha: 1).cgColor,
-                    UIColor(red: 0.85, green: 0.55, blue: 0.62, alpha: 1).cgColor,
-                ] as CFArray,
-                locations: [0, 1]
-            )!
-            ctx.cgContext.drawLinearGradient(
-                gradient, start: .zero,
-                end: CGPoint(x: size.width, y: size.height),
-                options: []
-            )
+                    UIColor(red: 0.93, green: 0.90, blue: 0.86, alpha: 1).cgColor,
+                    UIColor(red: 0.80, green: 0.75, blue: 0.70, alpha: 1).cgColor,
+                ] as CFArray, locations: [0, 1])!
+            c.drawLinearGradient(bg, start: .zero,
+                                 end: CGPoint(x: size.width, y: size.height), options: [])
+            c.setFillColor(UIColor(red: 0.97, green: 0.96, blue: 0.94, alpha: 1).cgColor)
+            c.fillEllipse(in: CGRect(x: 80, y: 600, width: 920, height: 920))
+            c.setFillColor(UIColor(red: 0.90, green: 0.88, blue: 0.85, alpha: 1).cgColor)
+            c.fillEllipse(in: CGRect(x: 145, y: 665, width: 790, height: 790))
+            func blob(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat, _ col: UIColor) {
+                c.setFillColor(col.cgColor)
+                c.fillEllipse(in: CGRect(x: x, y: y, width: w, height: h))
+            }
+            blob(220, 960, 320, 240, UIColor(red: 0.96, green: 0.82, blue: 0.30, alpha: 1)) // eggs
+            blob(520, 880, 250, 270, UIColor(red: 0.44, green: 0.62, blue: 0.30, alpha: 1)) // avocado
+            blob(560, 1150, 230, 210, UIColor(red: 0.74, green: 0.16, blue: 0.24, alpha: 1)) // berries
+            blob(280, 1180, 250, 190, UIColor(red: 0.66, green: 0.44, blue: 0.24, alpha: 1)) // toast
+            blob(410, 1010, 130, 130, UIColor(red: 0.99, green: 0.95, blue: 0.55, alpha: 1)) // yolk
         }
     }()
 
