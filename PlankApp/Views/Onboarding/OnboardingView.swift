@@ -711,7 +711,7 @@ struct OnboardingView: View {
                 ("loseWeight",  "lose weight",       nil, "leaf"),
                 ("fullBody",    "tone all over",     nil, "sparkles"),
                 ("toneCore",    "stronger core",     nil, "circle.hexagongrid"),
-                ("growGlutes",  "build glutes",      nil, "flame"),
+                ("growGlutes",  "build glutes",      nil, "arrow.up.circle"),
                 ("slimLegs",    "lean legs",         nil, "wind"),
             ],
             sel: $goal, next: 100
@@ -732,7 +732,7 @@ struct OnboardingView: View {
         case 100: jfQuestion(
             "how did you hear about jenifit?",
             sub: nil,  // her75 Phase 3
-            italic: ["hear"],
+            italic: ["jenifit"],  // punch the brand name, not the function verb
             opts: [
                 ("tiktok",     "tiktok",              nil, "play.rectangle.fill"),
                 ("instagram",  "instagram",           nil, "camera.fill"),
@@ -1336,13 +1336,21 @@ struct OnboardingView: View {
         // Slot between attribution (100) and food relationship (162)
         // so it lands BEFORE the food wedge.
         case 168: jfQuestion(
-            "tried everything already?",
+            // v1.1 batch-1 (2026-06-23) — softened from "tried everything
+            // already?", which presumed exhaustive failure and read as an
+            // indictment to the shame-sensitive cohort (and excluded the
+            // first-timer). "been here before?" captures the same sunk-cost
+            // signal as neutral recognition, not a verdict.
+            "been here before?",
             sub: nil,
-            italic: ["tried"],  // v3 her75 editorial register
+            italic: ["here"],
             opts: [
                 ("first",       "this is my first real try",   nil, "sparkles"),
                 ("fewTimes",    "yes, a few times",            nil, "checkmark.circle"),
-                ("manyTimes",   "yes, many times",             nil, "arrow.clockwise"),
+                // heart.circle (not the arrow.clockwise loop) so the
+                // most-tried, highest-intent woman reads as seen, not
+                // stuck going in circles.
+                ("manyTimes",   "yes, many times",             nil, "heart.circle"),
             ],
             // 283 (cohort credibility) sits between 168 and 162 in
             // v2FlowOrder; a direct next: 162 hint was silently skipping
@@ -5639,12 +5647,18 @@ struct OnboardingView: View {
             // the body-data privacy promise (old 231) in its sub line.
             headline: "built for real life.",
             italicWords: ["real"],
-            body: "5-min beats. 3-month arcs. no all-or-nothing. what you share calibrates your plan. never shared, never sold.",
+            // v1.1 batch-1 (2026-06-23) — the merged 230+231 body had become
+            // a 5-fragment run-on (and used "shared" in two senses one beat
+            // apart). Unload it to the single anti-shame triplet the headline
+            // promises; the privacy line moves to the quiet citation footer,
+            // reworded to drop the confusing double-"shared".
+            body: "5-min beats. 3-month arcs. no all-or-nothing.",
             // Founder-supplied rose bouquet (2026-06-12), replacing the
             // cactus. 380pt keeps it clear of the body copy; +90 nudge
             // sides the bouquet on the right edge (round 9) since its
             // subject leans left inside the square canvas.
             next: 1,
+            citation: "what you tell us shapes your plan. never sold.",
             accentImage: "onb-filler-roses",
             accentMaxHeight: 380,
             accentOffsetX: 90
