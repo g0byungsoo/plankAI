@@ -2703,6 +2703,26 @@ private struct RootView: View {
         // Empty string from never-answered users persists as nil so the
         // Supabase column reflects "no answer" instead of an empty string.
         record.onboardingAcquisitionSource = data.acquisitionSource.isEmpty ? nil : data.acquisitionSource
+        // 2026-06-23 — cohort + clinical intake (persistence P0,
+        // docs/medical_grade_survey_audit_2026_06_23.md). These signals live
+        // in @AppStorage (set during onboarding) and previously never synced,
+        // so the GLP-1 cohort routing never reached Supabase + no cohort
+        // analytics was possible. Copy them into the synced UserRecord here.
+        // Empty string = never answered -> nil.
+        let cohortDefaults = UserDefaults.standard
+        let cohortValue: (String) -> String? = { key in
+            let v = cohortDefaults.string(forKey: key) ?? ""
+            return v.isEmpty ? nil : v
+        }
+        record.onboardingGlp1Status      = cohortValue("onboarding_glp1_status")
+        record.onboardingGlp1Phase       = cohortValue("onboarding_glp1_phase")
+        record.onboardingHormonalStage   = cohortValue("onboardingHormonalStage")
+        record.onboardingWeightTrend     = cohortValue("onboarding_weight_trend")
+        record.onboardingSleepHours      = cohortValue("onboardingSleepHours")
+        record.onboardingStressLevel     = cohortValue("onboardingStressLevel")
+        record.onboardingEatingCadence   = cohortValue("onboardingEatingCadence")
+        record.onboardingEatingWindow    = cohortValue("onboardingEatingWindow")
+        record.onboardingFoodRelationship = cohortValue("onboardingFoodRelationship")
         record.pendingUpsert = true
         try? modelContext.save()
         return record

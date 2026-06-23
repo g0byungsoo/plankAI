@@ -70,6 +70,24 @@ public final class UserRecord {
     /// only signal we'll have for which creator/post is converting.
     public var onboardingAcquisitionSource: String?
 
+    /// 2026-06-23 — cohort + clinical intake (medical-grade / GLP-1 partnership
+    /// persistence P0, see docs/medical_grade_survey_audit_2026_06_23.md).
+    /// These drove in-app cohort routing but were AppStorage-only and never
+    /// synced — so no cohort analytics was possible. Now persisted to
+    /// public.users so retention/outcomes can segment by GLP-1 status,
+    /// hormonal stage, and weight trajectory. All optional/nullable so legacy
+    /// rows + never-answered users decode cleanly. Self-reported, no drug
+    /// brand names, no dose.
+    public var onboardingGlp1Status: String?        // none/considering/past/current/prefer_not_say
+    public var onboardingGlp1Phase: String?         // just_started/few_months/established/prefer_not (current only)
+    public var onboardingHormonalStage: String?     // cycling/irregular/postpartum/perimenopause/postmenopause/prefer_not_say
+    public var onboardingWeightTrend: String?        // climbing/stable/declining/cycling
+    public var onboardingSleepHours: String?        // band key
+    public var onboardingStressLevel: String?       // low/manageable/heavy/overwhelmed
+    public var onboardingEatingCadence: String?     // meal-pattern key
+    public var onboardingEatingWindow: String?      // eating-window key
+    public var onboardingFoodRelationship: String?  // fuel/comfort/love/control/complicated
+
     /// Set true by any client-side write (settings edits, onboarding-complete)
     /// and cleared on successful upsert. Drives the retry sweep on app launch
     /// so a force-quit between write + network response never silently loses
