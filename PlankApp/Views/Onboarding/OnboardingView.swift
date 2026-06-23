@@ -825,13 +825,15 @@ struct OnboardingView: View {
 
         // ─── Part 3 — About you (biometrics) ────────────────────
         case 130: jfQuestion(
-            "What's your gender?",
+            // was Title Case — out of step with the lowercase brand voice
+            // every other live screen uses (v1.1 batch-3 voice sweep).
+            "what's your gender?",
             sub: nil,  // v3 her75 editorial register
             opts: [
-                ("female",    "Female",            nil, "person.fill"),
-                ("male",      "Male",              nil, "person.fill"),
-                ("nonbinary", "Non-binary",        nil, "person.crop.circle"),
-                ("private",   "Prefer not to say", nil, "person.crop.circle.badge.questionmark"),
+                ("female",    "female",            nil, "person.fill"),
+                ("male",      "male",              nil, "person.fill"),
+                ("nonbinary", "non-binary",        nil, "person.crop.circle"),
+                ("private",   "prefer not to say", nil, "person.crop.circle.badge.questionmark"),
             ],
             sel: $gender, next: 7
         )
@@ -3240,8 +3242,8 @@ struct OnboardingView: View {
 
     private func ageWheelScreen() -> some View {
         VStack(spacing: 0) {
-            jfHeader("What's your age?",
-                     sub: "We adjust your plan based on this.")
+            jfHeader("what's your age?",
+                     sub: "we shape your plan around it.")
 
             Spacer()
 
@@ -3556,39 +3558,32 @@ struct OnboardingView: View {
         let heightM = heightCm / 100
         let bmi = (heightM > 0) ? weightKg / (heightM * heightM) : 0
         let bmiText = String(format: "%.1f", bmi)
-        let label: String
-        let color: Color
+        // v1.1 batch-3 anti-shame de-shame: dropped the clinical category
+        // labels ("Overweight"/"Obese") + the warning-red color — labelling
+        // a user "obese" in red on the weight screen flatly contradicts the
+        // brand's core anti-shame positioning. Keep the derived number
+        // (neutral) + a supportive, de-dieted, range-tailored line. Whether
+        // to show BMI at all is a founder call (flagged separately).
         let support: String
         switch bmi {
         case ..<18.5:
-            label = "Underweight"
-            color = Palette.stateWarn
-            support = "Strength training and steady fueling will round out your build."
+            support = "strength and steady fuel will round out your build."
         case 18.5..<25:
-            label = "Normal weight"
-            color = Palette.stateGood
-            support = "You're in a healthy range. let's lock in habits that last."
+            support = "you're in a steady range. let's lock in habits that last."
         case 25..<30:
-            label = "Overweight"
-            color = Palette.stateWarn
-            support = "A little more movement unlocks a stronger, lighter you."
+            support = "a little more movement, and the rest follows."
         default:
-            label = "Obese"
-            color = Palette.stateWarn
-            support = "Steady wins. your plan moves at a pace your body thanks you for."
+            support = "steady wins. your plan moves at a pace your body thanks you for."
         }
         return HStack(alignment: .top, spacing: Space.md) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Your BMI:")
+                Text("your bmi")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Palette.textPrimary)
+                    .foregroundStyle(Palette.textSecondary)
                 Text(bmiText)
                     .font(.custom("Fraunces72pt-SemiBold", size: 32))
-                    .foregroundStyle(color)
+                    .foregroundStyle(Palette.cocoaPrimary)
                     .contentTransition(.numericText())
-                Text(label)
-                    .font(Typo.caption)
-                    .foregroundStyle(color)
             }
             Text(support)
                 .font(.system(size: 13))
