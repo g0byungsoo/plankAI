@@ -2960,29 +2960,61 @@ struct OnboardingView: View {
     /// INSIDE the fixed region. Default nil per
     /// [[feedback-her75-editorial-register]].
     private func jfHeader(_ title: String, sub: String? = nil, italic: [String] = []) -> some View {
-        VStack(alignment: .leading, spacing: Space.xs) {
-            ItalicAccentText(
-                title,
-                italic: italic,
-                baseFont: Typo.heroHeadline,
-                italicFont: Typo.heroHeadlineItalic,
-                color: Palette.textPrimary,
-                alignment: .leading
-            )
-            .kerning(-0.4)
-            .lineSpacing(Typo.heroHeadlineLineGap)
-            .fixedSize(horizontal: false, vertical: true)
-            if let sub {
-                Text(sub)
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        JFHeader(title: title, sub: sub, italic: italic)
+    }
+
+    /// Question-screen header with the her75 SOFT-IN reveal: the headline
+    /// fades + rises in with ONE soft haptic on settle — the signature
+    /// "luxurious, not spammy" reveal applied to every question screen
+    /// (statement screens get the fuller line-by-line LineCascadeText).
+    /// Reduce-motion snaps + skips the haptic. Recreated per screen via
+    /// the switch's `.id(screen)`, so the reveal fires on each arrival.
+    private struct JFHeader: View {
+        let title: String
+        var sub: String? = nil
+        var italic: [String] = []
+        @State private var appeared = false
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                ItalicAccentText(
+                    title,
+                    italic: italic,
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+                .opacity(appeared ? 1 : 0)
+                .offset(y: appeared ? 0 : 7)
+                if let sub {
+                    Text(sub)
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 7)
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .frame(height: 150, alignment: .topLeading)
+            .padding(.horizontal, Space.screenPadding)
+            .onAppear {
+                guard !appeared else { return }
+                if reduceMotion { appeared = true; return }
+                withAnimation(Motion.entranceSoft) { appeared = true }
+                // One soft tap as the headline settles — the luxurious
+                // punctuation, never per-line spam on question screens.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                    Haptics.soft()
+                }
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .frame(height: 150, alignment: .topLeading)
-        .padding(.horizontal, Space.screenPadding)
     }
 
     /// v4 R1 — the CTA dock. Apply via `.safeAreaInset(edge: .bottom)`
