@@ -1070,13 +1070,20 @@ struct OnboardingView: View {
                 ("two_meals",   "2 + snacks",      nil, "cup.and.saucer"),
                 ("three_meals", "3 steady meals",  nil, "carrot"),
                 ("grazing",     "grazing all day", nil, "leaf"),
-                ("chaotic",     "chaos",           nil, "wind.snow"),
+                // "chaos" labelled the user's own life as chaotic — the
+                // clearest anti-shame slip in the food cluster. Neutral
+                // descriptor, same "no fixed cadence" signal (key unchanged).
+                ("chaotic",     "no real pattern", nil, "wind.snow"),
             ],
             sel: $eatingCadence, next: 157
         )
 
         case 157: jfQuestion(
-            "when do you stop eating?",
+            // "when do you stop eating?" read as a willpower cutoff + the
+            // ascending ladder implied earlier=better (a TRE value judgment,
+            // also evidence-weak). "wind down" = same circadian signal, no
+            // restriction coding.
+            "when does eating wind down?",
             sub: nil,
             opts: [
                 ("before_7", "before 7pm",  nil, "sunrise"),
@@ -1129,7 +1136,9 @@ struct OnboardingView: View {
                 ("eating_window", "eating window",   nil, "clock"),
                 ("cutting_sugar", "less sugar",      nil, "drop"),
                 ("logging_food",  "tracking food",   nil, "list.clipboard"),
-                ("nothing_yet",   "nothing yet",     nil, "questionmark.circle"),
+                // "nothing yet" terminated on a deficit; the highest-shame
+                // user lands here. Agentic, in-progress framing (key kept).
+                ("nothing_yet",   "still figuring it out", nil, "questionmark.circle"),
             ],
             // Delta v8 (2026-06-06) — closes the food wedge block,
             // routes to the cuisine Q (case 169) which is now the final
@@ -1154,7 +1163,7 @@ struct OnboardingView: View {
         // accuracy) and upgraded to the it-girl photo grid: one food
         // cutout per option, multi-select.
         case 169: jfPhotoMulti(
-            "what's on your plate?",
+            "what's usually on your plate?",
             sub: "pick all the ones that show up often.",
             italic: ["plate"],
             opts: [
@@ -1232,7 +1241,7 @@ struct OnboardingView: View {
                 ("fuel",         "fuel",         "i eat to function",        "bolt"),
                 ("comfort",      "comfort",      "food is how i decompress", "heart"),
                 ("love",         "love",         "cooking + sharing is joy", "heart.text.square"),
-                ("control",      "control",      "over-monitor, then crash", "slider.horizontal.3"),
+                ("control",      "control",      "i track it closely",       "slider.horizontal.3"),
                 ("complicated",  "complicated",  "not a clean answer",       "circle.dashed"),
             ],
             // Delta v7 — routes to the new pre-eat permission wedge
@@ -1550,7 +1559,12 @@ struct OnboardingView: View {
             .lineSpacing(Typo.heroHeadlineLineGap)
             .padding(.horizontal, Space.screenPadding)
             Spacer().frame(height: Space.lg)
-            Text("women 25-34 with food noise as the #1 barrier. your patterns match.")
+            // Reworded for provenance: "#1 barrier" was an unsubstantiated
+            // numeric superlative + "your patterns match" over-claimed an
+            // analytic match from a few taps. Now a non-ranked self-report
+            // descriptor + belonging line; age band widened off the hardcoded
+            // 25-34 (the cohort is 22-35, so the tails contradicted it).
+            Text("women in their 20s and 30s who name food noise as the hard part. you'll fit right in.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
