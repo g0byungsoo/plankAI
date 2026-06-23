@@ -83,11 +83,60 @@ final class AppSync {
         lastAuthMethod = AuthService.shared.authMethod
         guard !userId.isEmpty else { return }
 
+        // 2026-06-23 one-time back-fill: pull the cohort + clinical intake
+        // signals out of @AppStorage into the synced UserRecord for users who
+        // onboarded before the persistence P0 (their answers were local-only).
+        // Sets pendingUpsert, so the retry just below pushes them to Supabase.
+        backfillCohortIntakeIfNeeded(modelContext: modelContext, userId: userId)
+
         await service.retryPendingUpserts()
 
         if isLocalCacheEmpty(modelContext: modelContext) {
             await hydrateAndSync(userId: userId)
         }
+    }
+
+    /// One-time back-fill (2026-06-23, persistence P0). The cohort + clinical
+    /// intake fields were @AppStorage-only until they were added to UserRecord;
+    /// users who onboarded before that have the answers locally but nil on the
+    /// record, so they'd never sync. For an already-onboarded user, copy each
+    /// AppStorage value into the record when the record field is still nil, and
+    /// flag pendingUpsert so the launch retry pushes the profile. Guarded by a
+    /// device run-once flag. If no local UserRecord exists yet (fresh install,
+    /// pre-hydrate) it no-ops WITHOUT setting the flag, so a later post-hydrate
+    /// launch can still run it. Only fills nils, so it never clobbers a value
+    /// handleOnboardingComplete already wrote for a new user.
+    private func backfillCohortIntakeIfNeeded(modelContext: ModelContext, userId: String) {
+        let defaults = UserDefaults.standard
+        let flagKey = "cohortIntakeBackfillV1Done"
+        guard !defaults.bool(forKey: flagKey) else { return }
+
+        let descriptor = FetchDescriptor<UserRecord>(
+            predicate: #Predicate { $0.id == userId }
+        )
+        guard let record = try? modelContext.fetch(descriptor).first else { return }
+
+        func value(_ key: String) -> String? {
+            let v = defaults.string(forKey: key) ?? ""
+            return v.isEmpty ? nil : v
+        }
+
+        var changed = false
+        if record.onboardingGlp1Status == nil,       let v = value("onboarding_glp1_status")      { record.onboardingGlp1Status = v; changed = true }
+        if record.onboardingGlp1Phase == nil,        let v = value("onboarding_glp1_phase")       { record.onboardingGlp1Phase = v; changed = true }
+        if record.onboardingHormonalStage == nil,    let v = value("onboardingHormonalStage")     { record.onboardingHormonalStage = v; changed = true }
+        if record.onboardingWeightTrend == nil,      let v = value("onboarding_weight_trend")     { record.onboardingWeightTrend = v; changed = true }
+        if record.onboardingSleepHours == nil,       let v = value("onboardingSleepHours")        { record.onboardingSleepHours = v; changed = true }
+        if record.onboardingStressLevel == nil,      let v = value("onboardingStressLevel")       { record.onboardingStressLevel = v; changed = true }
+        if record.onboardingEatingCadence == nil,    let v = value("onboardingEatingCadence")     { record.onboardingEatingCadence = v; changed = true }
+        if record.onboardingEatingWindow == nil,     let v = value("onboardingEatingWindow")      { record.onboardingEatingWindow = v; changed = true }
+        if record.onboardingFoodRelationship == nil, let v = value("onboardingFoodRelationship")  { record.onboardingFoodRelationship = v; changed = true }
+
+        if changed {
+            record.pendingUpsert = true
+            try? modelContext.save()
+        }
+        defaults.set(true, forKey: flagKey)
     }
 
     /// Called on every observable auth-state change — sign-up (anon → email/
