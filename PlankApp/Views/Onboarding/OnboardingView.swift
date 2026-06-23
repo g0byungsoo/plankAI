@@ -3013,14 +3013,17 @@ struct OnboardingView: View {
                 .kerning(-0.4)
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
-                .opacity(appeared ? 1 : 0)
+                // Motion-quality (v1.1): JFPageTransition (pure opacity) is the
+                // SINGLE fade source on arrival. The header + rows used to ALSO
+                // fade opacity here, triple-stacking the ramp into a muddy
+                // entrance. Offset-only now — the page fades, the header rises,
+                // and the one soft haptic still lands on settle.
                 .offset(y: appeared ? 0 : 7)
                 if let sub {
                     Text(sub)
                         .font(Typo.body)
                         .foregroundStyle(Palette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
-                        .opacity(appeared ? 1 : 0)
                         .offset(y: appeared ? 0 : 7)
                 }
                 Spacer(minLength: 0)
@@ -9489,7 +9492,9 @@ struct StaggeredReveal<Content: View>: View {
 
     var body: some View {
         content()
-            .opacity(revealed ? 1 : 0)
+            // Motion-quality (v1.1): offset-only — the page transition owns the
+            // fade, so option rows no longer double-fade opacity on top of it.
+            // The staggered rise is what reads as the list assembling.
             .offset(y: revealed ? 0 : 14)
             .onAppear {
                 guard !revealed else { return }
