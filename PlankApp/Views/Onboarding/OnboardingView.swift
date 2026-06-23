@@ -5618,6 +5618,7 @@ struct OnboardingView: View {
             .kerning(-0.4)
             .lineSpacing(Typo.heroHeadlineLineGap)
             .padding(.horizontal, Space.screenPadding)
+            .softInRise(haptic: true)
             if let supporting {
                 Text(supporting)
                     .font(Typo.body)
@@ -5625,6 +5626,7 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
                     .padding(.top, Space.lg)
                     .padding(.horizontal, Space.lg)
+                    .softInRise(delay: 0.10)
             }
             Spacer()
             JFContinueButton(label: "continue") { go(next) }
@@ -5679,6 +5681,7 @@ struct OnboardingView: View {
                     )
                     .padding(.bottom, accentFlushBottom ? 0 : Space.xs)
                     .accessibilityHidden(true)
+                    .softInRise(delay: 0.15, rise: 12)
             }
 
         VStack(alignment: .leading, spacing: 0) {
@@ -5696,6 +5699,7 @@ struct OnboardingView: View {
             .lineSpacing(Typo.heroHeadlineLineGap)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, Space.screenPadding)
+            .softInRise(haptic: true)
 
             Spacer().frame(height: Space.lg)
 
@@ -5704,6 +5708,7 @@ struct OnboardingView: View {
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, Space.screenPadding)
+                .softInRise(delay: 0.10)
 
             if let citation {
                 Spacer().frame(height: Space.md)
@@ -5716,6 +5721,7 @@ struct OnboardingView: View {
                         .foregroundStyle(Palette.textSecondary.opacity(0.8))
                 }
                 .padding(.horizontal, Space.screenPadding)
+                .softInRise(delay: 0.20)
             }
 
             Spacer()
@@ -9582,6 +9588,46 @@ struct StaggeredReveal<Content: View>: View {
                     }
                 }
             }
+    }
+}
+
+// MARK: - SoftInRise (v1.1 transition-consistency pass)
+//
+// Reusable per-element soft-in: an offset rise on appear (the page
+// transition owns the FADE, per the motion-quality pass), with an optional
+// single soft haptic on settle. Lets the teach + bridge screens reveal with
+// the same rhythm as the question screens they're interleaved with, instead
+// of hard-cutting their content in. Reduce-motion snaps to final + no haptic.
+private struct SoftInRise: ViewModifier {
+    var delay: Double = 0
+    var rise: CGFloat = 8
+    var haptic: Bool = false
+
+    @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .offset(y: appeared ? 0 : rise)
+            .task {
+                guard !appeared else { return }
+                if reduceMotion { appeared = true; return }
+                if delay > 0 {
+                    try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                }
+                withAnimation(Motion.entranceSoft) { appeared = true }
+                if haptic {
+                    try? await Task.sleep(nanoseconds: 120_000_000)
+                    Haptics.soft()
+                }
+            }
+    }
+}
+
+private extension View {
+    /// Onboarding soft-in: offset rise on appear + optional one-shot haptic.
+    func softInRise(delay: Double = 0, rise: CGFloat = 8, haptic: Bool = false) -> some View {
+        modifier(SoftInRise(delay: delay, rise: rise, haptic: haptic))
     }
 }
 
