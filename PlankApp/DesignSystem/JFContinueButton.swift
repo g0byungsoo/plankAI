@@ -71,7 +71,11 @@ struct JFContinueButton: View {
                 .clipShape(Capsule())
             }
             .disabled(!isEnabled || isLoading)
-            .buttonStyle(.plain)
+            // v1.1 quiet-luxury: the primary CTA presses with depth + a
+            // 220ms tap-acknowledge linger (soft haptic on touch; the
+            // action still fires Haptics.medium on commit — a premium
+            // two-stage touch→commit, not a same-moment stutter).
+            .buttonStyle(LuxuryPressButtonStyle())
 
             if let secondaryLabel, let secondaryAction {
                 Button {

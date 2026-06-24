@@ -405,7 +405,8 @@ struct OnboardingOptionCard: View {
                             lineWidth: isSelected ? 1.5 : 1)
             )
         }
-        .buttonStyle(.plain)
+        // v1.1 quiet-luxury: the row springs under the thumb on touch.
+        .buttonStyle(OptionRowPressStyle())
     }
 }
 
@@ -1882,6 +1883,20 @@ extension View {
 struct LuxuryPressButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         LuxuryPressButtonBody(configuration: configuration)
+    }
+}
+
+/// Lightweight press for SELECT-IN-PLACE cards (onboarding option rows).
+/// A quick scale-down on touch that springs back — no linger / brightness
+/// (those are tuned for navigating buttons and would fight the in-place
+/// selection highlight). The card's own selected state + select haptic
+/// carry the confirmation. Reduce-motion → no scale. (v1.1 quiet-luxury.)
+struct OptionRowPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.975 : 1.0)
+            .animation(.spring(response: 0.28, dampingFraction: 0.62), value: configuration.isPressed)
     }
 }
 
