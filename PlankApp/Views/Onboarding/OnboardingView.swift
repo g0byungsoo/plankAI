@@ -407,12 +407,14 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            // v8 P8.9: onboarding crosses INTO the program era — pink
-            // canvas directly (not the conditional helper) per the her75
-            // brand-loading register. Closer screens already use
-            // programBgPrimary; this gives the question flow the same
-            // identity from screen 1 forward.
-            Palette.programBgPrimary.ignoresSafeArea()
+            // v1.1 "quiet luxury" pass — the flat cream canvas becomes a
+            // living one: OnboardingAtmosphere is the same cream base with a
+            // custom Metal shader (glacially-drifting warm-light pools + fine
+            // breathing grain). A whisper of life behind the question flow,
+            // never competing with copy. Reduce-motion freezes it. The cream
+            // fill is always present, so the bg holds even if the shader
+            // no-ops. (Was: Palette.programBgPrimary, the same cream.)
+            OnboardingAtmosphere()
 
             // v3 P11.6 (2026-06-10) — navBar pinned via ZStack top
             // alignment, NOT inside a VStack with currentScreen.

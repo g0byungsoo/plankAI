@@ -2,6 +2,44 @@ import SwiftUI
 import UIKit
 import UserNotifications
 
+// MARK: - OnboardingAtmosphere
+//
+// The premium ambient background for the onboarding question flow (v1.1
+// "quiet luxury" pass). A cream rect with the `onboardingAtmosphere` Metal
+// shader: three glacially-drifting warm-light pools + a fine breathing
+// grain, so the background feels alive and considered without ever
+// competing with the question copy. Texture-free + closed-form, so it's
+// cheap (same approach as the JeniMethod PaperCanvas). Reduce-Motion
+// freezes the drift + grain (time = 0) — still renders, just static. The
+// cream fill is always present, so even if the shader no-ops the bg holds.
+struct OnboardingAtmosphere: View {
+    /// Max blend toward the warm tints at a light pool's center. 0.14
+    /// reads as a whisper of warmth, not a gradient.
+    var intensity: Float = 0.14
+    var base: Color = Palette.bgPrimary
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        GeometryReader { geo in
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion)) { ctx in
+                let t = reduceMotion
+                    ? Float(0)
+                    : Float(ctx.date.timeIntervalSinceReferenceDate
+                            .truncatingRemainder(dividingBy: 3600))
+                Rectangle()
+                    .fill(base)
+                    .colorEffect(ShaderLibrary.onboardingAtmosphere(
+                        .float(t),
+                        .float(intensity),
+                        .float2(Float(geo.size.width), Float(geo.size.height))
+                    ))
+            }
+        }
+        .ignoresSafeArea()
+    }
+}
+
 // MARK: - Gradient Blob Background
 
 /// Animated gradient blob that floats behind content. Each screen gets a unique color combo.

@@ -55,3 +55,66 @@ static inline float fbm2(float2 p, float seed) {
     half3 rgb = color.rgb + half3(delta, delta * 0.985, delta * 0.97);
     return half4(rgb, color.a);
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// onboardingAtmosphere — the premium ambient background for the
+// onboarding question flow (v1.1 "quiet luxury" pass). Same cheap,
+// texture-free, closed-form approach as the grain above, but adds three
+// VERY slowly drifting warm-light pools (blush / peach / faint lilac)
+// over the cream so the background feels alive + considered without ever
+// competing with the question copy. The grain is layered on top at a
+// subtle amplitude for a premium "uncoated paper" finish.
+//
+// `intensity` is the max blend toward the warm tints at a pool's center
+// (≈0.12–0.18 reads as a whisper of light, not a gradient). Applied via
+// `.colorEffect(ShaderLibrary.onboardingAtmosphere(...))` on the cream
+// rect in OnboardingAtmosphere. Reduce-Motion freezes `time = 0`.
+// ─────────────────────────────────────────────────────────────────────
+
+// Soft gaussian light pool. `spread` larger = tighter pool.
+static inline float atmPool(float2 uv, float2 c, float spread) {
+    float2 d = uv - c;
+    return exp(-dot(d, d) * spread);
+}
+
+[[ stitchable ]] half4 onboardingAtmosphere(
+    float2 position,
+    half4 color,
+    float time,
+    float intensity,
+    float2 size
+) {
+    float2 nuv = position / max(size, float2(1.0, 1.0)); // 0..1 both axes
+
+    // Three drifting warm-light pools. The 0.06 multiplier keeps the
+    // drift glacial — ambient light, never a moving gradient.
+    float t = time * 0.06;
+    float2 c1 = float2(0.20 + 0.05 * sin(t * 0.90),       0.16 + 0.04 * cos(t * 0.70));
+    float2 c2 = float2(0.85 + 0.04 * cos(t * 0.60),       0.34 + 0.05 * sin(t * 0.80));
+    float2 c3 = float2(0.50 + 0.06 * sin(t * 0.50 + 1.7), 0.92 + 0.03 * cos(t * 1.00));
+    float g1 = atmPool(nuv, c1, 2.4);
+    float g2 = atmPool(nuv, c2, 2.8);
+    float g3 = atmPool(nuv, c3, 2.0);
+
+    half3 base  = color.rgb;                        // the cream fill
+    half3 blush = half3(0.965h, 0.835h, 0.855h);    // warm rose
+    half3 peach = half3(0.998h, 0.950h, 0.910h);    // warm cream
+    half3 lilac = half3(0.940h, 0.928h, 0.952h);    // faint cool
+
+    half k = half(intensity);
+    half3 col = base;
+    col = mix(col, blush, half(g1) * k * 1.00h);
+    col = mix(col, peach, half(g2) * k * 0.85h);
+    col = mix(col, lilac, half(g3) * k * 0.60h);
+
+    // Fine breathing grain on top (subtler than the reader's).
+    float2 guv = position / max(size.x, 1.0) * 720.0;
+    float breath = 0.5 + 0.5 * sin(time * 3.927);   // 1.6s
+    float gamp = 0.026 * (0.85 + 0.15 * breath);
+    float grain = fbm2(guv, 0.0) - 0.5;
+    grain = grain * (1.0 - 0.35 * abs(grain));
+    half gd = half(grain * gamp);
+    col += half3(gd, gd * 0.985h, gd * 0.97h);
+
+    return half4(col, color.a);
+}
