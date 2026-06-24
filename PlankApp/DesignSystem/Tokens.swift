@@ -806,9 +806,19 @@ enum JFPageTransition {
     /// entrance slow (easeOut 0.35s). Net 0.55s per turn but feels
     /// like 0.35 because the user only sees the entrance phase
     /// "actively arriving."
+    ///
+    /// v1.1 "quiet luxury": paired with a whisper of depth — the incoming
+    /// page blooms in from 0.985 scale while the outgoing recedes to 0.985.
+    /// A 1.5% scale reads as "materializing into place," never an iOS
+    /// modal zoom, and gives every screen turn a produced feel without
+    /// touching the element soft-in layered on top.
     static let standard: AnyTransition = .asymmetric(
-        insertion: .opacity.animation(Motion.pageEntrance.delay(Motion.pageGap)),
-        removal: .opacity.animation(Motion.pageExit)
+        insertion: .opacity
+            .combined(with: .scale(scale: 0.985, anchor: .center))
+            .animation(Motion.pageEntrance.delay(Motion.pageGap)),
+        removal: .opacity
+            .combined(with: .scale(scale: 0.985, anchor: .center))
+            .animation(Motion.pageExit)
     )
 }
 
