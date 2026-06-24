@@ -404,6 +404,12 @@ struct OnboardingOptionCard: View {
                     .stroke(isSelected ? Palette.accent : Palette.divider,
                             lineWidth: isSelected ? 1.5 : 1)
             )
+            // v1.1 quiet-luxury: a soft elevation so the rows float on the
+            // atmosphere; the selected row lifts further with a warmer cocoa
+            // cast. Animates with the selection (within the tap transaction).
+            .shadow(color: Palette.cocoaPrimary.opacity(isSelected ? 0.10 : 0.035),
+                    radius: isSelected ? 10 : 5,
+                    x: 0, y: isSelected ? 4 : 2)
         }
         // v1.1 quiet-luxury: the row springs under the thumb on touch.
         .buttonStyle(OptionRowPressStyle())
