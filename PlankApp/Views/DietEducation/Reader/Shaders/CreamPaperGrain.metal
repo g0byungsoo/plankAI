@@ -118,3 +118,51 @@ static inline float atmPool(float2 uv, float2 c, float spread) {
 
     return half4(col, color.a);
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// iridescentRingFlow — a warm, slowly-rotating iridescent gradient for
+// the Steps detail ring. Applied as a `.colorEffect` on the trimmed
+// progress arc: the stroke's own rasterized alpha (round caps + the
+// trim endpoint + anti-aliasing) is preserved untouched, only the RGB
+// is replaced by an Inigo-Quilez cosine palette swept by angle + time.
+// The palette is biased WARM (rose → mauve → peach) with a small
+// amplitude so it shimmers like the iridescent shoe sticker the steps
+// rail already carries — never a garish full-spectrum rainbow.
+// Reduce-Motion: callers pass `time = 0` → a still warm gradient.
+// ─────────────────────────────────────────────────────────────────────
+[[ stitchable ]] half4 iridescentRingFlow(
+    float2 position,
+    half4 color,
+    float time,
+    float2 size
+) {
+    // Outside the stroke / past the trim, alpha is 0 — return as-is so
+    // the arc shape, round caps and AA stay perfectly clean.
+    if (color.a == 0.0h) { return color; }
+
+    float2 cen = size * 0.5;
+    float2 d = position - cen;
+    float angle = atan2(d.y, d.x);                 // -pi..pi around center
+    float t = angle / 6.2831853 + time * 0.06;     // glacial rotation
+
+    // Three hand-picked WARM stops (deep rose → coral → peach-gold),
+    // blended smoothly around the loop so the sweep travels through
+    // visible warm iridescence but can NEVER reach green or blue: every
+    // stop has R ≥ G ≥ B by construction (the brand palette is locked
+    // warm). A cosine/IQ palette inevitably strays cool or olive at some
+    // angle; explicit warm stops cannot.
+    float u = fract(t);
+    float3 c0 = float3(0.80, 0.44, 0.48);  // deep rose
+    float3 c1 = float3(0.93, 0.60, 0.48);  // coral
+    float3 c2 = float3(0.95, 0.78, 0.58);  // peach-gold
+    float3 col;
+    if (u < 0.33333) {
+        col = mix(c0, c1, smoothstep(0.0, 0.33333, u));
+    } else if (u < 0.66666) {
+        col = mix(c1, c2, smoothstep(0.33333, 0.66666, u));
+    } else {
+        col = mix(c2, c0, smoothstep(0.66666, 1.0, u));
+    }
+
+    return half4(half3(col), color.a);
+}
