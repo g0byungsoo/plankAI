@@ -490,7 +490,15 @@ struct StepsDetailSheet: View {
 
     private var statTrio: some View {
         HStack(spacing: Space.sm) {
-            StepsStatChip(value: "\(energy.kcal)", unit: "kcal", caption: "energy", accent: true)
+            // v1.1.2 — energy needs her weight; if onboarding never
+            // collected it (weightKg == 0), show "—" rather than a kcal
+            // imputed from a silent default (data-provenance rule).
+            StepsStatChip(
+                value: weightKg > 0 ? "\(energy.kcal)" : "—",
+                unit: weightKg > 0 ? "kcal" : "",
+                caption: "energy",
+                accent: true
+            )
             StepsStatChip(value: distanceValue, unit: imperial ? "mi" : "km", caption: "walked")
             StepsStatChip(value: weekAvg.formatted(.number), unit: "/day", caption: "this week")
         }

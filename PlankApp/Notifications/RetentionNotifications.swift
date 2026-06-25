@@ -466,11 +466,15 @@ enum RetentionNotifications {
             "day0_anchor",       // legacy v1.0.7
             "day2_engagement",   // legacy v1.0.7
         ])
-        UserDefaults.standard.set(false, forKey: Key.day1MorningDone)
-        scheduleDay1Morning(now: now, engaged: true)
 
         Task {
             guard await isAuthorized() else { return }
+            // v1.1.2 (2026-06-25) — re-arm the D1 push (and winback) only
+            // when notifications are authorized, so an unauthorized session
+            // doesn't flip day1MorningDone and silently suppress the
+            // "continue" push if she grants permission later.
+            UserDefaults.standard.set(false, forKey: Key.day1MorningDone)
+            scheduleDay1Morning(now: now, engaged: true)
             armWinback(now: now)
         }
     }

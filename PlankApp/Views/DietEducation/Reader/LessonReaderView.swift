@@ -764,6 +764,9 @@ struct LessonReaderView: View {
             : (page.ctaLabel.isEmpty ? "continue" : page.ctaLabel.lowercased())
         JFContinueButton(label: label) {
             if isLast {
+                // v1.1.2 — ignore a double-tap during the ~1.25s close
+                // bloom so the completion analytic + onComplete fire once.
+                guard !completionBlooming else { return }
                 if !isReread {
                     Haptics.success()
                     // Completion analytic — fires once per first read of a
