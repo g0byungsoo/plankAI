@@ -727,3 +727,157 @@ struct SafetyRecoveryView: View {
         }
     }
 }
+
+/// Informed-consent acknowledgment — the honest "education, not medical
+/// care" frame, shown first in the safety gate.
+struct SafetyConsentView: View {
+    let onAccept: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Palette.bgPrimary.ignoresSafeArea()
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: Space.lg) {
+                    ItalicAccentText(
+                        "before we begin.",
+                        italic: ["begin"],
+                        baseFont: Typo.heroHeadline,
+                        italicFont: Typo.heroHeadlineItalic,
+                        color: Palette.textPrimary,
+                        alignment: .leading
+                    )
+                    .lineSpacing(Typo.heroHeadlineLineGap)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                    Text("jenifit is here to help you build kind, steady habits. a couple of things to be clear about, because they matter:")
+                        .font(.custom("DMSans-Regular", size: 16))
+                        .lineSpacing(5)
+                        .foregroundStyle(Palette.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    VStack(alignment: .leading, spacing: Space.sm) {
+                        bullet("this is an educational program, not medical care.")
+                        bullet("it doesn't replace your doctor or prescriber.")
+                        bullet("if anything ever feels off, please reach out to a professional.")
+                    }
+
+                    Text("by continuing, you're saying you understand \u{2661}")
+                        .font(.custom("DMSans-Regular", size: 15))
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Color.clear.frame(height: 80)
+                }
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.xl)
+            }
+            JFContinueButton(label: "i understand", action: { Haptics.light(); onAccept() })
+                .padding(.horizontal, Space.lg)
+                .padding(.bottom, Space.lg)
+        }
+    }
+
+    private func bullet(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: Space.sm) {
+            Circle().fill(Palette.cocoaPrimary).frame(width: 5, height: 5).padding(.top, 7)
+            Text(text)
+                .font(.custom("DMSans-Regular", size: 15))
+                .lineSpacing(3)
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// Pregnancy / lactation / TTC screen. `pregnant`/`breastfeeding` route the
+/// program to a steady, non-deficit mode; this is a safety screen, not a
+/// diagnosis. No drug brand names.
+struct SafetyPregnancyView: View {
+    let onComplete: (String) -> Void   // status key
+
+    private let options: [(key: String, label: String)] = [
+        ("none", "none of these"),
+        ("pregnant", "i'm pregnant"),
+        ("ttc", "trying to conceive"),
+        ("breastfeeding", "breastfeeding"),
+        ("prefer_not_say", "prefer not to say"),
+    ]
+    @State private var selected: String? = nil
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Palette.bgPrimary.ignoresSafeArea()
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: Space.lg) {
+                    ItalicAccentText(
+                        "one more, just to be safe.",
+                        italic: ["safe"],
+                        baseFont: Typo.heroHeadline,
+                        italicFont: Typo.heroHeadlineItalic,
+                        color: Palette.textPrimary,
+                        alignment: .leading
+                    )
+                    .lineSpacing(Typo.heroHeadlineLineGap)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                    Text("is any of this true for you right now? it helps us keep your plan right for your body \u{2661}")
+                        .font(.custom("DMSans-Regular", size: 15))
+                        .lineSpacing(4)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    VStack(spacing: Space.sm) {
+                        ForEach(options, id: \.key) { opt in
+                            SafetySelectRow(label: opt.label, selected: selected == opt.key) {
+                                selected = opt.key
+                            }
+                        }
+                    }
+                    Color.clear.frame(height: 80)
+                }
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.xl)
+            }
+            JFContinueButton(
+                label: "continue",
+                action: { Haptics.light(); onComplete(selected ?? "none") },
+                isEnabled: selected != nil
+            )
+            .padding(.horizontal, Space.lg)
+            .padding(.bottom, Space.lg)
+        }
+    }
+}
+
+/// Single-select radio row used by the safety screens.
+struct SafetySelectRow: View {
+    let label: String
+    let selected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button { Haptics.soft(); action() } label: {
+            HStack {
+                Text(label)
+                    .font(.custom("DMSans-Medium", size: 16))
+                    .foregroundStyle(Palette.textPrimary)
+                Spacer()
+                ZStack {
+                    Circle()
+                        .stroke(selected ? Palette.cocoaPrimary : Palette.divider, lineWidth: 1.5)
+                        .frame(width: 22, height: 22)
+                    if selected {
+                        Circle().fill(Palette.cocoaPrimary).frame(width: 12, height: 12)
+                    }
+                }
+            }
+            .padding(Space.md)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Palette.bgElevated))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(selected ? Palette.cocoaPrimary.opacity(0.5) : Palette.divider, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}

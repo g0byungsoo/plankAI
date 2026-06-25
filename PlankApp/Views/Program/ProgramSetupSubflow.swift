@@ -55,6 +55,8 @@ struct ProgramSetupSubflow: View {
     @AppStorage("safety_screen_completed") private var safetyScreenCompleted: Bool = false
     @AppStorage("program_mode") private var programMode: String = "loss"
     @AppStorage("safety_scoff_yes") private var safetyScoffYes: Int = -1
+    @AppStorage("safety_pregnancy_status") private var safetyPregnancyStatus: String = ""
+    @AppStorage("safety_consent_accepted") private var safetyConsentAccepted: Bool = false
 
     // Authenticated user id used by ProgramService.startProgram.
     // Read from the same source other AppSync calls use (AppSync.shared.currentUserId).
@@ -92,6 +94,8 @@ struct ProgramSetupSubflow: View {
     // v1.2 medical-grade Phase 1 — the safety gate wraps the program flow.
     @State private var safetyPhase: SafetyPhase = .passed
     private enum SafetyPhase: Equatable {
+        case consent
+        case pregnancy
         case screening
         case terminal(SafetyTerminalVariant)
         case passed
@@ -100,6 +104,13 @@ struct ProgramSetupSubflow: View {
     var body: some View {
         Group {
             switch safetyPhase {
+            case .consent:
+                SafetyConsentView(onAccept: {
+                    safetyConsentAccepted = true
+                    withAnimation(Motion.crossFade) { safetyPhase = .pregnancy }
+                })
+            case .pregnancy:
+                SafetyPregnancyView(onComplete: handlePregnancy)
             case .screening:
                 SCOFFScreenView(onComplete: handleSafetyScreen)
             case .terminal(let variant):
@@ -147,12 +158,17 @@ struct ProgramSetupSubflow: View {
         }
         guard safetyScreenEnabled else { return }
         if !safetyScreenCompleted {
-            safetyPhase = .screening
+            safetyPhase = .consent
         } else {
             // Re-derive on re-entry so a screened-out user can never slip
             // into the loss flow (the assessment is deterministic).
             safetyPhase = phase(for: assessment(scoffYes: safetyScoffYes))
         }
+    }
+
+    private func handlePregnancy(status: String) {
+        safetyPregnancyStatus = status
+        withAnimation(Motion.crossFade) { safetyPhase = .screening }
     }
 
     private func handleSafetyScreen(yesCount: Int) {
@@ -170,7 +186,7 @@ struct ProgramSetupSubflow: View {
             heightCm: heightCm,
             ageRange: ageRange,
             scoffYesCount: scoffYes,
-            pregnancyStatus: ""   // pregnancy/lactation question wired next pass
+            pregnancyStatus: safetyPregnancyStatus
         ))
     }
 

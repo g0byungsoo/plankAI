@@ -466,6 +466,10 @@ struct PlankAIApp: App {
                     // v1.2 (2026-06-25) — the real program-setup subflow, to
                     // verify the safety gate fires before the program build.
                     ProgramSetupSubflow(onComplete: { _ in })
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-consent") {
+                    SafetyConsentView(onAccept: {})
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-pregnancy") {
+                    SafetyPregnancyView(onComplete: { _ in })
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview") {
                     SleepCardPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview-empty") {
