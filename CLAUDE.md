@@ -1,6 +1,6 @@
-## Project status (2026-06-21)
+## Project status (2026-06-25)
 
-JeniFit ships as v1.1.1 (build 21). The Xcode project name + Bundle ID
+JeniFit ships as v1.1.2 (build 22). The Xcode project name + Bundle ID
 intentionally stay legacy (`plankAI` / `com.bk.plankAI`) — renaming forces
 a re-onboarding for every TestFlight tester and a re-submission through
 App Review. v1.2+ handles the project + Bundle + SKU rename together.
@@ -156,7 +156,7 @@ work but is preserved for history, not for guidance.
   JeniHeroSerif spec.
 
 ### Compliance + metadata
-- `MARKETING_VERSION = 1.1.1`, `CURRENT_PROJECT_VERSION = 21`.
+- `MARKETING_VERSION = 1.1.2`, `CURRENT_PROJECT_VERSION = 22`.
 - `LSApplicationCategoryType = public.app-category.healthcare-fitness`.
 - Privacy policy + terms hosted at `jenifit.app/privacy` +
   `jenifit.app/terms`. Drafts at `docs/privacy_policy.md` +

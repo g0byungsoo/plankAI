@@ -1,6 +1,6 @@
 # JeniFit — Canonical State
 
-Last updated: 2026-06-21 (v1.1.1, build 21)
+Last updated: 2026-06-25 (v1.1.2, build 22)
 
 This is the source-of-truth doc. Read it first. Anything earlier in
 `docs/archive/` documented a research pass or pivot that informed shipped
