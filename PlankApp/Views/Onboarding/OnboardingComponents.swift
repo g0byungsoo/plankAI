@@ -640,10 +640,57 @@ struct SafetyResourcesCard: View {
     }
 }
 
-/// Shown when the SCOFF screen is positive. No goal weight, no calories —
-/// a gentle reframe + real resources. Routes to maintenance/nourish, never
-/// the loss program.
+/// The non-loss safety outcomes. Variant drives the copy; crisis resources
+/// surface only for the eating-disorder path.
+enum SafetyTerminalVariant: Equatable {
+    case eatingDisorder, lowBMI, underage, pregnant, breastfeeding
+
+    var headline: String {
+        switch self {
+        case .eatingDisorder: return "let's take this gently."
+        case .lowBMI:         return "you're already there."
+        case .underage:       return "we'll be here."
+        case .pregnant:       return "steady is perfect."
+        case .breastfeeding:  return "fed and steady."
+        }
+    }
+    var headlineItalic: [String] {
+        switch self {
+        case .eatingDisorder: return ["gently"]
+        case .lowBMI:         return ["there"]
+        case .underage:       return ["here"]
+        case .pregnant:       return ["perfect"]
+        case .breastfeeding:  return ["steady"]
+        }
+    }
+    var bodyText: String {
+        switch self {
+        case .eatingDisorder:
+            return "some of what you shared tells us a numbers-and-goal-weight plan might not be the kindest thing for you right now. so we're going to skip it. no calorie counting, no goal weight, no pressure.\n\nyour relationship with food matters more than any number, and you deserve real support for it \u{2661}"
+        case .lowBMI:
+            return "your weight is already in a healthy range for your height, so a loss plan isn't the kindest fit. we'll focus on feeling strong and steady instead, no deficit, no goal weight \u{2661}"
+        case .underage:
+            return "jenifit's plans are built for 18 and up. please be gentle with yourself, and come find us when the time is right \u{2661}"
+        case .pregnant:
+            return "weight loss isn't the goal during pregnancy. we'll keep things gentle and supportive and skip the deficit and goal weight. your clinician is the best guide for what's right for you \u{2661}"
+        case .breastfeeding:
+            return "while you're breastfeeding, your body needs steady fuel, not a deficit. we'll keep things gentle and protein-forward instead of chasing a goal weight \u{2661}"
+        }
+    }
+    var ctaLabel: String {
+        switch self {
+        case .eatingDisorder: return "continue gently"
+        case .underage:       return "okay"
+        default:              return "sounds good"
+        }
+    }
+    var showsResources: Bool { self == .eatingDisorder }
+}
+
+/// Terminal "this isn't the right fit" screen for a non-loss safety
+/// outcome. No goal weight, no calories; ED path also shows resources.
 struct SafetyRecoveryView: View {
+    var variant: SafetyTerminalVariant = .eatingDisorder
     let onContinueGently: () -> Void
 
     var body: some View {
@@ -652,8 +699,8 @@ struct SafetyRecoveryView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: Space.lg) {
                     ItalicAccentText(
-                        "let's take this gently.",
-                        italic: ["gently"],
+                        variant.headline,
+                        italic: variant.headlineItalic,
                         baseFont: Typo.heroHeadline,
                         italicFont: Typo.heroHeadlineItalic,
                         color: Palette.textPrimary,
@@ -662,19 +709,19 @@ struct SafetyRecoveryView: View {
                     .lineSpacing(Typo.heroHeadlineLineGap)
                     .fixedSize(horizontal: false, vertical: true)
 
-                    Text("some of what you shared tells us a numbers-and-goal-weight plan might not be the kindest thing for you right now. so we're going to skip it. no calorie counting, no goal weight, no pressure.\n\nyour relationship with food matters more than any number, and you deserve real support for it \u{2661}")
+                    Text(variant.bodyText)
                         .font(.custom("DMSans-Regular", size: 16))
                         .lineSpacing(5)
                         .foregroundStyle(Palette.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    SafetyResourcesCard()
+                    if variant.showsResources { SafetyResourcesCard() }
                     Color.clear.frame(height: 80)
                 }
                 .padding(.horizontal, Space.lg)
                 .padding(.top, Space.xl)
             }
-            JFContinueButton(label: "continue gently", action: { Haptics.light(); onContinueGently() })
+            JFContinueButton(label: variant.ctaLabel, action: { Haptics.light(); onContinueGently() })
                 .padding(.horizontal, Space.lg)
                 .padding(.bottom, Space.lg)
         }

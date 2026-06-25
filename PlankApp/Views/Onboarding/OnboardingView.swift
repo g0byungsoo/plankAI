@@ -9085,6 +9085,9 @@ struct OnboardingView: View {
         data.workoutStyle = Array(workoutStyle)
         data.gender = gender
         data.heightCm = heightCm
+        // v1.2 medical-grade (2026-06-25) — mirror height to AppStorage so
+        // the program safety gate (BMI floor) can read it without a fetch.
+        UserDefaults.standard.set(heightCm, forKey: "onboardingHeightCm")
         data.currentWeightKg = currentWeightKg
         data.goalWeightKg = goalWeightKg
         data.bodyTypeCurrent = bodyTypeCurrent

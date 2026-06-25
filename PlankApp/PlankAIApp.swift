@@ -462,6 +462,10 @@ struct PlankAIApp: App {
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-recovery") {
                     // v1.2 (2026-06-25) — ED-positive gentle path + resources.
                     SafetyRecoveryView(onContinueGently: {})
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-program-setup") {
+                    // v1.2 (2026-06-25) — the real program-setup subflow, to
+                    // verify the safety gate fires before the program build.
+                    ProgramSetupSubflow(onComplete: { _ in })
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview") {
                     SleepCardPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview-empty") {

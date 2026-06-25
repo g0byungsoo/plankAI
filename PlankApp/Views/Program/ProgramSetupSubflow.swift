@@ -46,6 +46,16 @@ struct ProgramSetupSubflow: View {
     // v3 P11.2 (2026-06-10) — sleep load-bearing in engine.
     @AppStorage("onboardingSleepHours")    private var sleepHours: String = ""
 
+    // v1.2 medical-grade Phase 1 (2026-06-25) — safety gate. Reads height
+    // (persisted by onboarding) for the BMI floor. Runs once per NEW
+    // enrollment; existing enrolled users never re-enter this subflow, so
+    // they are unaffected. `safety_screen_enabled` is the kill switch.
+    @AppStorage("onboardingHeightCm") private var heightCm: Double = 0
+    @AppStorage("safety_screen_enabled") private var safetyScreenEnabled: Bool = true
+    @AppStorage("safety_screen_completed") private var safetyScreenCompleted: Bool = false
+    @AppStorage("program_mode") private var programMode: String = "loss"
+    @AppStorage("safety_scoff_yes") private var safetyScoffYes: Int = -1
+
     // Authenticated user id used by ProgramService.startProgram.
     // Read from the same source other AppSync calls use (AppSync.shared.currentUserId).
     @State private var userId: String = ""
@@ -79,7 +89,29 @@ struct ProgramSetupSubflow: View {
         }
     }
 
+    // v1.2 medical-grade Phase 1 — the safety gate wraps the program flow.
+    @State private var safetyPhase: SafetyPhase = .passed
+    private enum SafetyPhase: Equatable {
+        case screening
+        case terminal(SafetyTerminalVariant)
+        case passed
+    }
+
     var body: some View {
+        Group {
+            switch safetyPhase {
+            case .screening:
+                SCOFFScreenView(onComplete: handleSafetyScreen)
+            case .terminal(let variant):
+                SafetyRecoveryView(variant: variant, onContinueGently: { onComplete(false) })
+            case .passed:
+                programBody
+            }
+        }
+        .onAppear { onSetupAppear() }
+    }
+
+    private var programBody: some View {
         ZStack {
             Palette.programBgPrimary.ignoresSafeArea()
 
@@ -100,16 +132,54 @@ struct ProgramSetupSubflow: View {
                 footer
             }
         }
-        .onAppear {
-            userId = AppSync.shared.currentUserId ?? ""
-            // v9 P9.4: if onboarding already collected pace + derived
-            // date, jump straight to the commit page. Existing users
-            // (onboardingPickedTier empty) still walk the full 3-page
-            // flow.
-            if let tier = IntensityTier(rawValue: onboardingPickedTierRaw) {
-                pickedTier = tier
-                page = .commitment
-            }
+    }
+
+    // Safety gate (2026-06-25). Runs once per NEW enrollment, before the
+    // program is built; existing enrolled users never re-enter this
+    // subflow, so they are unaffected. Flag-gated via safety_screen_enabled.
+    private func onSetupAppear() {
+        userId = AppSync.shared.currentUserId ?? ""
+        // v9 P9.4: if onboarding already collected pace + derived date,
+        // jump straight to the commit page.
+        if let tier = IntensityTier(rawValue: onboardingPickedTierRaw) {
+            pickedTier = tier
+            page = .commitment
+        }
+        guard safetyScreenEnabled else { return }
+        if !safetyScreenCompleted {
+            safetyPhase = .screening
+        } else {
+            // Re-derive on re-entry so a screened-out user can never slip
+            // into the loss flow (the assessment is deterministic).
+            safetyPhase = phase(for: assessment(scoffYes: safetyScoffYes))
+        }
+    }
+
+    private func handleSafetyScreen(yesCount: Int) {
+        safetyScoffYes = yesCount
+        let a = assessment(scoffYes: yesCount)
+        programMode = a.mode.rawValue
+        safetyScreenCompleted = true
+        withAnimation(Motion.crossFade) { safetyPhase = phase(for: a) }
+    }
+
+    private func assessment(scoffYes: Int) -> ProgramGoalCalculator.SafetyAssessment {
+        ProgramGoalCalculator.safetyAssessment(.init(
+            currentWeightKg: currentWeightKg,
+            goalWeightKg: goalWeightKg,
+            heightCm: heightCm,
+            ageRange: ageRange,
+            scoffYesCount: scoffYes,
+            pregnancyStatus: ""   // pregnancy/lactation question wired next pass
+        ))
+    }
+
+    private func phase(for a: ProgramGoalCalculator.SafetyAssessment) -> SafetyPhase {
+        switch a.mode {
+        case .loss:        return .passed
+        case .recovery:    return .terminal(.eatingDisorder)
+        case .blocked:     return .terminal(.underage)
+        case .maintenance: return .terminal(a.reasonKey == "bmi_low" ? .lowBMI : .pregnant)
         }
     }
 
