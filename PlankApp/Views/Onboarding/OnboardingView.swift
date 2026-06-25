@@ -2189,16 +2189,38 @@ struct OnboardingView: View {
                 }
                 .accessibilityLabel("Back")
 
-                // her75 hairline — 2pt, near-invisible track.
+                // v1.1 "modern vibe" rail (2026-06-24) — the old 2pt
+                // cocoa-on-cocoa@8% hairline read as a tiny broken dash
+                // next to the chevron (the single biggest "unfinished"
+                // tell on every question screen). Now a 4pt gradient rail
+                // (rose → cocoa: starts soft, deepens as she commits) on a
+                // legible hairline track, with a leading "bead" that rides
+                // the fill and a spring-forward advance — the one recurring
+                // moment of delight across the 53-screen flow.
                 GeometryReader { geo in
+                    let fillW = max(14, geo.size.width * progressFraction)
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Palette.cocoaPrimary.opacity(0.08))
-                            .frame(height: 2)
+                            .fill(Palette.hairlineCocoa)
+                            .frame(height: 4)
                         Capsule()
-                            .fill(Palette.cocoaPrimary)
-                            .frame(width: max(4, geo.size.width * progressFraction), height: 2)
-                            .animation(Motion.entrance, value: screen)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Palette.accent, Palette.cocoaPrimary],
+                                    startPoint: .leading, endPoint: .trailing
+                                )
+                            )
+                            .frame(width: fillW, height: 4)
+                            .shadow(color: Palette.accent.opacity(0.22), radius: 3, x: 0, y: 0)
+                            .animation(Motion.modernPop, value: screen)
+                        // the bead — a soft accent dot riding the leading
+                        // edge; the "you are moving" signal made physical.
+                        Circle()
+                            .fill(Palette.accent)
+                            .frame(width: 6, height: 6)
+                            .shadow(color: Palette.accent.opacity(0.5), radius: 3, x: 0, y: 0)
+                            .offset(x: fillW - 3)
+                            .animation(Motion.modernPop, value: screen)
                     }
                     .frame(maxHeight: .infinity, alignment: .center)
                 }
@@ -3088,10 +3110,23 @@ struct OnboardingView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .offset(y: appeared ? 0 : 7)
                 }
-                Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-            .frame(height: 150, alignment: .topLeading)
+            // v1.1 "modern vibe" (2026-06-24): the region stays FIXED so
+            // options still start at the same Y on every screen (the
+            // founder's alignment invariant), but the headline now
+            // BOTTOM-anchors inside it. A single-line headline used to
+            // top-align and dump ~100pt of dead cream between it and the
+            // first card — screen 168 read as "content failed to load."
+            // Bottom-anchored, the headline always sits just above its
+            // options (grouped, Typeform-modern); the breathing room
+            // moves above the headline, where it reads as calm, not broken.
+            // 136 fits the longest in-flow headline (the 3-line "how many
+            // serious attempts in the last few years?", ~125pt rendered at
+            // 38pt JeniHeroSerif) with a top margin so a bottom-anchored
+            // 3-liner breathes below the nav instead of crowding it; 1-2 line
+            // headlines (the 95% case) sit just above their options.
+            .frame(maxWidth: .infinity, alignment: .bottomLeading)
+            .frame(height: 136, alignment: .bottomLeading)
             .padding(.horizontal, Space.screenPadding)
             .onAppear {
                 guard !appeared else { return }
@@ -3196,15 +3231,17 @@ struct OnboardingView: View {
                 trustAnchor
             }
 
-            // her75 Phase 3 — Space.lg gap dropped; the fixed 150pt
-            // hero region already carries the breathing room.
-            Spacer().frame(height: Space.xs)
+            // v1.1 "modern vibe": the header now bottom-anchors, so this
+            // is the literal headline→first-card gap. 16pt groups the
+            // question with its answers (was 4pt against the old 150pt
+            // top-aligned region that carried its own air).
+            Spacer().frame(height: Space.md)
 
             // v4 R1 — options scroll INTERNALLY when they overflow
             // (basedOnSize keeps short lists inert); they can never
             // collide with the nav bar or push the CTA.
             ScrollView {
-                VStack(spacing: Space.sm) {
+                VStack(spacing: Space.optionGap) {
                     ForEach(Array(opts.enumerated()), id: \.element.0) { idx, opt in
                         let (key, optTitle, optSub, optIcon) = opt
                         StaggeredReveal(index: idx) {
@@ -3427,10 +3464,10 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             jfHeader(title, sub: sub, italic: italic)
 
-            Spacer().frame(height: Space.xs)
+            Spacer().frame(height: Space.md)
 
             ScrollView {
-                VStack(spacing: Space.sm) {
+                VStack(spacing: Space.optionGap) {
                     ForEach(Array(opts.enumerated()), id: \.element.0) { idx, opt in
                         let (key, optTitle, optSub, optIcon) = opt
                         StaggeredReveal(index: idx) {
@@ -3918,13 +3955,13 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             jfHeader(title, sub: nil, italic: italic)
 
-            Spacer().frame(height: Space.xs)
+            Spacer().frame(height: Space.md)
 
             ScrollView {
                 LazyVGrid(
-                    columns: [GridItem(.flexible(), spacing: Space.sm),
-                              GridItem(.flexible(), spacing: Space.sm)],
-                    spacing: Space.sm
+                    columns: [GridItem(.flexible(), spacing: Space.optionGap),
+                              GridItem(.flexible(), spacing: Space.optionGap)],
+                    spacing: Space.optionGap
                 ) {
                     ForEach(Array(opts.enumerated()), id: \.element.key) { idx, opt in
                         StaggeredReveal(index: idx) {
@@ -3964,13 +4001,13 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             jfHeader(title, sub: sub, italic: italic)
 
-            Spacer().frame(height: Space.xs)
+            Spacer().frame(height: Space.md)
 
             ScrollView {
                 LazyVGrid(
-                    columns: [GridItem(.flexible(), spacing: Space.sm),
-                              GridItem(.flexible(), spacing: Space.sm)],
-                    spacing: Space.sm
+                    columns: [GridItem(.flexible(), spacing: Space.optionGap),
+                              GridItem(.flexible(), spacing: Space.optionGap)],
+                    spacing: Space.optionGap
                 ) {
                     ForEach(Array(opts.enumerated()), id: \.element.key) { idx, opt in
                         StaggeredReveal(index: idx) {
@@ -4041,10 +4078,19 @@ struct OnboardingView: View {
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(isSelected ? Palette.accent : Palette.divider,
+                    .stroke(isSelected ? Palette.accent : Palette.hairlineCocoa,
                             lineWidth: isSelected ? 1.5 : 1)
             )
-            .scaleEffect(isSelected ? 1.0 : 0.985)
+            // v1.1 "modern vibe": match the option-card material so the photo
+            // grids float on the cream like the list screens (was a flatter
+            // divider-bordered card with no shadow). 2-layer paper shadow.
+            .shadow(color: Palette.cocoaPrimary.opacity(0.05), radius: 2, x: 0, y: 1)
+            .shadow(color: Palette.cocoaPrimary.opacity(isSelected ? 0.10 : 0.055),
+                    radius: isSelected ? 20 : 16,
+                    x: 0, y: isSelected ? 8 : 6)
+            // 0.985 read as a permanent visible shrink (misaligned); 0.99 is
+            // near-imperceptible at rest and still lifts on select.
+            .scaleEffect(isSelected ? 1.0 : 0.99)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(opt.label)

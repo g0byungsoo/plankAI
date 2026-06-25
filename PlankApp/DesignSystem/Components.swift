@@ -332,7 +332,15 @@ struct OnboardingOptionCard: View {
                     ZStack {
                         Circle()
                             .fill(Palette.accentSubtle)
-                            .frame(width: 44, height: 44)
+                            .frame(width: 42, height: 42)
+                            // v1.1 "modern vibe" (2026-06-24): a 0.75pt
+                            // cut-paper edge. The flat rose-tint circle read
+                            // as generic tinted-circle iconography — the #1
+                            // "this is a template" tell on question screens.
+                            .overlay(
+                                Circle().stroke(Palette.accent.opacity(0.22),
+                                                lineWidth: 0.75)
+                            )
                         if let sticker {
                             Image(sticker.assetName)
                                 .resizable()
@@ -340,9 +348,13 @@ struct OnboardingOptionCard: View {
                                 .frame(width: 28, height: 28)
                                 .opacity(sticker.style.opacity)
                         } else if let icon {
+                            // ink-on-rose-paper (cocoa glyph, NOT rose) is the
+                            // her75 editorial move; rose-glyph-on-rose-circle
+                            // is the template move. Reads more modern and suits
+                            // the medical-grade intake direction.
                             Image(systemName: icon)
-                                .font(.system(size: 22, weight: .regular))
-                                .foregroundStyle(Palette.accent)
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundStyle(Palette.cocoaSecondary)
                         }
                     }
                 }
@@ -391,25 +403,43 @@ struct OnboardingOptionCard: View {
                 }
             }
             .padding(.horizontal, Space.md)
-            .padding(.vertical, isCompact ? Space.md : Space.md)
+            // icon rows breathe to 18pt; compact (text-only, dense 8-option
+            // screens like cuisine) stay at 16 so they don't re-overflow.
+            .padding(.vertical, isCompact ? Space.md : 18)
             // her75 tall-pill register (founder QA 2026-06-11): compact
             // rows at 52pt read as "narrow boxes for no reason" when the
             // screen has room. 68pt keeps 5-option screens on-screen
-            // while matching the reference pill height.
-            .frame(minHeight: isCompact ? 68 : 72)
+            // while matching the reference pill height. Icon rows → 76
+            // (v1.1) so the 42pt chip + single title share an optical center.
+            .frame(minHeight: isCompact ? 68 : 76)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Palette.bgElevated, in: RoundedRectangle(cornerRadius: Radius.md))
+            // v1.1 "modern vibe" (2026-06-24): selection is now a *material*
+            // event — a whisper (6%) of accent washes the selected row, a
+            // temperature shift that reads premium where a bare border swap
+            // read as a checkbox. Never a pink fill.
+            .background(
+                RoundedRectangle(cornerRadius: Radius.md)
+                    .fill(Palette.bgElevated)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Radius.md)
+                            .fill(Palette.accent.opacity(isSelected ? 0.06 : 0))
+                    )
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: Radius.md)
-                    .stroke(isSelected ? Palette.accent : Palette.divider,
+                    .stroke(isSelected ? Palette.accent : Palette.hairlineCocoa,
                             lineWidth: isSelected ? 1.5 : 1)
             )
-            // v1.1 quiet-luxury: a soft elevation so the rows float on the
-            // atmosphere; the selected row lifts further with a warmer cocoa
-            // cast. Animates with the selection (within the tap transaction).
-            .shadow(color: Palette.cocoaPrimary.opacity(isSelected ? 0.10 : 0.035),
-                    radius: isSelected ? 10 : 5,
-                    x: 0, y: isSelected ? 4 : 2)
+            // v1.1 "modern vibe": a 2-layer paper shadow — a tight contact
+            // shadow + a soft wide ambient — so rows read as objects floating
+            // on the cream, not faint rectangles drawn on it (bgElevated is
+            // only ~2% off the bg, so the lift has to come from elevation).
+            // Resting ambient radius triples (5→16); the selected row lifts
+            // further. Replaces the old single soft shadow.
+            .shadow(color: Palette.cocoaPrimary.opacity(0.05), radius: 2, x: 0, y: 1)
+            .shadow(color: Palette.cocoaPrimary.opacity(isSelected ? 0.10 : 0.055),
+                    radius: isSelected ? 20 : 16,
+                    x: 0, y: isSelected ? 8 : 6)
         }
         // v1.1 quiet-luxury: the row springs under the thumb on touch.
         .buttonStyle(OptionRowPressStyle())
