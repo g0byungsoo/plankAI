@@ -544,7 +544,17 @@ struct PlanView: View {
             .presentationBackground(Palette.programCard)
 
         case .profileHub:
-            ProfileHubView(onClose: { dismissSheet() })
+            // v1.1 fix (2026-06-24): the settings drawer must CLOSE with the
+            // standard animated slide-down. `dismissSheet()` wraps the change
+            // in a `disablesAnimations` transaction — that's the deliberate
+            // "instant materialize + custom content reveal" router pattern
+            // (see PreSessionView), and it's right for the OPEN (ProfileHub
+            // staggers its content in on appear). But the drawer has no exit
+            // animation, so routing the close through it produced a jarring
+            // instant CUT — inconsistent with every other transition (and with
+            // this same sheet's own swipe-to-dismiss, which animates). A plain
+            // binding mutation restores the system slide-down on close.
+            ProfileHubView(onClose: { activeSheet = nil })
                 .presentationDetents([.large])
                 .presentationBackground(Palette.programBgPrimary)
 
