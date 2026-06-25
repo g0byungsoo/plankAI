@@ -55,10 +55,9 @@ struct SnapShareSlide: View {
             .transition(.opacity)
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: selected)
 
-            fontRail
+            fontRail(slotWidth: w)
                 .padding(.bottom, 18)
-                .frame(width: w)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity)   // center the rail in the slot
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -66,16 +65,28 @@ struct SnapShareSlide: View {
 
     // MARK: Font rail
 
-    private var fontRail: some View {
-        HStack(spacing: 5) {
-            ForEach(availableFonts, id: \.self) { f in
-                pill(f)
+    // 2026-06-24 — the rail was a fixed HStack that overflowed the slot
+    // on-device (the font names render wider than the screen), cutting off
+    // "editorial" on the left and "statement"/the toggle on the right.
+    // Now it's a horizontal ScrollView constrained to the slot width with
+    // margins: the pills CENTER when they fit and SCROLL when they don't,
+    // so nothing is ever clipped regardless of device width or font set.
+    private func fontRail(slotWidth: CGFloat) -> some View {
+        let railWidth = max(0, slotWidth - 44)
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 5) {
+                ForEach(availableFonts, id: \.self) { f in
+                    pill(f)
+                }
+                alignmentToggle
             }
-            alignmentToggle
+            .padding(.horizontal, 8)
+            .padding(.vertical, 7)
+            .frame(minWidth: railWidth, alignment: .center)
         }
-        .padding(.horizontal, 7)
-        .padding(.vertical, 7)
+        .frame(width: railWidth)
         .background(.ultraThinMaterial, in: Capsule())
+        .clipShape(Capsule())
         .overlay(Capsule().stroke(.white.opacity(0.25), lineWidth: 0.5))
         .shadow(color: .black.opacity(0.18), radius: 10, y: 3)
     }

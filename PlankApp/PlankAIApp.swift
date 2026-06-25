@@ -466,6 +466,8 @@ struct PlankAIApp: App {
                     HandwrittenSnapPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-result-carousel") {
                     ResultCarouselPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-snap-camera") {
+                    SnapCameraDebugHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-becoming") {
                     BecomingPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-home") {
@@ -1303,6 +1305,40 @@ private struct ResultCarouselPreviewHarness: View {
                 .padding(.top, 50)
             }
         }
+    }
+}
+
+// MARK: - SnapCameraDebugHarness — food camera scan states
+//
+// 2026-06-23 — mounts the real PhotoCaptureView so the scanning state,
+// the hard-deadline, and the new failure/retry card can be verified in
+// the simulator (no camera there). Configure a dummy vision service so
+// the dispatcher routes into FoodVisionService.scan, where the
+// --food-debug-* faults fire (they short-circuit before any network, so
+// the config is never actually used). Drive with, e.g.:
+//   --debug-snap-camera --food-debug-autostart --food-debug-hang --food-debug-deadline 4
+//   --debug-snap-camera --food-debug-autostart --food-debug-empty
+//   --debug-snap-camera --food-debug-autostart --food-debug-hang --food-debug-deadline 30  (hold scanning to screenshot)
+private struct SnapCameraDebugHarness: View {
+    init() {
+        FoodModule.configure(
+            visionService: FoodVisionService(
+                config: .init(
+                    supabaseURL: URL(string: "https://debug.invalid")!,
+                    anonKey: "debug",
+                    tokenProvider: { "debug-token" }
+                )
+            )
+        )
+    }
+
+    var body: some View {
+        PhotoCaptureView(
+            onDismiss: {},
+            onCaptured: { _, _ in },
+            onQuickAddTapped: {},
+            onImOutTapped: {}
+        )
     }
 }
 
@@ -2412,15 +2448,18 @@ private struct RootView: View {
             // FoodCaptureDispatcher.dispatch(.photo(...)) runs the full chain:
             // FoodVisionService -> NutritionLookupService (pantry > USDA > OFF
             // parallel) -> CalorieMathService -> CapturedFood with kcal+macros.
-            // tokenProvider closures are called fresh per request so JWT
-            // expiration is handled automatically by the underlying session.
+            // 2026-06-24 — tokenProviders use freshAccessToken(), which
+            // REFRESHES the session when the cached JWT has expired. The old
+            // `currentSession?.accessToken` read a cached Keychain token that
+            // never refreshed, so after ~1h scans sent an expired JWT and the
+            // Edge Function 401'd ("food snap doesn't work anymore").
             FoodModule.configure(
                 visionService: FoodVisionService(
                     config: FoodVisionService.Config(
                         supabaseURL: SupabaseConfig.url,
                         anonKey: SupabaseConfig.anonKey,
                         tokenProvider: { @Sendable in
-                            await AuthService.shared.currentSession?.accessToken
+                            await AuthService.shared.freshAccessToken()
                         }
                     )
                 ),
@@ -2433,7 +2472,7 @@ private struct RootView: View {
                             supabaseURL: SupabaseConfig.url,
                             anonKey: SupabaseConfig.anonKey,
                             tokenProvider: { @Sendable in
-                                await AuthService.shared.currentSession?.accessToken
+                                await AuthService.shared.freshAccessToken()
                             }
                         )
                     )

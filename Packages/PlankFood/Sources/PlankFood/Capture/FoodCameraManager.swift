@@ -283,23 +283,47 @@ public final class FoodCameraManager: NSObject {
             throw CameraError.captureTooSoon
         }
 
-        let rawData: Data = try await withCheckedThrowingContinuation { continuation in
-            self.pendingCapture = continuation
+        // 2026-06-23 — the continuation is now CANCELLABLE. Before, it
+        // was resumed only from `didFinishProcessingPhoto`, which
+        // AVFoundation does NOT guarantee fires on an interrupted or
+        // errored capture — so `await captureStill()` could hang
+        // forever (the network-independent "scanning forever" bug).
+        // withTaskCancellationHandler lets the scan deadline (or any
+        // parent cancel) free the parked continuation; the guaranteed
+        // `didFinishCaptureFor` delegate below is the second safety net.
+        let rawData: Data = try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Error>) in
+                // Already cancelled before we even started — don't park
+                // a continuation nobody will resume.
+                guard !Task.isCancelled else {
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
+                self.pendingCapture = continuation
 
-            // v1.0.8 Phase C — explicit .speed prioritization on every
-            // capture. The output's maxPhotoQualityPrioritization caps
-            // this, but Apple's API requires the setting to also be set
-            // here per-call (the output ceiling alone doesn't propagate
-            // to settings that don't ask for it). Defaults that we
-            // intentionally LEAVE UNSET to keep the path fast:
-            //   - isHighResolutionPhotoEnabled (off → smaller capture)
-            //   - isDepthDataDeliveryEnabled (off → no LiDAR latency)
-            //   - rawPhotoPixelFormatType (off → no DNG)
-            //   - livePhotoMovieFileURL (off → no Live Photo)
-            let settings = AVCapturePhotoSettings()
-            settings.flashMode = .off
-            settings.photoQualityPrioritization = .speed
-            photoOutput.capturePhoto(with: settings, delegate: self)
+                // v1.0.8 Phase C — explicit .speed prioritization on every
+                // capture. The output's maxPhotoQualityPrioritization caps
+                // this, but Apple's API requires the setting to also be set
+                // here per-call (the output ceiling alone doesn't propagate
+                // to settings that don't ask for it). Defaults that we
+                // intentionally LEAVE UNSET to keep the path fast:
+                //   - isHighResolutionPhotoEnabled (off → smaller capture)
+                //   - isDepthDataDeliveryEnabled (off → no LiDAR latency)
+                //   - rawPhotoPixelFormatType (off → no DNG)
+                //   - livePhotoMovieFileURL (off → no Live Photo)
+                let settings = AVCapturePhotoSettings()
+                settings.flashMode = .off
+                settings.photoQualityPrioritization = .speed
+                photoOutput.capturePhoto(with: settings, delegate: self)
+            }
+        } onCancel: {
+            // Resume the parked continuation on cancellation so the
+            // await can never outlive the scan deadline. Hop to main
+            // since pendingCapture is MainActor-isolated; the resume-once
+            // funnel guards against racing the delegate callback.
+            Task { @MainActor [weak self] in
+                self?.resumePendingCapture(.failure(CancellationError()))
+            }
         }
 
         // v1.0.8 — resize + re-encode + EXIF strip OFF the main actor.
@@ -439,6 +463,20 @@ public final class FoodCameraManager: NSObject {
         lastCaptureCompletedAt = nil
     }
 
+    // MARK: - Capture continuation funnel
+    //
+    // 2026-06-23 — single resume path for `pendingCapture`. Resuming a
+    // CheckedContinuation twice traps; THREE sources can now try to
+    // resume it (the processing callback, the guaranteed terminal
+    // callback, and the cancellation handler), so every one routes
+    // through here. The `guard let` makes it resume-once: whoever gets
+    // there first clears `pendingCapture`; the rest no-op.
+    private func resumePendingCapture(_ result: Result<Data, Error>) {
+        guard let continuation = pendingCapture else { return }
+        pendingCapture = nil
+        continuation.resume(with: result)
+    }
+
     /// v1.0.8 Phase K (2026-06-08) — iPhone-Camera-style pinch zoom.
     /// `factor` is clamped to [1.0, `maxZoom`] and applied directly to
     /// the active back camera. Both the live preview and the eventual
@@ -559,22 +597,45 @@ extension FoodCameraManager: AVCapturePhotoCaptureDelegate {
         didFinishProcessingPhoto photo: AVCapturePhoto,
         error: Error?
     ) {
-        // AVFoundation delivers this on a background queue. Hop to main
-        // to resume the continuation since pendingCapture is MainActor.
+        // AVFoundation delivers this on a background queue. Resolve the
+        // outcome here, then hop to main to route through the resume-once
+        // funnel (pendingCapture is MainActor-isolated). The funnel keeps
+        // this from double-firing with the terminal callback below.
+        let result: Result<Data, Error>
+        if let error {
+            result = .failure(CameraError.captureFailed(underlying: error))
+        } else if let data = photo.fileDataRepresentation() {
+            result = .success(data)
+        } else {
+            result = .failure(CameraError.encodingFailed)
+        }
         Task { @MainActor [weak self] in
-            guard let self else { return }
-            guard let continuation = self.pendingCapture else { return }
-            self.pendingCapture = nil
+            self?.resumePendingCapture(result)
+        }
+    }
 
-            if let error {
-                continuation.resume(throwing: CameraError.captureFailed(underlying: error))
-                return
-            }
-            guard let data = photo.fileDataRepresentation() else {
-                continuation.resume(throwing: CameraError.encodingFailed)
-                return
-            }
-            continuation.resume(returning: data)
+    /// 2026-06-23 — GUARANTEED terminal callback. AVFoundation promises
+    /// this fires exactly once per `capturePhoto(...)`, even when
+    /// `didFinishProcessingPhoto` does NOT (interrupted capture, session
+    /// stop mid-flight, an error raised before processing). It always
+    /// fires AFTER the processing callback, so on the happy path
+    /// `pendingCapture` is already nil and the funnel no-ops here. When
+    /// it's still set, processing never delivered — this is the only
+    /// thing that frees `captureStill()` in that case, closing the
+    /// network-independent "scanning forever" leak at its source.
+    public nonisolated func photoOutput(
+        _ output: AVCapturePhotoOutput,
+        didFinishCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings,
+        error: Error?
+    ) {
+        Task { @MainActor [weak self] in
+            guard let self, self.pendingCapture != nil else { return }
+            let underlying = error ?? NSError(
+                domain: "FoodCamera",
+                code: -2,
+                userInfo: [NSLocalizedDescriptionKey: "capture ended without delivering a photo"]
+            )
+            self.resumePendingCapture(.failure(CameraError.captureFailed(underlying: underlying)))
         }
     }
 }

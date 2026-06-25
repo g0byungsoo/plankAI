@@ -166,6 +166,30 @@ final class AuthService {
         }
     }
 
+    /// Returns a valid access token for a per-request authenticated API
+    /// call (food-vision, canonical_pantry), REFRESHING the session first
+    /// if the cached token is expired or near expiry.
+    ///
+    /// 2026-06-24 — the food tokenProviders previously read
+    /// `currentSession?.accessToken`, a cached Keychain value that does NOT
+    /// auto-refresh. Once a session passed its ~1h access-token lifetime,
+    /// every scan sent an expired JWT and the Edge Function rejected it with
+    /// 401 → `VisionError.notAuthenticated` ("food snap doesn't work
+    /// anymore", PostHog confirmed). The throwing `auth.session` getter
+    /// refreshes when needed (and is a cheap local check when the token is
+    /// still valid); we bound it so a degraded-network refresh can't hang
+    /// the scan, and fall back to the cached token if the refresh stalls.
+    func freshAccessToken() async -> String? {
+        let refreshed: Session? = await Self.withTimeout(seconds: 8) {
+            try? await supabase.auth.session
+        }
+        if let refreshed {
+            currentSession = refreshed
+            return refreshed.accessToken
+        }
+        return currentSession?.accessToken ?? supabase.auth.currentSession?.accessToken
+    }
+
     /// Race an async operation against a timeout. Returns the operation's
     /// result on success, nil on timeout. Static so it doesn't capture self.
     ///

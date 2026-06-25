@@ -35,47 +35,48 @@ import UIKit
 // border in the same ZStack as the clipped camera content with the
 // same corner radius.
 
-// v1.0.9 D2 — split-role pink per expert pick. Idle uses the softer
-// FoodTheme.cameraIdlePink (#FF7AD9) so the resting frame reads
-// coquette; scanning jolts to FoodTheme.cameraScanPink (#FF13F0)
-// for the energy beat. Border base color picks the right token
-// based on `isScanning`.
+// 2026-06-23 — calmed per the her75/JeniFit design review. The old
+// border jumped to neon hot-magenta (#FF13F0) on tap — the only neon
+// in the whole 8-token palette, reading as "slot machine" against the
+// minimal-luxury north star. Now the border is the app's dusty-rose
+// `accent` in BOTH states; only the MOTION of a soft white light
+// travelling around it signals "reading." Thinner (3pt edge, not a 5pt
+// frame), slower (3.4s revolution — careful, not buffering), and the
+// bright arc is wider + feathered so it swells rather than blinks.
+// `isError` is gone: a failed scan is a gentle cream card now, never a
+// red/loud frame.
 
 struct RotatingScanBorder: View {
     let isScanning: Bool
-    let isError: Bool
     let cornerRadius: CGFloat
     let lineWidth: CGFloat
 
     init(
         isScanning: Bool = false,
-        isError: Bool = false,
         cornerRadius: CGFloat = 28,
-        lineWidth: CGFloat = 5
+        lineWidth: CGFloat = 3
     ) {
         self.isScanning = isScanning
-        self.isError = isError
         self.cornerRadius = cornerRadius
         self.lineWidth = lineWidth
     }
 
-    private let revolutionDuration: Double = 2.5
+    // Slow on purpose: a fast revolution reads as "buffering," a slow
+    // one as "carefully looking." 3.4s is the calm beat.
+    private let revolutionDuration: Double = 3.4
 
     var body: some View {
         ZStack {
-            // Base layer: solid uniform hot pink. Slightly cooler
-            // (lower saturation) when not actively scanning so the
-            // scanning state has clear "energy bump" visual contrast.
+            // Base layer: uniform dusty-rose, same at rest and scanning
+            // so there's zero color hop entering/leaving the scan.
             RoundedRectangle(cornerRadius: cornerRadius)
-                .strokeBorder(
-                    isScanning ? FoodTheme.cameraScanPink : FoodTheme.cameraIdlePink,
-                    lineWidth: lineWidth
-                )
+                .strokeBorder(FoodTheme.accent, lineWidth: lineWidth)
 
-            // Shimmer overlay: a single bright stop that sweeps around
-            // the border during scan. Mostly-transparent gradient so
-            // the base pink shows through everywhere except the
-            // ~45° arc where the sweep is.
+            // Shimmer overlay: a soft, wide white arc that travels the
+            // border during scan. Feathered (clear → accent → white peak
+            // → accent → clear) so it swells through the rose rather
+            // than blinking a hard highlight. Peak 0.55 (was a harsh
+            // 0.75). Paused when idle so it costs zero frames at rest.
             TimelineView(.animation(minimumInterval: 1.0 / 60.0,
                                     paused: !isScanning)) { timeline in
                 let elapsed = timeline.date.timeIntervalSinceReferenceDate
@@ -88,11 +89,11 @@ struct RotatingScanBorder: View {
                         AngularGradient(
                             colors: [
                                 .clear,
-                                .clear,
-                                .clear,
-                                Color.white.opacity(0.75),
-                                .clear,
-                                .clear,
+                                FoodTheme.accent.opacity(0.0),
+                                FoodTheme.accent.opacity(0.35),
+                                Color.white.opacity(0.55),
+                                FoodTheme.accent.opacity(0.35),
+                                FoodTheme.accent.opacity(0.0),
                                 .clear,
                                 .clear,
                             ],
@@ -103,7 +104,8 @@ struct RotatingScanBorder: View {
                     )
             }
             .opacity(isScanning ? 1 : 0)
-            .animation(.easeInOut(duration: 0.35), value: isScanning)
+            // Swell in (easeOut) so the glow grows rather than snaps.
+            .animation(.easeOut(duration: 0.42), value: isScanning)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)

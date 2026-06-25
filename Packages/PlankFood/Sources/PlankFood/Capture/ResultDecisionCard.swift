@@ -178,7 +178,7 @@ struct ResultDecisionCard: View {
     @ViewBuilder private var card: some View {
         contentColumn
             .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+            .padding(.vertical, 13)
             .background(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(
@@ -245,7 +245,13 @@ struct ResultDecisionCard: View {
     //   Zone I: tag chips (cap 2)
 
     @ViewBuilder private var contentColumn: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        // v1.1 (2026-06-24) — zone spacing tightened 11 → 8 so the dense
+        // card (2-line dish + macro bar + satiety + tag chip) fits the
+        // floating slot on smaller devices without clipping the bottom
+        // chip. Founder bug: "high fiber" pill cut off on the result card.
+        // The 0.5pt hairline rules carry the zone separation, so tighter
+        // spacing still reads editorial, not cramped.
+        VStack(alignment: .leading, spacing: 8) {
             metaRow.zoneEntrance(0, revealed: revealedSteps)
             dishTitle.zoneEntrance(0, revealed: revealedSteps)
             zoneRule
@@ -259,10 +265,11 @@ struct ResultDecisionCard: View {
             // v1.1.2 — day-protein bar, protein density + the threshold
             // consideration moved to slide 2 ("a note from jeni") so each
             // fact lives in one place and slide 1 stays a clean glance.
-            if let pair = smartPair {
-                zoneRule
-                smartPairLine(pair).zoneEntrance(6, revealed: revealedSteps)
-            }
+            // 2026-06-23 — the full smart-pair SENTENCE ("a handful of
+            // berries later locks in fiber") was dropped from slide 1 per
+            // founder: it pushed the card past the slot height and cut off
+            // the tag chips. The compact "+ berries" pairing chip (driven
+            // by the same smartPair data via pairActionPunch) stays.
             tagChips.zoneEntrance(6, revealed: revealedSteps)
         }
     }
@@ -273,7 +280,6 @@ struct ResultDecisionCard: View {
         Rectangle()
             .fill(textPrimary.opacity(0.10))
             .frame(height: 0.5)
-            .padding(.vertical, 1)
     }
 
     // MARK: - Zone A: meta row (time · meal · confidence pill)
@@ -353,10 +359,35 @@ struct ResultDecisionCard: View {
     @ViewBuilder private var dishTitle: some View {
         let text = dishTitleText
         if !text.isEmpty {
-            Text(text)
-                .font(.custom("JeniHeroSerif-Italic", size: 21))
-                .foregroundStyle(textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
+            // 2026-06-24 — the dish title is now a discoverable EDIT entry
+            // (founder: users couldn't find a way to fix a wrong result).
+            // Tapping it opens the editor for the primary item where the
+            // name, calories, protein + macros are all directly editable.
+            // The pencil signals it's tappable.
+            let canEdit = (onResultEdited != nil || onEditItem != nil) && !result.items.isEmpty
+            Button {
+                guard canEdit else { return }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                onEditItem?(0)
+                editingItem = EditingItemIndex(index: 0)
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 7) {
+                    Text(text)
+                        .font(.custom("JeniHeroSerif-Italic", size: 21))
+                        .foregroundStyle(textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if canEdit {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(accent.opacity(0.65))
+                            .baselineOffset(1)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(!canEdit)
+            .accessibilityLabel("\(text), tap to edit")
         }
     }
 
@@ -378,7 +409,9 @@ struct ResultDecisionCard: View {
                 target: totalKcal,
                 fontName: "JeniHeroSerif-Regular",
                 italicFontName: "JeniHeroSerif-Italic",
-                size: 64,
+                // v1.1 (2026-06-24) — 64 → 58, a touch smaller per founder.
+                // Pairs with the zone-spacing tighten to fit the dense card.
+                size: 58,
                 color: textPrimary
             )
             VStack(alignment: .leading, spacing: 1) {
@@ -410,11 +443,13 @@ struct ResultDecisionCard: View {
 
     @ViewBuilder private var proteinCoHero: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
+            // v1.1 (2026-06-24) — protein co-hero 40 → 37 to stay
+            // proportional with the slightly smaller calorie hero.
             (Text("\(totalProtein)")
-                .font(.custom("JeniHeroSerif-Regular", size: 40))
+                .font(.custom("JeniHeroSerif-Regular", size: 37))
                 .foregroundColor(textPrimary)
             + Text("g")
-                .font(.custom("JeniHeroSerif-Italic", size: 17))
+                .font(.custom("JeniHeroSerif-Italic", size: 16))
                 .foregroundColor(accent))
                 .monospacedDigit()
             Text("protein")
@@ -493,6 +528,13 @@ struct ResultDecisionCard: View {
             + Text(word.italic)
                 .font(.custom("JeniHeroSerif-Italic", size: 14)))
                 .foregroundStyle(totalProtein >= 30 ? stateGood : textSecondary)
+                // 2026-06-24 — keep the stamp on ONE line. When the protein
+                // number is wide (e.g. "100g") the trailing column got
+                // squeezed and "hits enough" wrapped into a cramped circle
+                // (founder bug). lineLimit + fixedSize make the capsule hug
+                // the text on a single line.
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
@@ -888,25 +930,6 @@ struct ResultDecisionCard: View {
         return nil
     }
 
-    @ViewBuilder
-    private func smartPairLine(
-        _ pair: (prefix: String, punch: String, suffix: String)
-    ) -> some View {
-        (
-            Text(pair.prefix)
-                .font(.custom("JeniHeroSerif-Regular", size: 16))
-            + Text(pair.punch)
-                .font(.custom("JeniHeroSerif-Italic", size: 17))
-            + Text(pair.suffix)
-                .font(.custom("JeniHeroSerif-Regular", size: 16))
-            + Text(" ♡")
-                .font(.custom("DMSans-Medium", size: 12))
-                .foregroundColor(accent.opacity(0.7))
-        )
-        .foregroundStyle(textSecondary)
-        .fixedSize(horizontal: false, vertical: true)
-    }
-
     // MARK: - Tag chips
 
     @ViewBuilder private var tagChips: some View {
@@ -1026,6 +1049,15 @@ private struct IngredientEditSheet: View {
 
     @State private var name: String
     @State private var portion: Double
+    // 2026-06-24 — directly-editable nutrition. Founder: users had no way
+    // to fix a wrong calorie / protein number (only portion-scaling). Now
+    // each macro is a typed field: drag the portion slider to scale them
+    // proportionally, OR type the right number directly.
+    @State private var editedKcal: Double
+    @State private var editedProtein: Double
+    @State private var editedCarbs: Double
+    @State private var editedFat: Double
+    @FocusState private var fieldFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
     init(
@@ -1040,10 +1072,10 @@ private struct IngredientEditSheet: View {
         self.onCancel = onCancel
         self._name = State(initialValue: original.name)
         self._portion = State(initialValue: original.portionGrams)
-    }
-
-    private var scale: Double {
-        portion / max(original.portionGrams, 1)
+        self._editedKcal = State(initialValue: original.kcal ?? 0)
+        self._editedProtein = State(initialValue: original.proteinG ?? 0)
+        self._editedCarbs = State(initialValue: original.carbsG ?? 0)
+        self._editedFat = State(initialValue: original.fatG ?? 0)
     }
 
     private var portionMin: Double {
@@ -1055,23 +1087,49 @@ private struct IngredientEditSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            eyebrow
-            nameField
-            hairline
-            portionBlock
-            hairline
-            nutrientPreview
-            Spacer(minLength: 0)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    eyebrow
+                    nameField
+                    hairline
+                    portionBlock
+                    hairline
+                    nutrientEditor
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 28)
+                .padding(.bottom, 16)
+            }
             actionRow
+                .padding(.horizontal, 24)
+                .padding(.top, 10)
+                .padding(.bottom, 22)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 28)
-        .padding(.bottom, 24)
         .background(
             Color(red: 0.992, green: 0.965, blue: 0.957)
                 .ignoresSafeArea()
         )
+        // Drag the portion slider → rescale the macros proportionally from
+        // the original (the "less of that" path). Typing directly in a
+        // macro field overrides until the next portion drag.
+        .onChange(of: portion) { _, newPortion in
+            let s = newPortion / max(original.portionGrams, 1)
+            editedKcal = (original.kcal ?? 0) * s
+            editedProtein = (original.proteinG ?? 0) * s
+            editedCarbs = (original.carbsG ?? 0) * s
+            editedFat = (original.fatG ?? 0) * s
+        }
+        // numberPad has no return key, and the keyboard would cover the
+        // pinned Save button — give it a "done" to dismiss + commit.
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("done") { fieldFocused = false }
+                    .font(.custom("DMSans-SemiBold", size: 15))
+                    .foregroundStyle(Color(red: 0.769, green: 0.404, blue: 0.478))
+            }
+        }
     }
 
     // MARK: - Subviews
@@ -1094,7 +1152,7 @@ private struct IngredientEditSheet: View {
                 .autocorrectionDisabled(false)
                 .submitLabel(.done)
             if isLowConfidence {
-                (Text("the AI wasn't sure about this one. feel ")
+                (Text("we weren't sure about this one. feel ")
                     .font(.custom("DMSans-Regular", size: 12))
                 + Text("free")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
@@ -1164,10 +1222,10 @@ private struct IngredientEditSheet: View {
                     step: 5
                 )
                 .tint(Color(red: 0.769, green: 0.404, blue: 0.478))
-                // Tick — vertical 12pt cocoa rule + tiny "ai" eyebrow
-                // below. Positioned proportionally; the slider track
-                // pads ~10pt on each side natively so we inset the
-                // tick math to match.
+                // Tick — vertical 12pt cocoa rule + tiny "scan" eyebrow
+                // below (was "ai" — no "AI" word in user copy). Marks the
+                // scan's original portion estimate. The slider track pads
+                // ~10pt each side natively so we inset the tick to match.
                 let trackInset: CGFloat = 12
                 let trackWidth = max(0, geo.size.width - trackInset * 2)
                 let x = trackInset + CGFloat(fraction) * trackWidth
@@ -1175,7 +1233,7 @@ private struct IngredientEditSheet: View {
                     Rectangle()
                         .fill(Color(red: 0.239, green: 0.165, blue: 0.165).opacity(0.30))
                         .frame(width: 1, height: 14)
-                    Text("ai")
+                    Text("scan")
                         .font(.custom("Fraunces72pt-SemiBoldItalic", size: 9))
                         .foregroundStyle(Color(red: 0.239, green: 0.165, blue: 0.165).opacity(0.45))
                         .kerning(0.3)
@@ -1193,47 +1251,66 @@ private struct IngredientEditSheet: View {
         abs(portion - original.portionGrams) >= 1
     }
 
-    @ViewBuilder private var nutrientPreview: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            (Text("in this ")
+    /// 2026-06-24 — directly EDITABLE nutrition (founder: "users dont
+    /// have any options to correct them even when the result is wrong").
+    /// Type the right calories / protein / carbs / fat; or drag the
+    /// portion slider above to scale them all proportionally.
+    @ViewBuilder private var nutrientEditor: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            (Text("the ")
                 .font(.custom("DMSans-Regular", size: 13))
-            + Text("portion")
+            + Text("numbers")
                 .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14)))
                 .foregroundStyle(Color(red: 0.482, green: 0.349, blue: 0.349))
                 .kerning(0.4)
 
-            HStack(spacing: 16) {
-                preview(value: scaled(original.kcal), unit: "cal")
-                if scaled(original.proteinG) > 0 {
-                    preview(value: scaled(original.proteinG), unit: "g protein")
-                }
-                if scaled(original.carbsG) > 0 {
-                    preview(value: scaled(original.carbsG), unit: "g carbs")
-                }
-                if scaled(original.fatG) > 0 {
-                    preview(value: scaled(original.fatG), unit: "g fat")
-                }
-                if scaled(original.fiberG) > 0 {
-                    preview(value: scaled(original.fiberG), unit: "g fiber")
-                }
-                Spacer(minLength: 0)
+            // calories + protein on the first row so both (the two the
+            // founder named) are visible on the medium detent; carbs + fat
+            // on the second row.
+            HStack(spacing: 10) {
+                editableField(label: "calories", value: $editedKcal, unit: nil)
+                editableField(label: "protein", value: $editedProtein, unit: "g")
             }
-            .animation(.easeOut(duration: 0.15), value: portion)
+            HStack(spacing: 10) {
+                editableField(label: "carbs", value: $editedCarbs, unit: "g")
+                editableField(label: "fat", value: $editedFat, unit: "g")
+            }
         }
     }
 
     @ViewBuilder
-    private func preview(value: Double, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("\(Int(value.rounded()))")
-                .font(.custom("JeniHeroSerif-Regular", size: 22))
-                .foregroundStyle(Color(red: 0.239, green: 0.165, blue: 0.165))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-            Text(unit)
-                .font(.custom("DMSans-Regular", size: 11))
+    private func editableField(label: String, value: Binding<Double>, unit: String?) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.custom("DMSans-Medium", size: 11))
                 .foregroundStyle(Color(red: 0.482, green: 0.349, blue: 0.349))
                 .kerning(0.3)
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                TextField("0", value: value, format: .number.precision(.fractionLength(0)))
+                    .font(.custom("JeniHeroSerif-Regular", size: 22))
+                    .foregroundStyle(Color(red: 0.239, green: 0.165, blue: 0.165))
+                    .keyboardType(.numberPad)
+                    .monospacedDigit()
+                    .focused($fieldFocused)
+                    .fixedSize()
+                if let unit {
+                    Text(unit)
+                        .font(.custom("JeniHeroSerif-Italic", size: 14))
+                        .foregroundStyle(Color(red: 0.769, green: 0.404, blue: 0.478))
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white.opacity(0.55))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color(red: 0.769, green: 0.404, blue: 0.478).opacity(0.28), lineWidth: 1)
+            )
         }
     }
 
@@ -1300,13 +1377,6 @@ private struct IngredientEditSheet: View {
 
     // MARK: - Logic
 
-    /// Linear nutrient scale by portion delta. Returns 0 when the
-    /// underlying value is nil so the preview row hides cleanly.
-    private func scaled(_ value: Double?) -> Double {
-        guard let v = value else { return 0 }
-        return v * scale
-    }
-
     /// Constructs the edited CapturedItem with name (trimmed; fallback
     /// to original) + scaled portion + scaled nutrient values. The
     /// ID + provenance metadata (preparation, cuisineHint, etc.) are
@@ -1314,26 +1384,37 @@ private struct IngredientEditSheet: View {
     private func makeUpdatedItem() -> CapturedItem {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalName = trimmedName.isEmpty ? original.name : trimmedName
+        // The macro fields are the source of truth (typed directly, or
+        // scaled from the portion slider via onChange). fiber / sugar /
+        // sodium / sat-fat aren't directly editable, so they scale with
+        // the portion delta. Accuracy fields (native gloss, count, share)
+        // are preserved.
+        let s = portion / max(original.portionGrams, 1)
         return CapturedItem(
             id: original.id,
             name: finalName,
             portionGrams: portion,
-            portionGramsLow: original.portionGramsLow * scale,
-            portionGramsHigh: original.portionGramsHigh * scale,
+            portionGramsLow: original.portionGramsLow * s,
+            portionGramsHigh: original.portionGramsHigh * s,
             usdaSearchTerms: original.usdaSearchTerms,
             preparation: original.preparation,
             cuisineHint: original.cuisineHint,
             confidence: original.confidence,
             notes: original.notes,
-            kcal: original.kcal.map { $0 * scale },
-            proteinG: original.proteinG.map { $0 * scale },
-            carbsG: original.carbsG.map { $0 * scale },
-            fatG: original.fatG.map { $0 * scale },
-            fiberG: original.fiberG.map { $0 * scale },
+            kcal: editedKcal,
+            proteinG: editedProtein,
+            carbsG: editedCarbs,
+            fatG: editedFat,
+            fiberG: original.fiberG.map { $0 * s },
             nutritionSource: original.nutritionSource,
-            sugarG: original.sugarG.map { $0 * scale },
-            sodiumMg: original.sodiumMg.map { $0 * scale },
-            saturatedFatG: original.saturatedFatG.map { $0 * scale }
+            sugarG: original.sugarG.map { $0 * s },
+            sodiumMg: original.sodiumMg.map { $0 * s },
+            saturatedFatG: original.saturatedFatG.map { $0 * s },
+            englishName: original.englishName,
+            count: original.count,
+            unit: original.unit,
+            servingsInDish: original.servingsInDish,
+            isShareable: original.isShareable
         )
     }
 }

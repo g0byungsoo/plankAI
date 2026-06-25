@@ -347,7 +347,15 @@ extension FoodCaptureDispatcher {
                 nutritionSource: .usdaCalibrated,
                 sugarG: item.sugarG,
                 sodiumMg: item.sodiumMg,
-                saturatedFatG: item.saturatedFatG
+                saturatedFatG: item.saturatedFatG,
+                // 2026-06-23 — carry the accuracy fields through the USDA
+                // sweep so low-confidence items don't lose their count /
+                // native-name gloss / shared-serving data.
+                englishName: item.englishName,
+                count: item.count,
+                unit: item.unit,
+                servingsInDish: item.servingsInDish,
+                isShareable: item.isShareable
             )
         }
         // USDA disagrees by more than tolerance — USDA wins. Replace
@@ -372,7 +380,12 @@ extension FoodCaptureDispatcher {
             nutritionSource: .usdaOverride,
             sugarG: usdaMath.sugarG,
             sodiumMg: usdaMath.sodiumMg,
-            saturatedFatG: usdaMath.saturatedFatG
+            saturatedFatG: usdaMath.saturatedFatG,
+            englishName: item.englishName,
+            count: item.count,
+            unit: item.unit,
+            servingsInDish: item.servingsInDish,
+            isShareable: item.isShareable
         )
     }
 
@@ -408,7 +421,12 @@ extension FoodCaptureDispatcher {
             nutritionSource: result.source,
             sugarG: nutrition.sugarG,
             sodiumMg: nutrition.sodiumMg,
-            saturatedFatG: nutrition.saturatedFatG
+            saturatedFatG: nutrition.saturatedFatG,
+            englishName: item.englishName,
+            count: item.count,
+            unit: item.unit,
+            servingsInDish: item.servingsInDish,
+            isShareable: item.isShareable
         )
     }
 

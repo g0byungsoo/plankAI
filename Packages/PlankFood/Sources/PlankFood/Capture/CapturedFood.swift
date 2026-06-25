@@ -98,6 +98,23 @@ public struct CapturedItem: Sendable, Identifiable {
     /// completes. nil until then.
     public let nutritionSource: NutritionSource?
 
+    /// 2026-06-23 accuracy fields (populated by the food-vision EF once
+    /// deployed; nil on legacy/pre-deploy responses, so all of these are
+    /// optional + safe to ignore until the EF ships them).
+    /// - englishName: plain-english gloss when `name` is a native dish
+    ///   name (e.g. name "bulgogi", englishName "marinated grilled beef").
+    /// - count + unit: the visible quantity ("5" + "piece"). nil or
+    ///   count<=1 means a single/continuous serving.
+    /// - servingsInDish: how many standard servings the WHOLE visible
+    ///   food is, for the shared-food split (nil ⇒ treat as 1).
+    /// - isShareable: a whole/shared dish the user can apply their share
+    ///   to (whole pizza, platter). nil/false = a single personal serving.
+    public let englishName: String?
+    public let count: Int?
+    public let unit: String?
+    public let servingsInDish: Int?
+    public let isShareable: Bool?
+
     public init(
         id: String,
         name: String,
@@ -117,7 +134,12 @@ public struct CapturedItem: Sendable, Identifiable {
         nutritionSource: NutritionSource?,
         sugarG: Double? = nil,
         sodiumMg: Double? = nil,
-        saturatedFatG: Double? = nil
+        saturatedFatG: Double? = nil,
+        englishName: String? = nil,
+        count: Int? = nil,
+        unit: String? = nil,
+        servingsInDish: Int? = nil,
+        isShareable: Bool? = nil
     ) {
         self.id = id
         self.name = name
@@ -138,6 +160,11 @@ public struct CapturedItem: Sendable, Identifiable {
         self.sugarG = sugarG
         self.sodiumMg = sodiumMg
         self.saturatedFatG = saturatedFatG
+        self.englishName = englishName
+        self.count = count
+        self.unit = unit
+        self.servingsInDish = servingsInDish
+        self.isShareable = isShareable
     }
 }
 

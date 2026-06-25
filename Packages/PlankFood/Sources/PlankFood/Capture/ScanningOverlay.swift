@@ -68,16 +68,15 @@ struct ScanningOverlay: View {
         .animation(.linear(duration: 0.12), value: isActive)
     }
 
-    /// v1.0.9 D2 polish — re-coloured for brand. Founder feedback:
-    /// "improve the scan (the grey line) animation." The cocoa-on-rose
-    /// stack was reading grey on busy food photos. New stack uses the
-    /// FoodTheme camera-pink pair so the sweep pops as a JeniFit
-    /// "magic line" instead of a dim shadow:
-    ///   - outer halo: cameraIdlePink #FF7AD9 @ 16% (a 56pt soft glow)
-    ///   - inner halo: bright rose #FF4FA8 @ 26% (28pt)
-    ///   - core: white-hot pink #FF7AD9 @ 85% (2pt — slightly thicker
-    ///     than before so the line stays visible against red/orange
-    ///     food)
+    /// 2026-06-23 — LUXURY laser sweep. Founder: "we need a luxury
+    /// feeling scanning (like laser scanning) animation while scanning."
+    /// The old neon-pink line (#FF7AD9 / #FF4FA8) was retired in the
+    /// design-review calm-down; this brings the sweep back but in the
+    /// brand register — a crisp warm-white laser CORE riding a soft rose
+    /// GLOW, reads premium (Chanel-counter light), not sci-fi neon.
+    ///   - rose halo: FoodTheme.accent, wide (90pt), very soft falloff
+    ///   - cream inner glow: warm white (26pt) so the core feels lit
+    ///   - core: warm-white hairline (2.5pt) — the "laser"
     ///
     /// `gate` is the sin-π alpha multiplier — 0 at the loop boundary,
     /// 1 at mid-cycle — that hides the y=0 / y=height teleport.
@@ -88,55 +87,51 @@ struct ScanningOverlay: View {
         gate: CGFloat
     ) {
         let y = phase * size.height
-        let innerHalo: CGFloat = 28
-        let outerHalo: CGFloat = 56
-        let core: CGFloat = 2.0
+        let g = Double(gate)
 
-        let outerPink = Color(red: 1.00, green: 0.48, blue: 0.85)  // #FF7AD9
-        let outerRect = CGRect(
-            x: 0, y: y - outerHalo,
-            width: size.width, height: outerHalo * 2
-        )
-        let outerGradient = Gradient(stops: [
-            .init(color: .clear, location: 0.0),
-            .init(color: outerPink.opacity(0.16 * Double(gate)), location: 0.5),
-            .init(color: .clear, location: 1.0),
-        ])
+        // Rose glow halo — the soft "light" the laser sits in. Wide +
+        // low-opacity with a gradient falloff so it reads as a glow.
+        let halo: CGFloat = 90
+        let rose = Color(red: 0.77, green: 0.40, blue: 0.48)  // ≈ FoodTheme.accent #C4677A
+        let haloRect = CGRect(x: 0, y: y - halo, width: size.width, height: halo * 2)
         context.fill(
-            Path(outerRect),
+            Path(haloRect),
             with: .linearGradient(
-                outerGradient,
-                startPoint: CGPoint(x: 0, y: outerRect.minY),
-                endPoint:   CGPoint(x: 0, y: outerRect.maxY)
+                Gradient(stops: [
+                    .init(color: .clear, location: 0.0),
+                    .init(color: rose.opacity(0.10 * g), location: 0.42),
+                    .init(color: rose.opacity(0.20 * g), location: 0.5),
+                    .init(color: rose.opacity(0.10 * g), location: 0.58),
+                    .init(color: .clear, location: 1.0),
+                ]),
+                startPoint: CGPoint(x: 0, y: haloRect.minY),
+                endPoint:   CGPoint(x: 0, y: haloRect.maxY)
             )
         )
 
-        let innerPink = Color(red: 1.00, green: 0.31, blue: 0.66)  // #FF4FA8
-        let innerRect = CGRect(
-            x: 0, y: y - innerHalo,
-            width: size.width, height: innerHalo * 2
-        )
-        let innerGradient = Gradient(stops: [
-            .init(color: .clear, location: 0.0),
-            .init(color: innerPink.opacity(0.26 * Double(gate)), location: 0.5),
-            .init(color: .clear, location: 1.0),
-        ])
+        // Warm cream inner glow — tight to the core so the line looks lit.
+        let inner: CGFloat = 26
+        let cream = Color(red: 1.0, green: 0.96, blue: 0.93)
+        let innerRect = CGRect(x: 0, y: y - inner, width: size.width, height: inner * 2)
         context.fill(
             Path(innerRect),
             with: .linearGradient(
-                innerGradient,
+                Gradient(stops: [
+                    .init(color: .clear, location: 0.0),
+                    .init(color: cream.opacity(0.34 * g), location: 0.5),
+                    .init(color: .clear, location: 1.0),
+                ]),
                 startPoint: CGPoint(x: 0, y: innerRect.minY),
                 endPoint:   CGPoint(x: 0, y: innerRect.maxY)
             )
         )
 
-        let coreRect = CGRect(
-            x: 0, y: y - core / 2,
-            width: size.width, height: core
-        )
+        // The laser core — a crisp warm-white hairline.
+        let core: CGFloat = 2.5
+        let coreRect = CGRect(x: 0, y: y - core / 2, width: size.width, height: core)
         context.fill(
             Path(coreRect),
-            with: .color(outerPink.opacity(0.85 * Double(gate)))
+            with: .color(Color(red: 1.0, green: 0.99, blue: 0.97).opacity(0.92 * g))
         )
     }
 
