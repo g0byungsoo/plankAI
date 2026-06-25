@@ -456,6 +456,12 @@ struct PlankAIApp: App {
                     // v1.1.2 (2026-06-25) — preview the steps deep-read
                     // (iridescent ring shader + energy/distance + week rhythm).
                     StepsDetailDebugHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-screen") {
+                    // v1.2 (2026-06-25) — medical-grade Phase 1: SCOFF screen.
+                    SCOFFScreenView(onComplete: { _ in })
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-recovery") {
+                    // v1.2 (2026-06-25) — ED-positive gentle path + resources.
+                    SafetyRecoveryView(onContinueGently: {})
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview") {
                     SleepCardPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview-empty") {

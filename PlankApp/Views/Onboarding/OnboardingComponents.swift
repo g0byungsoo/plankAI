@@ -489,3 +489,194 @@ struct AnimatedIcon: View {
             }
     }
 }
+
+// MARK: - Safety screening (v1.2 medical-grade Phase 1, 2026-06-25)
+//
+// SCOFF eating-disorder screen + crisis resources, anti-shame and
+// wellness-side ("a gentle check, first" — never a diagnosis). Scoring +
+// routing live in `ProgramGoalCalculator.safetyAssessment`; this is the UI.
+// Housed in OnboardingComponents for now (zero new-file/pbxproj risk);
+// extract to Views/Safety/ later. Spec:
+// docs/medical_grade_implementation_spec_2026_06_25.md
+
+/// SCOFF (Morgan 1999): five yes/no items, >= 2 yes = positive screen.
+struct SCOFFScreenView: View {
+    /// Called with the number of "yes" answers (0...5) once all answered.
+    let onComplete: (Int) -> Void
+
+    private struct SCOFFItem: Identifiable { let id: Int; let text: String }
+    private let items: [SCOFFItem] = [
+        .init(id: 0, text: "do you ever make yourself sick because you feel uncomfortably full?"),
+        .init(id: 1, text: "do you worry you have lost control over how much you eat?"),
+        .init(id: 2, text: "have you recently lost more than 6 kg (about 13 lb) in three months?"),
+        .init(id: 3, text: "do you believe yourself to be fat when others say you are thin?"),
+        .init(id: 4, text: "would you say that food dominates your life?"),
+    ]
+    @State private var answers: [Int: Bool] = [:]
+
+    private var allAnswered: Bool { answers.count == items.count }
+    private var yesCount: Int { answers.values.filter { $0 }.count }
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Palette.bgPrimary.ignoresSafeArea()
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: Space.lg) {
+                    header
+                    ForEach(items) { item in row(item) }
+                    Color.clear.frame(height: 96)
+                }
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.xl)
+            }
+            JFContinueButton(
+                label: "continue",
+                action: { Haptics.light(); onComplete(yesCount) },
+                isEnabled: allAnswered
+            )
+            .padding(.horizontal, Space.lg)
+            .padding(.bottom, Space.lg)
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            ItalicAccentText(
+                "a gentle check, first.",
+                italic: ["gentle"],
+                baseFont: Typo.heroHeadline,
+                italicFont: Typo.heroHeadlineItalic,
+                color: Palette.textPrimary,
+                alignment: .leading
+            )
+            .lineSpacing(Typo.heroHeadlineLineGap)
+            .fixedSize(horizontal: false, vertical: true)
+            Text("before we build your plan, a few questions so we can make sure this is genuinely good for you. there are no wrong answers, and nothing here is judged \u{2661}")
+                .font(.custom("DMSans-Regular", size: 15))
+                .lineSpacing(4)
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.bottom, Space.sm)
+    }
+
+    private func row(_ item: SCOFFItem) -> some View {
+        VStack(alignment: .leading, spacing: Space.md) {
+            Text(item.text)
+                .font(.custom("DMSans-Regular", size: 16))
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: Space.sm) {
+                choice("no", selected: answers[item.id] == false) { answers[item.id] = false }
+                choice("yes", selected: answers[item.id] == true) { answers[item.id] = true }
+            }
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Palette.bgElevated))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Palette.divider, lineWidth: 1))
+    }
+
+    private func choice(_ label: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button { Haptics.soft(); action() } label: {
+            Text(label)
+                .font(.custom("DMSans-Medium", size: 15))
+                .foregroundStyle(selected ? Palette.textInverse : Palette.textPrimary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(selected ? Palette.bgInverse : Color.clear)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(selected ? Color.clear : Palette.divider, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Crisis-resource card — surfaced on a positive ED screen. Tappable rows
+/// open the dialer / messages (US resources).
+struct SafetyResourcesCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Text("support, any time")
+                .font(.custom("DMSans-Medium", size: 12))
+                .kerning(1.5)
+                .foregroundStyle(Palette.textSecondary)
+            resourceRow(title: "NEDA helpline", detail: "1-800-931-2237", urlString: "tel:18009312237")
+            resourceRow(title: "988 suicide & crisis lifeline", detail: "call or text 988", urlString: "tel:988")
+            resourceRow(title: "crisis text line", detail: "text \u{201C}NEDA\u{201D} to 741741", urlString: "sms:741741")
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Palette.bgElevated))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Palette.divider, lineWidth: 1))
+    }
+
+    private func resourceRow(title: String, detail: String, urlString: String) -> some View {
+        Button {
+            Haptics.light()
+            if let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+            }
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.custom("DMSans-Medium", size: 15)).foregroundStyle(Palette.textPrimary)
+                    Text(detail).font(.custom("DMSans-Regular", size: 13)).foregroundStyle(Palette.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Shown when the SCOFF screen is positive. No goal weight, no calories —
+/// a gentle reframe + real resources. Routes to maintenance/nourish, never
+/// the loss program.
+struct SafetyRecoveryView: View {
+    let onContinueGently: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Palette.bgPrimary.ignoresSafeArea()
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: Space.lg) {
+                    ItalicAccentText(
+                        "let's take this gently.",
+                        italic: ["gently"],
+                        baseFont: Typo.heroHeadline,
+                        italicFont: Typo.heroHeadlineItalic,
+                        color: Palette.textPrimary,
+                        alignment: .leading
+                    )
+                    .lineSpacing(Typo.heroHeadlineLineGap)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                    Text("some of what you shared tells us a numbers-and-goal-weight plan might not be the kindest thing for you right now. so we're going to skip it. no calorie counting, no goal weight, no pressure.\n\nyour relationship with food matters more than any number, and you deserve real support for it \u{2661}")
+                        .font(.custom("DMSans-Regular", size: 16))
+                        .lineSpacing(5)
+                        .foregroundStyle(Palette.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    SafetyResourcesCard()
+                    Color.clear.frame(height: 80)
+                }
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.xl)
+            }
+            JFContinueButton(label: "continue gently", action: { Haptics.light(); onContinueGently() })
+                .padding(.horizontal, Space.lg)
+                .padding(.bottom, Space.lg)
+        }
+    }
+}
