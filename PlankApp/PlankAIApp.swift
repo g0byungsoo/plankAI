@@ -434,6 +434,28 @@ struct PlankAIApp: App {
                 #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("--debug-satiety-preview") {
                     SatietyPillPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-daily-ritual") {
+                    // v1.1.2 (2026-06-24) — preview the daily return ritual
+                    // standalone (it is otherwise gated to a returning
+                    // user's first Today open of the day).
+                    DailyReturnRitual(
+                        programDay: 14, totalDays: 75, showedUpCount: 12,
+                        onDismiss: {}
+                    )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-lesson-close") {
+                    // v1.1.2 (2026-06-24) — preview the lesson completion
+                    // ink-bloom (the inkBleedReveal shader + tomorrow teaser).
+                    ZStack {
+                        Palette.programBgPrimary.ignoresSafeArea()
+                        CompletionBloomOverlay(
+                            closingWord: "noted.",
+                            subtitle: "tomorrow, the next one \u{2661}"
+                        )
+                    }
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-steps-detail") {
+                    // v1.1.2 (2026-06-25) — preview the steps deep-read
+                    // (iridescent ring shader + energy/distance + week rhythm).
+                    StepsDetailDebugHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview") {
                     SleepCardPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview-empty") {
