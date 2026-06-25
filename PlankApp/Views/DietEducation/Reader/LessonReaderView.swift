@@ -141,8 +141,11 @@ struct LessonReaderView: View {
             }
 
             if completionBlooming {
-                CompletionBloomOverlay()
-                    .transition(.opacity)
+                CompletionBloomOverlay(
+                    closingWord: closingWord,
+                    subtitle: closingTeaser
+                )
+                .transition(.opacity)
             }
 
             if let _ = closeConfirmAt {
@@ -740,6 +743,18 @@ struct LessonReaderView: View {
         return "the jenifit method · day \(dayWord)\(archetypeMark)"
     }
 
+    // MARK: - Completion close
+
+    /// The ink-bleed closing word on the completion bloom. "noted." is
+    /// the CBT-journal register — a clinician's chart annotation, not a
+    /// celebration pop (medical-grade-over-soft).
+    private var closingWord: String { "noted." }
+
+    /// A quiet teaser under the closing word. Opens the loop the D1
+    /// morning "continue" push closes (Zeigarnik). True to what ships —
+    /// a new lesson lands tomorrow — so it promises nothing unbuilt.
+    private var closingTeaser: String { "tomorrow, the next one \u{2661}" }
+
     // MARK: - CTA
 
     @ViewBuilder private var ctaButton: some View {
@@ -759,14 +774,17 @@ struct LessonReaderView: View {
                     // ~once ever despite 400+ viewers on the CBT path.
                     Analytics.track(.dietEducationCompleted,
                                     properties: cbtAnalyticsProps())
-                    // Milestone lessons earn a brief visual closure
-                    // beat before the reader dismisses — single
-                    // sparkle + tick, no scatter (scatter is reserved
-                    // for welcome/plan-reveal/graduation per the
-                    // signature rule).
-                    if scheduled.isMilestone && !reduceMotion {
+                    // v1.1.2 (2026-06-24) — the earned close now plays
+                    // for EVERY lesson, not just milestones: a single
+                    // cocoa sparkle + an ink-bleed closing word + a quiet
+                    // "tomorrow" teaser that opens the loop the D1 morning
+                    // "continue" push closes. The hold lets the ink settle
+                    // before the reader dissolves home — no hard snap-back
+                    // to the checklist. Still no sticker scatter (reserved
+                    // for welcome/plan-reveal/graduation per the rule).
+                    if !reduceMotion {
                         withAnimation(Motion.bloom) { completionBlooming = true }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.25) {
                             onComplete()
                         }
                     } else {
@@ -960,22 +978,38 @@ struct CitationChip: View {
 // for welcome / plan reveal / graduation only.
 
 struct CompletionBloomOverlay: View {
+    var closingWord: String = "noted."
+    var subtitle: String? = nil
+
     @State private var bloomed = false
+    @State private var subtitleIn = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(Palette.bgPrimary.opacity(0.55))
+                .fill(Palette.bgPrimary.opacity(0.62))
                 .ignoresSafeArea()
             VStack(spacing: 14) {
                 Text("✦")
-                    .font(.custom("JeniHeroSerif-Regular", size: 56))
+                    .font(.custom("JeniHeroSerif-Regular", size: 52))
                     .foregroundStyle(Palette.cocoaPrimary)
                     .opacity(bloomed ? 1 : 0)
                     .scaleEffect(bloomed ? 1.0 : 0.6)
-                Text("noted.")
-                    .font(.custom("JeniHeroSerif-Italic", size: 22))
-                    .foregroundStyle(Palette.textPrimary.opacity(0.82))
-                    .opacity(bloomed ? 1 : 0)
+
+                // The closing word wicks in like wet ink on paper — the
+                // dormant inkBleedReveal Metal shader, finally lit.
+                InkBleedClosingWord(word: closingWord)
+
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.custom("DMSans-Medium", size: 13))
+                        .kerning(0.3)
+                        .foregroundStyle(Palette.textSecondary)
+                        .opacity(subtitleIn ? 1 : 0)
+                        .offset(y: subtitleIn ? 0 : 6)
+                        .padding(.top, 2)
+                }
             }
         }
         .accessibilityHidden(true)
@@ -983,6 +1017,55 @@ struct CompletionBloomOverlay: View {
             withAnimation(.spring(response: 0.55, dampingFraction: 0.78)) {
                 bloomed = true
             }
+            guard subtitle != nil else { return }
+            let delay = reduceMotion ? 0.0 : 0.55
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                withAnimation(.easeOut(duration: 0.45)) { subtitleIn = true }
+            }
+        }
+    }
+}
+
+// MARK: - InkBleedClosingWord
+//
+// Lights the compiled-but-dormant `inkBleedReveal` Metal shader: the
+// word's pixels are revealed by a jagged, fbm-warped radial mask that
+// grows from the center over ~0.5s, so the word bleeds in like ink
+// wicking across uncoated paper. Reduce-Motion renders a plain Text
+// (the shader at progress=1 on an unmeasured frame would be blank).
+private struct InkBleedClosingWord: View {
+    let word: String
+    @State private var progress: CGFloat = 0
+    @State private var measured: CGSize = .zero
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        if reduceMotion {
+            Text(word)
+                .font(.custom("JeniHeroSerif-Italic", size: 23))
+                .foregroundStyle(Palette.textPrimary.opacity(0.88))
+        } else {
+            Text(word)
+                .font(.custom("JeniHeroSerif-Italic", size: 23))
+                .foregroundStyle(Palette.textPrimary.opacity(0.88))
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.onAppear { measured = geo.size }
+                    }
+                )
+                .colorEffect(
+                    ShaderLibrary.inkBleedReveal(
+                        .float(Float(progress)),
+                        .float2(Float(measured.width / 2), Float(measured.height / 2)),
+                        .float2(Float(measured.width), Float(measured.height)),
+                        .float(7)
+                    )
+                )
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
+                        withAnimation(.easeOut(duration: 0.5)) { progress = 1 }
+                    }
+                }
         }
     }
 }

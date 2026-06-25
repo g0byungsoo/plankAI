@@ -225,6 +225,13 @@ struct PlanView: View {
     /// the session even after we persist lastRecapShownDateKey.
     @State private var showYesterdayRecapThisSession: Bool = false
 
+    // v1.1.2 (2026-06-24) — daily return ritual. Fires once per calendar
+    // day on the first Today-tab open of a returning user (never on the
+    // first-ever session, which already carries plan-reveal + the
+    // first-run hint). The dayKey latch mirrors `lastRecapShownDateKey`.
+    @AppStorage("dailyRitualLastDayKey") private var dailyRitualLastDayKey: String = ""
+    @State private var showDailyReturnRitual: Bool = false
+
     /// Phase 3 — days since the last PlanView appearance, captured
     /// at .onAppear. Drives the welcome-back line in place of the
     /// recap when >= 3. Captured-once so the line stays through the
@@ -291,6 +298,22 @@ struct PlanView: View {
         .sheet(item: $activeSheet) { sheet in
             sheetContent(for: sheet)
         }
+        // v1.1.2 (2026-06-24) — the daily return ritual blooms over the
+        // plan on the first open of each day, then dissolves into it on
+        // tap. Attacks the D0→D1 retention cliff at the exact friction
+        // point (app open) with a small, varying, in-brand luxury moment.
+        .overlay {
+            if showDailyReturnRitual {
+                DailyReturnRitual(
+                    programDay: schedule?.programDay,
+                    totalDays: schedule?.totalDays,
+                    showedUpCount: RetentionNotifications.shownUpCount,
+                    onDismiss: { showDailyReturnRitual = false }
+                )
+                .transition(.opacity)
+                .zIndex(50)
+            }
+        }
     }
 
     @ViewBuilder
@@ -321,22 +344,19 @@ struct PlanView: View {
                     slot: resolved.slot,
                     variant: resolved.variant,
                     onComplete: {
-                        // v1.2 chain affordance — same shape as the
-                        // legacy reader's `onChainNext`: mark the
-                        // lesson row complete, dismiss the cover, then
-                        // present the next unchecked checklist row
-                        // after the cover dismissal settles. Without
-                        // this, the CBT path would dead-end at "done"
-                        // and the cohort would miss the legacy
-                        // "lesson → snap meal → workout" rhythm.
+                        // v1.1.2 (2026-06-24) — a lesson is a
+                        // self-contained daily beat. On completion we
+                        // mark the lesson row done and return HOME
+                        // (dismiss the cover). The earlier build chained
+                        // straight into the next unchecked checklist row
+                        // via a 0.35s-delayed `handleRowTap`, but that
+                        // forward-launch into another module's
+                        // fullScreenCover read as a weird stacked-cover
+                        // hitch (founder QA). Closing back to the Today
+                        // surface is the calm, correct landing — the
+                        // reader plays its own in-brand close beat first.
                         markAutoCompleted(.lesson(lessonId: String(lessonId.rawValue)))
-                        let next = nextUncheckedPrescription
                         dismissCover()
-                        if let next {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                                handleRowTap(next)
-                            }
-                        }
                     },
                     onSkip: { _ in dismissCover() }
                 )
@@ -349,24 +369,17 @@ struct PlanView: View {
                     lesson: lessonId,
                     user: JeniMethodUserContext.fromAppStorage(),
                     onComplete: {
+                        // v1.1.2 (2026-06-24) — return HOME on completion.
+                        // Dropping `nextRowTitle` + `onChainNext` collapses
+                        // the legacy reader's final CTA to "done for today",
+                        // which dismisses the cover back to the Today
+                        // surface instead of chaining into the next module
+                        // (the stacked-cover transition founder QA flagged
+                        // as weird). Matches the CBT reader above.
                         markAutoCompleted(.lesson(lessonId: String(lessonId.rawValue)))
                         dismissCover()
                     },
-                    onSkip: { _ in dismissCover() },
-                    nextRowTitle: nextUncheckedPrescription?.rowTitle,
-                    onChainNext: {
-                        markAutoCompleted(.lesson(lessonId: String(lessonId.rawValue)))
-                        let next = nextUncheckedPrescription
-                        dismissCover()
-                        if let next {
-                            // Let the cover dismissal settle before the
-                            // next module's cover mounts (stacked
-                            // fullScreenCovers read as a hitch).
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                                handleRowTap(next)
-                            }
-                        }
-                    }
+                    onSkip: { _ in dismissCover() }
                 )
                 .presentationBackground(Palette.programBgPrimary)
             }
@@ -1334,6 +1347,19 @@ struct PlanView: View {
             }
         }
 
+        // v1.1.2 (2026-06-24) — daily return ritual gate. Once per real
+        // day, on a returning user's first Today open. Suppressed on the
+        // first-ever session (planFirstRunHintSeen still false → that day
+        // belongs to plan-reveal + the first-run hint) and at the
+        // post-goal graduation moment (chapterComplete owns that screen).
+        if viewingDay == nil,
+           planFirstRunHintSeen,
+           !computed.isPostGoal,
+           dailyRitualLastDayKey != todayDateKey {
+            dailyRitualLastDayKey = todayDateKey
+            withAnimation(.easeOut(duration: 0.35)) { showDailyReturnRitual = true }
+        }
+
         // Phase 3 — welcome-back detection. Compute the gap BEFORE
         // updating the timestamp so we capture the right delta.
         // Only counts when she opens PlanView on a different
@@ -2028,5 +2054,179 @@ private extension ProgramDayArchetype {
         case .rest:
             return "post-ozempic-era anti-shame frame. rest ≠ deficit."
         }
+    }
+}
+
+// MARK: - JeniAffirmations
+//
+// Single source of truth for the her75 affirmation pool + the
+// time-of-day greeting. Shared by the launch `AffirmationLoaderScreen`
+// and the `DailyReturnRitual` so the same calendar day shows the SAME
+// line in both — the loader's quick beat is a deliberate callback to
+// the ritual's fuller moment, never a second unrelated line. dayOfYear-
+// indexed so the line feels chosen, never random.
+enum JeniAffirmations {
+    struct Line {
+        let leading: String   // regular roman
+        let italic: String    // JeniHeroSerif-Italic punch word
+        let trailing: String  // regular roman
+        /// Full sentence as one string (for ItalicAccentText).
+        var base: String { leading + italic + trailing }
+        var italicWords: [String] { [italic] }
+    }
+
+    static let all: [Line] = [
+        Line(leading: "you are ", italic: "becoming",  trailing: " her."),
+        Line(leading: "soft ",    italic: "is",        trailing: " strong."),
+        Line(leading: "your ",    italic: "timeline",  trailing: " is yours."),
+        Line(leading: "begin ",   italic: "again",     trailing: ", anytime."),
+        Line(leading: "small ",   italic: "choices",   trailing: " stack."),
+        Line(leading: "kindness ",italic: "is",        trailing: " the strategy."),
+        Line(leading: "she is ",  italic: "already",   trailing: " in you."),
+    ]
+
+    /// Same line for the whole calendar day — intentional, not random.
+    static func today(_ date: Date = Date()) -> Line {
+        let day = Calendar.current.ordinality(of: .day, in: .year, for: date) ?? 1
+        let idx = (day - 1) % all.count
+        return all[max(0, idx)]
+    }
+
+    /// Time-of-day greeting. The late-night bucket is deliberately
+    /// non-judgmental ("still here,") — anti-shame voice, never "up late?".
+    static func greeting(for date: Date = Date()) -> String {
+        switch Calendar.current.component(.hour, from: date) {
+        case 5..<12:  return "good morning,"
+        case 12..<17: return "good afternoon,"
+        case 17..<22: return "good evening,"
+        default:      return "still here,"
+        }
+    }
+}
+
+// MARK: - DailyReturnRitual
+//
+// The once-per-day "first open" moment. A calm, full-bleed bloom over
+// the Today tab: time-of-day greeting → her affirmation (italic-Fraunces
+// punch on the JeniHeroSerif hero) → an anti-shame continuity line, each
+// staggered in with a soft haptic per beat over the living
+// `OnboardingAtmosphere` shader. Tap anywhere → it recedes (scale + fade
+// on the her75 pageExit curve) and dissolves into the plan.
+//
+// In-brand: only locked tokens, cream is the only background, hearts as
+// terminal punctuation, lowercase, NO sticker scatter (the shader +
+// motion ARE the celebration). Reduce-Motion: everything snaps in, no
+// haptics, still tap-to-dismiss.
+//
+// Retention: converts a dead relaunch into a varying, anticipated ritual
+// at the exact D0→D1 friction point (app open) — the churn emergency.
+struct DailyReturnRitual: View {
+    let programDay: Int?
+    let totalDays: Int?
+    let showedUpCount: Int
+    let onDismiss: () -> Void
+
+    @State private var canvasIn = false
+    @State private var stage = 0          // staggered text reveal
+    @State private var dismissing = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private let affirmation = JeniAffirmations.today()
+    private var greeting: String { JeniAffirmations.greeting() }
+
+    private var showedUpWord: String {
+        let f = NumberFormatter()
+        f.numberStyle = .spellOut
+        return f.string(from: NSNumber(value: showedUpCount)) ?? "\(showedUpCount)"
+    }
+
+    var body: some View {
+        ZStack {
+            OnboardingAtmosphere(intensity: 0.16)
+
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer()
+
+                Text(greeting)
+                    .font(.custom("Fraunces72pt-Light", size: 19))
+                    .foregroundStyle(Palette.textSecondary)
+                    .opacity(shown(0) ? 1 : 0)
+                    .offset(y: shown(0) ? 0 : 8)
+                    .padding(.bottom, Space.md)
+
+                ItalicAccentText(
+                    affirmation.base,
+                    italic: affirmation.italicWords,
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+                .opacity(shown(1) ? 1 : 0)
+                .offset(y: shown(1) ? 0 : 10)
+
+                if showedUpCount > 0 {
+                    continuityLine
+                        .opacity(shown(2) ? 1 : 0)
+                        .offset(y: shown(2) ? 0 : 8)
+                        .padding(.top, Space.lg)
+                }
+
+                Spacer()
+
+                Text("tap to begin")
+                    .font(.custom("DMSans-Medium", size: 12))
+                    .kerning(1.6)
+                    .foregroundStyle(Palette.textSecondary.opacity(0.55))
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .opacity(shown(3) ? 0.9 : 0)
+                    .padding(.bottom, Space.xl)
+            }
+            .padding(.horizontal, Space.lg)
+        }
+        .opacity(dismissing ? 0 : 1)
+        .scaleEffect(canvasIn && !dismissing ? 1.0 : 0.985, anchor: .center)
+        .contentShape(Rectangle())
+        .onTapGesture { dismiss() }
+        .onAppear { runIn() }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel("\(greeting) \(affirmation.base) tap to begin.")
+    }
+
+    private var continuityLine: some View {
+        (Text("you've shown up ")
+            .font(.custom("DMSans-Medium", size: 14))
+         + Text(showedUpWord)
+            .font(.custom("JeniHeroSerif-Italic", size: 15))
+         + Text(" times \u{2661}")
+            .font(.custom("DMSans-Medium", size: 14)))
+            .foregroundStyle(Palette.textSecondary)
+            .kerning(0.1)
+    }
+
+    private func shown(_ i: Int) -> Bool { reduceMotion || stage > i }
+
+    private func runIn() {
+        if reduceMotion { canvasIn = true; stage = 4; return }
+        withAnimation(Motion.bloom) { canvasIn = true }
+        let beats = [0.18, 0.58, 0.98, 1.7]
+        for (i, delay) in beats.enumerated() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                if i < 3 { Haptics.soft() }
+                withAnimation(.easeOut(duration: 0.42)) { stage = i + 1 }
+            }
+        }
+    }
+
+    private func dismiss() {
+        guard !dismissing else { return }
+        Haptics.light()
+        if reduceMotion { onDismiss(); return }
+        withAnimation(Motion.pageExit) { dismissing = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { onDismiss() }
     }
 }

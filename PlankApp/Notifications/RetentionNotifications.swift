@@ -124,6 +124,29 @@ public enum Glp1Cohort {
         )
     }
 
+    /// Day 1 morning push — ENGAGED variant. v1.1.2 (2026-06-24)
+    /// retention fix: the engaged D0 user (the most savable) previously
+    /// had her D1 push CANCELLED on the engagement signal, leaving ZERO
+    /// D1 pull — the dominant driver of the D0→D1 cliff (~89% one-and-
+    /// done). This fires instead, referencing that she already began; the
+    /// lesson reader's "tomorrow, the next one" close sets up the open
+    /// loop this push closes. Title cohort-routed (identity), body
+    /// universal + anti-shame. "today's piece" = the daily lesson, which
+    /// ships — no unshipped-feature promise.
+    public func day1ContinueContent(opener: String) -> (title: String, body: String) {
+        let title: String
+        switch self {
+        case .generalWL:   title = "you already started."
+        case .onGlp1:      title = "day two, alongside the shot."
+        case .postGlp1:    title = "the rhythm you started."
+        case .considering: title = "the daily piece, day two."
+        }
+        return (
+            title,
+            "\(opener)yesterday you showed up. today's piece is two minutes ♥"
+        )
+    }
+
     /// Day 5 anti-refund push (T+5d after trial→paid conversion).
     /// Bucket-anchored. Gated at fire-resolution time on shownUp > 0
     /// (silence beats guilt when she hasn't engaged post-charge).
@@ -261,7 +284,11 @@ enum RetentionNotifications {
     // MARK: - Tunables
 
     /// Days of quiet before the win-back fires (re-armed each session).
-    private static let winbackAfterDays = 3
+    // v1.1.2 (2026-06-24) — tightened 3 → 2. For an ~89% one-and-done
+    // cohort a 3-day lapse fires after she is already gone; landing the
+    // single re-armed win-back on D2 catches her while still recoverable.
+    // Still one push, still re-armed on every completed session.
+    private static let winbackAfterDays = 2
     /// Weekdays (1=Sun…7=Sat) affirmations land on. Two per week keeps the
     /// total gentle even when the daily reminder is also on.
     private static let affirmationWeekdays: Set<Int> = [3, 7] // Tue, Sat
@@ -426,20 +453,21 @@ enum RetentionNotifications {
     /// "are you still there?" nudges are no longer needed.
     static func markSessionCompleted(now: Date = .now) {
         UserDefaults.standard.set(now, forKey: Key.lastSessionAt)
-        // Cancel the Day 1 morning push. If it was scheduled for a
-        // future moment, the user just gave us the engagement signal
-        // it was designed to nudge, so firing it later reads as the
-        // app not knowing what's happening. v2 (2026-06-16): legacy
-        // day0/day2 identifiers also swept to clean up pending pushes
-        // on devices that upgraded.
+        // v1.1.2 (2026-06-24) RETENTION FIX — was: CANCEL the Day 1
+        // morning push the moment the user engaged, which starved the
+        // most-savable user (engaged on D0) of any D1 pull and was the
+        // dominant driver of the D0→D1 cliff (~89% one-and-done). Now we
+        // REPLACE it with the warm "continue" variant: her D1 morning
+        // still lands, referencing what she began. Clearing *Done lets
+        // scheduleDay1Morning re-arm; if the D1 window already passed it
+        // self-stamps done and clears the slot.
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [
-            day1MorningIdentifier,
             "day0_anchor",       // legacy v1.0.7
             "day2_engagement",   // legacy v1.0.7
         ])
-        // Stamp the *Done flag so the next reschedule() doesn't re-fire.
-        UserDefaults.standard.set(true, forKey: Key.day1MorningDone)
+        UserDefaults.standard.set(false, forKey: Key.day1MorningDone)
+        scheduleDay1Morning(now: now, engaged: true)
 
         Task {
             guard await isAuthorized() else { return }
@@ -691,41 +719,51 @@ enum RetentionNotifications {
     private static func scheduleDay1MorningIfNeeded(now: Date) {
         let d = UserDefaults.standard
         guard !d.bool(forKey: Key.day1MorningDone) else { return }
-        // Belt-and-suspenders gate: even if markSessionCompleted didn't
-        // flip the *Done flag for some reason, skip when the user has
-        // already engaged. Re-engagement-push for an engaged user reads
-        // as the app not knowing what's happening.
-        if d.integer(forKey: Key.shownUpCount) > 0 {
-            d.set(true, forKey: Key.day1MorningDone)
-            return
-        }
+        // v1.1.2 (2026-06-24) — was: skip + stamp done when shownUp > 0,
+        // so an engaged user got NO D1 push at all. Now we always arm the
+        // D1 slot; `engaged` only picks the copy (warm "continue" vs the
+        // "first morning" nudge). The engaged variant is what re-arms the
+        // most-savable user against the D0→D1 cliff.
+        let engaged = d.integer(forKey: Key.shownUpCount) > 0
+        scheduleDay1Morning(now: now, engaged: engaged)
+    }
+
+    /// Arms the single Day 1 morning slot (firstSeen + 1 day, at the
+    /// user's bucket-anchored morning hour). `engaged` selects the copy.
+    /// Stamps `day1MorningDone` so the next reschedule() pass won't
+    /// duplicate. Re-armed with the engaged variant from
+    /// `markSessionCompleted` the moment the user acts.
+    private static func scheduleDay1Morning(now: Date, engaged: Bool) {
+        let d = UserDefaults.standard
         guard let firstSeen = firstSeenAt() else { return }
 
         let cal = Calendar.current
-        // Day 1 = the calendar day AFTER install (firstSeen + 1 day at
-        // user's bucket-anchored morning hour). This puts the push
-        // 18-26h post-install depending on her bucket — past the
-        // onboarding euphoria, before the trial-end decision window.
+        // Day 1 = the calendar day AFTER install at the user's bucket-
+        // anchored morning hour (18-26h post-install) — past onboarding
+        // euphoria, before the trial-end decision window.
         guard let day1 = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: firstSeen)) else { return }
         var comps = cal.dateComponents([.year, .month, .day], from: day1)
         comps.hour = NotificationTimeBucket.userPreferred
             .hour(for: .reminder) ?? 10
         comps.minute = 0
+        let center = UNUserNotificationCenter.current()
         guard let fireDate = cal.date(from: comps), fireDate > now.addingTimeInterval(60) else {
-            // Window already past (e.g. user installs in evening, opens
-            // again next afternoon after the morning bucket-hour). Stamp
-            // done so we don't retry on every launch.
+            // D1 window already past (e.g. installs in the evening, or
+            // engages a day later). No D1 push makes sense — clear any
+            // stale pending request and stamp done.
+            center.removePendingNotificationRequests(withIdentifiers: [day1MorningIdentifier])
             d.set(true, forKey: Key.day1MorningDone)
             return
         }
 
-        let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [day1MorningIdentifier])
 
         let content = UNMutableNotificationContent()
         let name = (d.string(forKey: "userName") ?? "").lowercased()
         let opener = name.isEmpty ? "" : "\(name), "
-        let (title, body) = Glp1Cohort.current.day1MorningContent(opener: opener)
+        let (title, body) = engaged
+            ? Glp1Cohort.current.day1ContinueContent(opener: opener)
+            : Glp1Cohort.current.day1MorningContent(opener: opener)
         content.title = title
         content.body = body
         content.sound = .default

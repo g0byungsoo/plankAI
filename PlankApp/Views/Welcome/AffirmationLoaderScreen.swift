@@ -90,27 +90,12 @@ struct AffirmationLoaderScreen: View {
     // brand-checked line per dayOfYear, so the same day shows the
     // same affirmation — feels intentional, not random.
 
-    private struct Affirmation {
-        let leading: String     // regular
-        let italic: String      // JeniHeroSerif-Italic punch
-        let trailing: String    // regular
-    }
-
-    private static let affirmations: [Affirmation] = [
-        Affirmation(leading: "you are ", italic: "becoming",  trailing: " her."),
-        Affirmation(leading: "soft ",    italic: "is",        trailing: " strong."),
-        Affirmation(leading: "your ",    italic: "timeline",  trailing: " is yours."),
-        Affirmation(leading: "begin ",   italic: "again",     trailing: ", anytime."),
-        Affirmation(leading: "small ",   italic: "choices",   trailing: " stack."),
-        Affirmation(leading: "kindness ",italic: "is",        trailing: " the strategy."),
-        Affirmation(leading: "she is ",  italic: "already",   trailing: " in you."),
-    ]
-
-    private var todaysAffirmation: Affirmation {
-        let day = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 1
-        let idx = (day - 1) % Self.affirmations.count
-        return Self.affirmations[max(0, idx)]
-    }
+    // v1.1.2 (2026-06-24) — the affirmation pool moved to the shared
+    // `JeniAffirmations` source of truth so the launch loader and the
+    // DailyReturnRitual always show the SAME line on a given day (the
+    // loader's quick beat is a deliberate callback to the ritual's
+    // fuller moment, never a second unrelated line).
+    private var todaysAffirmation: JeniAffirmations.Line { JeniAffirmations.today() }
 
     @ViewBuilder
     private var affirmation: some View {
