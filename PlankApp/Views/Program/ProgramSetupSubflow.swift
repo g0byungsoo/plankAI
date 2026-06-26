@@ -182,7 +182,7 @@ struct ProgramSetupSubflow: View {
     private func assessment(scoffYes: Int) -> ProgramGoalCalculator.SafetyAssessment {
         ProgramGoalCalculator.safetyAssessment(.init(
             currentWeightKg: currentWeightKg,
-            goalWeightKg: goalWeightKg,
+            goalWeightKg: safeGoalWeightKg,
             heightCm: heightCm,
             ageRange: ageRange,
             scoffYesCount: scoffYes,
@@ -246,7 +246,7 @@ struct ProgramSetupSubflow: View {
     private var goalInputs: ProgramGoalCalculator.Inputs {
         .init(
             currentWeightKg: currentWeightKg,
-            goalWeightKg: goalWeightKg,
+            goalWeightKg: safeGoalWeightKg,
             sex: .female,  // JeniFit cohort default; will read profile-sex when added
             age: parsedAge,
             // v3 P11.2 (2026-06-10) — routed through engine-v2 helpers.
@@ -259,6 +259,17 @@ struct ProgramSetupSubflow: View {
             isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
             isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours)
         )
+    }
+
+    // v1.2 medical-grade (2026-06-25) — never build a program targeting a
+    // goal below BMI 18.5. The picker already warns (goalWeightAnnotation's
+    // under-target state); this enforces it at build so the program math +
+    // goal date use the safe floor even if the user slid past the warning.
+    // Height comes from onboarding. The gate only checks CURRENT BMI, so
+    // without this a healthy-weight user could target an unsafe goal.
+    private var safeGoalWeightKg: Double {
+        guard heightCm > 0 else { return goalWeightKg }
+        return max(goalWeightKg, ProgramGoalCalculator.weightForBMI(18.5, heightCm: heightCm))
     }
 
     private var parsedAge: Int? {
@@ -753,7 +764,7 @@ struct ProgramSetupSubflow: View {
 
         let input = ProgramService.StartProgramInput(
             currentWeightKg: currentWeightKg,
-            goalWeightKg: goalWeightKg,
+            goalWeightKg: safeGoalWeightKg,
             tier: pickedTier,
             goalCalculator: goalInputs,
             startDate: Calendar.current.startOfDay(for: .now)
