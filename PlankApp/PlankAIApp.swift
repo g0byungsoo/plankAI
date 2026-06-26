@@ -470,6 +470,8 @@ struct PlankAIApp: App {
                     SafetyConsentView(onAccept: {})
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-pregnancy") {
                     SafetyPregnancyView(onComplete: { _ in })
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-checkin") {
+                    SafetyCheckInView(onFinish: {})
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview") {
                     SleepCardPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview-empty") {

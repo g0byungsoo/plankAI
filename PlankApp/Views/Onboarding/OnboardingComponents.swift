@@ -881,3 +881,146 @@ struct SafetySelectRow: View {
         .buttonStyle(.plain)
     }
 }
+
+/// One-time, NON-BLOCKING safety check-in for users who enrolled BEFORE the
+/// gate existed. Same screens as the new-user gate, framed as care; "maybe
+/// later" keeps it non-blocking, and it shows once (safety_checkin_seen).
+/// On a non-loss outcome it records program_mode + surfaces support, but
+/// never deletes the user's existing program.
+struct SafetyCheckInView: View {
+    let onFinish: () -> Void
+
+    @AppStorage("onboardingCurrentWeightKg") private var currentWeightKg: Double = 65
+    @AppStorage("onboardingGoalWeightKg") private var goalWeightKg: Double = 60
+    @AppStorage("onboardingHeightCm") private var heightCm: Double = 0
+    @AppStorage("onboardingAgeRange") private var ageRange: String = ""
+    @AppStorage("safety_screen_completed") private var safetyScreenCompleted = false
+    @AppStorage("safety_scoff_yes") private var safetyScoffYes = -1
+    @AppStorage("safety_pregnancy_status") private var safetyPregnancyStatus = ""
+    @AppStorage("program_mode") private var programMode = "loss"
+    @AppStorage("safety_checkin_seen") private var checkinSeen = false
+
+    @State private var phase: CheckInPhase = .intro
+    private enum CheckInPhase: Equatable {
+        case intro, pregnancy, screening, terminal(SafetyTerminalVariant), allGood
+    }
+
+    var body: some View {
+        switch phase {
+        case .intro:
+            intro
+        case .pregnancy:
+            SafetyPregnancyView(onComplete: { status in
+                safetyPregnancyStatus = status
+                withAnimation(Motion.crossFade) { phase = .screening }
+            })
+        case .screening:
+            SCOFFScreenView(onComplete: handleScoff)
+        case .terminal(let variant):
+            SafetyRecoveryView(variant: variant, onContinueGently: { finish(markCompleted: true) })
+        case .allGood:
+            allGood
+        }
+    }
+
+    private var intro: some View {
+        ZStack(alignment: .bottom) {
+            Palette.bgPrimary.ignoresSafeArea()
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: Space.lg) {
+                    ItalicAccentText(
+                        "a quick check-in.",
+                        italic: ["check-in"],
+                        baseFont: Typo.heroHeadline,
+                        italicFont: Typo.heroHeadlineItalic,
+                        color: Palette.textPrimary,
+                        alignment: .leading
+                    )
+                    .lineSpacing(Typo.heroHeadlineLineGap)
+                    .fixedSize(horizontal: false, vertical: true)
+                    Text("we've added a short safety check so we can make sure jenifit is still the kindest fit for you. it takes about a minute, and there are no wrong answers \u{2661}")
+                        .font(.custom("DMSans-Regular", size: 16))
+                        .lineSpacing(5)
+                        .foregroundStyle(Palette.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Color.clear.frame(height: 100)
+                }
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.xl)
+            }
+            VStack(spacing: Space.sm) {
+                JFContinueButton(label: "start the check", action: {
+                    Haptics.light()
+                    withAnimation(Motion.crossFade) { phase = .pregnancy }
+                })
+                Button { Haptics.light(); finish(markCompleted: false) } label: {
+                    Text("maybe later")
+                        .font(.custom("DMSans-Medium", size: 15))
+                        .foregroundStyle(Palette.textSecondary)
+                        .padding(.vertical, 8)
+                }
+            }
+            .padding(.horizontal, Space.lg)
+            .padding(.bottom, Space.lg)
+        }
+    }
+
+    private var allGood: some View {
+        ZStack(alignment: .bottom) {
+            Palette.bgPrimary.ignoresSafeArea()
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: Space.lg) {
+                    ItalicAccentText(
+                        "you're all set.",
+                        italic: ["set"],
+                        baseFont: Typo.heroHeadline,
+                        italicFont: Typo.heroHeadlineItalic,
+                        color: Palette.textPrimary,
+                        alignment: .leading
+                    )
+                    .lineSpacing(Typo.heroHeadlineLineGap)
+                    .fixedSize(horizontal: false, vertical: true)
+                    Text("thanks for checking in. your plan is a good fit, so carry on, just as you were \u{2661}")
+                        .font(.custom("DMSans-Regular", size: 16))
+                        .lineSpacing(5)
+                        .foregroundStyle(Palette.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Color.clear.frame(height: 80)
+                }
+                .padding(.horizontal, Space.lg)
+                .padding(.top, Space.xl)
+            }
+            JFContinueButton(label: "done", action: { Haptics.light(); finish(markCompleted: true) })
+                .padding(.horizontal, Space.lg)
+                .padding(.bottom, Space.lg)
+        }
+    }
+
+    private func handleScoff(_ yes: Int) {
+        safetyScoffYes = yes
+        let a = ProgramGoalCalculator.safetyAssessment(.init(
+            currentWeightKg: currentWeightKg,
+            goalWeightKg: goalWeightKg,
+            heightCm: heightCm,
+            ageRange: ageRange,
+            scoffYesCount: yes,
+            pregnancyStatus: safetyPregnancyStatus
+        ))
+        programMode = a.mode.rawValue
+        safetyScreenCompleted = true
+        withAnimation(Motion.crossFade) {
+            switch a.mode {
+            case .loss:        phase = .allGood
+            case .recovery:    phase = .terminal(.eatingDisorder)
+            case .blocked:     phase = .terminal(.underage)
+            case .maintenance: phase = .terminal(a.reasonKey == "bmi_low" ? .lowBMI : .pregnant)
+            }
+        }
+    }
+
+    private func finish(markCompleted: Bool) {
+        checkinSeen = true
+        if markCompleted { safetyScreenCompleted = true }
+        onFinish()
+    }
+}

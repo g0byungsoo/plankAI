@@ -232,6 +232,15 @@ struct PlanView: View {
     @AppStorage("dailyRitualLastDayKey") private var dailyRitualLastDayKey: String = ""
     @State private var showDailyReturnRitual: Bool = false
 
+    // v1.2 medical-grade Phase 1 (2026-06-25) — one-time, non-blocking
+    // safety check-in for users who enrolled BEFORE the gate existed
+    // (safety_screen_completed still false). New users went through the
+    // gate, so theirs is true and they never see this.
+    @AppStorage("safety_screen_completed") private var safetyScreenCompletedFlag: Bool = false
+    @AppStorage("safety_screen_enabled") private var safetyScreenEnabledFlag: Bool = true
+    @AppStorage("safety_checkin_seen") private var safetyCheckinSeen: Bool = false
+    @State private var showSafetyCheckIn: Bool = false
+
     /// Phase 3 — days since the last PlanView appearance, captured
     /// at .onAppear. Drives the welcome-back line in place of the
     /// recap when >= 3. Captured-once so the line stays through the
@@ -313,6 +322,9 @@ struct PlanView: View {
                 .transition(.opacity)
                 .zIndex(50)
             }
+        }
+        .fullScreenCover(isPresented: $showSafetyCheckIn) {
+            SafetyCheckInView(onFinish: { showSafetyCheckIn = false })
         }
     }
 
@@ -1347,12 +1359,24 @@ struct PlanView: View {
             }
         }
 
+        // v1.2 medical-grade Phase 1 — one-time safety check-in for
+        // already-enrolled users who never saw the new-user gate. Reaching
+        // PlanView implies enrollment, so no separate enrolled check is
+        // needed. Takes precedence over the daily ritual for this open.
+        if viewingDay == nil,
+           safetyScreenEnabledFlag,
+           !safetyScreenCompletedFlag,
+           !safetyCheckinSeen {
+            showSafetyCheckIn = true
+        }
+
         // v1.1.2 (2026-06-24) — daily return ritual gate. Once per real
         // day, on a returning user's first Today open. Suppressed on the
         // first-ever session (planFirstRunHintSeen still false → that day
         // belongs to plan-reveal + the first-run hint) and at the
         // post-goal graduation moment (chapterComplete owns that screen).
-        if viewingDay == nil,
+        if !showSafetyCheckIn,
+           viewingDay == nil,
            planFirstRunHintSeen,
            !computed.isPostGoal,
            dailyRitualLastDayKey != todayDateKey {
