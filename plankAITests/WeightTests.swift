@@ -88,3 +88,80 @@ final class WeightAnalyticsTests: XCTestCase {
         XCTAssertFalse(WeightAnalytics.isStalled(logs: []))
     }
 }
+
+/// Medical-grade Phase 5 — the % total-body-weight-loss evidence flywheel.
+/// Tests target the pure `dueMilestones` core (no UserDefaults / Analytics
+/// side effects) so the math + milestone gating + the >=5% TBWL threshold
+/// are pinned. Correctness matters here: this is the evidence substrate.
+final class WeightOutcomeInstrumentationTests: XCTestCase {
+
+    private let start = Date(timeIntervalSince1970: 1_700_000_000)  // fixed anchor
+
+    private func at(weeks: Double) -> Date {
+        start.addingTimeInterval(weeks * 7 * 24 * 3600)
+    }
+
+    private func due(enroll: Double?, current: Double?, weeks: Double)
+        -> [WeightOutcomeInstrumentation.Milestone] {
+        WeightOutcomeInstrumentation.dueMilestones(
+            startDate: start, enrollmentWeightKg: enroll,
+            latestWeightKg: current, now: at(weeks: weeks))
+    }
+
+    func testNoMilestoneBeforeTwelveWeeks() {
+        XCTAssertTrue(due(enroll: 70, current: 66, weeks: 11.9).isEmpty)
+    }
+
+    func testTwelveWeekMilestoneFires() {
+        XCTAssertEqual(due(enroll: 70, current: 66, weeks: 12).map(\.week), [12])
+    }
+
+    func testCumulativeMilestonesAtThirtyWeeks() {
+        XCTAssertEqual(due(enroll: 70, current: 63, weeks: 30).map(\.week), [12, 26])
+    }
+
+    func testAllMilestonesPastFiftyTwoWeeks() {
+        XCTAssertEqual(due(enroll: 70, current: 63, weeks: 60).map(\.week), [12, 26, 52])
+    }
+
+    func testTbwlPercentAndFivePercentFlag() {
+        // 70 → 63 = exactly 10% loss.
+        let m = due(enroll: 70, current: 63, weeks: 12).first
+        XCTAssertEqual(m?.tbwlPct ?? 0, 10.0, accuracy: 0.05)
+        XCTAssertEqual(m?.achieved5pct, true)
+    }
+
+    func testFivePercentBoundaryIsInclusive() {
+        // 70 → 66.5 = exactly 5.0%.
+        let m = due(enroll: 70, current: 66.5, weeks: 12).first
+        XCTAssertEqual(m?.tbwlPct ?? 0, 5.0, accuracy: 0.05)
+        XCTAssertEqual(m?.achieved5pct, true)
+    }
+
+    func testJustUnderFivePercentNotAchieved() {
+        // 70 → 66.6 = 4.857% loss.
+        XCTAssertEqual(due(enroll: 70, current: 66.6, weeks: 12).first?.achieved5pct, false)
+    }
+
+    func testWeightGainKeepsMilestoneWithNegativeTbwl() {
+        // 70 → 72 = gain; the milestone is still recorded (real signal),
+        // but the >=5% flag is false.
+        let m = due(enroll: 70, current: 72, weeks: 12).first
+        XCTAssertEqual(m?.week, 12)
+        XCTAssertLessThan(m?.tbwlPct ?? 0, 0)
+        XCTAssertEqual(m?.achieved5pct, false)
+    }
+
+    func testNoEnrollmentWeightEmitsNothing() {
+        XCTAssertTrue(due(enroll: nil, current: 66, weeks: 30).isEmpty)
+    }
+
+    func testNoCurrentWeightEmitsNothing() {
+        // Never weighed in → no number to invent (data-provenance).
+        XCTAssertTrue(due(enroll: 70, current: nil, weeks: 30).isEmpty)
+    }
+
+    func testDaysSinceStartTracksElapsed() {
+        XCTAssertEqual(due(enroll: 70, current: 66, weeks: 12).first?.daysSinceStart, 84)
+    }
+}

@@ -868,6 +868,20 @@ struct AnalyticsView: View {
                     )
                 }
             }
+            // Medical-grade Phase 5 — outcome instrumentation (PostHog
+            // only; no UI/behavior change). First time the user crosses
+            // 12/26/52wk since enrollment with a real weigh-in, snapshot
+            // % total-body-weight-loss for the evidence flywheel.
+            if let userId = auth.currentUser?.id.uuidString, !userId.isEmpty,
+               let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext) {
+                let latest = measuredWeightLogs.first
+                WeightOutcomeInstrumentation.recordIfDue(
+                    startDate: plan.startDate,
+                    enrollmentWeightKg: plan.currentWeightKg,
+                    latestWeightKg: latest?.weightKg,
+                    latestWeightLoggedAt: latest?.loggedAt
+                )
+            }
         }
         .fullScreenCover(isPresented: $showSundayRecap) {
             BecomingRecapView(
