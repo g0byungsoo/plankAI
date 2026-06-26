@@ -148,6 +148,9 @@ struct AnalyticsView: View {
     /// lean-mass framing. Default OFF: existing customers keep the legacy
     /// 1.2 g/kg target until the founder enables it.
     @AppStorage("protein_hero_enabled") private var proteinHeroEnabled = false
+    /// Medical-grade Phase 2.2 — flag-gated rapid-loss safety guardrail.
+    /// Default OFF until founder review (it adds an insight to a live surface).
+    @AppStorage("rapid_loss_guard_enabled") private var rapidLossGuardEnabled = false
     /// Restriction-risk cohort flags — hide the lighter-days counter
     /// (the journal stays fully available).
     @AppStorage("onboardingFoodRelationship") private var foodRelationshipKey = ""
@@ -1990,6 +1993,18 @@ struct AnalyticsView: View {
     /// renders without the swipe affordance.
     private var dashboardInsightsRanked: [BecomingInsight] {
         var out: [BecomingInsight] = []
+
+        // Medical-grade Phase 2.2 (flag-gated) — rapid-loss safety guardrail.
+        // Leads the cycle when it fires: >1%/wk sustained loss risks lean
+        // mass, so reframe toward protein, never scold (anti-shame lock).
+        if rapidLossGuardEnabled, !hideWeightStats,
+           WeightAnalytics.isLosingTooFast(logs: weightLogs) {
+            out.append(.init(
+                id: "rapid-loss-guard",
+                text: "you're losing quickly. a protein-forward week helps you keep the muscle \u{2665}\u{FE0E}",
+                italic: ["protein-forward"]
+            ))
+        }
 
         if !hideWeightStats, let toward = paceTowardGoal, toward > 0.02, weighInsThisWeek >= 2 {
             out.append(.init(

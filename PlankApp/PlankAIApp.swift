@@ -499,6 +499,27 @@ struct PlankAIApp: App {
                             }
                         }
                     }
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-rapid-loss") {
+                    // v1.2 (2026-06-26) — medical-grade Phase 2.2: rapid-loss
+                    // safety guardrail insight. >1%/wk sustained loss → reframe
+                    // toward protein (anti-shame, never "slow down / too fast").
+                    ZStack {
+                        Palette.bgPrimary.ignoresSafeArea()
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("rapid-loss guardrail (Phase 2.2)")
+                                .font(.custom("DMSans-Regular", size: 13))
+                                .foregroundStyle(Palette.textSecondary)
+                            BecomingInsightLine(
+                                text: "you're losing quickly. a protein-forward week helps you keep the muscle \u{2665}\u{FE0E}",
+                                italic: ["protein-forward"]
+                            )
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(Palette.divider, lineWidth: 1))
+                        }
+                        .padding(24)
+                    }
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview") {
                     SleepCardPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview-empty") {

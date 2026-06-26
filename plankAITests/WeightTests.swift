@@ -1,4 +1,5 @@
 import XCTest
+import PlankSync
 @testable import plankAI
 
 final class WeightUnitTests: XCTestCase {
@@ -200,5 +201,66 @@ final class ClinicalTargetsTests: XCTestCase {
     func testUpperClampAtOneSixtyGrams() {
         // 110 kg GLP-1 → 176 raw, clamped down to the 160 g ceiling.
         XCTAssertEqual(ClinicalTargets.proteinFloorGrams(weightKg: 110, isGLP1: true), 160)
+    }
+}
+
+/// Medical-grade Phase 2.2 — the rapid-loss safety monitor (muscle-
+/// preservation guardrail). >1%/wk sustained loss is the ACSM
+/// over-restriction zone; pairs with the protein floor.
+final class RapidLossMonitorTests: XCTestCase {
+
+    private let today = Date(timeIntervalSince1970: 1_700_000_000)
+
+    private func log(_ kg: Double, daysAgo: Int) -> WeightLogRecord {
+        WeightLogRecord(userId: "t", weightKg: kg,
+                        loggedAt: today.addingTimeInterval(Double(-daysAgo) * 86_400))
+    }
+
+    func testNilWhenTooFewLogs() {
+        XCTAssertNil(WeightAnalytics.weeklyLossRate(logs: [log(70, daysAgo: 0)], today: today))
+    }
+
+    func testNilWhenSpanUnderSevenDays() {
+        let logs = [log(70, daysAgo: 5), log(69, daysAgo: 0)]
+        XCTAssertNil(WeightAnalytics.weeklyLossRate(logs: logs, today: today))
+    }
+
+    func testWeeklyRateComputation() {
+        // 70 → 68.6 over 14 days = 2% / 2 weeks = 1%/wk = 0.01.
+        let logs = [log(70, daysAgo: 14), log(69.3, daysAgo: 7), log(68.6, daysAgo: 0)]
+        XCTAssertEqual(WeightAnalytics.weeklyLossRate(logs: logs, today: today) ?? 0,
+                       0.01, accuracy: 0.0005)
+    }
+
+    func testTooFastFiresAboveOnePercentPerWeek() {
+        // 70 → 67.9 over 14 days = 3% / 2wk = 1.5%/wk → too fast.
+        let logs = [log(70, daysAgo: 14), log(68.95, daysAgo: 7), log(67.9, daysAgo: 0)]
+        XCTAssertTrue(WeightAnalytics.isLosingTooFast(logs: logs, today: today))
+    }
+
+    func testSafePaceDoesNotFire() {
+        // 70 → 69.3 over 14 days = 1% / 2wk = 0.5%/wk → safe.
+        let logs = [log(70, daysAgo: 14), log(69.65, daysAgo: 7), log(69.3, daysAgo: 0)]
+        XCTAssertFalse(WeightAnalytics.isLosingTooFast(logs: logs, today: today))
+    }
+
+    func testJustBelowCeilingIsSafe() {
+        // ~0.93%/wk (70 → 68.7 over 14 days) sits under the ~1%/wk ceiling,
+        // so the guardrail must NOT fire. Exactly 1.000%/wk is left to the
+        // production `> 0.01` threshold — no real user lands on it, and a
+        // floating-point exact-boundary assertion is meaningless.
+        let logs = [log(70, daysAgo: 14), log(69.35, daysAgo: 7), log(68.7, daysAgo: 0)]
+        XCTAssertFalse(WeightAnalytics.isLosingTooFast(logs: logs, today: today))
+    }
+
+    func testGainDoesNotFire() {
+        let logs = [log(70, daysAgo: 14), log(70.5, daysAgo: 7), log(71, daysAgo: 0)]
+        XCTAssertFalse(WeightAnalytics.isLosingTooFast(logs: logs, today: today))
+    }
+
+    func testTwoPointBlipDoesNotTripTooFast() {
+        // Only 2 logs → not "sustained", even with a huge drop.
+        let logs = [log(70, daysAgo: 14), log(66, daysAgo: 0)]
+        XCTAssertFalse(WeightAnalytics.isLosingTooFast(logs: logs, today: today))
     }
 }

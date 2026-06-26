@@ -57,6 +57,40 @@ enum WeightAnalytics {
         return span < 0.5
     }
 
+    // MARK: - Rapid-loss safety monitor (medical-grade Phase 2.2)
+
+    /// Trailing weekly loss rate as a FRACTION of body weight per week over
+    /// the recent window (default 21 days). Positive = losing, negative =
+    /// gaining. nil when there isn't enough to compute a trend: need ≥2
+    /// weigh-ins spanning ≥7 days. Anchored on the earliest in-window log so
+    /// a single fresh weigh-in can't manufacture a rate.
+    static func weeklyLossRate(
+        logs: [WeightLogRecord],
+        today: Date = .now,
+        windowDays: Int = 21
+    ) -> Double? {
+        guard logs.count >= 2 else { return nil }
+        let cal = Calendar.current
+        let cutoff = cal.date(byAdding: .day, value: -windowDays, to: cal.startOfDay(for: today))!
+        let recent = logs.filter { $0.loggedAt >= cutoff }.sorted { $0.loggedAt < $1.loggedAt }
+        guard let first = recent.first, let last = recent.last, first.weightKg > 0 else { return nil }
+        let days = last.loggedAt.timeIntervalSince(first.loggedAt) / 86_400
+        guard days >= 7 else { return nil }
+        let lossFraction = (first.weightKg - last.weightKg) / first.weightKg   // + = lost
+        return lossFraction / (days / 7.0)
+    }
+
+    /// True when sustained loss is faster than the ACSM safe ceiling
+    /// (~1%/wk), the over-restriction / lean-mass-loss zone. The
+    /// muscle-preservation guardrail — pairs with the protein floor:
+    /// fast loss + low protein is the sarcopenia path. Donnelly 2009
+    /// (ACSM): 0.5–1%/wk is the safe band. Requires ≥3 logs so a two-point
+    /// blip never trips a "you're losing too fast" message.
+    static func isLosingTooFast(logs: [WeightLogRecord], today: Date = .now) -> Bool {
+        guard logs.count >= 3, let rate = weeklyLossRate(logs: logs, today: today) else { return false }
+        return rate > 0.01   // > 1% of body weight per week, sustained
+    }
+
     // MARK: - Identity-framed copy
 
     /// Subtitle copy for the weight card. Identity-framed when there's
