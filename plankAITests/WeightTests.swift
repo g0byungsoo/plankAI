@@ -165,3 +165,40 @@ final class WeightOutcomeInstrumentationTests: XCTestCase {
         XCTAssertEqual(due(enroll: 70, current: 66, weeks: 12).first?.daysSinceStart, 84)
     }
 }
+
+/// Medical-grade Phase 2.3 — the lean-mass-protection protein floor. The
+/// flagship clinical differentiator: the GLP-1 cohort gets the protective
+/// top of the 1.2-1.6 g/kg band because appetite suppression + rapid loss
+/// carries the highest sarcopenia risk.
+final class ClinicalTargetsTests: XCTestCase {
+
+    func testBaselineProteinIsTwelveTenthsPerKg() {
+        // 70 kg, non-GLP-1 → 1.2 * 70 = 84 g.
+        XCTAssertEqual(ClinicalTargets.proteinFloorGrams(weightKg: 70, isGLP1: false), 84)
+    }
+
+    func testGLP1ProteinIsSixteenTenthsPerKg() {
+        // 70 kg, GLP-1 → 1.6 * 70 = 112 g (the muscle-preservation top of band).
+        XCTAssertEqual(ClinicalTargets.proteinFloorGrams(weightKg: 70, isGLP1: true), 112)
+    }
+
+    func testGLP1FloorAlwaysExceedsBaselineAtSameWeight() {
+        // The flagship differentiator: the GLP-1 cohort gets more protein.
+        for kg in [60.0, 75.0, 90.0, 105.0] {
+            XCTAssertGreaterThan(
+                ClinicalTargets.proteinFloorGrams(weightKg: kg, isGLP1: true),
+                ClinicalTargets.proteinFloorGrams(weightKg: kg, isGLP1: false),
+                "GLP-1 floor should exceed baseline at kg=\(kg)")
+        }
+    }
+
+    func testLowerClampAtEightyGrams() {
+        // 50 kg non-GLP-1 → 60 raw, clamped up to the 80 g floor.
+        XCTAssertEqual(ClinicalTargets.proteinFloorGrams(weightKg: 50, isGLP1: false), 80)
+    }
+
+    func testUpperClampAtOneSixtyGrams() {
+        // 110 kg GLP-1 → 176 raw, clamped down to the 160 g ceiling.
+        XCTAssertEqual(ClinicalTargets.proteinFloorGrams(weightKg: 110, isGLP1: true), 160)
+    }
+}

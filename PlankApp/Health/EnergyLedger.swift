@@ -108,3 +108,31 @@ enum EnergyLedger {
         return spent - gainedHigh >= max(300, 0.2 * gained)
     }
 }
+
+// MARK: - ClinicalTargets
+//
+// Medical-grade Phase 2.3 (2026-06-26) — the lean-mass-protection target the
+// obesity + GLP-1 MDs flagged as the flagship clinical differentiator (the
+// sarcopenia guardrail + the strongest pharma hook). Pure, deterministic,
+// unit-tested. Wiring is flag-gated (`protein_hero_enabled`, default off) so
+// existing customers see no change until the founder signs off.
+enum ClinicalTargets {
+
+    /// Daily protein floor (g) for lean-mass protection during weight loss.
+    ///
+    /// Phillips IJSNEM 2016 + Conte JCEM 2024 baseline is 1.2 g/kg; GLP-1
+    /// cohorts get the protective top of the 1.2–1.6 g/kg band (1.6) — the
+    /// appetite-suppression + rapid-loss path carries the highest sarcopenia
+    /// risk, so it needs the most protein. Clamped to a plausible,
+    /// non-alarming 80–160 g/day for women.
+    ///
+    /// `weightKg` is CURRENT body mass, not goal: using current weight keeps
+    /// the floor protective for higher-BMI users instead of under-prescribing
+    /// toward a distant goal (a "floors only raise" safety choice). Callers
+    /// guard the no-weight case and render nothing rather than invent a body
+    /// mass (data-provenance).
+    static func proteinFloorGrams(weightKg: Double, isGLP1: Bool) -> Int {
+        let perKg = isGLP1 ? 1.6 : 1.2
+        return max(80, min(160, Int((perKg * weightKg).rounded())))
+    }
+}

@@ -242,6 +242,10 @@ struct BecomingProteinSource: Equatable {
 struct BecomingProteinTile: View {
     let proteinG: Int
     let targetG: Int
+    /// Phase 2.3 (flag-gated) — optional lean-mass framing under the target
+    /// (e.g. "protecting lean mass" for GLP-1 cohorts), explaining the
+    /// elevated floor. nil → tile renders exactly as before.
+    var note: String? = nil
     /// Phase 4 — plate sources for the long-press peek. nil → tile is
     /// non-interactive (legacy). Empty → long-press is a no-op (we
     /// don't want a "you have no plates" empty state nag).
@@ -301,6 +305,14 @@ struct BecomingProteinTile: View {
             Text("of ~\(targetG)g")
                 .font(.custom("DMSans-Regular", size: 12))
                 .foregroundStyle(Palette.cocoaTertiary)
+
+            if let note {
+                Text(note)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11))
+                    .foregroundStyle(Palette.accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
 
             proteinBar.padding(.top, 6)
 

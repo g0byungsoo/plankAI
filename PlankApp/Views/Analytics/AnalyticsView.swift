@@ -144,6 +144,10 @@ struct AnalyticsView: View {
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
     /// GLP-1 status (onboarding v2) — gates the cohort protein line.
     @AppStorage("onboarding_glp1_status") private var glp1Status = ""
+    /// Medical-grade Phase 2.3 — flag-gated cohort-aware protein floor +
+    /// lean-mass framing. Default OFF: existing customers keep the legacy
+    /// 1.2 g/kg target until the founder enables it.
+    @AppStorage("protein_hero_enabled") private var proteinHeroEnabled = false
     /// Restriction-risk cohort flags — hide the lighter-days counter
     /// (the journal stays fully available).
     @AppStorage("onboardingFoodRelationship") private var foodRelationshipKey = ""
@@ -316,8 +320,25 @@ struct AnalyticsView: View {
             return 0
         }()
         guard kg > 30 else { return nil }
+        // Medical-grade Phase 2.3 (flag-gated) — GLP-1 cohorts (on the med
+        // now, or in the first weeks off) carry the highest sarcopenia risk,
+        // so they get the protective top of the 1.2-1.6 g/kg band. Default
+        // path stays the legacy 1.2 g/kg until `protein_hero_enabled` flips.
+        if proteinHeroEnabled {
+            let cohort = ProgramGoalCalculator.isGLP1User(from: glp1Status) || glp1Status == "past"
+            return ClinicalTargets.proteinFloorGrams(weightKg: kg, isGLP1: cohort)
+        }
         let raw = 1.2 * kg
         return max(80, min(150, Int(raw.rounded())))
+    }
+
+    /// Phase 2.3 (flag-gated) — explains WHY the GLP-1 cohort's protein
+    /// target is elevated. nil when the flag is off or the user is off-cohort,
+    /// so the tile renders exactly as it does today.
+    private var proteinHeroNote: String? {
+        guard proteinHeroEnabled else { return nil }
+        let cohort = ProgramGoalCalculator.isGLP1User(from: glp1Status) || glp1Status == "past"
+        return cohort ? "lean-mass first" : nil
     }
 
     /// Pace-aware kcal target for today's energy strip. Reads the
@@ -1329,6 +1350,7 @@ struct AnalyticsView: View {
                         BecomingProteinTile(
                             proteinG: Int(todayFoodMacros.protein.rounded()),
                             targetG: target,
+                            note: proteinHeroNote,
                             sources: todayProteinSources
                         )
                     } else {

@@ -472,6 +472,33 @@ struct PlankAIApp: App {
                     SafetyPregnancyView(onComplete: { _ in })
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-checkin") {
                     SafetyCheckInView(onFinish: {})
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-protein-hero") {
+                    // v1.2 (2026-06-26) — medical-grade Phase 2.3: cohort-aware
+                    // protein floor + lean-mass framing (flag-gated). Left =
+                    // legacy 1.2 g/kg baseline (70kg → 84g); right = GLP-1
+                    // elevated 1.6 g/kg (→ 112g) + the "lean-mass first"
+                    // note that explains the higher floor.
+                    ZStack {
+                        Palette.bgPrimary.ignoresSafeArea()
+                        VStack(spacing: 28) {
+                            Text("protein tile — baseline vs GLP-1 cohort")
+                                .font(.custom("DMSans-Regular", size: 13))
+                                .foregroundStyle(Palette.textSecondary)
+                            HStack(spacing: 16) {
+                                BecomingProteinTile(proteinG: 78, targetG: 84)
+                                    .padding(16)
+                                    .frame(width: 160, height: 168, alignment: .topLeading)
+                                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                        .stroke(Palette.divider, lineWidth: 1))
+                                BecomingProteinTile(proteinG: 78, targetG: 112,
+                                                    note: "lean-mass first")
+                                    .padding(16)
+                                    .frame(width: 160, height: 168, alignment: .topLeading)
+                                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                        .stroke(Palette.divider, lineWidth: 1))
+                            }
+                        }
+                    }
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview") {
                     SleepCardPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview-empty") {
