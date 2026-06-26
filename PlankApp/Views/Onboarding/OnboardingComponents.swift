@@ -518,24 +518,27 @@ struct SCOFFScreenView: View {
     private var yesCount: Int { answers.values.filter { $0 }.count }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Palette.bgPrimary.ignoresSafeArea()
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: Space.lg) {
-                    header
-                    ForEach(items) { item in row(item) }
-                    Color.clear.frame(height: 96)
-                }
-                .padding(.horizontal, Space.lg)
-                .padding(.top, Space.xl)
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: Space.lg) {
+                header
+                ForEach(items) { item in row(item) }
             }
+            .padding(.horizontal, Space.lg)
+            .padding(.top, Space.xl)
+            .padding(.bottom, Space.md)
+        }
+        .background(Palette.bgPrimary.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom) {
             JFContinueButton(
                 label: "continue",
                 action: { Haptics.light(); onComplete(yesCount) },
                 isEnabled: allAnswered
             )
             .padding(.horizontal, Space.lg)
+            .padding(.top, Space.sm)
             .padding(.bottom, Space.lg)
+            .background(Palette.bgPrimary)
+            .overlay(alignment: .top) { Rectangle().fill(Palette.divider.opacity(0.7)).frame(height: 1) }
         }
     }
 
@@ -583,15 +586,17 @@ struct SCOFFScreenView: View {
                 .font(.custom("DMSans-Medium", size: 15))
                 .foregroundStyle(selected ? Palette.textInverse : Palette.textPrimary)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+                .padding(.vertical, 14)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(selected ? Palette.bgInverse : Color.clear)
+                        .fill(selected ? Palette.bgInverse : Palette.bgPrimary)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .stroke(selected ? Color.clear : Palette.divider, lineWidth: 1)
                 )
+                // Whole pill is the tap target (clear fills aren't hit-tested).
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -694,36 +699,39 @@ struct SafetyRecoveryView: View {
     let onContinueGently: () -> Void
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Palette.bgPrimary.ignoresSafeArea()
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: Space.lg) {
-                    ItalicAccentText(
-                        variant.headline,
-                        italic: variant.headlineItalic,
-                        baseFont: Typo.heroHeadline,
-                        italicFont: Typo.heroHeadlineItalic,
-                        color: Palette.textPrimary,
-                        alignment: .leading
-                    )
-                    .lineSpacing(Typo.heroHeadlineLineGap)
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: Space.lg) {
+                ItalicAccentText(
+                    variant.headline,
+                    italic: variant.headlineItalic,
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+
+                Text(variant.bodyText)
+                    .font(.custom("DMSans-Regular", size: 16))
+                    .lineSpacing(5)
+                    .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                    Text(variant.bodyText)
-                        .font(.custom("DMSans-Regular", size: 16))
-                        .lineSpacing(5)
-                        .foregroundStyle(Palette.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    if variant.showsResources { SafetyResourcesCard() }
-                    Color.clear.frame(height: 80)
-                }
-                .padding(.horizontal, Space.lg)
-                .padding(.top, Space.xl)
+                if variant.showsResources { SafetyResourcesCard() }
             }
+            .padding(.horizontal, Space.lg)
+            .padding(.top, Space.xl)
+            .padding(.bottom, Space.md)
+        }
+        .background(Palette.bgPrimary.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom) {
             JFContinueButton(label: variant.ctaLabel, action: { Haptics.light(); onContinueGently() })
                 .padding(.horizontal, Space.lg)
+                .padding(.top, Space.sm)
                 .padding(.bottom, Space.lg)
+                .background(Palette.bgPrimary)
+                .overlay(alignment: .top) { Rectangle().fill(Palette.divider.opacity(0.7)).frame(height: 1) }
         }
     }
 }
@@ -734,45 +742,48 @@ struct SafetyConsentView: View {
     let onAccept: () -> Void
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Palette.bgPrimary.ignoresSafeArea()
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: Space.lg) {
-                    ItalicAccentText(
-                        "before we begin.",
-                        italic: ["begin"],
-                        baseFont: Typo.heroHeadline,
-                        italicFont: Typo.heroHeadlineItalic,
-                        color: Palette.textPrimary,
-                        alignment: .leading
-                    )
-                    .lineSpacing(Typo.heroHeadlineLineGap)
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: Space.lg) {
+                ItalicAccentText(
+                    "before we begin.",
+                    italic: ["begin"],
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+
+                Text("jenifit is here to help you build kind, steady habits. a couple of things to be clear about, because they matter:")
+                    .font(.custom("DMSans-Regular", size: 16))
+                    .lineSpacing(5)
+                    .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                    Text("jenifit is here to help you build kind, steady habits. a couple of things to be clear about, because they matter:")
-                        .font(.custom("DMSans-Regular", size: 16))
-                        .lineSpacing(5)
-                        .foregroundStyle(Palette.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    VStack(alignment: .leading, spacing: Space.sm) {
-                        bullet("this is an educational program, not medical care.")
-                        bullet("it doesn't replace your doctor or prescriber.")
-                        bullet("if anything ever feels off, please reach out to a professional.")
-                    }
-
-                    Text("by continuing, you're saying you understand \u{2661}")
-                        .font(.custom("DMSans-Regular", size: 15))
-                        .foregroundStyle(Palette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Color.clear.frame(height: 80)
+                VStack(alignment: .leading, spacing: Space.sm) {
+                    bullet("this is an educational program, not medical care.")
+                    bullet("it doesn't replace your doctor or prescriber.")
+                    bullet("if anything ever feels off, please reach out to a professional.")
                 }
-                .padding(.horizontal, Space.lg)
-                .padding(.top, Space.xl)
+
+                Text("by continuing, you're saying you understand \u{2661}")
+                    .font(.custom("DMSans-Regular", size: 15))
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .padding(.horizontal, Space.lg)
+            .padding(.top, Space.xl)
+            .padding(.bottom, Space.md)
+        }
+        .background(Palette.bgPrimary.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom) {
             JFContinueButton(label: "i understand", action: { Haptics.light(); onAccept() })
                 .padding(.horizontal, Space.lg)
+                .padding(.top, Space.sm)
                 .padding(.bottom, Space.lg)
+                .background(Palette.bgPrimary)
+                .overlay(alignment: .top) { Rectangle().fill(Palette.divider.opacity(0.7)).frame(height: 1) }
         }
     }
 
@@ -804,46 +815,49 @@ struct SafetyPregnancyView: View {
     @State private var selected: String? = nil
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Palette.bgPrimary.ignoresSafeArea()
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: Space.lg) {
-                    ItalicAccentText(
-                        "one more, just to be safe.",
-                        italic: ["safe"],
-                        baseFont: Typo.heroHeadline,
-                        italicFont: Typo.heroHeadlineItalic,
-                        color: Palette.textPrimary,
-                        alignment: .leading
-                    )
-                    .lineSpacing(Typo.heroHeadlineLineGap)
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: Space.lg) {
+                ItalicAccentText(
+                    "one more, just to be safe.",
+                    italic: ["safe"],
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+
+                Text("is any of this true for you right now? it helps us keep your plan right for your body \u{2661}")
+                    .font(.custom("DMSans-Regular", size: 15))
+                    .lineSpacing(4)
+                    .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                    Text("is any of this true for you right now? it helps us keep your plan right for your body \u{2661}")
-                        .font(.custom("DMSans-Regular", size: 15))
-                        .lineSpacing(4)
-                        .foregroundStyle(Palette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    VStack(spacing: Space.sm) {
-                        ForEach(options, id: \.key) { opt in
-                            SafetySelectRow(label: opt.label, selected: selected == opt.key) {
-                                selected = opt.key
-                            }
+                VStack(spacing: Space.sm) {
+                    ForEach(options, id: \.key) { opt in
+                        SafetySelectRow(label: opt.label, selected: selected == opt.key) {
+                            selected = opt.key
                         }
                     }
-                    Color.clear.frame(height: 80)
                 }
-                .padding(.horizontal, Space.lg)
-                .padding(.top, Space.xl)
             }
+            .padding(.horizontal, Space.lg)
+            .padding(.top, Space.xl)
+            .padding(.bottom, Space.md)
+        }
+        .background(Palette.bgPrimary.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom) {
             JFContinueButton(
                 label: "continue",
                 action: { Haptics.light(); onComplete(selected ?? "none") },
                 isEnabled: selected != nil
             )
             .padding(.horizontal, Space.lg)
+            .padding(.top, Space.sm)
             .padding(.bottom, Space.lg)
+            .background(Palette.bgPrimary)
+            .overlay(alignment: .top) { Rectangle().fill(Palette.divider.opacity(0.7)).frame(height: 1) }
         }
     }
 }
@@ -877,6 +891,7 @@ struct SafetySelectRow: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(selected ? Palette.cocoaPrimary.opacity(0.5) : Palette.divider, lineWidth: 1)
             )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -924,30 +939,30 @@ struct SafetyCheckInView: View {
     }
 
     private var intro: some View {
-        ZStack(alignment: .bottom) {
-            Palette.bgPrimary.ignoresSafeArea()
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: Space.lg) {
-                    ItalicAccentText(
-                        "a quick check-in.",
-                        italic: ["check-in"],
-                        baseFont: Typo.heroHeadline,
-                        italicFont: Typo.heroHeadlineItalic,
-                        color: Palette.textPrimary,
-                        alignment: .leading
-                    )
-                    .lineSpacing(Typo.heroHeadlineLineGap)
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: Space.lg) {
+                ItalicAccentText(
+                    "a quick check-in.",
+                    italic: ["check-in"],
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+                Text("we've added a short safety check so we can make sure jenifit is still the kindest fit for you. it takes about a minute, and there are no wrong answers \u{2661}")
+                    .font(.custom("DMSans-Regular", size: 16))
+                    .lineSpacing(5)
+                    .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
-                    Text("we've added a short safety check so we can make sure jenifit is still the kindest fit for you. it takes about a minute, and there are no wrong answers \u{2661}")
-                        .font(.custom("DMSans-Regular", size: 16))
-                        .lineSpacing(5)
-                        .foregroundStyle(Palette.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Color.clear.frame(height: 100)
-                }
-                .padding(.horizontal, Space.lg)
-                .padding(.top, Space.xl)
             }
+            .padding(.horizontal, Space.lg)
+            .padding(.top, Space.xl)
+            .padding(.bottom, Space.md)
+        }
+        .background(Palette.bgPrimary.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom) {
             VStack(spacing: Space.sm) {
                 JFContinueButton(label: "start the check", action: {
                     Haptics.light()
@@ -961,38 +976,44 @@ struct SafetyCheckInView: View {
                 }
             }
             .padding(.horizontal, Space.lg)
+            .padding(.top, Space.sm)
             .padding(.bottom, Space.lg)
+            .background(Palette.bgPrimary)
+            .overlay(alignment: .top) { Rectangle().fill(Palette.divider.opacity(0.7)).frame(height: 1) }
         }
     }
 
     private var allGood: some View {
-        ZStack(alignment: .bottom) {
-            Palette.bgPrimary.ignoresSafeArea()
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: Space.lg) {
-                    ItalicAccentText(
-                        "you're all set.",
-                        italic: ["set"],
-                        baseFont: Typo.heroHeadline,
-                        italicFont: Typo.heroHeadlineItalic,
-                        color: Palette.textPrimary,
-                        alignment: .leading
-                    )
-                    .lineSpacing(Typo.heroHeadlineLineGap)
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: Space.lg) {
+                ItalicAccentText(
+                    "you're all set.",
+                    italic: ["set"],
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+                Text("thanks for checking in. your plan is a good fit, so carry on, just as you were \u{2661}")
+                    .font(.custom("DMSans-Regular", size: 16))
+                    .lineSpacing(5)
+                    .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
-                    Text("thanks for checking in. your plan is a good fit, so carry on, just as you were \u{2661}")
-                        .font(.custom("DMSans-Regular", size: 16))
-                        .lineSpacing(5)
-                        .foregroundStyle(Palette.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Color.clear.frame(height: 80)
-                }
-                .padding(.horizontal, Space.lg)
-                .padding(.top, Space.xl)
             }
+            .padding(.horizontal, Space.lg)
+            .padding(.top, Space.xl)
+            .padding(.bottom, Space.md)
+        }
+        .background(Palette.bgPrimary.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom) {
             JFContinueButton(label: "done", action: { Haptics.light(); finish(markCompleted: true) })
                 .padding(.horizontal, Space.lg)
+                .padding(.top, Space.sm)
                 .padding(.bottom, Space.lg)
+                .background(Palette.bgPrimary)
+                .overlay(alignment: .top) { Rectangle().fill(Palette.divider.opacity(0.7)).frame(height: 1) }
         }
     }
 
