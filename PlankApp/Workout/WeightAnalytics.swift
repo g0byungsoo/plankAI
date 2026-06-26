@@ -91,6 +91,65 @@ enum WeightAnalytics {
         return rate > 0.01   // > 1% of body weight per week, sustained
     }
 
+    // MARK: - Adaptive pacing projection (medical-grade Phase 2.2)
+
+    enum PacingStatus: String, Equatable {
+        case ahead       // losing meaningfully faster than the picked pace (still safe)
+        case onPace      // tracking the picked pace
+        case easingOff   // notably slower than planned, or flat/up (not a hard stall)
+        case stalled     // <0.5 kg movement over 14d (isStalled)
+    }
+
+    struct AdaptiveProjection: Equatable {
+        let status: PacingStatus
+        /// Whole weeks to goal at the ACTUAL trend. nil when not losing
+        /// toward the goal, so the UI can show a reframe rather than a
+        /// discouraging far-off date.
+        let projectedWeeksToGoal: Int?
+    }
+
+    /// Reproject the goal timeline from the user's ACTUAL measured trend
+    /// (not the picked pace) and classify it against plan. Anti-shame by
+    /// design: the slow case is `easingOff`, never "behind", and a true
+    /// plateau is its own `stalled` reframe. nil until there's enough trend
+    /// to be honest (≥3 weigh-ins, matching the rate monitor).
+    /// `plannedWeeklyFraction` is the committed pace
+    /// (`ProjectionMath.weeklyFraction`).
+    static func adaptiveProjection(
+        logs: [WeightLogRecord],
+        currentKg: Double,
+        goalKg: Double,
+        plannedWeeklyFraction: Double,
+        today: Date = .now
+    ) -> AdaptiveProjection? {
+        guard logs.count >= 3, currentKg > 0,
+              let rate = weeklyLossRate(logs: logs, today: today) else { return nil }
+
+        if isStalled(logs: logs, today: today) {
+            return .init(status: .stalled, projectedWeeksToGoal: nil)
+        }
+
+        let projectedWeeks: Int? = {
+            guard currentKg > goalKg, rate > 0 else { return nil }
+            let kgPerWeek = currentKg * rate
+            guard kgPerWeek > 0 else { return nil }
+            let weeks = (currentKg - goalKg) / kgPerWeek
+            return Int(min(max(weeks, 1), 104).rounded())   // cap at 2 years
+        }()
+
+        let status: PacingStatus
+        if rate <= 0 {
+            status = .easingOff                              // flat or gaining (but not a stall)
+        } else if plannedWeeklyFraction > 0, rate >= plannedWeeklyFraction * 1.15 {
+            status = .ahead
+        } else if plannedWeeklyFraction <= 0 || rate >= plannedWeeklyFraction * 0.6 {
+            status = .onPace
+        } else {
+            status = .easingOff
+        }
+        return .init(status: status, projectedWeeksToGoal: projectedWeeks)
+    }
+
     // MARK: - Identity-framed copy
 
     /// Subtitle copy for the weight card. Identity-framed when there's

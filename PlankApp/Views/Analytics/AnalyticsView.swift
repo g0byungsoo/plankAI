@@ -151,6 +151,10 @@ struct AnalyticsView: View {
     /// Medical-grade Phase 2.2 — flag-gated rapid-loss safety guardrail.
     /// Default OFF until founder review (it adds an insight to a live surface).
     @AppStorage("rapid_loss_guard_enabled") private var rapidLossGuardEnabled = false
+    /// Medical-grade Phase 2.2 — flag-gated adaptive pace projection. Default
+    /// OFF. Surfaces a reprojected goal date only for the encouraging
+    /// statuses (ahead / on-pace); slow + stalled stay on the plateau reframe.
+    @AppStorage("adaptive_pacing_enabled") private var adaptivePacingEnabled = false
     /// Restriction-risk cohort flags — hide the lighter-days counter
     /// (the journal stays fully available).
     @AppStorage("onboardingFoodRelationship") private var foodRelationshipKey = ""
@@ -2003,6 +2007,33 @@ struct AnalyticsView: View {
                 id: "rapid-loss-guard",
                 text: "you're losing quickly. a protein-forward week helps you keep the muscle \u{2665}\u{FE0E}",
                 italic: ["protein-forward"]
+            ))
+        }
+
+        // Medical-grade Phase 2.2 (flag-gated) — adaptive pace projection.
+        // Anti-shame: only the encouraging statuses (ahead / on-pace) surface
+        // a reprojected date; slow + stalled lean on the plateau reframe. Held
+        // back while the rapid-loss guard is showing (that message wins).
+        if adaptivePacingEnabled, !hideWeightStats,
+           let current = latestWeightKg,
+           let userId = auth.currentUser?.id.uuidString, !userId.isEmpty,
+           let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext),
+           let goal = plan.goalWeightKg,
+           !WeightAnalytics.isLosingTooFast(logs: weightLogs),
+           let proj = WeightAnalytics.adaptiveProjection(
+                logs: weightLogs, currentKg: current, goalKg: goal,
+                plannedWeeklyFraction: ProjectionMath.weeklyFraction(
+                    paceKey: UserDefaults.standard.string(forKey: ProjectionMath.paceDefaultsKey))),
+           proj.status == .ahead || proj.status == .onPace,
+           let weeks = proj.projectedWeeksToGoal,
+           let date = Calendar.current.date(byAdding: .weekOfYear, value: weeks, to: Date()) {
+            let dateStr = date.formatted(.dateTime.month(.wide).day()).lowercased()
+            out.append(.init(
+                id: "adaptive-pace",
+                text: proj.status == .ahead
+                    ? "you're ahead of your plan. on track for ~\(dateStr) \u{2665}\u{FE0E}"
+                    : "right on pace. ~\(dateStr) is in reach \u{2665}\u{FE0E}",
+                italic: proj.status == .ahead ? ["ahead"] : ["pace"]
             ))
         }
 

@@ -264,3 +264,61 @@ final class RapidLossMonitorTests: XCTestCase {
         XCTAssertFalse(WeightAnalytics.isLosingTooFast(logs: logs, today: today))
     }
 }
+
+/// Medical-grade Phase 2.2 — adaptive pacing projection. Reprojects from the
+/// actual measured trend and classifies it vs plan with anti-shame statuses
+/// (`easingOff`, never "behind"; a true plateau is its own `stalled`).
+final class AdaptiveProjectionTests: XCTestCase {
+
+    private let today = Date(timeIntervalSince1970: 1_700_000_000)
+    private let planned = 0.005   // 0.5%/wk committed pace
+
+    private func log(_ kg: Double, daysAgo: Int) -> WeightLogRecord {
+        WeightLogRecord(userId: "t", weightKg: kg,
+                        loggedAt: today.addingTimeInterval(Double(-daysAgo) * 86_400))
+    }
+
+    private func project(_ logs: [WeightLogRecord], goal: Double = 60, planned: Double? = nil)
+        -> WeightAnalytics.AdaptiveProjection? {
+        WeightAnalytics.adaptiveProjection(
+            logs: logs, currentKg: logs.last?.weightKg ?? 0, goalKg: goal,
+            plannedWeeklyFraction: planned ?? self.planned, today: today)
+    }
+
+    func testNilWhenTooFewLogs() {
+        XCTAssertNil(project([log(70, daysAgo: 14), log(69, daysAgo: 0)]))
+    }
+
+    func testStalledStatusHasNoProjection() {
+        // <0.5 kg over 14 days → stalled, no date.
+        let p = project([log(70, daysAgo: 14), log(69.85, daysAgo: 7), log(69.7, daysAgo: 0)])
+        XCTAssertEqual(p?.status, .stalled)
+        XCTAssertNil(p?.projectedWeeksToGoal)
+    }
+
+    func testAheadStatusProjects() {
+        // 0.8%/wk vs 0.5%/wk planned → ahead, with a projection.
+        let p = project([log(70, daysAgo: 14), log(69.44, daysAgo: 7), log(68.88, daysAgo: 0)])
+        XCTAssertEqual(p?.status, .ahead)
+        XCTAssertNotNil(p?.projectedWeeksToGoal)
+    }
+
+    func testOnPaceStatus() {
+        // 0.5%/wk == planned → on pace.
+        let p = project([log(70, daysAgo: 14), log(69.65, daysAgo: 7), log(69.3, daysAgo: 0)])
+        XCTAssertEqual(p?.status, .onPace)
+    }
+
+    func testEasingOffWhenSlowerThanPlan() {
+        // 0.4%/wk vs 1%/wk planned, still >0.5 kg moved (not a stall).
+        let p = project([log(70, daysAgo: 14), log(69.72, daysAgo: 7), log(69.44, daysAgo: 0)],
+                        planned: 0.01)
+        XCTAssertEqual(p?.status, .easingOff)
+    }
+
+    func testGainingIsEasingOffWithNoProjection() {
+        let p = project([log(70, daysAgo: 14), log(70.5, daysAgo: 7), log(71, daysAgo: 0)])
+        XCTAssertEqual(p?.status, .easingOff)
+        XCTAssertNil(p?.projectedWeeksToGoal)
+    }
+}

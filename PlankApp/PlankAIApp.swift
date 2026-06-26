@@ -520,6 +520,35 @@ struct PlankAIApp: App {
                         }
                         .padding(24)
                     }
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-adaptive-pace") {
+                    // v1.2 (2026-06-26) — medical-grade Phase 2.2: adaptive pace
+                    // projection insights. Only the encouraging statuses surface
+                    // a reprojected date (anti-shame); slow + stalled don't.
+                    ZStack {
+                        Palette.bgPrimary.ignoresSafeArea()
+                        VStack(alignment: .leading, spacing: 22) {
+                            Text("adaptive pace projection (Phase 2.2)")
+                                .font(.custom("DMSans-Regular", size: 13))
+                                .foregroundStyle(Palette.textSecondary)
+                            BecomingInsightLine(
+                                text: "you're ahead of your plan. on track for ~september 24 \u{2665}\u{FE0E}",
+                                italic: ["ahead"]
+                            )
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(Palette.divider, lineWidth: 1))
+                            BecomingInsightLine(
+                                text: "right on pace. ~october 12 is in reach \u{2665}\u{FE0E}",
+                                italic: ["pace"]
+                            )
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(Palette.divider, lineWidth: 1))
+                        }
+                        .padding(24)
+                    }
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview") {
                     SleepCardPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview-empty") {
