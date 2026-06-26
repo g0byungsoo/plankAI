@@ -1435,7 +1435,7 @@ struct OnboardingView: View {
             // [[feedback-calorie-competitor-landscape-2026]]). Care
             // framing + concrete adaptation, never satire of the meds.
             inlineFeedback: [
-                "current":     ("we adjust for GLP-1.", "satiety-aware portions, protein floor, no restrictive windows. we lean into what your appetite is already telling you."),
+                "current":     ("we adjust for GLP-1.", "protein floor, no restrictive windows. we lean into what your appetite is already telling you."),
                 "past":        ("we adjust for post-GLP-1.", "the first 12 weeks off-meds are about keeping what you built. we match the cadence + protein."),
                 "considering": ("med or no med, we work.", "the plan reads your data the same way either path you choose ♥"),
             ]
