@@ -549,6 +549,27 @@ struct PlankAIApp: App {
                         }
                         .padding(24)
                     }
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-glp1-nutrition") {
+                    // v1.2 (2026-06-26) — medical-grade Phase 3.3: GLP-1 nutrition
+                    // education nudges (hydration / fiber / nutrient density). The
+                    // three rotate daily; wellness framing, no medical advice.
+                    ZStack {
+                        Palette.bgPrimary.ignoresSafeArea()
+                        VStack(alignment: .leading, spacing: 18) {
+                            Text("GLP-1 nutrition nudges (Phase 3.3)")
+                                .font(.custom("DMSans-Regular", size: 13))
+                                .foregroundStyle(Palette.textSecondary)
+                            ForEach(0..<3, id: \.self) { i in
+                                let n = AnalyticsView.glp1NutritionNudge(dayOfYear: i)
+                                BecomingInsightLine(text: n.text, italic: n.italic)
+                                    .padding(18)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .stroke(Palette.divider, lineWidth: 1))
+                            }
+                        }
+                        .padding(24)
+                    }
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview") {
                     SleepCardPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview-empty") {
