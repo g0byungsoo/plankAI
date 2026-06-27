@@ -49,6 +49,14 @@ enum AnalyticsEvent: String {
     case paywallView                = "paywall_view"
     case trialStart                 = "trial_start"
     case purchaseCompleted          = "purchase_completed"
+    // Distinct trial-resolution events (in-app, observed off
+    // customerInfoStream). trial_converted disambiguates a trial→paid
+    // renewal from a direct no-trial purchase (both also fire
+    // purchase_completed); trial_cancelled fires when auto-renew is
+    // switched off during the trial window, so the 3-day trial cancel
+    // rate is measurable in PostHog.
+    case trialConverted             = "trial_converted"
+    case trialCancelled             = "trial_cancelled"
 
     // ── Paywall diagnostic events (issue #2) ─────────────────────
     // Wired May 2026 after the Day-2 zero-trial bug: 54 paywall views
@@ -180,6 +188,7 @@ enum AnalyticsEvent: String {
     case workoutComplete              = "workout_complete"
     case plankCheckinStarted          = "plank_checkin_started"
     case weightLogged                 = "weight_logged"
+    case weightOutcomeMilestone       = "weight_outcome_milestone"  // medical-grade Phase 5
     case coachChanged                 = "coach_changed"
 
     // ── Settings hub + workout intensity controller ──
@@ -434,6 +443,90 @@ extension Analytics {
     }
 
     nonisolated(unsafe) private static var screenLastFired: [String: Date] = [:]
+}
+
+// MARK: - Weight-outcome milestones (medical-grade Phase 5, 2026-06-26)
+//
+// Pure instrumentation (PostHog only — no schema, no UI, no behavior
+// change). Emits `weight_outcome_milestone` the first time a user crosses
+// 12 / 26 / 52 weeks since program enrollment AND has a real weigh-in to
+// measure against. This is the substrate for the % total-body-weight-loss
+// and "% achieving >= 5% TBWL" evidence story — the partnership data
+// flywheel the spec wants started early because it is nearly free.
+//
+// Honesty (data-provenance, [[feedback-data-provenance]]): TBWL needs a
+// measured weight. If the user has never weighed in we emit NOTHING — there
+// is no number to invent, and the per-milestone guard stays unset, so the
+// milestone is captured whenever the user next weighs in. `days_since_start`
+// exposes the real measurement timing and `weigh_in_age_days` exposes how
+// stale the measuring weight is, so analysis can window to "measured near
+// the milestone" without us fabricating a same-day reading.
+//
+// Idempotent + backward-compatible: a per-milestone UserDefaults guard
+// fires each milestone at most once; the new keys are default-safe and have
+// zero effect on existing users or on any program behavior.
+enum WeightOutcomeInstrumentation {
+
+    /// Weeks since enrollment at which we snapshot total-body-weight-loss.
+    static let milestoneWeeks = [12, 26, 52]
+
+    /// One milestone's computed payload — a pure value, exactly what we emit.
+    struct Milestone: Equatable {
+        let week: Int
+        let tbwlPct: Double      // total-body-weight-loss %, 1 decimal; negative = gain
+        let achieved5pct: Bool
+        let daysSinceStart: Int
+    }
+
+    /// Pure + deterministic: the milestones due at `now`, ignoring the
+    /// once-only guard. Empty unless BOTH a real enrollment weight and a
+    /// real current weight exist (no weigh-in → no number to invent). This
+    /// is the unit-tested core; `recordIfDue` layers the guard + emit on top.
+    static func dueMilestones(
+        startDate: Date,
+        enrollmentWeightKg: Double?,
+        latestWeightKg: Double?,
+        now: Date
+    ) -> [Milestone] {
+        guard let enroll = enrollmentWeightKg, enroll > 20,
+              let current = latestWeightKg, current > 20 else { return [] }
+        let weeksElapsed = now.timeIntervalSince(startDate) / (7 * 24 * 3600)
+        let tbwlPct = (enroll - current) / enroll * 100      // negative = gain, kept
+        let rounded = (tbwlPct * 10).rounded() / 10
+        let days = Int(now.timeIntervalSince(startDate) / 86400)
+        return milestoneWeeks
+            .filter { weeksElapsed >= Double($0) }
+            .map { Milestone(week: $0, tbwlPct: rounded,
+                             achieved5pct: tbwlPct >= 5.0, daysSinceStart: days) }
+    }
+
+    /// Side-effectful: emit each due milestone at most once (per-milestone
+    /// UserDefaults guard) and fan to analytics.
+    static func recordIfDue(
+        startDate: Date,
+        enrollmentWeightKg: Double?,
+        latestWeightKg: Double?,
+        latestWeightLoggedAt: Date?,
+        now: Date = Date()
+    ) {
+        for m in dueMilestones(startDate: startDate,
+                               enrollmentWeightKg: enrollmentWeightKg,
+                               latestWeightKg: latestWeightKg, now: now) {
+            let key = "weight_outcome_milestone_w\(m.week)"
+            guard !UserDefaults.standard.bool(forKey: key) else { continue }
+            var props: [String: Any] = [
+                "week_milestone": m.week,
+                "tbwl_pct": m.tbwlPct,
+                "achieved_5pct": m.achieved5pct,
+                "days_since_start": m.daysSinceStart,
+            ]
+            if let loggedAt = latestWeightLoggedAt {
+                props["weigh_in_age_days"] = Int(now.timeIntervalSince(loggedAt) / 86400)
+            }
+            Analytics.track(.weightOutcomeMilestone, properties: props)
+            UserDefaults.standard.set(true, forKey: key)
+        }
+    }
 }
 
 /// Default screen-transition handling for sinks. Override in a sink

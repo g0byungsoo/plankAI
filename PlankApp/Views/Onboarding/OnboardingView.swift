@@ -74,7 +74,19 @@ struct OnboardingView: View {
 
     init(onComplete: @escaping (OnboardingData) -> Void) {
         self.onComplete = onComplete
+        #if DEBUG
+        // Deep-link a specific onboarding screen for sim capture, e.g.
+        // `--onboarding-screen 286`. Pair with `--uitest-fresh-onboarding`.
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "--onboarding-screen"), i + 1 < args.count,
+           let n = Int(args[i + 1]) {
+            self._screen = State(wrappedValue: n)
+        } else {
+            self._screen = State(wrappedValue: 0)
+        }
+        #else
         self._screen = State(wrappedValue: 0)
+        #endif
     }
     @State private var feedback = ""
     @State private var showFeedback = false
@@ -249,6 +261,18 @@ struct OnboardingView: View {
     // option — vulnerability questions need the explicit-skip escape.
     @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
     @AppStorage("onboarding_glp1_status")  private var glp1Status: String = ""
+    // v1.1 (2026-06-23) medical-grade intake: GLP-1 titration/duration phase,
+    // captured ONLY when glp1Status == "current" (case 1641). The single
+    // highest-value GLP-1 detail — drives protein-emphasis coaching for the
+    // early-titration cohort. Self-reported, no brand name, no dose.
+    // NOTE: like glp1Status, this is AppStorage-only and not yet synced
+    // (see docs/medical_grade_survey_audit_2026_06_23.md — persistence P0).
+    @AppStorage("onboarding_glp1_phase")   private var glp1Phase: String = ""
+    // v1.1 (2026-06-23) medical-grade: weight trajectory at intake (case 1320).
+    // Direction-of-travel is the clinical signal a single current-weight point
+    // can't give — recent rapid loss (esp. on a GLP-1) shifts lean-mass risk +
+    // pacing; cycling flags regain risk. AppStorage-only for now (persistence P0).
+    @AppStorage("onboarding_weight_trend") private var weightTrend: String = ""
 
     /// Wipes every single-select v2 field back to "" so no option renders
     /// pre-highlighted on the first visit to each question. Called once
@@ -383,12 +407,14 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            // v8 P8.9: onboarding crosses INTO the program era — pink
-            // canvas directly (not the conditional helper) per the her75
-            // brand-loading register. Closer screens already use
-            // programBgPrimary; this gives the question flow the same
-            // identity from screen 1 forward.
-            Palette.programBgPrimary.ignoresSafeArea()
+            // v1.1 "quiet luxury" pass — the flat cream canvas becomes a
+            // living one: OnboardingAtmosphere is the same cream base with a
+            // custom Metal shader (glacially-drifting warm-light pools + fine
+            // breathing grain). A whisper of life behind the question flow,
+            // never competing with copy. Reduce-motion freezes it. The cream
+            // fill is always present, so the bg holds even if the shader
+            // no-ops. (Was: Palette.programBgPrimary, the same cream.)
+            OnboardingAtmosphere()
 
             // v3 P11.6 (2026-06-10) — navBar pinned via ZStack top
             // alignment, NOT inside a VStack with currentScreen.
@@ -699,7 +725,7 @@ struct OnboardingView: View {
                 ("loseWeight",  "lose weight",       nil, "leaf"),
                 ("fullBody",    "tone all over",     nil, "sparkles"),
                 ("toneCore",    "stronger core",     nil, "circle.hexagongrid"),
-                ("growGlutes",  "build glutes",      nil, "flame"),
+                ("growGlutes",  "build glutes",      nil, "arrow.up.circle"),
                 ("slimLegs",    "lean legs",         nil, "wind"),
             ],
             sel: $goal, next: 100
@@ -720,7 +746,7 @@ struct OnboardingView: View {
         case 100: jfQuestion(
             "how did you hear about jenifit?",
             sub: nil,  // her75 Phase 3
-            italic: ["hear"],
+            italic: ["jenifit"],  // punch the brand name, not the function verb
             opts: [
                 ("tiktok",     "tiktok",              nil, "play.rectangle.fill"),
                 ("instagram",  "instagram",           nil, "camera.fill"),
@@ -813,13 +839,15 @@ struct OnboardingView: View {
 
         // ─── Part 3 — About you (biometrics) ────────────────────
         case 130: jfQuestion(
-            "What's your gender?",
+            // was Title Case — out of step with the lowercase brand voice
+            // every other live screen uses (v1.1 batch-3 voice sweep).
+            "what's your gender?",
             sub: nil,  // v3 her75 editorial register
             opts: [
-                ("female",    "Female",            nil, "person.fill"),
-                ("male",      "Male",              nil, "person.fill"),
-                ("nonbinary", "Non-binary",        nil, "person.crop.circle"),
-                ("private",   "Prefer not to say", nil, "person.crop.circle.badge.questionmark"),
+                ("female",    "female",            nil, "person.fill"),
+                ("male",      "male",              nil, "person.fill"),
+                ("nonbinary", "non-binary",        nil, "person.crop.circle"),
+                ("private",   "prefer not to say", nil, "person.crop.circle.badge.questionmark"),
             ],
             sel: $gender, next: 7
         )
@@ -846,7 +874,7 @@ struct OnboardingView: View {
             imperial: Self.weightImperialRuler,
             toMetric: { lb in lb / Self.lbPerKg },
             fromMetric: { kg in (kg * Self.lbPerKg).rounded() },
-            next: 133,
+            next: 1320,  // v1.1 — via weight-trajectory (1320) before goal
             // Affirmation beat — sensitive numeric input. Research:
             // Noom-pattern validation after weight entry reduces drop.
             // Gen-Z casual lowercase to match the audience voice.
@@ -881,6 +909,25 @@ struct OnboardingView: View {
             annotation: {
                 goalWeightAnnotation(currentKg: currentWeightKg, goalKg: goalWeightKg, heightCm: heightCm)
             }
+        )
+
+        // ─── 1320 — weight trajectory (medical-grade, v1.1) ────────────
+        // Sits between current weight (132) and goal (133). A single
+        // current-weight point can't tell us direction of travel, which is
+        // the real clinical signal: recent rapid loss (esp. on a GLP-1)
+        // changes lean-mass risk + realistic pacing; "up and down" flags
+        // weight-cycling / regain risk. Self-reported, no number required.
+        case 1320: jfQuestion(
+            "where's your weight been heading?",
+            sub: nil,
+            italic: ["heading"],
+            opts: [
+                ("climbing",  "climbing",            nil, "arrow.up.right"),
+                ("stable",    "about the same",      nil, "arrow.right"),
+                ("declining", "slowly coming down",  nil, "arrow.down.right"),
+                ("cycling",   "up and down",         nil, "arrow.up.arrow.down"),
+            ],
+            sel: $weightTrend, next: 133
         )
         .onAppear {
             // Seed the goal weight from the user's current weight on
@@ -1058,13 +1105,20 @@ struct OnboardingView: View {
                 ("two_meals",   "2 + snacks",      nil, "cup.and.saucer"),
                 ("three_meals", "3 steady meals",  nil, "carrot"),
                 ("grazing",     "grazing all day", nil, "leaf"),
-                ("chaotic",     "chaos",           nil, "wind.snow"),
+                // "chaos" labelled the user's own life as chaotic — the
+                // clearest anti-shame slip in the food cluster. Neutral
+                // descriptor, same "no fixed cadence" signal (key unchanged).
+                ("chaotic",     "no real pattern", nil, "wind.snow"),
             ],
             sel: $eatingCadence, next: 157
         )
 
         case 157: jfQuestion(
-            "when do you stop eating?",
+            // "when do you stop eating?" read as a willpower cutoff + the
+            // ascending ladder implied earlier=better (a TRE value judgment,
+            // also evidence-weak). "wind down" = same circadian signal, no
+            // restriction coding.
+            "when does eating wind down?",
             sub: nil,
             opts: [
                 ("before_7", "before 7pm",  nil, "sunrise"),
@@ -1117,7 +1171,9 @@ struct OnboardingView: View {
                 ("eating_window", "eating window",   nil, "clock"),
                 ("cutting_sugar", "less sugar",      nil, "drop"),
                 ("logging_food",  "tracking food",   nil, "list.clipboard"),
-                ("nothing_yet",   "nothing yet",     nil, "questionmark.circle"),
+                // "nothing yet" terminated on a deficit; the highest-shame
+                // user lands here. Agentic, in-progress framing (key kept).
+                ("nothing_yet",   "still figuring it out", nil, "questionmark.circle"),
             ],
             // Delta v8 (2026-06-06) — closes the food wedge block,
             // routes to the cuisine Q (case 169) which is now the final
@@ -1142,7 +1198,7 @@ struct OnboardingView: View {
         // accuracy) and upgraded to the it-girl photo grid: one food
         // cutout per option, multi-select.
         case 169: jfPhotoMulti(
-            "what's on your plate?",
+            "what's usually on your plate?",
             sub: "pick all the ones that show up often.",
             italic: ["plate"],
             opts: [
@@ -1220,7 +1276,7 @@ struct OnboardingView: View {
                 ("fuel",         "fuel",         "i eat to function",        "bolt"),
                 ("comfort",      "comfort",      "food is how i decompress", "heart"),
                 ("love",         "love",         "cooking + sharing is joy", "heart.text.square"),
-                ("control",      "control",      "over-monitor, then crash", "slider.horizontal.3"),
+                ("control",      "control",      "i track it closely",       "slider.horizontal.3"),
                 ("complicated",  "complicated",  "not a clean answer",       "circle.dashed"),
             ],
             // Delta v7 — routes to the new pre-eat permission wedge
@@ -1324,13 +1380,21 @@ struct OnboardingView: View {
         // Slot between attribution (100) and food relationship (162)
         // so it lands BEFORE the food wedge.
         case 168: jfQuestion(
-            "tried everything already?",
+            // v1.1 batch-1 (2026-06-23) — softened from "tried everything
+            // already?", which presumed exhaustive failure and read as an
+            // indictment to the shame-sensitive cohort (and excluded the
+            // first-timer). "been here before?" captures the same sunk-cost
+            // signal as neutral recognition, not a verdict.
+            "been here before?",
             sub: nil,
-            italic: ["tried"],  // v3 her75 editorial register
+            italic: ["here"],
             opts: [
                 ("first",       "this is my first real try",   nil, "sparkles"),
                 ("fewTimes",    "yes, a few times",            nil, "checkmark.circle"),
-                ("manyTimes",   "yes, many times",             nil, "arrow.clockwise"),
+                // heart.circle (not the arrow.clockwise loop) so the
+                // most-tried, highest-intent woman reads as seen, not
+                // stuck going in circles.
+                ("manyTimes",   "yes, many times",             nil, "heart.circle"),
             ],
             // 283 (cohort credibility) sits between 168 and 162 in
             // v2FlowOrder; a direct next: 162 hint was silently skipping
@@ -1352,7 +1416,12 @@ struct OnboardingView: View {
                 ("current",      "on a GLP-1 now",    nil, "cross.case"),
                 ("prefer_not_say","prefer not to say",nil, "lock"),
             ],
-            sel: $glp1Status, next: 142,
+            // Medical-grade follow-up (v1.1): the "on a GLP-1 now" cohort
+            // routes to the titration-phase detail (1641); everyone else
+            // rejoins at the reciprocity beat (282). Explicit in-flow hint
+            // so resolveNext honors it (1641 sits between 164 and 282 in
+            // v2FlowOrder, so the old `142` fallback would have mis-routed).
+            sel: $glp1Status, next: glp1Status == "current" ? 1641 : 282,
             // Delta v8 D86 — reciprocity beat (Culture brief). After
             // the deepest vulnerability Q (GLP-1 + hormonal stage Qs
             // immediately prior), explicit gratitude lands as the
@@ -1366,9 +1435,33 @@ struct OnboardingView: View {
             // [[feedback-calorie-competitor-landscape-2026]]). Care
             // framing + concrete adaptation, never satire of the meds.
             inlineFeedback: [
-                "current":     ("we adjust for GLP-1.", "satiety-aware portions, protein floor, no restrictive windows. we lean into what your appetite is already telling you."),
+                "current":     ("we adjust for GLP-1.", "protein floor, no restrictive windows. we lean into what your appetite is already telling you."),
                 "past":        ("we adjust for post-GLP-1.", "the first 12 weeks off-meds are about keeping what you built. we match the cadence + protein."),
                 "considering": ("med or no med, we work.", "the plan reads your data the same way either path you choose ♥"),
+            ]
+        )
+
+        // ─── 1641 — GLP-1 titration / duration (medical-grade, v1.1) ────
+        // Conditional follow-up, shown ONLY when 164 == "on a GLP-1 now".
+        // Titration phase is the single highest-value GLP-1 signal: it
+        // predicts side-effect burden, appetite-suppression depth, and
+        // lean-mass risk → it routes protein-emphasis coaching for the
+        // early-titration cohort. Self-reported, NO brand name, NO dose,
+        // non-actionable (Apple 5.2.1 / FTC floors). Rejoins at 282.
+        case 1641: jfQuestion(
+            "how long have you been on it?",
+            sub: nil,
+            italic: ["how long"],
+            opts: [
+                ("just_started", "just started",       nil, "hourglass.bottomhalf.filled"),
+                ("few_months",   "a few months in",    nil, "hourglass"),
+                ("established",  "6+ months, steady",   nil, "checkmark.seal"),
+                ("prefer_not",   "prefer not to say",   nil, "lock"),
+            ],
+            sel: $glp1Phase, next: 282,
+            confirmation: "got it. that shapes your plan.",
+            inlineFeedback: [
+                "just_started": ("early days, noted.", "the first weeks lean on protein and steady fuel while appetite shifts. we factor that in."),
             ]
         )
 
@@ -1530,7 +1623,12 @@ struct OnboardingView: View {
             .lineSpacing(Typo.heroHeadlineLineGap)
             .padding(.horizontal, Space.screenPadding)
             Spacer().frame(height: Space.lg)
-            Text("women 25-34 with food noise as the #1 barrier. your patterns match.")
+            // Reworded for provenance: "#1 barrier" was an unsubstantiated
+            // numeric superlative + "your patterns match" over-claimed an
+            // analytic match from a few taps. Now a non-ranked self-report
+            // descriptor + belonging line; age band widened off the hardcoded
+            // 25-34 (the cohort is 22-35, so the tails contradicted it).
+            Text("women in their 20s and 30s who name food noise as the hard part. you'll fit right in.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
@@ -1662,35 +1760,38 @@ struct OnboardingView: View {
             HStack(spacing: 10) {
                 // Real app-icon treatment (founder QA 2026-06-11): the
                 // bow logo on a white icon tile, like the actual banner.
-                ZStack {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(Color.white)
-                    Image("logo_jenifit_bow")
-                        .resizable()
-                        .scaledToFit()
-                        .padding(5)
-                }
-                .frame(width: 32, height: 32)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .stroke(Palette.divider, lineWidth: 0.5)
-                )
-                VStack(alignment: .leading, spacing: 2) {
+                // Full-bleed app-icon tile — the pink jenifit logo fills
+                // the squircle edge-to-edge like a real push banner (was a
+                // small bow inset on a white tile, which read as "not
+                // filled with the logo").
+                Image("logo_jenifit_bow")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 38, height: 38)
+                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                VStack(alignment: .leading, spacing: 1) {
                     HStack {
                         Text("jenifit")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Palette.textPrimary)
                         Spacer()
                         Text("now")
                             .font(.system(size: 12))
                             .foregroundStyle(Palette.textSecondary)
                     }
+                    // The mock mirrors the REAL daily reminder she'll
+                    // receive (title + body from NotificationPermission),
+                    // so the preview is the actual promise the app keeps.
+                    Text("five minutes, today.")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Palette.textPrimary)
+                        .lineLimit(1)
                     ItalicAccentText(
-                        "gentle morning. your plan's waiting ♥",
-                        italic: ["gentle morning"],
+                        "small moves still count. they always have ♥",
+                        italic: ["always"],
                         baseFont: .system(size: 13),
                         italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13),
-                        color: Palette.textPrimary,
+                        color: Palette.textSecondary,
                         alignment: .leading
                     )
                     .lineLimit(1)
@@ -1715,7 +1816,9 @@ struct OnboardingView: View {
                     withAnimation(.spring(response: 0.55, dampingFraction: 0.74).delay(0.4)) {
                         nudgeBannerDropped = true
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                    // Land the haptic with the banner's visual settle
+                    // (0.4 delay + ~0.45 spring), not before it.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
                         Haptics.soft()
                     }
                 }
@@ -1912,7 +2015,7 @@ struct OnboardingView: View {
         // cards), positioned in the same slot. Both her75 designer
         // and the Gen-Z conversion expert independently specced this
         // replacement pattern.
-        130, 7, 131, 132, 133, 286, 136,
+        130, 7, 131, 132, 1320, 133, 286, 136,
         160, 161,
         // Delta v8 D73 — pace selector (case 167).
         167,
@@ -1924,7 +2027,7 @@ struct OnboardingView: View {
         // "you vs them" copy; replaced by the cohort-credibility slot
         // in P11.1.B (BetterMe A5 pattern, real cohort framing not
         // adversarial comparison).
-        140, 158, 154, 155, 163, 164,
+        140, 158, 154, 155, 163, 164, 1641,
         // v3 P11.1.B reciprocity beat (case 282, Cal AI A7) — dedicated
         // screen acknowledging the vulnerable disclosures. Goes BEFORE
         // the bridge #2 + psychometric fears so the trust compound
@@ -2086,16 +2189,38 @@ struct OnboardingView: View {
                 }
                 .accessibilityLabel("Back")
 
-                // her75 hairline — 2pt, near-invisible track.
+                // v1.1 "modern vibe" rail (2026-06-24) — the old 2pt
+                // cocoa-on-cocoa@8% hairline read as a tiny broken dash
+                // next to the chevron (the single biggest "unfinished"
+                // tell on every question screen). Now a 4pt gradient rail
+                // (rose → cocoa: starts soft, deepens as she commits) on a
+                // legible hairline track, with a leading "bead" that rides
+                // the fill and a spring-forward advance — the one recurring
+                // moment of delight across the 53-screen flow.
                 GeometryReader { geo in
+                    let fillW = max(14, geo.size.width * progressFraction)
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Palette.cocoaPrimary.opacity(0.08))
-                            .frame(height: 2)
+                            .fill(Palette.hairlineCocoa)
+                            .frame(height: 4)
                         Capsule()
-                            .fill(Palette.cocoaPrimary)
-                            .frame(width: max(4, geo.size.width * progressFraction), height: 2)
-                            .animation(Motion.entrance, value: screen)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Palette.accent, Palette.cocoaPrimary],
+                                    startPoint: .leading, endPoint: .trailing
+                                )
+                            )
+                            .frame(width: fillW, height: 4)
+                            .shadow(color: Palette.accent.opacity(0.22), radius: 3, x: 0, y: 0)
+                            .animation(Motion.modernPop, value: screen)
+                        // the bead — a soft accent dot riding the leading
+                        // edge; the "you are moving" signal made physical.
+                        Circle()
+                            .fill(Palette.accent)
+                            .frame(width: 6, height: 6)
+                            .shadow(color: Palette.accent.opacity(0.5), radius: 3, x: 0, y: 0)
+                            .offset(x: fillW - 3)
+                            .animation(Motion.modernPop, value: screen)
                     }
                     .frame(maxHeight: .infinity, alignment: .center)
                 }
@@ -2943,29 +3068,77 @@ struct OnboardingView: View {
     /// INSIDE the fixed region. Default nil per
     /// [[feedback-her75-editorial-register]].
     private func jfHeader(_ title: String, sub: String? = nil, italic: [String] = []) -> some View {
-        VStack(alignment: .leading, spacing: Space.xs) {
-            ItalicAccentText(
-                title,
-                italic: italic,
-                baseFont: Typo.heroHeadline,
-                italicFont: Typo.heroHeadlineItalic,
-                color: Palette.textPrimary,
-                alignment: .leading
-            )
-            .kerning(-0.4)
-            .lineSpacing(Typo.heroHeadlineLineGap)
-            .fixedSize(horizontal: false, vertical: true)
-            if let sub {
-                Text(sub)
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        JFHeader(title: title, sub: sub, italic: italic)
+    }
+
+    /// Question-screen header with the her75 SOFT-IN reveal: the headline
+    /// fades + rises in with ONE soft haptic on settle — the signature
+    /// "luxurious, not spammy" reveal applied to every question screen
+    /// (statement screens get the fuller line-by-line LineCascadeText).
+    /// Reduce-motion snaps + skips the haptic. Recreated per screen via
+    /// the switch's `.id(screen)`, so the reveal fires on each arrival.
+    private struct JFHeader: View {
+        let title: String
+        var sub: String? = nil
+        var italic: [String] = []
+        @State private var appeared = false
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                ItalicAccentText(
+                    title,
+                    italic: italic,
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+                // Motion-quality (v1.1): JFPageTransition (pure opacity) is the
+                // SINGLE fade source on arrival. The header + rows used to ALSO
+                // fade opacity here, triple-stacking the ramp into a muddy
+                // entrance. Offset-only now — the page fades, the header rises,
+                // and the one soft haptic still lands on settle.
+                .offset(y: appeared ? 0 : 7)
+                if let sub {
+                    Text(sub)
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .offset(y: appeared ? 0 : 7)
+                }
             }
-            Spacer(minLength: 0)
+            // v1.1 "modern vibe" (2026-06-24): the region stays FIXED so
+            // options still start at the same Y on every screen (the
+            // founder's alignment invariant), but the headline now
+            // BOTTOM-anchors inside it. A single-line headline used to
+            // top-align and dump ~100pt of dead cream between it and the
+            // first card — screen 168 read as "content failed to load."
+            // Bottom-anchored, the headline always sits just above its
+            // options (grouped, Typeform-modern); the breathing room
+            // moves above the headline, where it reads as calm, not broken.
+            // 136 fits the longest in-flow headline (the 3-line "how many
+            // serious attempts in the last few years?", ~125pt rendered at
+            // 38pt JeniHeroSerif) with a top margin so a bottom-anchored
+            // 3-liner breathes below the nav instead of crowding it; 1-2 line
+            // headlines (the 95% case) sit just above their options.
+            .frame(maxWidth: .infinity, alignment: .bottomLeading)
+            .frame(height: 136, alignment: .bottomLeading)
+            .padding(.horizontal, Space.screenPadding)
+            .onAppear {
+                guard !appeared else { return }
+                if reduceMotion { appeared = true; return }
+                withAnimation(Motion.entranceSoft) { appeared = true }
+                // One soft tap as the headline settles — the luxurious
+                // punctuation, never per-line spam on question screens.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                    Haptics.soft()
+                }
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .frame(height: 150, alignment: .topLeading)
-        .padding(.horizontal, Space.screenPadding)
     }
 
     /// v4 R1 — the CTA dock. Apply via `.safeAreaInset(edge: .bottom)`
@@ -3058,15 +3231,17 @@ struct OnboardingView: View {
                 trustAnchor
             }
 
-            // her75 Phase 3 — Space.lg gap dropped; the fixed 150pt
-            // hero region already carries the breathing room.
-            Spacer().frame(height: Space.xs)
+            // v1.1 "modern vibe": the header now bottom-anchors, so this
+            // is the literal headline→first-card gap. 16pt groups the
+            // question with its answers (was 4pt against the old 150pt
+            // top-aligned region that carried its own air).
+            Spacer().frame(height: Space.md)
 
             // v4 R1 — options scroll INTERNALLY when they overflow
             // (basedOnSize keeps short lists inert); they can never
             // collide with the nav bar or push the CTA.
             ScrollView {
-                VStack(spacing: Space.sm) {
+                VStack(spacing: Space.optionGap) {
                     ForEach(Array(opts.enumerated()), id: \.element.0) { idx, opt in
                         let (key, optTitle, optSub, optIcon) = opt
                         StaggeredReveal(index: idx) {
@@ -3080,7 +3255,10 @@ struct OnboardingView: View {
                                     && !sel.wrappedValue.isEmpty
                                     && sel.wrappedValue != key,
                                 action: {
-                                    Haptics.light()
+                                    // soft (not light) — warmer, matches the
+                                    // brand's signature select feel; pairs with
+                                    // the radio pop + cross-off delight.
+                                    Haptics.soft()
                                     withAnimation(Motion.tap) {
                                         sel.wrappedValue = key
                                     }
@@ -3166,8 +3344,8 @@ struct OnboardingView: View {
 
     private func ageWheelScreen() -> some View {
         VStack(spacing: 0) {
-            jfHeader("What's your age?",
-                     sub: "We adjust your plan based on this.")
+            jfHeader("what's your age?",
+                     sub: "we shape your plan around it.")
 
             Spacer()
 
@@ -3286,10 +3464,10 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             jfHeader(title, sub: sub, italic: italic)
 
-            Spacer().frame(height: Space.xs)
+            Spacer().frame(height: Space.md)
 
             ScrollView {
-                VStack(spacing: Space.sm) {
+                VStack(spacing: Space.optionGap) {
                     ForEach(Array(opts.enumerated()), id: \.element.0) { idx, opt in
                         let (key, optTitle, optSub, optIcon) = opt
                         StaggeredReveal(index: idx) {
@@ -3474,47 +3652,54 @@ struct OnboardingView: View {
     }
 
     /// Real-time BMI display under the current-weight ruler. Updates
-    /// continuously as the user drags. Color-coded category text:
-    /// sage green for Normal, warm orange for everything else. Reads
-    /// as a credibility signal (we know how this works) rather than a
-    /// judgment — the labels stay clinical, no editorializing.
+    /// continuously as the user drags. Shows the WHO clinical category
+    /// (incl. obesity class) in a neutral, professional register: a
+    /// medical-grade credibility signal stated matter-of-factly, never
+    /// color-alarmed or editorialized.
     private func bmiAnnotation(weightKg: Double, heightCm: Double) -> some View {
         let heightM = heightCm / 100
         let bmi = (heightM > 0) ? weightKg / (heightM * heightM) : 0
         let bmiText = String(format: "%.1f", bmi)
-        let label: String
-        let color: Color
+        // v1.1 (2026-06-23) medical-grade direction [[feedback_medical_grade_over_soft]]:
+        // restore the clinical BMI category (incl. WHO obesity class), stated
+        // NEUTRALLY. No warning-red, no diet-culture copy. A clinician states
+        // the category matter-of-factly; the prior de-shame pass had dropped
+        // it entirely, cutting the clinical signal a GLP-1-grade intake wants.
+        // Accurate + professional, not alarming.
+        let category: String
         let support: String
         switch bmi {
         case ..<18.5:
-            label = "Underweight"
-            color = Palette.stateWarn
-            support = "Strength training and steady fueling will round out your build."
+            category = "underweight"
+            support = "below the healthy range. we prioritize strength and adequate fuel."
         case 18.5..<25:
-            label = "Normal weight"
-            color = Palette.stateGood
-            support = "You're in a healthy range. let's lock in habits that last."
+            category = "healthy range"
+            support = "within the healthy range. the focus is body composition and lasting habits."
         case 25..<30:
-            label = "Overweight"
-            color = Palette.stateWarn
-            support = "A little more movement unlocks a stronger, lighter you."
+            category = "overweight"
+            support = "above the healthy range. a steady, sustainable loss is the focus."
+        case 30..<35:
+            category = "obese · class I"
+            support = "a steady, sustainable pace is the safest and most effective here."
+        case 35..<40:
+            category = "obese · class II"
+            support = "a steady, sustainable pace is the safest and most effective here."
         default:
-            label = "Obese"
-            color = Palette.stateWarn
-            support = "Steady wins. your plan moves at a pace your body thanks you for."
+            category = "obese · class III"
+            support = "a steady, sustainable pace is the safest and most effective here."
         }
         return HStack(alignment: .top, spacing: Space.md) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Your BMI:")
+                Text("your bmi")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Palette.textPrimary)
+                    .foregroundStyle(Palette.textSecondary)
                 Text(bmiText)
                     .font(.custom("Fraunces72pt-SemiBold", size: 32))
-                    .foregroundStyle(color)
+                    .foregroundStyle(Palette.cocoaPrimary)
                     .contentTransition(.numericText())
-                Text(label)
+                Text(category)
                     .font(Typo.caption)
-                    .foregroundStyle(color)
+                    .foregroundStyle(Palette.textSecondary)
             }
             Text(support)
                 .font(.system(size: 13))
@@ -3770,13 +3955,13 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             jfHeader(title, sub: nil, italic: italic)
 
-            Spacer().frame(height: Space.xs)
+            Spacer().frame(height: Space.md)
 
             ScrollView {
                 LazyVGrid(
-                    columns: [GridItem(.flexible(), spacing: Space.sm),
-                              GridItem(.flexible(), spacing: Space.sm)],
-                    spacing: Space.sm
+                    columns: [GridItem(.flexible(), spacing: Space.optionGap),
+                              GridItem(.flexible(), spacing: Space.optionGap)],
+                    spacing: Space.optionGap
                 ) {
                     ForEach(Array(opts.enumerated()), id: \.element.key) { idx, opt in
                         StaggeredReveal(index: idx) {
@@ -3816,13 +4001,13 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             jfHeader(title, sub: sub, italic: italic)
 
-            Spacer().frame(height: Space.xs)
+            Spacer().frame(height: Space.md)
 
             ScrollView {
                 LazyVGrid(
-                    columns: [GridItem(.flexible(), spacing: Space.sm),
-                              GridItem(.flexible(), spacing: Space.sm)],
-                    spacing: Space.sm
+                    columns: [GridItem(.flexible(), spacing: Space.optionGap),
+                              GridItem(.flexible(), spacing: Space.optionGap)],
+                    spacing: Space.optionGap
                 ) {
                     ForEach(Array(opts.enumerated()), id: \.element.key) { idx, opt in
                         StaggeredReveal(index: idx) {
@@ -3893,10 +4078,19 @@ struct OnboardingView: View {
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(isSelected ? Palette.accent : Palette.divider,
+                    .stroke(isSelected ? Palette.accent : Palette.hairlineCocoa,
                             lineWidth: isSelected ? 1.5 : 1)
             )
-            .scaleEffect(isSelected ? 1.0 : 0.985)
+            // v1.1 "modern vibe": match the option-card material so the photo
+            // grids float on the cream like the list screens (was a flatter
+            // divider-bordered card with no shadow). 2-layer paper shadow.
+            .shadow(color: Palette.cocoaPrimary.opacity(0.05), radius: 2, x: 0, y: 1)
+            .shadow(color: Palette.cocoaPrimary.opacity(isSelected ? 0.10 : 0.055),
+                    radius: isSelected ? 20 : 16,
+                    x: 0, y: isSelected ? 8 : 6)
+            // 0.985 read as a permanent visible shrink (misaligned); 0.99 is
+            // near-imperceptible at rest and still lifts on select.
+            .scaleEffect(isSelected ? 1.0 : 0.99)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(opt.label)
@@ -5472,6 +5666,7 @@ struct OnboardingView: View {
             .kerning(-0.4)
             .lineSpacing(Typo.heroHeadlineLineGap)
             .padding(.horizontal, Space.screenPadding)
+            .softInRise(haptic: true)
             if let supporting {
                 Text(supporting)
                     .font(Typo.body)
@@ -5479,6 +5674,7 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
                     .padding(.top, Space.lg)
                     .padding(.horizontal, Space.lg)
+                    .softInRise(delay: 0.10)
             }
             Spacer()
             JFContinueButton(label: "continue") { go(next) }
@@ -5533,6 +5729,7 @@ struct OnboardingView: View {
                     )
                     .padding(.bottom, accentFlushBottom ? 0 : Space.xs)
                     .accessibilityHidden(true)
+                    .softInRise(delay: 0.15, rise: 12)
             }
 
         VStack(alignment: .leading, spacing: 0) {
@@ -5550,6 +5747,7 @@ struct OnboardingView: View {
             .lineSpacing(Typo.heroHeadlineLineGap)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, Space.screenPadding)
+            .softInRise(haptic: true)
 
             Spacer().frame(height: Space.lg)
 
@@ -5558,6 +5756,7 @@ struct OnboardingView: View {
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, Space.screenPadding)
+                .softInRise(delay: 0.10)
 
             if let citation {
                 Spacer().frame(height: Space.md)
@@ -5570,6 +5769,7 @@ struct OnboardingView: View {
                         .foregroundStyle(Palette.textSecondary.opacity(0.8))
                 }
                 .padding(.horizontal, Space.screenPadding)
+                .softInRise(delay: 0.20)
             }
 
             Spacer()
@@ -5590,12 +5790,18 @@ struct OnboardingView: View {
             // the body-data privacy promise (old 231) in its sub line.
             headline: "built for real life.",
             italicWords: ["real"],
-            body: "5-min beats. 3-month arcs. no all-or-nothing. what you share calibrates your plan. never shared, never sold.",
+            // v1.1 batch-1 (2026-06-23) — the merged 230+231 body had become
+            // a 5-fragment run-on (and used "shared" in two senses one beat
+            // apart). Unload it to the single anti-shame triplet the headline
+            // promises; the privacy line moves to the quiet citation footer,
+            // reworded to drop the confusing double-"shared".
+            body: "5-min beats. 3-month arcs. no all-or-nothing.",
             // Founder-supplied rose bouquet (2026-06-12), replacing the
             // cactus. 380pt keeps it clear of the body copy; +90 nudge
             // sides the bouquet on the right edge (round 9) since its
             // subject leans left inside the square canvas.
             next: 1,
+            citation: "what you tell us shapes your plan. never sold.",
             accentImage: "onb-filler-roses",
             accentMaxHeight: 380,
             accentOffsetX: 90
@@ -5609,13 +5815,14 @@ struct OnboardingView: View {
         educationalScreen(
             headline: "you can decide before you eat.",
             italicWords: ["before"],
-            // Founder-supplied fried chicken plate (round 11), flush to
-            // the left edge: the honest "decide before you eat" food,
-            // not the aspirational one.
+            // 2026-06-23 — swapped the founder-supplied fried-chicken plate
+            // for a clean produce flat-lay: it agrees with "no shame either
+            // way" instead of fighting it, and reads on-brand (post-Ozempic,
+            // anti-diet-culture) for the pre-eat decision wedge.
             body: "most apps make you log after. jenifit lets you snap before. see if it fits. no shame either way.",
             next: 156,
-            accentImage: "onb-itgirl-preeat",
-            accentMaxHeight: 300,
+            accentImage: "onb-itgirl-produce",
+            accentMaxHeight: 320,
             accentFlushLeading: true
         )
     }
@@ -8878,6 +9085,9 @@ struct OnboardingView: View {
         data.workoutStyle = Array(workoutStyle)
         data.gender = gender
         data.heightCm = heightCm
+        // v1.2 medical-grade (2026-06-25) — mirror height to AppStorage so
+        // the program safety gate (BMI floor) can read it without a fetch.
+        UserDefaults.standard.set(heightCm, forKey: "onboardingHeightCm")
         data.currentWeightKg = currentWeightKg
         data.goalWeightKg = goalWeightKg
         data.bodyTypeCurrent = bodyTypeCurrent
@@ -9413,7 +9623,9 @@ struct StaggeredReveal<Content: View>: View {
 
     var body: some View {
         content()
-            .opacity(revealed ? 1 : 0)
+            // Motion-quality (v1.1): offset-only — the page transition owns the
+            // fade, so option rows no longer double-fade opacity on top of it.
+            // The staggered rise is what reads as the list assembling.
             .offset(y: revealed ? 0 : 14)
             .onAppear {
                 guard !revealed else { return }
@@ -9427,6 +9639,46 @@ struct StaggeredReveal<Content: View>: View {
                     }
                 }
             }
+    }
+}
+
+// MARK: - SoftInRise (v1.1 transition-consistency pass)
+//
+// Reusable per-element soft-in: an offset rise on appear (the page
+// transition owns the FADE, per the motion-quality pass), with an optional
+// single soft haptic on settle. Lets the teach + bridge screens reveal with
+// the same rhythm as the question screens they're interleaved with, instead
+// of hard-cutting their content in. Reduce-motion snaps to final + no haptic.
+private struct SoftInRise: ViewModifier {
+    var delay: Double = 0
+    var rise: CGFloat = 8
+    var haptic: Bool = false
+
+    @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .offset(y: appeared ? 0 : rise)
+            .task {
+                guard !appeared else { return }
+                if reduceMotion { appeared = true; return }
+                if delay > 0 {
+                    try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                }
+                withAnimation(Motion.entranceSoft) { appeared = true }
+                if haptic {
+                    try? await Task.sleep(nanoseconds: 120_000_000)
+                    Haptics.soft()
+                }
+            }
+    }
+}
+
+private extension View {
+    /// Onboarding soft-in: offset rise on appear + optional one-shot haptic.
+    func softInRise(delay: Double = 0, rise: CGFloat = 8, haptic: Bool = false) -> some View {
+        modifier(SoftInRise(delay: delay, rise: rise, haptic: haptic))
     }
 }
 

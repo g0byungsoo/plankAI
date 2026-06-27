@@ -301,6 +301,14 @@ enum Space {
     static let cardPadding: CGFloat = md
     static let minTapTarget: CGFloat = 44
 
+    /// v1.1 "modern vibe" pass (2026-06-24): gap between stacked option
+    /// cards. Was `sm` (8) — set when cards were nearly invisible and
+    /// read as one slab. Now that rows carry real elevation (2-layer
+    /// shadow + hairline edge), they need air to read as discrete
+    /// choices. 12 is the "considered list," not "segmented control,"
+    /// register and matches the FirstWeekPreview tile spacing.
+    static let optionGap: CGFloat = 12
+
     // MARK: - v1.1 program-surface spacing (Her75 whitespace rhythm)
     //
     // Her75's actual luxury signal is radical vertical whitespace —
@@ -806,9 +814,19 @@ enum JFPageTransition {
     /// entrance slow (easeOut 0.35s). Net 0.55s per turn but feels
     /// like 0.35 because the user only sees the entrance phase
     /// "actively arriving."
+    ///
+    /// v1.1 "quiet luxury": paired with a whisper of depth — the incoming
+    /// page blooms in from 0.985 scale while the outgoing recedes to 0.985.
+    /// A 1.5% scale reads as "materializing into place," never an iOS
+    /// modal zoom, and gives every screen turn a produced feel without
+    /// touching the element soft-in layered on top.
     static let standard: AnyTransition = .asymmetric(
-        insertion: .opacity.animation(Motion.pageEntrance.delay(Motion.pageGap)),
-        removal: .opacity.animation(Motion.pageExit)
+        insertion: .opacity
+            .combined(with: .scale(scale: 0.985, anchor: .center))
+            .animation(Motion.pageEntrance.delay(Motion.pageGap)),
+        removal: .opacity
+            .combined(with: .scale(scale: 0.985, anchor: .center))
+            .animation(Motion.pageExit)
     )
 }
 

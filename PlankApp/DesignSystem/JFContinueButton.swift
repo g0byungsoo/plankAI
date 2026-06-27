@@ -63,15 +63,29 @@ struct JFContinueButton: View {
                         // reads as ornament; her75 keeps CTAs
                         // functional + lets the headline carry voice.
                         .font(.custom("DMSans-SemiBold", size: 16))
-                        .foregroundStyle(Palette.textInverse)
+                        // v1.1 "modern vibe" (2026-06-24): disabled is no
+                        // longer a muddy grey pill (grey is the one color
+                        // outside the 8-token system and read as broken) — the
+                        // label dims to a cocoa ghost and the fill blooms from
+                        // 12% → solid cocoa the instant she picks an answer.
+                        // Enabling becomes a small reward, not a state flip.
+                        .foregroundStyle(isEnabled ? Palette.textInverse : Palette.cocoaTertiary)
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
-                .background(isEnabled ? Palette.bgInverse : Palette.cocoaPrimary.opacity(0.35))
+                .background(Palette.cocoaPrimary.opacity(isEnabled ? 1.0 : 0.12))
                 .clipShape(Capsule())
+                // the active CTA floats above the cream; the ghost casts nothing.
+                .shadow(color: Palette.cocoaPrimary.opacity(isEnabled ? 0.18 : 0),
+                        radius: isEnabled ? 12 : 0, x: 0, y: isEnabled ? 5 : 0)
+                .animation(Motion.modernPop, value: isEnabled)
             }
             .disabled(!isEnabled || isLoading)
-            .buttonStyle(.plain)
+            // v1.1 quiet-luxury: the primary CTA presses with depth + a
+            // 220ms tap-acknowledge linger (soft haptic on touch; the
+            // action still fires Haptics.medium on commit — a premium
+            // two-stage touch→commit, not a same-moment stutter).
+            .buttonStyle(LuxuryPressButtonStyle())
 
             if let secondaryLabel, let secondaryAction {
                 Button {

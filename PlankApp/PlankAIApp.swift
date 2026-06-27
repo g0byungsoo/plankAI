@@ -217,6 +217,12 @@ struct PlankAIApp: App {
         config.debug = true
         config.flushAt = 1
         #endif
+        // Crash autocapture → $exception events carry the stack/fingerprint
+        // metadata PostHog's Error Tracking needs to group issues. Without
+        // this the manual Analytics.trackException calls still fire but never
+        // group into issues (they coexist; this adds Mach/POSIX/NSException
+        // crash capture delivered on next launch).
+        config.errorTrackingConfig.autoCapture = true
         PostHogSDK.shared.setup(config)
 
         Analytics.sinks.append(PostHogSink())
@@ -428,6 +434,121 @@ struct PlankAIApp: App {
                 #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("--debug-satiety-preview") {
                     SatietyPillPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-daily-ritual") {
+                    // v1.1.2 (2026-06-24) — preview the daily return ritual
+                    // standalone (it is otherwise gated to a returning
+                    // user's first Today open of the day).
+                    DailyReturnRitual(
+                        programDay: 14, totalDays: 75, showedUpCount: 12,
+                        onDismiss: {}
+                    )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-lesson-close") {
+                    // v1.1.2 (2026-06-24) — preview the lesson completion
+                    // ink-bloom (the inkBleedReveal shader + tomorrow teaser).
+                    ZStack {
+                        Palette.programBgPrimary.ignoresSafeArea()
+                        CompletionBloomOverlay(
+                            closingWord: "noted.",
+                            subtitle: "tomorrow, the next one \u{2661}"
+                        )
+                    }
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-steps-detail") {
+                    // v1.1.2 (2026-06-25) — preview the steps deep-read
+                    // (iridescent ring shader + energy/distance + week rhythm).
+                    StepsDetailDebugHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-screen") {
+                    // v1.2 (2026-06-25) — medical-grade Phase 1: SCOFF screen.
+                    SCOFFScreenView(onComplete: { _ in })
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-recovery") {
+                    // v1.2 (2026-06-25) — ED-positive gentle path + resources.
+                    SafetyRecoveryView(onContinueGently: {})
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-program-setup") {
+                    // v1.2 (2026-06-25) — the real program-setup subflow, to
+                    // verify the safety gate fires before the program build.
+                    ProgramSetupSubflow(onComplete: { _ in })
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-consent") {
+                    SafetyConsentView(onAccept: {})
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-pregnancy") {
+                    SafetyPregnancyView(onComplete: { _ in })
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-checkin") {
+                    SafetyCheckInView(onFinish: {})
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-protein-hero") {
+                    // v1.2 (2026-06-26) — medical-grade Phase 2.3: cohort-aware
+                    // protein floor + lean-mass framing (flag-gated). Left =
+                    // legacy 1.2 g/kg baseline (70kg → 84g); right = GLP-1
+                    // elevated 1.6 g/kg (→ 112g) + the "lean-mass first"
+                    // note that explains the higher floor.
+                    ZStack {
+                        Palette.bgPrimary.ignoresSafeArea()
+                        VStack(spacing: 28) {
+                            Text("protein tile — baseline vs GLP-1 cohort")
+                                .font(.custom("DMSans-Regular", size: 13))
+                                .foregroundStyle(Palette.textSecondary)
+                            HStack(spacing: 16) {
+                                BecomingProteinTile(proteinG: 78, targetG: 84)
+                                    .padding(16)
+                                    .frame(width: 160, height: 168, alignment: .topLeading)
+                                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                        .stroke(Palette.divider, lineWidth: 1))
+                                BecomingProteinTile(proteinG: 78, targetG: 112,
+                                                    note: "lean-mass first")
+                                    .padding(16)
+                                    .frame(width: 160, height: 168, alignment: .topLeading)
+                                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                        .stroke(Palette.divider, lineWidth: 1))
+                            }
+                        }
+                    }
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-rapid-loss") {
+                    // v1.2 (2026-06-26) — medical-grade Phase 2.2: rapid-loss
+                    // safety guardrail insight. >1%/wk sustained loss → reframe
+                    // toward protein (anti-shame, never "slow down / too fast").
+                    ZStack {
+                        Palette.bgPrimary.ignoresSafeArea()
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("rapid-loss guardrail (Phase 2.2)")
+                                .font(.custom("DMSans-Regular", size: 13))
+                                .foregroundStyle(Palette.textSecondary)
+                            BecomingInsightLine(
+                                text: "you're losing quickly. a protein-forward week helps you keep the muscle \u{2665}\u{FE0E}",
+                                italic: ["protein-forward"]
+                            )
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(Palette.divider, lineWidth: 1))
+                        }
+                        .padding(24)
+                    }
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-adaptive-pace") {
+                    // v1.2 (2026-06-26) — medical-grade Phase 2.2: adaptive pace
+                    // projection insights. Only the encouraging statuses surface
+                    // a reprojected date (anti-shame); slow + stalled don't.
+                    ZStack {
+                        Palette.bgPrimary.ignoresSafeArea()
+                        VStack(alignment: .leading, spacing: 22) {
+                            Text("adaptive pace projection (Phase 2.2)")
+                                .font(.custom("DMSans-Regular", size: 13))
+                                .foregroundStyle(Palette.textSecondary)
+                            BecomingInsightLine(
+                                text: "you're ahead of your plan. on track for ~september 24 \u{2665}\u{FE0E}",
+                                italic: ["ahead"]
+                            )
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(Palette.divider, lineWidth: 1))
+                            BecomingInsightLine(
+                                text: "right on pace. ~october 12 is in reach \u{2665}\u{FE0E}",
+                                italic: ["pace"]
+                            )
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(Palette.divider, lineWidth: 1))
+                        }
+                        .padding(24)
+                    }
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview") {
                     SleepCardPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-sleep-preview-empty") {
@@ -460,6 +581,8 @@ struct PlankAIApp: App {
                     HandwrittenSnapPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-result-carousel") {
                     ResultCarouselPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-snap-camera") {
+                    SnapCameraDebugHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-becoming") {
                     BecomingPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-home") {
@@ -468,6 +591,23 @@ struct PlankAIApp: App {
                     DayPeekPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-strip") {
                     DayStripPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-first-week") {
+                    // Jumps straight to the firstWeek reveal beat (skips
+                    // the building loader + its ATT modal). Tier reads
+                    // from the onboardingPickedTier AppStorage key
+                    // (default medium); `simctl ... defaults write
+                    // com.bk.plankAI onboardingPickedTier soft|hard` to
+                    // check the other tiers.
+                    OnboardingRevealView(
+                        bodyFocus: ["flatBelly"],
+                        sessionLengthKey: "ten",
+                        voicePreference: "encouraging",
+                        commitmentDaysKey: "five",
+                        currentWeightKg: nil,
+                        goalWeightKg: nil,
+                        onRevealComplete: {},
+                        debugStartAtFirstWeek: true
+                    )
                 } else {
                     RootView()
                         .modifier(ResumeBloom())
@@ -1228,19 +1368,31 @@ private struct ResultCarouselPreviewHarness: View {
     private static let mockPhoto: UIImage = {
         let size = CGSize(width: 1080, height: 1920)
         return UIGraphicsImageRenderer(size: size).image { ctx in
-            let gradient = CGGradient(
+            let c = ctx.cgContext
+            // Faux breakfast plate so the develop-reveal (soft-focus →
+            // crisp, desaturated → saturated) is visible in the harness
+            // the way it would be over a real food photo.
+            let bg = CGGradient(
                 colorsSpace: CGColorSpaceCreateDeviceRGB(),
                 colors: [
-                    UIColor(red: 0.94, green: 0.78, blue: 0.79, alpha: 1).cgColor,
-                    UIColor(red: 0.85, green: 0.55, blue: 0.62, alpha: 1).cgColor,
-                ] as CFArray,
-                locations: [0, 1]
-            )!
-            ctx.cgContext.drawLinearGradient(
-                gradient, start: .zero,
-                end: CGPoint(x: size.width, y: size.height),
-                options: []
-            )
+                    UIColor(red: 0.93, green: 0.90, blue: 0.86, alpha: 1).cgColor,
+                    UIColor(red: 0.80, green: 0.75, blue: 0.70, alpha: 1).cgColor,
+                ] as CFArray, locations: [0, 1])!
+            c.drawLinearGradient(bg, start: .zero,
+                                 end: CGPoint(x: size.width, y: size.height), options: [])
+            c.setFillColor(UIColor(red: 0.97, green: 0.96, blue: 0.94, alpha: 1).cgColor)
+            c.fillEllipse(in: CGRect(x: 80, y: 600, width: 920, height: 920))
+            c.setFillColor(UIColor(red: 0.90, green: 0.88, blue: 0.85, alpha: 1).cgColor)
+            c.fillEllipse(in: CGRect(x: 145, y: 665, width: 790, height: 790))
+            func blob(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat, _ col: UIColor) {
+                c.setFillColor(col.cgColor)
+                c.fillEllipse(in: CGRect(x: x, y: y, width: w, height: h))
+            }
+            blob(220, 960, 320, 240, UIColor(red: 0.96, green: 0.82, blue: 0.30, alpha: 1)) // eggs
+            blob(520, 880, 250, 270, UIColor(red: 0.44, green: 0.62, blue: 0.30, alpha: 1)) // avocado
+            blob(560, 1150, 230, 210, UIColor(red: 0.74, green: 0.16, blue: 0.24, alpha: 1)) // berries
+            blob(280, 1180, 250, 190, UIColor(red: 0.66, green: 0.44, blue: 0.24, alpha: 1)) // toast
+            blob(410, 1010, 130, 130, UIColor(red: 0.99, green: 0.95, blue: 0.55, alpha: 1)) // yolk
         }
     }()
 
@@ -1260,7 +1412,7 @@ private struct ResultCarouselPreviewHarness: View {
                     result: Self.mockFood,
                     photo: Self.mockPhoto,
                     mealLabel: "Breakfast",
-                    dishName: "morning plate",
+                    dishName: "scrambled eggs + avocado toast +2",
                     carouselHeight: geo.size.height - 60,
                     onEditItem: { _ in },
                     onLogPair: { _ in }
@@ -1268,6 +1420,40 @@ private struct ResultCarouselPreviewHarness: View {
                 .padding(.top, 50)
             }
         }
+    }
+}
+
+// MARK: - SnapCameraDebugHarness — food camera scan states
+//
+// 2026-06-23 — mounts the real PhotoCaptureView so the scanning state,
+// the hard-deadline, and the new failure/retry card can be verified in
+// the simulator (no camera there). Configure a dummy vision service so
+// the dispatcher routes into FoodVisionService.scan, where the
+// --food-debug-* faults fire (they short-circuit before any network, so
+// the config is never actually used). Drive with, e.g.:
+//   --debug-snap-camera --food-debug-autostart --food-debug-hang --food-debug-deadline 4
+//   --debug-snap-camera --food-debug-autostart --food-debug-empty
+//   --debug-snap-camera --food-debug-autostart --food-debug-hang --food-debug-deadline 30  (hold scanning to screenshot)
+private struct SnapCameraDebugHarness: View {
+    init() {
+        FoodModule.configure(
+            visionService: FoodVisionService(
+                config: .init(
+                    supabaseURL: URL(string: "https://debug.invalid")!,
+                    anonKey: "debug",
+                    tokenProvider: { "debug-token" }
+                )
+            )
+        )
+    }
+
+    var body: some View {
+        PhotoCaptureView(
+            onDismiss: {},
+            onCaptured: { _, _ in },
+            onQuickAddTapped: {},
+            onImOutTapped: {}
+        )
     }
 }
 
@@ -1779,7 +1965,7 @@ private struct BecomingPreviewHarness: View {
                 }
 
                 BecomingPlateTimelineToday(
-                    plates: [
+                    plates: debugPeekPlateDelete == "empty" ? [] : [
                         (id: "mock-1", loggedAt: Date().addingTimeInterval(-7 * 3600), kcal: 380),
                         (id: "mock-2", loggedAt: Date().addingTimeInterval(-3 * 3600), kcal: 520),
                         (id: "mock-3", loggedAt: Date().addingTimeInterval(-1 * 3600), kcal: 347),
@@ -1787,7 +1973,8 @@ private struct BecomingPreviewHarness: View {
                     onTapPlate: { _ in },
                     onLogTapped: {},
                     onDeletePlate: { _ in },
-                    debugInitialRevealedId: debugPeekPlateDelete
+                    onOpenJournal: {},
+                    debugInitialRevealedId: debugPeekPlateDelete == "empty" ? nil : debugPeekPlateDelete
                 )
 
                 BecomingMovedStrip(
@@ -2376,15 +2563,18 @@ private struct RootView: View {
             // FoodCaptureDispatcher.dispatch(.photo(...)) runs the full chain:
             // FoodVisionService -> NutritionLookupService (pantry > USDA > OFF
             // parallel) -> CalorieMathService -> CapturedFood with kcal+macros.
-            // tokenProvider closures are called fresh per request so JWT
-            // expiration is handled automatically by the underlying session.
+            // 2026-06-24 — tokenProviders use freshAccessToken(), which
+            // REFRESHES the session when the cached JWT has expired. The old
+            // `currentSession?.accessToken` read a cached Keychain token that
+            // never refreshed, so after ~1h scans sent an expired JWT and the
+            // Edge Function 401'd ("food snap doesn't work anymore").
             FoodModule.configure(
                 visionService: FoodVisionService(
                     config: FoodVisionService.Config(
                         supabaseURL: SupabaseConfig.url,
                         anonKey: SupabaseConfig.anonKey,
                         tokenProvider: { @Sendable in
-                            await AuthService.shared.currentSession?.accessToken
+                            await AuthService.shared.freshAccessToken()
                         }
                     )
                 ),
@@ -2397,7 +2587,7 @@ private struct RootView: View {
                             supabaseURL: SupabaseConfig.url,
                             anonKey: SupabaseConfig.anonKey,
                             tokenProvider: { @Sendable in
-                                await AuthService.shared.currentSession?.accessToken
+                                await AuthService.shared.freshAccessToken()
                             }
                         )
                     )
@@ -2667,6 +2857,26 @@ private struct RootView: View {
         // Empty string from never-answered users persists as nil so the
         // Supabase column reflects "no answer" instead of an empty string.
         record.onboardingAcquisitionSource = data.acquisitionSource.isEmpty ? nil : data.acquisitionSource
+        // 2026-06-23 — cohort + clinical intake (persistence P0,
+        // docs/medical_grade_survey_audit_2026_06_23.md). These signals live
+        // in @AppStorage (set during onboarding) and previously never synced,
+        // so the GLP-1 cohort routing never reached Supabase + no cohort
+        // analytics was possible. Copy them into the synced UserRecord here.
+        // Empty string = never answered -> nil.
+        let cohortDefaults = UserDefaults.standard
+        let cohortValue: (String) -> String? = { key in
+            let v = cohortDefaults.string(forKey: key) ?? ""
+            return v.isEmpty ? nil : v
+        }
+        record.onboardingGlp1Status      = cohortValue("onboarding_glp1_status")
+        record.onboardingGlp1Phase       = cohortValue("onboarding_glp1_phase")
+        record.onboardingHormonalStage   = cohortValue("onboardingHormonalStage")
+        record.onboardingWeightTrend     = cohortValue("onboarding_weight_trend")
+        record.onboardingSleepHours      = cohortValue("onboardingSleepHours")
+        record.onboardingStressLevel     = cohortValue("onboardingStressLevel")
+        record.onboardingEatingCadence   = cohortValue("onboardingEatingCadence")
+        record.onboardingEatingWindow    = cohortValue("onboardingEatingWindow")
+        record.onboardingFoodRelationship = cohortValue("onboardingFoodRelationship")
         record.pendingUpsert = true
         try? modelContext.save()
         return record

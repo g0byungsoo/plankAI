@@ -61,7 +61,7 @@ public struct NutritionCarousel: View {
     @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let pageCount = 2
+    private let pageCount = 3
 
     /// v1.0.8 Phase T (2026-06-08) — shared macro targets struct so
     /// every card on slide 2 reads from the SAME source-of-truth.
@@ -117,7 +117,7 @@ public struct NutritionCarousel: View {
         if let arg = ProcessInfo.processInfo.arguments.first(where: {
             $0.hasPrefix("--carousel-page=")
         }), let n = Int(arg.dropFirst("--carousel-page=".count)),
-            (0..<2).contains(n) {
+            (0..<3).contains(n) {
             _currentPage = State(initialValue: n)
         }
     }
@@ -138,7 +138,7 @@ public struct NutritionCarousel: View {
         //             artifact itself: items in BradleyHand,
         //             DMSans macro caption, deterministic corner).
         TabView(selection: $currentPage) {
-            slideTab(index: 0) { ResultDecisionCard(
+            nativeSlideTab(index: 0) { ResultDecisionCard(
                 result: result,
                 mealLabel: mealLabel.isEmpty ? "today" : mealLabel,
                 dishName: dishName,
@@ -147,8 +147,23 @@ public struct NutritionCarousel: View {
                 onResultEdited: onCorrect
             )}
 
-            fillSlideTab(index: 1) { HandwrittenSnapResultShareCard(
-                photo: photo ?? Self.placeholderPhoto,
+            // v1.1.2 — new slide 2: "a note from jeni". Deepens slide 1
+            // (day-fit, balance shape, density, one calm consideration,
+            // Jeni's note) from the same measured data. The share card
+            // moves to the final slot.
+            nativeSlideTab(index: 1) { ResultDetailCard(
+                result: result,
+                mealLabel: mealLabel,
+                dishName: dishName
+            )}
+
+            // v1.1.2 — slide 3: the shareable card + Instagram-style font
+            // picker (editorial / classic / clean / statement). Replaces
+            // the handwritten-font overlay. embedsPhoto:false so the frozen
+            // camera shows through; the chosen font persists in @AppStorage
+            // and drives the PNG export so what she sees is what she posts.
+            fillSlideTab(index: 2) { SnapShareSlide(
+                photo: photo,
                 mealLabel: mealLabel,
                 dishName: dishName,
                 itemNames: result.items.map { $0.name },
@@ -158,9 +173,7 @@ public struct NutritionCarousel: View {
                     fat: Int(result.items.compactMap { $0.fatG }.reduce(0, +).rounded()),
                     fiber: Int(result.items.compactMap { $0.fiberG }.reduce(0, +).rounded()),
                     kcal: Int((result.totalKcal ?? 0).rounded())
-                ),
-                loggedAt: Date(),
-                embedsPhoto: false   // in-app: let the camera frame behind show through
+                )
             )}
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
@@ -204,6 +217,23 @@ public struct NutritionCarousel: View {
     /// second slide still has photo on captured photo, which is wrong."
     @ViewBuilder
     private func fillSlideTab<Content: View>(
+        index: Int,
+        @ViewBuilder content: @escaping () -> Content
+    ) -> some View {
+        content()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.bottom, 28)  // page-dot clearance only
+            .tag(index)
+    }
+
+    /// v1.1.2 — native-point container for the in-app decision card.
+    /// Replaces the 1080-canvas `slideTab` scale-to-fit (which shrank
+    /// every label to ~0.33× → the "fonts too small" complaint). The
+    /// card now lays out in real device points and fills the slot, so
+    /// text renders crisp at native size. Only the share slide (a real
+    /// 1080×1920 PNG export) keeps the scaled canvas.
+    @ViewBuilder
+    private func nativeSlideTab<Content: View>(
         index: Int,
         @ViewBuilder content: @escaping () -> Content
     ) -> some View {

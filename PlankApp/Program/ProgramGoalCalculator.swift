@@ -264,4 +264,120 @@ public enum ProgramGoalCalculator {
     public static func isPerimenopausal(from hormonalStageKey: String) -> Bool {
         hormonalStageKey == "perimenopause"
     }
+
+    // MARK: - v1.2 Safety gate (2026-06-25)
+    //
+    // Additive clinical-safety layer (spec:
+    // docs/medical_grade_implementation_spec_2026_06_25.md). PURE
+    // functions — `compute()`, `Inputs`, and all existing call sites are
+    // unchanged and behave identically. The onboarding flow opts in by
+    // calling `safetyAssessment(...)` BEFORE building a program and
+    // routing on the returned `ProgramMode`. Wellness-side framing: this
+    // is goal-setting safety, NOT a diagnosis; the ED branch only signals
+    // "a gentler path fits" + surfaces real-world resources.
+
+    /// What program (if any) is appropriate after the safety screen.
+    public enum ProgramMode: String, Codable, Sendable {
+        case loss          // standard loss program
+        case maintenance   // healthy/low BMI, pregnant, breastfeeding: steady, no deficit
+        case recovery      // ED screen positive: non-numeric, supportive, no goal weight
+        case blocked       // under 18: no program, supportive exit
+    }
+
+    /// SCOFF eating-disorder screen (Morgan 1999): 5 yes/no items,
+    /// >= 2 "yes" = positive. We persist only the count + flag, never the
+    /// raw answers. A safety screen, not a diagnosis.
+    public static func scoffPositive(yesCount: Int) -> Bool { yesCount >= 2 }
+
+    /// Weight (kg) that yields `targetBMI` at a given height. Used to
+    /// clamp the goal-weight picker's lower bound to BMI 18.5.
+    public static func weightForBMI(_ targetBMI: Double, heightCm: Double) -> Double {
+        guard heightCm > 0 else { return 0 }
+        let m = heightCm / 100.0
+        return targetBMI * m * m
+    }
+
+    public struct SafetyInputs {
+        public let currentWeightKg: Double
+        public let goalWeightKg: Double
+        public let heightCm: Double          // collected at onboarding; 0 = unknown
+        public let ageRange: String          // onboardingAgeRange value
+        public let scoffYesCount: Int        // -1 = not taken
+        public let pregnancyStatus: String   // none/pregnant/ttc/breastfeeding/prefer_not_say/""
+
+        public init(
+            currentWeightKg: Double,
+            goalWeightKg: Double,
+            heightCm: Double,
+            ageRange: String,
+            scoffYesCount: Int,
+            pregnancyStatus: String
+        ) {
+            self.currentWeightKg = currentWeightKg
+            self.goalWeightKg = goalWeightKg
+            self.heightCm = heightCm
+            self.ageRange = ageRange
+            self.scoffYesCount = scoffYesCount
+            self.pregnancyStatus = pregnancyStatus
+        }
+    }
+
+    public struct SafetyAssessment: Equatable {
+        public let mode: ProgramMode
+        /// Lowest goal weight allowed (BMI 18.5) given height; nil if unknown.
+        public let minSafeGoalKg: Double?
+        /// Current BMI, 0 if height unknown.
+        public let currentBMI: Double
+        /// Anti-shame copy KEY for the chosen mode (UI maps to brand copy;
+        /// logic stays copy-free). e.g. "ed_screen", "pregnant", "bmi_low".
+        public let reasonKey: String
+        /// True when crisis resources (NEDA / 988) must be surfaced.
+        public let showCrisisResources: Bool
+        /// True for BMI 18.5–24.9: allow a loss program but soften + confirm.
+        public let softConfirm: Bool
+    }
+
+    /// The safety screen result. Order is intentional: age → ED → pregnancy
+    /// → BMI, most-protective first. Conservative by design (v1 routes
+    /// pregnant/breastfeeding/low-BMI to maintenance rather than a deficit).
+    public static func safetyAssessment(_ s: SafetyInputs) -> SafetyAssessment {
+        let bmiNow = s.heightCm > 0 ? bmi(weightKg: s.currentWeightKg, heightCm: s.heightCm) : 0
+        let minGoal: Double? = s.heightCm > 0 ? weightForBMI(18.5, heightCm: s.heightCm) : nil
+
+        // 1. Age — under 18 gets no program.
+        if s.ageRange == "under18" {
+            return .init(mode: .blocked, minSafeGoalKg: minGoal, currentBMI: bmiNow,
+                         reasonKey: "under18", showCrisisResources: false, softConfirm: false)
+        }
+        // 2. Eating-disorder screen — most-protective branch.
+        if s.scoffYesCount >= 0, scoffPositive(yesCount: s.scoffYesCount) {
+            return .init(mode: .recovery, minSafeGoalKg: minGoal, currentBMI: bmiNow,
+                         reasonKey: "ed_screen", showCrisisResources: true, softConfirm: false)
+        }
+        // 3. Pregnancy / lactation — no intentional deficit (v1 conservative).
+        switch s.pregnancyStatus {
+        case "pregnant":
+            return .init(mode: .maintenance, minSafeGoalKg: minGoal, currentBMI: bmiNow,
+                         reasonKey: "pregnant", showCrisisResources: false, softConfirm: false)
+        case "breastfeeding":
+            return .init(mode: .maintenance, minSafeGoalKg: minGoal, currentBMI: bmiNow,
+                         reasonKey: "breastfeeding", showCrisisResources: false, softConfirm: false)
+        default:
+            break
+        }
+        // 4. BMI floor.
+        if s.heightCm > 0, bmiNow > 0 {
+            if bmiNow < 18.5 {
+                return .init(mode: .maintenance, minSafeGoalKg: minGoal, currentBMI: bmiNow,
+                             reasonKey: "bmi_low", showCrisisResources: false, softConfirm: false)
+            }
+            if bmiNow < 25 {
+                // Healthy range: loss allowed, but soften + require confirm.
+                return .init(mode: .loss, minSafeGoalKg: minGoal, currentBMI: bmiNow,
+                             reasonKey: "bmi_healthy", showCrisisResources: false, softConfirm: true)
+            }
+        }
+        return .init(mode: .loss, minSafeGoalKg: minGoal, currentBMI: bmiNow,
+                     reasonKey: "ok", showCrisisResources: false, softConfirm: false)
+    }
 }

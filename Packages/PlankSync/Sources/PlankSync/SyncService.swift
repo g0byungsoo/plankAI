@@ -156,7 +156,18 @@ public actor SyncService {
             onboarding_relatability_1: user.onboardingRelatability1,
             onboarding_relatability_2: user.onboardingRelatability2,
             onboarding_relatability_3: user.onboardingRelatability3,
-            onboarding_acquisition_source: user.onboardingAcquisitionSource
+            onboarding_acquisition_source: user.onboardingAcquisitionSource,
+            // 2026-06-23 cohort + clinical intake. Already nil-cleaned at
+            // onboarding-complete, so pass through directly.
+            onboarding_glp1_status: user.onboardingGlp1Status,
+            onboarding_glp1_phase: user.onboardingGlp1Phase,
+            onboarding_hormonal_stage: user.onboardingHormonalStage,
+            onboarding_weight_trend: user.onboardingWeightTrend,
+            onboarding_sleep_hours: user.onboardingSleepHours,
+            onboarding_stress_level: user.onboardingStressLevel,
+            onboarding_eating_cadence: user.onboardingEatingCadence,
+            onboarding_eating_window: user.onboardingEatingWindow,
+            onboarding_food_relationship: user.onboardingFoodRelationship
         )
 
         let userId = user.id
@@ -334,6 +345,19 @@ public actor SyncService {
             target.onboardingRelatability3 = row.onboardingRelatability3
             // 2026-05-30 (epic #1 child #7) — TikTok/IG/friend attribution.
             target.onboardingAcquisitionSource = row.onboardingAcquisitionSource
+            // 2026-06-23 — cohort + clinical intake (persistence P0). Restores
+            // GLP-1 status/phase, hormonal stage, weight trend, and the
+            // lifestyle signals on cross-device sign-in so cohort routing +
+            // analytics survive a reinstall.
+            target.onboardingGlp1Status = row.onboardingGlp1Status
+            target.onboardingGlp1Phase = row.onboardingGlp1Phase
+            target.onboardingHormonalStage = row.onboardingHormonalStage
+            target.onboardingWeightTrend = row.onboardingWeightTrend
+            target.onboardingSleepHours = row.onboardingSleepHours
+            target.onboardingStressLevel = row.onboardingStressLevel
+            target.onboardingEatingCadence = row.onboardingEatingCadence
+            target.onboardingEatingWindow = row.onboardingEatingWindow
+            target.onboardingFoodRelationship = row.onboardingFoodRelationship
 
             do {
                 try context.save()
@@ -1031,6 +1055,16 @@ private struct SupabaseUserUpsert: Encodable {
     let onboarding_relatability_3: Bool?
     /// 2026-05-30 (epic #1 child #7) — TikTok/IG/friend attribution.
     let onboarding_acquisition_source: String?
+    /// 2026-06-23 — cohort + clinical intake (persistence P0). Nullable text.
+    let onboarding_glp1_status: String?
+    let onboarding_glp1_phase: String?
+    let onboarding_hormonal_stage: String?
+    let onboarding_weight_trend: String?
+    let onboarding_sleep_hours: String?
+    let onboarding_stress_level: String?
+    let onboarding_eating_cadence: String?
+    let onboarding_eating_window: String?
+    let onboarding_food_relationship: String?
 }
 
 /// Decodable mirror of SupabaseUserUpsert. Mirrors all 21 columns of
@@ -1082,6 +1116,16 @@ private struct SupabaseUserRow: Decodable {
     let onboardingRelatability3: Bool?
     /// 2026-05-30 (epic #1 child #7) — TikTok/IG/friend attribution.
     let onboardingAcquisitionSource: String?
+    /// 2026-06-23 — cohort + clinical intake (persistence P0).
+    let onboardingGlp1Status: String?
+    let onboardingGlp1Phase: String?
+    let onboardingHormonalStage: String?
+    let onboardingWeightTrend: String?
+    let onboardingSleepHours: String?
+    let onboardingStressLevel: String?
+    let onboardingEatingCadence: String?
+    let onboardingEatingWindow: String?
+    let onboardingFoodRelationship: String?
 
     enum CodingKeys: String, CodingKey {
         case id, name
@@ -1123,6 +1167,15 @@ private struct SupabaseUserRow: Decodable {
         case onboardingRelatability2 = "onboarding_relatability_2"
         case onboardingRelatability3 = "onboarding_relatability_3"
         case onboardingAcquisitionSource = "onboarding_acquisition_source"
+        case onboardingGlp1Status = "onboarding_glp1_status"
+        case onboardingGlp1Phase = "onboarding_glp1_phase"
+        case onboardingHormonalStage = "onboarding_hormonal_stage"
+        case onboardingWeightTrend = "onboarding_weight_trend"
+        case onboardingSleepHours = "onboarding_sleep_hours"
+        case onboardingStressLevel = "onboarding_stress_level"
+        case onboardingEatingCadence = "onboarding_eating_cadence"
+        case onboardingEatingWindow = "onboarding_eating_window"
+        case onboardingFoodRelationship = "onboarding_food_relationship"
     }
 }
 

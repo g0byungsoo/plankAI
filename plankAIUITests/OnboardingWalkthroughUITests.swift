@@ -401,4 +401,78 @@ final class InAppQAUITests: XCTestCase {
 
         snap("settings_final")
     }
+
+    /// v1.1 regression check (2026-06-24) — the settings drawer X-button
+    /// close must ANIMATE (system slide-down), not cut instantly. Before
+    /// the fix, `onClose` routed through a `disablesAnimations` transaction
+    /// so the drawer vanished in one frame. This walks open → X-close twice
+    /// and snaps rapid frames right after the tap: a working slide shows the
+    /// drawer at progressively lower positions; an instant cut would show
+    /// PlanView already restored on the very first post-tap frame. Pair with
+    /// a concurrent `simctl io recordVideo` for the definitive motion capture.
+    func testSettingsCloseAnimation() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--uitest-inapp-qa", "--uitest-pro-access"]
+        app.launch()
+
+        addUIInterruptionMonitor(withDescription: "system alerts") { alert in
+            for label in ["Allow", "Allow Once", "OK", "Don't Allow"] {
+                let b = alert.buttons[label]
+                if b.exists { b.tap(); return true }
+            }
+            return false
+        }
+
+        var shot = 0
+        func snap(_ name: String) {
+            let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+            attachment.name = String(format: "%02d_%@", shot, name)
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            shot += 1
+        }
+        func nudgeAlerts() {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.012)).tap()
+        }
+
+        Thread.sleep(forTimeInterval: 4.0)
+
+        // Enroll through the onramp to reach PlanView (QA arg resets flags).
+        let startProgram = app.buttons["start my program"]
+        if startProgram.waitForExistence(timeout: 8) {
+            startProgram.tap()
+            for label in ["see your options", "continue", "i'm in"] {
+                let b = app.buttons[label]
+                if b.waitForExistence(timeout: 6) {
+                    Thread.sleep(forTimeInterval: 0.9)
+                    b.tap()
+                }
+                nudgeAlerts()
+            }
+            Thread.sleep(forTimeInterval: 1.5)
+            nudgeAlerts()
+        }
+
+        let settings = app.buttons["ellipsis"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 6), "settings entry missing")
+
+        // Two open → X-close cycles so the close animation is captured on
+        // the concurrent screen recording and the rapid stills below.
+        for cycle in 0..<2 {
+            settings.tap()
+            Thread.sleep(forTimeInterval: 2.0)
+            snap("\(cycle)_open")
+
+            let close = app.buttons["close"].firstMatch
+            XCTAssertTrue(close.waitForExistence(timeout: 4), "close (X) button missing")
+            close.tap()
+            // Rapid post-tap frames — sample the slide-down in flight.
+            snap("\(cycle)_close_t0")
+            snap("\(cycle)_close_t1")
+            snap("\(cycle)_close_t2")
+            snap("\(cycle)_close_t3")
+            Thread.sleep(forTimeInterval: 2.0)   // settle before the next cycle
+            snap("\(cycle)_settled")
+        }
+    }
 }

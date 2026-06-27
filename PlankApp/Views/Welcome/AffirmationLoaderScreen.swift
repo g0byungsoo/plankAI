@@ -7,101 +7,141 @@ import SwiftUI
 // resolves. Can die at ANY moment from ~300ms, so the composition is
 // complete at frame 0.
 //
-// v4.6 round 4 — editorial single-hero per the design consult
-// (founder reference: Urban Outfitters splash, subject-over-type).
-// Cream ground from frame 0 (invisible handoff from the static
-// launch screen), the blazer-girl cutout anchored to the bottom edge
-// with her legs bleeding off-screen, and the affirmation set in the
-// hero serif UNDER her layer so her shoulder overlaps the line tail.
-// One motion moment: the cutout settles (y +10pt, scale 1.015 → rest).
-// No breathe, no cascade, no scatter. 1 image + 1 text + 1 bow.
+// v8.0 — pure cream launch, brand arrives in two beats.
+//
+// The static iOS launch screen is intentionally just the cream
+// LaunchBackground color (no image, no overlay) — the Calm /
+// Headspace / Aesop pattern. The cream IS the brand opening note.
+// This loader takes over the moment AuthService.bootstrap() starts
+// drawing, and resolves the cream into two sequential brand beats:
+//
+//   beat 1 (60ms after handoff)   — jeni·fit wordmark softens in
+//   beat 2 (340ms after handoff)  — her75 affirmation rises beneath
+//
+// Both beats are ease-out fades, no springs, no pops — the cohort
+// research locks "subtle, mindful, slow" motion app-wide. Status bar
+// hidden through launch + loader so the brand canvas is uninterrupted.
+// Reduce-motion snaps to final state. Failure state preserved.
+//
+// Why no wordmark on the launch image: we tried pixel-matching a
+// PDF-vector launch wordmark to the SwiftUI loader wordmark for an
+// "invisible handoff." actool's PDF rasterization vs CoreText runtime
+// rendering land ~5pt apart in both position and size, producing a
+// visible crossfade artifact mid-handoff. Pure cream + a deliberate
+// fade-in is the cleaner premium answer — there's nothing to mismatch.
 
 struct AffirmationLoaderScreen: View {
     let state: BootstrapState
     let onRetry: () -> Void
 
-    @State private var settled = false
-    @State private var subVisible = false
+    @State private var wordmarkVisible = false
+    @State private var affirmationVisible = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                Palette.programEraBg
-                    .ignoresSafeArea()
+        ZStack {
+            // Loader stays on brand cream (Palette.bgPrimary), even though
+            // the static launch screen is pink. The transition pink →
+            // cream happens at the launch-screen-to-loader handoff; the
+            // cream then carries into MainTabView seamlessly.
+            Palette.bgPrimary
+                .ignoresSafeArea()
 
-                // The affirmation — fixed, not rotating: one line seen
-                // on every launch becomes the brand's doorbell. Sits
-                // UNDER the girl so her shoulder overlaps the tail (the
-                // editorial subject-over-type move). The sub-line lands
-                // at 0.45s; RootView guarantees a 1.6s dwell so it
-                // always finishes.
-                VStack(alignment: .leading, spacing: 14) {
-                    Spacer().frame(height: geo.size.height * 0.26)
-                    (Text("this is your\n").font(Typo.heroHeadline)
-                     + Text("that girl").font(Typo.heroHeadlineItalic)
-                     + Text(" era.").font(Typo.heroHeadline))
-                        .foregroundStyle(Palette.textPrimary)
-                        .kerning(-0.4)
-                        .lineSpacing(Typo.heroHeadlineLineGap)
-                        .multilineTextAlignment(.leading)
-                    (Text("she's been in you ").font(.custom("DMSans-Regular", size: 16))
-                     + Text("the whole time.").font(.custom("Fraunces72pt-SemiBoldItalic", size: 16)))
-                        .foregroundStyle(Palette.textSecondary)
-                        .opacity(subVisible ? 1 : 0)
-                        .offset(y: subVisible ? 0 : 6)
-                    Spacer()
-                }
-                .padding(.leading, 24)
-                .padding(.trailing, 32)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(spacing: 0) {
+                wordmark
+                    .padding(.top, 24)
+                Spacer()
+                affirmation
+                    .padding(.horizontal, 32)
+                Spacer()
+                // Visual ballast — keeps the affirmation slightly
+                // above geometric center so the negative space below
+                // breathes. The luxury pattern: text lands in the
+                // upper-third optical center, never dead-center.
+                Color.clear.frame(height: 80)
+            }
 
-                // The girl — bottom-anchored, legs bleed off-screen,
-                // shoulder rising INTO the line tail (subject-over-type).
+            if case .failed = state {
                 VStack {
-                    Spacer(minLength: 0)
-                    Image("onb-identity-powerful")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: geo.size.height * 0.68)
-                        .offset(
-                            x: geo.size.width * 0.10,
-                            y: geo.size.height * 0.04 + (settled ? 0 : 10)
-                        )
-                        .scaleEffect(settled ? 1.0 : 1.015, anchor: .bottom)
-                        .accessibilityHidden(true)
-                }
-                .ignoresSafeArea(edges: .bottom)
-
-                // Wordmark — handoff anchor, static from frame 0.
-                VStack {
-                    (Text("jeni").font(.custom("Fraunces72pt-SemiBold", size: 17))
-                     + Text("\u{2009}•\u{2009}").font(.custom("Fraunces72pt-Light", size: 14))
-                     + Text("fit").font(.custom("Fraunces72pt-SemiBold", size: 17)))
-                        .foregroundStyle(Palette.textPrimary)
-                        .padding(.top, 6)
                     Spacer()
-                }
-
-                if case .failed = state {
-                    VStack {
-                        Spacer()
-                        failureContent
-                            .padding(.bottom, 60)
-                    }
+                    failureContent
+                        .padding(.bottom, 60)
                 }
             }
         }
-        .onAppear {
-            if reduceMotion {
-                settled = true
-                subVisible = true
-            } else {
-                withAnimation(Motion.entranceSoft) { settled = true }
-                withAnimation(Motion.entranceSoft.delay(0.45)) { subVisible = true }
+        .statusBarHidden(true)
+        .onAppear { animateIn() }
+    }
+
+    // MARK: - Wordmark
+
+    @ViewBuilder
+    private var wordmark: some View {
+        (Text("jeni").font(.custom("Fraunces72pt-SemiBold", size: 17))
+         + Text("\u{2009}·\u{2009}").font(.custom("Fraunces72pt-Light", size: 14))
+         + Text("fit").font(.custom("Fraunces72pt-SemiBold", size: 17)))
+            .foregroundStyle(Palette.textPrimary)
+            .opacity(wordmarkVisible ? 1 : 0)
+    }
+
+    // MARK: - Affirmation
+    //
+    // her75 register: regular roman + italic punch words. Single
+    // brand-checked line per dayOfYear, so the same day shows the
+    // same affirmation — feels intentional, not random.
+
+    // v1.1.2 (2026-06-24) — the affirmation pool moved to the shared
+    // `JeniAffirmations` source of truth so the launch loader and the
+    // DailyReturnRitual always show the SAME line on a given day (the
+    // loader's quick beat is a deliberate callback to the ritual's
+    // fuller moment, never a second unrelated line).
+    private var todaysAffirmation: JeniAffirmations.Line { JeniAffirmations.today() }
+
+    @ViewBuilder
+    private var affirmation: some View {
+        let a = todaysAffirmation
+        (Text(a.leading).font(.custom("JeniHeroSerif-Regular", size: 44))
+         + Text(a.italic).font(.custom("JeniHeroSerif-Italic", size: 44))
+         + Text(a.trailing).font(.custom("JeniHeroSerif-Regular", size: 44)))
+            .foregroundStyle(Palette.textPrimary)
+            .multilineTextAlignment(.center)
+            .lineSpacing(2)
+            .opacity(affirmationVisible ? 1 : 0)
+            .offset(y: affirmationVisible ? 0 : 12)
+    }
+
+    // MARK: - Animation
+    //
+    // Two beats, both ease-out fades, no springs. The wordmark lands
+    // first (the brand identity) and the affirmation rises beneath
+    // it (the brand voice). The 280ms gap between them is enough for
+    // the eye to register beat 1 before beat 2 lands, but tight
+    // enough that the whole sequence reads as one composition
+    // resolving, not two separate animations.
+
+    private func animateIn() {
+        if reduceMotion {
+            wordmarkVisible = true
+            affirmationVisible = true
+            return
+        }
+        // ~60ms after the handoff: wordmark softens in (500ms ease-out).
+        // Slightly faster than v6 so the brand identity lands before
+        // the eye has time to read the cream as "blank."
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
+            withAnimation(.easeOut(duration: 0.5)) {
+                wordmarkVisible = true
+            }
+        }
+        // ~340ms: affirmation rises 12pt and fades in (900ms ease-out).
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.34) {
+            withAnimation(.easeOut(duration: 0.9)) {
+                affirmationVisible = true
             }
         }
     }
+
+    // MARK: - Failure state (preserved from prior version)
 
     @ViewBuilder
     private var failureContent: some View {

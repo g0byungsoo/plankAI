@@ -315,6 +315,8 @@ struct OnboardingOptionCard: View {
     var isDimmed: Bool = false
     let action: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     /// v1.0.7 (2026-06-07): when both icon and sticker are nil, render
     /// the card in compact mode — no decorative circle, shorter min
     /// height, tighter vertical padding. Without this, callers like
@@ -330,7 +332,15 @@ struct OnboardingOptionCard: View {
                     ZStack {
                         Circle()
                             .fill(Palette.accentSubtle)
-                            .frame(width: 44, height: 44)
+                            .frame(width: 42, height: 42)
+                            // v1.1 "modern vibe" (2026-06-24): a 0.75pt
+                            // cut-paper edge. The flat rose-tint circle read
+                            // as generic tinted-circle iconography — the #1
+                            // "this is a template" tell on question screens.
+                            .overlay(
+                                Circle().stroke(Palette.accent.opacity(0.22),
+                                                lineWidth: 0.75)
+                            )
                         if let sticker {
                             Image(sticker.assetName)
                                 .resizable()
@@ -338,9 +348,13 @@ struct OnboardingOptionCard: View {
                                 .frame(width: 28, height: 28)
                                 .opacity(sticker.style.opacity)
                         } else if let icon {
+                            // ink-on-rose-paper (cocoa glyph, NOT rose) is the
+                            // her75 editorial move; rose-glyph-on-rose-circle
+                            // is the template move. Reads more modern and suits
+                            // the medical-grade intake direction.
                             Image(systemName: icon)
-                                .font(.system(size: 22, weight: .regular))
-                                .foregroundStyle(Palette.accent)
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundStyle(Palette.cocoaSecondary)
                         }
                     }
                 }
@@ -348,9 +362,20 @@ struct OnboardingOptionCard: View {
                 VStack(alignment: .leading, spacing: Space.xs) {
                     Text(title)
                         .font(.custom("DMSans-SemiBold", size: 16))
-                        .strikethrough(isDimmed, color: Palette.textSecondary.opacity(0.7))
                         .foregroundStyle(isDimmed ? Palette.textSecondary.opacity(0.55) : Palette.textPrimary)
                         .multilineTextAlignment(.leading)
+                        // her75 cross-off (v1.1 delight pass): native
+                        // .strikethrough can't tween, so draw the line and
+                        // scale it in from the leading edge — the option
+                        // reads as being *crossed off a list*, not snapping
+                        // dim. Reduce-motion snaps it on (signal preserved).
+                        .overlay(alignment: .leading) {
+                            Capsule()
+                                .fill(Palette.textSecondary.opacity(0.7))
+                                .frame(height: 1.5)
+                                .scaleEffect(x: isDimmed ? 1 : 0, anchor: .leading)
+                                .animation(reduceMotion ? nil : Motion.gentleSpring, value: isDimmed)
+                        }
                     if let subtitle {
                         Text(subtitle)
                             .font(.custom("DMSans-Regular", size: 13))
@@ -367,29 +392,57 @@ struct OnboardingOptionCard: View {
                     Circle()
                         .stroke(isSelected ? Palette.accent : Palette.divider, lineWidth: 1.5)
                         .frame(width: 22, height: 22)
-                    if isSelected {
-                        Circle()
-                            .fill(Palette.accent)
-                            .frame(width: 12, height: 12)
-                    }
+                    // Radio dot pops in with a soft spring on select (kept
+                    // in the tree so it can scale, not hard-cut into place).
+                    Circle()
+                        .fill(Palette.accent)
+                        .frame(width: 12, height: 12)
+                        .scaleEffect(isSelected ? 1 : 0)
+                        .opacity(isSelected ? 1 : 0)
+                        .animation(reduceMotion ? nil : Motion.gentleSpring, value: isSelected)
                 }
             }
             .padding(.horizontal, Space.md)
-            .padding(.vertical, isCompact ? Space.md : Space.md)
+            // icon rows breathe to 18pt; compact (text-only, dense 8-option
+            // screens like cuisine) stay at 16 so they don't re-overflow.
+            .padding(.vertical, isCompact ? Space.md : 18)
             // her75 tall-pill register (founder QA 2026-06-11): compact
             // rows at 52pt read as "narrow boxes for no reason" when the
             // screen has room. 68pt keeps 5-option screens on-screen
-            // while matching the reference pill height.
-            .frame(minHeight: isCompact ? 68 : 72)
+            // while matching the reference pill height. Icon rows → 76
+            // (v1.1) so the 42pt chip + single title share an optical center.
+            .frame(minHeight: isCompact ? 68 : 76)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Palette.bgElevated, in: RoundedRectangle(cornerRadius: Radius.md))
+            // v1.1 "modern vibe" (2026-06-24): selection is now a *material*
+            // event — a whisper (6%) of accent washes the selected row, a
+            // temperature shift that reads premium where a bare border swap
+            // read as a checkbox. Never a pink fill.
+            .background(
+                RoundedRectangle(cornerRadius: Radius.md)
+                    .fill(Palette.bgElevated)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Radius.md)
+                            .fill(Palette.accent.opacity(isSelected ? 0.06 : 0))
+                    )
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: Radius.md)
-                    .stroke(isSelected ? Palette.accent : Palette.divider,
+                    .stroke(isSelected ? Palette.accent : Palette.hairlineCocoa,
                             lineWidth: isSelected ? 1.5 : 1)
             )
+            // v1.1 "modern vibe": a 2-layer paper shadow — a tight contact
+            // shadow + a soft wide ambient — so rows read as objects floating
+            // on the cream, not faint rectangles drawn on it (bgElevated is
+            // only ~2% off the bg, so the lift has to come from elevation).
+            // Resting ambient radius triples (5→16); the selected row lifts
+            // further. Replaces the old single soft shadow.
+            .shadow(color: Palette.cocoaPrimary.opacity(0.05), radius: 2, x: 0, y: 1)
+            .shadow(color: Palette.cocoaPrimary.opacity(isSelected ? 0.10 : 0.055),
+                    radius: isSelected ? 20 : 16,
+                    x: 0, y: isSelected ? 8 : 6)
         }
-        .buttonStyle(.plain)
+        // v1.1 quiet-luxury: the row springs under the thumb on touch.
+        .buttonStyle(OptionRowPressStyle())
     }
 }
 
@@ -1866,6 +1919,20 @@ extension View {
 struct LuxuryPressButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         LuxuryPressButtonBody(configuration: configuration)
+    }
+}
+
+/// Lightweight press for SELECT-IN-PLACE cards (onboarding option rows).
+/// A quick scale-down on touch that springs back — no linger / brightness
+/// (those are tuned for navigating buttons and would fight the in-place
+/// selection highlight). The card's own selected state + select haptic
+/// carry the confirmation. Reduce-motion → no scale. (v1.1 quiet-luxury.)
+struct OptionRowPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.975 : 1.0)
+            .animation(.spring(response: 0.28, dampingFraction: 0.62), value: configuration.isPressed)
     }
 }
 

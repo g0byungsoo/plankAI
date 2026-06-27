@@ -52,23 +52,34 @@ public final class FoodVisionService: Sendable {
         self.session = session ?? Self.defaultVisionSession
     }
 
-    /// v1.0.8 Phase R.8 (2026-06-08) — dedicated URLSession for the
-    /// food-vision EF call. URLSession.shared has a 60s
-    /// timeoutIntervalForRequest that the per-request timeoutInterval
-    /// can't override reliably on iOS — the founder's logs showed
-    /// chronic -1001 timeouts at ~37s even with request.timeoutInterval
-    /// set to 90s.
+    /// Dedicated URLSession for the food-vision EF call. URLSession.shared
+    /// has a 60s timeoutIntervalForRequest that the per-request
+    /// timeoutInterval can't override reliably on iOS — the founder's
+    /// logs showed chronic -1001 timeouts at ~37s even with
+    /// request.timeoutInterval set to 90s. So we own the config here and
+    /// set both the session-level and per-request values to the same
+    /// number (`requestTimeout`).
     ///
-    /// This session sets a 180s request + resource timeout to give
-    /// the EF a real budget (Gemini pre-filter → GPT-5 vision → USDA
-    /// join can chain into 60-90s under load; cold-start adds more).
-    /// waitsForConnectivity = true also defers requests gracefully if
-    /// the device drops to no-network momentarily (common on TikTok
-    /// → app handoff with weak signal).
+    /// 2026-06-23 — dropped 180s → 30s, then RESTORED to 80s after the
+    /// 30s value regressed real-device scans (PostHog showed chronic
+    /// `-1001 "request timed out"` on food-vision). The CURRENTLY-DEPLOYED
+    /// Edge Function is slow — cold Deno start + SEQUENTIAL Supabase limit
+    /// queries + gpt-4o, with its own 90s OpenAI abort — so a real scan
+    /// regularly needs 30-60s+. 30s cut those off; 80s gives the deployed
+    /// EF room to finish (its OpenAI abort is 90s, so a scan can't usefully
+    /// exceed ~90s anyway). The TRUE forever-hang (the camera continuation
+    /// leak) is fixed at its source, so this network timeout only has to
+    /// bound the network, not the literal-forever.
+    ///
+    /// Once the founder deploys the optimized EF (parallel limit checks +
+    /// the OpenAI-body abort lowered to 26s — see docs/snap_food_fix), a
+    /// scan completes in well under 30s and THIS can drop back to ~30-35s.
+    /// waitsForConnectivity defers gracefully on a momentary network drop.
+    static let requestTimeout: TimeInterval = 80
     private static let defaultVisionSession: URLSession = {
         let cfg = URLSessionConfiguration.default
-        cfg.timeoutIntervalForRequest = 180
-        cfg.timeoutIntervalForResource = 180
+        cfg.timeoutIntervalForRequest = requestTimeout
+        cfg.timeoutIntervalForResource = requestTimeout
         cfg.waitsForConnectivity = true
         cfg.allowsCellularAccess = true
         return URLSession(configuration: cfg)
@@ -82,7 +93,10 @@ public final class FoodVisionService: Sendable {
         imageData: Data,
         cuisineProfile: String?
     ) async throws -> CapturedFood {
-        try await postAndDecode(
+        #if DEBUG
+        if let fault = try await Self.debugFault() { return fault }
+        #endif
+        return try await postAndDecode(
             body: ScanRequestBody(
                 image_base64: imageData.base64EncodedString(),
                 text: nil,
@@ -101,7 +115,10 @@ public final class FoodVisionService: Sendable {
         _ text: String,
         cuisineProfile: String?
     ) async throws -> CapturedFood {
-        try await postAndDecode(
+        #if DEBUG
+        if let fault = try await Self.debugFault() { return fault }
+        #endif
+        return try await postAndDecode(
             body: ScanRequestBody(
                 image_base64: nil,
                 text: text,
@@ -121,12 +138,10 @@ public final class FoodVisionService: Sendable {
         let url = config.supabaseURL.appendingPathComponent("functions/v1/food-vision")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        // 2026-06-06 — bumped 30s → 90s.
-        // 2026-06-08 (Phase R.8) — bumped 90s → 180s + matched to the
-        // dedicated visionSession's `timeoutIntervalForRequest`. The
-        // request-level value alone doesn't override URLSession.shared
-        // on iOS reliably; both have to match. See `defaultVisionSession`.
-        request.timeoutInterval = 180
+        // Matches the dedicated session's timeout (both must be set on
+        // iOS; the request-level value alone doesn't override reliably).
+        // 2026-06-23 — 180s → 30s. See `defaultVisionSession`.
+        request.timeoutInterval = Self.requestTimeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(config.anonKey, forHTTPHeaderField: "apikey")
@@ -219,9 +234,21 @@ public final class FoodVisionService: Sendable {
             let searchTerms: [String] = item.usda_search_terms
                 ?? (item.name.isEmpty ? [] : [item.name])
 
+            // 2026-06-23 — prefer the authentic native name for the
+            // headline (e.g. "bulgogi" over "stir-fried beef"); fall back
+            // to the legacy `name` for pre-deploy responses. englishName
+            // only carries when it differs from the displayed name (no
+            // point showing "avocado toast / avocado toast").
+            let displayName = (item.name_native?.isEmpty == false) ? item.name_native! : item.name
+            let gloss: String? = {
+                guard let en = item.english_name, !en.isEmpty, en.lowercased() != displayName.lowercased()
+                else { return nil }
+                return en
+            }()
+
             return CapturedItem(
                 id: UUID().uuidString,
-                name: item.name,
+                name: displayName,
                 portionGrams: item.portion_grams,
                 portionGramsLow: item.portion_grams_low,
                 portionGramsHigh: item.portion_grams_high,
@@ -235,7 +262,12 @@ public final class FoodVisionService: Sendable {
                 carbsG: carbsDouble,
                 fatG: fatDouble,
                 fiberG: fiberDouble,
-                nutritionSource: source
+                nutritionSource: source,
+                englishName: gloss,
+                count: item.count,
+                unit: item.unit,
+                servingsInDish: item.servings_in_dish,
+                isShareable: item.is_shareable
             )
         }
 
@@ -301,6 +333,18 @@ private struct VisionResponse: Decodable {
 
     struct Item: Decodable {
         let name: String
+        /// 2026-06-23 accuracy fields. ALL Optional for backward-compat:
+        /// a pre-deploy EF (or a model rollback) that omits them must
+        /// still decode (the decoder is by-name, so missing keys decode
+        /// nil). name_native carries the authentic dish name; count/unit
+        /// the quantity; servings_in_dish/is_shareable the shared-food
+        /// split the user resolves in the app.
+        let name_native: String?
+        let english_name: String?
+        let count: Int?
+        let unit: String?
+        let servings_in_dish: Int?
+        let is_shareable: Bool?
         /// Optional in v1.0.7+ (LLM direct-kcal path doesn't need
         /// it). Used by the FoodCaptureDispatcher.enrich
         /// calibration sweep for low-confidence items; falls back
@@ -383,3 +427,96 @@ public enum VisionError: Error, LocalizedError, Sendable {
         }
     }
 }
+
+#if DEBUG
+// MARK: - Simulator fault injection
+//
+// 2026-06-23 — the simulator has no camera, so the only way to exercise
+// the scan deadline + the new failure/retry card is to force the vision
+// call to hang / time out / fail. Drive these via launch arguments and
+// the gallery-upload path (which runs the same dispatch + deadline chain
+// as the camera shutter). DEBUG-only; compiled out of Release.
+//
+//   --food-debug-hang        never resolves → verifies withScanDeadline
+//                            frees the spinner (pair with
+//                            --food-debug-deadline 3 to not wait 35s)
+//   --food-debug-timeout     throws a URLSession timeout (non-transient)
+//   --food-debug-5xx         throws a 502 (transient → exercises retry,
+//                            then the failure card)
+//   --food-debug-empty       returns a no-food plate (empty-frame banner)
+//   --food-debug-slow N      stalls N seconds, then runs the real call
+extension FoodVisionService {
+    static func debugFault() async throws -> CapturedFood? {
+        let args = ProcessInfo.processInfo.arguments
+
+        if args.contains("--food-debug-hang") {
+            // ~forever (cancellable: the deadline's workTask.cancel()
+            // unwinds it cleanly once the watchdog fires).
+            try await Task.sleep(nanoseconds: .max)
+        }
+        if args.contains("--food-debug-timeout") {
+            try await Task.sleep(nanoseconds: 700_000_000)
+            throw VisionError.networkError(
+                underlying: NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)
+            )
+        }
+        if args.contains("--food-debug-5xx") {
+            try await Task.sleep(nanoseconds: 600_000_000)
+            throw VisionError.upstreamFailure(status: 502, detail: "debug 502", code: nil)
+        }
+        if args.contains("--food-debug-empty") {
+            try await Task.sleep(nanoseconds: 600_000_000)
+            return CapturedFood(
+                items: [],
+                plateType: .single,
+                source: .photo,
+                confidence: nil,
+                needsSecondPhoto: false,
+                secondPhotoHint: nil,
+                kcalLow: 0,
+                kcalHigh: 0
+            )
+        }
+        if args.contains("--food-debug-success") {
+            try await Task.sleep(nanoseconds: 1_400_000_000)
+            return debugMockPlate
+        }
+        if let i = args.firstIndex(of: "--food-debug-slow"),
+           i + 1 < args.count,
+           let secs = Double(args[i + 1]) {
+            try await Task.sleep(nanoseconds: UInt64(secs * 1_000_000_000))
+            return nil  // fall through to the real network call
+        }
+        return nil
+    }
+
+    private static var debugMockPlate: CapturedFood {
+        // High-value single dish (mirrors the founder's jeyuk-bokkeum case:
+        // ~1600 kcal / 100g protein) so the wide-protein chip + big-number
+        // layout can be verified.
+        let jeyuk = CapturedItem(
+            id: "debug-1", name: "jeyuk bokkeum", portionGrams: 520,
+            portionGramsLow: 420, portionGramsHigh: 620,
+            usdaSearchTerms: ["jeyuk bokkeum", "spicy pork"], preparation: "sauteed",
+            cuisineHint: "korean", confidence: 0.8, notes: "",
+            kcal: 1400, proteinG: 96, carbsG: 60, fatG: 78, fiberG: 8,
+            nutritionSource: .llmDirect, sugarG: 22, sodiumMg: 1900, saturatedFatG: 22,
+            englishName: "spicy stir-fried pork", count: 1, unit: "serving",
+            servingsInDish: 2, isShareable: true
+        )
+        let rice = CapturedItem(
+            id: "debug-2", name: "steamed rice", portionGrams: 180,
+            portionGramsLow: 150, portionGramsHigh: 210,
+            usdaSearchTerms: ["white rice"], preparation: "boiled",
+            cuisineHint: "korean", confidence: 0.9, notes: "",
+            kcal: 234, proteinG: 4, carbsG: 52, fatG: 0, fiberG: 1,
+            nutritionSource: .llmDirect, sugarG: 0, sodiumMg: 2, saturatedFatG: 0
+        )
+        return CapturedFood(
+            items: [jeyuk, rice], plateType: .mixed, source: .photo,
+            confidence: 0.8, needsSecondPhoto: false, secondPhotoHint: nil,
+            kcalLow: 1550, kcalHigh: 1700
+        )
+    }
+}
+#endif

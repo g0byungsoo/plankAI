@@ -144,6 +144,17 @@ struct AnalyticsView: View {
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
     /// GLP-1 status (onboarding v2) — gates the cohort protein line.
     @AppStorage("onboarding_glp1_status") private var glp1Status = ""
+    /// Medical-grade Phase 2.3 — flag-gated cohort-aware protein floor +
+    /// lean-mass framing. Default OFF: existing customers keep the legacy
+    /// 1.2 g/kg target until the founder enables it.
+    @AppStorage("protein_hero_enabled") private var proteinHeroEnabled = false
+    /// Medical-grade Phase 2.2 — flag-gated rapid-loss safety guardrail.
+    /// Default OFF until founder review (it adds an insight to a live surface).
+    @AppStorage("rapid_loss_guard_enabled") private var rapidLossGuardEnabled = false
+    /// Medical-grade Phase 2.2 — flag-gated adaptive pace projection. Default
+    /// OFF. Surfaces a reprojected goal date only for the encouraging
+    /// statuses (ahead / on-pace); slow + stalled stay on the plateau reframe.
+    @AppStorage("adaptive_pacing_enabled") private var adaptivePacingEnabled = false
     /// Restriction-risk cohort flags — hide the lighter-days counter
     /// (the journal stays fully available).
     @AppStorage("onboardingFoodRelationship") private var foodRelationshipKey = ""
@@ -316,8 +327,25 @@ struct AnalyticsView: View {
             return 0
         }()
         guard kg > 30 else { return nil }
+        // Medical-grade Phase 2.3 (flag-gated) — GLP-1 cohorts (on the med
+        // now, or in the first weeks off) carry the highest sarcopenia risk,
+        // so they get the protective top of the 1.2-1.6 g/kg band. Default
+        // path stays the legacy 1.2 g/kg until `protein_hero_enabled` flips.
+        if proteinHeroEnabled {
+            let cohort = ProgramGoalCalculator.isGLP1User(from: glp1Status) || glp1Status == "past"
+            return ClinicalTargets.proteinFloorGrams(weightKg: kg, isGLP1: cohort)
+        }
         let raw = 1.2 * kg
         return max(80, min(150, Int(raw.rounded())))
+    }
+
+    /// Phase 2.3 (flag-gated) — explains WHY the GLP-1 cohort's protein
+    /// target is elevated. nil when the flag is off or the user is off-cohort,
+    /// so the tile renders exactly as it does today.
+    private var proteinHeroNote: String? {
+        guard proteinHeroEnabled else { return nil }
+        let cohort = ProgramGoalCalculator.isGLP1User(from: glp1Status) || glp1Status == "past"
+        return cohort ? "lean-mass first" : nil
     }
 
     /// Pace-aware kcal target for today's energy strip. Reads the
@@ -868,6 +896,20 @@ struct AnalyticsView: View {
                     )
                 }
             }
+            // Medical-grade Phase 5 — outcome instrumentation (PostHog
+            // only; no UI/behavior change). First time the user crosses
+            // 12/26/52wk since enrollment with a real weigh-in, snapshot
+            // % total-body-weight-loss for the evidence flywheel.
+            if let userId = auth.currentUser?.id.uuidString, !userId.isEmpty,
+               let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext) {
+                let latest = measuredWeightLogs.first
+                WeightOutcomeInstrumentation.recordIfDue(
+                    startDate: plan.startDate,
+                    enrollmentWeightKg: plan.currentWeightKg,
+                    latestWeightKg: latest?.weightKg,
+                    latestWeightLoggedAt: latest?.loggedAt
+                )
+            }
         }
         .fullScreenCover(isPresented: $showSundayRecap) {
             BecomingRecapView(
@@ -1315,6 +1357,7 @@ struct AnalyticsView: View {
                         BecomingProteinTile(
                             proteinG: Int(todayFoodMacros.protein.rounded()),
                             targetG: target,
+                            note: proteinHeroNote,
                             sources: todayProteinSources
                         )
                     } else {
@@ -1385,7 +1428,8 @@ struct AnalyticsView: View {
                         // store. FoodLogPersister handles its own
                         // notification + Supabase sync.
                         FoodLogPersister.deleteEntry(id: id)
-                    }
+                    },
+                    onOpenJournal: { showFoodJournal = true }
                 )
                 .padding(.top, 4)
             }
@@ -1953,6 +1997,45 @@ struct AnalyticsView: View {
     /// renders without the swipe affordance.
     private var dashboardInsightsRanked: [BecomingInsight] {
         var out: [BecomingInsight] = []
+
+        // Medical-grade Phase 2.2 (flag-gated) — rapid-loss safety guardrail.
+        // Leads the cycle when it fires: >1%/wk sustained loss risks lean
+        // mass, so reframe toward protein, never scold (anti-shame lock).
+        if rapidLossGuardEnabled, !hideWeightStats,
+           WeightAnalytics.isLosingTooFast(logs: weightLogs) {
+            out.append(.init(
+                id: "rapid-loss-guard",
+                text: "you're losing quickly. a protein-forward week helps you keep the muscle \u{2665}\u{FE0E}",
+                italic: ["protein-forward"]
+            ))
+        }
+
+        // Medical-grade Phase 2.2 (flag-gated) — adaptive pace projection.
+        // Anti-shame: only the encouraging statuses (ahead / on-pace) surface
+        // a reprojected date; slow + stalled lean on the plateau reframe. Held
+        // back while the rapid-loss guard is showing (that message wins).
+        if adaptivePacingEnabled, !hideWeightStats,
+           let current = latestWeightKg,
+           let userId = auth.currentUser?.id.uuidString, !userId.isEmpty,
+           let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext),
+           let goal = plan.goalWeightKg,
+           !WeightAnalytics.isLosingTooFast(logs: weightLogs),
+           let proj = WeightAnalytics.adaptiveProjection(
+                logs: weightLogs, currentKg: current, goalKg: goal,
+                plannedWeeklyFraction: ProjectionMath.weeklyFraction(
+                    paceKey: UserDefaults.standard.string(forKey: ProjectionMath.paceDefaultsKey))),
+           proj.status == .ahead || proj.status == .onPace,
+           let weeks = proj.projectedWeeksToGoal,
+           let date = Calendar.current.date(byAdding: .weekOfYear, value: weeks, to: Date()) {
+            let dateStr = date.formatted(.dateTime.month(.wide).day()).lowercased()
+            out.append(.init(
+                id: "adaptive-pace",
+                text: proj.status == .ahead
+                    ? "you're ahead of your plan. on track for ~\(dateStr) \u{2665}\u{FE0E}"
+                    : "right on pace. ~\(dateStr) is in reach \u{2665}\u{FE0E}",
+                italic: proj.status == .ahead ? ["ahead"] : ["pace"]
+            ))
+        }
 
         if !hideWeightStats, let toward = paceTowardGoal, toward > 0.02, weighInsThisWeek >= 2 {
             out.append(.init(

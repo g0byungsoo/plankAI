@@ -152,6 +152,12 @@ const FOOD_VISION_SCHEMA = {
           additionalProperties: false,
           required: [
             "name",
+            "name_native",
+            "english_name",
+            "count",
+            "unit",
+            "servings_in_dish",
+            "is_shareable",
             "preparation",
             "cuisine_hint",
             "portion_grams",
@@ -169,6 +175,24 @@ const FOOD_VISION_SCHEMA = {
           ],
           properties: {
             name: { type: "string" },
+            // 2026-06-23 — accuracy rewrite. Three founder complaints:
+            //   (1) quantity blindness → count + unit force a count-first
+            //       estimate; portion_grams must equal count × per-unit.
+            //   (2) cultural naming → name_native carries the authentic
+            //       dish name (the headline the user sees); english_name a
+            //       short plain gloss. `name` is ALSO set to the authentic
+            //       name so the iOS decoder stays backward-compatible.
+            //   (3) shared food → kcal/macros describe the WHOLE visible
+            //       food; servings_in_dish + is_shareable let the USER
+            //       resolve their personal share in the app afterward (the
+            //       model never guesses how many people ate it).
+            // STRICT MODE: every property here is also in `required`.
+            name_native: { type: "string" },
+            english_name: { type: "string" },
+            count: { type: "integer" },
+            unit: { type: "string" },
+            servings_in_dish: { type: "integer" },
+            is_shareable: { type: "boolean" },
             preparation: {
               type: "string",
               enum: ["raw", "grilled", "fried", "boiled", "baked", "sauteed", "unknown"],
@@ -210,30 +234,51 @@ const FOOD_VISION_SCHEMA = {
 
 function buildSystemPrompt(cuisineProfile: string | null): string {
   const cuisineLine = cuisineProfile && cuisineProfile.trim().length > 0
-    ? `the user usually eats: ${cuisineProfile}. weight estimates accordingly when ambiguous.`
-    : "no cuisine profile available; use neutral priors.";
+    ? `the user usually eats: ${cuisineProfile}. lean on this for BOTH calorie priors AND naming — if a dish matches this cuisine, name it the way someone from that food culture would.`
+    : "no cuisine profile available; use neutral priors, but still prefer authentic dish names over generic descriptions.";
 
   return [
     "you are a food vision model for a weight-loss app serving gen-z women.",
-    "identify the foods in this photo, estimate portion size in grams, AND estimate calories + macros directly.",
+    "your job: name the food authentically, COUNT what is visibly present, anchor portion mass to a scale reference, and estimate calories + macros for the WHOLE visible food.",
     "",
     cuisineLine,
     "",
-    "calorie estimation rules:",
-    "- kcal is your MIDPOINT estimate. integer only. account for preparation (fried adds ~80-150 kcal of oil per serving; sauces/dressings add 50-200).",
-    "- kcal_low / kcal_high are HONEST uncertainty bounds, not a tight confidence interval. for a typical confident estimate, ±15%. for ambiguous portions, ±25-30%. for guesses, ±40%.",
-    "- ROUND kcal + bounds to buckets per shame-risk research: <200 kcal round to nearest 10; 200-600 round to nearest 25; >600 round to nearest 50. example: 347 → 350, 423 → 425, 712 → 700.",
-    "- protein_g / carbs_g / fat_g / fiber_g: integer grams, rounded to nearest 1g. use cohort norms when uncertain (chicken breast 25g protein per 100g, rice 28g carbs per 100g cooked, avocado 15g fat per 100g, etc.).",
+    "=== STEP 1 — COUNT FIRST (before any gram or kcal number) ===",
+    "for EACH item decide discrete vs continuous, then size it:",
+    "- DISCRETE (countable units): count EVERY visible unit including ones partly hidden behind others (stacked fried chicken, a pile of dumplings). set count = the integer and unit = the singular noun ('piece','slice','wing','dumpling','nugget','taco','egg','shrimp','meatball','cookie','roll'). portion_grams = count × per-unit grams. NEVER collapse a multi-piece plate into one averaged blob — five pieces of chicken is count=5, not 'a serving'.",
+    "- CONTINUOUS (scooped/piled, not counted): rice, noodles, salad, stew, smoothie, fries-as-a-pile. set count = 1 and unit = 'serving'; size comes from volume, not a count.",
+    "- per-unit gram anchors (edible cooked weight): fried drumstick ~85g, fried wing ~50g, fried thigh ~125g, fried breast ~180g, nugget ~18g, dumpling ~30g, pizza slice (1/8 of 14in) ~120g, street taco ~95g, maki piece ~30g, nigiri ~35g, large egg ~50g, shrimp ~8g, meatball ~30g, bakery cookie ~120g, sausage link ~28g.",
+    "",
+    "=== STEP 2 — ANCHOR TO A SCALE REFERENCE (never size in a vacuum) ===",
+    "find a known-size object in frame and reason from it: dinner plate ~27cm, side plate ~20cm, bowl rim ~15cm, fork ~19cm, chopsticks ~23cm, soda can 12.2cm tall / 355ml, adult fist ~1 cup, adult palm (no fingers) ~85-110g of cooked meat. compare the food's footprint to the reference to get real size. if NO usable reference is in frame, say so in notes, widen portion_grams_low/high, and lower confidence — do not fake precision.",
+    "for piled/amorphous foods: volume = footprint area × mound height (a heap ≈ 0.5 × its peak height), then grams = volume × bulk density. densities g/ml: cooked rice 0.80, pasta 0.65, leafy salad 0.20, soup 1.0, ice cream 0.55, yogurt 1.03, mashed potato 1.0, fried rice 0.85. a MOUNDED bowl is 1.5-2.5× a flat bowl of the same width — scale up for mounding.",
+    "",
+    "=== STEP 3 — SHARED / WHOLE-DISH FRAMING (never guess how many people ate) ===",
+    "the photo may show a whole dish meant to be shared (a full pizza, a platter, family-style). RULES:",
+    "- kcal / kcal_low / kcal_high / portion_grams / macros ALWAYS describe the ENTIRE visible food. a whole 12-inch pizza → kcal for the whole pizza.",
+    "- servings_in_dish = how many normal human servings the WHOLE visible food is (whole large pizza ~8; a single avocado toast 1; a platter of bulgogi for the table ~4; a personal poke bowl 1). integer, minimum 1.",
+    "- is_shareable = true for a dish multiple people plausibly share (whole pizza, platter, large-format, family-style, pitcher, shareable dessert); false for an obvious single serving (one bowl, one sandwich, one latte).",
+    "- DO NOT pre-divide and DO NOT estimate headcount. the app divides by the user's own input. for a normal single plate set servings_in_dish=1, is_shareable=false (the common case).",
+    "",
+    "=== STEP 4 — NAME IT AUTHENTICALLY ===",
+    "- name_native = the name a person from that food's culture uses. korean bbq beef => 'bulgogi' (NOT 'stir-fried beef with onions'). examples: bibimbap, japchae, tteokbokki, kimchi jjigae, sundubu, pho, banh mi, bun cha, pad thai, tom yum, khao soi, biryani, dal, dosa, tacos al pastor, birria, chilaquiles, congee, mapo tofu, char siu, ramen, katsu curry, onigiri, shakshuka, falafel, shawarma.",
+    "- english_name = a short plain-english gloss ('bulgogi' => 'marinated grilled beef'). if the dish is already plain english (e.g. 'avocado toast'), set english_name equal to name_native.",
+    "- name = set this to the SAME value as name_native (kept for backward compatibility).",
+    "- when unsure which specific dish it is, name the closest authentic dish and note the uncertainty rather than retreating to a generic description.",
+    "- cuisine_hint: short string like 'korean','thai','mexican','japanese','mediterranean','american'.",
+    "",
+    "=== STEP 5 — CALORIES + MACROS (for the whole visible food) ===",
+    "- kcal is your MIDPOINT for the WHOLE visible food. integer. it MUST be consistent with count × portion (5 fried pieces ≈ 5× one piece). account for prep: deep-fried/breaded adds ~10-20% oil weight (~80-150 kcal per fist-size serving); a glossy sauce/dressing adds 50-200 kcal and MUST be counted (a dressed salad's dressing is often most of its kcal); cheese finish ~110 kcal/30g.",
+    "- kcal_low / kcal_high are HONEST bounds: ±15% confident & counted; ±20% amorphous in a shallow bowl; ±30% opaque/deep bowl; +10% each for occlusion, hidden oil/sauce, or no scale reference; ±40% a guess. cap ±50%.",
+    "- ROUND kcal + bounds to buckets: <200 round to 10; 200-600 round to 25; >600 round to 50. e.g. 347→350, 423→425, 712→700.",
+    "- protein_g / carbs_g / fat_g / fiber_g: integer grams for the WHOLE visible food (chicken breast ~25g protein/100g, cooked rice ~28g carb/100g, avocado ~15g fat/100g).",
     "- total_kcal_low / total_kcal_high: sum of items' kcal_low / kcal_high. integer.",
     "",
-    "portion + identification rules:",
-    "- portion_grams is your midpoint. portion_grams_low / high are honest bounds (typical ±15-25%).",
-    "- confidence ∈ [0, 1]: 1.0 = obvious single dish; 0.5 = ambiguous; <0.5 = guess.",
-    "- preparation: best guess from visual cues.",
-    "- cuisine_hint: short string like 'thai', 'mexican', 'mediterranean', 'american', 'japanese', etc.",
-    "- needs_second_photo: true ONLY if portion estimate is >40% uncertain (e.g. rice depth in opaque bowl) OR the plate has hidden items.",
-    "- second_photo_hint: one short sentence with the angle that would resolve the uncertainty.",
-    "- plate_type: 'single' for one dish, 'mixed' for separated items, 'bowl' for layered (smoothie/poke/acai), 'charcuterie' for snack plate, 'shared' for restaurant table.",
+    "=== OTHER FIELDS ===",
+    "- confidence ∈ [0,1]: 1.0 obvious single dish with a clear scale ref; 0.5 ambiguous count/portion; <0.5 guess. LOWER it when you couldn't count cleanly or had no scale reference.",
+    "- needs_second_photo: true ONLY when a 2nd angle would materially cut the error — opaque-bowl depth on the dominant-kcal item, a stack whose count you can't resolve, hidden oil/sauce volume, or food cropped off-frame. otherwise false.",
+    "- second_photo_hint: one short sentence with the angle that resolves it.",
+    "- plate_type: 'single' one dish, 'mixed' separated items, 'bowl' layered (smoothie/poke/acai), 'charcuterie' snack plate, 'shared' a table/platter for several, 'restaurant_range' a menu-described estimate.",
     "",
     "common cohort foods to recognize confidently (gen-z women weight-loss context):",
     "- drinks: iced matcha latte (oat 200 kcal / almond 150 / whole 240), oat milk latte (180), cold brew black (5), boba brown sugar (380), boba taro (350), americano (15), chai latte oat (230), pink drink (140)",
@@ -242,6 +287,11 @@ function buildSystemPrompt(cuisineProfile: string | null): string {
     "- dinner: pad thai (700), pizza slice (320), pasta plate (700), burger (550), tacos (450 for 2)",
     "- snacks: crumbl cookie (700), halo top pint (280-360), popcorn (150 / cup), string cheese (80), apple (95)",
     "- if you recognize a chain item, prefer the chain's published kcal over your prior.",
+    "",
+    "=== WORKED EXAMPLES (follow this reasoning, then emit only JSON) ===",
+    "A — a plate of ~5 stacked fried chicken pieces, dinner plate, no rice: 5 discrete pieces (count even the partly-hidden one) → count=5, unit='piece', each ~palm-size ~90g → portion_grams≈450, deep-fried, one piece ~250 kcal → ~1250. single plate → servings_in_dish=1, is_shareable=false. name_native='fried chicken'.",
+    "B — korean bbq beef with onions over rice: this is bulgogi, not 'stir-fried beef'. continuous → count=1, unit='serving', cuisine_hint='korean', servings_in_dish=1, is_shareable=false. name_native='bulgogi', english_name='marinated grilled beef'.",
+    "C — a whole 12-inch pepperoni pizza on the table: kcal is for the WHOLE pizza (~2200), NOT a slice. count=8, unit='slice', servings_in_dish=8, is_shareable=true. the app lets the user say they ate 2 slices.",
     "",
     "respond in the structured JSON schema only. no prose."
   ].join("\n");
@@ -375,7 +425,12 @@ Deno.serve(async (req: Request) => {
   }
 
   if (req.method !== "POST") {
-    return new Response("method not allowed", { status: 405 });
+    // 2026-06-23 — JSON, not plain text, so the iOS error decoder can
+    // parse it (every response the client can receive is now JSON).
+    return new Response(
+      JSON.stringify({ error: "method_not_allowed" }),
+      { status: 405, headers: { "Content-Type": "application/json" } },
+    );
   }
 
   // ---------- Auth ----------
@@ -411,7 +466,15 @@ Deno.serve(async (req: Request) => {
 
   // ---------- Limit checks ----------
 
-  const userLimit = await checkPerUserLimit(supabaseAdmin, userId);
+  // 2026-06-23 — run the two Supabase count/sum queries CONCURRENTLY
+  // instead of sequentially. They're independent, and on a warm table
+  // each is a round-trip; back-to-back they added ~2-4s of dead time to
+  // every scan before OpenAI even started (part of the founder's "takes
+  // a long time"). Promise.all overlaps them.
+  const [userLimit, budget] = await Promise.all([
+    checkPerUserLimit(supabaseAdmin, userId),
+    checkDailyBudget(supabaseAdmin),
+  ]);
   if (!userLimit.allowed) {
     logTelemetry(supabaseAdmin, {
       id: crypto.randomUUID(),
@@ -435,7 +498,6 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  const budget = await checkDailyBudget(supabaseAdmin);
   if (!budget.allowed) {
     logTelemetry(supabaseAdmin, {
       id: crypto.randomUUID(),
@@ -596,12 +658,28 @@ Deno.serve(async (req: Request) => {
   // retry layer treats 502 as transient and re-attempts, so a one-off
   // slow OpenAI response doesn't kill the user's scan — they just see
   // "scanning..." for a beat longer.
+  // 2026-06-23 — the fetch AND the response-body read now run under ONE
+  // AbortController. The old code cleared the timer BEFORE
+  // `openaiResponse.json()`, leaving that body read unbounded — a stalled
+  // body would hang to Supabase's ~150-160s kill and surface to iOS as a
+  // 504 with a non-JSON HTML body (the opaque "very long hang"). Now the
+  // body read is inside the abort budget.
+  //
+  // Lowered 90s → 26s so the server sits UNDER the iOS client's network
+  // timeout (30s) + scan deadline (35s): the server aborts and returns a
+  // structured `openai_timeout` envelope BEFORE the client gives up,
+  // instead of the client timing out into a raw NSURLErrorTimedOut. gpt-4o
+  // vision median is a few seconds, so 26s still clears the vast majority.
+  const OPENAI_TIMEOUT_MS = 26_000;
   const openaiAbort = new AbortController();
-  const openaiTimer = setTimeout(() => openaiAbort.abort(), 90_000);
+  const openaiTimer = setTimeout(() => openaiAbort.abort(), OPENAI_TIMEOUT_MS);
 
-  let openaiResponse: Response;
+  let openaiBody: {
+    choices: { message: { content: string } }[];
+    usage?: { prompt_tokens: number; completion_tokens: number };
+  };
   try {
-    openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       signal: openaiAbort.signal,
       headers: {
@@ -610,11 +688,50 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify(openaiRequest),
     });
+
+    if (!openaiResponse.ok) {
+      const errorBody = await openaiResponse.text();  // still inside abort budget
+      clearTimeout(openaiTimer);
+      console.error(
+        `[food-vision] OpenAI ${openaiResponse.status} for model=${MODEL_NAME}: ${errorBody}`,
+      );
+      logTelemetry(supabaseAdmin, {
+        id: crypto.randomUUID(),
+        user_id: userId,
+        model: MODEL_NAME,
+        cost_usd: 0,
+        tokens_in: null,
+        tokens_out: null,
+        duration_ms: Math.round(performance.now() - t0),
+        status: "error",
+      });
+      // Surface the OpenAI message (insufficient_quota / model_not_found)
+      // instead of a bare 502. Falls back to raw text when not JSON.
+      let userFacing = errorBody;
+      try {
+        const parsed = JSON.parse(errorBody);
+        userFacing = parsed?.error?.message ?? parsed?.error?.code ?? errorBody;
+      } catch (_e) { /* leave as raw text */ }
+      return new Response(
+        JSON.stringify({
+          error: "upstream_error",
+          status: openaiResponse.status,
+          code: openaiResponse.status === 429 ? "openai_quota" : "openai_error",
+          detail: userFacing,
+          model: MODEL_NAME,
+        }),
+        { status: 502, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    // THE read that used to hang — now covered by openaiTimer.
+    openaiBody = await openaiResponse.json();
+    clearTimeout(openaiTimer);
   } catch (e) {
     clearTimeout(openaiTimer);
     const isAbort = (e as Error)?.name === "AbortError";
     console.error(
-      `[food-vision] OpenAI fetch ${isAbort ? "TIMEOUT (90s)" : "failed"}: ${String(e)}`,
+      `[food-vision] OpenAI ${isAbort ? `TIMEOUT (${OPENAI_TIMEOUT_MS}ms)` : "failed"}: ${String(e)}`,
     );
     logTelemetry(supabaseAdmin, {
       id: crypto.randomUUID(),
@@ -629,54 +746,12 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         error: isAbort ? "openai_timeout" : "upstream_unreachable",
+        code: isAbort ? "openai_timeout" : "upstream_unreachable",
         detail: String(e),
       }),
       { status: 502, headers: { "Content-Type": "application/json" } },
     );
   }
-  clearTimeout(openaiTimer);
-
-  if (!openaiResponse.ok) {
-    const errorBody = await openaiResponse.text();
-    // Log the OpenAI error to Edge Function console so it shows up in
-    // Supabase logs — easier to debug than only seeing the 502 in iOS.
-    console.error(
-      `[food-vision] OpenAI ${openaiResponse.status} for model=${MODEL_NAME}: ${errorBody}`,
-    );
-    logTelemetry(supabaseAdmin, {
-      id: crypto.randomUUID(),
-      user_id: userId,
-      model: MODEL_NAME,
-      cost_usd: 0,
-      tokens_in: null,
-      tokens_out: null,
-      duration_ms: Math.round(performance.now() - t0),
-      status: "error",
-    });
-    // Pull the OpenAI error message out of its envelope so the iOS
-    // banner can surface it directly. Falls back to the raw body when
-    // not JSON. The user sees "insufficient_quota" / "model_not_found"
-    // / etc. instead of just "502".
-    let userFacing = errorBody;
-    try {
-      const parsed = JSON.parse(errorBody);
-      userFacing = parsed?.error?.message
-        ?? parsed?.error?.code
-        ?? errorBody;
-    } catch (_e) { /* leave as raw text */ }
-    return new Response(
-      JSON.stringify({
-        error: "upstream_error",
-        status: openaiResponse.status,
-        code: openaiResponse.status === 429 ? "openai_quota" : "openai_error",
-        detail: userFacing,
-        model: MODEL_NAME,
-      }),
-      { status: 502, headers: { "Content-Type": "application/json" } },
-    );
-  }
-
-  const openaiBody = await openaiResponse.json();
 
   // ---------- Parse + return ----------
 

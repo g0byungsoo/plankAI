@@ -39,3 +39,9 @@ generated_illustrations/
 
 # Local backups (re-encoded asset originals, kept outside git for rollback)
 .local-backups/
+
+# Supabase CLI local state
+supabase/.temp/
+
+# Build-verification screenshots (kept local, like screenshots/)
+docs/retention_v1_1_2/

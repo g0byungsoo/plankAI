@@ -1,4 +1,5 @@
 import XCTest
+import PlankSync
 @testable import plankAI
 
 final class WeightUnitTests: XCTestCase {
@@ -86,5 +87,238 @@ final class WeightAnalyticsTests: XCTestCase {
 
     func testIsStalledFalseOnEmpty() {
         XCTAssertFalse(WeightAnalytics.isStalled(logs: []))
+    }
+}
+
+/// Medical-grade Phase 5 — the % total-body-weight-loss evidence flywheel.
+/// Tests target the pure `dueMilestones` core (no UserDefaults / Analytics
+/// side effects) so the math + milestone gating + the >=5% TBWL threshold
+/// are pinned. Correctness matters here: this is the evidence substrate.
+final class WeightOutcomeInstrumentationTests: XCTestCase {
+
+    private let start = Date(timeIntervalSince1970: 1_700_000_000)  // fixed anchor
+
+    private func at(weeks: Double) -> Date {
+        start.addingTimeInterval(weeks * 7 * 24 * 3600)
+    }
+
+    private func due(enroll: Double?, current: Double?, weeks: Double)
+        -> [WeightOutcomeInstrumentation.Milestone] {
+        WeightOutcomeInstrumentation.dueMilestones(
+            startDate: start, enrollmentWeightKg: enroll,
+            latestWeightKg: current, now: at(weeks: weeks))
+    }
+
+    func testNoMilestoneBeforeTwelveWeeks() {
+        XCTAssertTrue(due(enroll: 70, current: 66, weeks: 11.9).isEmpty)
+    }
+
+    func testTwelveWeekMilestoneFires() {
+        XCTAssertEqual(due(enroll: 70, current: 66, weeks: 12).map(\.week), [12])
+    }
+
+    func testCumulativeMilestonesAtThirtyWeeks() {
+        XCTAssertEqual(due(enroll: 70, current: 63, weeks: 30).map(\.week), [12, 26])
+    }
+
+    func testAllMilestonesPastFiftyTwoWeeks() {
+        XCTAssertEqual(due(enroll: 70, current: 63, weeks: 60).map(\.week), [12, 26, 52])
+    }
+
+    func testTbwlPercentAndFivePercentFlag() {
+        // 70 → 63 = exactly 10% loss.
+        let m = due(enroll: 70, current: 63, weeks: 12).first
+        XCTAssertEqual(m?.tbwlPct ?? 0, 10.0, accuracy: 0.05)
+        XCTAssertEqual(m?.achieved5pct, true)
+    }
+
+    func testFivePercentBoundaryIsInclusive() {
+        // 70 → 66.5 = exactly 5.0%.
+        let m = due(enroll: 70, current: 66.5, weeks: 12).first
+        XCTAssertEqual(m?.tbwlPct ?? 0, 5.0, accuracy: 0.05)
+        XCTAssertEqual(m?.achieved5pct, true)
+    }
+
+    func testJustUnderFivePercentNotAchieved() {
+        // 70 → 66.6 = 4.857% loss.
+        XCTAssertEqual(due(enroll: 70, current: 66.6, weeks: 12).first?.achieved5pct, false)
+    }
+
+    func testWeightGainKeepsMilestoneWithNegativeTbwl() {
+        // 70 → 72 = gain; the milestone is still recorded (real signal),
+        // but the >=5% flag is false.
+        let m = due(enroll: 70, current: 72, weeks: 12).first
+        XCTAssertEqual(m?.week, 12)
+        XCTAssertLessThan(m?.tbwlPct ?? 0, 0)
+        XCTAssertEqual(m?.achieved5pct, false)
+    }
+
+    func testNoEnrollmentWeightEmitsNothing() {
+        XCTAssertTrue(due(enroll: nil, current: 66, weeks: 30).isEmpty)
+    }
+
+    func testNoCurrentWeightEmitsNothing() {
+        // Never weighed in → no number to invent (data-provenance).
+        XCTAssertTrue(due(enroll: 70, current: nil, weeks: 30).isEmpty)
+    }
+
+    func testDaysSinceStartTracksElapsed() {
+        XCTAssertEqual(due(enroll: 70, current: 66, weeks: 12).first?.daysSinceStart, 84)
+    }
+}
+
+/// Medical-grade Phase 2.3 — the lean-mass-protection protein floor. The
+/// flagship clinical differentiator: the GLP-1 cohort gets the protective
+/// top of the 1.2-1.6 g/kg band because appetite suppression + rapid loss
+/// carries the highest sarcopenia risk.
+final class ClinicalTargetsTests: XCTestCase {
+
+    func testBaselineProteinIsTwelveTenthsPerKg() {
+        // 70 kg, non-GLP-1 → 1.2 * 70 = 84 g.
+        XCTAssertEqual(ClinicalTargets.proteinFloorGrams(weightKg: 70, isGLP1: false), 84)
+    }
+
+    func testGLP1ProteinIsSixteenTenthsPerKg() {
+        // 70 kg, GLP-1 → 1.6 * 70 = 112 g (the muscle-preservation top of band).
+        XCTAssertEqual(ClinicalTargets.proteinFloorGrams(weightKg: 70, isGLP1: true), 112)
+    }
+
+    func testGLP1FloorAlwaysExceedsBaselineAtSameWeight() {
+        // The flagship differentiator: the GLP-1 cohort gets more protein.
+        for kg in [60.0, 75.0, 90.0, 105.0] {
+            XCTAssertGreaterThan(
+                ClinicalTargets.proteinFloorGrams(weightKg: kg, isGLP1: true),
+                ClinicalTargets.proteinFloorGrams(weightKg: kg, isGLP1: false),
+                "GLP-1 floor should exceed baseline at kg=\(kg)")
+        }
+    }
+
+    func testLowerClampAtEightyGrams() {
+        // 50 kg non-GLP-1 → 60 raw, clamped up to the 80 g floor.
+        XCTAssertEqual(ClinicalTargets.proteinFloorGrams(weightKg: 50, isGLP1: false), 80)
+    }
+
+    func testUpperClampAtOneSixtyGrams() {
+        // 110 kg GLP-1 → 176 raw, clamped down to the 160 g ceiling.
+        XCTAssertEqual(ClinicalTargets.proteinFloorGrams(weightKg: 110, isGLP1: true), 160)
+    }
+}
+
+/// Medical-grade Phase 2.2 — the rapid-loss safety monitor (muscle-
+/// preservation guardrail). >1%/wk sustained loss is the ACSM
+/// over-restriction zone; pairs with the protein floor.
+final class RapidLossMonitorTests: XCTestCase {
+
+    private let today = Date(timeIntervalSince1970: 1_700_000_000)
+
+    private func log(_ kg: Double, daysAgo: Int) -> WeightLogRecord {
+        WeightLogRecord(userId: "t", weightKg: kg,
+                        loggedAt: today.addingTimeInterval(Double(-daysAgo) * 86_400))
+    }
+
+    func testNilWhenTooFewLogs() {
+        XCTAssertNil(WeightAnalytics.weeklyLossRate(logs: [log(70, daysAgo: 0)], today: today))
+    }
+
+    func testNilWhenSpanUnderSevenDays() {
+        let logs = [log(70, daysAgo: 5), log(69, daysAgo: 0)]
+        XCTAssertNil(WeightAnalytics.weeklyLossRate(logs: logs, today: today))
+    }
+
+    func testWeeklyRateComputation() {
+        // 70 → 68.6 over 14 days = 2% / 2 weeks = 1%/wk = 0.01.
+        let logs = [log(70, daysAgo: 14), log(69.3, daysAgo: 7), log(68.6, daysAgo: 0)]
+        XCTAssertEqual(WeightAnalytics.weeklyLossRate(logs: logs, today: today) ?? 0,
+                       0.01, accuracy: 0.0005)
+    }
+
+    func testTooFastFiresAboveOnePercentPerWeek() {
+        // 70 → 67.9 over 14 days = 3% / 2wk = 1.5%/wk → too fast.
+        let logs = [log(70, daysAgo: 14), log(68.95, daysAgo: 7), log(67.9, daysAgo: 0)]
+        XCTAssertTrue(WeightAnalytics.isLosingTooFast(logs: logs, today: today))
+    }
+
+    func testSafePaceDoesNotFire() {
+        // 70 → 69.3 over 14 days = 1% / 2wk = 0.5%/wk → safe.
+        let logs = [log(70, daysAgo: 14), log(69.65, daysAgo: 7), log(69.3, daysAgo: 0)]
+        XCTAssertFalse(WeightAnalytics.isLosingTooFast(logs: logs, today: today))
+    }
+
+    func testJustBelowCeilingIsSafe() {
+        // ~0.93%/wk (70 → 68.7 over 14 days) sits under the ~1%/wk ceiling,
+        // so the guardrail must NOT fire. Exactly 1.000%/wk is left to the
+        // production `> 0.01` threshold — no real user lands on it, and a
+        // floating-point exact-boundary assertion is meaningless.
+        let logs = [log(70, daysAgo: 14), log(69.35, daysAgo: 7), log(68.7, daysAgo: 0)]
+        XCTAssertFalse(WeightAnalytics.isLosingTooFast(logs: logs, today: today))
+    }
+
+    func testGainDoesNotFire() {
+        let logs = [log(70, daysAgo: 14), log(70.5, daysAgo: 7), log(71, daysAgo: 0)]
+        XCTAssertFalse(WeightAnalytics.isLosingTooFast(logs: logs, today: today))
+    }
+
+    func testTwoPointBlipDoesNotTripTooFast() {
+        // Only 2 logs → not "sustained", even with a huge drop.
+        let logs = [log(70, daysAgo: 14), log(66, daysAgo: 0)]
+        XCTAssertFalse(WeightAnalytics.isLosingTooFast(logs: logs, today: today))
+    }
+}
+
+/// Medical-grade Phase 2.2 — adaptive pacing projection. Reprojects from the
+/// actual measured trend and classifies it vs plan with anti-shame statuses
+/// (`easingOff`, never "behind"; a true plateau is its own `stalled`).
+final class AdaptiveProjectionTests: XCTestCase {
+
+    private let today = Date(timeIntervalSince1970: 1_700_000_000)
+    private let planned = 0.005   // 0.5%/wk committed pace
+
+    private func log(_ kg: Double, daysAgo: Int) -> WeightLogRecord {
+        WeightLogRecord(userId: "t", weightKg: kg,
+                        loggedAt: today.addingTimeInterval(Double(-daysAgo) * 86_400))
+    }
+
+    private func project(_ logs: [WeightLogRecord], goal: Double = 60, planned: Double? = nil)
+        -> WeightAnalytics.AdaptiveProjection? {
+        WeightAnalytics.adaptiveProjection(
+            logs: logs, currentKg: logs.last?.weightKg ?? 0, goalKg: goal,
+            plannedWeeklyFraction: planned ?? self.planned, today: today)
+    }
+
+    func testNilWhenTooFewLogs() {
+        XCTAssertNil(project([log(70, daysAgo: 14), log(69, daysAgo: 0)]))
+    }
+
+    func testStalledStatusHasNoProjection() {
+        // <0.5 kg over 14 days → stalled, no date.
+        let p = project([log(70, daysAgo: 14), log(69.85, daysAgo: 7), log(69.7, daysAgo: 0)])
+        XCTAssertEqual(p?.status, .stalled)
+        XCTAssertNil(p?.projectedWeeksToGoal)
+    }
+
+    func testAheadStatusProjects() {
+        // 0.8%/wk vs 0.5%/wk planned → ahead, with a projection.
+        let p = project([log(70, daysAgo: 14), log(69.44, daysAgo: 7), log(68.88, daysAgo: 0)])
+        XCTAssertEqual(p?.status, .ahead)
+        XCTAssertNotNil(p?.projectedWeeksToGoal)
+    }
+
+    func testOnPaceStatus() {
+        // 0.5%/wk == planned → on pace.
+        let p = project([log(70, daysAgo: 14), log(69.65, daysAgo: 7), log(69.3, daysAgo: 0)])
+        XCTAssertEqual(p?.status, .onPace)
+    }
+
+    func testEasingOffWhenSlowerThanPlan() {
+        // 0.4%/wk vs 1%/wk planned, still >0.5 kg moved (not a stall).
+        let p = project([log(70, daysAgo: 14), log(69.72, daysAgo: 7), log(69.44, daysAgo: 0)],
+                        planned: 0.01)
+        XCTAssertEqual(p?.status, .easingOff)
+    }
+
+    func testGainingIsEasingOffWithNoProjection() {
+        let p = project([log(70, daysAgo: 14), log(70.5, daysAgo: 7), log(71, daysAgo: 0)])
+        XCTAssertEqual(p?.status, .easingOff)
+        XCTAssertNil(p?.projectedWeeksToGoal)
     }
 }

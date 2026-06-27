@@ -43,9 +43,16 @@ final class PaymentService {
     /// emit that flipped periodType happened while the process was dead.
     private static let lastKnownInTrialKey = "PaymentService.lastKnownInTrial"
 
+    /// UserDefaults key mirroring whether the last-known entitlement had
+    /// auto-renew on. Paired with `lastKnownInTrialKey` to detect a
+    /// cancel-during-trial (willRenew true → false while periodType stays
+    /// .trial) so the 3-day trial cancel rate is measurable in PostHog.
+    private static let lastKnownWillRenewKey = "PaymentService.lastKnownWillRenew"
+
     private init() {
         hasProAccess = UserDefaults.standard.bool(forKey: Self.lastKnownEntitlementKey)
         wasInTrial = UserDefaults.standard.bool(forKey: Self.lastKnownInTrialKey)
+        wasWillRenew = UserDefaults.standard.bool(forKey: Self.lastKnownWillRenewKey)
     }
 
     /// Whether `configure(appUserID:)` has run. Idempotent — guarded so a
@@ -144,6 +151,13 @@ final class PaymentService {
     /// fire the conversion analytic on next launch.
     private var wasInTrial: Bool = false
 
+    /// Whether the prior customerInfoStream emit observed auto-renew on.
+    /// Used to detect a cancel-during-trial (willRenew true → false while
+    /// periodType stays .trial). Seeded from UserDefaults at init so a
+    /// cancel that lands while the process is dead still resolves on the
+    /// next launch's first emit.
+    private var wasWillRenew: Bool = false
+
     /// Configure RevenueCat once, after AuthService.bootstrap completes.
     /// Pass the current Supabase user_id as appUserID so RevenueCat scopes
     /// purchases to the same identity used for cloud data. Starts the
@@ -189,10 +203,14 @@ final class PaymentService {
                 let isInTrial = isActive && entitlement?.periodType == .trial
                 let wasActive = self.hasProAccess
                 let wasInTrial = self.wasInTrial
+                let currentWillRenew = entitlement?.willRenew ?? false
+                let wasWillRenew = self.wasWillRenew
                 self.hasProAccess = isActive
                 self.wasInTrial = isInTrial
+                self.wasWillRenew = currentWillRenew
                 UserDefaults.standard.set(isActive, forKey: Self.lastKnownEntitlementKey)
                 UserDefaults.standard.set(isInTrial, forKey: Self.lastKnownInTrialKey)
+                UserDefaults.standard.set(currentWillRenew, forKey: Self.lastKnownWillRenewKey)
                 #if DEBUG
                 let activeKeys = customerInfo.entitlements.active.keys.sorted()
                 print("[PaymentService] customerInfo updated: hasProAccess=\(isActive) isInTrial=\(isInTrial) entitlements=\(activeKeys)")
@@ -230,6 +248,21 @@ final class PaymentService {
                                         "placement": "trial_conversion",
                                         "is_trial": true
                                     ])
+                    // Distinct event so trial→paid is unambiguous in funnels
+                    // (purchase_completed also fires for direct no-trial buys).
+                    Analytics.track(.trialConverted,
+                                    properties: ["product_id": productId])
+                }
+                // Cancel-during-trial: still active + still in trial, but
+                // auto-renew flipped off (willRenew true → false). RevenueCat
+                // resolves the actual lapse server-side, but the cancel intent
+                // is visible here — fires once on the transition so the 3-day
+                // trial cancel rate is measurable. Weekly has no trial, so it
+                // never matches; the explicit guard is belt-and-suspenders.
+                if isInTrial && wasInTrial && wasWillRenew && !currentWillRenew &&
+                    !productId.lowercased().contains("weekly") {
+                    Analytics.track(.trialCancelled,
+                                    properties: ["product_id": productId])
                 }
                 self.markEntitlementReady(reason: "customerInfoStream emit")
                 // First emit since an auth change closes the suppression

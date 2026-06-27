@@ -64,11 +64,12 @@ struct ProgressGridView: View {
             }
         }
         .sheet(isPresented: $showProfileHub) {
-            ProfileHubView(onClose: {
-                var t = Transaction()
-                t.disablesAnimations = true
-                withTransaction(t) { showProfileHub = false }
-            })
+            // v1.1 fix (2026-06-24): animated slide-down close. The
+            // disablesAnimations transaction made the drawer close as an
+            // instant cut (no exit motion) — inconsistent with every other
+            // transition. A plain binding mutation lets the system animate
+            // the dismiss. See PlanView for the full rationale.
+            ProfileHubView(onClose: { showProfileHub = false })
             .presentationDetents([.large])
             .presentationBackground(Palette.programBgPrimary)
         }

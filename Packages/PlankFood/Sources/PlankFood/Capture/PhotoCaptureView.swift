@@ -44,6 +44,18 @@ public struct PhotoCaptureView: View {
     @State private var isCapturing: Bool = false
     @State private var capturedResult: CapturedFood?
     @State private var errorMessage: String?
+
+    /// 2026-06-23 — premium failure/retry state. A failed or timed-out
+    /// scan routes HERE (a gentle cream card over the frozen photo with
+    /// a clear "try again"), not to an indefinite spinner or a terse top
+    /// banner. The frozen photo is kept so "try again" reuses the shot.
+    @State private var scanFailure: ScanFailure?
+    /// 2026-06-23 — flips true ~9s into a slow-but-not-failed scan to
+    /// soften the in-flight copy ("still with you ♥") before the hard
+    /// deadline. Cancelled the moment the scan resolves.
+    @State private var longScan: Bool = false
+    /// Tracks the slow-scan nudge timer so it can be cancelled on resolve.
+    @State private var longScanTask: Task<Void, Never>?
     /// v1.0.8 Phase H — gallery upload sheet state.
     @State private var showingLibraryPicker: Bool = false
 
@@ -56,8 +68,6 @@ public struct PhotoCaptureView: View {
     /// when nothing's happening. Started in onAppear with a repeating
     /// withAnimation. Reduce-motion users get a static shutter.
     @State private var shutterBreathing: Bool = false
-    /// v1.0.9 D2 — scanning pill breathing pulse (replaces dim-state chip).
-    @State private var scanPillBreathing: Bool = false
 
     /// v1.0.9 D2 polish round 3 (2026-06-08) — Canvas Metal-pipeline
     /// prewarm. Founder feedback: "the lag is happening in the first
@@ -91,6 +101,12 @@ public struct PhotoCaptureView: View {
     /// instant. UIFeedbackGenerator is main-actor-bound, matching this
     /// view.
     @State private var shutterHaptic = UIImpactFeedbackGenerator(style: .medium)
+
+    /// 2026-06-24 — gentle haptic that pulses while scanning, synced to
+    /// the laser-sweep cadence (~2.2s). Founder: "while scanning can you
+    /// do some haptic?" A soft "still reading" tap under the visual sweep.
+    @State private var scanHaptic = UIImpactFeedbackGenerator(style: .soft)
+    @State private var scanHapticTask: Task<Void, Never>?
 
     /// v1.0.9 D2 round 2 — sticker confetti decoration that pops in
     /// at the four corners around the carousel card when a result
@@ -198,6 +214,32 @@ public struct PhotoCaptureView: View {
 
     // MARK: - Body
 
+    // MARK: - Scan deadline tuning
+    //
+    // The hard ceiling (backstop) + the reassurance nudge timing.
+    // 2026-06-24 — raised to 90s after PostHog showed the 45s ceiling +
+    // 30s URLSession were FAILING real scans with `-1001 request timed
+    // out`: the currently-deployed EF is slow (cold start + sequential
+    // Supabase limit queries + gpt-4o's 90s OpenAI abort), so a real scan
+    // regularly needs 30-60s. The 30s/45s combo cut those off ("it used
+    // to work"). Now the network timeout (80s) is the real bound and this
+    // 90s watchdog sits just above it as the backstop. The literal
+    // forever-hang is fixed at its source (the camera continuation), so a
+    // generous network ceiling is safe. Nudge stays 15s for the slow tail.
+    // Once the optimized EF is deployed (fast), drop these to ~30/35.
+    // DEBUG can override via `--food-debug-deadline N` for fast sim QA.
+    private static let scanLongHintSeconds: Double = 15
+    private var scanDeadlineSeconds: Double {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "--food-debug-deadline"),
+           i + 1 < args.count, let n = Double(args[i + 1]) {
+            return n
+        }
+        #endif
+        return 90
+    }
+
     public var body: some View {
         // v1.0.8 Phase M (2026-06-08) — INSET CAMERA FRAME refactor.
         // Founder feedback after Phase L review: border was broken
@@ -297,10 +339,31 @@ public struct PhotoCaptureView: View {
             // before bootCamera resolves.
             try? await Task.sleep(nanoseconds: 200_000_000)
             prewarmingScanCanvas = false
+
+            #if DEBUG
+            // Simulator QA: auto-run a scan on a mock image so the
+            // scanning state + the deadline/failure card can be verified
+            // without a camera or any taps. Pair with --food-debug-hang /
+            // --food-debug-empty / --food-debug-deadline N etc.
+            // `--food-debug-gallery-confirm` instead presents the gallery
+            // "use this photo?" sheet for screenshot capture.
+            if ProcessInfo.processInfo.arguments.contains("--food-debug-gallery-confirm") {
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                pendingGalleryImage = PendingGallery(image: Self.debugMockImage())
+            } else if ProcessInfo.processInfo.arguments.contains("--food-debug-autostart") {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                await libraryImagePicked(Self.debugMockImage())
+            }
+            #endif
         }
         .onDisappear {
             camera.unfreezePreview()
             camera.stopSession()
+            stopScanHaptics()
+        }
+        // 2026-06-24 — gentle haptic pulse while scanning (founder ask).
+        .onChange(of: isCapturing) { _, scanning in
+            if scanning { startScanHaptics() } else { stopScanHaptics() }
         }
         .overlay(alignment: .top) {
             if let errorMessage {
@@ -368,13 +431,12 @@ public struct PhotoCaptureView: View {
             cameraLayer
                 .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
 
-            // Hot pink border — uniform at rest, shimmer revolves
-            // during scan.
+            // Dusty-rose border — uniform at rest, a soft light travels
+            // it during scan (no neon, no color hop). See RotatingScanBorder.
             RotatingScanBorder(
                 isScanning: isCapturing && !reduceMotion,
-                isError: errorMessage != nil,
                 cornerRadius: 28,
-                lineWidth: 5
+                lineWidth: 3
             )
 
             // v1.0.8 Phase P/R.7 — three in-frame states:
@@ -390,6 +452,11 @@ public struct PhotoCaptureView: View {
                 resultModeOverlay(result: result)
                     .padding(14)
                     .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
+            } else if let failure = scanFailure {
+                // Gentle failure/retry card over the kept (dimmed) photo.
+                // Handles its own scrim + inset, so no outer padding.
+                scanFailureOverlay(failure)
+                    .transition(.opacity)
             } else {
                 inFrameChrome
                     .padding(14)
@@ -400,7 +467,9 @@ public struct PhotoCaptureView: View {
             // (sticker_cherries.png) via Bundle.main, matching the
             // sticker-discipline pattern in NutritionCarousel's
             // JeniEvaluationCard.
-            if !isCapturing && capturedResult == nil && !galleryPreviewMode {
+            // Scatter is reserved for earned moments — keep it off the
+            // failure card (and during scan / result), per design review.
+            if !isCapturing && capturedResult == nil && !galleryPreviewMode && scanFailure == nil {
                 Image("sticker_cherries", bundle: .main)
                     .resizable()
                     .scaledToFit()
@@ -481,24 +550,27 @@ public struct PhotoCaptureView: View {
                         .frame(width: inner.size.width, height: inner.size.height)
                         .clipped()
                 }
-
-                if !reduceMotion {
-                    ScanningOverlay(isActive: isCapturing)
-                }
             } else if camera.permissionStatus == .authorized {
                 FoodCameraPreviewView(
                     previewLayer: camera.previewLayer,
                     isFrozen: camera.isPreviewFrozen
                 )
-
-                if !reduceMotion {
-                    ScanningOverlay(isActive: isCapturing)
-                }
             } else if camera.permissionStatus == .denied {
                 permissionDeniedPlaceholder
             } else {
                 ProgressView()
                     .tint(.white)
+            }
+
+            // 2026-06-23 — LUXURY laser sweep over the photo/preview while
+            // scanning. Re-added per founder ("we need a luxury feeling
+            // scanning, like laser scanning"); rebuilt in the brand
+            // register (warm cream laser core + soft rose glow, no neon).
+            // One shared sibling so it overlays both the gallery photo and
+            // the live preview. See ScanningOverlay.
+            if isCapturing && !reduceMotion {
+                ScanningOverlay(isActive: isCapturing)
+                    .transition(.opacity)
             }
         }
     }
@@ -513,16 +585,23 @@ public struct PhotoCaptureView: View {
     /// straight to final opacity.
     @ViewBuilder private var aMomentLine: some View {
         if isCapturing && capturedResult == nil && !galleryPreviewMode {
+            // 2026-06-23 — softens ~9s in (longScan): the longer it takes,
+            // the calmer + warmer the line, never an alarm. "a moment..."
+            // → "a little longer than usual..."
+            let (lead, punch, tail) = longScan
+                ? ("a little ", "longer", " than usual...")
+                : ("a ", "moment", "...")
             (
-                Text("a ")
+                Text(lead)
                     .font(.custom("Fraunces72pt-Regular", size: 18))
-                + Text("moment")
+                + Text(punch)
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 18))
-                + Text("...")
+                + Text(tail)
                     .font(.custom("Fraunces72pt-Regular", size: 18))
             )
             .foregroundStyle(FoodTheme.textPrimary.opacity(0.55))
             .kerning(0.2)
+            .animation(.easeInOut(duration: 0.4), value: longScan)
             .opacity(reduceMotion ? 1 : (waitLineRevealed ? 1 : 0))
             .scaleEffect(reduceMotion ? 1 : (waitLineRevealed ? 1 : 0.96))
             .onAppear {
@@ -538,6 +617,129 @@ public struct PhotoCaptureView: View {
             }
             .onDisappear { waitLineRevealed = false }
             .transition(.opacity)
+        }
+    }
+
+    // MARK: - Scan failure / retry card
+    //
+    // 2026-06-23 — the gentle failure state (design review §2). A dimmed
+    // scrim over the KEPT frozen photo + a cream card with a clear "try
+    // again" and two calm escapes. Never red, never a banner, never a
+    // notification-error haptic. Lands with the same `.cardLand()`
+    // entrance as the result card, so success + failure feel like
+    // siblings.
+    @ViewBuilder private func scanFailureOverlay(_ failure: ScanFailure) -> some View {
+        ZStack {
+            // Functional exposure-floor scrim, clipped to the frame.
+            Color.black.opacity(0.28)
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+
+            VStack(spacing: 0) {
+                // SF glyph (controllable tint), reads "go again" with
+                // zero warning semantics. -6° tilt for warmth.
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 26, weight: .light))
+                    .foregroundStyle(FoodTheme.accent)
+                    .rotationEffect(.degrees(-6))
+                    .padding(.bottom, FoodTheme.Space.md)
+
+                // Headline — italic Jeni-serif punch word.
+                let parts = failure.headlineParts
+                (
+                    Text(parts.0).font(.custom("JeniHeroSerif-Regular", size: 26))
+                    + Text(parts.1).font(.custom("JeniHeroSerif-Italic", size: 26))
+                    + Text(parts.2).font(.custom("JeniHeroSerif-Regular", size: 26))
+                )
+                .foregroundStyle(FoodTheme.textPrimary)
+                .multilineTextAlignment(.center)
+                .padding(.bottom, FoodTheme.Space.sm)
+
+                Text(failure.body)
+                    .font(.custom("DMSans-Regular", size: 15))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, FoodTheme.Space.lg)
+
+                // Primary — cocoa capsule (celebration pink would be the
+                // wrong signal on a failure).
+                Button {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    Task { await retryScan(failure) }
+                } label: {
+                    Text("try again")
+                        .font(.custom("DMSans-SemiBold", size: 16))
+                        .foregroundStyle(FoodTheme.bgPrimary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(Capsule().fill(FoodTheme.textPrimary))
+                }
+                .buttonStyle(.plain)
+                .padding(.bottom, FoodTheme.Space.md)
+
+                // Calm escapes.
+                HStack(spacing: 10) {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        dismissScanFailure(clearPhoto: true)
+                        showingLibraryPicker = true
+                    } label: {
+                        Text("use a photo")
+                            .font(.custom("DMSans-Medium", size: 14))
+                            .foregroundStyle(FoodTheme.textSecondary)
+                    }
+                    Text("·").foregroundStyle(FoodTheme.textSecondary.opacity(0.4))
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        dismissScanFailure(clearPhoto: true)
+                        onQuickAddTapped()
+                    } label: {
+                        Text("type it instead")
+                            .font(.custom("DMSans-Medium", size: 14))
+                            .foregroundStyle(FoodTheme.textSecondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 22)
+            .padding(.vertical, 24)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(FoodTheme.bgElevated)
+                    .shadow(color: FoodTheme.textPrimary.opacity(0.12), radius: 18, x: 0, y: 6)
+            )
+            .padding(.horizontal, 14)
+            .cardLand()
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    /// Clear the failure state; optionally drop the kept photo (the
+    /// escapes that move away from this shot clear it; "try again" does not).
+    private func dismissScanFailure(clearPhoto: Bool) {
+        withAnimation(.easeOut(duration: 0.25)) {
+            scanFailure = nil
+            if clearPhoto {
+                galleryImage = nil
+                camera.clearFrozenFrame()
+            }
+        }
+    }
+
+    /// "try again". `.noFood` returns to the live camera so the user can
+    /// reframe (re-running the same photo would just refail). `.general`
+    /// / `.connection` reuse the captured shot (gallery image or frozen
+    /// camera frame) so retry is one tap with no re-aim.
+    private func retryScan(_ failure: ScanFailure) async {
+        if failure == .noFood {
+            dismissScanFailure(clearPhoto: true)
+            return
+        }
+        let retryImage = galleryImage ?? camera.frozenFrame
+        withAnimation(.easeOut(duration: 0.2)) { scanFailure = nil }
+        if let retryImage {
+            await libraryImagePicked(retryImage)
         }
     }
 
@@ -632,6 +834,7 @@ public struct PhotoCaptureView: View {
             // scanning UI in a single visual beat.
             isCapturing = true
             errorMessage = nil
+            scanFailure = nil
             camera.freezePreview()
             camera.freezeInstantly()
             // v1.0.9 D2 polish — pre-warmed Taptic Engine. See
@@ -642,57 +845,40 @@ public struct PhotoCaptureView: View {
             AudioServicesPlaySystemSound(1108)
             Task { await captureTapped() }
         } label: {
-            // v1.0.9 D2 — shutter revolves as a UNIT per founder + UX
-            // expert. The ring + disc + 📷 sticker rotate together as
-            // one sticker-on-spinning-coin object (NOT a white arc
-            // swirling around a static button — that's dropped).
-            //
-            // Motion language:
-            //   - idle: subtle 6s breathe (scale 1.0 ↔ 1.02) for
-            //     alive-ness without dizziness
-            //   - scanning: full 3.0s/revolution rotation, CCW
-            //     (opposite of border's CW shimmer → parallax)
-            //   - 📷 keeps its -4° tilt INSIDE the spinning parent so
-            //     it reads as a sticker stuck to a coin, not a logo
-            //   - reduce-motion: no rotation, no breathe
-            TimelineView(.animation(minimumInterval: 1.0 / 60.0,
-                                    paused: !(isCapturing && !reduceMotion))) { timeline in
-                let elapsed = timeline.date.timeIntervalSinceReferenceDate
-                let phase = (elapsed.truncatingRemainder(dividingBy: 3.0)) / 3.0
-                let scanAngle = -phase * 360.0  // CCW
+            // 2026-06-23 (design review) — the shutter no longer SPINS
+            // during scan. A revolving shutter read as a casino reel and
+            // fought the border light for attention. Now it RECEDES: ring
+            // + disc go dusty-rose, the camera sticker fades out, and the
+            // whole control scales down a touch and settles. The "we're
+            // reading" signal lives in the calm travelling border + the
+            // in-frame label — not in a spinning button.
+            //   - idle: subtle 6s breathe (scale 1.0 ↔ 1.02)
+            //   - scanning: scale 0.94, rose ring + faint rose disc,
+            //     sticker faded, no rotation
+            //   - reduce-motion: no breathe (handled by shutterBreathing)
+            ZStack {
+                Circle()
+                    .stroke(FoodTheme.accent, lineWidth: 4)
+                    .frame(width: 78, height: 78)
 
-                ZStack {
-                    Circle()
-                        .stroke(FoodTheme.cameraScanPink, lineWidth: 4)
-                        .frame(width: 78, height: 78)
+                Circle()
+                    .fill(isCapturing ? FoodTheme.accent.opacity(0.16) : Color.white)
+                    .frame(width: 64, height: 64)
+                    .shadow(color: .black.opacity(0.22), radius: 6, x: 0, y: 2)
+                    .animation(.linear(duration: 0.12), value: isCapturing)
 
-                    Circle()
-                        .fill(isCapturing ? FoodTheme.cameraScanDisc : Color.white)
-                        .frame(width: 64, height: 64)
-                        .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 2)
-                        // v1.0.9 D2 polish round 2 — snap the disc
-                        // colour. Was 0.3s easeInOut; the soft fade
-                        // delayed the visible "I'm scanning" signal
-                        // by ~150ms after tap (perceived lag). The
-                        // simultaneous TimelineView rotation + ring
-                        // pink + scanning pill all change in the
-                        // same frame so the moment lands together.
-                        .animation(.linear(duration: 0.08), value: isCapturing)
-
-                    // v1.0.9 D2 — bundled camera lineart sticker
-                    // (PlankApp/Assets.xcassets/Stickers/sticker_camera_lineart.png)
-                    // replaces the 📷 emoji. Same -4° baked tilt so it
-                    // reads as a sticker stuck to the spinning disc.
-                    Image("sticker_camera_lineart", bundle: .main)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 34, height: 34)
-                        .rotationEffect(.degrees(-4))
-                        .accessibilityHidden(true)
-                }
-                .rotationEffect(.degrees(isCapturing && !reduceMotion ? scanAngle : 0))
-                .scaleEffect(shutterBreathing && !reduceMotion ? 1.02 : 1.0)
+                // Bundled camera lineart sticker, -4° baked tilt. Fades
+                // out while scanning so the shutter reads as "resting."
+                Image("sticker_camera_lineart", bundle: .main)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 34, height: 34)
+                    .rotationEffect(.degrees(-4))
+                    .opacity(isCapturing ? 0 : 1)
+                    .accessibilityHidden(true)
             }
+            .scaleEffect(isCapturing ? 0.94 : (shutterBreathing && !reduceMotion ? 1.02 : 1.0))
+            .animation(.spring(response: 0.45, dampingFraction: 0.86), value: isCapturing)
             .contentShape(Circle())
         }
         // v1.0.9 D2 polish round 2 — `.buttonStyle(.plain)` removes
@@ -745,18 +931,13 @@ public struct PhotoCaptureView: View {
 
                 Spacer()
 
-                // v1.0.9 D2 polish — during scan, swap the chip cluster
-                // for a JeniFit "scanning ♥" pill (accent rose fill +
-                // italic-Fraunces punch word). Previously the chips
-                // dimmed to 0.5 opacity which read as flat grey;
-                // founder feedback: "chip loading state — grey
-                // background needs to be improved with colors and
-                // within jenifit." The pill signals progress and
-                // carries brand voice instead of disabled state.
-                if isCapturing {
-                    scanningPill
-                        .transition(.opacity)
-                } else {
+                // 2026-06-23 (design review) — the redundant "scanning ♥"
+                // toolbar pill was cut. The in-frame label ("reading
+                // every bite") + the cream "a moment..." line above the
+                // toolbar already carry the scanning tell, so the toolbar
+                // center stays empty + calm during a scan (restraint > a
+                // third place that says "scanning").
+                if !isCapturing {
                     modeChips
                         .transition(.opacity)
                 }
@@ -775,47 +956,6 @@ public struct PhotoCaptureView: View {
             .animation(.easeInOut(duration: 0.10), value: isCapturing)
             .transition(.opacity)
         }
-    }
-
-    /// v1.0.9 D2 polish — replaces the dimmed mode-chip cluster while
-    /// a scan is in flight. Accent rose fill + white italic-Fraunces
-    /// "scanning" punch word + terminal heart. Subtle breathing pulse
-    /// (1.4s, scale 1.0↔1.04) reads as "thinking" without spinner
-    /// noise. Reduce-motion safe (no breathe).
-    @ViewBuilder private var scanningPill: some View {
-        HStack(spacing: 6) {
-            (
-                Text(Image(systemName: "sparkle"))
-                + Text(" ")
-                + Text("scanning").font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                + Text(" ♥")
-            )
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(.white)
-            .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
-        .background(
-            Capsule().fill(FoodTheme.accent)
-        )
-        .overlay(
-            Capsule().stroke(Color.white.opacity(0.35), lineWidth: 1)
-        )
-        .shadow(
-            color: FoodTheme.accent.opacity(0.35),
-            radius: 8, x: 0, y: 2
-        )
-        .scaleEffect(scanPillBreathing && !reduceMotion ? 1.04 : 1.0)
-        .onAppear {
-            guard !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
-                scanPillBreathing = true
-            }
-        }
-        .onDisappear { scanPillBreathing = false }
-        .accessibilityLabel("scanning")
     }
 
     // MARK: - Gallery preview chrome + actions
@@ -923,14 +1063,18 @@ public struct PhotoCaptureView: View {
         GeometryReader { geo in
             ZStack(alignment: .topTrailing) {
                 VStack(spacing: 0) {
-                    Spacer().frame(height: 8)
+                    Spacer().frame(height: 4)
 
                     NutritionCarousel(
                         result: result,
                         photo: galleryImage ?? camera.frozenFrame,
                         mealLabel: mealTypeLabel,
                         dishName: dishNameLabel(result),
-                        carouselHeight: max(380, geo.size.height - 24),
+                        // v1.1 (2026-06-24) — reclaim the frame's bottom slack
+                        // (was -24, leaving ~16pt unused below the card) so the
+                        // dense result card has room to fit without clipping
+                        // its bottom chip. Pairs with the card-side tighten.
+                        carouselHeight: max(380, geo.size.height - 10),
                         onCorrect: { corrected in
                             // v1.0.8 Phase U — tweak applied. Update
                             // capturedResult so all 3 slides + the
@@ -1113,20 +1257,21 @@ public struct PhotoCaptureView: View {
     ) -> [SlideShareItem] {
         let totals = nutritionTotals(result)
         let dish = dishNameLabel(result)
-        let meal = mealTypeLabel
 
-        // v1.0.17 (2026-06-18) — handwritten snap card is the only
-        // register now; founder approved the alignment with daily /
-        // weekly (commit 5b55ed6). Editorial 3-slide carousel
-        // (ShareableFoodImageView + ShareablePackedDailyView +
-        // ShareableJeniView) is dead at this call site.
+        // v1.1.2 — render the share PNG with the user's chosen font +
+        // alignment (persisted by the in-app slide-3 picker) so the
+        // exported artifact matches the on-screen preview exactly —
+        // what she sees in the carousel IS what she posts.
         let itemNames = result.items.prefix(4).map(\.name)
-        guard let img = HandwrittenSnapResultShareRenderer.render(
+        let font = SnapShareFont(rawValue: UserDefaults.standard.string(forKey: "snapShareFont") ?? "") ?? .editorial
+        let trailing = UserDefaults.standard.bool(forKey: "snapShareTrailing")
+        guard let img = SnapShareRenderer.render(
             photo: photo,
-            mealLabel: meal,
             dishName: dish,
             itemNames: Array(itemNames),
-            totals: totals
+            totals: totals,
+            font: font,
+            trailing: trailing
         ),
             let data = img.pngData() else { return [] }
         return [SlideShareItem(
@@ -1418,35 +1563,21 @@ public struct PhotoCaptureView: View {
         FoodAnalytics.track(.scanStarted)
         FoodAnalytics.firstScanStartedIfNeeded()
 
-        // v1.0.8 Phase G (2026-06-08) — Live Activity creation
-        // moved OFF the critical path. FoodScanActivity.start runs
-        // synchronously on the main actor and ActivityKit's first-
-        // call cold-start can take 100-300ms on a real device.
-        // Previously that ran BETWEEN the haptic and the camera
-        // capture call — exactly the "lag after I tap scan" the
-        // founder reported (2026-06-08).
-        //
-        // New pattern: kick off the capture IMMEDIATELY via async
-        // let, and create the Live Activity in parallel on a
-        // detached Task. The phase-rotation task awaits the handle
-        // so it still fires correctly when the activity is up; the
-        // capture path doesn't wait on the activity at all.
         let name = UserDefaults.standard.string(forKey: "userName") ?? ""
 
-        // Capture runs in parallel with Live Activity setup. The
-        // preview-layer snapshot inside captureStillAndFreeze() lands
-        // on the main actor within ~15ms of tap (synchronous render)
-        // BEFORE the async chain awaits anything else — so the user
-        // sees the viewfinder freeze even while ActivityKit is still
-        // bootstrapping in the background.
-        async let pendingJpeg: Data = camera.captureStillAndFreeze()
+        // Live Activity bootstrap. FoodScanActivity.start is synchronous
+        // (it just invokes a registered closure), so we call it directly.
+        // 2026-06-23 — the old `await Task.detached { ... }.value` here
+        // was a pointless hop that sat OUTSIDE the do/catch below and
+        // could itself pin the scan if ActivityKit stalled. The visible
+        // freeze already happened synchronously in the shutter Button
+        // closure (freezePreview + freezeInstantly), so calling this
+        // directly can't lag the capture; the real JPEG capture now runs
+        // inside the deadline-guarded block below.
+        let activityHandle: Any? = FoodScanActivity.start(displayName: name)
 
-        // Live Activity bootstrap on a detached Task. Its first-call
-        // cold-start (100-300ms on iPhone 13 Pro Max for the founder)
-        // no longer blocks the camera capture path.
-        let activityHandle: Any? = await Task.detached {
-            await FoodScanActivity.start(displayName: name)
-        }.value
+        // Soften the in-flight copy ~9s into a slow-but-not-failed scan.
+        startLongScanNudge()
 
         // Phase-rotation timer. Pacing rebalanced 2026-06-07: "looking"
         // (0-4s) → "matching" (4-10s) → "tallying" (10s+). On a fast
@@ -1460,28 +1591,25 @@ public struct PhotoCaptureView: View {
         }
 
         do {
-            // v1.0.7 in-viewfinder magic — captureStillAndFreeze
-            // publishes the decoded photo into camera.frozenFrame so
-            // the SwiftUI overlay can paint it inside the viewfinder
-            // while the ScanningOverlay animates on top. No
-            // FoodProcessingView takeover, no preview restart.
+            // 2026-06-23 — capture + dispatch run UNDER A HARD DEADLINE
+            // (`withScanDeadline`) so the scan can NEVER pin the spinner
+            // forever. Each await inside was independently capable of
+            // hanging with no floor: the AVFoundation capture
+            // continuation, the EF network call, and the post-vision
+            // nutrition lookup. The deadline guarantees this throws
+            // ScanDeadlineExceeded by `scanDeadlineSeconds` no matter
+            // what, routing to the gentle failure card.
             //
-            // v1.0.8 Phase G — the actual JPEG came from the parallel
-            // capture started above, so this await just collects its
-            // result instead of starting fresh work.
-            let jpeg = try await pendingJpeg
-            // v1.0.8 Phase B — silent auto-retry on transient errors.
-            // The dispatch helper handles up to 2 retries with 0.5s
-            // / 1s backoff on .networkError, .upstreamFailure(5xx),
-            // and .parseError. Permanent errors (rate-limited,
-            // invalid request, budget cap) throw immediately. The
-            // user sees a single "scanning…" state for the whole
-            // retry chain instead of seeing a flash of "couldn't
-            // reach us" between attempts. Founder's iced-latte
-            // 4-attempt loop was almost entirely transient errors
-            // (cafe wifi blips + EF cold-starts) — this turns that
-            // into a single perceived scan.
-            let result = try await dispatchPhotoWithRetry(jpeg)
+            // The silent auto-retry (dispatchPhotoWithRetry — up to 3
+            // tries with backoff on transient blips) still runs WITHIN
+            // the deadline budget, so cafe-wifi hiccups recover invisibly
+            // while the whole chain stays bounded. captureStillAndFreeze
+            // also publishes camera.frozenFrame for the result polaroid.
+            let result = try await withScanDeadline(scanDeadlineSeconds) {
+                let jpeg = try await camera.captureStillAndFreeze()
+                return try await dispatchPhotoWithRetry(jpeg)
+            }
+            stopLongScanNudge()
 
             // Empty-identification guard: LLM returned 200 but with no
             // items AND no restaurant-range fallback. Common causes: no
@@ -1505,24 +1633,18 @@ public struct PhotoCaptureView: View {
             let noFood = result.items.isEmpty
                 && (result.kcalLow == nil || result.kcalLow == 0)
             if noFood {
-                errorMessage = "didn't see food in that one. try a closer angle or more light?"
                 FoodAnalytics.track(.scanFallbackFired, properties: ["reason": "empty_items"])
                 phaseTask?.cancel()
                 FoodScanActivity.end(handle: activityHandle)
-                // 2026-06-06 — release the frozen photo so the live
-                // preview comes back. Without this the still keeps
-                // covering the camera and the user can't reframe
-                // until they tap shutter again (which captures the
-                // SAME bad photo).
-                withAnimation(.easeOut(duration: 0.25)) {
-                    camera.clearFrozenFrame()
-                }
-                // v1.0.8 — clear the debounce so the user can re-tap
-                // immediately after reframing. Without this, the 3s
-                // post-completion debounce kept the shutter disabled
-                // and the founder's "tap → no food → reframe → tap"
-                // loop required a 3-second wait between attempts.
+                // 2026-06-23 — route to the gentle failure card (Option B
+                // copy: "one more look?") instead of the terse top banner.
+                // KEEP the frozen photo so the card reads over the actual
+                // shot; "try again" on .noFood clears it so the user can
+                // reframe (re-running the same photo just refails).
+                // recordCaptureFailed clears the 3s debounce so the
+                // reframe re-tap is instant.
                 camera.recordCaptureFailed()
+                withAnimation(.easeOut(duration: 0.3)) { scanFailure = .noFood }
                 return
             }
 
@@ -1580,81 +1702,129 @@ public struct PhotoCaptureView: View {
                 }
             }
         } catch CameraError.captureTooSoon {
-            // v1.0.7 — silently ignore back-to-back shutter taps
-            // within the 3s debounce window. No banner, no telemetry
-            // event (would spam PostHog). The user's next intentional
-            // tap will work normally.
+            // v1.0.7 — silently ignore back-to-back shutter taps within
+            // the 3s debounce window. No banner, no failure card.
+            stopLongScanNudge()
             phaseTask?.cancel()
             FoodScanActivity.end(handle: activityHandle)
-            withAnimation(.easeOut(duration: 0.25)) {
-                camera.clearFrozenFrame()
-            }
+            withAnimation(.easeOut(duration: 0.25)) { camera.clearFrozenFrame() }
             return
-        } catch FoodCaptureError.notImplemented(let ticket, let message, _) {
-            // Expected until W2-T3 wires FoodVisionService. Surface the
-            // ticket in DEBUG so it's obvious during sprint runs; show
-            // a graceful "give us a few hours" in Release.
+        } catch is ScanDeadlineExceeded {
+            // 2026-06-23 — the hard deadline fired: the scan took too long
+            // (slow network/EF) or a non-network await hung. Gentle card,
+            // photo KEPT so "try again" is one tap.
             #if DEBUG
-            errorMessage = "[\(ticket)] \(message)"
-            #else
-            errorMessage = "give us a few hours — we're catching our breath."
+            print("[PhotoCaptureView] scan hit hard deadline (\(scanDeadlineSeconds)s)")
             #endif
+            stopLongScanNudge()
             phaseTask?.cancel()
             FoodScanActivity.end(handle: activityHandle)
-            withAnimation(.easeOut(duration: 0.25)) {
-                camera.clearFrozenFrame()
-            }
-            // v1.0.8 — clear debounce so retry isn't blocked.
+            FoodAnalytics.track(.scanFallbackFired, properties: ["reason": "hard_deadline"])
             camera.recordCaptureFailed()
+            withAnimation(.easeOut(duration: 0.3)) { scanFailure = .connection }
+        } catch is CancellationError {
+            // The deadline's best-effort cancel surfaced as a
+            // cancellation rather than ScanDeadlineExceeded — same UX.
+            stopLongScanNudge()
+            phaseTask?.cancel()
+            FoodScanActivity.end(handle: activityHandle)
+            camera.recordCaptureFailed()
+            withAnimation(.easeOut(duration: 0.3)) { scanFailure = .connection }
+        } catch FoodCaptureError.notImplemented(let ticket, let message, _) {
+            // Config error (vision service not wired). DEBUG logs the
+            // ticket; the user sees the gentle card.
+            #if DEBUG
+            print("[PhotoCaptureView] not implemented [\(ticket)] \(message)")
+            #endif
+            stopLongScanNudge()
+            phaseTask?.cancel()
+            FoodScanActivity.end(handle: activityHandle)
+            camera.recordCaptureFailed()
+            withAnimation(.easeOut(duration: 0.3)) { scanFailure = .general }
         } catch let captureError as FoodCaptureError {
             #if DEBUG
             print("[PhotoCaptureView] capture failed: \(captureError)")
             #endif
-            // v1.0.8 Phase S — route rate-limit / budget-cap errors
-            // to the dedicated terminalError overlay; everything else
-            // goes through the transient error banner.
+            stopLongScanNudge()
+            phaseTask?.cancel()
+            FoodScanActivity.end(handle: activityHandle)
+            // Rate-limit / budget-cap keep their dedicated sheet (it
+            // carries the server's reset-time copy); every other failure
+            // routes to the gentle card with the photo kept for retry.
             if let term = TerminalError.from(captureError) {
                 terminalError = term
                 FoodAnalytics.track(.scanFallbackFired, properties: [
-                    "reason": "terminal_error",
-                    "case": term.id,
+                    "reason": "terminal_error", "case": term.id,
                 ])
+                withAnimation(.easeOut(duration: 0.25)) { camera.clearFrozenFrame() }
             } else {
-                errorMessage = captureError.errorDescription
-                    ?? "couldn't read your plate just now. try again?"
                 FoodAnalytics.track(.scanFallbackFired, properties: [
                     "reason": "capture_error",
                     "case": String(describing: captureError),
                 ])
+                camera.recordCaptureFailed()
+                withAnimation(.easeOut(duration: 0.3)) { scanFailure = .from(captureError) }
             }
-            phaseTask?.cancel()
-            FoodScanActivity.end(handle: activityHandle)
-            withAnimation(.easeOut(duration: 0.25)) {
-                camera.clearFrozenFrame()
-            }
-            camera.recordCaptureFailed()
         } catch {
-            // Truly unexpected (non-FoodCaptureError, non-CameraError).
-            // Use the system localizedDescription — both VisionError
-            // and FoodCaptureError now conform to LocalizedError so
-            // this only fires for genuinely unknown error types.
             let ns = error as NSError
             #if DEBUG
             print("[PhotoCaptureView] capture failed (unknown): \(error)")
             #endif
-            errorMessage = (error as? LocalizedError)?.errorDescription
-                ?? "couldn't read your plate just now. try again?"
-            FoodAnalytics.track(.scanFallbackFired, properties: [
-                "reason": "capture_error",
-                "ns_error_code": ns.code,
-            ])
+            stopLongScanNudge()
             phaseTask?.cancel()
             FoodScanActivity.end(handle: activityHandle)
-            withAnimation(.easeOut(duration: 0.25)) {
-                camera.clearFrozenFrame()
-            }
+            FoodAnalytics.track(.scanFallbackFired, properties: [
+                "reason": "capture_error", "ns_error_code": ns.code,
+            ])
             camera.recordCaptureFailed()
+            withAnimation(.easeOut(duration: 0.3)) { scanFailure = .from(error) }
         }
+    }
+
+    // MARK: - Slow-scan nudge
+
+    /// Start the slow-scan reassurance timer. ~9s into a scan that hasn't
+    /// resolved, flips `longScan` so the in-flight copy softens ("a
+    /// little longer than usual..."). The longer it takes, the calmer the
+    /// tell — never an alarm. Cancelled the moment the scan resolves.
+    private func startLongScanNudge() {
+        longScanTask?.cancel()
+        longScan = false
+        longScanTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(Self.scanLongHintSeconds * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.4)) { longScan = true }
+        }
+    }
+
+    private func stopLongScanNudge() {
+        longScanTask?.cancel()
+        longScanTask = nil
+        longScan = false
+    }
+
+    // MARK: - Scan haptics
+
+    /// Soft haptic pulse while scanning, on the laser-sweep cadence
+    /// (~2.2s) at gentle intensity. The first pulse waits one cadence so
+    /// it doesn't double up with the shutter tap's own haptic. Cancelled
+    /// the moment the scan resolves (or the view disappears).
+    private func startScanHaptics() {
+        scanHapticTask?.cancel()
+        scanHaptic.prepare()
+        scanHapticTask = Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 2_200_000_000)
+                guard !Task.isCancelled else { return }
+                scanHaptic.impactOccurred(intensity: 0.6)
+                scanHaptic.prepare()
+            }
+        }
+    }
+
+    private func stopScanHaptics() {
+        scanHapticTask?.cancel()
+        scanHapticTask = nil
     }
 
     /// v1.0.8 Phase H — gallery upload handler. PHPicker returns a
@@ -1692,15 +1862,16 @@ public struct PhotoCaptureView: View {
         galleryImage = image
         isCapturing = true
         errorMessage = nil
+        scanFailure = nil
         defer { isCapturing = false }
 
         FoodAnalytics.track(.scanStarted)
         FoodAnalytics.firstScanStartedIfNeeded()
 
         let name = UserDefaults.standard.string(forKey: "userName") ?? ""
-        let activityHandle: Any? = await Task.detached {
-            await FoodScanActivity.start(displayName: name)
-        }.value
+        // Synchronous start (see captureTapped) — no unguarded await.
+        let activityHandle: Any? = FoodScanActivity.start(displayName: name)
+        startLongScanNudge()
         let phaseTask: Task<Void, Never>? = activityHandle == nil ? nil : Task.detached {
             try? await Task.sleep(nanoseconds: 4_000_000_000)
             await FoodScanActivity.update(handle: activityHandle, phase: "matching")
@@ -1709,20 +1880,22 @@ public struct PhotoCaptureView: View {
         }
 
         do {
-            let jpeg = try await camera.processUIImageForScan(image)
-            let result = try await dispatchPhotoWithRetry(jpeg)
+            // Same hard-deadline guard as the camera path — the gallery
+            // scan can never pin the spinner forever either.
+            let result = try await withScanDeadline(scanDeadlineSeconds) {
+                let jpeg = try await camera.processUIImageForScan(image)
+                return try await dispatchPhotoWithRetry(jpeg)
+            }
+            stopLongScanNudge()
 
             let noFood = result.items.isEmpty
                 && (result.kcalLow == nil || result.kcalLow == 0)
             if noFood {
-                errorMessage = "didn't see food in that one. try a closer angle or more light?"
                 FoodAnalytics.track(.scanFallbackFired, properties: ["reason": "empty_items", "source": "library"])
                 phaseTask?.cancel()
                 FoodScanActivity.end(handle: activityHandle)
-                withAnimation(.easeOut(duration: 0.25)) {
-                    galleryImage = nil
-                    camera.clearFrozenFrame()
-                }
+                // Keep the gallery photo behind the gentle card.
+                withAnimation(.easeOut(duration: 0.3)) { scanFailure = .noFood }
                 return
             }
 
@@ -1754,50 +1927,57 @@ public struct PhotoCaptureView: View {
                 )
                 shareableImage = shareableSlides.first?.uiImage
             }
+        } catch is ScanDeadlineExceeded {
+            #if DEBUG
+            print("[PhotoCaptureView] library scan hit hard deadline")
+            #endif
+            stopLongScanNudge()
+            phaseTask?.cancel()
+            FoodScanActivity.end(handle: activityHandle)
+            FoodAnalytics.track(.scanFallbackFired, properties: ["reason": "hard_deadline", "source": "library"])
+            // Keep galleryImage so "try again" reuses the picked photo.
+            withAnimation(.easeOut(duration: 0.3)) { scanFailure = .connection }
+        } catch is CancellationError {
+            stopLongScanNudge()
+            phaseTask?.cancel()
+            FoodScanActivity.end(handle: activityHandle)
+            withAnimation(.easeOut(duration: 0.3)) { scanFailure = .connection }
         } catch let captureError as FoodCaptureError {
             #if DEBUG
             print("[PhotoCaptureView] library capture failed: \(captureError)")
             #endif
-            // v1.0.8 Phase S — route terminal errors to the dedicated
-            // overlay; everything else through the transient banner.
+            stopLongScanNudge()
+            phaseTask?.cancel()
+            FoodScanActivity.end(handle: activityHandle)
             if let term = TerminalError.from(captureError) {
                 terminalError = term
                 FoodAnalytics.track(.scanFallbackFired, properties: [
-                    "reason": "terminal_error",
-                    "source": "library",
-                    "case": term.id,
+                    "reason": "terminal_error", "source": "library", "case": term.id,
                 ])
+                withAnimation(.easeOut(duration: 0.25)) {
+                    galleryImage = nil
+                    camera.clearFrozenFrame()
+                }
             } else {
-                errorMessage = captureError.errorDescription
-                    ?? "couldn't read your plate just now. try again?"
                 FoodAnalytics.track(.scanFallbackFired, properties: [
-                    "reason": "capture_error",
-                    "source": "library",
+                    "reason": "capture_error", "source": "library",
                     "case": String(describing: captureError),
                 ])
-            }
-            phaseTask?.cancel()
-            FoodScanActivity.end(handle: activityHandle)
-            withAnimation(.easeOut(duration: 0.25)) {
-                galleryImage = nil
-                camera.clearFrozenFrame()
+                // Keep galleryImage behind the card for one-tap retry.
+                withAnimation(.easeOut(duration: 0.3)) { scanFailure = .from(captureError) }
             }
         } catch {
+            let ns = error as NSError
             #if DEBUG
             print("[PhotoCaptureView] library capture failed (unknown): \(error)")
             #endif
-            errorMessage = (error as? LocalizedError)?.errorDescription
-                ?? "couldn't read your plate just now. try again?"
-            FoodAnalytics.track(.scanFallbackFired, properties: [
-                "reason": "capture_error",
-                "source": "library",
-            ])
+            stopLongScanNudge()
             phaseTask?.cancel()
             FoodScanActivity.end(handle: activityHandle)
-            withAnimation(.easeOut(duration: 0.25)) {
-                galleryImage = nil
-                camera.clearFrozenFrame()
-            }
+            FoodAnalytics.track(.scanFallbackFired, properties: [
+                "reason": "capture_error", "source": "library", "ns_error_code": ns.code,
+            ])
+            withAnimation(.easeOut(duration: 0.3)) { scanFailure = .from(error) }
         }
     }
 
@@ -1880,6 +2060,92 @@ private enum CaptureTab: Hashable {
     case quickAdd
     case imOut
 }
+
+// MARK: - ScanFailure
+//
+// 2026-06-23 — a scan that failed or timed out. Drives the gentle cream
+// failure/retry card (never a red banner, never a frozen spinner). Copy
+// is voice-locked: lowercase, one italic-Fraunces punch word, hearts as
+// terminal punctuation only, no "error/failed/wrong", no em-dash. The
+// reassurance is load-bearing — failure should feel like "the photo
+// didn't come through," never "you did something wrong."
+//
+//   .connection / .general → retry reuses the captured photo
+//   .noFood                → retry returns to live camera to reframe
+//                            (re-running the same photo would refail)
+enum ScanFailure: Equatable {
+    case general
+    case connection
+    case noFood
+
+    /// Headline as (plain, italic-punch, plain) so the card can render
+    /// the punch word in italic Jeni serif.
+    var headlineParts: (String, String, String) {
+        switch self {
+        case .general, .connection: return ("let's try that ", "again", "")
+        case .noFood:               return ("one ", "more", " look?")
+        }
+    }
+
+    var body: String {
+        switch self {
+        case .general:
+            return "that one didn't come through. happens sometimes. your photo's still here ♥"
+        case .connection:
+            return "looks like the connection blinked. we'll try again whenever you're ready ♥"
+        case .noFood:
+            return "we couldn't quite read this plate. a little more light or a closer angle usually does it ♥"
+        }
+    }
+
+    /// Map a thrown scan error to the right failure flavor.
+    static func from(_ error: Error) -> ScanFailure {
+        if error is ScanDeadlineExceeded { return .connection }
+        // Unwrap FoodCaptureError.pipeline(VisionError) and CameraError
+        // to tell a connection blip apart from a generic miss.
+        if let capture = error as? FoodCaptureError,
+           case .pipeline(let underlying) = capture {
+            if let vision = underlying as? VisionError {
+                switch vision {
+                case .networkError, .upstreamFailure: return .connection
+                default: return .general
+                }
+            }
+        }
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain { return .connection }
+        return .general
+    }
+}
+
+#if DEBUG
+extension PhotoCaptureView {
+    /// A warm faux-food image so the simulator QA autostart has
+    /// something to "scan" (the debug fault short-circuits before any
+    /// real analysis, so the content only needs to look plausible
+    /// behind the scanning + failure chrome).
+    static func debugMockImage() -> UIImage {
+        let size = CGSize(width: 1080, height: 1920)
+        return UIGraphicsImageRenderer(size: size).image { ctx in
+            let c = ctx.cgContext
+            let bg = CGGradient(
+                colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                colors: [
+                    UIColor(red: 0.86, green: 0.55, blue: 0.30, alpha: 1).cgColor,
+                    UIColor(red: 0.70, green: 0.28, blue: 0.18, alpha: 1).cgColor,
+                ] as CFArray, locations: [0, 1])!
+            c.drawLinearGradient(bg, start: .zero,
+                                 end: CGPoint(x: size.width, y: size.height), options: [])
+            c.setFillColor(UIColor(white: 0.98, alpha: 1).cgColor)
+            c.fillEllipse(in: CGRect(x: 120, y: 660, width: 840, height: 840))
+            c.setFillColor(UIColor(red: 0.80, green: 0.52, blue: 0.26, alpha: 1).cgColor)
+            for (x, y) in [(280, 880), (560, 820), (430, 1080), (640, 1120)] {
+                c.fillEllipse(in: CGRect(x: x, y: y, width: 230, height: 200))
+            }
+        }
+    }
+}
+#endif
 
 // MARK: - TerminalError
 
@@ -2588,10 +2854,14 @@ struct GalleryConfirmSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 16) {
             HStack {
-                Text("use this photo?")
+                (Text("use this ")
+                    .font(.custom("Fraunces72pt-Regular", size: 22))
+                + Text("photo")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 22))
+                + Text("?")
+                    .font(.custom("Fraunces72pt-Regular", size: 22)))
                     .foregroundStyle(FoodTheme.textPrimary)
                 Spacer()
                 Button(action: onCancel) {
@@ -2604,24 +2874,38 @@ struct GalleryConfirmSheet: View {
                 .accessibilityLabel("close")
             }
             .padding(.horizontal, 20)
-            .padding(.top, 8)
+            .padding(.top, 6)
 
+            // 2026-06-24 — polaroid treatment (founder: "too plain + too
+            // much empty space"). Warm white frame + soft shadow + a slight
+            // scrapbook tilt (the food rail's polaroid register), replacing
+            // the stark 3pt black border. The sheet is sized to content
+            // (fraction detent) so there's no big empty gap.
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(maxHeight: 340)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(
-                            FoodTheme.textPrimary,
-                            lineWidth: 3
-                        )
+                .frame(maxWidth: .infinity, maxHeight: 300)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .padding(10)
+                .padding(.bottom, 16)        // taller bottom edge = polaroid
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.white)
                 )
-                .padding(.horizontal, 20)
-                .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 4)
+                .rotationEffect(.degrees(-1.5))
+                .shadow(color: Color.black.opacity(0.14), radius: 16, x: 0, y: 6)
+                .padding(.horizontal, 30)
+                .padding(.top, 4)
 
-            Spacer()
+            (Text("we'll read what's on your ")
+                .font(.custom("DMSans-Regular", size: 14))
+            + Text("plate")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
+            + Text(" ♥")
+                .font(.custom("DMSans-Regular", size: 14)))
+                .foregroundStyle(FoodTheme.textSecondary)
+
+            Spacer(minLength: 6)
 
             HStack(spacing: 12) {
                 Button {
@@ -2642,8 +2926,10 @@ struct GalleryConfirmSheet: View {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     onConfirm()
                 } label: {
-                    Text("scan this")
+                    (Text("scan this")
                         .font(.system(size: 16, weight: .semibold))
+                    + Text(" ♥")
+                        .font(.system(size: 14)))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
@@ -2656,11 +2942,11 @@ struct GalleryConfirmSheet: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 24)
+            .padding(.bottom, 22)
         }
-        .background(FoodTheme.bgElevated)
+        .background(FoodTheme.bgPrimary)
         .colorScheme(.light)
-        .presentationDetents([.large])
+        .presentationDetents([.fraction(0.66)])
         .presentationDragIndicator(.visible)
     }
 }

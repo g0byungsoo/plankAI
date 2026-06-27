@@ -242,6 +242,10 @@ struct BecomingProteinSource: Equatable {
 struct BecomingProteinTile: View {
     let proteinG: Int
     let targetG: Int
+    /// Phase 2.3 (flag-gated) — optional lean-mass framing under the target
+    /// (e.g. "protecting lean mass" for GLP-1 cohorts), explaining the
+    /// elevated floor. nil → tile renders exactly as before.
+    var note: String? = nil
     /// Phase 4 — plate sources for the long-press peek. nil → tile is
     /// non-interactive (legacy). Empty → long-press is a no-op (we
     /// don't want a "you have no plates" empty state nag).
@@ -301,6 +305,14 @@ struct BecomingProteinTile: View {
             Text("of ~\(targetG)g")
                 .font(.custom("DMSans-Regular", size: 12))
                 .foregroundStyle(Palette.cocoaTertiary)
+
+            if let note {
+                Text(note)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11))
+                    .foregroundStyle(Palette.accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
 
             proteinBar.padding(.top, 6)
 
@@ -739,6 +751,11 @@ struct BecomingPlateTimelineToday: View {
     /// Phase 4 Day-4 (2026-06-19) — swipe-left-to-delete callback.
     /// When nil the swipe gesture is disabled (legacy callers).
     var onDeletePlate: ((String) -> Void)? = nil
+    /// 2026-06-22 — always-present doorway to the full food journal so it
+    /// is reachable even when today's plate is empty (previously the
+    /// journal opened ONLY by tapping a plate photo, leaving no path when
+    /// nothing was logged today). nil hides the affordance.
+    var onOpenJournal: (() -> Void)? = nil
 
     /// Phase 4 Day-4 — which plate has its delete action revealed.
     /// Only one at a time; opening another snaps the prior closed.
@@ -759,9 +776,27 @@ struct BecomingPlateTimelineToday: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("on her plate")
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                .foregroundStyle(Palette.cocoaTertiary)
+            HStack(alignment: .firstTextBaseline) {
+                Text("on her plate")
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 0)
+                if let onOpenJournal {
+                    Button {
+                        Haptics.soft()
+                        onOpenJournal()
+                    } label: {
+                        (Text("journal ")
+                            .font(.custom("DMSans-Medium", size: 12))
+                         + Text(Image(systemName: "chevron.right"))
+                            .font(.system(size: 9).weight(.semibold)))
+                            .foregroundStyle(Palette.accent)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("open food journal")
+                }
+            }
             HStack(alignment: .top, spacing: 10) {
                 ForEach(Array(plates.prefix(4).enumerated()), id: \.element.id) { _, p in
                     plateTile(p)
