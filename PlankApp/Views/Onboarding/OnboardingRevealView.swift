@@ -1210,7 +1210,19 @@ private struct GoalDateRevealPresentation: View {
                 Spacer()
                 dot(big: false)
                 Spacer()
+                // v1.6 PEAK #2 (peak-end): a single whisper sparkle on the
+                // GOAL endpoint dot the moment the date lands — restrained
+                // (one element, ~52pt, one-shot), reduce-motion-gated inside
+                // LottieEffectView. The reward is ON the focal point, not
+                // scattered across the screen.
                 dot(big: true, tinted: true)
+                    .overlay {
+                        if dateVisible {
+                            LottieEffectView(.sparklingHearts, loop: false)
+                                .frame(width: 52, height: 52)
+                                .allowsHitTesting(false)
+                        }
+                    }
             }
             .overlay(
                 Rectangle()

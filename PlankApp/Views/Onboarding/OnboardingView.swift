@@ -71,6 +71,10 @@ private struct VideoHero: UIViewControllerRepresentable {
 struct OnboardingView: View {
     @State private var screen: Int
     @State private var dir = 1
+    // v1.2 (2026-06-26): single-select auto-advance guard. Set false the
+    // instant a tap schedules an advance so a second tap within the 0.28s
+    // window can't double-advance; re-armed on every screen change in go().
+    @State private var autoAdvanceArmed = true
 
     init(onComplete: @escaping (OnboardingData) -> Void) {
         self.onComplete = onComplete
@@ -430,10 +434,24 @@ struct OnboardingView: View {
                 // every nav-bearing screen so the hero start Y is
                 // identical page-to-page.
                 .padding(.top, (screen >= 1 && !analyzing && screen != 20) ? 64 : 0)
-                // v3 P11.3 — JFPageTransition replaces the simple
-                // opacity cross-fade with the her75 page-turn breath
-                // (exit 200ms → 60ms gap → entrance 350ms).
-                .transition(JFPageTransition.standard)
+                // v1.5 (2026-06-26) — EXACTLY the post-reveal transition the
+                // founder loves: a plain `.opacity` transition driven by the
+                // ambient `withAnimation(Motion.crossFade)` in go() (0.45s
+                // easeInOut, SYMMETRIC). Both screens fade over the same
+                // window in place, so the old one lingers as the new one
+                // arrives = the afterimage. OnboardingRevealView does
+                // literally this (`.transition(.opacity)` + crossFade). My
+                // earlier softDissolve was asymmetric (0.30 in / 0.55 out) so
+                // the new screen popped fast instead of dissolving — that's
+                // why the afterimage didn't read. The per-element fade+rise
+                // (JFHeader / StaggeredReveal / softInRise) layers on top.
+                // v1.6: + a 0.6% scale settle (0.994→1.0) so the container
+                // "settles into place" with a whisper of depth — below the
+                // perceptible-as-zoom threshold, but enough that the swap
+                // isn't a flat 2D dissolve. Reduce-motion keeps pure opacity.
+                .transition(reduceMotion
+                    ? .opacity
+                    : .opacity.combined(with: .scale(scale: 0.994, anchor: .center)))
                 .onAppear { Analytics.captureScreen("Onboarding/case-\(screen)") }
                 .onChange(of: screen) { _, newCase in
                     Analytics.captureScreen("Onboarding/case-\(newCase)")
@@ -441,7 +459,15 @@ struct OnboardingView: View {
 
             if screen >= 1 && !analyzing && screen != 20 {
                 navBar
-                    .background(Palette.programBgPrimary)
+                    // v1.1 polish (2026-06-26): the nav used to paint a flat
+                    // Palette.programBgPrimary band here. Against the
+                    // OnboardingAtmosphere shader below (cream + warm-light
+                    // pools + grain) that flat cream read as a visible seam
+                    // around the progress bar. The atmosphere already spans
+                    // the full screen behind this z-layer, and currentScreen
+                    // is padded 64pt down so nothing ever scrolls into this
+                    // region — so the bar can sit directly on the living
+                    // canvas with zero seam.
                     .zIndex(5)
                     .transition(.opacity)
             }
@@ -759,6 +785,18 @@ struct OnboardingView: View {
             // BEFORE the food wedge starts. v1 users walk past 168 via
             // resolveNext to whatever comes next in v1FlowOrder.
             sel: $acquisitionSource, next: 168,
+            // v1.6: real brand marks for the platforms; JeniFit stickers
+            // for the human/other answers.
+            stickers: [
+                "friend": .fingerHeart,
+                "other":  .sparkleGlossy,
+            ],
+            leadingAssets: [
+                "tiktok":    "onb-logo-tiktok",
+                "instagram": "onb-logo-instagram",
+                "google":    "onb-logo-google",
+                "app_store": "onb-logo-appstore",
+            ],
             strikeUnselected: true
         )
 
@@ -1282,7 +1320,16 @@ struct OnboardingView: View {
             // Delta v7 — routes to the new pre-eat permission wedge
             // (case 166) instead of the sleep Q. The food block now
             // sits at the top of onboarding.
-            sel: $foodRelationship, next: 166
+            sel: $foodRelationship, next: 166,
+            // v1.6: a JeniFit sticker per answer gives the abstract
+            // food-relationship ideas a warm visual handle.
+            stickers: [
+                "fuel":        .gummyBear,
+                "comfort":     .teddyPink,
+                "love":        .fluffyHeart,
+                "control":     .butterflyRing,
+                "complicated": .discoBall,
+            ]
         )
 
         // ─── v2-A4: Cohort signal — hormonal stage + GLP-1 status ────
@@ -2155,79 +2202,51 @@ struct OnboardingView: View {
         // CONTENT fades — the bar row never moves and never animates.
         // Fixes 2 + 3 land in the archetype templates.
         VStack(spacing: 6) {
-            // Fixed 10pt eyebrow slot — present on every screen,
-            // content-only fades.
-            ZStack {
-                if let parts = Self.chapterEyebrowParts(currentChapter) {
-                    ItalicAccentText(
-                        parts.base,
-                        italic: parts.italic.isEmpty ? [] : [parts.italic],
-                        baseFont: Typo.eyebrow,
-                        italicFont: Font.custom("Fraunces72pt-SemiBoldItalic", size: 12, relativeTo: .caption2),
-                        color: Palette.textSecondary,
-                        alignment: .center
-                    )
-                    .transition(.opacity)
-                    .id(currentChapter)
-                }
-            }
-            .frame(height: 10)
-            .frame(maxWidth: .infinity)
-            .animation(Motion.crossFade, value: currentChapter)
+            // v1.6: the centered chapter word moved OUT of the nav and
+            // became a left-aligned editorial kicker over the headline (see
+            // JFHeader.kicker). The 10pt slot stays reserved (keeps the nav
+            // at its locked 56pt + the 64pt content reserve) but renders
+            // empty — the top frame is now just the rail + bare chevron, the
+            // clean reveal-grade chrome.
+            Color.clear.frame(height: 10)
 
             HStack(spacing: Space.sm) {
+                // v1.2 editorial pass (2026-06-26): the chevron-in-a-circle
+                // was a heavy back affordance (a bordered chip competing
+                // with the content). Bare cocoa chevron now — the luxury
+                // refs carry no boxed controls in the top frame.
                 Button { Haptics.light(); goBack() } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Palette.cocoaPrimary)
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(Palette.cocoaSecondary)
                         .frame(width: 40, height: 40)
-                        .background(
-                            Circle()
-                                .fill(Palette.programCard)
-                                .overlay(Circle().stroke(Palette.hairlineCocoa, lineWidth: 1))
-                        )
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel("Back")
 
-                // v1.1 "modern vibe" rail (2026-06-24) — the old 2pt
-                // cocoa-on-cocoa@8% hairline read as a tiny broken dash
-                // next to the chevron (the single biggest "unfinished"
-                // tell on every question screen). Now a 4pt gradient rail
-                // (rose → cocoa: starts soft, deepens as she commits) on a
-                // legible hairline track, with a leading "bead" that rides
-                // the fill and a spring-forward advance — the one recurring
-                // moment of delight across the 53-screen flow.
+                // v1.2 editorial rail — the 4pt rose→cocoa GRADIENT with a
+                // glowing riding BEAD read as a Duolingo XP meter (the
+                // loudest game-HUD pixel in the flow). The luxury refs show
+                // no progress chrome at all; this is the restrained middle:
+                // a 2.5pt FLAT accent fill on a hairline track, width-only
+                // animation, no gradient / bead / glow. It whispers.
                 GeometryReader { geo in
-                    let fillW = max(14, geo.size.width * progressFraction)
+                    let fillW = max(8, geo.size.width * progressFraction)
                     ZStack(alignment: .leading) {
                         Capsule()
                             .fill(Palette.hairlineCocoa)
-                            .frame(height: 4)
+                            .frame(height: 2.5)
                         Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Palette.accent, Palette.cocoaPrimary],
-                                    startPoint: .leading, endPoint: .trailing
-                                )
-                            )
-                            .frame(width: fillW, height: 4)
-                            .shadow(color: Palette.accent.opacity(0.22), radius: 3, x: 0, y: 0)
-                            .animation(Motion.modernPop, value: screen)
-                        // the bead — a soft accent dot riding the leading
-                        // edge; the "you are moving" signal made physical.
-                        Circle()
                             .fill(Palette.accent)
-                            .frame(width: 6, height: 6)
-                            .shadow(color: Palette.accent.opacity(0.5), radius: 3, x: 0, y: 0)
-                            .offset(x: fillW - 3)
+                            .frame(width: fillW, height: 2.5)
                             .animation(Motion.modernPop, value: screen)
                     }
                     .frame(maxHeight: .infinity, alignment: .center)
                 }
                 .frame(height: 40)
 
-                // Invisible 40pt spacer balances the back chip so the
-                // capsule is mathematically centered.
+                // Invisible 40pt spacer balances the back chevron so the
+                // rail is mathematically centered.
                 Color.clear.frame(width: 40, height: 40)
             }
         }
@@ -2514,6 +2533,19 @@ struct OnboardingView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 16)
                     .opacity(v2CtaVisible ? 1 : 0)
+                }
+
+                // v1.6: a soft one-shot confetti welcomes her in — a quiet
+                // "you're here ♥" congratulation for taking the first step
+                // (founder rolled back the fireworks here — too loud for the
+                // welcome). Light confetti (30KB, Core-Animation GPU path),
+                // top-anchored so it rains over the hero without sitting on
+                // the CTA, reduce-motion-safe.
+                if v2BowVisible {
+                    LottieEffectView(.confettiSoft, loop: false)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
                 }
             }
             .task { await runV2WelcomeChoreography() }
@@ -3068,7 +3100,8 @@ struct OnboardingView: View {
     /// INSIDE the fixed region. Default nil per
     /// [[feedback-her75-editorial-register]].
     private func jfHeader(_ title: String, sub: String? = nil, italic: [String] = []) -> some View {
-        JFHeader(title: title, sub: sub, italic: italic)
+        JFHeader(title: title, sub: sub, italic: italic,
+                 kicker: Self.chapterEyebrowParts(currentChapter)?.base)
     }
 
     /// Question-screen header with the her75 SOFT-IN reveal: the headline
@@ -3081,11 +3114,26 @@ struct OnboardingView: View {
         let title: String
         var sub: String? = nil
         var italic: [String] = []
+        // v1.6 editorial kicker (brand-panel #1): the chapter label moves
+        // OUT of the centered nav slot (the center-vs-left misalignment was
+        // the biggest un-editorial tell) and becomes a left-aligned tracked-
+        // caps kicker bound to the headline — the reveal's `TODAY · GOAL`
+        // register, the same masthead grammar on every screen.
+        var kicker: String? = nil
         @State private var appeared = false
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         var body: some View {
             VStack(alignment: .leading, spacing: Space.xs) {
+                if let kicker {
+                    Text(kicker.uppercased())
+                        .font(Typo.kicker)
+                        .kerning(2)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .padding(.bottom, Space.xs)   // bound tight to headline
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 4)
+                }
                 ItalicAccentText(
                     title,
                     italic: italic,
@@ -3097,44 +3145,49 @@ struct OnboardingView: View {
                 .kerning(-0.4)
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
-                // Motion-quality (v1.1): JFPageTransition (pure opacity) is the
-                // SINGLE fade source on arrival. The header + rows used to ALSO
-                // fade opacity here, triple-stacking the ramp into a muddy
-                // entrance. Offset-only now — the page fades, the header rises,
-                // and the one soft haptic still lands on settle.
-                .offset(y: appeared ? 0 : 7)
+                // v1.6 MATERIALIZE (2026-06-26, transition-expert spec): the
+                // headline now FADES + scales toward 1.0 (a focus-pull that
+                // reads as optical depth) instead of sliding up — the reveal
+                // heroes' register. Scale carries the depth, so the rise drops
+                // to a hair (4pt). Curve = Motion.entrance (0.55 easeOut),
+                // matching the reveal family exactly. Anchored leading so it
+                // resolves from the text origin, not the center.
+                .opacity(appeared ? 1 : 0)
+                .scaleEffect(reduceMotion || appeared ? 1 : 0.96, anchor: .leading)
+                .offset(y: appeared ? 0 : 4)
                 if let sub {
                     Text(sub)
                         .font(Typo.body)
                         .foregroundStyle(Palette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
-                        .offset(y: appeared ? 0 : 7)
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 4)
                 }
             }
-            // v1.1 "modern vibe" (2026-06-24): the region stays FIXED so
-            // options still start at the same Y on every screen (the
-            // founder's alignment invariant), but the headline now
-            // BOTTOM-anchors inside it. A single-line headline used to
-            // top-align and dump ~100pt of dead cream between it and the
-            // first card — screen 168 read as "content failed to load."
-            // Bottom-anchored, the headline always sits just above its
-            // options (grouped, Typeform-modern); the breathing room
-            // moves above the headline, where it reads as calm, not broken.
-            // 136 fits the longest in-flow headline (the 3-line "how many
-            // serious attempts in the last few years?", ~125pt rendered at
-            // 38pt JeniHeroSerif) with a top margin so a bottom-anchored
-            // 3-liner breathes below the nav instead of crowding it; 1-2 line
-            // headlines (the 95% case) sit just above their options.
-            .frame(maxWidth: .infinity, alignment: .bottomLeading)
-            .frame(height: 136, alignment: .bottomLeading)
+            // v1.1 polish (2026-06-26): TOP-anchored, natural height. The
+            // previous fixed 136pt bottom-anchored box kept options at a
+            // constant Y, but it made the HEADLINE float: a 1-line headline
+            // sank to the bottom of the box with ~90pt of dead cream above
+            // it, while a 3-liner filled the box and started at the nav —
+            // so headline top jumped screen-to-screen ("some float in the
+            // middle, some align top"). Now the headline always starts at
+            // the same Y just below the nav (Space.lg of air), and the
+            // options follow it with a constant gap (the scroll's top
+            // inset). Empty space falls to the BOTTOM, above the docked CTA
+            // — consistent with the celebration/teach screens. The headline
+            // is the fixed anchor; the option-start Y floats instead.
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, Space.lg)
             .padding(.horizontal, Space.screenPadding)
             .onAppear {
                 guard !appeared else { return }
                 if reduceMotion { appeared = true; return }
-                withAnimation(Motion.entranceSoft) { appeared = true }
-                // One soft tap as the headline settles — the luxurious
-                // punctuation, never per-line spam on question screens.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                // Motion.entrance (0.55 easeOut) = the reveal heroes' curve.
+                withAnimation(Motion.entrance) { appeared = true }
+                // One soft tap as the headline reaches peak — the single
+                // arrival beat per screen (option rows stay haptic-free). At
+                // 0.22s it lands near the headline's visible settle.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
                     Haptics.soft()
                 }
             }
@@ -3150,13 +3203,38 @@ struct OnboardingView: View {
     /// content slides under, never through.
     private func jfCTADock<Button: View>(@ViewBuilder _ button: () -> Button) -> some View {
         button()
-            .padding(.top, Space.xs)
-            .background(Palette.programBgPrimary)
+            .padding(.top, Space.md)
+            // v1.1 polish (2026-06-26): was a flat Palette.programBgPrimary
+            // band, which seamed against the OnboardingAtmosphere shader the
+            // same way the nav did. Now a soft scrim — clear at the top
+            // edge, settling to the canvas cream under the button — so
+            // internally-scrolled options dissolve as they pass beneath the
+            // dock instead of vanishing behind a hard cream line. Extends
+            // into the home-indicator inset so the cream reaches the screen
+            // bottom with no break.
+            .background(
+                LinearGradient(
+                    colors: [
+                        Palette.programBgPrimary.opacity(0),
+                        Palette.programBgPrimary.opacity(0.92),
+                        Palette.programBgPrimary
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea(edges: .bottom)
+            )
     }
 
     private func advance(to next: Int, confirmation: String?) {
         let target = resolveNext(hint: next)
-        Haptics.medium()
+        // v1.1 haptic de-spam (2026-06-26): advance() used to fire its OWN
+        // Haptics.medium() here — but every caller taps through a button
+        // that already fires a commit haptic (JFContinueButton fires medium;
+        // the legacy ctaBtn sites fire their own). The result was a
+        // double-buzz on every "continue" (button medium + this medium),
+        // stacked on top of the press-soft and the next screen's arrival
+        // tap. Dropping this one leaves a single clean commit per advance.
         if let msg = confirmation {
             pendingConfirmation = msg
             withAnimation(Motion.gentleSpring) {
@@ -3211,6 +3289,9 @@ struct OnboardingView: View {
         // visual handle (Q140 identity, Q141 reward). Nil = SF Symbol
         // for everything (default behavior).
         stickers: [String: StickerName]? = nil,
+        // v1.6: per-option leading IMAGE assets (brand logos) — takes
+        // precedence over `stickers`. Used by the attribution screen.
+        leadingAssets: [String: String]? = nil,
         // v2-A2: optional inline trust anchor (citation chip + "we ask
         // because..." line) for credibility-grade sensitive questions
         // — sleep, stress, eating, hormonal stage, GLP-1. Sits between
@@ -3223,7 +3304,15 @@ struct OnboardingView: View {
         // emotional questions keep every option visually live.
         strikeUnselected: Bool = false
     ) -> some View {
-        VStack(spacing: 0) {
+        // v1.3 (2026-06-26): EVERY single-select auto-advances — there is no
+        // "continue" pill on any jfQuestion screen. The founder flagged the
+        // auto/manual MIX as the inconsistency, so it's now uniform: the tap
+        // IS the commit. If a screen carries a confirmation badge it plays
+        // DURING the advance (advance() shows it ~1.2s, then moves on), so the
+        // empathetic beats ("okay. that's the hard one ♥") survive without a
+        // button. Multi-select / numeric / bridge screens use other helpers
+        // and keep their pill. Re-armed per screen via autoAdvanceArmed.
+        return VStack(spacing: 0) {
             jfHeader(title, sub: sub, italic: italic)
 
             if let trustAnchor {
@@ -3231,15 +3320,18 @@ struct OnboardingView: View {
                 trustAnchor
             }
 
-            // v1.1 "modern vibe": the header now bottom-anchors, so this
-            // is the literal headline→first-card gap. 16pt groups the
-            // question with its answers (was 4pt against the old 150pt
-            // top-aligned region that carried its own air).
-            Spacer().frame(height: Space.md)
-
             // v4 R1 — options scroll INTERNALLY when they overflow
             // (basedOnSize keeps short lists inert); they can never
             // collide with the nav bar or push the CTA.
+            // v1.1 polish (2026-06-26): the headline→first-card gap now
+            // lives as the scroll's TOP content inset (was an external
+            // Spacer). A ScrollView clips to its bounds, so a first card
+            // flush at the top edge had its 1pt border + soft shadow
+            // sheared off ("top border cut off"). Insetting the content
+            // 16pt down clears the border + shadow; the matching 24pt
+            // bottom inset clears the last card's 20pt drop shadow before
+            // the CTA dock. scrollEdgeFade() then dissolves anything that
+            // scrolls into the clip boundary instead of hard-cutting.
             ScrollView {
                 VStack(spacing: Space.optionGap) {
                     ForEach(Array(opts.enumerated()), id: \.element.0) { idx, opt in
@@ -3248,6 +3340,7 @@ struct OnboardingView: View {
                             OnboardingOptionCard(
                                 icon: optIcon,
                                 sticker: stickers?[key],
+                                leadingAsset: leadingAssets?[key],
                                 title: optTitle,
                                 subtitle: optSub,
                                 isSelected: sel.wrappedValue == key,
@@ -3262,30 +3355,36 @@ struct OnboardingView: View {
                                     withAnimation(Motion.tap) {
                                         sel.wrappedValue = key
                                     }
+                                    if autoAdvanceArmed {
+                                        autoAdvanceArmed = false
+                                        // v1.5: NO confirmation badge — the
+                                        // radio-fill + soft haptic + the
+                                        // cross-fade IS the response, identical
+                                        // on every single-select. The badges
+                                        // fired on some screens and not others,
+                                        // which read as the inconsistency.
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                            advance(to: next, confirmation: nil)
+                                        }
+                                    }
                                 }
                             )
                         }
                     }
 
-                    if let feedback = inlineFeedback,
-                       let entry = feedback[sel.wrappedValue] {
-                        inlineFeedbackCard(heading: entry.0, body: entry.1)
-                            .padding(.top, Space.xs)
-                    }
+                    // v1.3: inline-feedback cards are retired on jfQuestion —
+                    // with universal auto-advance they'd only flash. The 4
+                    // screens that used them all carry a confirmation badge,
+                    // which now plays during the advance and serves the same
+                    // empathetic beat. (`inlineFeedback` param kept for call
+                    // sites; intentionally no longer rendered.)
                 }
                 .padding(.horizontal, Space.screenPadding)
-                .padding(.bottom, Space.sm)
+                .padding(.top, Space.md)
+                .padding(.bottom, Space.lg)
             }
             .scrollBounceBehavior(.basedOnSize)
-        }
-        .safeAreaInset(edge: .bottom) {
-            jfCTADock {
-                JFContinueButton(
-                    label: "continue",
-                    action: { advance(to: next, confirmation: confirmation) },
-                    isEnabled: !sel.wrappedValue.isEmpty
-                )
-            }
+            .scrollEdgeFade()
         }
     }
 
@@ -3349,28 +3448,11 @@ struct OnboardingView: View {
 
             Spacer()
 
-            ZStack {
-                Picker("Age", selection: $ageYears) {
-                    ForEach(13...80, id: \.self) { age in
-                        Text("\(age)")
-                            .font(.custom("Fraunces72pt-SemiBold", size: 36))
-                            .foregroundStyle(Palette.textPrimary)
-                            .tag(age)
-                    }
-                }
-                .pickerStyle(.wheel)
-                .frame(height: 220)
-
-                HStack(spacing: 0) {
-                    Spacer()
-                    Text("years old")
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textSecondary)
-                        .padding(.leading, 96)
-                }
-                .frame(height: 220)
-                .allowsHitTesting(false)
-            }
+            // v1.6 custom wheel (founder: the system picker left "years old"
+            // stranded outside the highlight + the number was small). Now the
+            // number and unit live TOGETHER inside one editorial highlight
+            // pill, larger, on a custom snapping scroll wheel.
+            AgeWheelPicker(age: $ageYears)
             .padding(.horizontal, Space.screenPadding)
             .onAppear {
                 // Seed the legacy ageRange mirror so downstream
@@ -3464,8 +3546,9 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             jfHeader(title, sub: sub, italic: italic)
 
-            Spacer().frame(height: Space.md)
-
+            // v1.1 polish (2026-06-26): gap → scroll top inset so the
+            // first card's border/shadow clears the clip boundary; see
+            // jfQuestion for the full rationale.
             ScrollView {
                 VStack(spacing: Space.optionGap) {
                     ForEach(Array(opts.enumerated()), id: \.element.0) { idx, opt in
@@ -3491,9 +3574,11 @@ struct OnboardingView: View {
                     }
                 }
                 .padding(.horizontal, Space.screenPadding)
-                .padding(.bottom, Space.sm)
+                .padding(.top, Space.md)
+                .padding(.bottom, Space.lg)
             }
             .scrollBounceBehavior(.basedOnSize)
+            .scrollEdgeFade()
         }
         .safeAreaInset(edge: .bottom) {
             jfCTADock {
@@ -3731,60 +3816,64 @@ struct OnboardingView: View {
         let curr = max(0, currentWeightKg)
         let lossKg = max(0, curr - goalWeightKg)
         let fivePctLb = Int((curr * 0.05 * Self.lbPerKg).rounded())
+        // One short line (was a 3-clause run-on); the credit carries the source.
         let subLine: String = lossKg > 0.5
-            ? "even \(fivePctLb) lb changes how clothes fit, how sleep lands, how much room food takes up in your head."
-            : "the version you keep is the one built slowly. your plan is shaped for keeping."
+            ? "even \(fivePctLb) lb changes how clothes fit."
+            : "the version you keep is the one built slowly."
 
-        return ZStack(alignment: .bottomTrailing) {
-            // her75 "when do you start" register — photo anchored to the
-            // bottom edge, rotated, bleeding off-screen. Cream-bg cutout
-            // merges with bgPrimary so it reads as a placed object.
-            // v4.6 round 3: true-alpha legs-up cutout, thighs exit the
-            // canvas bottom, so it sits flush on the screen's bottom
-            // edge and the cut reads natural (no more rotated photo
-            // with its background rectangle showing).
+        // v1.4 edge-bleed editorial composition (matches educationalScreen):
+        // minimal type up top, sneakers running off the bottom screen edge.
+        return ZStack(alignment: .bottom) {
             Image("onb-movement-sneakers")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 290)
-                .offset(x: 46, y: 24)
+                .frame(height: 440)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.trailing, Space.sm)
+                .offset(y: 60)
+                .ignoresSafeArea(edges: .bottom)
                 .accessibilityHidden(true)
+                .softInRise(delay: 0.15, rise: 14)
 
             VStack(alignment: .leading, spacing: 0) {
-            Spacer().frame(height: Space.xl)
-            LineCascadeText(
-                lines: [
-                    .plain("you don't need"),
-                    .composite(base: "a dramatic number.", italic: ["dramatic"]),
-                ],
-                baseFont: Typo.heroHeadline,
-                italicFont: Typo.heroHeadlineItalic,
-                lineSpacing: Typo.heroHeadlineLineGap
-            )
-            .padding(.horizontal, Space.screenPadding)
+                Spacer().frame(height: Space.xl)
+                LineCascadeText(
+                    lines: [
+                        .plain("you don't need"),
+                        .composite(base: "a dramatic number.", italic: ["dramatic"]),
+                    ],
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    lineSpacing: Typo.heroHeadlineLineGap
+                )
 
-            Spacer().frame(height: Space.lg)
+                Spacer().frame(height: Space.md)
 
-            Text(subLine)
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, Space.screenPadding)
+                Text(subLine)
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: 320, alignment: .leading)
+                    .softInRise(delay: 0.30)
 
-            Spacer().frame(height: Space.md)
+                Spacer().frame(height: Space.md)
 
-            HStack(spacing: 8) {
-                Rectangle()
-                    .fill(Palette.divider)
-                    .frame(width: 24, height: 1)
-                Text("wing & phelan 2005 · a kept 5–10% is the clinical win")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary.opacity(0.8))
+                HStack(spacing: 8) {
+                    Rectangle()
+                        .fill(Palette.hairlineCocoa)
+                        .frame(width: 22, height: 0.5)
+                    Text("WING & PHELAN · 2005")
+                        .font(Typo.captionTracked)
+                        .textCase(.uppercase)
+                        .kerning(2)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+                .softInRise(delay: 0.50)
+
+                Spacer()
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Space.screenPadding)
-
-            Spacer()
-            }
         }
         .safeAreaInset(edge: .bottom) {
             jfCTADock {
@@ -3952,10 +4041,12 @@ struct OnboardingView: View {
         next: Int,
         confirmation: String? = nil
     ) -> some View {
-        VStack(spacing: 0) {
+        // v1.5: single-select photo grids auto-advance too — same rule as
+        // jfQuestion, so EVERY single-answer screen behaves identically (tap
+        // → fill → advance, no pill). Was the one single-select that still
+        // required a continue tap.
+        return VStack(spacing: 0) {
             jfHeader(title, sub: nil, italic: italic)
-
-            Spacer().frame(height: Space.md)
 
             ScrollView {
                 LazyVGrid(
@@ -3966,25 +4057,24 @@ struct OnboardingView: View {
                     ForEach(Array(opts.enumerated()), id: \.element.key) { idx, opt in
                         StaggeredReveal(index: idx) {
                             photoChoiceCard(opt: opt, isSelected: sel.wrappedValue == opt.key) {
-                                Haptics.light()
+                                Haptics.soft()
                                 withAnimation(Motion.tap) { sel.wrappedValue = opt.key }
+                                if autoAdvanceArmed {
+                                    autoAdvanceArmed = false
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                        advance(to: next, confirmation: nil)
+                                    }
+                                }
                             }
                         }
                     }
                 }
                 .padding(.horizontal, Space.screenPadding)
-                .padding(.bottom, Space.sm)
+                .padding(.top, Space.md)
+                .padding(.bottom, Space.lg)
             }
             .scrollBounceBehavior(.basedOnSize)
-        }
-        .safeAreaInset(edge: .bottom) {
-            jfCTADock {
-                JFContinueButton(
-                    label: "continue",
-                    action: { advance(to: next, confirmation: confirmation) },
-                    isEnabled: !sel.wrappedValue.isEmpty
-                )
-            }
+            .scrollEdgeFade()
         }
     }
 
@@ -4000,8 +4090,6 @@ struct OnboardingView: View {
     ) -> some View {
         VStack(spacing: 0) {
             jfHeader(title, sub: sub, italic: italic)
-
-            Spacer().frame(height: Space.md)
 
             ScrollView {
                 LazyVGrid(
@@ -4025,9 +4113,11 @@ struct OnboardingView: View {
                     }
                 }
                 .padding(.horizontal, Space.screenPadding)
-                .padding(.bottom, Space.sm)
+                .padding(.top, Space.md)
+                .padding(.bottom, Space.lg)
             }
             .scrollBounceBehavior(.basedOnSize)
+            .scrollEdgeFade()
         }
         .safeAreaInset(edge: .bottom) {
             jfCTADock {
@@ -5674,7 +5764,7 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
                     .padding(.top, Space.lg)
                     .padding(.horizontal, Space.lg)
-                    .softInRise(delay: 0.10)
+                    .softInRise(delay: 0.30)
             }
             Spacer()
             JFContinueButton(label: "continue") { go(next) }
@@ -5685,95 +5775,106 @@ struct OnboardingView: View {
     // hero + ONE plain sub line + optional quiet citation row. No
     // eyebrow, no emoji, no founder signature (kill-list §E). Real
     // citations only, rendered as a hairline row (matches case 286).
+    // v1.3 editorial teach composition (2026-06-26, design-panel spec).
+    // The old ZStack(.bottomTrailing) let the cutout rise into the type
+    // column and the accentFlush/Offset knobs shoved the subject half-off a
+    // corner — "a statement with a leftover photo." The fix is a HORIZON
+    // SPLIT: the type lives in the top register, the cutout is GROUNDED in a
+    // soft warm floor band at the bottom (its base resting on the floor),
+    // and the two can never fight over the same zone. One `imageLayout`
+    // param keeps type + image on the same axis: figures anchor trailing
+    // with left-aligned type; symmetric still-lifes center both.
+    // v1.4 (2026-06-26) — the cutout BLEEDS OFF the screen edge (her75's
+    // original intent), it is NOT a floating grounded plate. The grounded
+    // version read as a pasted cutout with an ugly mid-screen cutoff; the
+    // founder was deliberate that these illustrations run off the bottom
+    // edge. So: minimal type up top (headline + at most ONE short line +
+    // optional credit — multi-line bodies + footnotes made it busy), and a
+    // LARGE image anchored to the bottom, pushed past the screen edge so the
+    // crop happens AT the boundary (behind the continue button). `.none`
+    // drops the image entirely for a pure-typography beat.
+    enum TeachImageLayout { case bleedTrailing, bleedCenter, none }
+
     private func educationalScreen(
         headline: String,
         italicWords: [String],
-        body bodyLine: String,
+        body bodyLine: String? = nil,
         next: Int,
-        citation: String? = nil,
-        // v4.6 (2026-06-11) — optional it-girl cutout bleeding off the
-        // bottom-trailing corner (same move as the 286 sneakers).
+        citationSource: String? = nil,
         accentImage: String? = nil,
-        // When the cutout's subject is cropped by its own canvas edge
-        // (the pre-eat arms), push that edge off-screen so the cut
-        // reads as "from the edge of the phone", never mid-air.
-        accentFlushTrailing: Bool = false,
-        accentMaxHeight: CGFloat = 320,
-        // Horizontal nudge for cutouts whose subject sits off-center
-        // in their own canvas (the roses lean left); positive pushes
-        // toward the trailing edge.
-        accentOffsetX: CGFloat = 0,
-        // Kiss the LEADING screen edge, zero margin (founder round 11:
-        // the chicken plate sits sticky-left).
-        accentFlushLeading: Bool = false,
-        // Rest the cutout's bottom directly on the CTA dock instead of
-        // floating Space.xs above it (the plateau woman stands on the
-        // continue button).
-        accentFlushBottom: Bool = false,
-        // Positive sinks the cutout BELOW the content edge; the CTA
-        // dock renders on top, so the subject reads as emerging from
-        // the continue button (founder round 12).
-        accentOffsetY: CGFloat = 0
+        imageLayout: TeachImageLayout = .bleedTrailing,
+        imageHeight: CGFloat = 440,
+        imageBleed: CGFloat = 60,
+        centeredType: Bool = false
     ) -> some View {
-        ZStack(alignment: accentFlushLeading ? .bottomLeading : .bottomTrailing) {
-            if let accentImage {
+        let hAlign: HorizontalAlignment = centeredType ? .center : .leading
+        let multiAlign: TextAlignment = centeredType ? .center : .leading
+        let hasImage = accentImage != nil && imageLayout != .none
+
+        return ZStack(alignment: .bottom) {
+            // ── ILLUSTRATION — runs off the bottom edge ──
+            if let accentImage, imageLayout != .none {
                 Image(accentImage)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxHeight: accentMaxHeight)
-                    .padding(.trailing, (accentFlushTrailing || accentFlushLeading) ? 0 : Space.lg)
-                    .offset(
-                        x: accentFlushLeading ? -6
-                            : (accentFlushTrailing ? 20 : 0) + accentOffsetX,
-                        y: accentOffsetY
-                    )
-                    .padding(.bottom, accentFlushBottom ? 0 : Space.xs)
+                    .scaledToFit()
+                    .frame(height: imageHeight)
+                    .frame(maxWidth: .infinity,
+                           alignment: imageLayout == .bleedCenter ? .center : .trailing)
+                    .padding(.trailing, imageLayout == .bleedCenter ? 0 : Space.sm)
+                    .offset(y: imageBleed)          // push the base past the edge
+                    .ignoresSafeArea(edges: .bottom)
                     .accessibilityHidden(true)
-                    .softInRise(delay: 0.15, rise: 12)
+                    .softInRise(delay: 0.15, rise: 14)
             }
 
-        VStack(alignment: .leading, spacing: 0) {
-            Spacer().frame(height: Space.xl + Space.lg)
+            // ── TYPE — minimal, top register ──
+            VStack(alignment: hAlign, spacing: 0) {
+                // image screens top-align; pure-type screens center.
+                if hasImage { Spacer().frame(height: Space.xl) } else { Spacer() }
 
-            ItalicAccentText(
-                headline,
-                italic: italicWords,
-                baseFont: Typo.heroHeadline,
-                italicFont: Typo.heroHeadlineItalic,
-                color: Palette.textPrimary,
-                alignment: .leading
-            )
-            .kerning(-0.4)
-            .lineSpacing(Typo.heroHeadlineLineGap)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, Space.screenPadding)
-            .softInRise(haptic: true)
-
-            Spacer().frame(height: Space.lg)
-
-            Text(bodyLine)
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
+                ItalicAccentText(
+                    headline,
+                    italic: italicWords,
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: multiAlign
+                )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, Space.screenPadding)
-                .softInRise(delay: 0.10)
+                .softInRise(haptic: true)
 
-            if let citation {
-                Spacer().frame(height: Space.md)
-                HStack(spacing: 8) {
-                    Rectangle()
-                        .fill(Palette.divider)
-                        .frame(width: 24, height: 1)
-                    Text(citation)
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary.opacity(0.8))
+                if let bodyLine {
+                    Spacer().frame(height: Space.md)
+                    Text(bodyLine)
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(multiAlign)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: 320, alignment: centeredType ? .center : .leading)
+                        .softInRise(delay: 0.30)
                 }
-                .padding(.horizontal, Space.screenPadding)
-                .softInRise(delay: 0.20)
-            }
 
-            Spacer()
-        }
+                if let citationSource {
+                    Spacer().frame(height: Space.md)
+                    HStack(spacing: 8) {
+                        Rectangle()
+                            .fill(Palette.hairlineCocoa)
+                            .frame(width: 22, height: 0.5)
+                        Text(citationSource)
+                            .font(Typo.captionTracked)
+                            .textCase(.uppercase)
+                            .kerning(2)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                    }
+                    .softInRise(delay: 0.50)
+                }
+
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, alignment: centeredType ? .center : .leading)
+            .padding(.horizontal, Space.screenPadding)
         }
         .safeAreaInset(edge: .bottom) {
             jfCTADock {
@@ -5785,26 +5886,16 @@ struct OnboardingView: View {
     }
 
     private var educationalAntiShameScreen: some View {
+        // v1.5: founder found the rose bleed ugly + the "beats/arcs" copy
+        // read as jargon. Now pure typography (matches the plateau beat),
+        // one clear line. No illustration.
         educationalScreen(
-            // v4.5 R4 — merged 230+231: the anti-shame anchor carries
-            // the body-data privacy promise (old 231) in its sub line.
             headline: "built for real life.",
             italicWords: ["real"],
-            // v1.1 batch-1 (2026-06-23) — the merged 230+231 body had become
-            // a 5-fragment run-on (and used "shared" in two senses one beat
-            // apart). Unload it to the single anti-shame triplet the headline
-            // promises; the privacy line moves to the quiet citation footer,
-            // reworded to drop the confusing double-"shared".
-            body: "5-min beats. 3-month arcs. no all-or-nothing.",
-            // Founder-supplied rose bouquet (2026-06-12), replacing the
-            // cactus. 380pt keeps it clear of the body copy; +90 nudge
-            // sides the bouquet on the right edge (round 9) since its
-            // subject leans left inside the square canvas.
+            body: "small steps that survive a real week. no all-or-nothing.",
             next: 1,
-            citation: "what you tell us shapes your plan. never sold.",
-            accentImage: "onb-filler-roses",
-            accentMaxHeight: 380,
-            accentOffsetX: 90
+            imageLayout: .none,
+            centeredType: true
         )
     }
 
@@ -5819,11 +5910,12 @@ struct OnboardingView: View {
             // for a clean produce flat-lay: it agrees with "no shame either
             // way" instead of fighting it, and reads on-brand (post-Ozempic,
             // anti-diet-culture) for the pre-eat decision wedge.
-            body: "most apps make you log after. jenifit lets you snap before. see if it fits. no shame either way.",
+            body: "snap it first. see if it fits. no shame either way.",
             next: 156,
             accentImage: "onb-itgirl-produce",
-            accentMaxHeight: 320,
-            accentFlushLeading: true
+            imageLayout: .bleedCenter,
+            imageHeight: 430,
+            centeredType: true
         )
     }
 
@@ -5836,14 +5928,12 @@ struct OnboardingView: View {
             // Founder-supplied woman cutout (round 12 sizing): smaller,
             // shifted right, sunk 36pt under the dock so she reads as
             // coming out of the continue button.
-            body: "plateaus mean adaptation, not failure. jeni tells you what to change. no panic.",
+            // v1.4: founder cut the illustration here — pure typography.
+            body: "plateaus mean adaptation, not failure. jeni tells you what to change.",
             next: 21,
-            citation: "acsm 2024",
-            accentImage: "onb-itgirl-plateau",
-            accentMaxHeight: 335,
-            accentOffsetX: 26,
-            accentFlushBottom: true,
-            accentOffsetY: 36
+            citationSource: "ACSM · 2024",
+            imageLayout: .none,
+            centeredType: true
         )
     }
 
@@ -5944,7 +6034,11 @@ struct OnboardingView: View {
     private var brandPromisesScreen: some View {
         let promise = Self.brandPromises[brandPromiseIndex]
         return ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            // v1.1 polish (2026-06-26): was a flat Palette.bgPrimary fill,
+            // which now seams against the transparent nav (atmosphere shows
+            // behind the bar). Use the same living canvas as the question
+            // screens so the background is continuous edge-to-edge.
+            OnboardingAtmosphere()
 
             // Sticker scatter — edge-only, matches consent-ritual
             // placement coordinates (the screen we replaced) so the
@@ -6117,7 +6211,7 @@ struct OnboardingView: View {
         // padding 6→2, replaced all Space.lg between sections with
         // Space.sm. Net cut ~180pt → CTA visible in first viewport.
         return ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            OnboardingAtmosphere()  // v1.1: continuous canvas vs the transparent nav
             // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             VStack(spacing: 0) {
@@ -6414,7 +6508,7 @@ struct OnboardingView: View {
 
     private var tierLadderScreen: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            OnboardingAtmosphere()  // v1.1: continuous canvas vs the transparent nav
             // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             ScrollView(showsIndicators: false) {
@@ -6573,7 +6667,7 @@ struct OnboardingView: View {
 
     private var habitWindowQuizScreen: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            OnboardingAtmosphere()  // v1.1: continuous canvas vs the transparent nav
             // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             ScrollView(showsIndicators: false) {
@@ -6758,50 +6852,62 @@ struct OnboardingView: View {
     // v4.6 (2026-06-11): AI-character render replaced with the it-girl
     // editorial cutout (from behind, sage set) per founder direction.
     private var reshapeTransitionScreen: some View {
-        VStack(spacing: 0) {
-            Spacer().frame(height: Space.lg)
+        // v1.4 edge-bleed editorial: minimal centered type up top, the figure
+        // running off the bottom edge, the positive callouts floating beside
+        // her torso. Was a boxed cutout floating mid-screen with a hard cut.
+        ZStack(alignment: .bottom) {
+            Image("onb-itgirl-reshape")
+                .resizable()
+                .scaledToFit()
+                .frame(height: 470)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .offset(y: 64)
+                .ignoresSafeArea(edges: .bottom)
+                .accessibilityHidden(true)
+                .softInRise(delay: 0.15, rise: 14)
 
-            ItalicAccentText("your body will reshape. quietly.",
-                             italic: ["quietly"],
-                             alignment: .center)
-                .padding(.horizontal, Space.screenPadding)
+            VStack(spacing: 0) {
+                Spacer().frame(height: Space.xl)
+                ItalicAccentText(
+                    "your body will reshape. quietly.",
+                    italic: ["quietly"],
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .center
+                )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+                .softInRise(haptic: true)
 
-            Spacer().frame(height: Space.sm)
+                Spacer().frame(height: Space.md)
 
-            RoundedRectangle(cornerRadius: 1)
-                .fill(Palette.accent)
-                .frame(width: 60, height: 1)
+                Text("steady wins. no crash, no rebound.")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .softInRise(delay: 0.30)
 
-            Spacer().frame(height: Space.md)
-
-            ZStack(alignment: .topTrailing) {
-                Image("onb-itgirl-reshape")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxHeight: 380)
-                    .accessibilityHidden(true)
-
-                // Positive callouts — what the plan builds toward.
-                // Stacked top-right to leave the body image clear.
-                VStack(alignment: .leading, spacing: 10) {
-                    callout("strong core")
-                    callout("lifted energy")
-                }
-                .padding(.top, Space.lg)
-                .padding(.trailing, Space.sm)
+                Spacer()
             }
-
-            Spacer().frame(height: Space.md)
-
-            Text("steady wins. no crash, no rebound. that's how it sticks.")
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Space.screenPadding)
-
-            Spacer()
-
-            ctaBtn("Continue") { Haptics.medium(); go(161) }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Space.screenPadding)
+        }
+        .overlay(alignment: .topTrailing) {
+            // Positive callouts float beside her torso (mid-right).
+            VStack(alignment: .trailing, spacing: 10) {
+                callout("strong core")
+                callout("lifted energy")
+            }
+            .padding(.trailing, Space.md)
+            .padding(.top, 300)
+            .softInRise(delay: 0.30, rise: 10)
+        }
+        .safeAreaInset(edge: .bottom) {
+            jfCTADock {
+                JFContinueButton(label: "continue") { go(161) }
+            }
         }
     }
 
@@ -7403,27 +7509,31 @@ struct OnboardingView: View {
 
                 Spacer().frame(height: Space.lg)
 
-                // Progress bar — same gradient capsule, slimmer (6→4)
-                // to defer to the now-hero % counter.
+                // v1.6: a thin flat accent rule on a cocoa hairline (was a
+                // gradient that included the off-palette `stateGood` green).
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(Palette.divider).frame(height: 4)
-                        Capsule()
-                            .fill(LinearGradient(
-                                colors: [
-                                    Palette.bgInverse.opacity(0.6),
-                                    Palette.accent,
-                                    Palette.stateGood.opacity(0.85),
-                                ],
-                                startPoint: .leading, endPoint: .trailing))
-                            .frame(width: geo.size.width * carouselProgress,
-                                   height: 4)
+                        Capsule().fill(Palette.hairlineCocoa).frame(height: 3)
+                        Capsule().fill(Palette.accent)
+                            .frame(width: geo.size.width * carouselProgress, height: 3)
                     }
                 }
-                .frame(height: 4)
+                .frame(height: 3)
                 .padding(.horizontal, Space.xl)
 
                 Spacer()
+            }
+
+            // v1.6 celebration PEAK (peak-end): a one-shot star-confetti burst
+            // the instant the plan finishes building — the "it's ready" reward
+            // before the reveal. Uses the LIGHT confetti (22KB, Core-Animation
+            // GPU path, no masks/mattes) rather than the 120KB fireworks, so
+            // there's zero parse hitch at this transition. Reduce-motion-safe.
+            if carouselDone {
+                LottieEffectView(.confettiStars, loop: false)
+                    .frame(width: 320, height: 320)
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
             }
         }
         .onAppear { startCarousel() }
@@ -7540,12 +7650,12 @@ struct OnboardingView: View {
                     withAnimation(.easeInOut(duration: 0.4)) { carouselFrame = f }
                 }
                 if i == steps && !carouselDone {
-                    carouselDone = true
+                    withAnimation(.easeOut(duration: 0.3)) { carouselDone = true }
                     Haptics.success()
-                    showConfetti = true
                     Analytics.track(.planLoaderCompleted)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                        showConfetti = false
+                    // hold ~1.0s so the restrained Lottie peak plays before
+                    // we cross into the plateau pre-frame (no confetti).
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                         // C1 (2026-06-01): was go(181) — finalPredictionScreen
                         // was the 5th chart appearance and duplicated the reveal
                         // sequence's ProjectionPresentation. 180 now routes
@@ -7688,38 +7798,76 @@ struct OnboardingView: View {
     // ═══════════════════════════════════════
 
     private var analyzingScreen: some View {
-        VStack(spacing: 0) {
-            Spacer()
-            Text("\(analyzePercent)%").font(.system(size: 72, weight: .bold)).foregroundStyle(Palette.textPrimary)
-                .contentTransition(.numericText())
-            Spacer().frame(height: Space.sm)
-            Text("Building your plan").font(.system(size: 22, weight: .medium)).foregroundStyle(Palette.textPrimary)
-            Spacer().frame(height: Space.lg)
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Palette.divider).frame(height: 6)
-                    Capsule().fill(LinearGradient(colors: [Palette.accent, Palette.stateGood], startPoint: .leading, endPoint: .trailing))
-                        .frame(width: geo.size.width * CGFloat(analyzePercent) / 100, height: 6)
-                        .animation(.easeOut(duration: 0.3), value: analyzePercent)
+        // v1.6 brand redesign (2026-06-26): was system-font 72-bold + a
+        // green-tinted gradient bar (off the locked palette). Now the
+        // editorial register — italic-serif numeral (the reveal's numeral
+        // grammar), lowercase voice, a thin accent rule on a cocoa hairline,
+        // tracked-caps step labels, over the living atmosphere. At 100% a
+        // single restrained line-art Lottie plays — the engineered
+        // mid-journey peak (peak-end), brand-safe (NOT confetti).
+        ZStack {
+            OnboardingAtmosphere()
+            VStack(spacing: 0) {
+                Spacer()
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text("\(analyzePercent)")
+                        .font(.custom("JeniHeroSerif-Italic", size: 84))
+                        .foregroundStyle(Palette.textPrimary)
+                        .contentTransition(.numericText())
+                        .monospacedDigit()
+                    Text("%")
+                        .font(.custom("JeniHeroSerif-Italic", size: 40))
+                        .foregroundStyle(Palette.cocoaTertiary)
                 }
-            }.frame(height: 6).padding(.horizontal, Space.xl)
-            Spacer().frame(height: Space.xl)
-            VStack(alignment: .leading, spacing: Space.md) {
-                chk("Analyzing your goals", analyzePercent >= 20)
-                chk("Setting target hold times", analyzePercent >= 40)
-                chk("Calibrating your coach", analyzePercent >= 60)
-                chk("Building 30-day program", analyzePercent >= 80)
-                chk("Finalizing your plan", analyzePercent >= 98)
-            }.padding(.horizontal, Space.screenPadding)
-            Spacer()
-        }.frame(maxWidth: .infinity, maxHeight: .infinity).background(Palette.bgPrimary)
+                Spacer().frame(height: Space.xs)
+                Text("building your plan")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                Spacer().frame(height: Space.xl)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Palette.hairlineCocoa).frame(height: 3)
+                        Capsule().fill(Palette.accent)
+                            .frame(width: geo.size.width * CGFloat(analyzePercent) / 100, height: 3)
+                            .animation(.easeOut(duration: 0.3), value: analyzePercent)
+                    }
+                }.frame(height: 3).padding(.horizontal, Space.xl)
+                Spacer().frame(height: Space.xl)
+                VStack(alignment: .leading, spacing: Space.md) {
+                    chk("analyzing your goals", analyzePercent >= 20)
+                    chk("setting your pace", analyzePercent >= 40)
+                    chk("calibrating your coach", analyzePercent >= 60)
+                    chk("building your 30-day plan", analyzePercent >= 80)
+                    chk("finalizing", analyzePercent >= 98)
+                }.padding(.horizontal, Space.xl)
+                Spacer()
+            }
+            if analyzePercent >= 100 {
+                LottieEffectView(.sparklingHearts, loop: false)
+                    .frame(width: 220, height: 220)
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func chk(_ t: String, _ d: Bool) -> some View {
-        HStack(spacing: Space.sm) {
-            Image(systemName: d ? "checkmark.circle.fill" : "circle").font(.system(size: 22))
-                .foregroundStyle(d ? Palette.textPrimary : Palette.divider).animation(.spring(response: 0.3), value: d)
-            Text(t).font(.system(size: 16, weight: .medium)).foregroundStyle(d ? Palette.textPrimary : Palette.textSecondary)
+        HStack(spacing: Space.md) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(d ? Palette.accent : .clear)
+                .frame(width: 14, height: 14)
+                .overlay {
+                    if !d {
+                        Circle().stroke(Palette.divider, lineWidth: 1).frame(width: 6, height: 6)
+                    }
+                }
+                .animation(.spring(response: 0.3), value: d)
+            Text(t)
+                .font(.custom("DMSans-Medium", size: 15))
+                .foregroundStyle(d ? Palette.textPrimary : Palette.textSecondary)
+                .animation(.easeOut(duration: 0.2), value: d)
         }
     }
 
@@ -7731,10 +7879,12 @@ struct OnboardingView: View {
                 if i % 20 == 0 { Haptics.light() }
                 if i == 100 {
                     Haptics.success()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    // hold ~0.9s so the restrained Lottie peak plays before
+                    // we cross-fade into the reveal (no confetti — the reveal
+                    // sequence is the second, bigger peak).
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
                         withAnimation { analyzing = false }
-                        showConfetti = true; go(21)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { showConfetti = false }
+                        go(21)
                     }
                 }
             }
@@ -8392,7 +8542,7 @@ struct OnboardingView: View {
         // sticker scatter + scrapbook-card hero + italic-Fraunces voice
         // signal carry across all three screens.
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            OnboardingAtmosphere()  // v1.1: continuous canvas vs the transparent nav
 
             // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
@@ -8959,6 +9109,8 @@ struct OnboardingView: View {
         // v2 screen. Without this, the progress bar fell back to ~0%
         // because `flowOrder.firstIndex(of: 150)` returns nil → ?? 0.
         let target = resolveNext(hint: to)
+        // v1.2: re-arm single-select auto-advance for the screen we land on.
+        autoAdvanceArmed = true
         // Direction comes from position in flowOrder, not raw screen number.
         // Raw screen numbers are non-monotonic (25 sits between 17 and 18, 26
         // between 21 and 22), so a "forward" advance can have a smaller raw
@@ -9171,7 +9323,7 @@ struct OnboardingView: View {
     // value beyond the active unit's snap precision.
 
     static let heightMetricRuler = BiometricRulerConfig(
-        range: 107...213,
+        range: 107...220,          // up to 2m20cm (founder cap)
         step: 1,
         majorEvery: 10,
         mediumEvery: 5,            // medium tick every 5 cm
@@ -9615,7 +9767,14 @@ struct WelcomeScanBrackets: Shape {
 /// cascade so the whole flow speaks one motion language.
 struct StaggeredReveal<Content: View>: View {
     let index: Int
-    var baseDelay: Double = 0.18
+    // v1.6 two-beat (2026-06-26, transition-expert spec): the luxury gap is
+    // PERCEPTUAL LAG. The rows now start at 0.34 — AFTER the headline has
+    // visibly settled (its materialize completes ~0.55s) — so the eye reads a
+    // clean two-beat: headline lands → ~220ms hold → options arrive. The
+    // options themselves stay a tight GROUP (revealStagger 0.05, below the
+    // ~100ms fusion threshold on purpose) so the screen is still fast to
+    // answer; you witness headline→group, not row→row.
+    var baseDelay: Double = 0.34
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -9623,17 +9782,19 @@ struct StaggeredReveal<Content: View>: View {
 
     var body: some View {
         content()
-            // Motion-quality (v1.1): offset-only — the page transition owns the
-            // fade, so option rows no longer double-fade opacity on top of it.
-            // The staggered rise is what reads as the list assembling.
-            .offset(y: revealed ? 0 : 14)
+            // v1.6: rows MATERIALIZE (opacity + a whisper of scale toward 1.0,
+            // a focus-pull) rather than slide up — the reveal's depth register.
+            // Rows are wide, so 0.98 only (more reads warpy); offset trimmed.
+            .opacity(revealed ? 1 : 0)
+            .scaleEffect(reduceMotion || revealed ? 1 : 0.98, anchor: .center)
+            .offset(y: revealed ? 0 : 10)
             .onAppear {
                 guard !revealed else { return }
                 if reduceMotion {
                     revealed = true
                 } else {
                     withAnimation(
-                        Motion.entranceSoft.delay(baseDelay + Double(index) * Motion.cascadeTight)
+                        Motion.revealFade.delay(baseDelay + Double(index) * Motion.revealStagger)
                     ) {
                         revealed = true
                     }
@@ -9659,6 +9820,11 @@ private struct SoftInRise: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            // v1.6: MATERIALIZE (scale toward 1.0 + a trimmed rise) on the
+            // reveal's 0.55 curve — the depth register. No element opacity:
+            // the page cross-fade owns the fade, so adding it here would
+            // double-fade the no-delay headline into mud.
+            .scaleEffect(reduceMotion || appeared ? 1 : 0.97, anchor: .center)
             .offset(y: appeared ? 0 : rise)
             .task {
                 guard !appeared else { return }
@@ -9666,7 +9832,7 @@ private struct SoftInRise: ViewModifier {
                 if delay > 0 {
                     try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                 }
-                withAnimation(Motion.entranceSoft) { appeared = true }
+                withAnimation(Motion.entrance) { appeared = true }
                 if haptic {
                     try? await Task.sleep(nanoseconds: 120_000_000)
                     Haptics.soft()
@@ -9679,6 +9845,92 @@ private extension View {
     /// Onboarding soft-in: offset rise on appear + optional one-shot haptic.
     func softInRise(delay: Double = 0, rise: CGFloat = 8, haptic: Bool = false) -> some View {
         modifier(SoftInRise(delay: delay, rise: rise, haptic: haptic))
+    }
+}
+
+// MARK: - AgeWheelPicker (v1.6 custom wheel)
+//
+// Replaces the system `.wheel` Picker, which stranded "years old" outside
+// its grey highlight and rendered the number small. Here the number + unit
+// live TOGETHER inside one editorial highlight pill: a snapping scroll wheel
+// (iOS 17 viewAligned) drives a large serif number that materializes at
+// center (scrollTransition fade+scale), with the unit right-set in the same
+// pill. Soft haptic on each tick; reduce-motion still tracks value.
+private struct AgeWheelPicker: View {
+    @Binding var age: Int
+    var range: ClosedRange<Int> = 13...80
+    private let rowH: CGFloat = 56
+    private let visibleRows = 5
+    @State private var pos: Int?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let height = rowH * CGFloat(visibleRows)
+        ZStack {
+            // The center highlight pill — the value's home. "years old" is
+            // right-set INSIDE it so the unit reads as part of the answer.
+            HStack(spacing: 0) {
+                Spacer()
+                Text("years old")
+                    .font(.custom("DMSans-Medium", size: 16))
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+            .padding(.horizontal, Space.lg)
+            .frame(height: rowH)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Palette.bgElevated)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Palette.hairlineCocoa, lineWidth: 0.5)
+                    )
+                    .shadow(color: Palette.cocoaPrimary.opacity(0.04), radius: 8, x: 0, y: 3)
+            )
+
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(spacing: 0) {
+                    ForEach(range, id: \.self) { a in
+                        Text("\(a)")
+                            .font(.custom("JeniHeroSerif-Regular", size: 46))
+                            .monospacedDigit()
+                            .foregroundStyle(Palette.textPrimary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .frame(height: rowH)
+                            .id(a)
+                            .scrollTransition(axis: .vertical) { content, phase in
+                                content
+                                    .opacity(phase.isIdentity ? 1 : 0.22)
+                                    .scaleEffect(reduceMotion || phase.isIdentity ? 1 : 0.6,
+                                                 anchor: .center)
+                            }
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.viewAligned)
+            .scrollPosition(id: $pos, anchor: .center)
+            .contentMargins(.vertical, (height - rowH) / 2, for: .scrollContent)
+            .frame(height: height)
+            // soft top/bottom dissolve so the wheel fades into the canvas.
+            .mask(
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .black, location: 0.30),
+                        .init(color: .black, location: 0.70),
+                        .init(color: .clear, location: 1),
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+            )
+        }
+        .frame(height: height)
+        .onAppear { pos = age }
+        .onChange(of: pos) { _, newValue in
+            guard let newValue, newValue != age else { return }
+            age = newValue
+            if !reduceMotion { Haptics.soft() }
+        }
     }
 }
 

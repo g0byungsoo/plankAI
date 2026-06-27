@@ -94,6 +94,16 @@ struct ChapterCompleteView: View {
             }
             footer
         }
+        // v1.6: a one-shot "congratulations" confetti over the earned
+        // chapter-complete moment (peak-end reward). Top-anchored so it
+        // rains from above; reduce-motion-safe via LottieEffectView.
+        .overlay(alignment: .top) {
+            LottieEffectView(.confettiLines, loop: false)
+                .frame(height: 420)
+                .frame(maxWidth: .infinity)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .background(
             ZStack {
                 Palette.programBgPrimary

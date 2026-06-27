@@ -40,6 +40,41 @@ struct OnboardingAtmosphere: View {
     }
 }
 
+// MARK: - Scroll Edge Fade
+//
+// v1.1 polish (2026-06-26): a soft dissolve at the top & bottom edges of an
+// internally-scrolling list, so cards melt into the canvas when scrolled
+// past instead of hard-cutting at the ScrollView's clip boundary. The fade
+// bands are fixed-height and live INSIDE the scroll's content inset, so a
+// card at rest is never dimmed — only content that scrolls into the band
+// dissolves. Pairs with the option-list top/bottom padding in jfQuestion /
+// jfMulti (the padding clears the first/last card's border + shadow; this
+// makes the scroll motion feel premium rather than clipped).
+struct ScrollEdgeFade: ViewModifier {
+    var top: CGFloat = 16
+    var bottom: CGFloat = 22
+
+    func body(content: Content) -> some View {
+        content.mask(
+            VStack(spacing: 0) {
+                LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                    .frame(height: top)
+                Color.black
+                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                    .frame(height: bottom)
+            }
+        )
+    }
+}
+
+extension View {
+    /// Softly fades the top & bottom edges of a scrolling region so content
+    /// dissolves at the clip boundary instead of shearing off.
+    func scrollEdgeFade(top: CGFloat = 16, bottom: CGFloat = 22) -> some View {
+        modifier(ScrollEdgeFade(top: top, bottom: bottom))
+    }
+}
+
 // MARK: - Gradient Blob Background
 
 /// Animated gradient blob that floats behind content. Each screen gets a unique color combo.

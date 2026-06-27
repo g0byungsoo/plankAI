@@ -305,6 +305,11 @@ struct OnboardingOptionCard: View {
     /// (identity feeling) + Q141 (reward) where each option deserves
     /// a JeniFit visual handle rather than a generic glyph.
     var sticker: StickerName? = nil
+    /// v1.6: a leading IMAGE asset (e.g. a brand logo on the attribution
+    /// screen) rendered in a clean neutral disc. Takes precedence over
+    /// `sticker`. For real-world marks (tiktok / instagram / google /
+    /// app store) where a JeniFit sticker would be wrong.
+    var leadingAsset: String? = nil
     let title: String
     var subtitle: String? = nil
     let isSelected: Bool
@@ -328,42 +333,59 @@ struct OnboardingOptionCard: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: Space.md) {
-                if !isCompact {
+                // v1.2 editorial pass (2026-06-26): the rose icon circle is
+                // GONE from default rows. A tinted circle around an abstract
+                // glyph ("lose weight" → a leaf) carried zero semantic load
+                // and was the #1 template tell — no premium single-select
+                // (BetterMe / Cal AI / RISE) puts a leading icon on every row.
+                // The leading slot now renders ONLY for the two earned
+                // sticker screens (identity / reward); everything else gets
+                // a clean editorial gutter so the serif title sits near the
+                // edge like a magazine contents line.
+                if let leadingAsset {
+                    // Brand-logo disc: a clean neutral surface so multicolor
+                    // marks read crisply (a rose-tinted sticker circle would
+                    // fight a logo).
+                    ZStack {
+                        Circle()
+                            .fill(Palette.bgElevated)
+                            .frame(width: 42, height: 42)
+                            .overlay(Circle().stroke(Palette.hairlineCocoa, lineWidth: 0.75))
+                        Image(leadingAsset)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
+                    }
+                } else if let sticker {
                     ZStack {
                         Circle()
                             .fill(Palette.accentSubtle)
                             .frame(width: 42, height: 42)
-                            // v1.1 "modern vibe" (2026-06-24): a 0.75pt
-                            // cut-paper edge. The flat rose-tint circle read
-                            // as generic tinted-circle iconography — the #1
-                            // "this is a template" tell on question screens.
                             .overlay(
                                 Circle().stroke(Palette.accent.opacity(0.22),
                                                 lineWidth: 0.75)
                             )
-                        if let sticker {
-                            Image(sticker.assetName)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 28, height: 28)
-                                .opacity(sticker.style.opacity)
-                        } else if let icon {
-                            // ink-on-rose-paper (cocoa glyph, NOT rose) is the
-                            // her75 editorial move; rose-glyph-on-rose-circle
-                            // is the template move. Reads more modern and suits
-                            // the medical-grade intake direction.
-                            Image(systemName: icon)
-                                .font(.system(size: 20, weight: .medium))
-                                .foregroundStyle(Palette.cocoaSecondary)
-                        }
+                        Image(sticker.assetName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 28, height: 28)
+                            .opacity(sticker.style.opacity)
                     }
                 }
 
-                VStack(alignment: .leading, spacing: Space.xs) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(title)
-                        .font(.custom("DMSans-SemiBold", size: 16))
+                        // v1.3 (2026-06-26): the serif option title read as
+                        // "too busy" in a list — Playfair's high-contrast
+                        // strokes are a hero face, not a list face. Back to a
+                        // clean modern sans (DMSans Medium), the calm legible
+                        // register that lets the screen HEADLINE carry the
+                        // serif voice while the answers read quiet + modern.
+                        .font(.custom("DMSans-Medium", size: 16))
+                        .kerning(-0.1)
                         .foregroundStyle(isDimmed ? Palette.textSecondary.opacity(0.55) : Palette.textPrimary)
                         .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                         // her75 cross-off (v1.1 delight pass): native
                         // .strikethrough can't tween, so draw the line and
                         // scale it in from the leading edge — the option
@@ -388,58 +410,57 @@ struct OnboardingOptionCard: View {
 
                 Spacer(minLength: Space.sm)
 
+                // v1.2: the right-edge radio stays (hollow→fill IS the
+                // validated premium selection pattern), but the unselected
+                // ring is downsized + quieted so it reads as a whisper, not
+                // a form control. The left-icon + right-ring pairing was the
+                // noise; with the icon gone, this one quiet mark is right.
                 ZStack {
                     Circle()
-                        .stroke(isSelected ? Palette.accent : Palette.divider, lineWidth: 1.5)
-                        .frame(width: 22, height: 22)
-                    // Radio dot pops in with a soft spring on select (kept
-                    // in the tree so it can scale, not hard-cut into place).
+                        .stroke(isSelected ? Palette.accent : Palette.divider,
+                                lineWidth: isSelected ? 1.5 : 1.25)
+                        .frame(width: 20, height: 20)
                     Circle()
                         .fill(Palette.accent)
-                        .frame(width: 12, height: 12)
+                        .frame(width: 10, height: 10)
                         .scaleEffect(isSelected ? 1 : 0)
                         .opacity(isSelected ? 1 : 0)
                         .animation(reduceMotion ? nil : Motion.gentleSpring, value: isSelected)
                 }
             }
-            .padding(.horizontal, Space.md)
-            // icon rows breathe to 18pt; compact (text-only, dense 8-option
-            // screens like cuisine) stay at 16 so they don't re-overflow.
-            .padding(.vertical, isCompact ? Space.md : 18)
-            // her75 tall-pill register (founder QA 2026-06-11): compact
-            // rows at 52pt read as "narrow boxes for no reason" when the
-            // screen has room. 68pt keeps 5-option screens on-screen
-            // while matching the reference pill height. Icon rows → 76
-            // (v1.1) so the 42pt chip + single title share an optical center.
-            .frame(minHeight: isCompact ? 68 : 76)
+            // Editorial gutter: title sits near the edge when there's no
+            // sticker (Space.lg), tucks beside the sticker otherwise.
+            .padding(.leading, (sticker == nil && leadingAsset == nil) ? Space.lg : Space.md)
+            .padding(.trailing, Space.md)
+            .padding(.vertical, 18)
+            .frame(minHeight: 66)
             .frame(maxWidth: .infinity, alignment: .leading)
-            // v1.1 "modern vibe" (2026-06-24): selection is now a *material*
-            // event — a whisper (6%) of accent washes the selected row, a
-            // temperature shift that reads premium where a bare border swap
-            // read as a checkbox. Never a pink fill.
+            // v1.6 editorial card (2026-06-26, brand-panel spec): a hairline
+            // editorial ROW, not a floating slab. At rest: bgElevated + a
+            // 0.5pt cocoa hairline (the single divider weight across the app)
+            // + a barely-there shadow. Selection is COCOA-bordered (the
+            // reference pace-card's grown-up, medical-grade grammar) — and
+            // ROSE is reserved as the ONE warm event, living only in the
+            // radio dot, never the chrome. (Was a rose border + wash + glow
+            // triple, which read candy.)
             .background(
-                RoundedRectangle(cornerRadius: Radius.md)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(Palette.bgElevated)
                     .overlay(
-                        RoundedRectangle(cornerRadius: Radius.md)
-                            .fill(Palette.accent.opacity(isSelected ? 0.06 : 0))
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Palette.accentSubtle.opacity(isSelected ? 0.22 : 0))
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: Radius.md)
-                    .stroke(isSelected ? Palette.accent : Palette.hairlineCocoa,
-                            lineWidth: isSelected ? 1.5 : 1)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(isSelected ? Palette.textPrimary : Palette.hairlineCocoa,
+                            lineWidth: isSelected ? 1.25 : 0.5)
             )
-            // v1.1 "modern vibe": a 2-layer paper shadow — a tight contact
-            // shadow + a soft wide ambient — so rows read as objects floating
-            // on the cream, not faint rectangles drawn on it (bgElevated is
-            // only ~2% off the bg, so the lift has to come from elevation).
-            // Resting ambient radius triples (5→16); the selected row lifts
-            // further. Replaces the old single soft shadow.
-            .shadow(color: Palette.cocoaPrimary.opacity(0.05), radius: 2, x: 0, y: 1)
-            .shadow(color: Palette.cocoaPrimary.opacity(isSelected ? 0.10 : 0.055),
-                    radius: isSelected ? 20 : 16,
-                    x: 0, y: isSelected ? 8 : 6)
+            .shadow(
+                color: Palette.cocoaPrimary.opacity(isSelected ? 0.06 : 0.03),
+                radius: isSelected ? 10 : 6,
+                x: 0, y: isSelected ? 4 : 2
+            )
         }
         // v1.1 quiet-luxury: the row springs under the thumb on touch.
         .buttonStyle(OptionRowPressStyle())
@@ -1395,12 +1416,20 @@ struct HorizontalBiometricSlider: View {
                                       y: rulerHeight - h / 2 - 4)
                     }
 
-                    // Center selection indicator — extends a hair above
-                    // the major ticks for emphasis.
+                    // Center selection indicator — a single accent line, but
+                    // BROKEN exactly on the number-labels row (founder: "the
+                    // empty spot belongs on the line of the numbers"). Labels
+                    // sit at y≈40 (±7); the line runs from the top of the ruler
+                    // (butting the drop line from the value) down to y=31, then
+                    // resumes at y=49 through the major ticks. Two segments.
                     Rectangle()
                         .fill(Palette.accent)
-                        .frame(width: 2, height: majorTickHeight + 12)
-                        .position(x: centerX, y: rulerHeight - (majorTickHeight + 12) / 2 - 2)
+                        .frame(width: 2, height: 31)
+                        .position(x: centerX, y: 31 / 2)
+                    Rectangle()
+                        .fill(Palette.accent)
+                        .frame(width: 2, height: rulerHeight - 49 - 2)
+                        .position(x: centerX, y: 49 + (rulerHeight - 49 - 2) / 2)
                 }
                 .frame(width: geo.size.width, height: rulerHeight)
                 .contentShape(Rectangle())

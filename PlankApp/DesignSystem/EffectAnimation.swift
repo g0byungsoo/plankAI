@@ -31,8 +31,45 @@ enum EffectAnimation: String, CaseIterable {
     /// the connection-themed copy.
     case twoHeartsBeingDrawn = "two-hearts-being-drawn"
 
+    // v1.6 (2026-06-26) — founder-supplied line-art pink celebration
+    // set. Editorial register (rough-lined / smoke, not glossy confetti),
+    // so they suit the her75 restraint while still rewarding a peak.
+    /// Rough-lined pink fireworks burst — a peak reward (plan ready,
+    /// graduation, big milestone).
+    case fireworksLined = "fireworks-lined"
+    /// Pink fireworks that shoot UP then burst — the "ta-da, it's ready"
+    /// reveal beat (plan-build complete).
+    case fireworksRise = "fireworks-rise"
+    /// Soft pink smoke puff — a gentler reward (a quiet win / commit).
+    case smokePuff = "smoke-puff"
+    /// Pink smoke rising — a soft upward flourish.
+    case smokeRise = "smoke-rise"
+
+    // v1.6b (2026-06-26) — founder confetti set. Tasteful (stars / lines /
+    // soft), warmer than a generic shower; for the big earned peaks.
+    /// Star confetti burst — a celebratory peak (graduation, streak milestone).
+    case confettiStars = "confetti-stars"
+    /// "Congratulations" confetti lines/streamers — a graduation-grade beat.
+    case confettiLines = "confetti-lines"
+    /// Simple confetti shower — a standard reward.
+    case confetti
+    /// A softer, lighter confetti — a gentle daily reward.
+    case confettiSoft = "confetti-soft"
+
     /// Filename stem under PlankApp/Resources/animations/.
     var filename: String { rawValue }
+
+    /// Warm the Lottie cache OFF the main thread so a heavier animation
+    /// (e.g. the 120KB fireworks) has zero parse hitch when it first
+    /// appears. Call this ahead of the moment — e.g. while a loader is up.
+    /// `LottieAnimation.named` caches by name globally, so the later
+    /// on-main render hits the warm cache instantly.
+    func preload() {
+        let name = filename
+        Task.detached(priority: .utility) {
+            _ = LottieAnimation.named(name, bundle: .main, subdirectory: "animations")
+        }
+    }
 }
 
 // MARK: - LottieEffectView

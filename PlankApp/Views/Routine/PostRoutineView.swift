@@ -123,9 +123,13 @@ struct PostRoutineView: View {
             // old shower felt like 2021 Duolingo. Retrigger via .id() bump
             // when the user gets to the celebration moment again.
             if phase >= 1 {
-                LottieEffectView(.fireworks, loop: false)
+                // v1.6: a light star-confetti burst (22KB, Core-Animation GPU
+                // path) — the high-performing reward for the frequent
+                // post-workout moment (the heavy 120KB fireworks are avoided
+                // so the celebration never hitches the screen).
+                LottieEffectView(.confettiStars, loop: false)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 360)
+                    .frame(height: 380)
                     .frame(maxHeight: .infinity, alignment: .top)
                     .padding(.top, Space.xl)
                     .allowsHitTesting(false)
