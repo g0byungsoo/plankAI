@@ -155,6 +155,9 @@ struct AnalyticsView: View {
     /// OFF. Surfaces a reprojected goal date only for the encouraging
     /// statuses (ahead / on-pace); slow + stalled stay on the plateau reframe.
     @AppStorage("adaptive_pacing_enabled") private var adaptivePacingEnabled = false
+    /// Medical-grade Phase 3.3 — flag-gated GLP-1 nutrition education nudges
+    /// (hydration / fiber / nutrient density). Default OFF until founder review.
+    @AppStorage("glp1_nutrition_nudges_enabled") private var glp1NutritionNudgesEnabled = false
     /// Restriction-risk cohort flags — hide the lighter-days counter
     /// (the journal stays fully available).
     @AppStorage("onboardingFoodRelationship") private var foodRelationshipKey = ""
@@ -2076,6 +2079,14 @@ struct AnalyticsView: View {
                     italic: ["protein"]
                 ))
             }
+            // Phase 3.3 (flag-gated) — science-honest nutrition education for
+            // the on-med cohort: appetite suppression quietly drops fluid,
+            // fiber, and nutrient density. Rotates daily; wellness framing,
+            // no medical advice, no dosing.
+            if glp1NutritionNudgesEnabled {
+                out.append(Self.glp1NutritionNudge(
+                    dayOfYear: Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 1))
+            }
         }
         if glp1Status == "triedOff" || glp1Status == "tried_off" {
             if let week = foodWeek, week.scanDays >= 3 {
@@ -2129,6 +2140,30 @@ struct AnalyticsView: View {
         }
 
         return Array(out.prefix(3))
+    }
+
+    /// Phase 3.3 — rotating science-honest nutrition nudge for the on-GLP-1
+    /// cohort. Wellness education (hydration / fiber / nutrient density),
+    /// never medical advice or dosing; symptoms route to a clinician
+    /// elsewhere. Rotated by day so it varies without feeling random.
+    static func glp1NutritionNudge(dayOfYear: Int) -> BecomingInsight {
+        switch dayOfYear % 3 {
+        case 0:
+            return .init(
+                id: "glp1-hydration",
+                text: "on the med, thirst can go quiet. a glass with each meal keeps your energy steady \u{2665}\u{FE0E}",
+                italic: ["energy"])
+        case 1:
+            return .init(
+                id: "glp1-fiber",
+                text: "a smaller appetite often means less fiber. a little extra keeps everything moving \u{2661}",
+                italic: ["moving"])
+        default:
+            return .init(
+                id: "glp1-nutrients",
+                text: "smaller plates still need their protein, iron, and calcium. quality leads now \u{2665}\u{FE0E}",
+                italic: ["quality"])
+        }
     }
 
     /// One rotating sentence about HER data — provenance-gated; when
