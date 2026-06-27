@@ -571,6 +571,18 @@ enum Motion {
     /// crossfade, anything over 0.10 reads as latency.
     static let pageGap: Double = 0.06
 
+    /// v1.1 luxury reveal-grade entrance (2026-06-26). Per-element
+    /// fade+rise timing that copies the post-reveal screens. `revealFade`
+    /// is the soft materialize each element rides; `revealStagger` is the
+    /// gap between consecutive elements (headline → first row → next row…)
+    /// so the screen "develops" in sequence instead of snapping in as a
+    /// block. Slower + bigger than the old tight cascade on purpose.
+    static let revealFade: Animation = .easeOut(duration: 0.5)
+    // v1.6: tight (below the ~100ms fusion threshold) ON PURPOSE — option
+    // rows arrive as one cohesive GROUP after the headline's two-beat gap,
+    // not as an individually-witnessed parade (that would be slow to answer).
+    static let revealStagger: Double = 0.05
+
     /// Tile / card expansion animation — proof tiles on the plan
     /// reveal, social-proof pill on the cohort screen. Spring with
     /// medium damping so the tile feels physical without bouncing
@@ -827,6 +839,24 @@ enum JFPageTransition {
         removal: .opacity
             .combined(with: .scale(scale: 0.985, anchor: .center))
             .animation(Motion.pageExit)
+    )
+
+    /// v1.1 luxury reveal-grade transition (2026-06-26) — a soft
+    /// cross-dissolve that copies what makes the post-reveal screens feel
+    /// luxurious: the OUTGOING screen lingers and slowly fades (the
+    /// "afterimage" the founder named) while the INCOMING screen's
+    /// elements materialize in a staggered fade+rise on top of it (see
+    /// JFHeader + StaggeredReveal). No slide, no scale — those read as
+    /// "app chrome"; the dissolve reads as "a page developing." The
+    /// background atmosphere is a persistent z-layer behind both, so the
+    /// dissolve never flashes the canvas.
+    ///
+    /// Insertion is a quick opacity settle (0.30s) purely so nothing pops;
+    /// the real entrance choreography is per-element. Removal is the slow
+    /// linger (0.55s) that overlaps the incoming reveal = the afterimage.
+    static let softDissolve: AnyTransition = .asymmetric(
+        insertion: .opacity.animation(.easeOut(duration: 0.30)),
+        removal: .opacity.animation(.easeInOut(duration: 0.55))
     )
 }
 
