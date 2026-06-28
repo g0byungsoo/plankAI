@@ -2796,6 +2796,10 @@ private struct RootView: View {
                 currentWeightKg:  data.currentWeightKg,
                 goalWeightKg:     data.goalWeightKg,
                 sex:              data.gender == "male" ? .male : .female,
+                // TODO(age): age is passed nil because OnboardingData.ageRange is a band string ("18_24"),
+                // not a parsed Int, and the current rate math doesn't use age. If ProgramGoalCalculator.compute()
+                // ever uses age (e.g. age-stratified loss-rate floors / TDEE), parse `data.ageRange` here AND
+                // recompute the persisted `record.targetRatePctPerWeek` so the onboarding-time baseline stays consistent.
                 age:              nil,
                 isGLP1User:       ProgramGoalCalculator.isGLP1User(
                                       from: UserDefaults.standard.string(
