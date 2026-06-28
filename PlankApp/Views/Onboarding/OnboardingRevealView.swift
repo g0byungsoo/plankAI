@@ -65,12 +65,18 @@ struct OnboardingRevealView: View {
         case building
         case projection
         // v9 P9.1/P9.2 (her75 onboarding restructure): the user holds
-        // her plan BEFORE paywall. pacePicker → goalDate → firstWeek
-        // form the Program Design chapter. Pace persists via AppStorage
-        // so the (eventually trimmed) ProgramSetup post-paywall just
-        // reads it back — no second pick.
+        // her plan BEFORE paywall. pacePicker → goalDate → assessment
+        // → firstWeek form the Program Design chapter. Pace persists
+        // via AppStorage so the (eventually trimmed) ProgramSetup
+        // post-paywall just reads it back — no second pick.
         case pacePicker
         case goalDate
+        // Assessment-as-payoff: lands after the goal-date reveal so
+        // the user sees her arc validated by the inputs she gave us
+        // before we advance to the first-week preview. Dual-register
+        // card (JeniHeroSerif identity + DMSans data + provenance +
+        // credibility beat + earned-progress label).
+        case assessment
         case firstWeek
         case permissions
         // v4.5 (2026-06-11) — trial-promise commit beat. The LAST
@@ -116,6 +122,13 @@ struct OnboardingRevealView: View {
                 .transition(.opacity)
             case .goalDate:
                 GoalDateRevealPresentation(
+                    currentWeightKg: currentWeightKg ?? 65,
+                    goalWeightKg: goalWeightKg ?? 60,
+                    onContinue: { withAnimation(Motion.crossFade) { step = .assessment } }
+                )
+                .transition(.opacity)
+            case .assessment:
+                AssessmentPresentation(
                     currentWeightKg: currentWeightKg ?? 65,
                     goalWeightKg: goalWeightKg ?? 60,
                     onContinue: { withAnimation(Motion.crossFade) { step = .firstWeek } }
@@ -1241,6 +1254,190 @@ private struct GoalDateRevealPresentation: View {
     }
 }
 
+
+// MARK: - AssessmentPresentation (Task 8, 2026-06-28)
+//
+// "assessment-as-payoff" beat. Lands immediately after GoalDateReveal
+// so the goal date she just saw is immediately grounded in WHY the
+// pace is what it is. Dual register: JeniHeroSerif identity line +
+// DMSans data capsule + optional cohort provenance + credibility beat
+// + earned endowed-progress label.
+//
+// Background: cream bgPrimary (intentionally different from the pink
+// programBgPrimary used by surrounding steps) — the visual "breath"
+// reinforces that this screen is a reflection beat, not a reveal.
+// A single thin rule is the only "clinical" accent (no red, no charts,
+// no projected weight number).
+
+private struct AssessmentPresentation: View {
+    let currentWeightKg: Double
+    let goalWeightKg: Double
+    let onContinue: () -> Void
+
+    @AppStorage("onboarding_glp1_status")  private var glp1Status: String = ""
+    @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
+    @AppStorage("onboardingSleepHours")    private var sleepHours: String = ""
+    @AppStorage("onboardingPickedTier")    private var pickedTierRaw: String = "medium"
+
+    @State private var heroVisible      = false
+    @State private var ruleVisible      = false
+    @State private var dataLineVisible  = false
+    @State private var provenanceVisible = false
+    @State private var credibilityVisible = false
+    @State private var progressVisible  = false
+    @State private var ctaVisible       = false
+
+    // Compute the window once so loss-rate floor + dates share one source.
+    private var window: ProgramGoalCalculator.Window {
+        ProgramGoalCalculator.compute(.init(
+            currentWeightKg: currentWeightKg,
+            goalWeightKg: goalWeightKg,
+            sex: .female,
+            age: nil,
+            isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
+            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
+            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours)
+        ))
+    }
+
+    /// Weekly loss rate displayed in the data capsule. e.g. "0.5"
+    private var lossRatePctText: String {
+        String(format: "%.1f", window.lossRateFloor * 100)
+    }
+
+    /// Arrival date in "MMM d" format. Matches GoalDateReveal's date via the
+    /// same ProjectionMath route (picked pace key). Falls back to "ahead"
+    /// if inputs can't produce a projection (maintenance case).
+    private var arrivalDateText: String {
+        let paceKey = UserDefaults.standard.string(forKey: ProjectionMath.paceDefaultsKey)
+        return ProjectionMath.formattedShortDate(
+            currentKg: currentWeightKg,
+            goalKg: goalWeightKg,
+            paceKey: paceKey
+        ) ?? "ahead"
+    }
+
+    /// One-line provenance explanation tied to the cohort flag that changed
+    /// the floor rate. Returns nil when no cohort modifier was applied
+    /// (default 0.5%/wk) so the line is fully omitted, not just empty.
+    private var provenanceLine: String? {
+        if ProgramGoalCalculator.isShortSleeper(from: sleepHours) {
+            return "because you sleep around 6 hours, we set a gentler pace."
+        }
+        if ProgramGoalCalculator.isGLP1User(from: glp1Status) {
+            return "because of your body's signals right now, we paced this gently."
+        }
+        if ProgramGoalCalculator.isPerimenopausal(from: hormonalStage) {
+            return "because of where your body is, we paced this gently."
+        }
+        return nil
+    }
+
+    var body: some View {
+        ZStack {
+            // Cream canvas — intentional contrast with the pink reveal
+            // steps that bracket this screen. Visual breath = reflection.
+            Palette.bgPrimary.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                Spacer()
+
+                VStack(alignment: .leading, spacing: Space.lg) {
+
+                    // 1. Identity line — JeniHeroSerif, italic punch on "realistic"
+                    ItalicAccentText(
+                        "here's your realistic arc.",
+                        italic: ["realistic"],
+                        baseFont: Typo.heroHeadline,
+                        italicFont: Typo.heroHeadlineItalic,
+                        color: Palette.textPrimary,
+                        alignment: .leading
+                    )
+                    .kerning(-0.4)
+                    .lineSpacing(Typo.heroHeadlineLineGap)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .opacity(heroVisible ? 1 : 0)
+                    .offset(y: heroVisible ? 0 : 10)
+                    .animation(Motion.entrance, value: heroVisible)
+
+                    // Single thin rule — the only clinical accent.
+                    Rectangle()
+                        .fill(Palette.textPrimary.opacity(0.1))
+                        .frame(height: 1)
+                        .opacity(ruleVisible ? 1 : 0)
+                        .animation(Motion.entrance, value: ruleVisible)
+
+                    // 2. Quiet data line — DMSans, textSecondary
+                    //    pace [X]%/wk · arrival ~[Mon D] · set conservatively
+                    Text("pace \(lossRatePctText)%/wk \u{00B7} arrival ~\(arrivalDateText) \u{00B7} set conservatively")
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .opacity(dataLineVisible ? 1 : 0)
+                        .offset(y: dataLineVisible ? 0 : 6)
+                        .animation(Motion.entrance, value: dataLineVisible)
+
+                    // 3. Provenance microcopy (conditional on cohort modifier)
+                    if let provenance = provenanceLine {
+                        Text(provenance)
+                            .font(Typo.body)
+                            .foregroundStyle(Palette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .opacity(provenanceVisible ? 1 : 0)
+                            .offset(y: provenanceVisible ? 0 : 6)
+                            .animation(Motion.entrance, value: provenanceVisible)
+                    }
+
+                    // 4. Credibility beat
+                    Text("paced like a clinician would. slower is what lasts.")
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .opacity(credibilityVisible ? 1 : 0)
+                        .offset(y: credibilityVisible ? 0 : 6)
+                        .animation(Motion.entrance, value: credibilityVisible)
+
+                    // 5. Earned endowed progress — small, muted, never a %
+                    Text("step 1 of your plan: complete (you did the assessment)")
+                        .font(Typo.captionTracked)
+                        .foregroundStyle(Palette.textSecondary.opacity(0.7))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 4)
+                        .opacity(progressVisible ? 1 : 0)
+                        .animation(Motion.entranceSoft, value: progressVisible)
+                }
+                .padding(.horizontal, Space.screenPadding)
+
+                Spacer()
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            JFContinueButton(label: "continue", action: onContinue)
+                .padding(.horizontal, Space.lg)
+                .padding(.bottom, Space.md)
+                .opacity(ctaVisible ? 1 : 0)
+                .animation(Motion.entranceSoft, value: ctaVisible)
+        }
+        .task {
+            // Staggered cascade: identity → rule + data → provenance →
+            // credibility → earned progress → CTA.
+            withAnimation(Motion.entrance) { heroVisible = true }
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            withAnimation(Motion.entrance) {
+                ruleVisible = true
+                dataLineVisible = true
+            }
+            try? await Task.sleep(nanoseconds: 320_000_000)
+            withAnimation(Motion.entrance) { provenanceVisible = true }
+            try? await Task.sleep(nanoseconds: 280_000_000)
+            withAnimation(Motion.entrance) { credibilityVisible = true }
+            try? await Task.sleep(nanoseconds: 280_000_000)
+            withAnimation(Motion.entranceSoft) { progressVisible = true }
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            withAnimation(Motion.entranceSoft) { ctaVisible = true }
+        }
+    }
+}
 
 // MARK: - TrialPromisePresentation (v4.5, 2026-06-11)
 //
