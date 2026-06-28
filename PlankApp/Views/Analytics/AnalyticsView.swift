@@ -148,9 +148,9 @@ struct AnalyticsView: View {
     /// lean-mass framing. Default OFF: existing customers keep the legacy
     /// 1.2 g/kg target until the founder enables it.
     @AppStorage("protein_hero_enabled") private var proteinHeroEnabled = false
-    /// Medical-grade Phase 2.2 — flag-gated rapid-loss safety guardrail.
-    /// Default OFF until founder review (it adds an insight to a live surface).
-    @AppStorage("rapid_loss_guard_enabled") private var rapidLossGuardEnabled = false
+    /// Medical-grade Phase 2.2 — rapid-loss safety guardrail. Default ON:
+    /// the tripwire is a safety feature and should reach all users by default.
+    @AppStorage("rapid_loss_guard_enabled") private var rapidLossGuardEnabled = true
     /// Medical-grade Phase 2.2 — flag-gated adaptive pace projection. Default
     /// OFF. Surfaces a reprojected goal date only for the encouraging
     /// statuses (ahead / on-pace); slow + stalled stay on the plateau reframe.
@@ -4264,9 +4264,12 @@ struct AnalyticsView: View {
         let logsSnapshot = weightLogs
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(400))
+            // Require ≥3 logs so a single two-point interval cannot trip the
+            // care sheet (mirrors WeightAnalytics.isLosingTooFast guard).
+            guard logsSnapshot.count >= 3 else { return }
             guard let rate = WeightAnalytics.weeklyLossRate(logs: logsSnapshot), rate > 0 else { return }
-            // rate is a fraction (e.g. 0.015 = 1.5%/wk); multiply by current
-            // body weight to get the kg/wk value the tripwire expects.
+            // rate is a per-week fraction (e.g. 0.015 = 1.5 %/wk); ×kg → kg/wk,
+            // which RapidLossTripwire divides back by current weight internally.
             let trendKgPerWeek = rate * kg
             let res = RapidLossTripwire.evaluate(trendKgPerWeek: trendKgPerWeek, currentWeightKg: kg)
             if res.isTooFast, let msg = res.careMessage {
