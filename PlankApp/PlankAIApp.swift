@@ -2787,6 +2787,32 @@ private struct RootView: View {
         // completes; the guard is defensive against init-order regressions.
         if let userId = AppSync.shared.currentUserId, !userId.isEmpty {
             let record = upsertLocalUserRecord(userId: userId, data: data)
+
+            // Phase 1a — clinical baseline. Computed here so the persisted
+            // numbers trace directly to the collected fields (provenance rule).
+            // medicalDisclaimerAckAt is declared on UserRecord but intentionally
+            // left nil — Task 8 adds the disclaimer screen that sets it.
+            let cgInputs = ProgramGoalCalculator.Inputs(
+                currentWeightKg:  data.currentWeightKg,
+                goalWeightKg:     data.goalWeightKg,
+                sex:              data.gender == "male" ? .male : .female,
+                age:              nil,
+                isGLP1User:       ProgramGoalCalculator.isGLP1User(
+                                      from: UserDefaults.standard.string(
+                                                forKey: "onboarding_glp1_status") ?? ""),
+                isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(
+                                      from: UserDefaults.standard.string(
+                                                forKey: "onboardingHormonalStage") ?? ""),
+                isShortSleeper:   ProgramGoalCalculator.isShortSleeper(
+                                      from: UserDefaults.standard.string(
+                                                forKey: "onboardingSleepHours") ?? "")
+            )
+            let cgWindow = ProgramGoalCalculator.compute(cgInputs)
+            record.computedStartBMI     = ClinicalBaseline.bmi(weightKg: data.currentWeightKg,
+                                                                heightCm: data.heightCm)
+            record.targetRatePctPerWeek = cgWindow.lossRateFloor * 100
+            record.pendingUpsert        = true
+
             // Fire-and-forget — don't block the UI on the network call. RLS
             // failures or table-missing conditions surface in Supabase logs;
             // SyncService.upsertUser swallows them and the next anon → named

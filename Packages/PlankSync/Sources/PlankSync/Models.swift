@@ -88,6 +88,26 @@ public final class UserRecord {
     public var onboardingEatingWindow: String?      // eating-window key
     public var onboardingFoodRelationship: String?  // fuel/comfort/love/control/complicated
 
+    // MARK: - Clinical baseline (Phase 1a, 2026-06-28)
+    //
+    // All three fields are optional so SwiftData lightweight migration covers
+    // existing rows automatically — nil means "not yet computed / not answered".
+    //
+    // computedStartBMI — BMI at onboarding completion, derived from
+    //   onboardingCurrentWeightKg + onboardingHeightCm via ClinicalBaseline.bmi().
+    //   Auditable provenance: the persisted number always traces to a collected
+    //   field (data provenance rule, see docs/STATE.md).
+    //
+    // targetRatePctPerWeek — loss-rate floor × 100 from
+    //   ProgramGoalCalculator.Window.lossRateFloor, which already encodes the
+    //   GLP-1 / perimenopause / short-sleep cohort adjustments at onboarding.
+    //
+    // medicalDisclaimerAckAt — set by the disclaimer acknowledgment screen
+    //   (Task 8). Left nil here; nil = user has not yet seen / acked the screen.
+    public var computedStartBMI: Double?
+    public var targetRatePctPerWeek: Double?
+    public var medicalDisclaimerAckAt: Date?
+
     /// Set true by any client-side write (settings edits, onboarding-complete)
     /// and cleared on successful upsert. Drives the retry sweep on app launch
     /// so a force-quit between write + network response never silently loses
