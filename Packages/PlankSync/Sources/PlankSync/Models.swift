@@ -108,6 +108,15 @@ public final class UserRecord {
     public var targetRatePctPerWeek: Double?
     public var medicalDisclaimerAckAt: Date?
 
+    // MARK: - Habit / activation counters (Phase 1a, 2026-06-28)
+    //
+    // promisesKept — cumulative count of habit completions the user has
+    //   honoured (lesson read, breath session, food log, weigh-in, etc.).
+    //   Consumed by Task 9 (home hero) and Task 10 (kept-promise win card).
+    //   Default 0; non-optional with default is migration-safe for SwiftData
+    //   lightweight migration — existing rows read 0 until first increment.
+    public var promisesKept: Int = 0
+
     /// Set true by any client-side write (settings edits, onboarding-complete)
     /// and cleared on successful upsert. Drives the retry sweep on app launch
     /// so a force-quit between write + network response never silently loses
