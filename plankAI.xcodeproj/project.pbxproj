@@ -716,6 +716,7 @@
 		RL0004RL0004RL0004RL0004 /* RapidLossTripwireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = RL0003RL0003RL0003RL0003 /* RapidLossTripwireTests.swift */; };
 		HP0002HP0002HP0002HP0002 /* HabitProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = HP0001HP0001HP0001HP0001 /* HabitProgress.swift */; };
 		HP0004HP0004HP0004HP0004 /* HabitProgressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HP0003HP0003HP0003HP0003 /* HabitProgressTests.swift */; };
+		D1P002D1P002D1P002D1P002 /* Day1PromiseBodyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1P001D1P001D1P001D1P001 /* Day1PromiseBodyTests.swift */; };
 		A3C8FA63ECA0675FEF2EC034 /* jeni_prep_short_w_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9F85C511AFCEFCED91E0B747 /* jeni_prep_short_w_raise.m4a */; };
 		A3D4FAF1322C3B5590AE4C44 /* jeni_prep_short_standing_hip_abduction.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CF7FE1393A59F3AA1D83B9D8 /* jeni_prep_short_standing_hip_abduction.m4a */; };
 		A42BD8087A502E074C128FDF /* jeni_prep_full_baby_cobra.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 66EEB8CE8F33A4AFE3CB57EF /* jeni_prep_full_baby_cobra.m4a */; };
@@ -2094,6 +2095,7 @@
 		RL0003RL0003RL0003RL0003 /* RapidLossTripwireTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RapidLossTripwireTests.swift; sourceTree = "<group>"; };
 		HP0001HP0001HP0001HP0001 /* HabitProgress.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HabitProgress.swift; sourceTree = "<group>"; };
 		HP0003HP0003HP0003HP0003 /* HabitProgressTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HabitProgressTests.swift; sourceTree = "<group>"; };
+		D1P001D1P001D1P001D1P001 /* Day1PromiseBodyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Day1PromiseBodyTests.swift; sourceTree = "<group>"; };
 		A3BDD97A4B3E3CCB1A4D5149 /* prep_full_side_split_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_side_split_squat.m4a; sourceTree = "<group>"; };
 		A482809E984562B786CA64FE /* BecomingV2Atoms.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BecomingV2Atoms.swift; sourceTree = "<group>"; };
 		A4835B661C42CBBFD61E3319 /* matson_duration_intro_5.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_duration_intro_5.m4a; sourceTree = "<group>"; };
@@ -2825,6 +2827,7 @@
 				CB0003CB0003CB0003CB0003 /* ClinicalBaselineTests.swift */,
 				RL0003RL0003RL0003RL0003 /* RapidLossTripwireTests.swift */,
 				HP0003HP0003HP0003HP0003 /* HabitProgressTests.swift */,
+				D1P001D1P001D1P001D1P001 /* Day1PromiseBodyTests.swift */,
 			);
 			path = plankAITests;
 			sourceTree = "<group>";
@@ -5931,6 +5934,7 @@
 				CB0004CB0004CB0004CB0004 /* ClinicalBaselineTests.swift in Sources */,
 				RL0004RL0004RL0004RL0004 /* RapidLossTripwireTests.swift in Sources */,
 				HP0004HP0004HP0004HP0004 /* HabitProgressTests.swift in Sources */,
+				D1P002D1P002D1P002D1P002 /* Day1PromiseBodyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

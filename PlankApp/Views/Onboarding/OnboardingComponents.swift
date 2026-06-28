@@ -323,6 +323,32 @@ struct NotificationPermission {
     /// the lock screen. v2 (2026-06-16): added name opener for
     /// consistency with other surfaces; tightened balanced + firm
     /// strings; dropped "easy to finish" (read as effort-pressure).
+    // MARK: Day-1 promise notification
+
+    /// Canonical identifier for the one-shot Day-1 promise nudge.
+    static let day1PromiseIdentifier = "day1_promise"
+
+    /// Pure body builder — replays the user's own words back to her.
+    /// No nagging, no imperatives. Period between anchor + action clauses
+    /// (no em-dash per brand voice).
+    static func day1PromiseBody(action: String, anchor: String, userName: String?) -> String {
+        let who = (userName?.isEmpty == false) ? "\(userName!), " : ""
+        return "\(who)it's your \(anchor) moment. you said you'd \(action). ready when you are \u{2665}"
+    }
+
+    /// One-shot Day-1 nudge in her own words, at the time she chose in the ritual.
+    static func scheduleDay1Promise(at date: Date, body: String) {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [day1PromiseIdentifier])
+        let content = UNMutableNotificationContent()
+        content.title = "tomorrow, you begin."
+        content.body = body
+        content.sound = .default
+        let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+        center.add(.init(identifier: day1PromiseIdentifier, content: content, trigger: trigger))
+    }
+
     private static func dailyReminderBody() -> String {
         let name = (UserDefaults.standard.string(forKey: "userName") ?? "").lowercased()
         let opener = name.isEmpty ? "" : "\(name), "
