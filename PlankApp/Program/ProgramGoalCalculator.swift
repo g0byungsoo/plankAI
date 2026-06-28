@@ -297,6 +297,14 @@ public enum ProgramGoalCalculator {
         return targetBMI * m * m
     }
 
+    /// Lowest goal weight we will ever let a user select: BMI 18.5 for their height.
+    /// Returns 0 when height is unknown (0) so callers can skip the clamp safely.
+    public static func minimumGoalWeightKg(heightCm: Double) -> Double {
+        guard heightCm > 0 else { return 0 }
+        let m = heightCm / 100.0
+        return 18.5 * m * m
+    }
+
     public struct SafetyInputs {
         public let currentWeightKg: Double
         public let goalWeightKg: Double
