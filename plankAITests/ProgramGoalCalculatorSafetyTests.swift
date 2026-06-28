@@ -16,8 +16,10 @@ final class ProgramGoalCalculatorSafetyTests: XCTestCase {
         let w = ProgramGoalCalculator.compute(.init(
             currentWeightKg: 80, goalWeightKg: 70, sex: .female, age: 28,
             isGLP1User: true, isPerimenopausal: false, isShortSleeper: false))
-        // GLP-1 floor is 0.3%/wk -> 10kg / (80*0.003) = ~41.7 -> maxWeeks >= 41.
-        XCTAssertGreaterThanOrEqual(w.maxWeeks, 41)
+        // 80kg -> 70kg at the GLP-1 0.3%/wk floor: 10 / (80*0.003) = 41.67 -> rounds up to 42.
+        // Lock BOTH sides: floor is applied (>=42) and not eroded toward a slower rate (<=42).
+        XCTAssertGreaterThanOrEqual(w.maxWeeks, 42)
+        XCTAssertLessThanOrEqual(w.maxWeeks, 42)
     }
 
     func testClampedToProgramBounds() {
