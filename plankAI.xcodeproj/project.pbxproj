@@ -712,6 +712,8 @@
 		FA0001FA0001FA0001FA0001 /* GoalWeightFloorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0002FA0002FA0002FA0002 /* GoalWeightFloorTests.swift */; };
 		CB0002CB0002CB0002CB0002 /* ClinicalBaseline.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0001CB0001CB0001CB0001 /* ClinicalBaseline.swift */; };
 		CB0004CB0004CB0004CB0004 /* ClinicalBaselineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0003CB0003CB0003CB0003 /* ClinicalBaselineTests.swift */; };
+		RL0002RL0002RL0002RL0002 /* RapidLossTripwire.swift in Sources */ = {isa = PBXBuildFile; fileRef = RL0001RL0001RL0001RL0001 /* RapidLossTripwire.swift */; };
+		RL0004RL0004RL0004RL0004 /* RapidLossTripwireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = RL0003RL0003RL0003RL0003 /* RapidLossTripwireTests.swift */; };
 		A3C8FA63ECA0675FEF2EC034 /* jeni_prep_short_w_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9F85C511AFCEFCED91E0B747 /* jeni_prep_short_w_raise.m4a */; };
 		A3D4FAF1322C3B5590AE4C44 /* jeni_prep_short_standing_hip_abduction.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CF7FE1393A59F3AA1D83B9D8 /* jeni_prep_short_standing_hip_abduction.m4a */; };
 		A42BD8087A502E074C128FDF /* jeni_prep_full_baby_cobra.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 66EEB8CE8F33A4AFE3CB57EF /* jeni_prep_full_baby_cobra.m4a */; };
@@ -2086,6 +2088,8 @@
 		FA0002FA0002FA0002FA0002 /* GoalWeightFloorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GoalWeightFloorTests.swift; sourceTree = "<group>"; };
 		CB0001CB0001CB0001CB0001 /* ClinicalBaseline.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClinicalBaseline.swift; sourceTree = "<group>"; };
 		CB0003CB0003CB0003CB0003 /* ClinicalBaselineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClinicalBaselineTests.swift; sourceTree = "<group>"; };
+		RL0001RL0001RL0001RL0001 /* RapidLossTripwire.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RapidLossTripwire.swift; sourceTree = "<group>"; };
+		RL0003RL0003RL0003RL0003 /* RapidLossTripwireTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RapidLossTripwireTests.swift; sourceTree = "<group>"; };
 		A3BDD97A4B3E3CCB1A4D5149 /* prep_full_side_split_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_side_split_squat.m4a; sourceTree = "<group>"; };
 		A482809E984562B786CA64FE /* BecomingV2Atoms.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BecomingV2Atoms.swift; sourceTree = "<group>"; };
 		A4835B661C42CBBFD61E3319 /* matson_duration_intro_5.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_duration_intro_5.m4a; sourceTree = "<group>"; };
@@ -2757,6 +2761,7 @@
 				F56396339D658BB1D9D0F839 /* LessonAnchor.swift */,
 				D12A1C59118F7141E04FBAF1 /* ProgramDayArchetype.swift */,
 				CB0001CB0001CB0001CB0001 /* ClinicalBaseline.swift */,
+				RL0001RL0001RL0001RL0001 /* RapidLossTripwire.swift */,
 			);
 			name = Program;
 			path = Program;
@@ -2813,6 +2818,7 @@
 				C7DDCF5CAE584C29B7345CA9 /* ProgramGoalCalculatorSafetyTests.swift */,
 				FA0002FA0002FA0002FA0002 /* GoalWeightFloorTests.swift */,
 				CB0003CB0003CB0003CB0003 /* ClinicalBaselineTests.swift */,
+				RL0003RL0003RL0003RL0003 /* RapidLossTripwireTests.swift */,
 			);
 			path = plankAITests;
 			sourceTree = "<group>";
@@ -5842,6 +5848,7 @@
 				98E163C8325C21D2AC1885F6 /* ProgramDayPrescription.swift in Sources */,
 				ED83EF70E7B6F95F3CD87F02 /* ProgramGoalCalculator.swift in Sources */,
 				CB0002CB0002CB0002CB0002 /* ClinicalBaseline.swift in Sources */,
+				RL0002RL0002RL0002RL0002 /* RapidLossTripwire.swift in Sources */,
 				BDAC31004D8BD42FF5B7330E /* ProgramScheduleCalculator.swift in Sources */,
 				5655D51F9340F2D69EF61645 /* ProgramService.swift in Sources */,
 				8DAAFBD8B375003B5FD4DBF1 /* ChapterCompleteView.swift in Sources */,
@@ -5915,6 +5922,7 @@
 				DF33E8C556F14C709E875A8D /* ProgramGoalCalculatorSafetyTests.swift in Sources */,
 				FA0001FA0001FA0001FA0001 /* GoalWeightFloorTests.swift in Sources */,
 				CB0004CB0004CB0004CB0004 /* ClinicalBaselineTests.swift in Sources */,
+				RL0004RL0004RL0004RL0004 /* RapidLossTripwireTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

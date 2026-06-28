@@ -639,6 +639,11 @@ struct AnalyticsView: View {
     @State private var sectionOffset: [CGFloat] = [20, 20, 20, 20, 20, 20]
     @State private var hasAnimated = false
     @State private var showLogWeight = false
+    /// Medical-grade Phase 1a — rapid-loss care sheet. Presented after
+    /// a weight log when the RapidLossTripwire fires (>1%/wk). Care-framed,
+    /// cream background, no red. Gated on `rapid_loss_guard_enabled`.
+    @State private var showRapidLossCareSheet = false
+    @State private var rapidLossCareMsg: String? = nil
 
     /// v1.0.7 Becoming compaction — "more depth ↗" sheet presents
     /// barriers + plank curve + sessions log + activity calendar
@@ -1049,6 +1054,19 @@ struct AnalyticsView: View {
             MetricExplainerSheet(metric: metric, onClose: { presentedMetric = nil })
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
+        }
+        // Medical-grade Phase 1a — rapid-loss care sheet. Shown after a
+        // weight log when RapidLossTripwire fires. Deferred 400 ms so the
+        // weight-log sheet can fully dismiss before this one appears.
+        // Cream background, no red — care-framed per anti-shame voice.
+        .sheet(isPresented: $showRapidLossCareSheet) {
+            RapidLossCareSheet(
+                message: rapidLossCareMsg ?? "",
+                onClose: { showRapidLossCareSheet = false }
+            )
+            .presentationDetents([.fraction(0.45)])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Palette.bgPrimary)
         }
     }
 
@@ -4212,6 +4230,7 @@ struct AnalyticsView: View {
             // weight-card embed + Home's TrendHeroCard rerender on
             // the same write.
             NotificationCenter.default.post(name: .weightLogDidChange, object: nil)
+            checkRapidLossTripwire(kg: kg)
             return
         }
 
@@ -4227,6 +4246,34 @@ struct AnalyticsView: View {
         refreshTrendChartLogs()
         weightChartVersion &+= 1
         NotificationCenter.default.post(name: .weightLogDidChange, object: nil)
+        checkRapidLossTripwire(kg: kg)
+    }
+
+    /// Medical-grade Phase 1a — rapid-loss safety tripwire check. Runs after
+    /// every manual weight log (both update-in-place and new-insert paths).
+    /// Uses `WeightAnalytics.weeklyLossRate` (21-day window, ≥7-day span,
+    /// ≥2 logs) which returns a POSITIVE fraction when losing — the same sign
+    /// the tripwire expects after multiplying by body weight to get kg/wk.
+    /// Deferred 400 ms so the weight-log sheet can fully dismiss first.
+    /// Gated on `rapid_loss_guard_enabled` + `!hideWeightStats`.
+    private func checkRapidLossTripwire(kg: Double) {
+        guard rapidLossGuardEnabled, !hideWeightStats else { return }
+        // Capture the current @Query result before the async gap.
+        // weeklyLossRate requires ≥2 logs with ≥7-day span; returns nil
+        // when there isn't enough history, so fresh users are always safe.
+        let logsSnapshot = weightLogs
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard let rate = WeightAnalytics.weeklyLossRate(logs: logsSnapshot), rate > 0 else { return }
+            // rate is a fraction (e.g. 0.015 = 1.5%/wk); multiply by current
+            // body weight to get the kg/wk value the tripwire expects.
+            let trendKgPerWeek = rate * kg
+            let res = RapidLossTripwire.evaluate(trendKgPerWeek: trendKgPerWeek, currentWeightKg: kg)
+            if res.isTooFast, let msg = res.careMessage {
+                rapidLossCareMsg = msg
+                showRapidLossCareSheet = true
+            }
+        }
     }
 
     // MARK: - Activity Calendar (bento chrome + scrubbable)
@@ -4703,5 +4750,44 @@ struct AnalyticsView: View {
         let seconds = Int(time) % 60
         if minutes > 0 { return "\(minutes)m \(seconds)s" }
         return "\(seconds)s"
+    }
+}
+
+// MARK: - RapidLossCareSheet
+
+/// Medical-grade Phase 1a — care-framed check-in shown after a weight log when
+/// the user is losing faster than the 1%/wk safe ceiling. Cream background,
+/// no red, heart accent — anti-shame per the JeniFit voice.
+private struct RapidLossCareSheet: View {
+    let message: String
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(spacing: Space.lg) {
+            ZStack {
+                Circle()
+                    .fill(Palette.accentSubtle)
+                    .frame(width: 64, height: 64)
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(Palette.accent)
+            }
+            .accessibilityHidden(true)
+            .padding(.top, 52)
+
+            Text(message)
+                .font(Typo.body)
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Space.xl)
+
+            Spacer()
+
+            JFContinueButton(label: "got it", action: onClose)
+                .padding(.horizontal, Space.lg)
+                .padding(.bottom, Space.lg)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Palette.bgPrimary)
     }
 }
