@@ -3152,6 +3152,13 @@ private struct ArrivalHeroPreviewHarness: View {
                         Text("you're showing up")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
+                        Spacer()
+                        // Right micro-stat: week number balances the masthead row.
+                        // Seed day = 4 → WEEK 1. Kept in sync with PlanView edit.
+                        Text("WEEK 1")
+                            .font(Typo.captionTracked)
+                            .kerning(1.98)
+                            .foregroundStyle(Palette.cocoaTertiary)
                     }
                     .padding(.top, 10)
                 }
