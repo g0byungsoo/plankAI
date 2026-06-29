@@ -1373,9 +1373,18 @@ private struct AssessmentPresentation: View {
             // reflection beat.
             GrainfieldBackground()
 
+            // VStack pattern: ScrollView is explicitly constrained to the space
+            // above the docked CTA. GrainfieldBackground().ignoresSafeArea() inside
+            // this ZStack makes .safeAreaInset propagation unreliable (the button
+            // lands mid-screen rather than at the safe-area edge). The proven fix
+            // used by PacePickerPresentation / FirstWeekPresentation is a VStack
+            // that partitions scroll zone vs button band with no ambiguity.
+            VStack(spacing: 0) {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Spacer().frame(height: Space.hero)
+                    // Top inset: 16pt (Space.md). Tight but clean - reclaims
+                    // vertical space so the full composition fits above the CTA.
+                    Spacer().frame(height: Space.md)
 
                     // ZONE 1 - statement: headline + arrival date as serif display
                     VStack(alignment: .leading, spacing: Space.xs) {
@@ -1411,33 +1420,31 @@ private struct AssessmentPresentation: View {
 
                     Spacer().frame(height: Space.md)
 
-                    // ZONE 2 - arc hero. Grown to 200pt so the curve
-                    // climbs across the vertical center and owns the screen.
+                    // ZONE 2 - arc hero. 150pt: confident reading arc that
+                    // coexists with the full data zone + ledger in one screen.
+                    // LabReadoutBlock rowSpacing tightened (see below) recovers
+                    // ~100pt; arc at 150pt stays in the premium hero register.
                     // 24pt side insets span nearly full content width.
-                    // Sticker moved off the endpoint - relocated above data block
-                    // so it no longer collides with the arrival axis label.
                     ArcSparkline(
                         animate: arcAnimate,
                         startLabel: "today",
                         endpointLabel: arrivalDateText
                     )
-                    .frame(height: 200)
+                    .frame(height: 150)
                     .padding(.horizontal, 24)
 
-                    Spacer().frame(height: Space.sm)
-
-                    // Sticker: calmer placement - lone warmth note above
-                    // the lab readout, right-aligned, small (72pt diameter).
-                    // Single cluster only per the earned-moment rule.
+                    // Sticker: no extra gap above - the arc's own top-right
+                    // endpoint sits close enough; cluster reads as earned by the arc.
+                    // Reduced to 60pt diameter - still earns its moment, no bulk.
                     EarnedStickerCluster(
                         animate: stickerAnimate,
                         stickers: [.flower3D, .heartGlossy, .sparkleGlossy],
-                        diameter: 72
+                        diameter: 60
                     )
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .padding(.trailing, Space.lg)
 
-                    Spacer().frame(height: Space.sm)
+                    Spacer().frame(height: Space.xs)
 
                     // ZONE 3 - data: calm lab readout + compact 2-line caption.
                     //
@@ -1445,11 +1452,15 @@ private struct AssessmentPresentation: View {
                     // Provenance + credibility tuck tightly under the readout
                     // in caption register - not floating as standalone body text.
                     VStack(alignment: .leading, spacing: Space.sm) {
+                        // rowSpacing: 6 - tightened from default 14 so 3 rows
+                        // cost ~120pt instead of ~165pt. Still reads as premium;
+                        // the negative-space signal is the surrounding whitespace,
+                        // not the intra-row padding.
                         LabReadoutBlock(rows: [
                             .init(label: "pace",     value: "\(lossRatePctText)%/wk"),
                             .init(label: "arrival",  value: "~\(arrivalDateText)"),
                             .init(label: "approach", value: "conservative"),
-                        ])
+                        ], rowSpacing: 6)
 
                         // Compact caption tucked tight under the readout.
                         // Caption register (13pt) keeps these as annotation,
@@ -1480,10 +1491,10 @@ private struct AssessmentPresentation: View {
                     .offset(y: reduceMotion ? 0 : (dataBlockVisible ? 0 : 8))
                     .animation(Motion.entrance, value: dataBlockVisible)
 
-                    Spacer().frame(height: Space.lg)
+                    Spacer().frame(height: Space.sm)
 
                     // PROGRESS LEDGER - grounds the lower third.
-                    // 3 hairline rows fill the dead cream above the CTA and
+                    // 3 hairline rows fill the cream above the CTA and
                     // preview the journey: done / set / next. Heart glyph uses
                     // text-presentation selector so it renders in dusty-rose,
                     // not emoji red. Eye travels: arc -> data -> ledger -> CTA.
@@ -1492,16 +1503,23 @@ private struct AssessmentPresentation: View {
                         .opacity(footerVisible ? 1 : 0)
                         .animation(Motion.entranceSoft, value: footerVisible)
 
-                    Spacer().frame(height: Space.lg)
+                    Spacer().frame(height: Space.md)
                 }
             }
-        }
-        .safeAreaInset(edge: .bottom) {
+
+            // Docked CTA - cream band ensures no content bleeds behind button.
+            // VStack cleanly partitions the scroll zone from the button zone;
+            // GrainfieldBackground().ignoresSafeArea() inside the ZStack makes
+            // safeAreaInset propagation unreliable (button lands mid-screen).
+            // Pattern matches PacePickerPresentation / FirstWeekPresentation.
             JFContinueButton(label: "continue", action: onContinue)
                 .padding(.horizontal, Space.lg)
-                .padding(.bottom, Space.md)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+                .background(Palette.bgPrimary)
                 .opacity(ctaVisible ? 1 : 0)
                 .animation(Motion.entranceSoft, value: ctaVisible)
+            } // VStack
         }
         .task {
             // Warm the haptic engine on appear so the first play has no latency.
@@ -1551,6 +1569,8 @@ private struct AssessmentPresentation: View {
     // your pace   -> set
     // your promise -> next  (previews the next beat in the reveal)
     private var progressLedger: some View {
+        // rowSpacing: 6 - caption-size rows are already compact; 6pt
+        // vertical padding keeps them airy without adding bulk.
         LabReadoutBlock(rows: [
             .init(
                 label: "assessment",
@@ -1569,7 +1589,7 @@ private struct AssessmentPresentation: View {
                 valueColor: Palette.cocoaTertiary,
                 valueFont: Typo.caption
             ),
-        ])
+        ], rowSpacing: 6)
     }
 }
 
