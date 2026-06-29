@@ -95,15 +95,19 @@ public final class UserRecord {
     //
     // computedStartBMI: BMI at onboarding completion, derived from
     //   onboardingCurrentWeightKg + onboardingHeightCm via ClinicalBaseline.bmi().
-    //   Auditable provenance: the persisted number always traces to a collected
-    //   field (data provenance rule, see docs/STATE.md).
+    //   Persisted locally; NOT yet included in the Supabase upsert payload
+    //   (follow-up to wire sync).
     //
-    // targetRatePctPerWeek: loss-rate floor × 100 from
+    // targetRatePctPerWeek: loss-rate floor x 100 from
     //   ProgramGoalCalculator.Window.lossRateFloor, which already encodes the
     //   GLP-1 / perimenopause / short-sleep cohort adjustments at onboarding.
+    //   Persisted locally; NOT yet included in the Supabase upsert payload
+    //   (follow-up to wire sync).
     //
     // medicalDisclaimerAckAt: set by the disclaimer acknowledgment screen
     //   (Task 8). Left nil here; nil = user has not yet seen / acked the screen.
+    //   Persisted locally; NOT yet included in the Supabase upsert payload
+    //   (follow-up to wire sync).
     public var computedStartBMI: Double?
     public var targetRatePctPerWeek: Double?
     public var medicalDisclaimerAckAt: Date?
@@ -115,6 +119,8 @@ public final class UserRecord {
     //   Consumed by Task 9 (home hero) and Task 10 (kept-promise win card).
     //   Default 0; non-optional with default is migration-safe for SwiftData
     //   lightweight migration - existing rows read 0 until first increment.
+    //   Persisted locally; NOT yet included in the Supabase upsert payload
+    //   (follow-up to wire sync).
     public var promisesKept: Int = 0
 
     /// Set true by any client-side write (settings edits, onboarding-complete)

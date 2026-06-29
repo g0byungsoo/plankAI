@@ -749,6 +749,14 @@ enum RetentionNotifications {
     /// `markSessionCompleted` the moment the user acts.
     private static func scheduleDay1Morning(now: Date, engaged: Bool) {
         let d = UserDefaults.standard
+        // Fix 2 (2026-06-28): suppress the Day-1 morning push when the user
+        // has set a day1_promise via the commitment ritual. The promise IS the
+        // Day-1 nudge - scheduling both would double-ping the same D1 slot.
+        // Stamp done so reschedule() and markSessionCompleted don't retry.
+        guard (d.string(forKey: "day1PromiseTimeISO") ?? "").isEmpty else {
+            d.set(true, forKey: Key.day1MorningDone)
+            return
+        }
         guard let firstSeen = firstSeenAt() else { return }
 
         let cal = Calendar.current

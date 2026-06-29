@@ -1310,15 +1310,16 @@ private struct AssessmentPresentation: View {
     }
 
     /// Arrival date in "MMM d" format. Matches GoalDateReveal's date via the
-    /// same ProjectionMath route (picked pace key). Falls back to "ahead"
-    /// if inputs can't produce a projection (maintenance case).
+    /// same ProjectionMath route (picked pace key). Falls back to "soon"
+    /// if inputs can't produce a projection (maintenance case), so the
+    /// rendered text reads "arrival ~soon" rather than "arrival ~ahead".
     private var arrivalDateText: String {
         let paceKey = UserDefaults.standard.string(forKey: ProjectionMath.paceDefaultsKey)
         return ProjectionMath.formattedShortDate(
             currentKg: currentWeightKg,
             goalKg: goalWeightKg,
             paceKey: paceKey
-        ) ?? "ahead"
+        ) ?? "soon"
     }
 
     /// One-line provenance explanation tied to the cohort flag that changed

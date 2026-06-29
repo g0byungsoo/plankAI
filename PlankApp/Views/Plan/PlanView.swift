@@ -728,7 +728,7 @@ struct PlanView: View {
                     .foregroundStyle(Palette.textPrimary)
 
                 Text(HabitProgress.weeklyStatus(
-                    actionsThisWeek: actionsThisWeek,
+                    actionsThisWeek: min(actionsThisWeek, profile.sessionsPerWeek),
                     target: profile.sessionsPerWeek
                 ))
                 .font(Typo.caption)
