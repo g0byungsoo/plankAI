@@ -2517,7 +2517,11 @@ private struct RootView: View {
                             // first-class — don't double-emit here.
                         }
                         .sheet(isPresented: Binding(
-                            get: { trialNudge.pending != nil },
+                            // v1.1.3 pay-upfront: trial modals permanently
+                            // gated off. No intro offer ships; these sheets
+                            // are preserved for re-enable when a trial
+                            // is re-introduced in a future version.
+                            get: { false },
                             set: { if !$0 { trialNudge.clearPending() } }
                         )) {
                             // Sprint A 2026-06-15 — in-app trial nudges.

@@ -352,18 +352,6 @@ struct PaywallView: View {
         return "$47.99/year"
     }
 
-    /// v1.1.1 (2026-06-19) — localized renewal-amount text used in
-    /// the day-3 trial-end timeline row. Mirrors `yearlyPriceText`
-    /// but in the "$XX.XX/yr" short form that fits the line. Falls
-    /// back to the US mock when no package is loaded so the row
-    /// always reads complete (never " trial ends · /yr").
-    private var trialEndChargeText: String {
-        if !debugMockPricing, let pkg = yearlyPackage {
-            return "\(pkg.storeProduct.localizedPriceString)/yr"
-        }
-        return "$47.99/yr"
-    }
-
     /// 2026-05-30 (epic #1 child #3): quarterly tier display strings.
     /// Mirrors the yearly pattern. Apple 2026 compliance: subtitle
     /// shows the actual amount charged in the period it's charged for,
@@ -429,18 +417,6 @@ struct PaywallView: View {
     /// install-to-trial) and the Apple Guideline 3.1.2 safe option (no
     /// button-text mismatches with the actual transaction).
     private var ctaLabel: String { "continue" }
-
-    /// Literal charge date for the yearly trial — "may 28" style. Three
-    /// days from today per the locked 3-day trial. Lowercased to match
-    /// brand voice. Removes the "when am i charged?" friction that
-    /// Cal AI + Blinkist documented as the highest-impact disclosure
-    /// move (Superwall case study: +30% trial-to-paid).
-    private var chargeDateText: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
-        let charge = Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date()
-        return formatter.string(from: charge).lowercased()
-    }
 
     // MARK: Body
 
@@ -732,10 +708,6 @@ struct PaywallView: View {
                         .font(.system(size: 10))
                         .foregroundStyle(Palette.textSecondary)
                     Spacer(minLength: 4)
-                    Text("3-day free trial ♥")
-                        .font(.system(size: 9))
-                        .foregroundStyle(Palette.textSecondary)
-                        .multilineTextAlignment(.center)
                     Spacer().frame(height: 10)
                 }
                 .frame(width: 104, height: 135)
@@ -920,71 +892,33 @@ struct PaywallView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// Slot 5 — trial timeline (annual selected) or plan recap (other
-    /// tiers). 88pt when trial visible, 36pt when collapsed. Apple-endorsed
-    /// transparency pattern (kills "when am I charged?" anxiety — Cal AI
-    /// +30% trial-to-paid per Superwall case study).
+    /// Slot 5 — pay-upfront reassurance (annual selected) or plan recap
+    /// (other tiers). v1.1.3: replaced the 3-day trial timeline with a
+    /// calm billing-today disclosure. No trial exists; charge is immediate.
     @ViewBuilder
     private var trialOrPlanRecap: some View {
         if selectedPlan == .yearly {
-            expandedTrialTimeline
+            payUpfrontReassurance
         } else {
             planRecapLine
         }
     }
 
-    private var expandedTrialTimeline: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Delta v8 D80 — "no payment due now" trust chip per Cal AI
-            // verbatim adoption (calai43). Per the monetization brief +
-            // culture brief, this is the strongest single trial-trust
-            // copy in the category. Sits above the 3-row timeline.
-            HStack(spacing: 6) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Palette.accent)
-                Text("no payment due now ♥")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Palette.textPrimary)
-            }
-            .padding(.bottom, 2)
-
-            timelineLineRow(filled: true,
-                            label: "today",
-                            text: "unlock your becoming plan")
-            timelineLineRow(filled: false,
-                            label: "day 2",
-                            text: "we'll remind you before anything changes")
-            // v1.1.1 (2026-06-19) — pull the actual localized renewal
-            // amount from the RC package instead of hardcoding $47.99.
-            // Cal AI was pulled under Apple Guideline 3.1.2(a) for
-            // displaying a US-formatted renewal amount that didn't
-            // match the user's localized charge. The other paywall
-            // prices already derive from `localizedPriceString`; this
-            // copy was the only one that hard-coded.
-            timelineLineRow(filled: false,
-                            label: "day 3",
-                            text: "trial ends · \(trialEndChargeText) or cancel anytime")
-        }
-        .padding(.vertical, 2)
-    }
-
-    private func timelineLineRow(filled: Bool, label: String, text: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Circle()
-                .fill(filled ? Palette.accent : Palette.accent.opacity(0.3))
-                .frame(width: 6, height: 6)
-                .offset(y: 1)
-            Text(label)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+    // v1.1.3 pay-upfront reassurance — replaces the trial timeline.
+    // No "trial", no "day 2/3" copy. Billed today, cancel anytime.
+    private var payUpfrontReassurance: some View {
+        VStack(spacing: 8) {
+            Text("billed today \u{00B7} cancel anytime")
+                .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(Palette.textSecondary)
-                .frame(width: 42, alignment: .leading)
-            Text(text)
-                .font(.system(size: 12))
-                .foregroundStyle(Palette.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
+                .tracking(0.5)
+            Text("not sure? we offer a money-back guarantee \u{2665}\u{FE0E}")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundStyle(Palette.textSecondary.opacity(0.7))
+                .tracking(0.3)
         }
+        .multilineTextAlignment(.center)
+        .padding(.vertical, 8)
     }
 
     private var planRecapLine: some View {
@@ -1336,7 +1270,7 @@ struct PaywallView: View {
             } else {
                 restoreAlert = RestoreAlert(
                     title: "No active subscription found",
-                    message: "Sign in to the Apple ID with your purchase, or start a free trial to continue."
+                    message: "Sign in to the Apple ID with your purchase to restore."
                 )
             }
         } catch {

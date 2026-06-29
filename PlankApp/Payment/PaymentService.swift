@@ -353,7 +353,11 @@ final class PaymentService {
         lastScheduledTrialEnd = trialEndDate
 
         if let trialEndDate {
-            await TrialEndNotificationService.shared.scheduleIfNeeded(trialEndDate: trialEndDate)
+            // v1.1.3 pay-upfront: no intro offer ships; trial-end push
+            // is disabled app-wide. Left in place for easy re-enable
+            // when/if a trial is re-introduced.
+            // await TrialEndNotificationService.shared.scheduleIfNeeded(trialEndDate: trialEndDate)
+            _ = trialEndDate  // silence unused-var warning
         } else {
             await TrialEndNotificationService.shared.cancelTrialEndReminder()
             // v2 (2026-06-16): trial→paid transition detection. When
