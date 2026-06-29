@@ -629,7 +629,7 @@ struct PlankAIApp: App {
                         debugStartAtAssessment: true
                     )
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-commitment") {
-                    // Task 7 (2026-06-28) — commitment ritual screen.
+                    // Task 7 (2026-06-28) - commitment ritual screen.
                     // Jumps straight to CommitmentRitualPresentation so
                     // simctl can screenshot it without running the full
                     // building loader. GLP-1 variant via simctl defaults:

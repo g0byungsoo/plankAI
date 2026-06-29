@@ -82,7 +82,7 @@ struct OnboardingRevealView: View {
         case assessment
         case firstWeek
         case permissions
-        // Task 7 (2026-06-28) — commitment ritual. The LAST
+        // Task 7 (2026-06-28) - commitment ritual. The LAST
         // pre-paywall screen: one small promise the user makes for
         // tomorrow, in her own words, which schedules a Day-1 nudge.
         // Replaces the now-dead TrialPromisePresentation (no-trial
@@ -1469,7 +1469,7 @@ private struct CommitmentRitualPresentation: View {
     @AppStorage("onboardingSleepHours")   private var sleepHours: String = ""
     @AppStorage("userName")              private var userName: String = ""
 
-    // Persisted outputs — consumed by Task 10 Day-1 surfacing
+    // Persisted outputs - consumed by Task 10 Day-1 surfacing
     @AppStorage("day1PromiseAction")  private var storedAction: String = ""
     @AppStorage("day1PromiseAnchor")  private var storedAnchor: String = ""
     @AppStorage("day1PromiseTimeISO") private var storedTimeISO: String = ""
@@ -1545,7 +1545,7 @@ private struct CommitmentRitualPresentation: View {
             VStack(alignment: .leading, spacing: 0) {
                 Spacer().frame(height: Space.xl + Space.lg)
 
-                // Hero — JeniHeroSerif, italic punch on "promise"
+                // Hero - JeniHeroSerif, italic punch on "promise"
                 ItalicAccentText(
                     "before the plan, one promise.",
                     italic: ["promise"],
@@ -1564,7 +1564,7 @@ private struct CommitmentRitualPresentation: View {
 
                 Spacer().frame(height: Space.xl)
 
-                // Chip groups — confirm defaults, don't fill a form
+                // Chip groups - confirm defaults, don't fill a form
                 VStack(alignment: .leading, spacing: Space.lg) {
                     chipGroup(label: "when", chips: anchorChips, selected: $selectedAnchor)
                     chipGroup(label: "what", chips: actionChips, selected: $selectedAction)
@@ -1577,7 +1577,7 @@ private struct CommitmentRitualPresentation: View {
 
                 Spacer().frame(height: Space.xl)
 
-                // Replay-as-promise line — live update in JeniHeroSerif
+                // Replay-as-promise line - live update in JeniHeroSerif
                 ItalicAccentText(
                     replayLine,
                     italic: replayItalicWords,
@@ -1678,8 +1678,11 @@ private struct CommitmentRitualPresentation: View {
         // Soft haptic on confirm (UIImpactFeedbackGenerator style .soft)
         Haptics.soft()
 
+        // GLP-1 current: effective action matches the on-screen replay.
+        let effectiveAction = (glp1Status == "current") ? "protect your muscle" : selectedAction
+
         // Persist the three AppStorage outputs
-        storedAction = selectedAction
+        storedAction = effectiveAction
         storedAnchor = selectedAnchor
 
         let chosenDate = tomorrowDate(forTimeChip: selectedTime)
@@ -1689,7 +1692,7 @@ private struct CommitmentRitualPresentation: View {
         // Always build the body (uses her own words); only schedule when
         // the OS will actually deliver it (authorized/provisional).
         let body = NotificationPermission.day1PromiseBody(
-            action: selectedAction,
+            action: effectiveAction,
             anchor: selectedAnchor,
             userName: userName.isEmpty ? nil : userName
         )
