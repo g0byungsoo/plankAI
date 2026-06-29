@@ -743,6 +743,8 @@ struct PlanView: View {
 
                 // Habit signal: ticks are the X-of-Y, label is the voice frame.
                 // Never red, never a countdown, never the word "behind".
+                // Right micro-stat ("WEEK n") balances the hairline masthead;
+                // derived from programDay so it's always real data.
                 HStack(alignment: .center, spacing: 12) {
                     TickRow(
                         filled: filled,
@@ -753,6 +755,13 @@ struct PlanView: View {
                     Text("you're showing up")
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
+                    Spacer()
+                    if let day = schedule?.programDay {
+                        Text("WEEK \(((day - 1) / 7) + 1)")
+                            .font(Typo.captionTracked)
+                            .kerning(1.98)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                    }
                 }
                 .padding(.top, 10)
             }
