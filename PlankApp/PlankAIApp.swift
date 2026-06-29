@@ -672,6 +672,23 @@ struct PlankAIApp: App {
                         onRevealComplete: {},
                         debugStartAtCommitment: true
                     )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-disclaimer") {
+                    // Medical disclaimer trust screen (Task 8). Jumps straight
+                    // to DisclaimerPresentation so it can be screenshot-ed
+                    // without running the full building loader. The screen is
+                    // the default production start so this harness is mainly
+                    // useful for CI screenshots and design review.
+                    // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-disclaimer`
+                    OnboardingRevealView(
+                        bodyFocus: ["flatBelly"],
+                        sessionLengthKey: "ten",
+                        voicePreference: "encouraging",
+                        commitmentDaysKey: "five",
+                        currentWeightKg: 75,
+                        goalWeightKg: 65,
+                        onRevealComplete: {},
+                        debugStartAtDisclaimer: true
+                    )
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-first-week") {
                     // Jumps straight to the firstWeek reveal beat (skips
                     // the building loader + its ATT modal). Tier reads
@@ -2860,8 +2877,18 @@ private struct RootView: View {
 
             // Phase 1a - clinical baseline. Computed here so the persisted
             // numbers trace directly to the collected fields (provenance rule).
-            // medicalDisclaimerAckAt is declared on UserRecord but intentionally
-            // left nil - Task 8 adds the disclaimer screen that sets it.
+            //
+            // Medical disclaimer acknowledgment. The disclaimer screen (Task 8)
+            // writes an ISO8601 timestamp to AppStorage("medicalDisclaimerAckAtISO")
+            // before calling onRevealComplete(). We read it back here and set
+            // it on the UserRecord so it syncs to Supabase alongside the other
+            // onboarding fields. Left nil for existing users who onboarded
+            // before the disclaimer screen shipped.
+            let ackISOString = UserDefaults.standard.string(forKey: "medicalDisclaimerAckAtISO") ?? ""
+            if !ackISOString.isEmpty,
+               let ackDate = ISO8601DateFormatter().date(from: ackISOString) {
+                record.medicalDisclaimerAckAt = ackDate
+            }
             let cgInputs = ProgramGoalCalculator.Inputs(
                 currentWeightKg:  data.currentWeightKg,
                 goalWeightKg:     data.goalWeightKg,

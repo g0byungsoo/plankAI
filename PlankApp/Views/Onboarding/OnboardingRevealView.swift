@@ -48,7 +48,8 @@ struct OnboardingRevealView: View {
         onRevealComplete: @escaping () -> Void,
         debugStartAtFirstWeek: Bool = false,
         debugStartAtAssessment: Bool = false,
-        debugStartAtCommitment: Bool = false
+        debugStartAtCommitment: Bool = false,
+        debugStartAtDisclaimer: Bool = false
     ) {
         self.bodyFocus = bodyFocus
         self.sessionLengthKey = sessionLengthKey
@@ -57,14 +58,21 @@ struct OnboardingRevealView: View {
         self.currentWeightKg = currentWeightKg
         self.goalWeightKg = goalWeightKg
         self.onRevealComplete = onRevealComplete
-        // DEBUG harness can jump straight to the first-week beat so the
-        // screen is screenshot-able without the building loader (and its
-        // ATT modal / manual "see your plan" tap). Production always
-        // starts at .building.
-        self._step = State(initialValue: debugStartAtCommitment ? .commitment : debugStartAtAssessment ? .assessment : debugStartAtFirstWeek ? .firstWeek : .building)
+        // DEBUG harnesses can jump straight to a specific beat so the
+        // screen is screenshot-able without the full reveal sequence.
+        // Production always starts at .disclaimer (the medical trust gate).
+        self._step = State(initialValue:
+            debugStartAtDisclaimer ? .disclaimer :
+            debugStartAtCommitment ? .commitment :
+            debugStartAtAssessment ? .assessment :
+            debugStartAtFirstWeek  ? .firstWeek  : .disclaimer)
     }
 
     private enum Step: Int {
+        // Medical trust gate - always the FIRST screen. Writes
+        // medicalDisclaimerAckAtISO to AppStorage on acknowledgment;
+        // handleOnboardingComplete reads it back to persist on UserRecord.
+        case disclaimer
         case building
         case projection
         // v9 P9.1/P9.2 (her75 onboarding restructure): the user holds
@@ -100,6 +108,11 @@ struct OnboardingRevealView: View {
     var body: some View {
         ZStack {
             switch step {
+            case .disclaimer:
+                DisclaimerPresentation(
+                    onContinue: { withAnimation(Motion.crossFade) { step = .building } }
+                )
+                .transition(.opacity)
             case .building:
                 BuildingPlanLoadingView(
                     bodyFocus: bodyFocus,
@@ -163,6 +176,213 @@ struct OnboardingRevealView: View {
         withAnimation(Motion.crossFade) {
             step = hasProjection ? .projection : .firstWeek
         }
+    }
+}
+
+// MARK: - DisclaimerPresentation
+//
+// Medical trust gate - the FIRST screen every user sees in OnboardingRevealView.
+// Layout: GrainfieldBackground alive-cream surface with a staggered cascade:
+//   HEADLINE  - "first, a quick check." (JeniHeroSerif, italic punch on "quick")
+//   BODY      - 4 points separated by HairlineRules
+//   TRUST     - soft trust line + dusty-rose heart (text-presentation, NOT emoji red)
+//   CTA       - "i understand" docked below scroll zone
+//
+// On acknowledge: writes medicalDisclaimerAckAtISO to AppStorage (ISO8601 string)
+// and fires ActivationHaptics.shared.commit(). handleOnboardingComplete reads
+// this key back to persist on UserRecord.medicalDisclaimerAckAt.
+//
+// Hard constraints: no em-dashes, no red, no sticker scatter, reduce-motion safe,
+// content fits above docked button.
+
+private struct DisclaimerPresentation: View {
+    let onContinue: () -> Void
+
+    // AppStorage key that handleOnboardingComplete reads back to persist on
+    // UserRecord. Written on acknowledgment; left empty if user never taps.
+    @AppStorage("medicalDisclaimerAckAtISO") private var ackAtISO: String = ""
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    // Staggered cascade reveal states
+    @State private var headlineVisible  = false
+    @State private var point1Visible    = false
+    @State private var rule1Visible     = false
+    @State private var point2Visible    = false
+    @State private var rule2Visible     = false
+    @State private var point3Visible    = false
+    @State private var rule3Visible     = false
+    @State private var point4Visible    = false
+    @State private var trustVisible     = false
+    @State private var ctaVisible       = false
+
+    var body: some View {
+        ZStack {
+            // bgPrimary cream is the ONLY background per the locked color
+            // tokens. This screen is a trust + reflection beat; cream keeps
+            // it visually distinct from the pink projection steps.
+            GrainfieldBackground()
+
+            VStack(spacing: 0) {
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Spacer().frame(height: Space.hero)
+
+                        // Headline - her75 editorial register.
+                        // "quick" as the italic punch word: frames this as a
+                        // brief pause, not a barrier. Single-line composition
+                        // (6 words) so no 2-line split needed.
+                        ItalicAccentText(
+                            "first, a quick check.",
+                            italic: ["quick"],
+                            baseFont: Typo.heroHeadline,
+                            italicFont: Typo.heroHeadlineItalic,
+                            color: Palette.textPrimary,
+                            alignment: .leading
+                        )
+                        .kerning(-0.4)
+                        .lineSpacing(Typo.heroHeadlineLineGap)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, Space.screenPadding)
+                        .opacity(headlineVisible ? 1 : 0)
+                        .offset(y: reduceMotion ? 0 : (headlineVisible ? 0 : 10))
+                        .animation(Motion.entrance, value: headlineVisible)
+
+                        Spacer().frame(height: Space.section)
+
+                        // Body points + hairline separators. Each point and its
+                        // following rule fade in separately so the list assembles
+                        // rather than slamming in as a block.
+                        // No em-dashes anywhere; semicolons and periods only.
+                        VStack(alignment: .leading, spacing: 0) {
+                            pointRow("this builds a weight-loss plan; it is not medical advice.")
+                                .opacity(point1Visible ? 1 : 0)
+                                .offset(y: reduceMotion ? 0 : (point1Visible ? 0 : 6))
+                                .animation(Motion.entrance, value: point1Visible)
+
+                            HairlineRule()
+                                .opacity(rule1Visible ? 1 : 0)
+                                .animation(Motion.entranceSoft, value: rule1Visible)
+
+                            pointRow("not for use during pregnancy, or by anyone under 18.")
+                                .opacity(point2Visible ? 1 : 0)
+                                .offset(y: reduceMotion ? 0 : (point2Visible ? 0 : 6))
+                                .animation(Motion.entrance, value: point2Visible)
+
+                            HairlineRule()
+                                .opacity(rule2Visible ? 1 : 0)
+                                .animation(Motion.entranceSoft, value: rule2Visible)
+
+                            pointRow("if you have a medical condition or a history of disordered eating, please talk to your clinician first.")
+                                .opacity(point3Visible ? 1 : 0)
+                                .offset(y: reduceMotion ? 0 : (point3Visible ? 0 : 6))
+                                .animation(Motion.entrance, value: point3Visible)
+
+                            HairlineRule()
+                                .opacity(rule3Visible ? 1 : 0)
+                                .animation(Motion.entranceSoft, value: rule3Visible)
+
+                            pointRow("we use what you share to build and adjust your plan.")
+                                .opacity(point4Visible ? 1 : 0)
+                                .offset(y: reduceMotion ? 0 : (point4Visible ? 0 : 6))
+                                .animation(Motion.entrance, value: point4Visible)
+                        }
+                        .padding(.horizontal, Space.screenPadding)
+
+                        Spacer().frame(height: Space.lg)
+
+                        // Trust line. Heart uses text-presentation selector
+                        // (\u{FE0E}) so it renders in the dusty-rose tint,
+                        // NOT emoji red. Per the brand constraint.
+                        HStack(alignment: .top, spacing: Space.xs) {
+                            Text("we’d rather pace you slowly than promise something that won’t last.")
+                                .font(Typo.caption)
+                                .foregroundStyle(Palette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text("\u{2665}\u{FE0E}")
+                                .font(Typo.caption)
+                                // Dusty rose: muted pink, NOT emoji red.
+                                // Approximate rgb(191, 127, 140).
+                                .foregroundStyle(Color(red: 0.75, green: 0.50, blue: 0.55))
+                        }
+                        .padding(.horizontal, Space.screenPadding)
+                        .opacity(trustVisible ? 1 : 0)
+                        .animation(Motion.entranceSoft, value: trustVisible)
+
+                        Spacer().frame(height: Space.md)
+                    }
+                }
+
+                // Docked CTA band. bgPrimary background ensures no scroll
+                // content bleeds behind the button on short devices.
+                // VStack partition (scroll vs button) is the proven
+                // pattern across all reveal screens.
+                JFContinueButton(label: "i understand", action: acknowledge)
+                    .padding(.horizontal, Space.lg)
+                    .padding(.top, 8)
+                    .padding(.bottom, 24)
+                    .background(Palette.bgPrimary)
+                    .opacity(ctaVisible ? 1 : 0)
+                    .animation(Motion.entranceSoft, value: ctaVisible)
+            }
+        }
+        .task {
+            // Warm the haptic generator on appear so the first play
+            // has no latency.
+            ActivationHaptics.shared.prepare()
+
+            // Staggered cascade: headline -> point 1 -> rule -> point 2 ->
+            // rule -> point 3 -> rule -> point 4 -> trust line -> CTA.
+            // Reduce-motion: per-element animation gates make each element
+            // land with zero offset at its reveal time.
+            withAnimation(Motion.entrance) { headlineVisible = true }
+            try? await Task.sleep(nanoseconds: 380_000_000)
+
+            withAnimation(Motion.entrance) { point1Visible = true }
+            try? await Task.sleep(nanoseconds: 140_000_000)
+            withAnimation(Motion.entranceSoft) { rule1Visible = true }
+            try? await Task.sleep(nanoseconds: 160_000_000)
+
+            withAnimation(Motion.entrance) { point2Visible = true }
+            try? await Task.sleep(nanoseconds: 140_000_000)
+            withAnimation(Motion.entranceSoft) { rule2Visible = true }
+            try? await Task.sleep(nanoseconds: 160_000_000)
+
+            withAnimation(Motion.entrance) { point3Visible = true }
+            try? await Task.sleep(nanoseconds: 140_000_000)
+            withAnimation(Motion.entranceSoft) { rule3Visible = true }
+            try? await Task.sleep(nanoseconds: 160_000_000)
+
+            withAnimation(Motion.entrance) { point4Visible = true }
+            try? await Task.sleep(nanoseconds: 280_000_000)
+
+            withAnimation(Motion.entranceSoft) { trustVisible = true }
+            try? await Task.sleep(nanoseconds: 300_000_000)
+
+            withAnimation(Motion.entranceSoft) { ctaVisible = true }
+        }
+    }
+
+    // Point row: body-sized text with generous vertical padding so
+    // the hairline between rows has room to breathe. fixedSize ensures
+    // the text wraps correctly for the longer point 3 copy.
+    @ViewBuilder
+    private func pointRow(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 15))
+            .foregroundStyle(Palette.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.vertical, Space.md)
+    }
+
+    // Acknowledge: haptic fires BEFORE any state change so it lands while
+    // the user's finger is still in contact. AppStorage write creates the
+    // ISO timestamp; handleOnboardingComplete reads it back and sets
+    // UserRecord.medicalDisclaimerAckAt.
+    private func acknowledge() {
+        ActivationHaptics.shared.commit()
+        ackAtISO = ISO8601DateFormatter().string(from: Date())
+        onContinue()
     }
 }
 
