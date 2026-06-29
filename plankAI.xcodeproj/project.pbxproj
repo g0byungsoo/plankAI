@@ -364,6 +364,12 @@
 		5685AA8045173A336C31B2E4 /* prep_full_cat_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 42BE242118C0A1D20E6B819A /* prep_full_cat_stretch.m4a */; };
 		5694033794C4AE63A5A9A2A0 /* CoachNoteAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF876FAFBFE3340DD3BAA4E /* CoachNoteAPIClient.swift */; };
 		56EFEA7E17C81E481EF0F03D /* CreamPaperGrain.metal in Sources */ = {isa = PBXBuildFile; fileRef = 807AA8F70D293BBFDC9623DA /* CreamPaperGrain.metal */; };
+		6618B2C9AB164E9B815AA063 /* ActivationShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = DE6375B4FB5637C9D88DD53D /* ActivationShaders.metal */; };
+		7DB112035624B0E41ECC62DE /* GrainfieldBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE8AA85A857DE96EF9DA7399 /* GrainfieldBackground.swift */; };
+		6CEB58C8AA0B7B175EA0EA93 /* ArcSparkline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4996CE399B6643BD5C05CA4E /* ArcSparkline.swift */; };
+		F2015BA74D4F0ADD68E75FFC /* HairlineKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1031D85AB367F12408DBE09E /* HairlineKit.swift */; };
+		285A9C9648F3042091EAD831 /* ActivationHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FBA1BCDDDCF78DDD28763A0 /* ActivationHaptics.swift */; };
+		708E6AB0B4A54F5687C55723 /* EarnedStickerCluster.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E1C9F0F1F58AD7AAD0E4A0B /* EarnedStickerCluster.swift */; };
 		5745B4CED7D718175D39D12A /* matson_prep_full_windshield_wipers.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 534130352C84414D5CE4CE6B /* matson_prep_full_windshield_wipers.m4a */; };
 		5774EE1D0C2F3C74C3806E47 /* prep_short_downward_dog.m4a in Resources */ = {isa = PBXBuildFile; fileRef = C622589EAF4D625A74AA5887 /* prep_short_downward_dog.m4a */; };
 		57A912662AB3428F4DBF268A /* prep_full_back_extension_lying.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2AAB2B287953F690A026B72A /* prep_full_back_extension_lying.m4a */; };
@@ -1945,6 +1951,12 @@
 		803EF90782EA5740D0ECF91F /* prep_short_alt_leg_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_alt_leg_raise.m4a; sourceTree = "<group>"; };
 		805328D9C0410BE2E7881B96 /* prep_short_cat_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_cat_stretch.m4a; sourceTree = "<group>"; };
 		807AA8F70D293BBFDC9623DA /* CreamPaperGrain.metal */ = {isa = PBXFileReference; includeInIndex = 1; path = CreamPaperGrain.metal; sourceTree = "<group>"; };
+		DE6375B4FB5637C9D88DD53D /* ActivationShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = ActivationShaders.metal; sourceTree = "<group>"; };
+		FE8AA85A857DE96EF9DA7399 /* GrainfieldBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrainfieldBackground.swift; sourceTree = "<group>"; };
+		4996CE399B6643BD5C05CA4E /* ArcSparkline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArcSparkline.swift; sourceTree = "<group>"; };
+		1031D85AB367F12408DBE09E /* HairlineKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HairlineKit.swift; sourceTree = "<group>"; };
+		4FBA1BCDDDCF78DDD28763A0 /* ActivationHaptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivationHaptics.swift; sourceTree = "<group>"; };
+		3E1C9F0F1F58AD7AAD0E4A0B /* EarnedStickerCluster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarnedStickerCluster.swift; sourceTree = "<group>"; };
 		80D6D632E313700F3CEA044F /* matson_prep_full_standing_knee_hug.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_standing_knee_hug.m4a; sourceTree = "<group>"; };
 		81C94BFC30345B4CB9BBBFDE /* prep_short_butt_kicks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_butt_kicks.m4a; sourceTree = "<group>"; };
 		81D6B088477AAFF00A7CFB80 /* CoachNoteCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CoachNoteCard.swift; sourceTree = "<group>"; };
@@ -2895,6 +2907,27 @@
 			path = Components;
 			sourceTree = "<group>";
 		};
+		185F79D15AA3406D46FD54A7 /* Activation */ = {
+			isa = PBXGroup;
+			children = (
+				C1E4939B646C49B2F8A73EB1 /* Design */,
+			);
+			path = Activation;
+			sourceTree = "<group>";
+		};
+		C1E4939B646C49B2F8A73EB1 /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				DE6375B4FB5637C9D88DD53D /* ActivationShaders.metal */,
+				FE8AA85A857DE96EF9DA7399 /* GrainfieldBackground.swift */,
+				4996CE399B6643BD5C05CA4E /* ArcSparkline.swift */,
+				1031D85AB367F12408DBE09E /* HairlineKit.swift */,
+				4FBA1BCDDDCF78DDD28763A0 /* ActivationHaptics.swift */,
+				3E1C9F0F1F58AD7AAD0E4A0B /* EarnedStickerCluster.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
 		762134E428B1EE5079BBDF9C /* Shaders */ = {
 			isa = PBXGroup;
 			children = (
@@ -3046,6 +3079,7 @@
 				CC544885842CFEE972043CB4 /* Progress */,
 				809C3E2321123B2694BC26A9 /* Trial */,
 				B2683BFEB6CC544244C067F4 /* FoodResultExplosion.swift */,
+				185F79D15AA3406D46FD54A7 /* Activation */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -5896,6 +5930,12 @@
 				DB5AB35E43BC2CD9DA4CA89B /* LessonManifest.swift in Sources */,
 				0245FE9A4CAB08972F1190E2 /* CBTCurriculumScheduler.swift in Sources */,
 				56EFEA7E17C81E481EF0F03D /* CreamPaperGrain.metal in Sources */,
+				6618B2C9AB164E9B815AA063 /* ActivationShaders.metal in Sources */,
+				7DB112035624B0E41ECC62DE /* GrainfieldBackground.swift in Sources */,
+				6CEB58C8AA0B7B175EA0EA93 /* ArcSparkline.swift in Sources */,
+				F2015BA74D4F0ADD68E75FFC /* HairlineKit.swift in Sources */,
+				285A9C9648F3042091EAD831 /* ActivationHaptics.swift in Sources */,
+				708E6AB0B4A54F5687C55723 /* EarnedStickerCluster.swift in Sources */,
 				CE47903C905B16EE645AF180 /* InkBleedReveal.metal in Sources */,
 				C8EFED18F8E4F0C506C578C4 /* PaperCanvas.swift in Sources */,
 				9738DCC76ABF9EDD0C4A1F1D /* LessonReaderView.swift in Sources */,

@@ -632,6 +632,13 @@ struct PlankAIApp: App {
                     // PlanView renders the card immediately. Requires a real program
                     // plan to exist (run --uitest-inapp-qa to set one up first).
                     KeptPromisePreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-activation-gallery") {
+                    // Phase 1a (2026-06-28) - activation design foundation
+                    // gallery. Renders every reusable component (grainfield
+                    // background, arc sparkline, tick row, lab readout block,
+                    // earned sticker cluster) in one scroll so the premium
+                    // register can be iterated + screenshot without a screen.
+                    ActivationGalleryHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-assessment") {
                     // TEMPORARY debug harness - jumps straight to the
                     // AssessmentPresentation beat. Provenance line variant
@@ -3241,6 +3248,98 @@ private struct KeptPromisePreviewHarness: View {
                 Spacer()
             }
         }
+    }
+}
+
+// MARK: - ActivationGalleryHarness (DEBUG-only)
+//
+// One vertical gallery of the activation design foundation so each
+// reusable component can be eyeballed + screenshot in isolation.
+// Launch: `xcrun simctl launch booted com.bk.plankAI --debug-activation-gallery`
+private struct ActivationGalleryHarness: View {
+    @State private var animate = false
+
+    var body: some View {
+        ZStack {
+            // 1. The alive-surface background under everything.
+            GrainfieldBackground()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 40) {
+                    header
+
+                    section("arc sparkline") {
+                        ArcSparkline(animate: animate, startLabel: "today", endpointLabel: "arrival")
+                            .frame(height: 110)
+                    }
+
+                    section("tick row · 4 of 5") {
+                        TickRow(filled: 4, total: 5, animateFill: true, pulseLast: true)
+                    }
+
+                    section("lab readout block") {
+                        LabReadoutBlock(rows: [
+                            .init(label: "this week", value: "4 of 5"),
+                            .init(label: "since you started", value: "12 days"),
+                            .init(label: "next", value: "tomorrow"),
+                        ])
+                    }
+
+                    section("earned sticker cluster") {
+                        ZStack(alignment: .topLeading) {
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(Palette.bgElevated)
+                                .frame(height: 150)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                        .stroke(Palette.hairlineCocoa, lineWidth: 0.75)
+                                )
+                                .overlay(alignment: .bottomLeading) {
+                                    Text("a kept promise.")
+                                        .font(Typo.sectionTitle)
+                                        .foregroundStyle(Palette.textPrimary)
+                                        .padding(20)
+                                }
+                            EarnedStickerCluster(animate: animate)
+                                .frame(width: 116, height: 116)
+                                .offset(x: 8, y: 8)
+                        }
+                    }
+
+                    Spacer(minLength: 60)
+                }
+                .padding(28)
+                .padding(.top, 40)
+            }
+        }
+        .onAppear {
+            ActivationHaptics.shared.prepare()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { animate = true }
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("activation foundation")
+                .font(Typo.title)
+                .foregroundStyle(Palette.textPrimary)
+            Text("--debug-activation-gallery · phase 1a")
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(Palette.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func section<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(label.uppercased())
+                .font(Typo.statLabel)
+                .kerning(0.06 * 11)
+                .foregroundStyle(Palette.cocoaTertiary)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 #endif
