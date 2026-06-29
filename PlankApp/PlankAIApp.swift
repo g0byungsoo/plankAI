@@ -458,7 +458,7 @@ struct PlankAIApp: App {
                     StepsDetailDebugHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-screen") {
                     // v1.2 (2026-06-25) — medical-grade Phase 1: SCOFF screen.
-                    SCOFFScreenView(onComplete: { _ in })
+                    SCOFFScreenView(onComplete: { _, _ in })
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-recovery") {
                     // v1.2 (2026-06-25) — ED-positive gentle path + resources.
                     SafetyRecoveryView(onContinueGently: {})
@@ -472,6 +472,16 @@ struct PlankAIApp: App {
                     SafetyPregnancyView(onComplete: { _ in })
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-checkin") {
                     SafetyCheckInView(onFinish: {})
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-gate") {
+                    // T7 (2026-06-29) — the pre-paywall safety gate. Auto-
+                    // assesses from seeded AppStorage so each branch is one
+                    // launch + one screenshot. Seed then launch, e.g.:
+                    //   defaults write com.bk.plankAI onboarding_medication_status -string insulin_or_sulfonylurea
+                    //     → clinician-first terminal
+                    //   defaults write com.bk.plankAI safety_scoff_yes -int 3 (+ safety_scoff_core 3)
+                    //     → recovery terminal
+                    //   (clean defaults) → "safety passed" proceed marker
+                    SafetyGateDebugHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-protein-hero") {
                     // v1.2 (2026-06-26) — medical-grade Phase 2.3: cohort-aware
                     // protein floor + lean-mass framing (flag-gated). Left =

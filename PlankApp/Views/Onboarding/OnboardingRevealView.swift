@@ -50,7 +50,8 @@ struct OnboardingRevealView: View {
         debugStartAtProjection: Bool = false,
         debugStartAtCommitment: Bool = false,
         debugStartAtDisclaimer: Bool = false,
-        debugStartAtBuilding: Bool = false
+        debugStartAtBuilding: Bool = false,
+        debugStartAtSafety: Bool = false
     ) {
         self.bodyFocus = bodyFocus
         self.sessionLengthKey = sessionLengthKey
@@ -64,6 +65,7 @@ struct OnboardingRevealView: View {
         // Production always starts at .disclaimer (the medical trust gate).
         self._step = State(initialValue:
             debugStartAtBuilding   ? .building   :
+            debugStartAtSafety     ? .safety     :
             debugStartAtDisclaimer ? .disclaimer :
             debugStartAtCommitment ? .commitment :
             debugStartAtProjection ? .projection :
@@ -75,6 +77,14 @@ struct OnboardingRevealView: View {
         // medicalDisclaimerAckAtISO to AppStorage on acknowledgment;
         // handleOnboardingComplete reads it back to persist on UserRecord.
         case disclaimer
+        // Task 7 (2026-06-29) - safety gate, moved PRE-paywall. Runs the
+        // pregnancy + SCOFF + medication + BMI screen EXACTLY ONCE, right
+        // after the disclaimer and before the building loader, so a
+        // pregnant / under-18 / ED / insulin user is routed to a supportive
+        // dead-end BEFORE the hard paywall - never charge-then-reject
+        // (Apple 5.1.1 + refund + medical risk). The post-paywall
+        // ProgramSetupSubflow no longer screens (de-duplicated).
+        case safety
         case building
         // Task 5 (2026-06-29) - one projection reveal. The user picks
         // her pace, then sees the SINGLE projection climax recomputed at
@@ -110,7 +120,16 @@ struct OnboardingRevealView: View {
             switch step {
             case .disclaimer:
                 DisclaimerPresentation(
-                    onContinue: { withAnimation(Motion.crossFade) { step = .building } }
+                    onContinue: { withAnimation(Motion.crossFade) { step = .safety } }
+                )
+                .transition(.opacity)
+            case .safety:
+                // T7: the safety gate. onPassed (.loss / .maintenance /
+                // softConfirm) continues to the building loader; non-loss
+                // outcomes park on a supportive terminal INSIDE the gate
+                // (a dead-end that never reaches building / paywall / app).
+                SafetyGatePresentation(
+                    onPassed: { withAnimation(Motion.crossFade) { step = .building } }
                 )
                 .transition(.opacity)
             case .building:
@@ -170,6 +189,181 @@ struct OnboardingRevealView: View {
         }
     }
 }
+
+// MARK: - SafetyGatePresentation (Task 7)
+//
+// Pre-paywall safety gate. Sits in the reveal step machine right after the
+// disclaimer and before the building loader, so the SCOFF + pregnancy +
+// medication + BMI screen runs EXACTLY ONCE, BEFORE the hard paywall.
+//
+// Why pre-paywall: charging a user and THEN routing a pregnant / under-18 /
+// ED / insulin user to a "this isn't for you" terminal is a medical +
+// refund + App Review 5.1.1 risk. The disclaimer step already covers the
+// informed-consent beat (it writes medicalDisclaimerAckAtISO), so this gate
+// only needs the pregnancy + SCOFF collection screens; the medication
+// signal comes from the onboarding question (onboarding_medication_status,
+// Task 4).
+//
+// Branch contract (T7):
+//   .loss / .maintenance / softConfirm -> onPassed() -> continue to building
+//      (a pregnant/breastfeeding/ttc/low-BMI user proceeds to a
+//       maintenance-framed plan via program_mode = "maintenance"; no
+//       aggressive deficit copy).
+//   .recovery (ED)            -> SafetyRecoveryView(.eatingDisorder) DEAD-END
+//   .blocked (under 18)       -> SafetyRecoveryView(.underage)       DEAD-END
+//   .clinicianFirst (insulin) -> SafetyRecoveryView(.clinicianFirst) DEAD-END
+//
+// DEAD-END = a supportive screen whose CTA no-ops; it NEVER calls onPassed,
+// so a screened-out user never reaches the building loader, the paywall, or
+// any app content. This preserves the hard-paywall free-access invariant:
+// the terminals are pre-paywall exits, not app access.
+//
+// Writes safety_screen_completed = true on resolution so the post-enrollment
+// SafetyCheckInView (PlanView, legacy users) never re-prompts a user who
+// already passed this gate. The post-paywall ProgramSetupSubflow no longer
+// screens (de-duplicated in T7), so safetyAssessment runs once, here.
+
+struct SafetyGatePresentation: View {
+    let onPassed: () -> Void
+    /// DEBUG-only fast path: skip the pregnancy + SCOFF screens and assess
+    /// directly from seeded AppStorage so each branch is screenshot-able in
+    /// one launch (no taps). Production always runs the real screens.
+    var debugAutoAssess: Bool = false
+
+    @AppStorage("onboardingCurrentWeightKg")    private var currentWeightKg: Double = 65
+    @AppStorage("onboardingGoalWeightKg")       private var goalWeightKg: Double = 60
+    @AppStorage("onboardingHeightCm")           private var heightCm: Double = 0
+    @AppStorage("onboardingAgeRange")           private var ageRange: String = ""
+    @AppStorage("onboarding_medication_status") private var medicationStatus: String = ""
+    @AppStorage("onboarding_glp1_status")       private var glp1Status: String = ""
+    @AppStorage("onboarding_weight_trend")      private var weightTrend: String = ""
+
+    // Persisted safety outputs. pregnancyStatus + scoff counts are written
+    // by the collection screens here; safety_screen_completed + program_mode
+    // are read back downstream (PlanView legacy check-in, program build).
+    @AppStorage("safety_pregnancy_status")      private var pregnancyStatus: String = ""
+    @AppStorage("safety_scoff_yes")             private var scoffYes: Int = -1
+    @AppStorage("safety_scoff_core")            private var scoffCore: Int = -1
+    @AppStorage("safety_screen_completed")      private var safetyScreenCompleted: Bool = false
+    @AppStorage("program_mode")                 private var programMode: String = "loss"
+
+    @State private var phase: Phase = .pregnancy
+    private enum Phase: Equatable {
+        case pregnancy
+        case scoff
+        case terminal(SafetyTerminalVariant)
+    }
+
+    var body: some View {
+        Group {
+            switch phase {
+            case .pregnancy:
+                SafetyPregnancyView(onComplete: handlePregnancy)
+            case .scoff:
+                SCOFFScreenView(onComplete: handleScoff)
+            case .terminal(let variant):
+                // Dead-end. onContinueGently intentionally no-ops so the
+                // user stays on the supportive screen - no app access.
+                SafetyRecoveryView(variant: variant, onContinueGently: {})
+            }
+        }
+        .onAppear {
+            if debugAutoAssess { route(assess()) }
+        }
+    }
+
+    private func handlePregnancy(_ status: String) {
+        pregnancyStatus = status
+        withAnimation(Motion.crossFade) { phase = .scoff }
+    }
+
+    private func handleScoff(_ yes: Int, _ core: Int) {
+        scoffYes = yes
+        scoffCore = core
+        route(assess())
+    }
+
+    private func assess() -> ProgramGoalCalculator.SafetyAssessment {
+        ProgramGoalCalculator.safetyAssessment(.init(
+            currentWeightKg: currentWeightKg,
+            goalWeightKg: safeGoalWeightKg,
+            heightCm: heightCm,
+            ageRange: ageRange,
+            scoffYesCount: scoffYes,
+            pregnancyStatus: pregnancyStatus,
+            medicationKey: medicationStatus,
+            glp1StatusKey: glp1Status,
+            weightTrendKey: weightTrend,
+            scoffCoreYesCount: scoffCore
+        ))
+    }
+
+    /// Never assess against a goal below BMI 18.5 (matches the program
+    /// build's clamp). Height comes from onboarding; 0 = unknown (skip).
+    private var safeGoalWeightKg: Double {
+        guard heightCm > 0 else { return goalWeightKg }
+        return max(goalWeightKg, ProgramGoalCalculator.weightForBMI(18.5, heightCm: heightCm))
+    }
+
+    private func route(_ a: ProgramGoalCalculator.SafetyAssessment) {
+        programMode = a.mode.rawValue
+        safetyScreenCompleted = true
+        switch a.mode {
+        case .loss, .maintenance:
+            // The ONLY paths that pass the gate. .maintenance carries
+            // program_mode = "maintenance" so the build stays non-deficit;
+            // softConfirm (healthy BMI) is folded into .loss here and the
+            // program math softens it. Both continue to building -> paywall.
+            onPassed()
+        case .recovery:
+            withAnimation(Motion.crossFade) { phase = .terminal(.eatingDisorder) }
+        case .blocked:
+            withAnimation(Motion.crossFade) { phase = .terminal(.underage) }
+        case .clinicianFirst:
+            withAnimation(Motion.crossFade) { phase = .terminal(.clinicianFirst) }
+        }
+    }
+}
+
+#if DEBUG
+// Debug harness for `--debug-safety-gate`. Auto-assesses from seeded
+// AppStorage so each branch is one launch + one screenshot:
+//   insulin       -> clinician-first terminal (/tmp/t7_clinician.png)
+//   scoff >= 2    -> recovery terminal        (/tmp/t7_recovery.png)
+//   clean         -> "safety passed" proceed marker (/tmp/t7_loss.png)
+// The passed marker proves a clean user PROCEEDS toward the wall and does
+// NOT land on app content (no MainTabView).
+struct SafetyGateDebugHarness: View {
+    @State private var passed = false
+    var body: some View {
+        ZStack {
+            if passed {
+                ZStack {
+                    Palette.programBgPrimary.ignoresSafeArea()
+                    VStack(spacing: 14) {
+                        ItalicAccentText(
+                            "safety passed.",
+                            italic: ["passed"],
+                            baseFont: Typo.heroHeadline,
+                            italicFont: Typo.heroHeadlineItalic,
+                            color: Palette.textPrimary,
+                            alignment: .center
+                        )
+                        .fixedSize(horizontal: false, vertical: true)
+                        Text("continuing to build your plan, then the paywall.")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Palette.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, Space.lg)
+                }
+            } else {
+                SafetyGatePresentation(onPassed: { passed = true }, debugAutoAssess: true)
+            }
+        }
+    }
+}
+#endif
 
 // MARK: - DisclaimerPresentation
 //

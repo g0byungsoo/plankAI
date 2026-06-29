@@ -562,8 +562,13 @@ struct AnimatedIcon: View {
 
 /// SCOFF (Morgan 1999): five yes/no items, >= 2 yes = positive screen.
 struct SCOFFScreenView: View {
-    /// Called with the number of "yes" answers (0...5) once all answered.
-    let onComplete: (Int) -> Void
+    /// Called once all answered, with (totalYes, coreYes). `coreYes`
+    /// excludes the two GLP-1-expected items (rapid unintentional loss +
+    /// food dominates), so the safety gate can screen a current GLP-1 user
+    /// on genuine ED signals without false-positiving expected drug effects
+    /// (T3 / T7). Callers that don't need the split can ignore the second
+    /// value.
+    let onComplete: (_ totalYes: Int, _ coreYes: Int) -> Void
 
     private struct SCOFFItem: Identifiable { let id: Int; let text: String }
     private let items: [SCOFFItem] = [
@@ -573,10 +578,18 @@ struct SCOFFScreenView: View {
         .init(id: 3, text: "do you believe yourself to be fat when others say you are thin?"),
         .init(id: 4, text: "would you say that food dominates your life?"),
     ]
+    /// Item ids that are EXPECTED drug effects for current GLP-1 users:
+    /// rapid unintentional loss (id 2) + food/thoughts dominating (id 4).
+    /// Excluded from the core count so the GLP-1-aware SCOFF path screens
+    /// the remaining genuine ED items only.
+    private let glp1ExpectedItemIDs: Set<Int> = [2, 4]
     @State private var answers: [Int: Bool] = [:]
 
     private var allAnswered: Bool { answers.count == items.count }
     private var yesCount: Int { answers.values.filter { $0 }.count }
+    private var coreYesCount: Int {
+        answers.filter { !glp1ExpectedItemIDs.contains($0.key) && $0.value }.count
+    }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -592,7 +605,7 @@ struct SCOFFScreenView: View {
         .safeAreaInset(edge: .bottom) {
             JFContinueButton(
                 label: "continue",
-                action: { Haptics.light(); onComplete(yesCount) },
+                action: { Haptics.light(); onComplete(yesCount, coreYesCount) },
                 isEnabled: allAnswered
             )
             .padding(.horizontal, Space.lg)
@@ -710,6 +723,12 @@ struct SafetyResourcesCard: View {
 /// surface only for the eating-disorder path.
 enum SafetyTerminalVariant: Equatable {
     case eatingDisorder, lowBMI, underage, pregnant, breastfeeding
+    /// v3 T7 (2026-06-29) - medication / hypoglycemia terminal. Routed from
+    /// ProgramMode.clinicianFirst (insulin or sulfonylurea-class meds). A
+    /// calorie deficit on these classes is something to set up with a
+    /// clinician first. No drug brand names (Apple 5.2.1); no deficit; no
+    /// goal weight. Replaces the T3 placeholder that reused .pregnant copy.
+    case clinicianFirst
 
     var headline: String {
         switch self {
@@ -718,6 +737,7 @@ enum SafetyTerminalVariant: Equatable {
         case .underage:       return "we'll be here."
         case .pregnant:       return "steady is perfect."
         case .breastfeeding:  return "fed and steady."
+        case .clinicianFirst: return "let's loop in your clinician."
         }
     }
     var headlineItalic: [String] {
@@ -727,6 +747,7 @@ enum SafetyTerminalVariant: Equatable {
         case .underage:       return ["here"]
         case .pregnant:       return ["perfect"]
         case .breastfeeding:  return ["steady"]
+        case .clinicianFirst: return ["clinician"]
         }
     }
     var bodyText: String {
@@ -741,12 +762,15 @@ enum SafetyTerminalVariant: Equatable {
             return "weight loss isn't the goal during pregnancy. we'll keep things gentle and supportive and skip the deficit and goal weight. your clinician is the best guide for what's right for you \u{2661}"
         case .breastfeeding:
             return "while you're breastfeeding, your body needs steady fuel, not a deficit. we'll keep things gentle and protein-forward instead of chasing a goal weight \u{2661}"
+        case .clinicianFirst:
+            return "what you shared tells us a calorie plan is one to set up together with your clinician first. some medications change how your body handles a deficit, so this is a plan to make with them, not on your own.\n\nonce you've checked in with them, we'll be right here. you're always welcome to explore the lessons and gentle habits in the meantime \u{2661}"
         }
     }
     var ctaLabel: String {
         switch self {
         case .eatingDisorder: return "continue gently"
         case .underage:       return "okay"
+        case .clinicianFirst: return "okay"
         default:              return "sounds good"
         }
     }
@@ -975,6 +999,10 @@ struct SafetyCheckInView: View {
     @AppStorage("safety_pregnancy_status") private var safetyPregnancyStatus = ""
     @AppStorage("program_mode") private var programMode = "loss"
     @AppStorage("safety_checkin_seen") private var checkinSeen = false
+    // T7 (2026-06-29) - medication + GLP-1 signals so the legacy check-in
+    // screens the same way the pre-paywall gate does.
+    @AppStorage("onboarding_medication_status") private var medicationStatus = ""
+    @AppStorage("onboarding_glp1_status") private var glp1Status = ""
 
     @State private var phase: CheckInPhase = .intro
     private enum CheckInPhase: Equatable {
@@ -1078,7 +1106,7 @@ struct SafetyCheckInView: View {
         }
     }
 
-    private func handleScoff(_ yes: Int) {
+    private func handleScoff(_ yes: Int, _ core: Int) {
         safetyScoffYes = yes
         let a = ProgramGoalCalculator.safetyAssessment(.init(
             currentWeightKg: currentWeightKg,
@@ -1086,7 +1114,11 @@ struct SafetyCheckInView: View {
             heightCm: heightCm,
             ageRange: ageRange,
             scoffYesCount: yes,
-            pregnancyStatus: safetyPregnancyStatus
+            pregnancyStatus: safetyPregnancyStatus,
+            medicationKey: medicationStatus,
+            glp1StatusKey: glp1Status,
+            weightTrendKey: "",
+            scoffCoreYesCount: core
         ))
         programMode = a.mode.rawValue
         safetyScreenCompleted = true
@@ -1096,7 +1128,7 @@ struct SafetyCheckInView: View {
             case .recovery:       phase = .terminal(.eatingDisorder)
             case .blocked:        phase = .terminal(.underage)
             case .maintenance:    phase = .terminal(a.reasonKey == "bmi_low" ? .lowBMI : .pregnant)
-            case .clinicianFirst: phase = .terminal(.pregnant) // T7 will add a dedicated terminal
+            case .clinicianFirst: phase = .terminal(.clinicianFirst)
             }
         }
     }

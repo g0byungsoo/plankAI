@@ -49,17 +49,11 @@ struct ProgramSetupSubflow: View {
     @AppStorage("onboarding_weight_trend") private var weightTrend: String = ""
     @AppStorage("onboarding_glp1_phase")   private var glp1Phase: String = ""
 
-    // v1.2 medical-grade Phase 1 (2026-06-25) — safety gate. Reads height
-    // (persisted by onboarding) for the BMI floor. Runs once per NEW
-    // enrollment; existing enrolled users never re-enter this subflow, so
-    // they are unaffected. `safety_screen_enabled` is the kill switch.
+    // Height (persisted by onboarding) still feeds the BMI 18.5 goal-weight
+    // clamp at program build (safeGoalWeightKg). The safety SCREEN itself
+    // moved pre-paywall in T7 (2026-06-29); this subflow no longer reads
+    // the safety_* output keys - it trusts the pre-paywall gate.
     @AppStorage("onboardingHeightCm") private var heightCm: Double = 0
-    @AppStorage("safety_screen_enabled") private var safetyScreenEnabled: Bool = true
-    @AppStorage("safety_screen_completed") private var safetyScreenCompleted: Bool = false
-    @AppStorage("program_mode") private var programMode: String = "loss"
-    @AppStorage("safety_scoff_yes") private var safetyScoffYes: Int = -1
-    @AppStorage("safety_pregnancy_status") private var safetyPregnancyStatus: String = ""
-    @AppStorage("safety_consent_accepted") private var safetyConsentAccepted: Bool = false
 
     // Authenticated user id used by ProgramService.startProgram.
     // Read from the same source other AppSync calls use (AppSync.shared.currentUserId).
@@ -94,35 +88,14 @@ struct ProgramSetupSubflow: View {
         }
     }
 
-    // v1.2 medical-grade Phase 1 — the safety gate wraps the program flow.
-    @State private var safetyPhase: SafetyPhase = .passed
-    private enum SafetyPhase: Equatable {
-        case consent
-        case pregnancy
-        case screening
-        case terminal(SafetyTerminalVariant)
-        case passed
-    }
-
     var body: some View {
-        Group {
-            switch safetyPhase {
-            case .consent:
-                SafetyConsentView(onAccept: {
-                    safetyConsentAccepted = true
-                    withAnimation(Motion.crossFade) { safetyPhase = .pregnancy }
-                })
-            case .pregnancy:
-                SafetyPregnancyView(onComplete: handlePregnancy)
-            case .screening:
-                SCOFFScreenView(onComplete: handleSafetyScreen)
-            case .terminal(let variant):
-                SafetyRecoveryView(variant: variant, onContinueGently: { onComplete(false) })
-            case .passed:
-                programBody
-            }
-        }
-        .onAppear { onSetupAppear() }
+        // T7 (2026-06-29): the safety gate now runs PRE-paywall inside
+        // OnboardingRevealView (SafetyGatePresentation), exactly once. This
+        // subflow no longer screens - a screened-out user never reaches the
+        // paywall, so by the time we are here the user has passed the gate.
+        // ProgramSetupSubflow now only builds the program (pace + commit).
+        programBody
+            .onAppear { onSetupAppear() }
     }
 
     private var programBody: some View {
@@ -148,58 +121,14 @@ struct ProgramSetupSubflow: View {
         }
     }
 
-    // Safety gate (2026-06-25). Runs once per NEW enrollment, before the
-    // program is built; existing enrolled users never re-enter this
-    // subflow, so they are unaffected. Flag-gated via safety_screen_enabled.
+    // T7 (2026-06-29): no safety gate here anymore. Just hydrate the user
+    // id and, if onboarding already collected the pace, jump to the commit
+    // page (existing-user opt-in keeps the full 3-page flow).
     private func onSetupAppear() {
         userId = AppSync.shared.currentUserId ?? ""
-        // v9 P9.4: if onboarding already collected pace + derived date,
-        // jump straight to the commit page.
         if let tier = IntensityTier(rawValue: onboardingPickedTierRaw) {
             pickedTier = tier
             page = .commitment
-        }
-        guard safetyScreenEnabled else { return }
-        if !safetyScreenCompleted {
-            safetyPhase = .consent
-        } else {
-            // Re-derive on re-entry so a screened-out user can never slip
-            // into the loss flow (the assessment is deterministic).
-            safetyPhase = phase(for: assessment(scoffYes: safetyScoffYes))
-        }
-    }
-
-    private func handlePregnancy(status: String) {
-        safetyPregnancyStatus = status
-        withAnimation(Motion.crossFade) { safetyPhase = .screening }
-    }
-
-    private func handleSafetyScreen(yesCount: Int) {
-        safetyScoffYes = yesCount
-        let a = assessment(scoffYes: yesCount)
-        programMode = a.mode.rawValue
-        safetyScreenCompleted = true
-        withAnimation(Motion.crossFade) { safetyPhase = phase(for: a) }
-    }
-
-    private func assessment(scoffYes: Int) -> ProgramGoalCalculator.SafetyAssessment {
-        ProgramGoalCalculator.safetyAssessment(.init(
-            currentWeightKg: currentWeightKg,
-            goalWeightKg: safeGoalWeightKg,
-            heightCm: heightCm,
-            ageRange: ageRange,
-            scoffYesCount: scoffYes,
-            pregnancyStatus: safetyPregnancyStatus
-        ))
-    }
-
-    private func phase(for a: ProgramGoalCalculator.SafetyAssessment) -> SafetyPhase {
-        switch a.mode {
-        case .loss:           return .passed
-        case .recovery:       return .terminal(.eatingDisorder)
-        case .blocked:        return .terminal(.underage)
-        case .maintenance:    return .terminal(a.reasonKey == "bmi_low" ? .lowBMI : .pregnant)
-        case .clinicianFirst: return .terminal(.pregnant) // T7 will add a dedicated terminal
         }
     }
 
