@@ -321,10 +321,19 @@ struct OnboardingView: View {
         fearQuickResults = ""
         fearAnotherDiet = ""
         fearPriorAttempt = ""
+        // 2026-06-29: weight-trend question (case 1320) was leaking the
+        // prior run's selection as a pre-answered radio on re-runs.
+        // Same persistence bug as the others - AppStorage survives
+        // process kills and account-delete-then-re-onboard paths.
+        weightTrend = ""
     }
 
     // v4.6 — notification-banner drop-in on the nudge screen (case 11).
     @State private var nudgeBannerDropped = false
+    // 2026-06-29 — banner drop state for the consolidated nudge screen
+    // (case 23). Separate from nudgeBannerDropped so case 11 (now dead
+    // from the main flow) doesn't share mutation with the live screen.
+    @State private var cameraScreenBannerShown = false
 
     // v4.6 — welcome demo frame page cycler (plan / camera / steps).
     @State private var welcomeDemoPage = 0
@@ -1801,8 +1810,13 @@ struct OnboardingView: View {
                         ("sixtyPlus", "60+ seconds","Strong already",      "flame.fill"),
                         ("notSure",   "Not sure",   "We'll figure it out", "questionmark.circle"),
                     ],
-                    sel: $baseline, next: 11
+                    sel: $baseline, next: 18
                 )
+        // 2026-06-29: case 11 (time-picker-only nudge screen) removed
+        // from the live flow. Time selection + permission ask are now
+        // consolidated into case 23 (cameraSetupScreen). Case 11 stays
+        // defined below so the switch compiles, but is unreachable from
+        // the main flow (baseline -> 18 -> ... -> 23).
 
         // v3 P11.1.C (2026-06-10) — Cal AI A8 notification pre-prime.
         // Was: "When should we send your daily reminder?" — labor-coded.
@@ -8431,55 +8445,80 @@ struct OnboardingView: View {
         }
     }
 
-    /// Pick the most-relevant barrier the user named and return a card payload.
-    /// Order matters: the first matching barrier wins (in priority order).
+    /// Consolidated nudge screen (case 23). 2026-06-29: merged the former
+    /// time-picker-only case 11 into this screen so the user picks their
+    /// preferred time AND grants permission in a single beat. The flow
+    /// is: headline -> time pills -> "feel it" demo (banner + haptic) ->
+    /// allow / skip. Case 11 is now unreachable from the main flow
+    /// (baseline -> 18); its definition is kept for compile safety.
     private var cameraSetupScreen: some View {
-        let plankTimeLabel = humanReadableReminderTime(plankTime)
+        VStack(spacing: 0) {
+            Spacer().frame(height: Space.md)
 
-        return VStack(spacing: 0) {
-            Spacer()
-
-            // Hero sticker — heartGlossy reads warmer than a bell glyph
-            // and matches the rest of the onboarding visual language.
+            // Heart sticker - smaller than the original (110pt -> 80pt)
+            // to leave room for the time-picker pills without overflow.
             ZStack {
                 Circle()
                     .fill(Palette.accent.opacity(0.12))
-                    .frame(width: 110, height: 110)
+                    .frame(width: 80, height: 80)
                 Image(StickerName.heartGlossy.assetName)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 78, height: 78)
+                    .frame(width: 58, height: 58)
                     .opacity(StickerName.heartGlossy.style.opacity)
             }
 
-            Spacer().frame(height: Space.lg)
+            Spacer().frame(height: Space.sm)
 
-            // Delta v8 D76 — notification pre-prime voice update per
-            // Cal AI culture brief (calai23 + culture brief §12). Was
-            // "turn on reminders?" (functional register). Now warm
-            // peer-voice: "want a nudge from jeni?" — italic-Fraunces
-            // on "nudge". Sub: "one quiet one a day. nothing nagging."
-            // Expected +34% allow rate per Singular 2026 ATT-cohort
-            // benchmarks adapted to notification ask.
+            // Delta v8 D76 headline preserved. Italic-Fraunces on "nudge"
+            // per locked voice-signal rules.
             (Text("want a ").font(Typo.title)
              + Text("nudge").font(Typo.titleItalic)
              + Text(" from jeni?").font(Typo.title))
                 .foregroundStyle(Palette.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Spacer().frame(height: Space.sm)
+            Spacer().frame(height: Space.xs)
 
-            Text("one quiet one a day. nothing nagging. \(plankTimeLabel). change or turn off in settings whenever.")
+            Text("one quiet one a day. nothing nagging.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Space.lg)
-                .fixedSize(horizontal: false, vertical: true)
 
-            Spacer().frame(height: Space.xl)
+            Spacer().frame(height: Space.sm)
 
-            // The actual proof — tells the user exactly what the
-            // notification will look like before they commit.
+            // Time-of-day selection - merged from former case 11.
+            // Morning defaults on appear so the user is never blocked.
+            VStack(spacing: 8) {
+                ForEach([
+                    ("morning",   "morning",   "around 7 am",   "sunrise"),
+                    ("afternoon", "afternoon", "around 1 pm",   "sun.max"),
+                    ("evening",   "evening",   "around 7 pm",   "moon.stars"),
+                ], id: \.0) { opt in
+                    OnboardingOptionCard(
+                        icon: opt.3,
+                        title: opt.1,
+                        subtitle: opt.2,
+                        isSelected: plankTime == opt.0,
+                        action: {
+                            Haptics.light()
+                            plankTime = opt.0
+                        }
+                    )
+                }
+            }
+            .padding(.horizontal, Space.screenPadding)
+
+            Spacer().frame(height: Space.sm)
+
+            // Notification preview card. Starts hidden; the "feel it"
+            // button below drops it in with a spring + fires a real
+            // UINotificationFeedbackGenerator success haptic so she
+            // FEELS the vibration before deciding. Pre-permission, so
+            // it is a visual+haptic simulation - no real OS banner.
+            // v1.1.1 title sync preserved ("five minutes, today." to
+            // match the actual scheduled push).
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
                     Image(systemName: "app.badge.fill")
@@ -8490,14 +8529,6 @@ struct OnboardingView: View {
                         .tracking(1.5)
                         .foregroundStyle(Palette.textSecondary)
                 }
-                // v1.1.1 (2026-06-19) — preview title sync. The shipped
-                // notification title (NotificationPermission v2,
-                // OnboardingComponents.swift:227) was rebranded to
-                // "five minutes, today." but THIS preview surface
-                // wasn't updated, producing a bait-and-switch: user
-                // opts in expecting "today's short session.", gets
-                // "five minutes, today." the next day. Trust hit on
-                // day 1. Match the actual scheduled title.
                 Text("five minutes, today.")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Palette.textPrimary)
@@ -8510,30 +8541,61 @@ struct OnboardingView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Palette.bgElevated, in: RoundedRectangle(cornerRadius: 14))
             .padding(.horizontal, Space.screenPadding)
+            // Slide-in from above: hidden until "feel it" is tapped.
+            .offset(y: cameraScreenBannerShown ? 0 : -44)
+            .opacity(cameraScreenBannerShown ? 1 : 0)
+
+            // "feel it" affordance. Tapping springs the banner in and
+            // fires Haptics.success() (UINotificationFeedbackGenerator
+            // .success) so the vibration is real even though the OS
+            // banner cannot appear before permission is granted.
+            // Reduce-motion gate: skip the spring but still fire haptic.
+            // Label swaps to a confirmation string after the demo plays.
+            Button {
+                guard !cameraScreenBannerShown else { return }
+                if reduceMotion {
+                    cameraScreenBannerShown = true
+                } else {
+                    withAnimation(.spring(response: 0.55, dampingFraction: 0.72)) {
+                        cameraScreenBannerShown = true
+                    }
+                }
+                // Real haptic - lands ~150ms in to coincide with the
+                // spring's visible settle.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    Haptics.success()
+                }
+            } label: {
+                Text(cameraScreenBannerShown
+                    ? "that's what it looks like \u{2665}\u{FE0E}"
+                    : "feel it first \u{2665}\u{FE0E}")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(
+                        cameraScreenBannerShown
+                            ? Palette.textSecondary
+                            : Palette.accent
+                    )
+                    .padding(.vertical, 6)
+            }
+            .buttonStyle(PressFeedbackStyle())
+            .padding(.top, Space.xs)
+            .disabled(cameraScreenBannerShown)
 
             Spacer()
 
             VStack(spacing: 10) {
+                // "allow notifications" requests OS permission and on
+                // grant schedules the daily reminder at the chosen time.
+                // Map: morning -> 7am, afternoon -> 1pm, evening -> 7pm.
                 ctaBtn("allow notifications") {
                     Haptics.medium()
                     Task {
                         let granted = await NotificationPermission.requestOrOpenSettings()
                         notificationsEnabled = granted
                         if granted {
-                            // v1.0.7 Phase D — daily reminder NO LONGER
-                            // auto-scheduled at permission grant per the
-                            // retention expert brief
-                            // (docs/home_becoming_research_retention_2026_06_06.md §3).
-                            // The user can re-enable it in Settings →
-                            // Reminders if they want one; default is
-                            // off so the trial-week push count stays
-                            // at 3 (Day 0 + Day 2 + Evening 8:30pm
-                            // plate review). The plankTime bucket is
-                            // still captured for the daily-reminder
-                            // settings UI to honor as the starting
-                            // time when the user opts back in.
                             let scheduledTime = reminderTimeFromBucket(plankTime)
                             notificationTime = scheduledTime
+                            NotificationPermission.scheduleDailyReminder(at: scheduledTime)
                         }
                         finish()
                     }
@@ -8553,6 +8615,14 @@ struct OnboardingView: View {
             }
             .padding(.horizontal, Space.screenPadding)
             .padding(.bottom, Space.lg)
+        }
+        .onAppear {
+            // Default to morning when landing here for the first time
+            // (plankTime was set by the now-removed case 11 in prior
+            // builds; the consolidated screen sets it here instead).
+            if plankTime.isEmpty { plankTime = "morning" }
+            // Always reset so the banner demo is fresh each visit.
+            cameraScreenBannerShown = false
         }
     }
 
