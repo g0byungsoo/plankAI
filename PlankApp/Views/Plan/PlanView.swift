@@ -820,8 +820,8 @@ struct PlanView: View {
                                 Text("kept")
                                     .font(.custom("DMSans-SemiBold", size: 15))
                                     .foregroundStyle(Palette.textPrimary)
-                                // Brand accent heart - never red.
-                                Text("\u{2665}")
+                                // Brand accent heart - text presentation (FE0E pins glyph, not emoji).
+                                Text("\u{2665}\u{FE0E}")
                                     .font(.custom("DMSans-Regular", size: 14))
                                     .foregroundStyle(Palette.accent)
                             }
@@ -845,8 +845,8 @@ struct PlanView: View {
                                     .foregroundStyle(Palette.textPrimary)
                                     .fixedSize(horizontal: false, vertical: true)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                // Quiet editorial heart accent - brand color, not red.
-                                Text("\u{2665}")
+                                // Quiet editorial heart accent - text presentation (FE0E pins glyph, not emoji).
+                                Text("\u{2665}\u{FE0E}")
                                     .font(.custom("DMSans-Regular", size: 11))
                                     .foregroundStyle(Palette.accent.opacity(0.55))
                                     .padding(.top, 3)
@@ -885,6 +885,9 @@ struct PlanView: View {
                 .padding(.vertical, 14)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            // Clamp to content height - prevents the accent-bar Rectangle from
+            // pulling the card to fill the scroll container's available space.
+            .fixedSize(horizontal: false, vertical: true)
             .background(Palette.bgElevated)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(

@@ -3247,8 +3247,8 @@ private struct KeptPromisePreviewHarness: View {
                                 .foregroundStyle(Palette.textPrimary)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            // Editorial heart accent - brand color, not red
-                            Text("\u{2665}")
+                            // Editorial heart accent - text presentation (FE0E pins glyph, not emoji)
+                            Text("\u{2665}\u{FE0E}")
                                 .font(.custom("DMSans-Regular", size: 11))
                                 .foregroundStyle(Palette.accent.opacity(0.55))
                                 .padding(.top, 3)
@@ -3280,6 +3280,9 @@ private struct KeptPromisePreviewHarness: View {
                         .stroke(Palette.hairlineCocoa, lineWidth: 0.75)
                 )
                 .shadow(color: Palette.cocoaPrimary.opacity(0.06), radius: 10, x: 0, y: 2)
+                // Clamp to content height - Rectangle accent bar is flexible; without
+                // this the card expands to split vertical space with the Spacer below.
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, Space.lg)
 
                 Spacer()
