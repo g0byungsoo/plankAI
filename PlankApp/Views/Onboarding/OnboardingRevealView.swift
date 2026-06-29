@@ -1676,29 +1676,6 @@ private struct CommitmentRitualPresentation: View {
         glp1Status == "current" ? "get protein in" : "log breakfast"
     }
 
-    // MARK: Replay line
-
-    // GLP-1 thread: body is fixed to "protect your muscle." regardless
-    // of which action chip is selected. Phase-1b ties the action chips
-    // back to this line; for now the fixed framing is the safer signal.
-    private var replayLine: String {
-        if glp1Status == "current" {
-            return "tomorrow, \(selectedAnchor), you'll protect your muscle."
-        }
-        return "tomorrow, \(selectedAnchor), you'll \(selectedAction)."
-    }
-
-    private var replayItalicWords: [String] {
-        if glp1Status == "current" {
-            return [selectedAnchor, "protect your muscle"]
-        }
-        return [selectedAnchor, selectedAction]
-    }
-
-    // Stable id for the replay view - changes on any chip tap that
-    // affects the replay text, driving the soft cross-fade transition.
-    private var replayID: String { selectedAnchor + selectedAction }
-
     // MARK: Time-chip to tomorrow Date
 
     private func tomorrowDate(forTimeChip chip: String) -> Date {
@@ -1801,31 +1778,18 @@ private struct CommitmentRitualPresentation: View {
                 // the eye reads "promise: [output below]" not two separate zones.
                 Spacer().frame(height: Space.sm)
 
-                // ZONE 3 - Live replay.
-                // .id(replayID) + .transition: when a chip changes the
-                // replay text, SwiftUI removes the old view and inserts a
-                // new one, driving the soft cross-fade. The chip tap wraps
-                // the selection in withAnimation so SwiftUI sees the id
-                // change inside an animation context.
-                ItalicAccentText(
-                    replayLine,
-                    italic: replayItalicWords,
-                    baseFont: Typo.heroHeadline,
-                    italicFont: Typo.heroHeadlineItalic,
-                    color: Palette.textPrimary,
-                    alignment: .leading
+                // ZONE 3 - Live replay: assembles word-by-word on first reveal
+                // (stagger left-to-right, ~50ms per word) and swaps ONLY the
+                // changed slot on chip tap (old word fades/lifts out, new word
+                // fades/settles in, ~220ms spring). Reduce-motion: no motion,
+                // words render final state immediately.
+                CommitmentReplayView(
+                    anchor: selectedAnchor,
+                    action: selectedAction,
+                    glp1: glp1Status == "current",
+                    isRevealed: replayVisible
                 )
-                .kerning(-0.4)
-                .lineSpacing(Typo.heroHeadlineLineGap)
-                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, Space.screenPadding)
-                .id(replayID)
-                .transition(
-                    .opacity.combined(with: .scale(scale: 0.96, anchor: .leading))
-                )
-                .opacity(replayVisible ? 1 : 0)
-                .offset(y: reduceMotion ? 0 : (replayVisible ? 0 : 6))
-                .animation(Motion.entrance, value: replayVisible)
 
                 // Bottom breathing room - minLength keeps space for the
                 // safeAreaInset CTA without creating a dead hollow zone.
@@ -1971,6 +1935,182 @@ private struct CommitmentRitualPresentation: View {
                 NotificationPermission.scheduleDay1Promise(at: date, body: body)
             }
             await MainActor.run { onContinue() }
+        }
+    }
+}
+
+// MARK: - ReplayFlowLayout
+//
+// Word-level left-aligned flow layout for CommitmentReplayView.
+// Separate hSpacing (between words on a line) and vSpacing (between
+// lines) so word spacing approximates the natural space-character width
+// while vertical leading stays tight. Each word is an independent child
+// view, enabling per-slot opacity/offset animation.
+private struct ReplayFlowLayout: Layout {
+    var hSpacing: CGFloat = 9   // approx space-char width at JeniHeroSerif 38pt
+    var vSpacing: CGFloat = 2   // tight vertical gap to echo lineSpacing(-19)
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? .infinity
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowH: CGFloat = 0
+        for subview in subviews {
+            let s = subview.sizeThatFits(.unspecified)
+            if x > 0, x + s.width > width {
+                y += rowH + vSpacing; x = 0; rowH = 0
+            }
+            x += (x > 0 ? hSpacing : 0) + s.width
+            rowH = max(rowH, s.height)
+        }
+        return CGSize(width: width, height: y + rowH)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowH: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                y += rowH + vSpacing; x = bounds.minX; rowH = 0
+            }
+            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + hSpacing
+            rowH = max(rowH, size.height)
+        }
+    }
+}
+
+// MARK: - CommitmentReplayView
+//
+// Renders the commitment replay sentence as individually animatable
+// word slots inside a ReplayFlowLayout. Two behaviours:
+//
+//   Initial reveal (isRevealed false -> true):
+//     Words cascade in left-to-right, ~50ms stagger per word, gentle
+//     spring (response 0.35, damping 0.78). Each word rises from a
+//     6pt offset below its slot into place.
+//     Reduce-motion: all words appear at full opacity, no offset.
+//
+//   Chip swap (anchor or action changes while already revealed):
+//     Only the changed slot animates. Old word fades out + lifts 5pt
+//     (~110ms ease-in), text updates, new word drops in from 5pt below
+//     and springs to resting position (~220ms spring). Paired with the
+//     existing ActivationHaptics.shared.tick() in chipGroup's action.
+//     Reduce-motion: text updates instantly, no animation.
+//
+// Slot indices: 0=tomorrow,  1=anchor  2=you'll
+//               3=action/protect  4=your  5=muscle. (4-5 GLP-1 only)
+private struct CommitmentReplayView: View {
+    let anchor: String
+    let action: String
+    let glp1: Bool
+    let isRevealed: Bool
+
+    // Display text for dynamic slots - held at the OLD value during the
+    // exit phase of a swap so the outgoing word is still readable.
+    @State private var anchorDisplay: String = ""
+    @State private var actionDisplay: String = ""
+
+    // Per-slot opacity and vertical offset for cascade reveal and swap
+    // animation. Initial state: opacity 0 + 6pt below slot. All 6
+    // elements allocated even when only 4 are used (GLP-1 mode adds 5/6).
+    @State private var opacities: [Double]  = Array(repeating: 0.0, count: 6)
+    @State private var offsetsY:  [CGFloat] = Array(repeating: 6.0, count: 6)
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var tokenCount: Int { glp1 ? 6 : 4 }
+
+    var body: some View {
+        ReplayFlowLayout(hSpacing: 9, vSpacing: 2) {
+            wordToken("tomorrow,",      italic: false, index: 0)
+            wordToken(anchorDisplay + ",", italic: true,  index: 1)
+            wordToken("you'll",         italic: false, index: 2)
+            if glp1 {
+                wordToken("protect",    italic: true,  index: 3)
+                wordToken("your",       italic: true,  index: 4)
+                wordToken("muscle.",    italic: true,  index: 5)
+            } else {
+                wordToken(actionDisplay + ".", italic: true, index: 3)
+            }
+        }
+        .onAppear {
+            // Seed display vars before any animation fires so the
+            // cascade reveals the CORRECT initial chip selection.
+            anchorDisplay = anchor
+            actionDisplay = action
+            if reduceMotion {
+                opacities = Array(repeating: 1.0, count: 6)
+                offsetsY  = Array(repeating: 0.0, count: 6)
+            }
+        }
+        .onChange(of: isRevealed) { _, revealed in
+            guard revealed else { return }
+            if reduceMotion {
+                opacities = Array(repeating: 1.0, count: 6)
+                offsetsY  = Array(repeating: 0.0, count: 6)
+                return
+            }
+            // Left-to-right word cascade: one word every ~50ms
+            for i in 0..<tokenCount {
+                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.05) {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
+                        opacities[i] = 1.0
+                        offsetsY[i]  = 0.0
+                    }
+                }
+            }
+        }
+        .onChange(of: anchor) { _, newAnchor in
+            // Before reveal: just keep display in sync, no animation.
+            guard isRevealed else { anchorDisplay = newAnchor; return }
+            if reduceMotion { anchorDisplay = newAnchor; return }
+            swapSlot(1, newText: newAnchor, isAnchor: true)
+        }
+        .onChange(of: action) { _, newAction in
+            // GLP-1 body is fixed; action chip changes don't affect replay.
+            guard isRevealed, !glp1 else { actionDisplay = newAction; return }
+            if reduceMotion { actionDisplay = newAction; return }
+            swapSlot(3, newText: newAction, isAnchor: false)
+        }
+    }
+
+    // Word token view at a given slot index.
+    // Reduce-motion: always renders fully visible regardless of animation state.
+    @ViewBuilder
+    private func wordToken(_ text: String, italic: Bool, index: Int) -> some View {
+        Text(text)
+            .font(italic ? Typo.heroHeadlineItalic : Typo.heroHeadline)
+            .foregroundStyle(Palette.textPrimary)
+            .kerning(-0.4)
+            .lineLimit(1)
+            .opacity(reduceMotion ? 1.0 : (index < opacities.count ? opacities[index] : 1.0))
+            .offset(y: reduceMotion ? 0 : (index < offsetsY.count ? offsetsY[index] : 0))
+    }
+
+    // Soft per-slot swap: old word fades/lifts out (~110ms ease-in),
+    // display text updates, new word drops in from below and springs
+    // to rest (~220ms). Total round-trip ~330ms. The haptic tick fired
+    // by chipGroup's button action lands at the start of the exit phase.
+    private func swapSlot(_ index: Int, newText: String, isAnchor: Bool) {
+        // Phase 1: exit - fade out + lift up
+        withAnimation(.easeIn(duration: 0.11)) {
+            opacities[index] = 0.0
+            offsetsY[index]  = -5.0
+        }
+        // Phase 2 (120ms later): swap text, enter from below
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            if isAnchor { anchorDisplay = newText }
+            else        { actionDisplay = newText }
+            // Position the entering word 5pt below its slot (no animation).
+            offsetsY[index] = 5.0
+            // Spring the new word up into its resting position.
+            withAnimation(.spring(response: 0.22, dampingFraction: 0.70)) {
+                opacities[index] = 1.0
+                offsetsY[index]  = 0.0
+            }
         }
     }
 }
