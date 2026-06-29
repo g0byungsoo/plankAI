@@ -3130,19 +3130,30 @@ private struct ArrivalHeroPreviewHarness: View {
 
                 Spacer().frame(height: 10)
 
-                // Arrival horizon hero
+                // Arrival horizon hero - v2 masthead plate (Phase 1a, 2026-06-28).
+                // Mirrors PlanView.arrivalHorizonHero exactly so the harness
+                // screenshot reflects the live screen.
                 let dateLabel = Self.dateFormatter.string(from: seedGoalDate).lowercased()
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 0) {
                     Text("~\(dateLabel)")
                         .font(Typo.questionHero)
                         .foregroundStyle(Palette.textPrimary)
 
-                    Text(HabitProgress.weeklyStatus(
-                        actionsThisWeek: seedActions,
-                        target: seedTarget
-                    ))
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
+                    HairlineRule()
+                        .padding(.top, 8)
+
+                    HStack(alignment: .center, spacing: 12) {
+                        TickRow(
+                            filled: seedActions,
+                            total: seedTarget,
+                            animateFill: true,
+                            pulseLast: true
+                        )
+                        Text("you're showing up")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                    .padding(.top, 10)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, Space.lg)

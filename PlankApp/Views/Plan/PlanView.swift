@@ -722,17 +722,35 @@ struct PlanView: View {
 
     @ViewBuilder private var arrivalHorizonHero: some View {
         if let dateLabel = arrivalGoalDateLabel {
-            VStack(alignment: .leading, spacing: 4) {
+            let target = profile.sessionsPerWeek
+            let filled = min(actionsThisWeek, target)
+            // Phase 1a premium redesign (2026-06-28) - masthead plate.
+            // HairlineRule under the serif date composes the eyebrow + date
+            // as one intentional unit. TickRow carries the X-of-Y signal;
+            // the flat grey run-on text is replaced by a short pairing label.
+            VStack(alignment: .leading, spacing: 0) {
                 Text("~\(dateLabel)")
                     .font(Typo.questionHero)
                     .foregroundStyle(Palette.textPrimary)
 
-                Text(HabitProgress.weeklyStatus(
-                    actionsThisWeek: min(actionsThisWeek, profile.sessionsPerWeek),
-                    target: profile.sessionsPerWeek
-                ))
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
+                // Hairline baseline - masthead compositor, ties eyebrow to date.
+                HairlineRule()
+                    .padding(.top, 8)
+
+                // Habit signal: ticks are the X-of-Y, label is the voice frame.
+                // Never red, never a countdown, never the word "behind".
+                HStack(alignment: .center, spacing: 12) {
+                    TickRow(
+                        filled: filled,
+                        total: target,
+                        animateFill: true,
+                        pulseLast: true
+                    )
+                    Text("you're showing up")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .padding(.top, 10)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .modernEntrance(animateIn, delay: 0.04)
