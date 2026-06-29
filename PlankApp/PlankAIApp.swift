@@ -713,6 +713,21 @@ struct PlankAIApp: App {
                     // its arrival haptic. Launch:
                     // `xcrun simctl launch booted com.bk.plankAI --debug-nudge`
                     OnboardingView(onComplete: { _ in })
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-paywall") {
+                    // 2026-06-29 — neat one-screen paywall redesign preview.
+                    // Renders PaywallView with DEBUG mock pricing + mock
+                    // projection data (no RC packages / no UserRecord needed
+                    // in-sim) so the full layout — projection hero, yearly
+                    // card, per-day + save anchor, docked CTA — renders for
+                    // visual verification. Launch:
+                    // `xcrun simctl launch booted com.bk.plankAI --debug-paywall`
+                    PaywallView(
+                        dismissable: true,
+                        onSubscribed: {},
+                        onRestore: {},
+                        onDismiss: {},
+                        onPurchaseCancelled: {}
+                    )
                 } else {
                     RootView()
                         .modifier(ResumeBloom())

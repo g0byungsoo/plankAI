@@ -142,6 +142,23 @@ struct PaywallView: View {
     private var debugMockPricing: Bool { false }
     #endif
 
+    /// 2026-06-29 — DEBUG-only one-screen-redesign preview. When the app
+    /// is launched with `--debug-paywall` (no RC packages, no UserRecord
+    /// hydrated in-sim), the projection hero + per-day + anchor copy all
+    /// read from real fields that are empty, so the screen would render
+    /// half-built. This flag lets those computed properties fall back to
+    /// representative mock values so the FULL layout renders for visual
+    /// verification. Never true in release builds; never alters a real
+    /// user's screen (it only fires when the launch arg is present AND
+    /// the real source field is empty).
+    #if DEBUG
+    private var debugPaywallPreview: Bool {
+        ProcessInfo.processInfo.arguments.contains("--debug-paywall")
+    }
+    #else
+    private var debugPaywallPreview: Bool { false }
+    #endif
+
     /// 2026-05-30 redesign: added `.quarterly` for the v1.0.7 3-tier
     /// pricing structure (annual + quarterly + weekly). String raw
     /// values are used in Analytics event properties (paywallCtaTapped,
@@ -306,6 +323,7 @@ struct PaywallView: View {
     /// the same ProgramGoalCalculator.compute(...) call PacePicker uses,
     /// so the day count here = the day count she just held in onboarding.
     private var derivedProgramDays: Int? {
+        if debugPaywallPreview, currentUserRecord == nil { return 56 }
         guard let tier = IntensityTier(rawValue: onboardingPickedTierRaw),
               let record = currentUserRecord,
               let current = record.onboardingCurrentWeightKg,
@@ -388,16 +406,24 @@ struct PaywallView: View {
     /// localized string - never hardcoded - so it stays correct across
     /// locales + any future ASC price change. Falls back to a plain label
     /// pre-load so we never show a stale or invented number.
-    /// Billed price + cadence for the CTA suffix ("$49.99/yr"). Localized,
-    /// never hardcoded; nil pre-load so we never invent a number.
+    /// Billed price + cadence for the CTA suffix ("$49.99/yr"). The price
+    /// ALWAYS matches the currently-selected card: it reads the SAME
+    /// per-plan display string the selected card renders (yearlyPrice /
+    /// quarterlyPrice / weeklyPrice), each of which prefers the live
+    /// RevenueCat `localizedPriceString` and only falls back to the mock
+    /// string when no package has resolved yet. This closes the
+    /// 2026-06-27 mismatch (CTA "$29.99/3mo" while the yearly card read
+    /// "$49.99") AND the blank-CTA case — when offerings are still
+    /// loading the button now carries the displayed card's price instead
+    /// of dropping the value exchange. Never hardcoded; never a number
+    /// that disagrees with the selected card.
     private var ctaPriceSuffix: String? {
-        guard let pkg = selectedPackage else { return nil }
-        let price = pkg.storeProduct.localizedPriceString
+        let price: String
         let suffix: String
         switch selectedPlan {
-        case .yearly:    suffix = "/yr"
-        case .quarterly: suffix = "/3mo"
-        case .weekly:    suffix = "/wk"
+        case .yearly:    price = yearlyPrice;    suffix = "/yr"
+        case .quarterly: price = quarterlyPrice; suffix = "/3mo"
+        case .weekly:    price = weeklyPrice;    suffix = "/wk"
         }
         return "\(price)\(suffix)"
     }
@@ -457,19 +483,19 @@ struct PaywallView: View {
 
                         projectionHero
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 16)
+                            .padding(.top, 14)
 
                         // The chart's conclusion - pulled tight to the
                         // projection so it reads as the curve's caption,
                         // not a fresh section.
                         sunkCostLine
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 10)
+                            .padding(.top, 12)
 
                         // ZONE 2 - medical-grade restraint
                         whatsInsideSection
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 22)
+                            .padding(.top, 16)
 
                         // ZONE 3 - Tiffany-clean pricing. The yearly hero
                         // sits within the first viewport so the billed
@@ -477,14 +503,14 @@ struct PaywallView: View {
                         // are one short scroll below.
                         tierCardAnnualHero
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 22)
+                            .padding(.top, 16)
 
                         // Gap to the secondary pair is larger than the gap
                         // WITHIN the pair (8pt) so the yearly hero reads as
                         // the obvious default.
                         secondaryTierRow
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 16)
+                            .padding(.top, 10)
 
                         if offeringsLoadFailed {
                             offeringsLoadFailedRow
@@ -494,8 +520,8 @@ struct PaywallView: View {
 
                         trustAndLegalFooter
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 16)
-                            .padding(.bottom, 8)
+                            .padding(.top, 12)
+                            .padding(.bottom, 6)
                     }
                 }
 
@@ -667,7 +693,10 @@ struct PaywallView: View {
     private var paceCaption: String? {
         guard let currentKg = currentUserRecord?.onboardingCurrentWeightKg,
               let goalKg = currentUserRecord?.onboardingGoalWeightKg,
-              currentKg > goalKg else { return nil }
+              currentKg > goalKg else {
+            if debugPaywallPreview { return "~1.1 lb/wk \u{00B7} steady pace" }
+            return nil
+        }
         let unit = WeightUnit.current
         let perWeek = unit.display(fromKg: currentKg * ProjectionMath.weeklyFraction(paceKey: paywallPaceChoice))
         let s = (perWeek == perWeek.rounded()) ? String(format: "%.0f", perWeek) : String(format: "%.1f", perWeek)
@@ -729,7 +758,10 @@ struct PaywallView: View {
     private var goalWeightPunch: String? {
         guard let goalKg = currentUserRecord?.onboardingGoalWeightKg,
               let currentKg = currentUserRecord?.onboardingCurrentWeightKg,
-              currentKg > goalKg else { return nil }
+              currentKg > goalKg else {
+            if debugPaywallPreview { return "151 lb" }
+            return nil
+        }
         let unit = WeightUnit.current
         let v = unit.display(fromKg: goalKg)
         let s = (v == v.rounded()) ? String(format: "%.0f", v) : String(format: "%.1f", v)
@@ -742,7 +774,14 @@ struct PaywallView: View {
     private var arrivalDatePunch: String? {
         guard let goalKg = currentUserRecord?.onboardingGoalWeightKg,
               let currentKg = currentUserRecord?.onboardingCurrentWeightKg,
-              currentKg > goalKg else { return nil }
+              currentKg > goalKg else {
+            if debugPaywallPreview {
+                let d = Calendar.current.date(byAdding: .day, value: 84, to: Date()) ?? Date()
+                let f = DateFormatter(); f.dateFormat = "MMM d"
+                return f.string(from: d).lowercased()
+            }
+            return nil
+        }
         return ProjectionMath.formattedShortDate(
             currentKg: currentKg, goalKg: goalKg, paceKey: paywallPaceChoice
         )
@@ -775,7 +814,11 @@ struct PaywallView: View {
     /// debugMockPricing without packages). Quarterly annualized (×4) is
     /// the labeled, derivable anchor - defensible, not fabricated.
     private var quarterlyAnchorCopy: (strikethrough: String, savings: String)? {
-        guard let yearly = yearlyPackage, let quarterly = quarterlyPackage else { return nil }
+        guard let yearly = yearlyPackage, let quarterly = quarterlyPackage else {
+            // DEBUG preview: $29.99 × 4 = $119.96 annualized vs $49.99 yearly.
+            if debugPaywallPreview { return ("$119.96", "$69.97") }
+            return nil
+        }
         let yearlyPrice = yearly.storeProduct.price as NSDecimalNumber
         let formatter = yearly.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
         let quarterlyAnnualized = (quarterly.storeProduct.price as NSDecimalNumber)
@@ -795,7 +838,10 @@ struct PaywallView: View {
     /// it tracks any future ASC price change. Nil pre-load so we never
     /// invent a number.
     private var yearlyPerDayText: String? {
-        guard let yearly = yearlyPackage else { return nil }
+        guard let yearly = yearlyPackage else {
+            if debugPaywallPreview { return "about $0.14/day" }
+            return nil
+        }
         let price = yearly.storeProduct.price as NSDecimalNumber
         let formatter = yearly.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
         let perDay = price.dividing(by: NSDecimalNumber(value: 365))
@@ -1107,7 +1153,7 @@ struct PaywallView: View {
     /// gracefully drops the "hi {name}." prefix.
     private var displayFirstName: String {
         let trimmed = userName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return "" }
+        guard !trimmed.isEmpty else { return debugPaywallPreview ? "jen" : "" }
         return trimmed
             .split(separator: " ").first
             .map { String($0).lowercased() } ?? ""
@@ -1201,6 +1247,17 @@ struct PaywallView: View {
     // MARK: Offerings + Purchase
 
     private func loadOfferings() async {
+        // RevenueCat hard-fatals if `offerings()` is called before
+        // `Purchases.configure()`. In the normal flow PaymentService
+        // configures it well before the paywall mounts, but the DEBUG
+        // `--debug-paywall` preview harness mounts PaywallView directly
+        // (bypassing RootView's payment bootstrap). Guard so the preview
+        // renders on mock pricing instead of crashing; release builds are
+        // always configured by the time the paywall presents.
+        guard Purchases.isConfigured else {
+            loadingOfferings = false
+            return
+        }
         loadingOfferings = true
         offeringsLoadFailed = false
         do {
