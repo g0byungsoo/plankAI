@@ -754,6 +754,8 @@ struct PlanView: View {
         return f
     }()
 
+    private static let promiseISO8601Formatter = ISO8601DateFormatter()
+
     private var promiseTodayKey: String {
         Self.promiseDateKeyFormatter.string(from: .now)
     }
@@ -764,7 +766,7 @@ struct PlanView: View {
         guard !day1PromiseAction.isEmpty,
               !day1PromiseAnchor.isEmpty,
               !day1PromiseTimeISO.isEmpty else { return false }
-        guard let promiseDate = ISO8601DateFormatter().date(from: day1PromiseTimeISO) else { return false }
+        guard let promiseDate = Self.promiseISO8601Formatter.date(from: day1PromiseTimeISO) else { return false }
         let cal = Calendar.current
         let todayStart = cal.startOfDay(for: .now)
         let promiseDay  = cal.startOfDay(for: promiseDate)

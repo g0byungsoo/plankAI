@@ -3205,7 +3205,7 @@ private struct KeptPromisePreviewHarness: View {
                     Text("~\(goalLabel)")
                         .font(Typo.questionHero)
                         .foregroundStyle(Palette.textPrimary)
-                    Text("showing up, 1 of 5 this week")
+                    Text("you're showing up, 1 of 5 this week")
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                 }

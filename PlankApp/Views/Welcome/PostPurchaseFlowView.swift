@@ -78,7 +78,14 @@ struct PostPurchaseFlowView: View {
             case .breathworkPrimer:
                 BreathworkPrimerView(
                     onBreathe: { transition(to: .breathworkSession) },
-                    onSkip: { onFinish() }
+                    onSkip: {
+                        if let action = promiseAction, !action.isEmpty,
+                           let anchor = promiseAnchor, !anchor.isEmpty {
+                            transition(to: .promiseConfirmation)
+                        } else {
+                            onFinish()
+                        }
+                    }
                 )
                 .transition(.opacity)
 
