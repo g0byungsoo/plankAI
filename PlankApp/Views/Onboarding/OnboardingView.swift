@@ -2191,7 +2191,30 @@ struct OnboardingView: View {
         // 234 (plateau teach) routes straight to 250 (method preview).
         // Day-one program rails the card carried (snap / steps / method /
         // breathe) folded into the reveal's FirstWeekPresentation.
-        234, 250, 26, 215, 23,
+        //
+        // v1.1.3 T8 (2026-06-29) — admin friction moved off the run to the
+        // wall. Cases 215 (rating), 23 (notification opt-in - the legacy-
+        // named cameraSetupScreen), and 26 (sign-in) USED to sit here,
+        // between the method preview and the projection reveal + paywall,
+        // bleeding impulse intent right before the price. Now:
+        //   - 215 (rating) moves POST-PAYWALL: PostPurchaseFlowView shows
+        //     it after the coach intro, where the user is already committed
+        //     (PostPurchaseRatingView). methodPreviewScreen (250) routes
+        //     straight to finish() -> reveal -> wall.
+        //   - 23 (notification opt-in) is REMOVED here as a duplicate: the
+        //     reveal's PairedPermissionsAsk is already the single canonical
+        //     notifications ask (the last pre-paywall beat, per T6), so a
+        //     second pre-reveal ask was redundant. No post-paywall dup is
+        //     added (one ask, not three).
+        //   - 26 (sign-in) was already ORPHANED in the forward flow (no
+        //     go(26)/next:26 routed to it; 250 -> 215 skipped it). The
+        //     anonymous-first model carries the entitlement across a later
+        //     upgrade with no stranding (RevenueCat appUserID = Supabase
+        //     uid, preserved on anon -> apple/email upgrade), so forcing
+        //     sign-in pre-paywall was never needed. Removed from the order.
+        // The case arms for 23/215/26 stay in the switch below (unreachable,
+        // matching the file's "legacy screens kept, not in flow" convention).
+        234, 250,
     ]
 
     // v3 dead-code rip (2026-06-10) — collapsed from a conditional
@@ -2202,9 +2225,10 @@ struct OnboardingView: View {
     //
     // 5-chapter map. Surfaces a tiny lowercase eyebrow above the
     // progress bar so each new chapter is felt as a sub-goal
-    // (Kivetz et al. 2006 goal-gradient). Post-reveal cases
-    // (250, 26, 215, 23) are intentionally absent — "almost there"
-    // stops being accurate the moment the plan has been shown.
+    // (Kivetz et al. 2006 goal-gradient). The method-preview tail
+    // (250) is intentionally absent — "almost there" stops being
+    // accurate the moment the plan is about to be shown. (T8 removed
+    // 26/215/23 from the flow entirely.)
     private static let chapterMap: [Int: Int] = [
         // 1 — about you
         200: 1, 230: 1, 1: 1, 100: 1, 168: 1, 283: 1,  // cohort credibility (P11.1.B)
@@ -6346,10 +6370,15 @@ struct OnboardingView: View {
                     Haptics.medium()
                     Analytics.track(.methodPreviewContinued)
                     stopMethodPreviewSample()
-                    // Post-2026-05-30 flow: brand promises (240) moved
-                    // BEFORE method preview (250), so this routes directly
-                    // to the review prompt prefilter (215) instead.
-                    go(215)
+                    // v1.1.3 T8 (2026-06-29): method preview is now the LAST
+                    // question screen. It routes straight to finish() ->
+                    // OnboardingRevealView (projection reveal) -> paywall.
+                    // The old detour through 215 (rating) + 23 (notification)
+                    // + 26 (sign-in) is gone: rating moved post-paywall, the
+                    // notification ask is the reveal's PairedPermissionsAsk,
+                    // and sign-in stays anonymous-first. Run goes clean to
+                    // the wall now.
+                    finish()
                 }
                 .padding(.horizontal, Space.screenPadding)
 

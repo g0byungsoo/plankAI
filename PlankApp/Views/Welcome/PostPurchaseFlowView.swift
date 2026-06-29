@@ -8,12 +8,20 @@ import SwiftUI
 // + audio; this container only owns the phase state and the routing.
 //
 // Flow (v1.1 program era):
-//   forging -> coachIntro -> breathworkPrimer -> breathworkSession -> finish
-//                               | skip ----------------------------------> finish
+//   forging -> coachIntro -> ratingPrompt -> breathworkPrimer -> breathworkSession -> finish
+//                               | (rating skips if ineligible)  | skip --------------> finish
 //
 // Task 10 (2026-06-28): if promiseAction + promiseAnchor are both set,
 // breathworkSession routes to promiseConfirmation before finish so the
 // user sees her own words replayed before landing on home.
+//
+// v1.1.3 T8 (2026-06-29): the App Store rating ask ("love your plan?")
+// moved OUT of onboarding (was case 215, pre-paywall) and lands here -
+// right after the coach intro, where the user is already committed, so
+// it no longer bleeds impulse intent before the price. PostPurchaseRatingView
+// self-skips when RatingPromptService says the trigger is ineligible
+// (per-install once + 30-day cooldown + legacy flag), so eligibility +
+// quota behavior is identical to the old onboarding placement.
 //
 // `onFinish` is the single exit; the caller dismisses the cover and the
 // user lands on the Today tab's program onramp. The old ForceFirstAction
@@ -31,6 +39,7 @@ struct PostPurchaseFlowView: View {
     private enum Phase: Equatable {
         case forging               // v3 P11.4 - 8s post-paywall keystone
         case coachIntro
+        case ratingPrompt          // T8 (2026-06-29) - relocated from onb case 215
         case breathworkPrimer
         case breathworkSession
         case promiseConfirmation   // Task 10 (2026-06-28)
@@ -71,6 +80,15 @@ struct PostPurchaseFlowView: View {
 
             case .coachIntro:
                 CoachIntroView(onContinue: {
+                    transition(to: .ratingPrompt)
+                })
+                .transition(.opacity)
+
+            case .ratingPrompt:
+                // T8 (2026-06-29) - the rating ask, relocated from onboarding
+                // case 215. Self-skips to breathworkPrimer when the trigger
+                // is ineligible, so most repeat sessions never see it.
+                PostPurchaseRatingView(onContinue: {
                     transition(to: .breathworkPrimer)
                 })
                 .transition(.opacity)
@@ -143,6 +161,130 @@ struct PostPurchaseFlowView: View {
         withAnimation(Motion.crossFade) {
             phase = next
         }
+    }
+}
+
+// MARK: - PostPurchaseRatingView (T8, 2026-06-29)
+//
+// The App Store rating prefilter ("love your plan?"), relocated from
+// onboarding case 215. It used to sit between the method preview and the
+// projection reveal + paywall, bleeding impulse intent before the price.
+// Now it lands post-purchase (right after the coach intro) where the user
+// is already committed, so the run to the wall stays clean.
+//
+// Logic is preserved verbatim from the old onboarding handlers
+// (handleReviewPromptYes / handleReviewPromptNo): the legacy AppStorage
+// flag is kept in sync, RatingPromptService marks the .postPlanReveal
+// trigger shown, the sentiment result is tracked, and "yes" fires the
+// system review sheet. Eligibility is checked on appear - if the trigger
+// is ineligible (already fired this install, 30-day cooldown, or legacy
+// flag set), the view self-skips to onContinue without showing the card,
+// so quota + per-install behavior is identical to the old placement.
+//
+// Renders on the parent PostPurchaseFlowView canvas (programBgPrimary +
+// shared scatter) - no own background, matching the sibling phases.
+struct PostPurchaseRatingView: View {
+    let onContinue: () -> Void
+
+    @AppStorage("onboardingReviewPromptShown") private var onboardingReviewPromptShown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var cardVisible = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer()
+
+            // Card hero - hero sticker on accent halo inside the scrapbook
+            // chrome. Same composition as the old onboarding case 215 so
+            // the rating ask reads as the brand's familiar "love your plan?"
+            // moment, just later in the journey.
+            VStack(spacing: Space.lg) {
+                ZStack {
+                    Circle()
+                        .fill(Palette.accent.opacity(0.12))
+                        .frame(width: 96, height: 96)
+                    Image(StickerName.heartGlossy.assetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 68, height: 68)
+                        .opacity(StickerName.heartGlossy.style.opacity)
+                }
+                .padding(.top, Space.md)
+
+                (Text("love ").font(Typo.title)
+                 + Text("your plan").font(Typo.titleItalic)
+                 + Text("?").font(Typo.title))
+                    .foregroundStyle(Palette.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.md)
+
+                Text("a quick rating helps other women find us, and keeps the app independent.")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.md)
+                    .padding(.bottom, Space.md)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.vertical, Space.md)
+            .frame(maxWidth: .infinity)
+            .scrapbookCardBackground()
+            .padding(.horizontal, Space.screenPadding)
+            .opacity(cardVisible ? 1 : 0)
+            .offset(y: reduceMotion ? 0 : (cardVisible ? 0 : 12))
+
+            Spacer()
+        }
+        .safeAreaInset(edge: .bottom) {
+            JFContinueButton(
+                label: "loving it",
+                action: {
+                    Haptics.success()
+                    handleYes()
+                    // Brief delay so the system sheet has a beat to appear
+                    // before we cross-fade forward; if iOS suppresses it
+                    // (quota / throttle), the user just lands on breathwork.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        onContinue()
+                    }
+                },
+                firesHaptic: false,
+                secondaryLabel: "not yet",
+                secondaryAction: {
+                    // JFContinueButton fires Haptics.light() for the
+                    // secondary tap itself - don't double it here.
+                    handleNo()
+                    onContinue()
+                }
+            )
+        }
+        .task {
+            // Skip silently when the trigger can't fire - don't show a
+            // prompt the system would suppress anyway.
+            guard RatingPromptService.shared.isEligible(for: .postPlanReveal) else {
+                onContinue()
+                return
+            }
+            if !reduceMotion {
+                try? await Task.sleep(for: .milliseconds(120))
+            }
+            withAnimation(.easeOut(duration: 0.4)) { cardVisible = true }
+        }
+    }
+
+    private func handleYes() {
+        // Keep the legacy AppStorage flag in sync (parity with the old
+        // onboarding handleReviewPromptYes).
+        onboardingReviewPromptShown = true
+        RatingPromptService.shared.markShown(.postPlanReveal)
+        RatingPromptService.shared.trackSentimentResult(trigger: .postPlanReveal, sentimentYes: true)
+        RatingPromptService.shared.presentSystemReviewSheet()
+    }
+
+    private func handleNo() {
+        onboardingReviewPromptShown = true
+        RatingPromptService.shared.markShown(.postPlanReveal)
+        RatingPromptService.shared.trackSentimentResult(trigger: .postPlanReveal, sentimentYes: false)
     }
 }
 
