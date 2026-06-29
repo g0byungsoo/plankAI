@@ -1548,19 +1548,33 @@ private struct AssessmentPresentation: View {
     }
 }
 
-// MARK: - CommitmentRitualPresentation (Task 7, 2026-06-28)
+// MARK: - CommitmentRitualPresentation (Task 7, 2026-06-28 - premium redesign)
 //
 // Replaces the now-dead TrialPromisePresentation (no-trial decision,
 // phase-1a activation pass). The emotional climax of the reveal: one
 // small promise for tomorrow, in the user's own words, which schedules
 // a Day-1 nudge at the time she chooses.
 //
-// Interaction model: confirm defaults, don't fill a form. Three chip
-// rows (anchor/when, action/what, time). Live replay line in
-// JeniHeroSerif updates as she taps. Soft haptic on CTA press.
+// Layout - three zones stacked tight to kill the hollow middle:
+//
+//   HERO     - "before the plan, one *promise*." (JeniHeroSerif)
+//
+//   PANEL    - One unified chip instrument. HairlineRule above +
+//              HairlineRule below. Inside: WHEN / WHAT / TIME groups
+//              in tracked-caps micro-labels. Reads as a single
+//              instrument the user is SETTING, not three loose rows.
+//
+//   PROMISE  - Bridge: tracked-caps "YOUR PROMISE:" + HairlineRule.
+//              Then the live replay in JeniHeroSerif below it, so
+//              the bridge is visibly the OUTPUT of the panel above.
+//
+// Motion: staggered cascade (hero -> panel -> bridge label -> replay
+// -> CTA). All offset-based motion gated on reduceMotion.
+// Haptics: prepare() on appear; tick() on each chip select (scale
+// pulse on the chosen chip); commit() on CTA before persist+schedule.
 //
 // GLP-1 thread: if onboarding_glp1_status == "current", the default
-// action chip is "get protein in" and the replay body becomes
+// action chip is "get protein in" and the replay body stays fixed to
 // "you'll protect your muscle." Phase-1b deepens this.
 //
 // On Continue: persists day1PromiseAction/Anchor/TimeISO, schedules
@@ -1584,10 +1598,17 @@ private struct CommitmentRitualPresentation: View {
     @State private var selectedAction: String = ""
     @State private var selectedTime: String = "8am"
 
-    @State private var heroVisible   = false
-    @State private var chipsVisible  = false
-    @State private var replayVisible = false
-    @State private var ctaVisible    = false
+    // Cascade reveal states
+    @State private var heroVisible         = false
+    @State private var chipPanelVisible    = false
+    @State private var promiseLabelVisible = false
+    @State private var replayVisible       = false
+    @State private var ctaVisible          = false
+
+    // Chip pulse - the last chip tapped; cleared after 200ms
+    @State private var pulsingChip: String = ""
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // MARK: Chip options
 
@@ -1627,6 +1648,10 @@ private struct CommitmentRitualPresentation: View {
         return [selectedAnchor, selectedAction]
     }
 
+    // Stable id for the replay view - changes on any chip tap that
+    // affects the replay text, driving the soft cross-fade transition.
+    private var replayID: String { selectedAnchor + selectedAction }
+
     // MARK: Time-chip to tomorrow Date
 
     private func tomorrowDate(forTimeChip chip: String) -> Date {
@@ -1645,12 +1670,14 @@ private struct CommitmentRitualPresentation: View {
 
     var body: some View {
         ZStack {
-            Palette.programBgPrimary.ignoresSafeArea()
+            // Premium alive-cream surface. Visually distinct from flat
+            // bgPrimary and more grounded for the emotional close beat.
+            GrainfieldBackground()
 
             VStack(alignment: .leading, spacing: 0) {
                 Spacer().frame(height: Space.xl + Space.lg)
 
-                // Hero - JeniHeroSerif, italic punch on "promise"
+                // ZONE 1 - Hero: JeniHeroSerif, italic punch on "promise"
                 ItalicAccentText(
                     "before the plan, one promise.",
                     italic: ["promise"],
@@ -1664,25 +1691,59 @@ private struct CommitmentRitualPresentation: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, Space.screenPadding)
                 .opacity(heroVisible ? 1 : 0)
-                .offset(y: heroVisible ? 0 : 10)
+                .offset(y: reduceMotion ? 0 : (heroVisible ? 0 : 10))
                 .animation(Motion.entrance, value: heroVisible)
 
-                Spacer().frame(height: Space.xl)
+                Spacer().frame(height: Space.lg)
 
-                // Chip groups - confirm defaults, don't fill a form
-                VStack(alignment: .leading, spacing: Space.lg) {
-                    chipGroup(label: "when", chips: anchorChips, selected: $selectedAnchor)
-                    chipGroup(label: "what", chips: actionChips, selected: $selectedAction)
-                    chipGroup(label: "time", chips: timeChips, selected: $selectedTime)
+                // ZONE 2 - Unified chip instrument.
+                // HairlineRule above and below binds the three groups
+                // into one panel. Reads as a single instrument being
+                // SET, not three separate floating questions.
+                // Compact vertical padding (md not xl) anchors the
+                // center and kills the old hollow mid-screen gap.
+                VStack(alignment: .leading, spacing: 0) {
+                    HairlineRule()
+
+                    VStack(alignment: .leading, spacing: Space.md) {
+                        chipGroup(label: "WHEN", chips: anchorChips, selected: $selectedAnchor)
+                        chipGroup(label: "WHAT", chips: actionChips,  selected: $selectedAction)
+                        chipGroup(label: "TIME", chips: timeChips,    selected: $selectedTime)
+                    }
+                    .padding(.vertical, Space.md)
+
+                    HairlineRule()
                 }
                 .padding(.horizontal, Space.screenPadding)
-                .opacity(chipsVisible ? 1 : 0)
-                .offset(y: chipsVisible ? 0 : 10)
-                .animation(Motion.entrance, value: chipsVisible)
+                .opacity(chipPanelVisible ? 1 : 0)
+                .offset(y: reduceMotion ? 0 : (chipPanelVisible ? 0 : 10))
+                .animation(Motion.entrance, value: chipPanelVisible)
 
-                Spacer().frame(height: Space.xl)
+                Spacer().frame(height: Space.md)
 
-                // Replay-as-promise line - live update in JeniHeroSerif
+                // Bridge: tracked-caps micro-label + hairline. Marks the
+                // transition from input (chip panel above) to output (live
+                // replay below). The eye reads: panel -> bridge -> replay.
+                VStack(alignment: .leading, spacing: Space.sm) {
+                    Text("your promise:")
+                        .font(Typo.kicker)
+                        .kerning(0.20 * 10)
+                        .textCase(.uppercase)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                    HairlineRule()
+                }
+                .padding(.horizontal, Space.screenPadding)
+                .opacity(promiseLabelVisible ? 1 : 0)
+                .animation(Motion.entranceSoft, value: promiseLabelVisible)
+
+                Spacer().frame(height: Space.sm)
+
+                // ZONE 3 - Live replay.
+                // .id(replayID) + .transition: when a chip changes the
+                // replay text, SwiftUI removes the old view and inserts a
+                // new one, driving the soft cross-fade. The chip tap wraps
+                // the selection in withAnimation so SwiftUI sees the id
+                // change inside an animation context.
                 ItalicAccentText(
                     replayLine,
                     italic: replayItalicWords,
@@ -1695,8 +1756,12 @@ private struct CommitmentRitualPresentation: View {
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, Space.screenPadding)
+                .id(replayID)
+                .transition(
+                    .opacity.combined(with: .scale(scale: 0.96, anchor: .leading))
+                )
                 .opacity(replayVisible ? 1 : 0)
-                .offset(y: replayVisible ? 0 : 6)
+                .offset(y: reduceMotion ? 0 : (replayVisible ? 0 : 6))
                 .animation(Motion.entrance, value: replayVisible)
 
                 Spacer()
@@ -1716,10 +1781,18 @@ private struct CommitmentRitualPresentation: View {
             if selectedAction.isEmpty { selectedAction = defaultAction }
         }
         .task {
+            // Warm the haptic engine on appear - no latency on first play.
+            ActivationHaptics.shared.prepare()
+
+            // Staggered cascade: hero -> chip panel -> bridge label ->
+            // replay -> CTA. Tighter gaps than the old version so the
+            // screen populates without dragging.
             withAnimation(Motion.entrance) { heroVisible = true }
             try? await Task.sleep(nanoseconds: 400_000_000)
-            withAnimation(Motion.entrance) { chipsVisible = true }
+            withAnimation(Motion.entrance) { chipPanelVisible = true }
             try? await Task.sleep(nanoseconds: 350_000_000)
+            withAnimation(Motion.entranceSoft) { promiseLabelVisible = true }
+            try? await Task.sleep(nanoseconds: 120_000_000)
             withAnimation(Motion.entrance) { replayVisible = true }
             try? await Task.sleep(nanoseconds: 280_000_000)
             withAnimation(Motion.entranceSoft) { ctaVisible = true }
@@ -1728,20 +1801,33 @@ private struct CommitmentRitualPresentation: View {
 
     // MARK: - Chip group
 
+    // label: tracked-caps micro-label (WHEN / WHAT / TIME).
+    // On select: tick haptic + scale pulse on the chosen chip (reduce-motion
+    // safe - pulse gate inside the scaleEffect). Selection wrapped in
+    // withAnimation so the replay .id() change drives the cross-fade.
     @ViewBuilder
     private func chipGroup(label: String, chips: [String], selected: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(label)
-                .font(Typo.eyebrow)
-                .tracking(1.2)
-                .textCase(.lowercase)
-                .foregroundStyle(Palette.textSecondary)
+                .font(Typo.kicker)
+                .kerning(0.20 * 10)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
 
             HStack(spacing: 8) {
                 ForEach(chips, id: \.self) { chip in
                     Button {
-                        Haptics.light()
-                        selected.wrappedValue = chip
+                        ActivationHaptics.shared.tick()
+                        withAnimation(.easeInOut(duration: 0.22)) {
+                            selected.wrappedValue = chip
+                        }
+                        // Scale pulse: set the pulsing chip, clear after the
+                        // spring settles (~200ms). Gated via scaleEffect below.
+                        guard !reduceMotion else { return }
+                        pulsingChip = chip
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                            pulsingChip = ""
+                        }
                     } label: {
                         Text(chip)
                             .font(.custom("Fraunces72pt-SemiBold", size: 14))
@@ -1769,6 +1855,13 @@ private struct CommitmentRitualPresentation: View {
                                         lineWidth: 1
                                     )
                             )
+                            // Scale pulse: 1.07 on the tick, springs back to 1.0.
+                            // Gated on reduceMotion via the pulsingChip guard above.
+                            .scaleEffect(pulsingChip == chip ? 1.07 : 1.0)
+                            .animation(
+                                .spring(response: 0.22, dampingFraction: 0.58),
+                                value: pulsingChip
+                            )
                     }
                     .buttonStyle(.plain)
                     .animation(.easeInOut(duration: 0.18), value: selected.wrappedValue)
@@ -1780,8 +1873,9 @@ private struct CommitmentRitualPresentation: View {
     // MARK: - Confirm + schedule
 
     private func confirmAndContinue() {
-        // Soft haptic on confirm (UIImpactFeedbackGenerator style .soft)
-        Haptics.soft()
+        // Premium haptic commit BEFORE any state mutation. The "this
+        // counts" beat fires while the user's finger is still in contact.
+        ActivationHaptics.shared.commit()
 
         // GLP-1 current: effective action matches the on-screen replay.
         let effectiveAction = (glp1Status == "current") ? "protect your muscle" : selectedAction
