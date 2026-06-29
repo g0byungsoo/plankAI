@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - ArcSparkline
 //
-// A thin cocoa "arrival arc" — a hairline curved Path drawn in a Canvas
+// A thin cocoa "arrival arc": a hairline curved Path drawn in a Canvas
 // that rises gently from a small "today" dot on the left to an "arrival"
 // dot on the right. The clinical-but-warm signal for "you are on a line
 // toward somewhere," used as the quiet hero ornament on activation
@@ -12,7 +12,7 @@ import SwiftUI
 //   1. The stroke DRAWS ON left-to-right (trim 0 -> 1, ~700ms easeOut).
 //   2. A faint highlight travels once along the stroke just after it
 //      finishes drawing (a moving bright node, fades at both ends).
-//   3. The arrival endpoint BLOOMS — a soft expanding ring plus a
+//   3. The arrival endpoint BLOOMS, a soft expanding ring plus a
 //      filled dot that springs in.
 //
 // Reduce Motion: renders fully drawn with a static arrival dot, no
@@ -74,7 +74,7 @@ struct ArcSparkline: View {
         let inset: CGFloat = 10
         let start = CGPoint(x: inset, y: size.height * 0.80)
         let end = CGPoint(x: size.width - inset, y: size.height * 0.26)
-        // Single quadratic bezier — a soft, confident rise. The control
+        // Single quadratic bezier: a soft, confident rise. The control
         // point pulled up + slightly left gives an ease-into-flatten
         // shape (steeper early, calmer near arrival).
         let control = CGPoint(x: size.width * 0.44, y: size.height * 0.40)
@@ -91,7 +91,7 @@ struct ArcSparkline: View {
             style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
         )
 
-        // Today dot (left) — a small filled node, present once the draw
+        // Today dot (left): a small filled node, present once the draw
         // begins so the line reads as leaving "now".
         if drawProgress > 0.01 {
             let r: CGFloat = 3
@@ -101,7 +101,7 @@ struct ArcSparkline: View {
             )
         }
 
-        // Traveling highlight — a brighter node sliding along the stroke
+        // Traveling highlight: a brighter node sliding along the stroke
         // once after the draw lands. Fades in/out at the ends so it
         // reads as a gleam, not a loader.
         if travel > 0.001 && travel < 0.999 {
@@ -118,7 +118,7 @@ struct ArcSparkline: View {
             )
         }
 
-        // Arrival bloom — expanding ring + a filled dot that springs in.
+        // Arrival bloom: expanding ring + a filled dot that springs in.
         if drawProgress > 0.985 {
             let ringR = 4 + bloom * 13
             let ringOpacity = Double(1 - bloom) * 0.5

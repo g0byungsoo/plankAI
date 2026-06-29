@@ -40,7 +40,7 @@ final class ActivationHaptics {
 
     // MARK: Named patterns
 
-    /// Firm, satisfying confirm — a strong transient with a brief
+    /// Firm, satisfying confirm: a strong transient with a brief
     /// continuous tail that decays away. The "this counts" beat (commit
     /// a promise, confirm a choice).
     func commit() {
@@ -56,7 +56,7 @@ final class ActivationHaptics {
         if !played { mediumFallback.impactOccurred(intensity: 1.0) }
     }
 
-    /// Light, crisp tick — a single low-intensity high-sharpness
+    /// Light, crisp tick: a single low-intensity high-sharpness
     /// transient. For incremental marks (a tick filling, a step counted).
     func tick() {
         guard playEngine(events: [
@@ -67,7 +67,7 @@ final class ActivationHaptics {
         }
     }
 
-    /// A two-event "kept" flourish — a soft lead-in transient then a
+    /// A two-event "kept" flourish: a soft lead-in transient then a
     /// firmer landing a beat later, like drawing a line through a
     /// completed item.
     func crossOff() {
@@ -83,7 +83,7 @@ final class ActivationHaptics {
         }
     }
 
-    /// A soft swell — a continuous event whose intensity ramps up then
+    /// A soft swell: a continuous event whose intensity ramps up then
     /// settles, matching the arc sparkline arriving. The gentlest of the
     /// set; reads as a breath rather than a tap.
     func arcComplete() {
@@ -98,7 +98,7 @@ final class ActivationHaptics {
         if !played { lightFallback.impactOccurred(intensity: 0.5) }
     }
 
-    /// Light, playful landing — a small transient plus a tiny bounce, for
+    /// Light, playful landing: a small transient plus a tiny bounce, for
     /// a sticker settling into place.
     func stickerSettle() {
         guard playEngine(events: [

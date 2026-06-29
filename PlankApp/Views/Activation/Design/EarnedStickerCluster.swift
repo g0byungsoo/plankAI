@@ -17,12 +17,12 @@ import SwiftUI
 // Reduce Motion: the stickers appear at their resting transform with no
 // bloom (scatter motion is the first thing to drop on the a11y flag).
 //
-// Usage — corner overlay (recommended, keep-out by placement):
+// Usage - corner overlay (recommended, keep-out by placement):
 //
 //   someText
 //       .earnedStickerCluster(animate: appeared, alignment: .topTrailing)
 //
-// Usage — manual:
+// Usage - manual:
 //
 //   EarnedStickerCluster(animate: appeared)
 //       .position(x: ..., y: ...)

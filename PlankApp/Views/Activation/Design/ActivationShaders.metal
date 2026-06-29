@@ -1,4 +1,4 @@
-// ActivationShaders — the premium "alive surface" for the activation
+// ActivationShaders: the premium "alive surface" for the activation
 // screens. One stitchable colorEffect, `activationGrainfield`, layered
 // on the cream bgPrimary so the flat fill reads as paper + soft light
 // depth instead of an iOS background.
@@ -18,7 +18,7 @@
 // + static grain (still rendered, just not animated).
 //
 // Modeled on the project's existing closed-form approach in
-// CreamPaperGrain.metal — measured ≤0.8ms/frame on A14. NO red is
+// CreamPaperGrain.metal; measured ≤0.8ms/frame on A14. NO red is
 // ever introduced: the bloom tint is a warm cream where R ≈ G ≥ B.
 
 #include <metal_stdlib>
@@ -67,7 +67,7 @@ static inline float agf_pool(float2 uv, float2 c, float spread) {
                                 0.34 + 0.010 * cos(t * 0.5));
     float bloom = agf_pool(nuv, bloomCenter, 1.6);
 
-    // Warm cream highlight — R == G, B slightly lower, so the lift is a
+    // Warm cream highlight: R == G, B slightly lower, so the lift is a
     // touch golden and NEVER strays cool or pink. Capped tiny.
     half3 warm = half3(1.0h, 0.992h, 0.965h);
     half bloomK = half(bloom) * half(intensity) * 0.9h;

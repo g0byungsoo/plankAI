@@ -15,7 +15,7 @@ import SwiftUI
 // ActivationShaders.metal). It runs on the cream rect itself, so any
 // content placed above it is untouched.
 //
-// Usage — outermost layer of an activation screen:
+// Usage - outermost layer of an activation screen:
 //
 //   ZStack {
 //       GrainfieldBackground()
@@ -31,7 +31,7 @@ struct GrainfieldBackground: View {
     /// 0.08 is the most present the surface should ever get.
     var intensity: Float = 0.05
 
-    /// Base fill. Defaults to the locked cream `bgPrimary` — the only
+    /// Base fill. Defaults to the locked cream `bgPrimary`, the only
     /// background token. Override only for a deliberate warmer stock.
     var base: Color = Palette.bgPrimary
 

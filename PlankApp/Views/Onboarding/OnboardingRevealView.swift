@@ -1834,7 +1834,7 @@ private struct CommitmentRitualPresentation: View {
                 .textCase(.uppercase)
                 .foregroundStyle(Palette.cocoaTertiary)
 
-            HStack(spacing: 8) {
+            ChipFlowLayout(spacing: 8) {
                 ForEach(chips, id: \.self) { chip in
                     Button {
                         ActivationHaptics.shared.tick()
@@ -1887,6 +1887,9 @@ private struct CommitmentRitualPresentation: View {
                     .animation(.easeInOut(duration: 0.18), value: selected.wrappedValue)
                 }
             }
+            // Explicit maxWidth anchors the finite-width proposal that
+            // ChipFlowLayout needs in sizeThatFits to compute row breaks.
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -1923,6 +1926,46 @@ private struct CommitmentRitualPresentation: View {
                 NotificationPermission.scheduleDay1Promise(at: date, body: body)
             }
             await MainActor.run { onContinue() }
+        }
+    }
+}
+
+// MARK: - ChipFlowLayout
+//
+// Left-aligned flow (wrapping) layout for chip rows. Chips size to their
+// natural content width; when a chip would overflow the container it starts
+// a new row. Keeps the premium capsule style without ever clipping a label.
+private struct ChipFlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? .infinity
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowH: CGFloat = 0
+        for subview in subviews {
+            let s = subview.sizeThatFits(.unspecified)
+            if x > 0, x + s.width > width {
+                y += rowH + spacing; x = 0; rowH = 0
+            }
+            x += (x > 0 ? spacing : 0) + s.width
+            rowH = max(rowH, s.height)
+        }
+        return CGSize(width: width, height: y + rowH)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowH: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                y += rowH + spacing; x = bounds.minX; rowH = 0
+            }
+            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowH = max(rowH, size.height)
         }
     }
 }

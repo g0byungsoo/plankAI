@@ -13,7 +13,7 @@ import SwiftUI
 //
 // A precise ~0.75pt rule in the subtle cocoa hairline token. The 0.75
 // weight (never 1.0) is the whole difference between "clinical" and
-// "bordered" — see the Tokens.swift cocoa-scale note.
+// "bordered": see the Tokens.swift cocoa-scale note.
 struct HairlineRule: View {
     var color: Color = Palette.hairlineCocoa
     var thickness: CGFloat = 0.75
@@ -116,7 +116,7 @@ struct TickRow: View {
 
 // MARK: LabReadoutRow
 //
-// A tracked-caps micro-label on the left, value on the right — the
+// A tracked-caps micro-label on the left, value on the right: the
 // atomic line of a lab readout. Value defaults to the cocoa secondary
 // numeral register.
 struct LabReadoutRow: View {
@@ -144,7 +144,7 @@ struct LabReadoutRow: View {
 
 // MARK: LabReadoutBlock
 //
-// Stacks `LabReadoutRow`s separated by `HairlineRule`s — the calm lab
+// Stacks `LabReadoutRow`s separated by `HairlineRule`s: the calm lab
 // readout. Build from an array of (label, value) pairs:
 //
 //   LabReadoutBlock(rows: [
