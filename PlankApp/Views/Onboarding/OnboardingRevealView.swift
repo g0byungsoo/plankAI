@@ -1918,110 +1918,128 @@ private struct CommitmentRitualPresentation: View {
             // bgPrimary and more grounded for the emotional close beat.
             GrainfieldBackground()
 
-            VStack(alignment: .leading, spacing: 0) {
-                // Balanced top inset - matches AssessmentPresentation's Space.hero
-                // (was xl+lg=72pt which made the layout aggressively top-loaded).
-                Spacer().frame(height: Space.hero)
+            // VStack partition: scroll zone above, docked CTA below.
+            // GrainfieldBackground().ignoresSafeArea() inside the ZStack
+            // makes safeAreaInset propagation unreliable (button lands
+            // mid-screen rather than at the safe-area edge). The proven
+            // fix - matching AssessmentPresentation / PacePickerPresentation
+            // - is a VStack that partitions scroll zone vs button band.
+            VStack(spacing: 0) {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Top inset below the safe-area edge. The ScrollView
+                        // bounds the content to the available height, so
+                        // overflow can never push the headline into the status
+                        // bar regardless of chip selection length.
+                        Spacer().frame(height: Space.hero)
 
-                // ZONE 1 - Hero: JeniHeroSerif, italic punch on "promise"
-                ItalicAccentText(
-                    "before the plan, one promise.",
-                    italic: ["promise"],
-                    baseFont: Typo.heroHeadline,
-                    italicFont: Typo.heroHeadlineItalic,
-                    color: Palette.textPrimary,
-                    alignment: .leading
-                )
-                .kerning(-0.4)
-                .lineSpacing(Typo.heroHeadlineLineGap)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, Space.screenPadding)
-                .opacity(heroVisible ? 1 : 0)
-                .offset(y: reduceMotion ? 0 : (heroVisible ? 0 : 10))
-                .animation(Motion.entrance, value: heroVisible)
+                        // ZONE 1 - Hero: JeniHeroSerif, italic punch on "promise"
+                        ItalicAccentText(
+                            "before the plan, one promise.",
+                            italic: ["promise"],
+                            baseFont: Typo.heroHeadline,
+                            italicFont: Typo.heroHeadlineItalic,
+                            color: Palette.textPrimary,
+                            alignment: .leading
+                        )
+                        .kerning(-0.4)
+                        .lineSpacing(Typo.heroHeadlineLineGap)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, Space.screenPadding)
+                        .opacity(heroVisible ? 1 : 0)
+                        .offset(y: reduceMotion ? 0 : (heroVisible ? 0 : 10))
+                        .animation(Motion.entrance, value: heroVisible)
 
-                // section gap (36pt) between hero and panel - generous
-                // but not so large the panel feels separated from the intent.
-                Spacer().frame(height: Space.section)
+                        // section gap (36pt) between hero and panel - generous
+                        // but not so large the panel feels separated from the intent.
+                        Spacer().frame(height: Space.section)
 
-                // ZONE 2 - Unified chip instrument panel.
-                // Rounded card with a barely-there 4% cocoa fill and a
-                // visible 22%-cocoa 1pt border. The card makes WHEN / WHAT /
-                // TIME read as ONE object being set, not three loose rows.
-                // 18pt corner radius, 20pt internal padding throughout.
-                VStack(alignment: .leading, spacing: Space.md) {
-                    chipGroup(label: "WHEN", chips: anchorChips, selected: $selectedAnchor)
-                    chipGroup(label: "WHAT", chips: actionChips,  selected: $selectedAction)
-                    chipGroup(label: "TIME", chips: timeChips,    selected: $selectedTime)
+                        // ZONE 2 - Unified chip instrument panel.
+                        // Rounded card with a barely-there 4% cocoa fill and a
+                        // visible 22%-cocoa 1pt border. The card makes WHEN / WHAT /
+                        // TIME read as ONE object being set, not three loose rows.
+                        // 18pt corner radius, 20pt internal padding throughout.
+                        VStack(alignment: .leading, spacing: Space.md) {
+                            chipGroup(label: "WHEN", chips: anchorChips, selected: $selectedAnchor)
+                            chipGroup(label: "WHAT", chips: actionChips,  selected: $selectedAction)
+                            chipGroup(label: "TIME", chips: timeChips,    selected: $selectedTime)
+                        }
+                        .padding(20)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(Palette.cocoaPrimary.opacity(0.04))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(Palette.cocoaPrimary.opacity(0.22), lineWidth: 1)
+                        )
+                        .padding(.horizontal, Space.screenPadding)
+                        .opacity(chipPanelVisible ? 1 : 0)
+                        .offset(y: reduceMotion ? 0 : (chipPanelVisible ? 0 : 10))
+                        .animation(Motion.entrance, value: chipPanelVisible)
+
+                        // Gap between panel and bridge - enough to breathe but
+                        // tight enough that the replay reads as connected OUTPUT.
+                        Spacer().frame(height: Space.lg)
+
+                        // Bridge: tracked-caps kicker + visible divider line.
+                        // Marks the transition from input (chip panel) to output
+                        // (live replay). Uses textSecondary for legibility (was
+                        // cocoaTertiary=48% which rendered near-invisible on cream).
+                        // Divider at 20% cocoa reads clearly as a section break
+                        // without being heavy.
+                        VStack(alignment: .leading, spacing: Space.xs) {
+                            Text("your promise:")
+                                .font(Typo.kicker)
+                                .kerning(0.20 * 10)
+                                .textCase(.uppercase)
+                                .foregroundStyle(Palette.textSecondary)
+                            Rectangle()
+                                .fill(Palette.cocoaPrimary.opacity(0.20))
+                                .frame(height: 0.75)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .padding(.horizontal, Space.screenPadding)
+                        .opacity(promiseLabelVisible ? 1 : 0)
+                        .animation(Motion.entranceSoft, value: promiseLabelVisible)
+
+                        // Tight gap - replay sits RIGHT under the bridge label so
+                        // the eye reads "promise: [output below]" not two separate zones.
+                        Spacer().frame(height: Space.sm)
+
+                        // ZONE 3 - Live replay: assembles word-by-word on first reveal
+                        // (stagger left-to-right, ~50ms per word) and swaps ONLY the
+                        // changed slot on chip tap (old word fades/lifts out, new word
+                        // fades/settles in, ~220ms spring). Reduce-motion: no motion,
+                        // words render final state immediately.
+                        CommitmentReplayView(
+                            anchor: selectedAnchor,
+                            action: selectedAction,
+                            glp1: glp1Status == "current",
+                            isRevealed: replayVisible
+                        )
+                        .padding(.horizontal, Space.screenPadding)
+
+                        // Bottom clearance so the replay can scroll fully
+                        // clear of the docked CTA band below. Fixed frame
+                        // (not Spacer(minLength:)) so it works correctly
+                        // inside the ScrollView's unconstrained height.
+                        Spacer().frame(height: Space.xl)
+                    }
                 }
-                .padding(20)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Palette.cocoaPrimary.opacity(0.04))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Palette.cocoaPrimary.opacity(0.22), lineWidth: 1)
-                )
-                .padding(.horizontal, Space.screenPadding)
-                .opacity(chipPanelVisible ? 1 : 0)
-                .offset(y: reduceMotion ? 0 : (chipPanelVisible ? 0 : 10))
-                .animation(Motion.entrance, value: chipPanelVisible)
 
-                // Gap between panel and bridge - enough to breathe but
-                // tight enough that the replay reads as connected OUTPUT.
-                Spacer().frame(height: Space.lg)
-
-                // Bridge: tracked-caps kicker + visible divider line.
-                // Marks the transition from input (chip panel) to output
-                // (live replay). Uses textSecondary for legibility (was
-                // cocoaTertiary=48% which rendered near-invisible on cream).
-                // Divider at 20% cocoa reads clearly as a section break
-                // without being heavy.
-                VStack(alignment: .leading, spacing: Space.xs) {
-                    Text("your promise:")
-                        .font(Typo.kicker)
-                        .kerning(0.20 * 10)
-                        .textCase(.uppercase)
-                        .foregroundStyle(Palette.textSecondary)
-                    Rectangle()
-                        .fill(Palette.cocoaPrimary.opacity(0.20))
-                        .frame(height: 0.75)
-                        .frame(maxWidth: .infinity)
-                }
-                .padding(.horizontal, Space.screenPadding)
-                .opacity(promiseLabelVisible ? 1 : 0)
-                .animation(Motion.entranceSoft, value: promiseLabelVisible)
-
-                // Tight gap - replay sits RIGHT under the bridge label so
-                // the eye reads "promise: [output below]" not two separate zones.
-                Spacer().frame(height: Space.sm)
-
-                // ZONE 3 - Live replay: assembles word-by-word on first reveal
-                // (stagger left-to-right, ~50ms per word) and swaps ONLY the
-                // changed slot on chip tap (old word fades/lifts out, new word
-                // fades/settles in, ~220ms spring). Reduce-motion: no motion,
-                // words render final state immediately.
-                CommitmentReplayView(
-                    anchor: selectedAnchor,
-                    action: selectedAction,
-                    glp1: glp1Status == "current",
-                    isRevealed: replayVisible
-                )
-                .padding(.horizontal, Space.screenPadding)
-
-                // Bottom breathing room - minLength keeps space for the
-                // safeAreaInset CTA without creating a dead hollow zone.
-                Spacer(minLength: Space.xl)
+                // Docked CTA - cream band blocks scroll content from
+                // bleeding behind the button on any selection length.
+                // Sits in the VStack partition (outside the scroll) so it
+                // is always fully visible without affecting scroll layout.
+                JFContinueButton(label: "continue", action: confirmAndContinue)
+                    .padding(.top, 8)
+                    .padding(.bottom, 24)
+                    .background(Palette.bgPrimary)
+                    .opacity(ctaVisible ? 1 : 0)
+                    .animation(Motion.entranceSoft, value: ctaVisible)
             }
-        }
-        .safeAreaInset(edge: .bottom) {
-            JFContinueButton(label: "continue", action: confirmAndContinue)
-                .padding(.horizontal, Space.lg)
-                .padding(.bottom, Space.md)
-                .opacity(ctaVisible ? 1 : 0)
-                .animation(Motion.entranceSoft, value: ctaVisible)
         }
         .onAppear {
             // Initialize defaults on appear (not init) so AppStorage
