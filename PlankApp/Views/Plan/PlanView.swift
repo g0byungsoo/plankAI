@@ -247,6 +247,12 @@ struct PlanView: View {
     /// session even as we update lastPlanAppearAt.
     @State private var welcomeBackDaysAway: Int = 0
 
+    // Phase 1a (Task 9, 2026-06-28) — arrival horizon hero.
+    // Captured at onAppear so goalDate is readable without a fresh
+    // SwiftData fetch on every body render. nil until the user is
+    // enrolled (plan == nil → planMissing = true → hero is never shown).
+    @State private var activePlanRecord: ProgramPlanRecord? = nil
+
     var body: some View {
         ZStack {
             // v5: program home gets its own pink-tinted background
@@ -261,6 +267,8 @@ struct PlanView: View {
                         Spacer().frame(height: 24)
                         eyebrow
                         Spacer().frame(height: 10)
+                        arrivalHorizonHero
+                        Spacer().frame(height: 12)
                         dayArchetypePill
                         Spacer().frame(height: 12)
                         dayStrip
@@ -652,6 +660,64 @@ struct PlanView: View {
         // updates even when it was on an inactive tab while the user
         // logged.
         NotificationCenter.default.post(name: .weightLogDidChange, object: nil)
+    }
+
+    // MARK: - Arrival horizon hero (Phase 1a, 2026-06-28)
+    //
+    // Line 1 (JeniHeroSerif 34pt): the goal date as a forgiving
+    // horizon, "~dec 27". The tilde prefix signals "around this
+    // date" rather than a hard deadline. NEVER red, NEVER the
+    // word "behind", NEVER a countdown.
+    //
+    // Line 2 (DMSans caption, textSecondary): the habit-status
+    // phrase from HabitProgress.weeklyStatus, which is inherently
+    // positive-framed ("you're showing up, 4 of 5 this week").
+    //
+    // Renders nothing when no active plan exists (planMissing path).
+
+    /// "MMM d" lowercase ("dec 27") formatter for the arrival hero.
+    /// Static to avoid re-allocation on every render.
+    private static let arrivalDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f
+    }()
+
+    /// The plan goal date formatted lowercase, or nil when unenrolled.
+    private var arrivalGoalDateLabel: String? {
+        guard let plan = activePlanRecord else { return nil }
+        return Self.arrivalDateFormatter.string(from: plan.goalDate).lowercased()
+    }
+
+    /// Distinct engaged days in the current calendar week, derived
+    /// from the perf-cached engaged-dates set. Week boundary follows
+    /// the device locale calendar (Sunday-based in US; Monday in EU).
+    private var actionsThisWeek: Int {
+        guard let interval = Calendar.current.dateInterval(of: .weekOfYear, for: .now) else {
+            return 0
+        }
+        return cachedEngagedDates.filter {
+            $0 >= interval.start && $0 < interval.end
+        }.count
+    }
+
+    @ViewBuilder private var arrivalHorizonHero: some View {
+        if let dateLabel = arrivalGoalDateLabel {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("~\(dateLabel)")
+                    .font(Typo.questionHero)
+                    .foregroundStyle(Palette.textPrimary)
+
+                Text(HabitProgress.weeklyStatus(
+                    actionsThisWeek: actionsThisWeek,
+                    target: profile.sessionsPerWeek
+                ))
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .modernEntrance(animateIn, delay: 0.04)
+        }
     }
 
     // MARK: - Eyebrow
@@ -1290,9 +1356,11 @@ struct PlanView: View {
 
         guard let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext) else {
             planMissing = true
+            activePlanRecord = nil
             return
         }
         planMissing = false
+        activePlanRecord = plan   // Phase 1a: feeds arrivalHorizonHero
 
         // One-time stale-check wipe before hydration. See the
         // planChecksMigratedV1 property for the bug history.

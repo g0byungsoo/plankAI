@@ -612,6 +612,12 @@ struct PlankAIApp: App {
                     DayPeekPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-strip") {
                     DayStripPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-arrival") {
+                    // Phase 1a (Task 9, 2026-06-28) — arrival horizon hero.
+                    // Renders the hero with seeded data (goalDate ~84 days out,
+                    // 4 actions this week of 5 target) so it can be iterated
+                    // and screenshot without a full enrolled account.
+                    ArrivalHeroPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-assessment") {
                     // TEMPORARY debug harness — jumps straight to the
                     // AssessmentPresentation beat. Provenance line variant
@@ -3034,6 +3040,84 @@ private struct CBTQACoverHost: View {
             .padding()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Palette.bgPrimary)
+        }
+    }
+}
+
+// MARK: - ArrivalHeroPreviewHarness (Phase 1a, 2026-06-28)
+//
+// Renders the arrival horizon hero with seeded data so the component
+// can be iterated and screenshot without a full enrolled account.
+// Launch via `--debug-arrival`.
+//
+// Seed values:
+//   goalDate: 84 days from today (~12 weeks, a typical medium plan)
+//   actionsThisWeek: 4  (of target 5)
+//
+// Optional launch args:
+//   --arrival-actions N   override actionsThisWeek (0..7)
+//   --arrival-target N    override target (1..7)
+
+private struct ArrivalHeroPreviewHarness: View {
+
+    private let seedGoalDate: Date = Calendar.current.date(
+        byAdding: .day, value: 84, to: .now
+    ) ?? .now
+
+    private var seedActions: Int {
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "--arrival-actions"), i + 1 < args.count,
+           let v = Int(args[i + 1]) { return max(0, min(7, v)) }
+        return 4
+    }
+
+    private var seedTarget: Int {
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "--arrival-target"), i + 1 < args.count,
+           let v = Int(args[i + 1]) { return max(1, min(7, v)) }
+        return 5
+    }
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f
+    }()
+
+    var body: some View {
+        ZStack {
+            Palette.programBgPrimary.ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer().frame(height: 64)
+
+                // Eyebrow (mirrors PlanView layout)
+                Text("DAY 4 OF 84")
+                    .font(Typo.editorialEyebrow)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .kerning(0.66)
+                    .padding(.horizontal, Space.lg)
+
+                Spacer().frame(height: 10)
+
+                // Arrival horizon hero
+                let dateLabel = Self.dateFormatter.string(from: seedGoalDate).lowercased()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("~\(dateLabel)")
+                        .font(Typo.questionHero)
+                        .foregroundStyle(Palette.textPrimary)
+
+                    Text(HabitProgress.weeklyStatus(
+                        actionsThisWeek: seedActions,
+                        target: seedTarget
+                    ))
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Space.lg)
+
+                Spacer()
+            }
         }
     }
 }
