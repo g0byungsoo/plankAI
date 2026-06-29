@@ -149,9 +149,19 @@ struct PostPurchaseFlowView: View {
 // MARK: - PostPurchasePromisePhase (Task 10, 2026-06-28)
 //
 // Shows the user's Day-1 promise back to her as a soft confirmation
-// before she lands on the Today tab. No background: the parent
-// PostPurchaseFlowView canvas (programBgPrimary + sticker scatter)
-// shows through.
+// before she lands on the Today tab.
+//
+// Premium redesign (2026-06-28): own GrainfieldBackground covers the
+// parent's programBgPrimary + coachIntroDefault scatter - this earned
+// moment uses the activation register, not the shared post-paywall
+// flow surface. ONE EarnedStickerCluster blooms at topTrailing in the
+// pre-headline anchor zone; the left-aligned copy column stays clear.
+//
+// Bug fixes baked in:
+//   - 6-sticker spray: eliminated (parent scatter hidden by own bg)
+//   - Sticker/text overlap: cluster lives in the 80pt anchor zone
+//   - Vertical-line artifact: eliminated (parent scatter hidden)
+//   - Red heart: U+2665 U+FE0E forces text glyph; Palette.accent color
 //
 // Named at internal (not private) access so PlankAIApp debug harnesses
 // can instantiate it directly for screenshot iteration.
@@ -164,43 +174,82 @@ struct PostPurchasePromisePhase: View {
     @State private var heroVisible = false
     @State private var lineVisible = false
     @State private var ctaVisible = false
+    @State private var clusterAnimated = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Spacer().frame(height: 80)
+        ZStack {
+            // Premium alive-surface background. Covers the parent's
+            // programBgPrimary + coachIntroDefault scatter so this phase
+            // reads as an earned moment, not the shared flow canvas.
+            GrainfieldBackground()
 
-            ItalicAccentText(
-                "your promise is set.",
-                italic: ["set"],
-                baseFont: Typo.heroHeadline,
-                italicFont: Typo.heroHeadlineItalic,
-                color: Palette.textPrimary,
-                alignment: .leading
-            )
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, Space.lg)
-            .opacity(heroVisible ? 1 : 0)
-            .offset(y: heroVisible ? 0 : 12)
+            VStack(alignment: .leading, spacing: 0) {
+                // Cluster anchor zone - 120pt gives enough height so the
+                // 90pt cluster (bottom at y~98) clears the headline below
+                // by ~22pt. topTrailing anchors it to the screen's right
+                // edge; left-aligned text in the column below stays clear.
+                Color.clear
+                    .frame(height: 120)
+                    .earnedStickerCluster(
+                        animate: clusterAnimated,
+                        stickers: [.flower3D, .heartGlossy, .sparkleGlossy],
+                        diameter: 90,
+                        alignment: .topTrailing,
+                        inset: 8
+                    )
 
-            Spacer().frame(height: 32)
+                ItalicAccentText(
+                    "your promise is set.",
+                    italic: ["set"],
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, Space.lg)
+                .opacity(heroVisible ? 1 : 0)
+                .offset(y: heroVisible ? 0 : 12)
 
-            Text("tomorrow, \(anchor), you'll \(action). we'll be here \u{2665}")
-                .font(.custom("DMSans-Regular", size: 16))
-                .foregroundStyle(Palette.textSecondary)
+                Spacer().frame(height: 32)
+
+                // Heart fix: U+FE0E text-presentation selector forces a
+                // text glyph (not the red emoji). Palette.accent is the
+                // dusty rose (#C4677A) - not red, on-brand.
+                (Text("tomorrow, \(anchor), you'll \(action). we'll be here ")
+                    .font(.custom("DMSans-Regular", size: 16))
+                    .foregroundStyle(Palette.textSecondary)
+                + Text("\u{2665}\u{FE0E}")
+                    .font(.custom("DMSans-Regular", size: 16))
+                    .foregroundStyle(Palette.accent))
                 .padding(.horizontal, Space.lg)
                 .fixedSize(horizontal: false, vertical: true)
                 .opacity(lineVisible ? 1 : 0)
 
-            Spacer()
+                Spacer()
+
+                // Grounded close: quiet hairline above the CTA so the
+                // lower third has intention and doesn't feel empty.
+                HairlineRule()
+                    .padding(.horizontal, Space.lg)
+                    .padding(.bottom, Space.md)
+                    .opacity(ctaVisible ? 1 : 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .safeAreaInset(edge: .bottom) {
-            JFContinueButton(label: "continue", action: onContinue)
-                .opacity(ctaVisible ? 1 : 0)
+            JFContinueButton(label: "continue", action: {
+                ActivationHaptics.shared.commit()
+                onContinue()
+            })
+            .opacity(ctaVisible ? 1 : 0)
         }
         .task {
+            ActivationHaptics.shared.prepare()
             withAnimation(.easeOut(duration: 0.35)) { heroVisible = true }
-            try? await Task.sleep(for: .milliseconds(400))
+            try? await Task.sleep(for: .milliseconds(200))
+            clusterAnimated = true
+            try? await Task.sleep(for: .milliseconds(200))
             withAnimation(.easeOut(duration: 0.35)) { lineVisible = true }
             try? await Task.sleep(for: .milliseconds(300))
             withAnimation(.easeOut(duration: 0.35)) { ctaVisible = true }
