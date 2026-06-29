@@ -167,6 +167,10 @@ struct AnalyticsView: View {
     /// being truthy disables reset-week phasing on the archetype
     /// rotation per the 2026-06-17 WM physician brief.
     @AppStorage("onb_restrictive_food") private var restrictiveFoodFlag: Bool = false
+    /// T9 (2026-06-29) - NSV priorities collected at case 136, echoed
+    /// on Becoming so the user sees her own picks surface again.
+    /// Provenance-gated: empty string -> no echo rendered.
+    @AppStorage("onboardingNsvPriority") private var nsvPriorityCSV: String = ""
 
     /// Same derivation PlanView + LessonReaderView use, so all three
     /// surfaces apply the override identically. Pure read; the rotation
@@ -1536,6 +1540,13 @@ struct AnalyticsView: View {
             // PlateFanTeaser is superseded by BecomingPlateTimelineToday
             // (item 4 above). The fan was a doorway into the journal;
             // the timeline IS the journal's first row.
+
+            // T9 (2026-06-29) - NSV echo: surface her collected picks
+            // from case 136. Provenance-gated - empty nsvPriorityCSV
+            // renders nothing (data-provenance rule). Small eyebrow +
+            // chip row; no big card. Sits just before the closing
+            // insight so it reads as context, not as another metric.
+            nsvEchoRow
 
             // Closing diary punctuation — one sentence about HER own
             // data, italic punch + breathing shadow. Provenance-gated
@@ -3666,6 +3677,57 @@ struct AnalyticsView: View {
     }
 
     // MARK: - Stack signal helpers
+
+    // MARK: - T9: NSV echo row
+    //
+    // Surfaces the user's collected NSV picks (case 136, key "onboardingNsvPriority").
+    // Provenance rule: if nsvPriorityCSV is empty, renders nothing - no filler.
+    // Small eyebrow + chip row; not a full card. Matches the Becoming editorial
+    // register (10pt tracked caps eyebrow + 12pt Capsule chips, same as the
+    // onboarding stillToSharpenRow pattern).
+
+    @ViewBuilder
+    private var nsvEchoRow: some View {
+        let picks = nsvPriorityCSV
+            .split(separator: ",")
+            .map(String.init)
+            .filter { !$0.isEmpty }
+        if !picks.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("watching for")
+                    .font(.system(size: 10, weight: .medium))
+                    .tracking(1.4)
+                    .foregroundStyle(Palette.textSecondary)
+                // Wrap chips so they never clip on narrow screens.
+                // FlowLayout is not available pre-iOS 16; use HStack
+                // with wrapping via ScrollView disabled - the chip count
+                // is at most 4 so a single HStack is safe here.
+                HStack(spacing: 6) {
+                    ForEach(picks, id: \.self) { key in
+                        Text(nsvPickLabel(key))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Palette.textSecondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Capsule().stroke(Palette.divider, lineWidth: 1))
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 6)
+        }
+    }
+
+    /// Human-readable label for an NSV key from case 136.
+    private func nsvPickLabel(_ key: String) -> String {
+        switch key {
+        case "core":    return "core that holds"
+        case "energy":  return "energy that lasts"
+        case "clothes": return "clothes that fit right"
+        case "sleep":   return "sleep that resets"
+        default:        return key
+        }
+    }
 
     /// True when the user has at least one food log in the last 7 days.
     /// FoodWeekBentoTile is the source of truth; this is just a quick

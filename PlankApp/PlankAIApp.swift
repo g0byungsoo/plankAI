@@ -1962,6 +1962,10 @@ private struct HomePhase1PreviewHarness: View {
 // intercept fullScreenCover. Launch with `--debug-becoming`.
 
 private struct BecomingPreviewHarness: View {
+    /// T9 (2026-06-29) - reads the NSV priorities so the harness shows
+    /// the real echo when the key is seeded via simctl defaults write.
+    @AppStorage("onboardingNsvPriority") private var nsvPriorityCSV: String = ""
+
     /// Phase 4 demo flags — set via launch args so each interaction
     /// can be captured in a screenshot without needing simctl tap
     /// support. Production callers never touch these.
@@ -2055,6 +2059,49 @@ private struct BecomingPreviewHarness: View {
             Palette.bgPrimary.ignoresSafeArea()
             PaperGrainBackground().ignoresSafeArea()
             scrollContent
+        }
+    }
+
+    // T9 NSV echo for the harness - mirrors the nsvEchoRow logic in
+    // AnalyticsView. Uses @AppStorage; also falls back to mock picks
+    // when the stored value is empty so the preview always renders.
+    @ViewBuilder
+    private var nsvEchoPreview: some View {
+        let storedPicks = nsvPriorityCSV
+            .split(separator: ",")
+            .map(String.init)
+            .filter { !$0.isEmpty }
+        // Fall back to demo picks when not seeded, so the harness
+        // always illustrates the row. Real AnalyticsView only renders
+        // when the user has genuine picks (provenance rule).
+        let picks = storedPicks.isEmpty ? ["energy", "clothes", "sleep"] : storedPicks
+        VStack(alignment: .leading, spacing: 6) {
+            Text("watching for")
+                .font(.system(size: 10, weight: .medium))
+                .tracking(1.4)
+                .foregroundStyle(Palette.textSecondary)
+            HStack(spacing: 6) {
+                ForEach(picks, id: \.self) { key in
+                    Text(nsvPickLabelPreview(key))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Palette.textSecondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().stroke(Palette.divider, lineWidth: 1))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 6)
+    }
+
+    private func nsvPickLabelPreview(_ key: String) -> String {
+        switch key {
+        case "core":    return "core that holds"
+        case "energy":  return "energy that lasts"
+        case "clothes": return "clothes that fit right"
+        case "sleep":   return "sleep that resets"
+        default:        return key
         }
     }
 
@@ -2162,6 +2209,12 @@ private struct BecomingPreviewHarness: View {
                     foodNoiseSince: Calendar.current.date(byAdding: .day, value: -30, to: .now),
                     debugInitialRevealed: debugPeekDeed
                 )
+
+                // T9 (2026-06-29) - NSV echo: shows real picks from
+                // nsvPriorityCSV (onboardingNsvPriority). Seed via:
+                //   xcrun simctl spawn booted defaults write com.bk.plankAI
+                //     onboardingNsvPriority "energy,clothes,sleep"
+                nsvEchoPreview
 
                 // Phase 4 Day-3 (2026-06-19) — multi-insight swipe
                 // cycle. Three mock insights so the gesture has

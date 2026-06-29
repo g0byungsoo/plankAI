@@ -7030,8 +7030,13 @@ struct OnboardingView: View {
                     .tracking(1.6)
                     .foregroundStyle(Palette.textSecondary)
 
+                // T9 (2026-06-29): list only inputs that genuinely move
+                // the pacing math. sleep (Nedeltcheva floor) + cycle/peri
+                // (0.3%/wk floor) + weight trend (Task 2 cycling floor) +
+                // glp-1 phase (Task 2 just_started 0.003 floor). Removed
+                // "eating" + "stress" - neither moves the pace formula.
                 HStack(spacing: 6) {
-                    ForEach(["sleep", "cycle", "eating", "stress"], id: \.self) { item in
+                    ForEach(["sleep", "cycle", "weight trend", "glp-1"], id: \.self) { item in
                         Text(item)
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(Palette.textSecondary)
