@@ -99,6 +99,19 @@ struct DownsellPaywallView: View {
         return "you save \(savedStr)"
     }
 
+    /// Live-computed percentage off. Returns nil unless both packages have loaded
+    /// and the math yields a positive result. Never hardcodes a percentage.
+    private var percentOffText: String? {
+        guard let discount = discountPackage,
+              let standard = standardYearlyPackage else { return nil }
+        let discountPrice = (discount.storeProduct.price as NSDecimalNumber).doubleValue
+        let standardPrice = (standard.storeProduct.price as NSDecimalNumber).doubleValue
+        guard standardPrice > 0 else { return nil }
+        let pct = ((standardPrice - discountPrice) / standardPrice * 100).rounded()
+        guard pct > 0 else { return nil }
+        return "\(Int(pct))% off"
+    }
+
     private static let defaultCurrencyFormatter: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .currency
@@ -303,8 +316,8 @@ struct DownsellPaywallView: View {
             .frame(maxWidth: .infinity)
             .background(scrapbookChrome(tint: Palette.accent))
 
-            if hasPricing {
-                Text("50% OFF")
+            if let pct = percentOffText {
+                Text(pct)
                     .font(Typo.eyebrow)
                     .tracking(1.5)
                     .foregroundStyle(Palette.textInverse)
