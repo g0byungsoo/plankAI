@@ -2322,14 +2322,14 @@ private struct RootView: View {
 
     // Downsell paywall state. Hard-paywall model: the cover stays up
     // until the user subscribes or restores. The downsell is presented
-    // as a .sheet over PaywallView — appears ONLY in response to a user
-    // action (X tap on the main paywall, or Apple purchase-sheet cancel).
-    // Auto-pop after dwell was removed: it was hiding inside successful
-    // purchase flows as the discount sheet appearing right as the cover
-    // dismissed, creating an awkward "did I get the discount or the
-    // standard?" moment for the user.
-    // v1.0.7 removed @State private var showingDownsell = false
-    // (downsell flow unwired; founder chose premium positioning).
+    // as a .sheet over PaywallView on exit intent (X tap on main
+    // paywall or Apple purchase-sheet cancel). Shows once per install
+    // via AppStorage guard; subsequent exit intents fall through to
+    // CancellationWinbackSheet.
+    // Re-wired 2026-06-29 - founder reversed the May-31 premium-
+    // positioning hold; discounted annual is now the exit-intent offer.
+    @AppStorage("downsellShownOnce") private var downsellShownOnce = false
+    @State private var showingDownsell = false
 
     // Celebration screen state. Set true by PaywallView/DownsellPaywallView
     // `onSubscribed` callbacks — so it fires ONLY on a fresh-from-paywall
@@ -2346,12 +2346,12 @@ private struct RootView: View {
     // never transition effectiveHasProAccess false→true (cold relaunch
     // on an already-paid user). Default-off behind the flag.
     @State private var showingCoachIntro = false
-    /// Sprint A (2026-06-15) — soft cancellation-intent winback. Fires
-    /// once per session on the FIRST `paywall_transaction_abandoned`
-    /// signal (user started StoreKit checkout, backed out of Apple
-    /// sheet). Voice-aligned identity reflection — NOT a discount
-    /// downsell (May-31 premium positioning stands). Re-firing on
-    /// repeat abandons in the same session would read as nagging.
+    /// Sprint A (2026-06-15) — soft cancellation-intent winback.
+    /// After 2026-06-29 re-wire: fires as the SECONDARY beat after
+    /// the downsell has already shown (or as fallback once per session
+    /// when downsellShownOnce is already true). Voice-aligned identity
+    /// reflection - no price cut. Re-firing on repeat exits in the
+    /// same session would read as nagging.
     @State private var showingWinback = false
     @State private var winbackShownThisSession = false
 
@@ -2389,22 +2389,21 @@ private struct RootView: View {
                     MainTabView()
                         .transition(.opacity)
                         .fullScreenCover(isPresented: .constant(!payment.effectiveHasProAccess && !payment.isInAuthTransition)) {
-                            // Hard paywall — sits between onboarding completion
+                            // Hard paywall - sits between onboarding completion
                             // and MainTabView. Cover dismisses only when
                             // PaymentService.hasProAccess flips true (purchase
-                            // or restore). The downsell appears as a .sheet
-                            // over this view: auto-pops after dwell time, OR
-                            // on X tap. Sheet dismiss returns here without
-                            // letting the user out of the cover.
+                            // or restore). Exit intent (X tap or Apple-sheet
+                            // cancel) routes to DownsellPaywallView once per
+                            // install, then CancellationWinbackSheet. Sheet
+                            // dismiss returns here without letting the user
+                            // out of the cover.
                             PaywallView(
-                                // 2026-06-01: dismissable flipped to
-                                // false. X button was always decorative
-                                // (onDismiss didn't actually dismiss the
-                                // hard-paywall cover, only fired analytics)
-                                // so its visual presence was misleading.
-                                // Hard paywall is now visually honest:
-                                // the only way out is to subscribe.
-                                dismissable: false,
+                                // 2026-06-29: dismissable restored to true.
+                                // X tap now routes to the exit-intent downsell
+                                // (once per install) via triggerExitIntent().
+                                // Cover stays up regardless - the X does NOT
+                                // dismiss the hard-paywall cover.
+                                dismissable: true,
                                 onSubscribed: {
                                     #if DEBUG
                                     print("[Paywall.main] onSubscribed fired (debugForcePaywall was \(payment.debugForcePaywall))")
@@ -2437,34 +2436,18 @@ private struct RootView: View {
                                     }
                                 },
                                 onDismiss: {
-                                    // 2026-05-30 (epic #1 child #4): X tap
-                                    // no longer opens the downsell. The
-                                    // paywall stays hard-bound to
-                                    // effectiveHasProAccess, so the X is a
-                                    // visual escape hatch only — the
-                                    // paywall_dismiss_attempted event fires
-                                    // for the analytics signal. Downsell
-                                    // fires ONLY on transaction-abandon
-                                    // (Apple sheet cancel) per the spec.
+                                    // 2026-06-29: exit-intent downsell wired.
+                                    // analytics fires inside PaywallView.topBar
+                                    // before this callback - no double-emit.
+                                    triggerExitIntent()
                                 },
                                 onPurchaseCancelled: {
-                                    // Transaction-abandon: user started
-                                    // StoreKit checkout, backed out of the
-                                    // Apple sheet. Funnel signal first, then
-                                    // present the voice-aligned winback
-                                    // sheet (Sprint A 2026-06-15) — NOT a
-                                    // discount downsell. The May-31 founder
-                                    // decision against the discount surface
-                                    // stands; CancellationWinbackSheet is a
-                                    // soft identity reflection, not a price
-                                    // cut. One-shot per session via
-                                    // `winbackShownThisSession` so repeat
-                                    // abandoners aren't nagged.
+                                    // Transaction-abandon: user started StoreKit
+                                    // checkout, backed out of the Apple sheet.
+                                    // Funnel signal first, then exit-intent offer
+                                    // (downsell once per install, winback after).
                                     Analytics.track(.paywallTransactionAbandoned)
-                                    if !winbackShownThisSession {
-                                        winbackShownThisSession = true
-                                        showingWinback = true
-                                    }
+                                    triggerExitIntent()
                                 }
                             )
                             .onAppear {
@@ -2505,6 +2488,34 @@ private struct RootView: View {
                                 .presentationDetents([.large])
                                 .presentationDragIndicator(.hidden)
                                 .interactiveDismissDisabled(false)
+                            }
+                            // Exit-intent downsell - discounted annual offer.
+                            // Presented once per install (downsellShownOnce
+                            // AppStorage guard in triggerExitIntent). Must be
+                            // a separate .sheet from winback so SwiftUI can
+                            // chain them: downsell dismiss sets showingWinback
+                            // true before this sheet fully closes.
+                            // interactiveDismissDisabled so the fall-through
+                            // to CancellationWinbackSheet always fires via
+                            // onDismiss (no silent swipe-away).
+                            .sheet(isPresented: $showingDownsell) {
+                                DownsellPaywallView(
+                                    onSubscribed: {
+                                        showingDownsell = false
+                                        presentPostPurchaseFlowIfEligible()
+                                    },
+                                    onDismiss: {
+                                        showingDownsell = false
+                                        // Fall through to winback (once per session).
+                                        if !winbackShownThisSession {
+                                            winbackShownThisSession = true
+                                            showingWinback = true
+                                        }
+                                    }
+                                )
+                                .presentationDetents([.large])
+                                .presentationDragIndicator(.hidden)
+                                .interactiveDismissDisabled(true)
                             }
                         }
                         .onChange(of: payment.effectiveHasProAccess) { oldValue, newValue in
@@ -2815,6 +2826,22 @@ private struct RootView: View {
             print("[PostPurchase] activity check failed for day_progress: \(error)")
             #endif
             return false
+        }
+    }
+
+    /// Exit-intent routing for the hard paywall. First exit ever
+    /// (per install) shows the discounted-annual DownsellPaywallView.
+    /// After downsellShownOnce is set, subsequent exits fall back to
+    /// CancellationWinbackSheet (once per session). Both sheets sit
+    /// over the hard-paywall cover which stays up until
+    /// effectiveHasProAccess flips true.
+    private func triggerExitIntent() {
+        if !downsellShownOnce {
+            downsellShownOnce = true
+            showingDownsell = true
+        } else if !winbackShownThisSession {
+            winbackShownThisSession = true
+            showingWinback = true
         }
     }
 
