@@ -612,6 +612,22 @@ struct PlankAIApp: App {
                     DayPeekPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-strip") {
                     DayStripPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-assessment") {
+                    // TEMPORARY debug harness — jumps straight to the
+                    // AssessmentPresentation beat. Provenance line variant
+                    // controlled via simctl defaults write:
+                    //   onboardingSleepHours five6  → short-sleep line
+                    //   onboarding_glp1_status current → GLP-1 line
+                    OnboardingRevealView(
+                        bodyFocus: ["flatBelly"],
+                        sessionLengthKey: "ten",
+                        voicePreference: "encouraging",
+                        commitmentDaysKey: "five",
+                        currentWeightKg: 75,
+                        goalWeightKg: 65,
+                        onRevealComplete: {},
+                        debugStartAtAssessment: true
+                    )
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-first-week") {
                     // Jumps straight to the firstWeek reveal beat (skips
                     // the building loader + its ATT modal). Tier reads

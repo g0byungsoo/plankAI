@@ -45,7 +45,8 @@ struct OnboardingRevealView: View {
         currentWeightKg: Double?,
         goalWeightKg: Double?,
         onRevealComplete: @escaping () -> Void,
-        debugStartAtFirstWeek: Bool = false
+        debugStartAtFirstWeek: Bool = false,
+        debugStartAtAssessment: Bool = false
     ) {
         self.bodyFocus = bodyFocus
         self.sessionLengthKey = sessionLengthKey
@@ -58,7 +59,7 @@ struct OnboardingRevealView: View {
         // screen is screenshot-able without the building loader (and its
         // ATT modal / manual "see your plan" tap). Production always
         // starts at .building.
-        self._step = State(initialValue: debugStartAtFirstWeek ? .firstWeek : .building)
+        self._step = State(initialValue: debugStartAtAssessment ? .assessment : debugStartAtFirstWeek ? .firstWeek : .building)
     }
 
     private enum Step: Int {
