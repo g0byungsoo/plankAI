@@ -98,6 +98,26 @@ final class ActivationHaptics {
         if !played { lightFallback.impactOccurred(intensity: 0.5) }
     }
 
+    /// Mimics the feel of an iOS notification arriving: a soft lead-in
+    /// tap, a slightly firmer landing a beat later, and a short continuous
+    /// tail so it reads as a gentle "buzz" rather than a single click. Used
+    /// on the onboarding nudge-preview so she feels jeni's nudge before
+    /// granting notification permission. Falls back to the system
+    /// notification-success haptic on hardware without CoreHaptics.
+    func notificationBuzz() {
+        let played = playEngine(
+            events: [
+                transient(time: 0, intensity: 0.55, sharpness: 0.5),
+                transient(time: 0.10, intensity: 1.0, sharpness: 0.6),
+                continuous(time: 0.12, duration: 0.16, intensity: 0.45, sharpness: 0.3)
+            ],
+            parameterCurves: [
+                intensityCurve(points: [(0.12, 0.45), (0.28, 0.0)])
+            ]
+        )
+        if !played { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+    }
+
     /// Light, playful landing: a small transient plus a tiny bounce, for
     /// a sticker settling into place.
     func stickerSettle() {

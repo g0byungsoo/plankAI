@@ -551,6 +551,7 @@
 		783187DE2F9AF2060096138F /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783187DD2F9AF2060096138F /* Haptics.swift */; };
 		783187E02F9B00FD0096138F /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783187DF2F9B00FD0096138F /* OnboardingView.swift */; };
 		783187E22F9B1A980096138F /* OnboardingComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783187E12F9B1A980096138F /* OnboardingComponents.swift */; };
+		BBA0000000000000000000A2 /* NudgeNotificationBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBA0000000000000000000A1 /* NudgeNotificationBanner.swift */; };
 		783187F32F9B30000096138F /* kira_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187F02F9B30000096138F /* kira_preview.m4a */; };
 		783187F42F9B30000096138F /* jeni_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187F12F9B30000096138F /* jeni_preview.m4a */; };
 		783187F52F9B30000096138F /* matson_preview.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 783187F22F9B30000096138F /* matson_preview.m4a */; };
@@ -1910,6 +1911,7 @@
 		783187DD2F9AF2060096138F /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		783187DF2F9B00FD0096138F /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		783187E12F9B1A980096138F /* OnboardingComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingComponents.swift; sourceTree = "<group>"; };
+		BBA0000000000000000000A1 /* NudgeNotificationBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NudgeNotificationBanner.swift; sourceTree = "<group>"; };
 		783187E32FA2024D0096138F /* plankAI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = plankAI.entitlements; sourceTree = "<group>"; };
 		783187F02F9B30000096138F /* kira_preview.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = kira_preview.m4a; sourceTree = "<group>"; };
 		783187F12F9B30000096138F /* jeni_preview.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = jeni_preview.m4a; sourceTree = "<group>"; };
@@ -3012,6 +3014,7 @@
 			children = (
 				783187DF2F9B00FD0096138F /* OnboardingView.swift */,
 				783187E12F9B1A980096138F /* OnboardingComponents.swift */,
+				BBA0000000000000000000A1 /* NudgeNotificationBanner.swift */,
 				D838CE3A3E3251D0108A7709 /* SignInPromptView.swift */,
 				BBBB00020000000000000001 /* ForgotPasswordView.swift */,
 				CCCC00020000000000000001 /* SignUpView.swift */,
@@ -5793,6 +5796,7 @@
 				783186682F99E4130096138F /* Tokens.swift in Sources */,
 				783187E02F9B00FD0096138F /* OnboardingView.swift in Sources */,
 				783187E22F9B1A980096138F /* OnboardingComponents.swift in Sources */,
+				BBA0000000000000000000A2 /* NudgeNotificationBanner.swift in Sources */,
 				AA0001012FA1000100000001 /* ExerciseBank.swift in Sources */,
 				AA00010E2FA1000100000020 /* ExerciseBankData.swift in Sources */,
 				AA0001102FA1000100000021 /* ExerciseMirror.swift in Sources */,

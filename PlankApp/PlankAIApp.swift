@@ -706,6 +706,13 @@ struct PlankAIApp: App {
                         onRevealComplete: {},
                         debugStartAtFirstWeek: true
                     )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-nudge") {
+                    // Notification opt-in screen ("want a nudge from jeni?",
+                    // case 23 / cameraSetupScreen) rendered directly for sim
+                    // capture + design review of the iOS notification mock +
+                    // its arrival haptic. Launch:
+                    // `xcrun simctl launch booted com.bk.plankAI --debug-nudge`
+                    OnboardingView(onComplete: { _ in })
                 } else {
                     RootView()
                         .modifier(ResumeBloom())

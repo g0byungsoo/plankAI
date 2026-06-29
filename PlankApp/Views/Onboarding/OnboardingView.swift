@@ -85,6 +85,10 @@ struct OnboardingView: View {
         if let i = args.firstIndex(of: "--onboarding-screen"), i + 1 < args.count,
            let n = Int(args[i + 1]) {
             self._screen = State(wrappedValue: n)
+        } else if args.contains("--debug-nudge") {
+            // Jump straight to the notification opt-in screen (case 23,
+            // cameraSetupScreen) for sim capture / design review.
+            self._screen = State(wrappedValue: 23)
         } else {
             self._screen = State(wrappedValue: 0)
         }
@@ -330,11 +334,6 @@ struct OnboardingView: View {
 
     // v4.6 — notification-banner drop-in on the nudge screen (case 11).
     @State private var nudgeBannerDropped = false
-    // 2026-06-29 - banner drop state for the consolidated nudge screen
-    // (case 23). Separate from nudgeBannerDropped so case 11 (now dead
-    // from the main flow) doesn't share mutation with the live screen.
-    @State private var cameraScreenBannerShown = false
-
     // v4.6 — welcome demo frame page cycler (plan / camera / steps).
     @State private var welcomeDemoPage = 0
 
@@ -8459,22 +8458,12 @@ struct OnboardingView: View {
         // and pace-picker screens.
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 0) {
-                Spacer().frame(height: Space.md)
+                Spacer().frame(height: Space.lg)
 
-                // Heart sticker - smaller than the original (110pt -> 80pt)
-                // to leave room for the time-picker pills without overflow.
-                ZStack {
-                    Circle()
-                        .fill(Palette.accent.opacity(0.12))
-                        .frame(width: 80, height: 80)
-                    Image(StickerName.heartGlossy.assetName)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 58, height: 58)
-                        .opacity(StickerName.heartGlossy.style.opacity)
-                }
-
-                Spacer().frame(height: Space.sm)
+                // No heart sticker — this is a question/permission beat, not
+                // one of the 3 earned sticker moments. Editorial restraint
+                // (per the scatter-milestone rule); the notification mock
+                // below is the visual anchor.
 
                 // Delta v8 D76 headline preserved. Italic-Fraunces on "nudge"
                 // per locked voice-signal rules.
@@ -8492,18 +8481,33 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, Space.lg)
 
-                Spacer().frame(height: Space.sm)
+                Spacer().frame(height: Space.lg)
+
+                // The hero: a true-to-iOS notification banner that drops in
+                // + buzzes on appear and replays the buzz on tap, so she
+                // feels exactly what jeni's nudge will feel like before
+                // granting permission. Title synced to the real scheduled
+                // push; body is voice-adaptive.
+                NudgeNotificationBanner(
+                    title: "five minutes, today.",
+                    message: notificationPreviewBody
+                )
+                .padding(.horizontal, Space.screenPadding)
+
+                Spacer().frame(height: Space.lg)
 
                 // Time-of-day selection - merged from former case 11.
                 // Morning defaults on appear so the user is never blocked.
+                // Icons dropped → compact editorial rows (the leading-glyph
+                // circle was the #1 template tell; compact mode also keeps
+                // the notification mock above the fold).
                 VStack(spacing: 8) {
                     ForEach([
-                        ("morning",   "morning",   "around 7 am",   "sunrise"),
-                        ("afternoon", "afternoon", "around 1 pm",   "sun.max"),
-                        ("evening",   "evening",   "around 7 pm",   "moon.stars"),
+                        ("morning",   "morning",   "around 7 am"),
+                        ("afternoon", "afternoon", "around 1 pm"),
+                        ("evening",   "evening",   "around 7 pm"),
                     ], id: \.0) { opt in
                         OnboardingOptionCard(
-                            icon: opt.3,
                             title: opt.1,
                             subtitle: opt.2,
                             isSelected: plankTime == opt.0,
@@ -8516,80 +8520,9 @@ struct OnboardingView: View {
                 }
                 .padding(.horizontal, Space.screenPadding)
 
-                Spacer().frame(height: Space.sm)
-
-                // Notification preview card. Starts hidden; the "feel it"
-                // button below drops it in with a spring + fires a real
-                // UINotificationFeedbackGenerator success haptic so she
-                // FEELS the vibration before deciding. Pre-permission, so
-                // it is a visual+haptic simulation - no real OS banner.
-                // v1.1.1 title sync preserved ("five minutes, today." to
-                // match the actual scheduled push).
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "app.badge.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Palette.textSecondary)
-                        Text("PREVIEW")
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(1.5)
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                    Text("five minutes, today.")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text(notificationPreviewBody)
-                        .font(.system(size: 14))
-                        .foregroundStyle(Palette.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(Space.md)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Palette.bgElevated, in: RoundedRectangle(cornerRadius: 14))
-                .padding(.horizontal, Space.screenPadding)
-                // Slide-in from above: hidden until "feel it" is tapped.
-                .offset(y: cameraScreenBannerShown ? 0 : -44)
-                .opacity(cameraScreenBannerShown ? 1 : 0)
-
-                // "feel it" affordance. Tapping springs the banner in and
-                // fires Haptics.success() (UINotificationFeedbackGenerator
-                // .success) so the vibration is real even though the OS
-                // banner cannot appear before permission is granted.
-                // Reduce-motion gate: skip the spring but still fire haptic.
-                // Label swaps to a confirmation string after the demo plays.
-                Button {
-                    guard !cameraScreenBannerShown else { return }
-                    if reduceMotion {
-                        cameraScreenBannerShown = true
-                    } else {
-                        withAnimation(.spring(response: 0.55, dampingFraction: 0.72)) {
-                            cameraScreenBannerShown = true
-                        }
-                    }
-                    // Real haptic - lands ~150ms in to coincide with the
-                    // spring's visible settle.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        Haptics.success()
-                    }
-                } label: {
-                    Text(cameraScreenBannerShown
-                        ? "that's what it looks like \u{2665}\u{FE0E}"
-                        : "feel it first \u{2665}\u{FE0E}")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(
-                            cameraScreenBannerShown
-                                ? Palette.textSecondary
-                                : Palette.accent
-                        )
-                        .padding(.vertical, 6)
-                }
-                .buttonStyle(PressFeedbackStyle())
-                .padding(.top, Space.xs)
-                .disabled(cameraScreenBannerShown)
-
                 // Bottom padding so the last element clears the docked
                 // button dock when scrolled to the end on small phones.
-                Spacer().frame(height: Space.xl)
+                Spacer().frame(height: Space.lg)
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -8633,8 +8566,6 @@ struct OnboardingView: View {
             // (plankTime was set by the now-removed case 11 in prior
             // builds; the consolidated screen sets it here instead).
             if plankTime.isEmpty { plankTime = "morning" }
-            // Always reset so the banner demo is fresh each visit.
-            cameraScreenBannerShown = false
         }
     }
 
