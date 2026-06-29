@@ -1559,12 +1559,14 @@ private struct AssessmentPresentation: View {
 //
 //   HERO     - "before the plan, one *promise*." (JeniHeroSerif)
 //
-//   PANEL    - One unified chip instrument. HairlineRule above +
-//              HairlineRule below. Inside: WHEN / WHAT / TIME groups
-//              in tracked-caps micro-labels. Reads as a single
-//              instrument the user is SETTING, not three loose rows.
+//   PANEL    - One unified chip instrument. Rounded card with a
+//              barely-there 4% cocoa fill + a visible 22% cocoa border
+//              at 1pt. Inside: WHEN / WHAT / TIME groups in tracked-caps
+//              micro-labels. Reads as a single instrument being SET,
+//              not three loose floating rows.
 //
-//   PROMISE  - Bridge: tracked-caps "YOUR PROMISE:" + HairlineRule.
+//   PROMISE  - Bridge: tracked-caps "YOUR PROMISE:" in textSecondary
+//              (visibly present) + a 20%-cocoa 0.75pt divider line.
 //              Then the live replay in JeniHeroSerif below it, so
 //              the bridge is visibly the OUTPUT of the panel above.
 //
@@ -1675,7 +1677,9 @@ private struct CommitmentRitualPresentation: View {
             GrainfieldBackground()
 
             VStack(alignment: .leading, spacing: 0) {
-                Spacer().frame(height: Space.xl + Space.lg)
+                // Balanced top inset - matches AssessmentPresentation's Space.hero
+                // (was xl+lg=72pt which made the layout aggressively top-loaded).
+                Spacer().frame(height: Space.hero)
 
                 // ZONE 1 - Hero: JeniHeroSerif, italic punch on "promise"
                 ItalicAccentText(
@@ -1694,48 +1698,62 @@ private struct CommitmentRitualPresentation: View {
                 .offset(y: reduceMotion ? 0 : (heroVisible ? 0 : 10))
                 .animation(Motion.entrance, value: heroVisible)
 
-                Spacer().frame(height: Space.lg)
+                // section gap (36pt) between hero and panel - generous
+                // but not so large the panel feels separated from the intent.
+                Spacer().frame(height: Space.section)
 
-                // ZONE 2 - Unified chip instrument.
-                // HairlineRule above and below binds the three groups
-                // into one panel. Reads as a single instrument being
-                // SET, not three separate floating questions.
-                // Compact vertical padding (md not xl) anchors the
-                // center and kills the old hollow mid-screen gap.
-                VStack(alignment: .leading, spacing: 0) {
-                    HairlineRule()
-
-                    VStack(alignment: .leading, spacing: Space.md) {
-                        chipGroup(label: "WHEN", chips: anchorChips, selected: $selectedAnchor)
-                        chipGroup(label: "WHAT", chips: actionChips,  selected: $selectedAction)
-                        chipGroup(label: "TIME", chips: timeChips,    selected: $selectedTime)
-                    }
-                    .padding(.vertical, Space.md)
-
-                    HairlineRule()
+                // ZONE 2 - Unified chip instrument panel.
+                // Rounded card with a barely-there 4% cocoa fill and a
+                // visible 22%-cocoa 1pt border. The card makes WHEN / WHAT /
+                // TIME read as ONE object being set, not three loose rows.
+                // 18pt corner radius, 20pt internal padding throughout.
+                VStack(alignment: .leading, spacing: Space.md) {
+                    chipGroup(label: "WHEN", chips: anchorChips, selected: $selectedAnchor)
+                    chipGroup(label: "WHAT", chips: actionChips,  selected: $selectedAction)
+                    chipGroup(label: "TIME", chips: timeChips,    selected: $selectedTime)
                 }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Palette.cocoaPrimary.opacity(0.04))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Palette.cocoaPrimary.opacity(0.22), lineWidth: 1)
+                )
                 .padding(.horizontal, Space.screenPadding)
                 .opacity(chipPanelVisible ? 1 : 0)
                 .offset(y: reduceMotion ? 0 : (chipPanelVisible ? 0 : 10))
                 .animation(Motion.entrance, value: chipPanelVisible)
 
-                Spacer().frame(height: Space.md)
+                // Gap between panel and bridge - enough to breathe but
+                // tight enough that the replay reads as connected OUTPUT.
+                Spacer().frame(height: Space.lg)
 
-                // Bridge: tracked-caps micro-label + hairline. Marks the
-                // transition from input (chip panel above) to output (live
-                // replay below). The eye reads: panel -> bridge -> replay.
-                VStack(alignment: .leading, spacing: Space.sm) {
+                // Bridge: tracked-caps kicker + visible divider line.
+                // Marks the transition from input (chip panel) to output
+                // (live replay). Uses textSecondary for legibility (was
+                // cocoaTertiary=48% which rendered near-invisible on cream).
+                // Divider at 20% cocoa reads clearly as a section break
+                // without being heavy.
+                VStack(alignment: .leading, spacing: Space.xs) {
                     Text("your promise:")
                         .font(Typo.kicker)
                         .kerning(0.20 * 10)
                         .textCase(.uppercase)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                    HairlineRule()
+                        .foregroundStyle(Palette.textSecondary)
+                    Rectangle()
+                        .fill(Palette.cocoaPrimary.opacity(0.20))
+                        .frame(height: 0.75)
+                        .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal, Space.screenPadding)
                 .opacity(promiseLabelVisible ? 1 : 0)
                 .animation(Motion.entranceSoft, value: promiseLabelVisible)
 
+                // Tight gap - replay sits RIGHT under the bridge label so
+                // the eye reads "promise: [output below]" not two separate zones.
                 Spacer().frame(height: Space.sm)
 
                 // ZONE 3 - Live replay.
@@ -1764,7 +1782,9 @@ private struct CommitmentRitualPresentation: View {
                 .offset(y: reduceMotion ? 0 : (replayVisible ? 0 : 6))
                 .animation(Motion.entrance, value: replayVisible)
 
-                Spacer()
+                // Bottom breathing room - minLength keeps space for the
+                // safeAreaInset CTA without creating a dead hollow zone.
+                Spacer(minLength: Space.xl)
             }
         }
         .safeAreaInset(edge: .bottom) {
