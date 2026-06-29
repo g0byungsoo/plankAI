@@ -89,6 +89,10 @@ struct OnboardingView: View {
             // Jump straight to the notification opt-in screen (case 23,
             // cameraSetupScreen) for sim capture / design review.
             self._screen = State(wrappedValue: 23)
+        } else if args.contains("--debug-medication") {
+            // Jump straight to the medication / hypoglycemia intake screen
+            // (case 1642, T4) for sim capture / design review.
+            self._screen = State(wrappedValue: 1642)
         } else {
             self._screen = State(wrappedValue: 0)
         }
@@ -281,6 +285,16 @@ struct OnboardingView: View {
     // can't give — recent rapid loss (esp. on a GLP-1) shifts lean-mass risk +
     // pacing; cycling flags regain risk. AppStorage-only for now (persistence P0).
     @AppStorage("onboarding_weight_trend") private var weightTrend: String = ""
+    // v1.1.3 T4 (2026-06-29) medical-grade: medication / hypoglycemia
+    // intake (case 1642). insulin + sulfonylureas lower blood sugar, and a
+    // calorie deficit compounds that - the single biggest deficit-safety
+    // hazard for the GLP-1-adjacent cohort. Value space matches
+    // SafetyInputs.medicationKey (none / insulin_or_sulfonylurea /
+    // other_glucose / prefer_not_say / ""). Read by the pre-paywall safety
+    // gate (T7), where insulin_or_sulfonylurea routes to .clinicianFirst.
+    // Drug CLASSES only, never a brand name (Apple 5.2.1). AppStorage-only
+    // for now (persistence P0), like glp1Status + weightTrend.
+    @AppStorage("onboarding_medication_status") private var medicationStatus: String = ""
 
     /// Wipes every single-select v2 field back to "" so no option renders
     /// pre-highlighted on the first visit to each question. Called once
@@ -330,6 +344,10 @@ struct OnboardingView: View {
         // Same persistence bug as the others - AppStorage survives
         // process kills and account-delete-then-re-onboard paths.
         weightTrend = ""
+        // 2026-06-29 (T4): medication / hypoglycemia question (case 1642)
+        // leaks the same way - clear it so no option pre-highlights on
+        // re-runs or re-onboard paths.
+        medicationStatus = ""
     }
 
     // v4.6 — notification-banner drop-in on the nudge screen (case 11).
@@ -1535,6 +1553,36 @@ struct OnboardingView: View {
             ]
         )
 
+        // ─── 1642 — medication / hypoglycemia intake (T4, v1.1.3) ──────
+        // The single biggest deficit-safety hazard for the GLP-1-adjacent
+        // cohort: insulin + sulfonylureas lower blood sugar, and a calorie
+        // deficit compounds that. Surfaced here, right after the GLP-1
+        // cluster (164/1641), and fed to the pre-paywall safety gate (T7),
+        // where SafetyInputs.medicationKey == "insulin_or_sulfonylurea"
+        // routes to .clinicianFirst (no deficit until a clinician weighs
+        // in). Drug CLASSES only - insulin + sulfonylurea are categories,
+        // never brand names (Apple 5.2.1). Supportive, non-actionable
+        // framing. Value space matches SafetyInputs.medicationKey. Rejoins
+        // the flow at 282 (reciprocity beat), same as 1641.
+        case 1642: jfQuestion(
+            "one quick health question.",
+            sub: "are you taking any medication that lowers your blood sugar?",
+            opts: [
+                ("insulin_or_sulfonylurea", "insulin or a sulfonylurea",  nil, "cross.case"),
+                ("other_glucose",           "another glucose medication", nil, "pills"),
+                ("none",                     "no",                         nil, "leaf"),
+                ("prefer_not_say",           "prefer not to say",          nil, "lock"),
+            ],
+            sel: $medicationStatus, next: 282,
+            // Honest footnote (WeAskBecauseRow prepends "we ask because ").
+            // No citation chip - the reason carries itself. italic-Fraunces
+            // on the punch words per the voice signal.
+            trustAnchor: WeAskBecauseRow(
+                reason: "a calorie plan needs your clinician's input if you take these.",
+                italicWords: ["clinician's input"]
+            )
+        )
+
         // ─── v3 P11.1.C (2026-06-10) — Apple Health relocate (285) ──
         //
         // Cal AI S5 — HK ask moved from post-reveal (PairedPermissionsAsk
@@ -2103,6 +2151,11 @@ struct OnboardingView: View {
         // in P11.1.B (BetterMe A5 pattern, real cohort framing not
         // adversarial comparison).
         140, 158, 154, 155, 163, 164, 1641,
+        // v1.1.3 T4 (2026-06-29) — medication / hypoglycemia intake.
+        // Sits in the medical-context cluster right after the GLP-1
+        // questions; feeds the pre-paywall safety gate (T7). Drug
+        // CLASSES only, no brand names (Apple 5.2.1).
+        1642,
         // v3 P11.1.B reciprocity beat (case 282, Cal AI A7) — dedicated
         // screen acknowledging the vulnerable disclosures. Goes BEFORE
         // the bridge #2 + psychometric fears so the trust compound
