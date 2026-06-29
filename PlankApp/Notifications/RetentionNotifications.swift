@@ -259,6 +259,13 @@ enum RetentionNotifications {
         /// users who convert without engaging then engage Day 1-4).
         static let day5ChargeDate      = "notif.day5_charge_date"
         static let firstLogNudgeDone   = "notif.first_log_nudge_done"
+        /// v1.1.2 - cumulative count of D0-D3 activation-category pushes
+        /// scheduled on this install. Checked by ActivationPushPolicy to
+        /// enforce the hard cap of 3 (one per day slot: D1, D2, D3).
+        /// Only the INACTIVE (cold) nudge variant increments this counter;
+        /// the v1.1.2 engaged re-arm ("you already started") is a
+        /// continuation nudge and does not count toward the activation cap.
+        static let activationNudgesScheduled = "notif.activation_nudges_scheduled"
     }
 
     /// Read-only count of distinct days shown up (stamped via
@@ -566,6 +573,9 @@ enum RetentionNotifications {
         // v1.1.1 — also wipe the first-log-nudge done flag so a
         // re-create cleanly re-arms when (if) scheduling re-enables.
         d.removeObject(forKey: Key.firstLogNudgeDone)
+        // v1.1.2 - clear activation-nudge counter so a re-create
+        // (delete-account + re-onboard) starts with a clean slate.
+        d.removeObject(forKey: Key.activationNudgesScheduled)
     }
 
     // MARK: - Win-back
@@ -762,6 +772,25 @@ enum RetentionNotifications {
 
         center.removePendingNotificationRequests(withIdentifiers: [day1MorningIdentifier])
 
+        // Activation-state policy gate (ActivationPushPolicy).
+        // Applied to the INACTIVE (cold) variant only - the engaged re-arm
+        // path (v1.1.2 "you already started") is a continuation nudge and
+        // is intentionally exempt from the activation cap so the most-
+        // savable user (active on D0) still gets her D1 pull.
+        if !engaged {
+            let alreadyScheduled = d.integer(forKey: Key.activationNudgesScheduled)
+            guard ActivationPushPolicy.shouldSchedule(
+                dayIndex: 1,
+                hasActedToday: d.integer(forKey: Key.shownUpCount) > 0,
+                alreadyScheduled: alreadyScheduled
+            ) else {
+                // Cap reached or user already acted - stamp done so
+                // reschedule() doesn't retry on the next launch.
+                d.set(true, forKey: Key.day1MorningDone)
+                return
+            }
+        }
+
         let content = UNMutableNotificationContent()
         let name = (d.string(forKey: "userName") ?? "").lowercased()
         let opener = name.isEmpty ? "" : "\(name), "
@@ -781,6 +810,15 @@ enum RetentionNotifications {
             content: content,
             trigger: trigger
         ))
+        // Increment the activation-push counter for inactive (cold) nudges.
+        // The engaged re-arm (v1.1.2 continuation) does not count toward
+        // the ActivationPushPolicy cap.
+        if !engaged {
+            d.set(
+                d.integer(forKey: Key.activationNudgesScheduled) + 1,
+                forKey: Key.activationNudgesScheduled
+            )
+        }
         d.set(true, forKey: Key.day1MorningDone)
     }
 

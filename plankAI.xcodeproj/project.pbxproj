@@ -717,6 +717,8 @@
 		HP0002HP0002HP0002HP0002 /* HabitProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = HP0001HP0001HP0001HP0001 /* HabitProgress.swift */; };
 		HP0004HP0004HP0004HP0004 /* HabitProgressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HP0003HP0003HP0003HP0003 /* HabitProgressTests.swift */; };
 		D1P002D1P002D1P002D1P002 /* Day1PromiseBodyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1P001D1P001D1P001D1P001 /* Day1PromiseBodyTests.swift */; };
+		APO002APO002APO002APO002 /* ActivationPushPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = APO001APO001APO001APO001 /* ActivationPushPolicy.swift */; };
+		APT002APT002APT002APT002 /* ActivationPushTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = APT001APT001APT001APT001 /* ActivationPushTests.swift */; };
 		A3C8FA63ECA0675FEF2EC034 /* jeni_prep_short_w_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9F85C511AFCEFCED91E0B747 /* jeni_prep_short_w_raise.m4a */; };
 		A3D4FAF1322C3B5590AE4C44 /* jeni_prep_short_standing_hip_abduction.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CF7FE1393A59F3AA1D83B9D8 /* jeni_prep_short_standing_hip_abduction.m4a */; };
 		A42BD8087A502E074C128FDF /* jeni_prep_full_baby_cobra.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 66EEB8CE8F33A4AFE3CB57EF /* jeni_prep_full_baby_cobra.m4a */; };
@@ -2096,6 +2098,8 @@
 		HP0001HP0001HP0001HP0001 /* HabitProgress.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HabitProgress.swift; sourceTree = "<group>"; };
 		HP0003HP0003HP0003HP0003 /* HabitProgressTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HabitProgressTests.swift; sourceTree = "<group>"; };
 		D1P001D1P001D1P001D1P001 /* Day1PromiseBodyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Day1PromiseBodyTests.swift; sourceTree = "<group>"; };
+		APO001APO001APO001APO001 /* ActivationPushPolicy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActivationPushPolicy.swift; sourceTree = "<group>"; };
+		APT001APT001APT001APT001 /* ActivationPushTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActivationPushTests.swift; sourceTree = "<group>"; };
 		A3BDD97A4B3E3CCB1A4D5149 /* prep_full_side_split_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_side_split_squat.m4a; sourceTree = "<group>"; };
 		A482809E984562B786CA64FE /* BecomingV2Atoms.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BecomingV2Atoms.swift; sourceTree = "<group>"; };
 		A4835B661C42CBBFD61E3319 /* matson_duration_intro_5.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_duration_intro_5.m4a; sourceTree = "<group>"; };
@@ -2828,6 +2832,7 @@
 				RL0003RL0003RL0003RL0003 /* RapidLossTripwireTests.swift */,
 				HP0003HP0003HP0003HP0003 /* HabitProgressTests.swift */,
 				D1P001D1P001D1P001D1P001 /* Day1PromiseBodyTests.swift */,
+				APT001APT001APT001APT001 /* ActivationPushTests.swift */,
 			);
 			path = plankAITests;
 			sourceTree = "<group>";
@@ -4320,6 +4325,7 @@
 			children = (
 				BAD000000000000000000061 /* TrialEndNotificationService.swift */,
 				CF7DF9470140D8FCA0DA3FC5 /* RetentionNotifications.swift */,
+				APO001APO001APO001APO001 /* ActivationPushPolicy.swift */,
 				979100359E146E2612D09A20 /* RecapNotificationService.swift */,
 				68954E9E5E1EAD2666B9007D /* NotificationTimeBucket.swift */,
 			);
@@ -5828,6 +5834,7 @@
 				4FA712F23C600940AE3A9F5E /* CoachAsset.swift in Sources */,
 				D8FC93EC484358F043FD366C /* ProfileHubView.swift in Sources */,
 				F7F8119B1D0CB4CDEFBB4CEB /* RetentionNotifications.swift in Sources */,
+				APO002APO002APO002APO002 /* ActivationPushPolicy.swift in Sources */,
 				EA47DFF4D5FFFBE77ABF5E84 /* JeniMethodJourneyCard.swift in Sources */,
 				8A3DD69F20C1E9D8E79CEC7D /* StepsService.swift in Sources */,
 				18EDD713C97324D59973CFE7 /* StepsPulseTile.swift in Sources */,
@@ -5935,6 +5942,7 @@
 				RL0004RL0004RL0004RL0004 /* RapidLossTripwireTests.swift in Sources */,
 				HP0004HP0004HP0004HP0004 /* HabitProgressTests.swift in Sources */,
 				D1P002D1P002D1P002D1P002 /* Day1PromiseBodyTests.swift in Sources */,
+				APT002APT002APT002APT002 /* ActivationPushTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
