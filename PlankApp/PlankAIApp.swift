@@ -628,6 +628,23 @@ struct PlankAIApp: App {
                         onRevealComplete: {},
                         debugStartAtAssessment: true
                     )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-commitment") {
+                    // Task 7 (2026-06-28) — commitment ritual screen.
+                    // Jumps straight to CommitmentRitualPresentation so
+                    // simctl can screenshot it without running the full
+                    // building loader. GLP-1 variant via simctl defaults:
+                    //   onboarding_glp1_status current  → "protect your muscle" replay
+                    //   onboardingSleepHours five6       → "after i wake up" default anchor
+                    OnboardingRevealView(
+                        bodyFocus: ["flatBelly"],
+                        sessionLengthKey: "ten",
+                        voicePreference: "encouraging",
+                        commitmentDaysKey: "five",
+                        currentWeightKg: 75,
+                        goalWeightKg: 65,
+                        onRevealComplete: {},
+                        debugStartAtCommitment: true
+                    )
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-first-week") {
                     // Jumps straight to the firstWeek reveal beat (skips
                     // the building loader + its ATT modal). Tier reads

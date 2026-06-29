@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 // MARK: - OnboardingRevealView
 //
@@ -46,7 +47,8 @@ struct OnboardingRevealView: View {
         goalWeightKg: Double?,
         onRevealComplete: @escaping () -> Void,
         debugStartAtFirstWeek: Bool = false,
-        debugStartAtAssessment: Bool = false
+        debugStartAtAssessment: Bool = false,
+        debugStartAtCommitment: Bool = false
     ) {
         self.bodyFocus = bodyFocus
         self.sessionLengthKey = sessionLengthKey
@@ -59,7 +61,7 @@ struct OnboardingRevealView: View {
         // screen is screenshot-able without the building loader (and its
         // ATT modal / manual "see your plan" tap). Production always
         // starts at .building.
-        self._step = State(initialValue: debugStartAtAssessment ? .assessment : debugStartAtFirstWeek ? .firstWeek : .building)
+        self._step = State(initialValue: debugStartAtCommitment ? .commitment : debugStartAtAssessment ? .assessment : debugStartAtFirstWeek ? .firstWeek : .building)
     }
 
     private enum Step: Int {
@@ -80,11 +82,12 @@ struct OnboardingRevealView: View {
         case assessment
         case firstWeek
         case permissions
-        // v4.5 (2026-06-11) — trial-promise commit beat. The LAST
-        // pre-paywall screen: makes the existing TrialEndNotification
-        // promise visible before price appears (Cal AI calai40/43,
-        // −22% refunds / +10-14% trial start in the 2026 teardowns).
-        case trialPromise
+        // Task 7 (2026-06-28) — commitment ritual. The LAST
+        // pre-paywall screen: one small promise the user makes for
+        // tomorrow, in her own words, which schedules a Day-1 nudge.
+        // Replaces the now-dead TrialPromisePresentation (no-trial
+        // decision landed as part of the phase-1a activation pass).
+        case commitment
     }
 
     private var hasProjection: Bool {
@@ -142,11 +145,11 @@ struct OnboardingRevealView: View {
                 .transition(.opacity)
             case .permissions:
                 PairedPermissionsAsk(onContinue: {
-                    withAnimation(Motion.crossFade) { step = .trialPromise }
+                    withAnimation(Motion.crossFade) { step = .commitment }
                 })
                 .transition(.opacity)
-            case .trialPromise:
-                TrialPromisePresentation(onContinue: onRevealComplete)
+            case .commitment:
+                CommitmentRitualPresentation(onContinue: onRevealComplete)
                     .transition(.opacity)
             }
         }
@@ -1440,20 +1443,100 @@ private struct AssessmentPresentation: View {
     }
 }
 
-// MARK: - TrialPromisePresentation (v4.5, 2026-06-11)
+// MARK: - CommitmentRitualPresentation (Task 7, 2026-06-28)
 //
-// The trial-promise commit beat — final pre-paywall screen. Every row
-// states something the app ACTUALLY does (TrialEndNotificationService
-// schedules the renewal reminder; the day-2 check-in only fires when
-// she consented on case 284). No fabricated promises, no countdown
-// theater. her75 register: Didone cascade hero, thin rows, one CTA.
+// Replaces the now-dead TrialPromisePresentation (no-trial decision,
+// phase-1a activation pass). The emotional climax of the reveal: one
+// small promise for tomorrow, in the user's own words, which schedules
+// a Day-1 nudge at the time she chooses.
+//
+// Interaction model: confirm defaults, don't fill a form. Three chip
+// rows (anchor/when, action/what, time). Live replay line in
+// JeniHeroSerif updates as she taps. Soft haptic on CTA press.
+//
+// GLP-1 thread: if onboarding_glp1_status == "current", the default
+// action chip is "get protein in" and the replay body becomes
+// "you'll protect your muscle." Phase-1b deepens this.
+//
+// On Continue: persists day1PromiseAction/Anchor/TimeISO, schedules
+// the one-shot Day-1 nudge via NotificationPermission.scheduleDay1Promise
+// if notifications are authorized, then calls onContinue().
 
-private struct TrialPromisePresentation: View {
+private struct CommitmentRitualPresentation: View {
     let onContinue: () -> Void
 
-    @AppStorage("onb_consent_day2") private var consentDay2 = false
-    @State private var rowsVisible = false
-    @State private var ctaVisible = false
+    @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
+    @AppStorage("onboardingSleepHours")   private var sleepHours: String = ""
+    @AppStorage("userName")              private var userName: String = ""
+
+    // Persisted outputs — consumed by Task 10 Day-1 surfacing
+    @AppStorage("day1PromiseAction")  private var storedAction: String = ""
+    @AppStorage("day1PromiseAnchor")  private var storedAnchor: String = ""
+    @AppStorage("day1PromiseTimeISO") private var storedTimeISO: String = ""
+
+    // Chip selections initialized on appear to incorporate AppStorage values.
+    @State private var selectedAnchor: String = ""
+    @State private var selectedAction: String = ""
+    @State private var selectedTime: String = "8am"
+
+    @State private var heroVisible   = false
+    @State private var chipsVisible  = false
+    @State private var replayVisible = false
+    @State private var ctaVisible    = false
+
+    // MARK: Chip options
+
+    private let anchorChips = ["after coffee", "after i wake up", "after lunch"]
+    private let timeChips   = ["8am", "12pm", "6pm"]
+
+    private var actionChips: [String] {
+        glp1Status == "current"
+            ? ["get protein in", "snap what i eat", "log my first meal"]
+            : ["log breakfast", "snap what i eat", "log my first meal"]
+    }
+
+    private var defaultAnchor: String {
+        ProgramGoalCalculator.isShortSleeper(from: sleepHours) ? "after i wake up" : "after coffee"
+    }
+
+    private var defaultAction: String {
+        glp1Status == "current" ? "get protein in" : "log breakfast"
+    }
+
+    // MARK: Replay line
+
+    // GLP-1 thread: body is fixed to "protect your muscle." regardless
+    // of which action chip is selected. Phase-1b ties the action chips
+    // back to this line; for now the fixed framing is the safer signal.
+    private var replayLine: String {
+        if glp1Status == "current" {
+            return "tomorrow, \(selectedAnchor), you'll protect your muscle."
+        }
+        return "tomorrow, \(selectedAnchor), you'll \(selectedAction)."
+    }
+
+    private var replayItalicWords: [String] {
+        if glp1Status == "current" {
+            return [selectedAnchor, "protect your muscle"]
+        }
+        return [selectedAnchor, selectedAction]
+    }
+
+    // MARK: Time-chip to tomorrow Date
+
+    private func tomorrowDate(forTimeChip chip: String) -> Date {
+        let hour: Int
+        switch chip {
+        case "12pm": hour = 12
+        case "6pm":  hour = 18
+        default:     hour = 8
+        }
+        let cal = Calendar.current
+        let tomorrow = cal.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+        return cal.date(bySettingHour: hour, minute: 0, second: 0, of: tomorrow) ?? tomorrow
+    }
+
+    // MARK: Body
 
     var body: some View {
         ZStack {
@@ -1462,85 +1545,162 @@ private struct TrialPromisePresentation: View {
             VStack(alignment: .leading, spacing: 0) {
                 Spacer().frame(height: Space.xl + Space.lg)
 
-                LineCascadeText(
-                    lines: [
-                        .plain("before the numbers,"),
-                        .composite(base: "four promises.", italic: ["promises"]),
-                    ],
+                // Hero — JeniHeroSerif, italic punch on "promise"
+                ItalicAccentText(
+                    "before the plan, one promise.",
+                    italic: ["promise"],
                     baseFont: Typo.heroHeadline,
                     italicFont: Typo.heroHeadlineItalic,
-                    lineSpacing: Typo.heroHeadlineLineGap
+                    color: Palette.textPrimary,
+                    alignment: .leading
                 )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, Space.screenPadding)
+                .opacity(heroVisible ? 1 : 0)
+                .offset(y: heroVisible ? 0 : 10)
+                .animation(Motion.entrance, value: heroVisible)
 
                 Spacer().frame(height: Space.xl)
 
-                VStack(alignment: .leading, spacing: Space.md) {
-                    promiseRow(
-                        symbol: "checkmark.circle",
-                        line: "your full plan opens today. all of it."
-                    )
-                    promiseRow(
-                        symbol: consentDay2 ? "heart.text.square" : "moon.zzz",
-                        line: consentDay2
-                            ? "day 2 — one gentle check-in. that's it."
-                            : "week one stays quiet. no spam, ever."
-                    )
-                    promiseRow(
-                        symbol: "bell.badge",
-                        line: "if you start a trial, we remind you before anything renews."
-                    )
-                    promiseRow(
-                        symbol: "hand.raised",
-                        line: "cancel takes two taps in settings. no maze."
-                    )
+                // Chip groups — confirm defaults, don't fill a form
+                VStack(alignment: .leading, spacing: Space.lg) {
+                    chipGroup(label: "when", chips: anchorChips, selected: $selectedAnchor)
+                    chipGroup(label: "what", chips: actionChips, selected: $selectedAction)
+                    chipGroup(label: "time", chips: timeChips, selected: $selectedTime)
                 }
                 .padding(.horizontal, Space.screenPadding)
-                .opacity(rowsVisible ? 1 : 0)
-                .offset(y: rowsVisible ? 0 : 10)
+                .opacity(chipsVisible ? 1 : 0)
+                .offset(y: chipsVisible ? 0 : 10)
+                .animation(Motion.entrance, value: chipsVisible)
+
+                Spacer().frame(height: Space.xl)
+
+                // Replay-as-promise line — live update in JeniHeroSerif
+                ItalicAccentText(
+                    replayLine,
+                    italic: replayItalicWords,
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, Space.screenPadding)
+                .opacity(replayVisible ? 1 : 0)
+                .offset(y: replayVisible ? 0 : 6)
+                .animation(Motion.entrance, value: replayVisible)
 
                 Spacer()
-
-                // True-alpha it-girl cutout floating on cream (founder
-                // round 8: the balcony photo card still carried its own
-                // background). Seated tea girl matches the settled,
-                // no-tricks mood the promises are making.
-                Image("onb-itgirl-promise")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxHeight: 250)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityHidden(true)
-                    .opacity(rowsVisible ? 1 : 0)
-
-                Spacer().frame(height: Space.lg)
             }
         }
         .safeAreaInset(edge: .bottom) {
-            JFContinueButton(label: "continue", action: onContinue)
+            JFContinueButton(label: "continue", action: confirmAndContinue)
                 .padding(.horizontal, Space.lg)
                 .padding(.bottom, Space.md)
                 .opacity(ctaVisible ? 1 : 0)
+                .animation(Motion.entranceSoft, value: ctaVisible)
+        }
+        .onAppear {
+            // Initialize defaults on appear (not init) so AppStorage
+            // values are already resolved before we read them.
+            if selectedAnchor.isEmpty { selectedAnchor = defaultAnchor }
+            if selectedAction.isEmpty { selectedAction = defaultAction }
         }
         .task {
-            // Rows land after the 2-line cascade (~0.84s) finishes.
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-            withAnimation(Motion.entrance) { rowsVisible = true }
+            withAnimation(Motion.entrance) { heroVisible = true }
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            withAnimation(Motion.entrance) { chipsVisible = true }
             try? await Task.sleep(nanoseconds: 350_000_000)
-            withAnimation(Motion.entrance) { ctaVisible = true }
+            withAnimation(Motion.entrance) { replayVisible = true }
+            try? await Task.sleep(nanoseconds: 280_000_000)
+            withAnimation(Motion.entranceSoft) { ctaVisible = true }
         }
     }
 
-    private func promiseRow(symbol: String, line: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
-            Image(systemName: symbol)
-                .font(.system(size: 15, weight: .regular))
-                .foregroundStyle(Palette.accent)
-                .frame(width: 22)
-            Text(line)
-                .font(Typo.body)
-                .foregroundStyle(Palette.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
+    // MARK: - Chip group
+
+    @ViewBuilder
+    private func chipGroup(label: String, chips: [String], selected: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label)
+                .font(Typo.eyebrow)
+                .tracking(1.2)
+                .textCase(.lowercase)
+                .foregroundStyle(Palette.textSecondary)
+
+            HStack(spacing: 8) {
+                ForEach(chips, id: \.self) { chip in
+                    Button {
+                        Haptics.light()
+                        selected.wrappedValue = chip
+                    } label: {
+                        Text(chip)
+                            .font(.custom("Fraunces72pt-SemiBold", size: 14))
+                            .foregroundStyle(
+                                selected.wrappedValue == chip
+                                    ? Palette.textInverse
+                                    : Palette.cocoaPrimary
+                            )
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 9)
+                            .background(
+                                Capsule()
+                                    .fill(selected.wrappedValue == chip
+                                          ? Palette.bgInverse
+                                          : Palette.bgElevated)
+                            )
+                            .overlay(
+                                Capsule()
+                                    .stroke(
+                                        selected.wrappedValue == chip
+                                            ? Color.clear
+                                            : Palette.divider,
+                                        lineWidth: 1
+                                    )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .animation(.easeInOut(duration: 0.18), value: selected.wrappedValue)
+                }
+            }
+        }
+    }
+
+    // MARK: - Confirm + schedule
+
+    private func confirmAndContinue() {
+        // Soft haptic on confirm (UIImpactFeedbackGenerator style .soft)
+        Haptics.soft()
+
+        // Persist the three AppStorage outputs
+        storedAction = selectedAction
+        storedAnchor = selectedAnchor
+
+        let chosenDate = tomorrowDate(forTimeChip: selectedTime)
+        storedTimeISO = ISO8601DateFormatter().string(from: chosenDate)
+
+        // Schedule one-shot Day-1 nudge if notifications are authorized.
+        // Always build the body (uses her own words); only schedule when
+        // the OS will actually deliver it (authorized/provisional).
+        let body = NotificationPermission.day1PromiseBody(
+            action: selectedAction,
+            anchor: selectedAnchor,
+            userName: userName.isEmpty ? nil : userName
+        )
+        let date = chosenDate
+        Task {
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            if settings.authorizationStatus == .authorized
+                || settings.authorizationStatus == .provisional {
+                NotificationPermission.scheduleDay1Promise(at: date, body: body)
+            }
+            await MainActor.run { onContinue() }
         }
     }
 }
