@@ -31,6 +31,7 @@ import PlankFood
 struct PlanView: View {
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var promiseReduceMotion
     @State private var userId: String = ""
 
     // AppStorage fields needed to construct module inputs (mirrors
@@ -255,6 +256,9 @@ struct PlanView: View {
     @State private var promiseJustKept: Bool = false
     /// Pulses the arrival hero with a subtle scale when promise is kept.
     @State private var heroPromisePulse: Bool = false
+    /// Drives the soft bloom-settle on the card when the user taps done.
+    /// Gated on promiseReduceMotion; never fires in reduce-motion mode.
+    @State private var keptBloom: Bool = false
 
     /// Phase 3 — days since the last PlanView appearance, captured
     /// at .onAppear. Drives the welcome-back line in place of the
@@ -794,48 +798,120 @@ struct PlanView: View {
 
     @ViewBuilder private var keptPromiseCard: some View {
         if shouldShowKeptPromiseCard || promiseJustKept {
-            VStack(alignment: .leading, spacing: 12) {
-                if promiseJustKept {
-                    Text("promise kept \u{2665}")
-                        .font(.custom("DMSans-SemiBold", size: 15))
-                        .foregroundStyle(Palette.textSecondary)
-                        .transition(.opacity)
-                } else {
-                    Text("you said you'd \(day1PromiseAction), \(day1PromiseAnchor).")
-                        .font(.custom("DMSans-Regular", size: 15))
-                        .foregroundStyle(Palette.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
+            // Premium "promise ticket" - Phase 1a redesign (2026-06-28).
+            // Left-edge cocoa-accent bar reads as a designed object (not
+            // a sentence-with-a-button). Content cross-dissolves between
+            // active + kept states. Bloom settle on done is gated on
+            // promiseReduceMotion - static kept state still works.
+            HStack(spacing: 0) {
 
-                    Button {
-                        markPromiseKept()
-                    } label: {
-                        Text("done")
-                            .font(.custom("DMSans-SemiBold", size: 14))
-                            .foregroundStyle(Palette.textInverse)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 9)
-                            .background(Palette.cocoaPrimary)
-                            .clipShape(Capsule())
+                // Leading accent rule - 3pt thin bar along the card edge.
+                // Palette.accent at 65% so it's felt without announcing itself.
+                Rectangle()
+                    .fill(Palette.accent.opacity(0.65))
+                    .frame(width: 3)
+
+                // Content - cross-dissolves between states
+                Group {
+                    if promiseJustKept {
+                        // Kept state: "kept ♥" + restrained single tick mark.
+                        HStack(alignment: .center, spacing: 10) {
+                            HStack(spacing: 6) {
+                                Text("kept")
+                                    .font(.custom("DMSans-SemiBold", size: 15))
+                                    .foregroundStyle(Palette.textPrimary)
+                                // Brand accent heart - never red.
+                                Text("\u{2665}")
+                                    .font(.custom("DMSans-Regular", size: 14))
+                                    .foregroundStyle(Palette.accent)
+                            }
+                            Spacer()
+                            // Single filled tick - quiet "promise kept" mark.
+                            TickRow(
+                                filled: 1,
+                                total: 1,
+                                animateFill: false,
+                                pulseLast: false
+                            )
+                        }
+                        .transition(.opacity)
+                    } else {
+                        // Active state: copy + done pill + anchor echo.
+                        VStack(alignment: .leading, spacing: 10) {
+                            // Copy row with editorial heart ornament trailing.
+                            HStack(alignment: .top, spacing: 6) {
+                                Text("you said you'd \(day1PromiseAction), \(day1PromiseAnchor).")
+                                    .font(.custom("DMSans-Regular", size: 15))
+                                    .foregroundStyle(Palette.textPrimary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                // Quiet editorial heart accent - brand color, not red.
+                                Text("\u{2665}")
+                                    .font(.custom("DMSans-Regular", size: 11))
+                                    .foregroundStyle(Palette.accent.opacity(0.55))
+                                    .padding(.top, 3)
+                            }
+                            // Bottom row: primary action left, anchor echo right.
+                            // Two-sided object; neither side floats.
+                            HStack(alignment: .center) {
+                                Button {
+                                    markPromiseKept()
+                                } label: {
+                                    Text("done")
+                                        .font(.custom("DMSans-SemiBold", size: 14))
+                                        .foregroundStyle(Palette.textInverse)
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 9)
+                                        .background(Palette.cocoaPrimary)
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+
+                                Spacer()
+
+                                // Right-side anchor echo in tracked caps, textTertiary.
+                                // Balances the done pill; card reads as a complete object.
+                                Text(day1PromiseAnchor.uppercased())
+                                    .font(Typo.captionTracked)
+                                    .kerning(1.98)
+                                    .foregroundStyle(Palette.cocoaTertiary)
+                            }
+                        }
+                        .transition(.opacity)
                     }
-                    .buttonStyle(.plain)
                 }
+                .animation(.easeInOut(duration: 0.3), value: promiseJustKept)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 14)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Palette.bgElevated)
-                    .shadow(color: Palette.cocoaPrimary.opacity(0.06), radius: 8, x: 0, y: 2)
+            .background(Palette.bgElevated)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Palette.hairlineCocoa, lineWidth: 0.75)
             )
-            .animation(.easeInOut(duration: 0.25), value: promiseJustKept)
+            .shadow(color: Palette.cocoaPrimary.opacity(0.06), radius: 10, x: 0, y: 2)
+            // Bloom settle on done - reduce-motion: static, no scale.
+            .scaleEffect(keptBloom ? 1.015 : 1.0)
+            .animation(
+                promiseReduceMotion ? .none : Motion.bloom,
+                value: keptBloom
+            )
         }
     }
 
     // Task 10 (2026-06-28) - mark the daily promise as kept.
     // Increments promisesKept on the active UserRecord (no streak,
     // no reset). Never shows shame or deficit.
+    //
+    // Phase 1a redesign: replaces Haptics.soft() with the two-event
+    // crossOff() flourish from ActivationHaptics - the "kept" beat
+    // (soft lead-in transient then a firmer landing) matches the
+    // cross-off delight on the card. Bloom is gated on promiseReduceMotion.
     private func markPromiseKept() {
-        Haptics.soft()
+        // Two-event crossOff flourish - bespoke "kept" haptic beat.
+        ActivationHaptics.shared.crossOff()
         // Stamp today so the card doesn't reappear in this calendar day.
         day1PromiseKeptDate = promiseTodayKey
         // Increment the persistent counter on the user record.
@@ -845,9 +921,18 @@ struct PlanView: View {
             try? modelContext.save()
             Task { await AppSync.shared.upsertUser(record) }
         }
-        // Show the confirmation text briefly.
-        withAnimation(.easeInOut(duration: 0.25)) {
+        // Cross-dissolve card content to kept state.
+        withAnimation(.easeInOut(duration: 0.3)) {
             promiseJustKept = true
+        }
+        // Soft bloom-settle on the card (reduce-motion: no scale).
+        if !promiseReduceMotion {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                withAnimation(Motion.bloom) { keptBloom = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation(.easeOut(duration: 0.4)) { keptBloom = false }
+                }
+            }
         }
         // Subtle pulse on the arrival hero.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {

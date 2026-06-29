@@ -3232,28 +3232,54 @@ private struct KeptPromisePreviewHarness: View {
 
                 Spacer().frame(height: 16)
 
-                // Kept-promise card - mirrors keptPromiseCard in PlanView
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("you said you'd log breakfast, after coffee.")
-                        .font(.custom("DMSans-Regular", size: 15))
-                        .foregroundStyle(Palette.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
+                // Kept-promise ticket - mirrors keptPromiseCard in PlanView
+                // (Phase 1a premium redesign, 2026-06-28)
+                HStack(spacing: 0) {
+                    // Leading accent rule - cocoa accent at 65% opacity
+                    Rectangle()
+                        .fill(Palette.accent.opacity(0.65))
+                        .frame(width: 3)
 
-                    Text("done")
-                        .font(.custom("DMSans-SemiBold", size: 14))
-                        .foregroundStyle(Palette.textInverse)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 9)
-                        .background(Palette.cocoaPrimary)
-                        .clipShape(Capsule())
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(alignment: .top, spacing: 6) {
+                            Text("you said you'd log breakfast, after coffee.")
+                                .font(.custom("DMSans-Regular", size: 15))
+                                .foregroundStyle(Palette.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            // Editorial heart accent - brand color, not red
+                            Text("\u{2665}")
+                                .font(.custom("DMSans-Regular", size: 11))
+                                .foregroundStyle(Palette.accent.opacity(0.55))
+                                .padding(.top, 3)
+                        }
+                        HStack(alignment: .center) {
+                            Text("done")
+                                .font(.custom("DMSans-SemiBold", size: 14))
+                                .foregroundStyle(Palette.textInverse)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 9)
+                                .background(Palette.cocoaPrimary)
+                                .clipShape(Capsule())
+                            Spacer()
+                            // Anchor echo - tracked caps, tertiary
+                            Text("AFTER COFFEE")
+                                .font(Typo.captionTracked)
+                                .kerning(1.98)
+                                .foregroundStyle(Palette.cocoaTertiary)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Palette.bgElevated)
-                        .shadow(color: Palette.cocoaPrimary.opacity(0.06), radius: 8, x: 0, y: 2)
+                .background(Palette.bgElevated)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Palette.hairlineCocoa, lineWidth: 0.75)
                 )
+                .shadow(color: Palette.cocoaPrimary.opacity(0.06), radius: 10, x: 0, y: 2)
                 .padding(.horizontal, Space.lg)
 
                 Spacer()
