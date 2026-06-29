@@ -1409,68 +1409,71 @@ private struct AssessmentPresentation: View {
                     }
                     .padding(.horizontal, Space.screenPadding)
 
-                    Spacer().frame(height: Space.lg)
+                    Spacer().frame(height: Space.md)
 
-                    // ZONE 2 - proof: the arc the headline names.
-                    //
-                    // ArcSparkline: hairline bezier rising left (today) to right
-                    // (arrival). Draw-on starts when arcAnimate flips; the arc
-                    // takes ~700ms then a highlight travels and the endpoint blooms.
-                    //
-                    // EarnedStickerCluster: blooms at the arrival side (top trailing)
-                    // after the arc draws. This IS an earned moment (plan-reveal
-                    // family) so one tasteful cluster is on-brand. diameter=100 keeps
-                    // the cluster bounded within its corner; it cannot bleed into text.
+                    // ZONE 2 - arc hero. Grown to 200pt so the curve
+                    // climbs across the vertical center and owns the screen.
+                    // 24pt side insets span nearly full content width.
+                    // Sticker moved off the endpoint - relocated above data block
+                    // so it no longer collides with the arrival axis label.
                     ArcSparkline(
                         animate: arcAnimate,
                         startLabel: "today",
                         endpointLabel: arrivalDateText
                     )
-                    .frame(height: 120)
-                    .padding(.horizontal, Space.md)
-                    .earnedStickerCluster(
+                    .frame(height: 200)
+                    .padding(.horizontal, 24)
+
+                    Spacer().frame(height: Space.sm)
+
+                    // Sticker: calmer placement - lone warmth note above
+                    // the lab readout, right-aligned, small (72pt diameter).
+                    // Single cluster only per the earned-moment rule.
+                    EarnedStickerCluster(
                         animate: stickerAnimate,
                         stickers: [.flower3D, .heartGlossy, .sparkleGlossy],
-                        diameter: 100,
-                        alignment: .topTrailing,
-                        inset: 4
+                        diameter: 72
                     )
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.trailing, Space.lg)
 
-                    Spacer().frame(height: Space.section)
+                    Spacer().frame(height: Space.sm)
 
-                    // ZONE 3 - data: calm lab readout.
+                    // ZONE 3 - data: calm lab readout + compact 2-line caption.
                     //
-                    // The whole block fades + rises in together when dataBlockVisible
-                    // flips. Then provenance (conditional) and credibility stagger
-                    // sequentially inside - compound opacity means they're invisible
-                    // until the block itself appears, then emerge in order.
-                    VStack(alignment: .leading, spacing: Space.md) {
+                    // Block fades + rises as a unit when dataBlockVisible flips.
+                    // Provenance + credibility tuck tightly under the readout
+                    // in caption register - not floating as standalone body text.
+                    VStack(alignment: .leading, spacing: Space.sm) {
                         LabReadoutBlock(rows: [
                             .init(label: "pace",     value: "\(lossRatePctText)%/wk"),
                             .init(label: "arrival",  value: "~\(arrivalDateText)"),
                             .init(label: "approach", value: "conservative"),
                         ])
 
-                        // Conditional provenance - cohort-specific quiet note.
-                        // Fully omitted (not just hidden) when provenanceLine is nil.
-                        if let provenance = provenanceLine {
-                            Text(provenance)
-                                .font(Typo.body)
+                        // Compact caption tucked tight under the readout.
+                        // Caption register (13pt) keeps these as annotation,
+                        // not a second content zone.
+                        VStack(alignment: .leading, spacing: 3) {
+                            if let provenance = provenanceLine {
+                                Text(provenance)
+                                    .font(Typo.caption)
+                                    .foregroundStyle(Palette.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .opacity(provenanceVisible ? 1 : 0)
+                                    .offset(y: reduceMotion ? 0 : (provenanceVisible ? 0 : 5))
+                                    .animation(Motion.entrance, value: provenanceVisible)
+                            }
+
+                            // Credibility beat - locked copy
+                            Text("paced like a clinician would. slower is what lasts.")
+                                .font(Typo.caption)
                                 .foregroundStyle(Palette.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
-                                .opacity(provenanceVisible ? 1 : 0)
-                                .offset(y: reduceMotion ? 0 : (provenanceVisible ? 0 : 5))
-                                .animation(Motion.entrance, value: provenanceVisible)
+                                .opacity(credibilityVisible ? 1 : 0)
+                                .offset(y: reduceMotion ? 0 : (credibilityVisible ? 0 : 5))
+                                .animation(Motion.entrance, value: credibilityVisible)
                         }
-
-                        // Credibility beat - locked copy
-                        Text("paced like a clinician would. slower is what lasts.")
-                            .font(Typo.body)
-                            .foregroundStyle(Palette.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .opacity(credibilityVisible ? 1 : 0)
-                            .offset(y: reduceMotion ? 0 : (credibilityVisible ? 0 : 5))
-                            .animation(Motion.entrance, value: credibilityVisible)
                     }
                     .padding(.horizontal, Space.screenPadding)
                     .opacity(dataBlockVisible ? 1 : 0)
@@ -1479,21 +1482,15 @@ private struct AssessmentPresentation: View {
 
                     Spacer().frame(height: Space.lg)
 
-                    // GROUNDED CLOSE - hairline + earned-progress label.
-                    //
-                    // Sits just above the pinned CTA. The eye travels:
-                    //   arc endpoint -> data -> this footer -> button.
-                    // Completion is felt before the tap.
-                    VStack(alignment: .leading, spacing: Space.sm) {
-                        HairlineRule()
-                        Text("step 1 of your plan: complete (you did the assessment)")
-                            .font(Typo.captionTracked)
-                            .foregroundStyle(Palette.textSecondary.opacity(0.7))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.horizontal, Space.screenPadding)
-                    .opacity(footerVisible ? 1 : 0)
-                    .animation(Motion.entranceSoft, value: footerVisible)
+                    // PROGRESS LEDGER - grounds the lower third.
+                    // 3 hairline rows fill the dead cream above the CTA and
+                    // preview the journey: done / set / next. Heart glyph uses
+                    // text-presentation selector so it renders in dusty-rose,
+                    // not emoji red. Eye travels: arc -> data -> ledger -> CTA.
+                    progressLedger
+                        .padding(.horizontal, Space.screenPadding)
+                        .opacity(footerVisible ? 1 : 0)
+                        .animation(Motion.entranceSoft, value: footerVisible)
 
                     Spacer().frame(height: Space.lg)
                 }
@@ -1545,6 +1542,34 @@ private struct AssessmentPresentation: View {
             try? await Task.sleep(nanoseconds: 350_000_000)
             withAnimation(Motion.entranceSoft) { ctaVisible = true }
         }
+    }
+
+    // MARK: - Progress ledger
+
+    // 3-row hairline ledger grounds the lower third.
+    // assessment -> done (dusty-rose heart, text-presentation so no emoji red)
+    // your pace   -> set
+    // your promise -> next  (previews the next beat in the reveal)
+    private var progressLedger: some View {
+        LabReadoutBlock(rows: [
+            .init(
+                label: "assessment",
+                value: "done \u{2665}\u{FE0E}",
+                valueColor: Palette.accent,
+                valueFont: Typo.caption
+            ),
+            .init(
+                label: "your pace",
+                value: "set",
+                valueFont: Typo.caption
+            ),
+            .init(
+                label: "your promise",
+                value: "next",
+                valueColor: Palette.cocoaTertiary,
+                valueFont: Typo.caption
+            ),
+        ])
     }
 }
 
