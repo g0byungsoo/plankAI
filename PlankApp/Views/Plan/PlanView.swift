@@ -792,8 +792,13 @@ struct PlanView: View {
     }
 
     /// True when the promise time has arrived AND the card hasn't been
-    /// completed today. Returns false if no promise is stored.
+    /// completed today AND it is Day 1 of the program. Returns false if no
+    /// promise is stored or if the user is past Day 1.
     private var shouldShowKeptPromiseCard: Bool {
+        // Gate: Day-1 only. `schedule?.programDay` is the canonical
+        // engagement day derived by EngagementDayCalculator — reuse it so
+        // we never invent a second day calculation.
+        guard schedule?.programDay == 1 else { return false }
         guard !day1PromiseAction.isEmpty,
               !day1PromiseAnchor.isEmpty,
               !day1PromiseTimeISO.isEmpty else { return false }
