@@ -1261,17 +1261,41 @@ private struct GoalDateRevealPresentation: View {
 
 // MARK: - AssessmentPresentation (Task 8, 2026-06-28)
 //
-// "assessment-as-payoff" beat. Lands immediately after GoalDateReveal
-// so the goal date she just saw is immediately grounded in WHY the
-// pace is what it is. Dual register: JeniHeroSerif identity line +
-// DMSans data capsule + optional cohort provenance + credibility beat
-// + earned endowed-progress label.
+// "assessment-as-payoff" - premium redesign using the phase-1a
+// activation design foundation. 3 vertical zones:
 //
-// Background: cream bgPrimary (intentionally different from the pink
-// programBgPrimary used by surrounding steps) - the visual "breath"
-// reinforces that this screen is a reflection beat, not a reveal.
-// A single thin rule is the only "clinical" accent (no red, no charts,
-// no projected weight number).
+//   TOP    - JeniHeroSerif statement headline + arrival date as
+//            secondary serif display (the arc endpoint, the payoff).
+//
+//   MIDDLE - ArcSparkline proof: the shape the headline names.
+//            EarnedStickerCluster blooms at the arc arrival side
+//            (top trailing) after the draw completes. Plan-reveal
+//            family = earned moment; single tasteful cluster, keep-out
+//            by placement (bounded diameter x diameter corner overlay).
+//
+//   DATA   - LabReadoutBlock (pace / arrival / approach rows) +
+//            conditional cohort provenance (quiet line) +
+//            credibility beat.
+//
+//   GROUNDED CLOSE - HairlineRule + earned-progress label just above
+//   the CTA so the eye lands on completion before the button.
+//
+// Background: GrainfieldBackground - the alive cream surface. Visually
+// distinct from the flat bgPrimary that other screens use and more
+// premium for the emotional peak screen.
+//
+// Motion cascade (reduce-motion safe - foundation components gate their
+// own animation internally; all caller-added offset motion is gated on
+// the reduceMotion env value):
+//   headline -> arrival date -> arc draws -> sticker blooms ->
+//   stat block -> provenance -> credibility -> footer -> CTA.
+//
+// Haptics: prepare() on appear (no-latency first play); arcComplete()
+// fires at ~720ms after arcAnimate flips - matching the arc's 700ms
+// draw-on duration.
+//
+// Hard constraints: no red, no em-dashes, no projected weight number,
+// lowercase casual copy, reduce-motion safe throughout.
 
 private struct AssessmentPresentation: View {
     let currentWeightKg: Double
@@ -1283,13 +1307,18 @@ private struct AssessmentPresentation: View {
     @AppStorage("onboardingSleepHours")    private var sleepHours: String = ""
     @AppStorage("onboardingPickedTier")    private var pickedTierRaw: String = "medium"
 
-    @State private var heroVisible      = false
-    @State private var ruleVisible      = false
-    @State private var dataLineVisible  = false
-    @State private var provenanceVisible = false
+    // Cascade reveal states - each flips once in the .task chain below
+    @State private var heroVisible        = false
+    @State private var dateVisible        = false
+    @State private var arcAnimate         = false
+    @State private var stickerAnimate     = false
+    @State private var dataBlockVisible   = false
+    @State private var provenanceVisible  = false
     @State private var credibilityVisible = false
-    @State private var progressVisible  = false
-    @State private var ctaVisible       = false
+    @State private var footerVisible      = false
+    @State private var ctaVisible         = false
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // Compute the window once so loss-rate floor + dates share one source.
     private var window: ProgramGoalCalculator.Window {
@@ -1304,15 +1333,14 @@ private struct AssessmentPresentation: View {
         ))
     }
 
-    /// Weekly loss rate displayed in the data capsule. e.g. "0.5"
+    /// Weekly loss rate for the lab readout. e.g. "0.5"
     private var lossRatePctText: String {
         String(format: "%.1f", window.lossRateFloor * 100)
     }
 
-    /// Arrival date in "MMM d" format. Matches GoalDateReveal's date via the
-    /// same ProjectionMath route (picked pace key). Falls back to "soon"
-    /// if inputs can't produce a projection (maintenance case), so the
-    /// rendered text reads "arrival ~soon" rather than "arrival ~ahead".
+    /// Arrival date in "MMM d" format. Matches GoalDateReveal's date via
+    /// the same ProjectionMath route (picked pace key). Falls back to "soon"
+    /// so the rendered text reads "~soon" rather than crashing.
     private var arrivalDateText: String {
         let paceKey = UserDefaults.standard.string(forKey: ProjectionMath.paceDefaultsKey)
         return ProjectionMath.formattedShortDate(
@@ -1323,8 +1351,8 @@ private struct AssessmentPresentation: View {
     }
 
     /// One-line provenance explanation tied to the cohort flag that changed
-    /// the floor rate. Returns nil when no cohort modifier was applied
-    /// (default 0.5%/wk) so the line is fully omitted, not just empty.
+    /// the floor rate. Returns nil when no modifier was applied (default
+    /// 0.5%/wk) so the line is fully omitted, not rendered empty.
     private var provenanceLine: String? {
         if ProgramGoalCalculator.isShortSleeper(from: sleepHours) {
             return "because you sleep around 6 hours, we set a gentler pace."
@@ -1340,80 +1368,135 @@ private struct AssessmentPresentation: View {
 
     var body: some View {
         ZStack {
-            // Cream canvas - intentional contrast with the pink reveal
-            // steps that bracket this screen. Visual breath = reflection.
-            Palette.bgPrimary.ignoresSafeArea()
+            // Alive cream canvas - premium surface distinct from flat bgPrimary.
+            // Intentional visual breath vs the pink reveal steps that bracket this
+            // reflection beat.
+            GrainfieldBackground()
 
-            VStack(spacing: 0) {
-                Spacer()
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Spacer().frame(height: Space.hero)
 
-                VStack(alignment: .leading, spacing: Space.lg) {
-
-                    // 1. Identity line - JeniHeroSerif, italic punch on "realistic"
-                    ItalicAccentText(
-                        "here's your realistic arc.",
-                        italic: ["realistic"],
-                        baseFont: Typo.heroHeadline,
-                        italicFont: Typo.heroHeadlineItalic,
-                        color: Palette.textPrimary,
-                        alignment: .leading
-                    )
-                    .kerning(-0.4)
-                    .lineSpacing(Typo.heroHeadlineLineGap)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .opacity(heroVisible ? 1 : 0)
-                    .offset(y: heroVisible ? 0 : 10)
-                    .animation(Motion.entrance, value: heroVisible)
-
-                    // Single thin rule - the only clinical accent.
-                    Rectangle()
-                        .fill(Palette.textPrimary.opacity(0.1))
-                        .frame(height: 1)
-                        .opacity(ruleVisible ? 1 : 0)
-                        .animation(Motion.entrance, value: ruleVisible)
-
-                    // 2. Quiet data line - DMSans, textSecondary
-                    //    pace [X]%/wk · arrival ~[Mon D] · set conservatively
-                    Text("pace \(lossRatePctText)%/wk \u{00B7} arrival ~\(arrivalDateText) \u{00B7} set conservatively")
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textSecondary)
+                    // ZONE 1 - statement: headline + arrival date as serif display
+                    VStack(alignment: .leading, spacing: Space.xs) {
+                        // Identity line - locked copy, JeniHeroSerif with italic punch
+                        ItalicAccentText(
+                            "here's your realistic arc.",
+                            italic: ["realistic"],
+                            baseFont: Typo.heroHeadline,
+                            italicFont: Typo.heroHeadlineItalic,
+                            color: Palette.textPrimary,
+                            alignment: .leading
+                        )
+                        .kerning(-0.4)
+                        .lineSpacing(Typo.heroHeadlineLineGap)
                         .fixedSize(horizontal: false, vertical: true)
-                        .opacity(dataLineVisible ? 1 : 0)
-                        .offset(y: dataLineVisible ? 0 : 6)
-                        .animation(Motion.entrance, value: dataLineVisible)
+                        .opacity(heroVisible ? 1 : 0)
+                        .offset(y: reduceMotion ? 0 : (heroVisible ? 0 : 10))
+                        .animation(Motion.entrance, value: heroVisible)
 
-                    // 3. Provenance microcopy (conditional on cohort modifier)
-                    if let provenance = provenanceLine {
-                        Text(provenance)
-                            .font(Typo.body)
+                        // Arrival date promoted to secondary serif display.
+                        // This IS the arc's endpoint - the emotional payoff of the
+                        // assessment. Italic italic-Fraunces at questionHeroItalic (34pt)
+                        // reads as direction + arrival; tilde signals "about" to
+                        // match the clinical honesty of the lab readout.
+                        Text("~\(arrivalDateText)")
+                            .font(Typo.questionHeroItalic)
                             .foregroundStyle(Palette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .opacity(provenanceVisible ? 1 : 0)
-                            .offset(y: provenanceVisible ? 0 : 6)
-                            .animation(Motion.entrance, value: provenanceVisible)
+                            .opacity(dateVisible ? 1 : 0)
+                            .offset(y: reduceMotion ? 0 : (dateVisible ? 0 : 8))
+                            .animation(Motion.entrance, value: dateVisible)
                     }
+                    .padding(.horizontal, Space.screenPadding)
 
-                    // 4. Credibility beat
-                    Text("paced like a clinician would. slower is what lasts.")
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .opacity(credibilityVisible ? 1 : 0)
-                        .offset(y: credibilityVisible ? 0 : 6)
-                        .animation(Motion.entrance, value: credibilityVisible)
+                    Spacer().frame(height: Space.lg)
 
-                    // 5. Earned endowed progress - small, muted, never a %
-                    Text("step 1 of your plan: complete (you did the assessment)")
-                        .font(Typo.captionTracked)
-                        .foregroundStyle(Palette.textSecondary.opacity(0.7))
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 4)
-                        .opacity(progressVisible ? 1 : 0)
-                        .animation(Motion.entranceSoft, value: progressVisible)
+                    // ZONE 2 - proof: the arc the headline names.
+                    //
+                    // ArcSparkline: hairline bezier rising left (today) to right
+                    // (arrival). Draw-on starts when arcAnimate flips; the arc
+                    // takes ~700ms then a highlight travels and the endpoint blooms.
+                    //
+                    // EarnedStickerCluster: blooms at the arrival side (top trailing)
+                    // after the arc draws. This IS an earned moment (plan-reveal
+                    // family) so one tasteful cluster is on-brand. diameter=100 keeps
+                    // the cluster bounded within its corner; it cannot bleed into text.
+                    ArcSparkline(
+                        animate: arcAnimate,
+                        startLabel: "today",
+                        endpointLabel: arrivalDateText
+                    )
+                    .frame(height: 120)
+                    .padding(.horizontal, Space.md)
+                    .earnedStickerCluster(
+                        animate: stickerAnimate,
+                        stickers: [.flower3D, .heartGlossy, .sparkleGlossy],
+                        diameter: 100,
+                        alignment: .topTrailing,
+                        inset: 4
+                    )
+
+                    Spacer().frame(height: Space.section)
+
+                    // ZONE 3 - data: calm lab readout.
+                    //
+                    // The whole block fades + rises in together when dataBlockVisible
+                    // flips. Then provenance (conditional) and credibility stagger
+                    // sequentially inside - compound opacity means they're invisible
+                    // until the block itself appears, then emerge in order.
+                    VStack(alignment: .leading, spacing: Space.md) {
+                        LabReadoutBlock(rows: [
+                            .init(label: "pace",     value: "\(lossRatePctText)%/wk"),
+                            .init(label: "arrival",  value: "~\(arrivalDateText)"),
+                            .init(label: "approach", value: "conservative"),
+                        ])
+
+                        // Conditional provenance - cohort-specific quiet note.
+                        // Fully omitted (not just hidden) when provenanceLine is nil.
+                        if let provenance = provenanceLine {
+                            Text(provenance)
+                                .font(Typo.body)
+                                .foregroundStyle(Palette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .opacity(provenanceVisible ? 1 : 0)
+                                .offset(y: reduceMotion ? 0 : (provenanceVisible ? 0 : 5))
+                                .animation(Motion.entrance, value: provenanceVisible)
+                        }
+
+                        // Credibility beat - locked copy
+                        Text("paced like a clinician would. slower is what lasts.")
+                            .font(Typo.body)
+                            .foregroundStyle(Palette.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .opacity(credibilityVisible ? 1 : 0)
+                            .offset(y: reduceMotion ? 0 : (credibilityVisible ? 0 : 5))
+                            .animation(Motion.entrance, value: credibilityVisible)
+                    }
+                    .padding(.horizontal, Space.screenPadding)
+                    .opacity(dataBlockVisible ? 1 : 0)
+                    .offset(y: reduceMotion ? 0 : (dataBlockVisible ? 0 : 8))
+                    .animation(Motion.entrance, value: dataBlockVisible)
+
+                    Spacer().frame(height: Space.lg)
+
+                    // GROUNDED CLOSE - hairline + earned-progress label.
+                    //
+                    // Sits just above the pinned CTA. The eye travels:
+                    //   arc endpoint -> data -> this footer -> button.
+                    // Completion is felt before the tap.
+                    VStack(alignment: .leading, spacing: Space.sm) {
+                        HairlineRule()
+                        Text("step 1 of your plan: complete (you did the assessment)")
+                            .font(Typo.captionTracked)
+                            .foregroundStyle(Palette.textSecondary.opacity(0.7))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, Space.screenPadding)
+                    .opacity(footerVisible ? 1 : 0)
+                    .animation(Motion.entranceSoft, value: footerVisible)
+
+                    Spacer().frame(height: Space.lg)
                 }
-                .padding(.horizontal, Space.screenPadding)
-
-                Spacer()
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -1424,20 +1507,41 @@ private struct AssessmentPresentation: View {
                 .animation(Motion.entranceSoft, value: ctaVisible)
         }
         .task {
-            // Staggered cascade: identity → rule + data → provenance →
-            // credibility → earned progress → CTA.
+            // Warm the haptic engine on appear so the first play has no latency.
+            ActivationHaptics.shared.prepare()
+
+            // Cascade: headline -> arrival date -> arc draws ->
+            // sticker blooms -> stat block -> provenance ->
+            // credibility -> footer -> CTA
             withAnimation(Motion.entrance) { heroVisible = true }
-            try? await Task.sleep(nanoseconds: 400_000_000)
-            withAnimation(Motion.entrance) {
-                ruleVisible = true
-                dataLineVisible = true
-            }
-            try? await Task.sleep(nanoseconds: 320_000_000)
+            try? await Task.sleep(nanoseconds: 300_000_000)
+
+            withAnimation(Motion.entrance) { dateVisible = true }
+            try? await Task.sleep(nanoseconds: 250_000_000)
+
+            // Arc draw starts. ArcSparkline drives internally:
+            // draw-on (~700ms easeOut) -> travel highlight -> arrival bloom.
+            // arcComplete() fires at the draw-on endpoint (~720ms).
+            arcAnimate = true
+            try? await Task.sleep(nanoseconds: 720_000_000)
+            ActivationHaptics.shared.arcComplete()
+
+            // Sticker blooms just after arc completes + haptic settles
+            try? await Task.sleep(nanoseconds: 80_000_000)
+            withAnimation(Motion.bloom) { stickerAnimate = true }
+
+            // Data block fades up as a unit
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            withAnimation(Motion.entrance) { dataBlockVisible = true }
+            try? await Task.sleep(nanoseconds: 350_000_000)
+
+            // Provenance + credibility stagger inside the visible block
             withAnimation(Motion.entrance) { provenanceVisible = true }
             try? await Task.sleep(nanoseconds: 280_000_000)
             withAnimation(Motion.entrance) { credibilityVisible = true }
             try? await Task.sleep(nanoseconds: 280_000_000)
-            withAnimation(Motion.entranceSoft) { progressVisible = true }
+
+            withAnimation(Motion.entranceSoft) { footerVisible = true }
             try? await Task.sleep(nanoseconds: 350_000_000)
             withAnimation(Motion.entranceSoft) { ctaVisible = true }
         }
