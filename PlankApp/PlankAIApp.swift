@@ -3169,27 +3169,78 @@ private struct PromiseConfirmPreviewHarness: View {
 
 // MARK: - KeptPromisePreviewHarness (Task 10, 2026-06-28)
 //
-// Seeds the day1Promise AppStorage keys so PlanView renders the
-// kept-promise card at the top. Launch via `--debug-kept-promise`.
-// Requires a real enrolled account (program plan in SwiftData).
+// Standalone render of the Day-1 kept-promise card in its PlanView
+// context (eyebrow + arrival hero above it). Self-contained: no auth,
+// no payment, no SwiftData needed. Launch via `--debug-kept-promise`.
+//
+// The card reads AppStorage at render time, but this harness seeds
+// its own values so the condition always fires regardless of sim state.
 
 private struct KeptPromisePreviewHarness: View {
-    init() {
-        // Seed a past promise time so the card condition fires.
-        // Use yesterday at 8am so now >= promiseDate is always true.
-        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
-        let at8am = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: yesterday) ?? yesterday
-        UserDefaults.standard.set("log breakfast", forKey: "day1PromiseAction")
-        UserDefaults.standard.set("after coffee", forKey: "day1PromiseAnchor")
-        UserDefaults.standard.set(ISO8601DateFormatter().string(from: at8am), forKey: "day1PromiseTimeISO")
-        // Clear the kept-date so the card appears (not marked done today).
-        UserDefaults.standard.removeObject(forKey: "day1PromiseKeptDate")
+    // Arrival hero label computed once - 84 days from today ("dec 27").
+    private var goalLabel: String {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        let d = Calendar.current.date(byAdding: .day, value: 84, to: .now) ?? .now
+        return f.string(from: d).lowercased()
     }
 
     var body: some View {
-        // Route through RootView so SwiftData + the full tab hierarchy
-        // are available (same as the real PlanView runtime environment).
-        RootView()
+        ZStack {
+            Palette.programBgPrimary.ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer().frame(height: 64)
+
+                // Eyebrow - mirrors PlanView layout
+                Text("DAY 2 OF 84")
+                    .font(Typo.editorialEyebrow)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .kerning(0.66)
+                    .padding(.horizontal, Space.lg)
+
+                Spacer().frame(height: 10)
+
+                // Arrival horizon hero - mirrors arrivalHorizonHero
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("~\(goalLabel)")
+                        .font(Typo.questionHero)
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("showing up, 1 of 5 this week")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Space.lg)
+
+                Spacer().frame(height: 16)
+
+                // Kept-promise card - mirrors keptPromiseCard in PlanView
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("you said you'd log breakfast, after coffee.")
+                        .font(.custom("DMSans-Regular", size: 15))
+                        .foregroundStyle(Palette.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text("done")
+                        .font(.custom("DMSans-SemiBold", size: 14))
+                        .foregroundStyle(Palette.textInverse)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 9)
+                        .background(Palette.cocoaPrimary)
+                        .clipShape(Capsule())
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Palette.bgElevated)
+                        .shadow(color: Palette.cocoaPrimary.opacity(0.06), radius: 8, x: 0, y: 2)
+                )
+                .padding(.horizontal, Space.lg)
+
+                Spacer()
+            }
+        }
     }
 }
 #endif

@@ -781,7 +781,7 @@ struct PlanView: View {
                         .foregroundStyle(Palette.textSecondary)
                         .transition(.opacity)
                 } else {
-                    Text("you said you'd \(day1PromiseAction), after \(day1PromiseAnchor).")
+                    Text("you said you'd \(day1PromiseAction), \(day1PromiseAnchor).")
                         .font(.custom("DMSans-Regular", size: 15))
                         .foregroundStyle(Palette.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)

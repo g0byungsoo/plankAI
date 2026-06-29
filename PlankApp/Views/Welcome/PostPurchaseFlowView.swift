@@ -177,7 +177,7 @@ struct PostPurchasePromisePhase: View {
 
             Spacer().frame(height: 32)
 
-            Text("tomorrow, after \(anchor), you'll \(action). we'll be here \u{2665}")
+            Text("tomorrow, \(anchor), you'll \(action). we'll be here \u{2665}")
                 .font(.custom("DMSans-Regular", size: 16))
                 .foregroundStyle(Palette.textSecondary)
                 .padding(.horizontal, Space.lg)
