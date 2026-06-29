@@ -167,7 +167,12 @@ public actor SyncService {
             onboarding_stress_level: user.onboardingStressLevel,
             onboarding_eating_cadence: user.onboardingEatingCadence,
             onboarding_eating_window: user.onboardingEatingWindow,
-            onboarding_food_relationship: user.onboardingFoodRelationship
+            onboarding_food_relationship: user.onboardingFoodRelationship,
+            // Phase 1a (2026-06-28) - clinical baseline + activation counter.
+            computed_start_bmi: user.computedStartBMI,
+            target_rate_pct_per_week: user.targetRatePctPerWeek,
+            medical_disclaimer_ack_at: user.medicalDisclaimerAckAt.map { iso.string(from: $0) },
+            promises_kept: user.promisesKept
         )
 
         let userId = user.id
@@ -358,6 +363,15 @@ public actor SyncService {
             target.onboardingEatingCadence = row.onboardingEatingCadence
             target.onboardingEatingWindow = row.onboardingEatingWindow
             target.onboardingFoodRelationship = row.onboardingFoodRelationship
+            // Phase 1a (2026-06-28) - clinical baseline + activation counter.
+            // nil columns on legacy rows decode as nil and pass through as nil.
+            // promisesKept coalesces nil (legacy row) to 0 so the Int field
+            // on UserRecord stays non-optional and the counter self-heals on
+            // first reinstall.
+            target.computedStartBMI = row.computedStartBMI
+            target.targetRatePctPerWeek = row.targetRatePctPerWeek
+            target.medicalDisclaimerAckAt = row.medicalDisclaimerAckAt
+            target.promisesKept = row.promisesKept ?? 0
 
             do {
                 try context.save()
@@ -1065,6 +1079,13 @@ private struct SupabaseUserUpsert: Encodable {
     let onboarding_eating_cadence: String?
     let onboarding_eating_window: String?
     let onboarding_food_relationship: String?
+    /// Phase 1a (2026-06-28) - clinical baseline + activation counter.
+    /// Dates are ISO8601 strings to match the existing convention.
+    /// promises_kept is non-optional with default 0 so existing rows keep working.
+    let computed_start_bmi: Double?
+    let target_rate_pct_per_week: Double?
+    let medical_disclaimer_ack_at: String?
+    let promises_kept: Int
 }
 
 /// Decodable mirror of SupabaseUserUpsert. Mirrors all 21 columns of
@@ -1126,6 +1147,13 @@ private struct SupabaseUserRow: Decodable {
     let onboardingEatingCadence: String?
     let onboardingEatingWindow: String?
     let onboardingFoodRelationship: String?
+    /// Phase 1a (2026-06-28) - clinical baseline + activation counter.
+    /// Optional so legacy rows that lack these columns decode cleanly.
+    /// promisesKept is Int? here; hydrate coalesces nil to 0.
+    let computedStartBMI: Double?
+    let targetRatePctPerWeek: Double?
+    let medicalDisclaimerAckAt: Date?
+    let promisesKept: Int?
 
     enum CodingKeys: String, CodingKey {
         case id, name
@@ -1176,6 +1204,11 @@ private struct SupabaseUserRow: Decodable {
         case onboardingEatingCadence = "onboarding_eating_cadence"
         case onboardingEatingWindow = "onboarding_eating_window"
         case onboardingFoodRelationship = "onboarding_food_relationship"
+        // Phase 1a (2026-06-28)
+        case computedStartBMI = "computed_start_bmi"
+        case targetRatePctPerWeek = "target_rate_pct_per_week"
+        case medicalDisclaimerAckAt = "medical_disclaimer_ack_at"
+        case promisesKept = "promises_kept"
     }
 }
 
