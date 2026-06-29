@@ -781,7 +781,7 @@ enum RetentionNotifications {
             let alreadyScheduled = d.integer(forKey: Key.activationNudgesScheduled)
             guard ActivationPushPolicy.shouldSchedule(
                 dayIndex: 1,
-                hasActedToday: d.integer(forKey: Key.shownUpCount) > 0,
+                hasEverActed: d.integer(forKey: Key.shownUpCount) > 0,
                 alreadyScheduled: alreadyScheduled
             ) else {
                 // Cap reached or user already acted - stamp done so

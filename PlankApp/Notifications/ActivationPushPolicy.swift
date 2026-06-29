@@ -23,24 +23,25 @@ enum ActivationPushPolicy {
     //
     // Parameters
     // - dayIndex:         which day slot (1, 2, or 3 - D0 was cut in v2)
-    // - hasActedToday:    true if the user completed a core action today
-    //                     (session save or food log); derive from shownUpCount > 0
-    //                     at the call site.
+    // - hasEverActed:     true if the user has EVER completed a core action
+    //                     (session save or food log); activation nudges are
+    //                     suppressed for anyone already activated. Derive from
+    //                     shownUpCount > 0 at the call site.
     // - alreadyScheduled: total activation-category pushes already queued
     //                     this install (tracked separately from the engaged
     //                     re-arm to avoid double-counting).
     //
     // Returns true only when all three guards pass:
     //   1. dayIndex is within the D0-D3 window
-    //   2. user has NOT acted today
+    //   2. user has NEVER acted (hasEverActed is false)
     //   3. fewer than 3 activation pushes have already been scheduled
     static func shouldSchedule(
         dayIndex: Int,
-        hasActedToday: Bool,
+        hasEverActed: Bool,
         alreadyScheduled: Int
     ) -> Bool {
         guard dayIndex >= 1, dayIndex <= 3 else { return false }
-        guard !hasActedToday else { return false }
+        guard !hasEverActed else { return false }
         return alreadyScheduled < 3
     }
 }

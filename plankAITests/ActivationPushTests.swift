@@ -3,13 +3,13 @@ import XCTest
 
 final class ActivationPushTests: XCTestCase {
 
-    // Suppress the nudge the moment the user completes a core action today.
-    // Covers: session save, food log, or any signal that sets hasActedToday.
+    // Suppress the nudge the moment the user has ever completed a core action.
+    // Covers: session save, food log, or any signal that sets hasEverActed.
     func testSuppressedOnceUserActed() {
         XCTAssertFalse(
             ActivationPushPolicy.shouldSchedule(
                 dayIndex: 1,
-                hasActedToday: true,
+                hasEverActed: true,
                 alreadyScheduled: 0
             )
         )
@@ -21,7 +21,7 @@ final class ActivationPushTests: XCTestCase {
         XCTAssertFalse(
             ActivationPushPolicy.shouldSchedule(
                 dayIndex: 3,
-                hasActedToday: false,
+                hasEverActed: false,
                 alreadyScheduled: 3
             )
         )
@@ -32,7 +32,7 @@ final class ActivationPushTests: XCTestCase {
         XCTAssertTrue(
             ActivationPushPolicy.shouldSchedule(
                 dayIndex: 1,
-                hasActedToday: false,
+                hasEverActed: false,
                 alreadyScheduled: 0
             )
         )
