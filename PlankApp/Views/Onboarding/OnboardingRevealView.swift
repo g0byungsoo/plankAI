@@ -204,23 +204,31 @@ private struct DisclaimerPresentation: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    // The four substance points - rendered as a clinical checklist inside
+    // the intake card. Copy unchanged from the prior pass (no em-dashes;
+    // semicolons + periods only).
+    private let points: [String] = [
+        "this builds a weight-loss plan; it is not medical advice.",
+        "not for use during pregnancy, or by anyone under 18.",
+        "if you have a medical condition or a history of disordered eating, please talk to your clinician first.",
+        "we use what you share to build and adjust your plan."
+    ]
+
     // Staggered cascade reveal states
+    @State private var markVisible      = false
     @State private var headlineVisible  = false
-    @State private var point1Visible    = false
-    @State private var rule1Visible     = false
-    @State private var point2Visible    = false
-    @State private var rule2Visible     = false
-    @State private var point3Visible    = false
-    @State private var rule3Visible     = false
-    @State private var point4Visible    = false
+    @State private var cardVisible      = false
+    @State private var revealedRows     = 0       // checklist rows populated so far
+    @State private var credVisible      = false
     @State private var trustVisible     = false
     @State private var ctaVisible       = false
 
     var body: some View {
         ZStack {
             // bgPrimary cream is the ONLY background per the locked color
-            // tokens. This screen is a trust + reflection beat; cream keeps
-            // it visually distinct from the pink projection steps.
+            // tokens. The Grainfield gives the cream a paper-and-light
+            // depth so the intake card reads as a real document on a desk,
+            // not a flat legal screen.
             GrainfieldBackground()
 
             VStack(spacing: 0) {
@@ -228,10 +236,37 @@ private struct DisclaimerPresentation: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Spacer().frame(height: Space.hero)
 
-                        // Headline - her75 editorial register.
-                        // "quick" as the italic punch word: frames this as a
-                        // brief pause, not a barrier. Single-line composition
-                        // (6 words) so no 2-line split needed.
+                        // CLINICAL HEADER - tracked-caps chart label on the
+                        // left, a thin medical cross mark in a hairline ring
+                        // on the right. The recognizable-but-restrained
+                        // "this is a considered intake" motif. Hairline rule
+                        // beneath turns the pair into a document header.
+                        HStack(alignment: .center) {
+                            Text("a quick safety check")
+                                .font(Typo.kicker)
+                                .kerning(0.18 * 10)
+                                .textCase(.uppercase)
+                                .foregroundStyle(Palette.cocoaTertiary)
+                            Spacer(minLength: 12)
+                            ClinicalCrossMark()
+                                .frame(width: 26, height: 26)
+                        }
+                        .padding(.horizontal, Space.screenPadding)
+                        .opacity(markVisible ? 1 : 0)
+                        .animation(Motion.entranceSoft, value: markVisible)
+
+                        Spacer().frame(height: 12)
+
+                        HairlineRule()
+                            .padding(.horizontal, Space.screenPadding)
+                            .opacity(markVisible ? 1 : 0)
+                            .animation(Motion.entranceSoft, value: markVisible)
+
+                        Spacer().frame(height: Space.lg)
+
+                        // HEADLINE - her75 editorial register. "quick" as the
+                        // italic punch word frames this as a brief pause, not
+                        // a barrier.
                         ItalicAccentText(
                             "first, a quick check.",
                             italic: ["quick"],
@@ -248,61 +283,77 @@ private struct DisclaimerPresentation: View {
                         .offset(y: reduceMotion ? 0 : (headlineVisible ? 0 : 10))
                         .animation(Motion.entrance, value: headlineVisible)
 
-                        Spacer().frame(height: Space.section)
+                        Spacer().frame(height: 10)
 
-                        // Body points + hairline separators. Each point and its
-                        // following rule fade in separately so the list assembles
-                        // rather than slamming in as a block.
-                        // No em-dashes anywhere; semicolons and periods only.
-                        VStack(alignment: .leading, spacing: 0) {
-                            pointRow("this builds a weight-loss plan; it is not medical advice.")
-                                .opacity(point1Visible ? 1 : 0)
-                                .offset(y: reduceMotion ? 0 : (point1Visible ? 0 : 6))
-                                .animation(Motion.entrance, value: point1Visible)
-
-                            HairlineRule()
-                                .opacity(rule1Visible ? 1 : 0)
-                                .animation(Motion.entranceSoft, value: rule1Visible)
-
-                            pointRow("not for use during pregnancy, or by anyone under 18.")
-                                .opacity(point2Visible ? 1 : 0)
-                                .offset(y: reduceMotion ? 0 : (point2Visible ? 0 : 6))
-                                .animation(Motion.entrance, value: point2Visible)
-
-                            HairlineRule()
-                                .opacity(rule2Visible ? 1 : 0)
-                                .animation(Motion.entranceSoft, value: rule2Visible)
-
-                            pointRow("if you have a medical condition or a history of disordered eating, please talk to your clinician first.")
-                                .opacity(point3Visible ? 1 : 0)
-                                .offset(y: reduceMotion ? 0 : (point3Visible ? 0 : 6))
-                                .animation(Motion.entrance, value: point3Visible)
-
-                            HairlineRule()
-                                .opacity(rule3Visible ? 1 : 0)
-                                .animation(Motion.entranceSoft, value: rule3Visible)
-
-                            pointRow("we use what you share to build and adjust your plan.")
-                                .opacity(point4Visible ? 1 : 0)
-                                .offset(y: reduceMotion ? 0 : (point4Visible ? 0 : 6))
-                                .animation(Motion.entrance, value: point4Visible)
-                        }
-                        .padding(.horizontal, Space.screenPadding)
+                        Text("a few honest things before we build your plan.")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, Space.screenPadding)
+                            .opacity(headlineVisible ? 1 : 0)
+                            .animation(Motion.entranceSoft, value: headlineVisible)
 
                         Spacer().frame(height: Space.lg)
 
-                        // Trust line. Heart uses text-presentation selector
-                        // (\u{FE0E}) so it renders in the dusty-rose tint,
-                        // NOT emoji red. Per the brand constraint.
+                        // INTAKE CARD - the four points as a considered
+                        // clinical checklist. Elevated cream stock + a single
+                        // hairline border reads as a chart/form, not a wall of
+                        // text. Each row carries a small drawn check in a
+                        // hairline ring; rows populate in sequence so the form
+                        // visibly fills in.
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(Array(points.enumerated()), id: \.offset) { idx, point in
+                                checklistRow(point, index: idx)
+                                if idx < points.count - 1 {
+                                    HairlineRule()
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(Palette.bgElevated)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(Palette.hairlineCocoa, lineWidth: 1)
+                        )
+                        .padding(.horizontal, Space.screenPadding)
+                        .opacity(cardVisible ? 1 : 0)
+                        .offset(y: reduceMotion ? 0 : (cardVisible ? 0 : 10))
+                        .animation(Motion.entrance, value: cardVisible)
+
+                        Spacer().frame(height: Space.md)
+
+                        // CREDIBILITY CUE - honest, not overclaimed. A small
+                        // check + tracked micro-label, built from the same
+                        // HairlineKit register as the checklist marks.
+                        HStack(alignment: .center, spacing: Space.sm) {
+                            CheckGlyph()
+                                .frame(width: 15, height: 15)
+                            Text("grounded in established weight-loss guidance.")
+                                .font(Typo.statLabel)
+                                .kerning(0.04 * 11)
+                                .foregroundStyle(Palette.cocoaSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.horizontal, Space.screenPadding)
+                        .opacity(credVisible ? 1 : 0)
+                        .animation(Motion.entranceSoft, value: credVisible)
+
+                        Spacer().frame(height: Space.lg)
+
+                        // TRUST LINE - the warm close. Heart uses the
+                        // text-presentation selector (\u{FE0E}) so it renders
+                        // in dusty rose, NOT emoji red.
                         HStack(alignment: .top, spacing: Space.xs) {
-                            Text("we’d rather pace you slowly than promise something that won’t last.")
+                            Text("we'd rather pace you slowly than promise something that won't last.")
                                 .font(Typo.caption)
                                 .foregroundStyle(Palette.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                             Text("\u{2665}\u{FE0E}")
                                 .font(Typo.caption)
-                                // Dusty rose: use the locked accent token (#C4677A)
-                                // so this heart matches every other heart in the flow.
                                 .foregroundStyle(Palette.accent)
                         }
                         .padding(.horizontal, Space.screenPadding)
@@ -313,14 +364,11 @@ private struct DisclaimerPresentation: View {
                     }
                 }
 
-                // Docked CTA band. bgPrimary background ensures no scroll
-                // content bleeds behind the button on short devices.
-                // VStack partition (scroll vs button) is the proven
-                // pattern across all reveal screens.
+                // Docked CTA band. JFContinueButton already pads horizontal
+                // Space.lg + bottom 24 internally; the bgPrimary band keeps
+                // scroll content from bleeding behind it on short devices.
                 JFContinueButton(label: "i understand", action: acknowledge)
-                    .padding(.horizontal, Space.lg)
                     .padding(.top, 8)
-                    .padding(.bottom, 24)
                     .background(Palette.bgPrimary)
                     .opacity(ctaVisible ? 1 : 0)
                     .animation(Motion.entranceSoft, value: ctaVisible)
@@ -331,48 +379,52 @@ private struct DisclaimerPresentation: View {
             // has no latency.
             ActivationHaptics.shared.prepare()
 
-            // Staggered cascade: headline -> point 1 -> rule -> point 2 ->
-            // rule -> point 3 -> rule -> point 4 -> trust line -> CTA.
-            // Reduce-motion: per-element animation gates make each element
-            // land with zero offset at its reveal time.
+            // Cascade: header mark -> headline+sub -> card -> rows fill in
+            // sequence -> credibility -> trust -> CTA. Per-element animation
+            // gates keep reduce-motion landings offset-free.
+            withAnimation(Motion.entranceSoft) { markVisible = true }
+            try? await Task.sleep(nanoseconds: 240_000_000)
+
             withAnimation(Motion.entrance) { headlineVisible = true }
-            try? await Task.sleep(nanoseconds: 380_000_000)
+            try? await Task.sleep(nanoseconds: 360_000_000)
 
-            withAnimation(Motion.entrance) { point1Visible = true }
-            try? await Task.sleep(nanoseconds: 140_000_000)
-            withAnimation(Motion.entranceSoft) { rule1Visible = true }
-            try? await Task.sleep(nanoseconds: 160_000_000)
+            withAnimation(Motion.entrance) { cardVisible = true }
+            try? await Task.sleep(nanoseconds: 200_000_000)
 
-            withAnimation(Motion.entrance) { point2Visible = true }
-            try? await Task.sleep(nanoseconds: 140_000_000)
-            withAnimation(Motion.entranceSoft) { rule2Visible = true }
-            try? await Task.sleep(nanoseconds: 160_000_000)
+            // Rows populate one at a time so the form reads as filling in.
+            for i in 1...points.count {
+                withAnimation(Motion.entrance) { revealedRows = i }
+                try? await Task.sleep(nanoseconds: 120_000_000)
+            }
+            try? await Task.sleep(nanoseconds: 120_000_000)
 
-            withAnimation(Motion.entrance) { point3Visible = true }
-            try? await Task.sleep(nanoseconds: 140_000_000)
-            withAnimation(Motion.entranceSoft) { rule3Visible = true }
-            try? await Task.sleep(nanoseconds: 160_000_000)
-
-            withAnimation(Motion.entrance) { point4Visible = true }
-            try? await Task.sleep(nanoseconds: 280_000_000)
-
+            withAnimation(Motion.entranceSoft) { credVisible = true }
+            try? await Task.sleep(nanoseconds: 220_000_000)
             withAnimation(Motion.entranceSoft) { trustVisible = true }
-            try? await Task.sleep(nanoseconds: 300_000_000)
-
+            try? await Task.sleep(nanoseconds: 240_000_000)
             withAnimation(Motion.entranceSoft) { ctaVisible = true }
         }
     }
 
-    // Point row: body-sized text with generous vertical padding so
-    // the hairline between rows has room to breathe. fixedSize ensures
-    // the text wraps correctly for the longer point 3 copy.
+    // Checklist row: a small hairline-ringed check + the point text.
+    // Rows fade/rise in as `revealedRows` advances so the card populates
+    // rather than slamming in as a block.
     @ViewBuilder
-    private func pointRow(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 15))
-            .foregroundStyle(Palette.textPrimary)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.vertical, Space.md)
+    private func checklistRow(_ text: String, index: Int) -> some View {
+        let shown = reduceMotion || index < revealedRows
+        HStack(alignment: .top, spacing: 12) {
+            ChecklistMark()
+                .frame(width: 20, height: 20)
+                .padding(.top, 1)
+            Text(text)
+                .font(.system(size: 15))
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.vertical, Space.md)
+        .opacity(shown ? 1 : 0)
+        .offset(y: reduceMotion ? 0 : (shown ? 0 : 6))
+        .animation(Motion.entrance, value: revealedRows)
     }
 
     // Acknowledge: haptic fires BEFORE any state change so it lands while
@@ -383,6 +435,60 @@ private struct DisclaimerPresentation: View {
         ActivationHaptics.shared.commit()
         ackAtISO = ISO8601DateFormatter().string(from: Date())
         onContinue()
+    }
+}
+
+// MARK: - Clinical marks (DisclaimerPresentation)
+//
+// Small drawn glyphs that give the disclaimer its clinical-but-warm
+// register without a single bitmap asset. All stroked in the cocoa
+// hairline scale so they sit in the same "calm lab readout" family as
+// HairlineKit.
+
+// A thin check stroke - the atomic checklist mark.
+private struct CheckGlyph: View {
+    var color: Color = Palette.cocoaSecondary
+    var lineWidth: CGFloat = 1.4
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width, h = geo.size.height
+            Path { p in
+                p.move(to: CGPoint(x: w * 0.20, y: h * 0.54))
+                p.addLine(to: CGPoint(x: w * 0.42, y: h * 0.74))
+                p.addLine(to: CGPoint(x: w * 0.80, y: h * 0.28))
+            }
+            .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+// A check inside a faint hairline ring - the per-row checklist marker.
+private struct ChecklistMark: View {
+    var body: some View {
+        ZStack {
+            Circle().stroke(Palette.hairlineCocoa, lineWidth: 1)
+            CheckGlyph().padding(5)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+// A thin medical cross inside a hairline ring - the header trust motif.
+// Two rounded capsules so the cross reads as drawn, not a font glyph.
+private struct ClinicalCrossMark: View {
+    var body: some View {
+        ZStack {
+            Circle().stroke(Palette.hairlineCocoa, lineWidth: 1)
+            Capsule(style: .continuous)
+                .fill(Palette.cocoaSecondary)
+                .frame(width: 2, height: 11)
+            Capsule(style: .continuous)
+                .fill(Palette.cocoaSecondary)
+                .frame(width: 11, height: 2)
+        }
+        .accessibilityHidden(true)
     }
 }
 
@@ -1913,141 +2019,141 @@ private struct CommitmentRitualPresentation: View {
     // MARK: Body
 
     var body: some View {
-        ZStack {
-            // Premium alive-cream surface. Visually distinct from flat
-            // bgPrimary and more grounded for the emotional close beat.
-            GrainfieldBackground()
+        // OVERFLOW FIX (2026-06-29): the CTA is now a `.safeAreaInset(edge:
+        // .bottom)` on the ScrollView itself, and GrainfieldBackground is a
+        // `.background()` of that same ScrollView. safeAreaInset auto-insets
+        // the scroll content by the dock height, so the live replay can ALWAYS
+        // scroll fully clear of the button - it can never sit behind it.
+        // (The prior VStack-partition could still clip on a short viewport
+        // when the 38pt replay grew past the available scroll height; the
+        // replay is now sized at 26pt and capped so it fits in ~2 lines.)
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                // Compact top inset (was Space.hero=40). The earned-moment
+                // close doesn't need a tall masthead; tightening here is the
+                // first of several compaction moves.
+                Spacer().frame(height: Space.lg)
 
-            // VStack partition: scroll zone above, docked CTA below.
-            // GrainfieldBackground().ignoresSafeArea() inside the ZStack
-            // makes safeAreaInset propagation unreliable (button lands
-            // mid-screen rather than at the safe-area edge). The proven
-            // fix - matching AssessmentPresentation / PacePickerPresentation
-            // - is a VStack that partitions scroll zone vs button band.
-            VStack(spacing: 0) {
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        // Top inset below the safe-area edge. The ScrollView
-                        // bounds the content to the available height, so
-                        // overflow can never push the headline into the status
-                        // bar regardless of chip selection length.
-                        Spacer().frame(height: Space.hero)
+                // Small tracked-caps eyebrow - frames the moment as her
+                // FIRST promise, a quiet ceremony cue above the hero.
+                Text("your first promise")
+                    .font(Typo.kicker)
+                    .kerning(0.18 * 10)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .padding(.horizontal, Space.screenPadding)
+                    .opacity(heroVisible ? 1 : 0)
+                    .animation(Motion.entranceSoft, value: heroVisible)
 
-                        // ZONE 1 - Hero: JeniHeroSerif, italic punch on "promise"
-                        ItalicAccentText(
-                            "before the plan, one promise.",
-                            italic: ["promise"],
-                            baseFont: Typo.heroHeadline,
-                            italicFont: Typo.heroHeadlineItalic,
-                            color: Palette.textPrimary,
-                            alignment: .leading
-                        )
-                        .kerning(-0.4)
-                        .lineSpacing(Typo.heroHeadlineLineGap)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, Space.screenPadding)
-                        .opacity(heroVisible ? 1 : 0)
-                        .offset(y: reduceMotion ? 0 : (heroVisible ? 0 : 10))
-                        .animation(Motion.entrance, value: heroVisible)
+                Spacer().frame(height: 10)
 
-                        // section gap (36pt) between hero and panel - generous
-                        // but not so large the panel feels separated from the intent.
-                        Spacer().frame(height: Space.section)
+                // ZONE 1 - Hero: JeniHeroSerif, italic punch on "promise"
+                ItalicAccentText(
+                    "before the plan, one promise.",
+                    italic: ["promise"],
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, Space.screenPadding)
+                .opacity(heroVisible ? 1 : 0)
+                .offset(y: reduceMotion ? 0 : (heroVisible ? 0 : 10))
+                .animation(Motion.entrance, value: heroVisible)
 
-                        // ZONE 2 - Unified chip instrument panel.
-                        // Rounded card with a barely-there 4% cocoa fill and a
-                        // visible 22%-cocoa 1pt border. The card makes WHEN / WHAT /
-                        // TIME read as ONE object being set, not three loose rows.
-                        // 18pt corner radius, 20pt internal padding throughout.
-                        VStack(alignment: .leading, spacing: Space.md) {
-                            chipGroup(label: "WHEN", chips: anchorChips, selected: $selectedAnchor)
-                            // GLP-1 current: WHAT is fixed to "protect your muscle" for
-                            // clinical reasons. Render display-only so what she SEES
-                            // matches what confirmAndContinue stores and CommitmentReplayView
-                            // shows - no interactive chip that gets silently ignored.
-                            if glp1Status == "current" {
-                                whatDisplayRow
-                            } else {
-                                chipGroup(label: "WHAT", chips: actionChips, selected: $selectedAction)
-                            }
-                            chipGroup(label: "TIME", chips: timeChips,    selected: $selectedTime)
-                        }
-                        .padding(20)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(Palette.cocoaPrimary.opacity(0.04))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .stroke(Palette.cocoaPrimary.opacity(0.22), lineWidth: 1)
-                        )
-                        .padding(.horizontal, Space.screenPadding)
-                        .opacity(chipPanelVisible ? 1 : 0)
-                        .offset(y: reduceMotion ? 0 : (chipPanelVisible ? 0 : 10))
-                        .animation(Motion.entrance, value: chipPanelVisible)
+                // Compact gap (28pt) between hero and panel - tighter than the
+                // old Space.section(36) so the screen never feels hollow.
+                Spacer().frame(height: 28)
 
-                        // Gap between panel and bridge - enough to breathe but
-                        // tight enough that the replay reads as connected OUTPUT.
-                        Spacer().frame(height: Space.lg)
+                // ZONE 2 - Unified chip instrument panel. Rounded card, barely-
+                // there 4% cocoa fill + a visible 22%-cocoa 1pt border so WHEN /
+                // WHAT / TIME read as ONE object being set. Compacted: 16pt
+                // internal padding + 14pt group spacing (was 20 / Space.md=16).
+                VStack(alignment: .leading, spacing: 14) {
+                    chipGroup(label: "WHEN", chips: anchorChips, selected: $selectedAnchor)
+                    // GLP-1 current: WHAT is fixed to "protect your muscle" for
+                    // clinical reasons. Render display-only so what she SEES
+                    // matches what confirmAndContinue stores and CommitmentReplayView
+                    // shows - no interactive chip that gets silently ignored.
+                    if glp1Status == "current" {
+                        whatDisplayRow
+                    } else {
+                        chipGroup(label: "WHAT", chips: actionChips, selected: $selectedAction)
+                    }
+                    chipGroup(label: "TIME", chips: timeChips,    selected: $selectedTime)
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Palette.cocoaPrimary.opacity(0.04))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Palette.cocoaPrimary.opacity(0.22), lineWidth: 1)
+                )
+                .padding(.horizontal, Space.screenPadding)
+                .opacity(chipPanelVisible ? 1 : 0)
+                .offset(y: reduceMotion ? 0 : (chipPanelVisible ? 0 : 10))
+                .animation(Motion.entrance, value: chipPanelVisible)
 
-                        // Bridge: tracked-caps kicker + visible divider line.
-                        // Marks the transition from input (chip panel) to output
-                        // (live replay). Uses textSecondary for legibility (was
-                        // cocoaTertiary=48% which rendered near-invisible on cream).
-                        // Divider at 20% cocoa reads clearly as a section break
-                        // without being heavy.
-                        VStack(alignment: .leading, spacing: Space.xs) {
-                            Text("your promise:")
-                                .font(Typo.kicker)
-                                .kerning(0.20 * 10)
-                                .textCase(.uppercase)
-                                .foregroundStyle(Palette.textSecondary)
-                            Rectangle()
-                                .fill(Palette.cocoaPrimary.opacity(0.20))
-                                .frame(height: 0.75)
-                                .frame(maxWidth: .infinity)
-                        }
-                        .padding(.horizontal, Space.screenPadding)
-                        .opacity(promiseLabelVisible ? 1 : 0)
-                        .animation(Motion.entranceSoft, value: promiseLabelVisible)
+                Spacer().frame(height: Space.lg)
 
-                        // Tight gap - replay sits RIGHT under the bridge label so
-                        // the eye reads "promise: [output below]" not two separate zones.
-                        Spacer().frame(height: Space.sm)
+                // ZONE 3 - Bridge + live replay, set as an earned pull-quote.
+                // A thin dusty-rose accent rule down the left margin signals
+                // "these are YOUR words" - the signature treatment that makes
+                // the close feel special without shouting. The replay is sized
+                // at 26pt (down from 38) so the assembled sentence lands in
+                // ~2 lines and stays compact.
+                HStack(alignment: .top, spacing: 14) {
+                    RoundedRectangle(cornerRadius: 1, style: .continuous)
+                        .fill(Palette.accent.opacity(0.55))
+                        .frame(width: 2)
 
-                        // ZONE 3 - Live replay: assembles word-by-word on first reveal
-                        // (stagger left-to-right, ~50ms per word) and swaps ONLY the
-                        // changed slot on chip tap (old word fades/lifts out, new word
-                        // fades/settles in, ~220ms spring). Reduce-motion: no motion,
-                        // words render final state immediately.
+                    VStack(alignment: .leading, spacing: Space.sm) {
+                        Text("your promise:")
+                            .font(Typo.kicker)
+                            .kerning(0.20 * 10)
+                            .textCase(.uppercase)
+                            .foregroundStyle(Palette.textSecondary)
+                            .opacity(promiseLabelVisible ? 1 : 0)
+                            .animation(Motion.entranceSoft, value: promiseLabelVisible)
+
+                        // Live replay: assembles word-by-word on first reveal
+                        // (~50ms/word) and swaps ONLY the changed slot on chip
+                        // tap. Reduce-motion: final state immediately.
                         CommitmentReplayView(
                             anchor: selectedAnchor,
                             action: selectedAction,
                             glp1: glp1Status == "current",
-                            isRevealed: replayVisible
+                            isRevealed: replayVisible,
+                            fontSize: 26
                         )
-                        .padding(.horizontal, Space.screenPadding)
-
-                        // Bottom clearance so the replay can scroll fully
-                        // clear of the docked CTA band below. Fixed frame
-                        // (not Spacer(minLength:)) so it works correctly
-                        // inside the ScrollView's unconstrained height.
-                        Spacer().frame(height: Space.xl)
                     }
                 }
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, Space.screenPadding)
 
-                // Docked CTA - cream band blocks scroll content from
-                // bleeding behind the button on any selection length.
-                // Sits in the VStack partition (outside the scroll) so it
-                // is always fully visible without affecting scroll layout.
-                JFContinueButton(label: "continue", action: confirmAndContinue)
-                    .padding(.top, 8)
-                    .padding(.bottom, 24)
-                    .background(Palette.bgPrimary)
-                    .opacity(ctaVisible ? 1 : 0)
-                    .animation(Motion.entranceSoft, value: ctaVisible)
+                // Bottom clearance INSIDE the scroll content. safeAreaInset
+                // already reserves the dock height; this is a small breath so
+                // the replay never sits flush against the dock band.
+                Spacer().frame(height: Space.md)
             }
+        }
+        .background(GrainfieldBackground())
+        .safeAreaInset(edge: .bottom) {
+            // Docked CTA. As a safeAreaInset the cream band sits at the
+            // true safe-area edge and the ScrollView insets its content by
+            // this band's full height, so the replay can always scroll
+            // clear. bgPrimary keeps scroll content from showing through.
+            JFContinueButton(label: "continue", action: confirmAndContinue)
+                .padding(.top, 8)
+                .background(Palette.bgPrimary)
+                .opacity(ctaVisible ? 1 : 0)
+                .animation(Motion.entranceSoft, value: ctaVisible)
         }
         .onAppear {
             // Initialize defaults on appear (not init) so AppStorage
@@ -2280,6 +2386,10 @@ private struct CommitmentReplayView: View {
     let action: String
     let glp1: Bool
     let isRevealed: Bool
+    /// Replay type size. 26pt is the compacted default that keeps the
+    /// assembled sentence to ~2 lines above the docked CTA; callers can
+    /// pass larger for a more display-scale moment.
+    var fontSize: CGFloat = 26
 
     // Display text for dynamic slots - held at the OLD value during the
     // exit phase of a swap so the outgoing word is still readable.
@@ -2297,7 +2407,9 @@ private struct CommitmentReplayView: View {
     private var tokenCount: Int { glp1 ? 6 : 4 }
 
     var body: some View {
-        ReplayFlowLayout(hSpacing: 9, vSpacing: 2) {
+        // hSpacing tracks the type size (~0.22x approximates a space-char
+        // width at JeniHeroSerif); vSpacing kept tight for a dense quote.
+        ReplayFlowLayout(hSpacing: fontSize * 0.22, vSpacing: 4) {
             wordToken("tomorrow,",      italic: false, index: 0)
             wordToken(anchorDisplay + ",", italic: true,  index: 1)
             wordToken("you'll",         italic: false, index: 2)
@@ -2355,7 +2467,7 @@ private struct CommitmentReplayView: View {
     @ViewBuilder
     private func wordToken(_ text: String, italic: Bool, index: Int) -> some View {
         Text(text)
-            .font(italic ? Typo.heroHeadlineItalic : Typo.heroHeadline)
+            .font(.custom(italic ? "JeniHeroSerif-Italic" : "JeniHeroSerif-Regular", size: fontSize))
             .foregroundStyle(Palette.textPrimary)
             .kerning(-0.4)
             .lineLimit(1)
