@@ -2346,7 +2346,7 @@ private struct RootView: View {
     // never transition effectiveHasProAccess false→true (cold relaunch
     // on an already-paid user). Default-off behind the flag.
     @State private var showingCoachIntro = false
-    /// Sprint A (2026-06-15) — soft cancellation-intent winback.
+    /// Sprint A (2026-06-15) - soft cancellation-intent winback.
     /// After 2026-06-29 re-wire: fires as the SECONDARY beat after
     /// the downsell has already shown (or as fallback once per session
     /// when downsellShownOnce is already true). Voice-aligned identity

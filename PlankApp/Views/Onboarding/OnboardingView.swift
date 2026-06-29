@@ -330,7 +330,7 @@ struct OnboardingView: View {
 
     // v4.6 — notification-banner drop-in on the nudge screen (case 11).
     @State private var nudgeBannerDropped = false
-    // 2026-06-29 — banner drop state for the consolidated nudge screen
+    // 2026-06-29 - banner drop state for the consolidated nudge screen
     // (case 23). Separate from nudgeBannerDropped so case 11 (now dead
     // from the main flow) doesn't share mutation with the live screen.
     @State private var cameraScreenBannerShown = false

@@ -219,7 +219,7 @@ struct PostPurchasePromisePhase: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Space.lg)
                 .opacity(heroVisible ? 1 : 0)
-                .offset(y: heroVisible ? 0 : 10)
+                .offset(y: reduceMotion ? 0 : (heroVisible ? 0 : 10))
 
                 // Fixed gap: headline -> ticket
                 Spacer().frame(height: 44)
@@ -248,7 +248,7 @@ struct PostPurchasePromisePhase: View {
                     .font(.custom("DMSans-Regular", size: 14))
                     .foregroundStyle(Palette.accent))
                 .padding(.top, 18)
-                .opacity(reassuranceVisible ? 1 : 0)
+                .opacity(reduceMotion ? 1 : (reassuranceVisible ? 1 : 0))
 
                 // Bottom flex spacer - fills space above docked CTA
                 Spacer()

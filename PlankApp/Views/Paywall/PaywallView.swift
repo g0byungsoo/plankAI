@@ -219,7 +219,7 @@ struct PaywallView: View {
         // FoodFlags.isAdvertised (PostHog-only check, skips the paid
         // entitlement gate — user hasn't paid yet at paywall time).
         if FoodFlags.isAdvertised {
-            // 2026-06-29 — explicit line breaks so "weight-loss story"
+            // 2026-06-29 - explicit line breaks so "weight-loss story"
             // stays intact on its own line instead of breaking on the
             // hyphen. line1 = name + "your", line2 = italic punch,
             // line3 = the close.
@@ -380,12 +380,12 @@ struct PaywallView: View {
         return f
     }()
 
-    /// 2026-06-27 — value + billed-amount CTA ("start my plan · $49.99/yr").
+    /// 2026-06-27 - value + billed-amount CTA ("start my plan · $49.99/yr").
     /// The CRO teardown: a generic "continue" buries the value exchange;
     /// surfacing the billed price on the button is both higher-converting
     /// AND Apple 3.1.2-safe (the button now MATCHES the actual charge
     /// instead of hiding it). Price comes from the selected package's
-    /// localized string — never hardcoded — so it stays correct across
+    /// localized string - never hardcoded - so it stays correct across
     /// locales + any future ASC price change. Falls back to a plain label
     /// pre-load so we never show a stale or invented number.
     /// Billed price + cadence for the CTA suffix ("$49.99/yr"). Localized,
@@ -402,7 +402,7 @@ struct PaywallView: View {
         return "\(price)\(suffix)"
     }
 
-    /// CTA label as composed Text — "start my plan" LEADS at full
+    /// CTA label as composed Text - "start my plan" LEADS at full
     /// contrast; the billed price follows at 62% so the action reads
     /// first while the (Apple-3.1.2-safe) price stays visible.
     private var ctaText: Text {
@@ -427,20 +427,20 @@ struct PaywallView: View {
             // 2026-06-29 premium design polish (2-designer consensus). The
             // screen is now zoned by emotional register so each band does
             // one job cleanly:
-            //   ZONE 1 (warm / coquette) — identity hero + the becoming
+            //   ZONE 1 (warm / coquette) - identity hero + the becoming
             //     PROJECTION as the emotional peak (animated curve, arrival
             //     bloom, bookended you-today / her-date axis). ONE glossy
             //     sticker by the headline + ONE bloom at the arrival = the
             //     only two stickers on the screen.
-            //   ZONE 2 (medical-grade restraint) — "what's inside your
+            //   ZONE 2 (medical-grade restraint) - "what's inside your
             //     becoming", 3 short warm lines, hairline ticks, no sticker.
-            //   ZONE 3 (Tiffany-clean) — yearly HERO card, quiet secondary
+            //   ZONE 3 (Tiffany-clean) - yearly HERO card, quiet secondary
             //     pair, the cocoa CTA as the one dark mass, money-back row.
             //
             // More content than the v2 single-screen (bigger chart + the 3
             // feature lines), so the scrollable body is partitioned from a
             // DOCKED close (CTA + risk reversal + legal). .safeAreaInset is
-            // unreliable under the ignoresSafeArea bg ZStack here — this is
+            // unreliable under the ignoresSafeArea bg ZStack here - this is
             // the VStack{ ScrollView; docked } pattern Assessment /
             // PacePicker presentations use.
             VStack(spacing: 0) {
@@ -450,7 +450,7 @@ struct PaywallView: View {
                         // hero always clears the Dynamic Island.
                         Spacer().frame(height: 44)
 
-                        // ZONE 1 — warm / coquette
+                        // ZONE 1 - warm / coquette
                         heroPermission
                             .overlay(alignment: .topTrailing) { headlineSticker }
                             .padding(.horizontal, Space.lg)
@@ -459,19 +459,19 @@ struct PaywallView: View {
                             .padding(.horizontal, Space.lg)
                             .padding(.top, 16)
 
-                        // The chart's conclusion — pulled tight to the
+                        // The chart's conclusion - pulled tight to the
                         // projection so it reads as the curve's caption,
                         // not a fresh section.
                         sunkCostLine
                             .padding(.horizontal, Space.lg)
                             .padding(.top, 10)
 
-                        // ZONE 2 — medical-grade restraint
+                        // ZONE 2 - medical-grade restraint
                         whatsInsideSection
                             .padding(.horizontal, Space.lg)
                             .padding(.top, 22)
 
-                        // ZONE 3 — Tiffany-clean pricing. The yearly hero
+                        // ZONE 3 - Tiffany-clean pricing. The yearly hero
                         // sits within the first viewport so the billed
                         // price anchors on load; the secondary pair + legal
                         // are one short scroll below.
@@ -499,7 +499,7 @@ struct PaywallView: View {
                     }
                 }
 
-                // Docked close — CTA + risk reversal always visible,
+                // Docked close - CTA + risk reversal always visible,
                 // never clipped. A hairline + soft lift marks the boundary
                 // so content scrolling beneath reads as a deliberate layer.
                 VStack(spacing: 0) {
@@ -604,13 +604,13 @@ struct PaywallView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// 2026-06-29 — PROJECTION-as-becoming-moment. The single highest-
+    /// 2026-06-29 - PROJECTION-as-becoming-moment. The single highest-
     /// leverage element on the screen, now the emotional hero. The
     /// animated curve draws in on appear with a soft rose area fill, the
     /// arrival blooms a glossy sticker last, and the axis is bookended
     /// with identity ("you, today" → "her, sep 14") so the chart literally
     /// tells the becoming story. The arrival DATE is the JeniHeroSerif
-    /// italic dusty-rose punch at the curve terminus (single instance — the
+    /// italic dusty-rose punch at the curve terminus (single instance - the
     /// old duplicate top stat row is gone). The raw goal number is DEMOTED
     /// into a small pill anchored at the endpoint; the "~x lb/wk · steady
     /// pace" honesty qualifier stays (data-provenance + compliance safe).
@@ -621,7 +621,7 @@ struct PaywallView: View {
             VStack(spacing: 14) {
                 PaywallBecomingChart(goalLabel: goal)
 
-                // Bookended identity axis — the axis tells the becoming
+                // Bookended identity axis - the axis tells the becoming
                 // story. Date leads as the rose-italic hero; the scale
                 // number supports from the endpoint pill above.
                 HStack(alignment: .bottom) {
@@ -660,7 +660,7 @@ struct PaywallView: View {
         }
     }
 
-    /// "~1.2 lb/wk · steady pace" — derived from her own current weight +
+    /// "~1.2 lb/wk · steady pace" - derived from her own current weight +
     /// picked pace via the canonical ProjectionMath. Honest hedge that
     /// frames the curve as a projection, never a promise. Nil when no loss
     /// goal is set.
@@ -674,7 +674,7 @@ struct PaywallView: View {
         return "~\(s) \(unit.label)/wk \u{00B7} \(ProjectionMath.paceLabel(paceKey: paywallPaceChoice))"
     }
 
-    /// ONE glossy sticker by the headline — the single coquette accent in
+    /// ONE glossy sticker by the headline - the single coquette accent in
     /// ZONE 1. Confident (full) opacity per the "no smudges" rule; the
     /// edge-scatter ghosts were removed in this pass.
     private var headlineSticker: some View {
@@ -687,7 +687,7 @@ struct PaywallView: View {
             .accessibilityHidden(true)
     }
 
-    /// ZONE 2 — "what's inside your becoming": 3 short warm noun-phrases,
+    /// ZONE 2 - "what's inside your becoming": 3 short warm noun-phrases,
     /// not a SaaS checklist. Tracked-caps micro-label + hairline cocoa
     /// ticks, no icons, no stickers (medical-grade restraint). References
     /// only shipping features.
@@ -719,13 +719,13 @@ struct PaywallView: View {
         }
     }
 
-    /// Picked pace — drives the arrival-date projection so the paywall
+    /// Picked pace - drives the arrival-date projection so the paywall
     /// date matches every other surface (single source of truth in
     /// ProjectionMath). Empty key anchors at steady (0.75%/wk).
     @AppStorage(ProjectionMath.paceDefaultsKey) private var paywallPaceChoice: String = ""
 
     /// Goal weight as a display-type punch ("145 lb"). Her own entered
-    /// goal — a fact, not a projection. Nil when no loss goal set.
+    /// goal - a fact, not a projection. Nil when no loss goal set.
     private var goalWeightPunch: String? {
         guard let goalKg = currentUserRecord?.onboardingGoalWeightKg,
               let currentKg = currentUserRecord?.onboardingCurrentWeightKg,
@@ -748,9 +748,9 @@ struct PaywallView: View {
         )
     }
 
-    /// 2026-06-27 — cashes the 53-screen onboarding sunk cost. Identity /
+    /// 2026-06-27 - cashes the 53-screen onboarding sunk cost. Identity /
     /// ownership only ("your plan is ready." / "built from your answers,
-    /// not a template.") — no claim, no number. Italic-Fraunces lands on
+    /// not a template.") - no claim, no number. Italic-Fraunces lands on
     /// the single punch word "ready" per the locked voice signal.
     private var sunkCostLine: some View {
         VStack(spacing: 3) {
@@ -773,7 +773,7 @@ struct PaywallView: View {
     /// Derived strikethrough + savings copy for the anchor line. Returns
     /// nil when we can't compute (missing package, non-positive savings,
     /// debugMockPricing without packages). Quarterly annualized (×4) is
-    /// the labeled, derivable anchor — defensible, not fabricated.
+    /// the labeled, derivable anchor - defensible, not fabricated.
     private var quarterlyAnchorCopy: (strikethrough: String, savings: String)? {
         guard let yearly = yearlyPackage, let quarterly = quarterlyPackage else { return nil }
         let yearlyPrice = yearly.storeProduct.price as NSDecimalNumber
@@ -787,11 +787,11 @@ struct PaywallView: View {
         return (strikethroughStr, savingsStr)
     }
 
-    /// 2026-06-27 — derived per-day equivalent for the YEARLY card.
+    /// 2026-06-27 - derived per-day equivalent for the YEARLY card.
     /// Apple 3.1.2c (Cal AI was PULLED in April 2026 for violating it):
     /// the per-day number must read SMALLER + less prominent than the
     /// actually-billed amount. Here it renders at 11pt vs the $49.99 at
-    /// 28pt. Math is the live product price / 365 — never hardcoded — so
+    /// 28pt. Math is the live product price / 365 - never hardcoded - so
     /// it tracks any future ASC price change. Nil pre-load so we never
     /// invent a number.
     private var yearlyPerDayText: String? {
@@ -803,7 +803,7 @@ struct PaywallView: View {
         return "about \(s)/day"
     }
 
-    /// Yearly HERO card — full-width, tall, highest-contrast, pre-selected
+    /// Yearly HERO card - full-width, tall, highest-contrast, pre-selected
     /// (annual is the default in `.task`). 2026-06-27 conversion redesign:
     /// the prior layout made the 12-week card the largest/most-central
     /// object, so center-stage bias pushed buyers onto the worst-LTV tier.
@@ -852,7 +852,7 @@ struct PaywallView: View {
                                 .foregroundStyle(Palette.cocoaTertiary)
                         }
                         if let perDay = yearlyPerDayText {
-                            // per-day reframe — deliberately 11pt, far
+                            // per-day reframe - deliberately 11pt, far
                             // smaller than the 28pt billed price (3.1.2c).
                             Text(perDay)
                                 .font(.system(size: 11))
@@ -863,7 +863,7 @@ struct PaywallView: View {
 
                 if let anchor = quarterlyAnchorCopy {
                     HStack(spacing: 6) {
-                        // Quieted anchor — small + cocoa-tertiary + struck,
+                        // Quieted anchor - small + cocoa-tertiary + struck,
                         // so it informs without shouting a second price.
                         (Text(anchor.strikethrough)
                             .strikethrough(true, color: Palette.cocoaTertiary)
@@ -872,7 +872,7 @@ struct PaywallView: View {
                             .foregroundStyle(Palette.cocoaTertiary)
                         Spacer(minLength: 0)
                         // "save" gets a quiet rose-tinted pill (a visual
-                        // home) — NOT saturated accent text; rose is
+                        // home) - NOT saturated accent text; rose is
                         // reserved for emotion (the date / identity).
                         Text("save \(anchor.savings)")
                             .font(.system(size: 11, weight: .semibold))
@@ -899,7 +899,7 @@ struct PaywallView: View {
             )
             .overlay(alignment: .topTrailing) {
                 if isSelected {
-                    // Cocoa (not rose) selection mark — keeps rose
+                    // Cocoa (not rose) selection mark - keeps rose
                     // reserved for emotion + reads Tiffany-clean against
                     // the cocoa selected border.
                     Image(systemName: "checkmark.circle.fill")
@@ -913,12 +913,12 @@ struct PaywallView: View {
         .buttonStyle(.plain)
     }
 
-    /// Secondary row — 12-week + weekly as clearly subordinate options.
+    /// Secondary row - 12-week + weekly as clearly subordinate options.
     /// Smaller, lower-contrast (hairline border, muted titles, 17pt price
     /// vs the yearly hero's 28pt) so the yearly card stays the visual
     /// hero. Both still fully selectable.
     private var secondaryTierRow: some View {
-        // 8pt within-pair gap — deliberately tighter than the 16pt gap
+        // 8pt within-pair gap - deliberately tighter than the 16pt gap
         // separating this pair from the yearly hero above.
         HStack(spacing: 8) {
             secondaryTierCard(
@@ -1002,7 +1002,7 @@ struct PaywallView: View {
     }
 
     private var trustAndLegalFooter: some View {
-        // ZONE 3 stays Tiffany-clean — no sticker in the closing band.
+        // ZONE 3 stays Tiffany-clean - no sticker in the closing band.
         VStack(spacing: 4) {
             Text(closingLine)
                 .font(.system(size: 10))
@@ -1025,11 +1025,11 @@ struct PaywallView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// 2026-06-27 — confident reassurance row, directly UNDER the CTA.
+    /// 2026-06-27 - confident reassurance row, directly UNDER the CTA.
     /// Previously the lowest-contrast text on the screen; the money-back
     /// guarantee + cancel-anytime are the risk-reversal that closes the
     /// sale, so they now read legibly (textPrimary lead line, small
-    /// shield icon). No trial copy — pay-upfront, billed today. Heart is
+    /// shield icon). No trial copy - pay-upfront, billed today. Heart is
     /// dusty-rose terminal punctuation per the locked voice signal.
     private var reassuranceRow: some View {
         VStack(spacing: 5) {
@@ -1080,7 +1080,7 @@ struct PaywallView: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Palette.textPrimary)
             )
-            // Barely-there inner top gloss — a single specular highlight
+            // Barely-there inner top gloss - a single specular highlight
             // so the cocoa mass reads as a pressed, premium surface.
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -1368,7 +1368,7 @@ struct PaywallView: View {
 //   • soft rose AREA fill under the curve, fading to nothing at baseline
 //   • the stroke DRAWS ON over ~700ms ease-out from today → arrival
 //   • a small hollow "today" dot anchors the start
-//   • the arrival BLOOMS LAST — a glossy sticker that springs in, marking
+//   • the arrival BLOOMS LAST - a glossy sticker that springs in, marking
 //     "her"; the goal weight rides a small pill anchored above the
 //     terminus (DEMOTED, never the biggest element)
 //
@@ -1412,7 +1412,7 @@ private struct PaywallBecomingChart: View {
                         style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
                     )
 
-                // hollow "today" dot — the line leaves from "now"
+                // hollow "today" dot - the line leaves from "now"
                 Circle()
                     .fill(Palette.bgElevated)
                     .overlay(Circle().stroke(Palette.cocoaSecondary, lineWidth: 1.5))
@@ -1431,7 +1431,7 @@ private struct PaywallBecomingChart: View {
                     .position(x: endX - 10, y: max(14, endY - 30))
                     .opacity(bloom ? 1 : 0)
 
-                // arrival bloom — the ONE glossy sticker marking "her"
+                // arrival bloom - the ONE glossy sticker marking "her"
                 Image("sticker_flower_3d")
                     .resizable()
                     .aspectRatio(contentMode: .fit)

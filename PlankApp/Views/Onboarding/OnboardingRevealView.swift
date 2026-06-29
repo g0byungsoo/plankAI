@@ -301,9 +301,9 @@ private struct DisclaimerPresentation: View {
                                 .fixedSize(horizontal: false, vertical: true)
                             Text("\u{2665}\u{FE0E}")
                                 .font(Typo.caption)
-                                // Dusty rose: muted pink, NOT emoji red.
-                                // Approximate rgb(191, 127, 140).
-                                .foregroundStyle(Color(red: 0.75, green: 0.50, blue: 0.55))
+                                // Dusty rose: use the locked accent token (#C4677A)
+                                // so this heart matches every other heart in the flow.
+                                .foregroundStyle(Palette.accent)
                         }
                         .padding(.horizontal, Space.screenPadding)
                         .opacity(trustVisible ? 1 : 0)
@@ -1961,7 +1961,15 @@ private struct CommitmentRitualPresentation: View {
                         // 18pt corner radius, 20pt internal padding throughout.
                         VStack(alignment: .leading, spacing: Space.md) {
                             chipGroup(label: "WHEN", chips: anchorChips, selected: $selectedAnchor)
-                            chipGroup(label: "WHAT", chips: actionChips,  selected: $selectedAction)
+                            // GLP-1 current: WHAT is fixed to "protect your muscle" for
+                            // clinical reasons. Render display-only so what she SEES
+                            // matches what confirmAndContinue stores and CommitmentReplayView
+                            // shows - no interactive chip that gets silently ignored.
+                            if glp1Status == "current" {
+                                whatDisplayRow
+                            } else {
+                                chipGroup(label: "WHAT", chips: actionChips, selected: $selectedAction)
+                            }
                             chipGroup(label: "TIME", chips: timeChips,    selected: $selectedTime)
                         }
                         .padding(20)
@@ -2137,6 +2145,33 @@ private struct CommitmentRitualPresentation: View {
             // Explicit maxWidth anchors the finite-width proposal that
             // ChipFlowLayout needs in sizeThatFits to compute row breaks.
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    // MARK: - GLP-1 display-only WHAT row
+
+    // For the GLP-1 "current" cohort the committed action is clinically
+    // fixed to "protect your muscle". Showing interactive chips would
+    // present a choice that confirmAndContinue silently ignores, breaking
+    // the screen's premise ("her own words") and the data-provenance rule.
+    // This read-only row renders the pre-committed action in the same
+    // selected-chip style so WHAT she SEES = what is STORED = what the
+    // replay shows = what the Day-1 push says.
+    private var whatDisplayRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("WHAT")
+                .font(Typo.kicker)
+                .kerning(0.20 * 10)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+            Text("protect your muscle")
+                .font(.custom("Fraunces72pt-SemiBold", size: 14))
+                .foregroundStyle(Palette.textInverse)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(Capsule().fill(Palette.bgInverse))
         }
     }
 
