@@ -723,6 +723,8 @@
 		RL0004RL0004RL0004RL0004 /* RapidLossTripwireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = RL0003RL0003RL0003RL0003 /* RapidLossTripwireTests.swift */; };
 		HP0002HP0002HP0002HP0002 /* HabitProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = HP0001HP0001HP0001HP0001 /* HabitProgress.swift */; };
 		HP0004HP0004HP0004HP0004 /* HabitProgressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HP0003HP0003HP0003HP0003 /* HabitProgressTests.swift */; };
+		CT0002CT0002CT0002CT0002 /* CalorieTargetCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CT0001CT0001CT0001CT0001 /* CalorieTargetCalculator.swift */; };
+		CT0004CT0004CT0004CT0004 /* CalorieTargetCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CT0003CT0003CT0003CT0003 /* CalorieTargetCalculatorTests.swift */; };
 		D1P002D1P002D1P002D1P002 /* Day1PromiseBodyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1P001D1P001D1P001D1P001 /* Day1PromiseBodyTests.swift */; };
 		APO002APO002APO002APO002 /* ActivationPushPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = APO001APO001APO001APO001 /* ActivationPushPolicy.swift */; };
 		APT002APT002APT002APT002 /* ActivationPushTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = APT001APT001APT001APT001 /* ActivationPushTests.swift */; };
@@ -2111,6 +2113,8 @@
 		RL0003RL0003RL0003RL0003 /* RapidLossTripwireTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RapidLossTripwireTests.swift; sourceTree = "<group>"; };
 		HP0001HP0001HP0001HP0001 /* HabitProgress.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HabitProgress.swift; sourceTree = "<group>"; };
 		HP0003HP0003HP0003HP0003 /* HabitProgressTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HabitProgressTests.swift; sourceTree = "<group>"; };
+		CT0001CT0001CT0001CT0001 /* CalorieTargetCalculator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CalorieTargetCalculator.swift; sourceTree = "<group>"; };
+		CT0003CT0003CT0003CT0003 /* CalorieTargetCalculatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CalorieTargetCalculatorTests.swift; sourceTree = "<group>"; };
 		D1P001D1P001D1P001D1P001 /* Day1PromiseBodyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Day1PromiseBodyTests.swift; sourceTree = "<group>"; };
 		APO001APO001APO001APO001 /* ActivationPushPolicy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActivationPushPolicy.swift; sourceTree = "<group>"; };
 		APT001APT001APT001APT001 /* ActivationPushTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActivationPushTests.swift; sourceTree = "<group>"; };
@@ -2787,6 +2791,7 @@
 				CB0001CB0001CB0001CB0001 /* ClinicalBaseline.swift */,
 				RL0001RL0001RL0001RL0001 /* RapidLossTripwire.swift */,
 				HP0001HP0001HP0001HP0001 /* HabitProgress.swift */,
+				CT0001CT0001CT0001CT0001 /* CalorieTargetCalculator.swift */,
 			);
 			name = Program;
 			path = Program;
@@ -2845,6 +2850,7 @@
 				CB0003CB0003CB0003CB0003 /* ClinicalBaselineTests.swift */,
 				RL0003RL0003RL0003RL0003 /* RapidLossTripwireTests.swift */,
 				HP0003HP0003HP0003HP0003 /* HabitProgressTests.swift */,
+				CT0003CT0003CT0003CT0003 /* CalorieTargetCalculatorTests.swift */,
 				D1P001D1P001D1P001D1P001 /* Day1PromiseBodyTests.swift */,
 				APT001APT001APT001APT001 /* ActivationPushTests.swift */,
 			);
@@ -5904,6 +5910,7 @@
 				CB0002CB0002CB0002CB0002 /* ClinicalBaseline.swift in Sources */,
 				RL0002RL0002RL0002RL0002 /* RapidLossTripwire.swift in Sources */,
 				HP0002HP0002HP0002HP0002 /* HabitProgress.swift in Sources */,
+				CT0002CT0002CT0002CT0002 /* CalorieTargetCalculator.swift in Sources */,
 				BDAC31004D8BD42FF5B7330E /* ProgramScheduleCalculator.swift in Sources */,
 				5655D51F9340F2D69EF61645 /* ProgramService.swift in Sources */,
 				8DAAFBD8B375003B5FD4DBF1 /* ChapterCompleteView.swift in Sources */,
@@ -5985,6 +5992,7 @@
 				CB0004CB0004CB0004CB0004 /* ClinicalBaselineTests.swift in Sources */,
 				RL0004RL0004RL0004RL0004 /* RapidLossTripwireTests.swift in Sources */,
 				HP0004HP0004HP0004HP0004 /* HabitProgressTests.swift in Sources */,
+				CT0004CT0004CT0004CT0004 /* CalorieTargetCalculatorTests.swift in Sources */,
 				D1P002D1P002D1P002D1P002 /* Day1PromiseBodyTests.swift in Sources */,
 				APT002APT002APT002APT002 /* ActivationPushTests.swift in Sources */,
 			);

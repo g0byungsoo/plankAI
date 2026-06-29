@@ -534,10 +534,16 @@ private struct ProjectionPresentation: View {
     // were actually used. Only renders chips for fields she filled —
     // empty / "prefer not to say" values drop out so the row never
     // narrates context she didn't give us.
-    @AppStorage("onboardingSleepHours")    private var sleepHours: String = ""
-    @AppStorage("onboardingEatingCadence") private var eatingCadence: String = ""
-    @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
-    @AppStorage("onboarding_glp1_status")  private var glp1Status: String = ""
+    @AppStorage("onboardingSleepHours")      private var sleepHours: String = ""
+    @AppStorage("onboardingEatingCadence")   private var eatingCadence: String = ""
+    @AppStorage("onboardingHormonalStage")   private var hormonalStage: String = ""
+    @AppStorage("onboarding_glp1_status")    private var glp1Status: String = ""
+    // Task 1 (2026-06-29): TDEE-based calorie target - collected fields
+    // needed for the Mifflin-St Jeor formula and pace-implied deficit.
+    @AppStorage("onboardingPickedTier")      private var pickedTierRaw: String = "medium"
+    @AppStorage("onboardingHeightCm")        private var heightCm: Double = 0
+    @AppStorage("onboardingAgeRange")        private var ageRange: String = ""
+    @AppStorage("onb_v4_movement_baseline")  private var movementBaseline: String = ""
 
     var body: some View {
         ZStack {
@@ -677,15 +683,50 @@ private struct ProjectionPresentation: View {
         }
     }
 
-    // MARK: - Calorie target hero (D68)
+    // MARK: - Calorie target hero (D68 / Task 1)
 
-    /// Compute a starting calorie estimate from current weight using
-    /// the Helms-derived rule of thumb for women weight-loss:
-    /// ~22 kcal/kg with 1300-2000 clamp. The number is intentionally
-    /// rough — the reveal copy + MacroFactor-borrow caption set the
-    /// honesty expectation that the app will learn the real number
-    /// over the first 2-4 weeks of logged food data. Returns nil if
-    /// we don't have a current weight (skip the card entirely).
+    /// Window for the cohort-derived soft-pace floor. Matches the same
+    /// ProgramGoalCalculator.compute call in PacePickerPresentation and
+    /// GoalDateRevealPresentation so all three surfaces derive from one
+    /// consistent set of cohort inputs.
+    private var revealWindow: ProgramGoalCalculator.Window {
+        ProgramGoalCalculator.compute(.init(
+            currentWeightKg: currentWeightKg ?? 65,
+            goalWeightKg:    goalWeightKg    ?? 60,
+            sex:             .female,
+            age:             nil,
+            isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
+            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
+            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours)
+        ))
+    }
+
+    /// Loss rate for the picked pace tier - the SAME rate that draws
+    /// the goal date on GoalDateRevealPresentation. Hard = 1%/wk,
+    /// Medium = 0.75%/wk, Soft = cohort floor from ProgramGoalCalculator
+    /// (0.5%, 0.4%, or 0.3% depending on sleep/GLP-1/perimenopause).
+    private var pickedLossRatePctPerWeek: Double {
+        let tier = IntensityTier(rawValue: pickedTierRaw) ?? .medium
+        switch tier {
+        case .hard:   return 0.01
+        case .medium: return 0.0075
+        case .soft:   return revealWindow.lossRateFloor
+        }
+    }
+
+    /// TDEE-based daily calorie target from collected onboarding fields.
+    ///
+    /// Formula: Mifflin-St Jeor TDEE minus a daily deficit derived from
+    /// `pickedLossRatePctPerWeek` (Hall 2012: 7700 kcal/kg ramp approx).
+    /// Clamped to >= max(1200, BMR) and <= 3500. Returns nil when current
+    /// weight is not yet collected (skip the calorie hero card entirely).
+    ///
+    /// Every input traces to a real collected field:
+    ///   weightKg      <- currentWeightKg (passed from OnboardingView)
+    ///   heightCm      <- onboardingHeightCm (0 -> fallback 165cm for cohort)
+    ///   age           <- onboardingAgeRange via EnergyLedger.ageMidpoint
+    ///   activityKey   <- onb_v4_movement_baseline (movement baseline Q)
+    ///   lossRate      <- onboardingPickedTier via pickedLossRatePctPerWeek
     private var estimatedCalorieTarget: Int? {
         guard let kg = currentWeightKg, kg > 0 else {
             #if DEBUG
@@ -693,12 +734,24 @@ private struct ProjectionPresentation: View {
             #endif
             return nil
         }
-        let raw = Int(kg * 22)
-        let clamped = min(max(raw, 1300), 2000)
+        // Height: use collected value; fall back to 165cm when not yet set
+        // so the hero always renders and stays plausible for the cohort.
+        let height = heightCm > 0 ? heightCm : 165.0
+        let age    = EnergyLedger.ageMidpoint(fromRange: ageRange)
+        let kcal   = CalorieTargetCalculator.dailyTarget(
+            currentWeightKg:      kg,
+            heightCm:             height,
+            age:                  age,
+            sex:                  .female,
+            activityKey:          movementBaseline,
+            lossRatePctPerWeek:   pickedLossRatePctPerWeek
+        )
         #if DEBUG
-        print("[D68] calorie hero rendering — kg=\(kg) kcal=\(clamped)")
+        print("[D68] calorie hero — kg=\(kg) h=\(height) age=\(age) " +
+              "activity=\(movementBaseline) tier=\(pickedTierRaw) " +
+              "rate=\(pickedLossRatePctPerWeek) kcal=\(kcal)")
         #endif
-        return clamped
+        return kcal
     }
 
     /// Protein floor — 1.6g/kg current weight (Helms 2014 satiety +
