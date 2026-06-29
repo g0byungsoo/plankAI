@@ -162,6 +162,9 @@ struct PlanView: View {
     /// write HomeView.saveRoutineSession performs).
     @Query private var allDayProgress: [DayProgressRecord]
 
+    /// Task 10 (2026-06-28) - user record for incrementing promisesKept.
+    @Query private var allUserRecords: [UserRecord]
+
     // Live data for snap-meal subtitle (today's calorie total +
     // meal count from FoodLogPersister's in-memory store).
     @State private var todayKcal: Int = 0
@@ -241,6 +244,18 @@ struct PlanView: View {
     @AppStorage("safety_checkin_seen") private var safetyCheckinSeen: Bool = false
     @State private var showSafetyCheckIn: Bool = false
 
+    // Task 10 (2026-06-28) - Day-1 kept-promise card.
+    @AppStorage("day1PromiseAction")   private var day1PromiseAction:   String = ""
+    @AppStorage("day1PromiseAnchor")   private var day1PromiseAnchor:   String = ""
+    @AppStorage("day1PromiseTimeISO")  private var day1PromiseTimeISO:  String = ""
+    /// Date key (yyyy-MM-dd) of the day the user last tapped "done" on
+    /// the kept-promise card. Prevents reappear after completion today.
+    @AppStorage("day1PromiseKeptDate") private var day1PromiseKeptDate: String = ""
+    /// True while the "promise kept" confirmation text is showing.
+    @State private var promiseJustKept: Bool = false
+    /// Pulses the arrival hero with a subtle scale when promise is kept.
+    @State private var heroPromisePulse: Bool = false
+
     /// Phase 3 — days since the last PlanView appearance, captured
     /// at .onAppear. Drives the welcome-back line in place of the
     /// recap when >= 3. Captured-once so the line stays through the
@@ -265,6 +280,10 @@ struct PlanView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         Spacer().frame(height: 24)
+                        keptPromiseCard
+                        if shouldShowKeptPromiseCard || promiseJustKept {
+                            Spacer().frame(height: 16)
+                        }
                         eyebrow
                         Spacer().frame(height: 10)
                         arrivalHorizonHero
@@ -717,6 +736,115 @@ struct PlanView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .modernEntrance(animateIn, delay: 0.04)
+            // Task 10 (2026-06-28) - subtle pulse when promise is marked kept.
+            .scaleEffect(heroPromisePulse ? 1.03 : 1.0)
+        }
+    }
+
+    // MARK: - Day-1 kept-promise card (Task 10, 2026-06-28)
+    //
+    // Shows when the user's Day-1 promise time has arrived and she
+    // hasn't marked it done today. Replays her own words, no shame,
+    // no streak. A miss silently resets each day.
+
+    /// Today's date key (yyyy-MM-dd) for promise-card gating.
+    private static let promiseDateKeyFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    private var promiseTodayKey: String {
+        Self.promiseDateKeyFormatter.string(from: .now)
+    }
+
+    /// True when the promise time has arrived AND the card hasn't been
+    /// completed today. Returns false if no promise is stored.
+    private var shouldShowKeptPromiseCard: Bool {
+        guard !day1PromiseAction.isEmpty,
+              !day1PromiseAnchor.isEmpty,
+              !day1PromiseTimeISO.isEmpty else { return false }
+        guard let promiseDate = ISO8601DateFormatter().date(from: day1PromiseTimeISO) else { return false }
+        let cal = Calendar.current
+        let todayStart = cal.startOfDay(for: .now)
+        let promiseDay  = cal.startOfDay(for: promiseDate)
+        guard promiseDay <= todayStart else { return false }
+        return day1PromiseKeptDate != promiseTodayKey
+    }
+
+    @ViewBuilder private var keptPromiseCard: some View {
+        if shouldShowKeptPromiseCard || promiseJustKept {
+            VStack(alignment: .leading, spacing: 12) {
+                if promiseJustKept {
+                    Text("promise kept \u{2665}")
+                        .font(.custom("DMSans-SemiBold", size: 15))
+                        .foregroundStyle(Palette.textSecondary)
+                        .transition(.opacity)
+                } else {
+                    Text("you said you'd \(day1PromiseAction), after \(day1PromiseAnchor).")
+                        .font(.custom("DMSans-Regular", size: 15))
+                        .foregroundStyle(Palette.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Button {
+                        markPromiseKept()
+                    } label: {
+                        Text("done")
+                            .font(.custom("DMSans-SemiBold", size: 14))
+                            .foregroundStyle(Palette.textInverse)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 9)
+                            .background(Palette.cocoaPrimary)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Palette.bgElevated)
+                    .shadow(color: Palette.cocoaPrimary.opacity(0.06), radius: 8, x: 0, y: 2)
+            )
+            .animation(.easeInOut(duration: 0.25), value: promiseJustKept)
+        }
+    }
+
+    // Task 10 (2026-06-28) - mark the daily promise as kept.
+    // Increments promisesKept on the active UserRecord (no streak,
+    // no reset). Never shows shame or deficit.
+    private func markPromiseKept() {
+        Haptics.soft()
+        // Stamp today so the card doesn't reappear in this calendar day.
+        day1PromiseKeptDate = promiseTodayKey
+        // Increment the persistent counter on the user record.
+        if let record = allUserRecords.first(where: { $0.id == userId }) {
+            record.promisesKept += 1
+            record.pendingUpsert = true
+            try? modelContext.save()
+            Task { await AppSync.shared.upsertUser(record) }
+        }
+        // Show the confirmation text briefly.
+        withAnimation(.easeInOut(duration: 0.25)) {
+            promiseJustKept = true
+        }
+        // Subtle pulse on the arrival hero.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                heroPromisePulse = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+                withAnimation(.easeOut(duration: 0.35)) {
+                    heroPromisePulse = false
+                }
+            }
+        }
+        // Auto-dismiss the card after a dwell.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                promiseJustKept = false
+            }
         }
     }
 

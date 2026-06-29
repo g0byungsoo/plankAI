@@ -618,6 +618,20 @@ struct PlankAIApp: App {
                     // 4 actions this week of 5 target) so it can be iterated
                     // and screenshot without a full enrolled account.
                     ArrivalHeroPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-promise-confirm") {
+                    // Task 10 (2026-06-28) - promise confirmation screen.
+                    // Seeds the stored promise and shows PostPurchaseFlowView
+                    // jumped straight to the promiseConfirmation phase.
+                    // Use simctl defaults to set custom values:
+                    //   day1PromiseAction "log breakfast"
+                    //   day1PromiseAnchor "after coffee"
+                    PromiseConfirmPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-kept-promise") {
+                    // Task 10 (2026-06-28) - Day-1 kept-promise card on the Today screen.
+                    // Seeds day1Promise* AppStorage values + a past promise time so
+                    // PlanView renders the card immediately. Requires a real program
+                    // plan to exist (run --uitest-inapp-qa to set one up first).
+                    KeptPromisePreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-assessment") {
                     // TEMPORARY debug harness - jumps straight to the
                     // AssessmentPresentation beat. Provenance line variant
@@ -2267,6 +2281,12 @@ private struct RootView: View {
     @AppStorage("userGoal") private var userGoal = ""
     @AppStorage("userExperience") private var userExperience = ""
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
+    // Task 10 (2026-06-28) - promise values from onboarding commitment ritual.
+    // Read here to pass into PostPurchaseFlowView so the confirmation phase
+    // can replay the user's own words without re-reading AppStorage inside
+    // the flow view (cleaner dependency direction).
+    @AppStorage("day1PromiseAction") private var day1PromiseAction: String = ""
+    @AppStorage("day1PromiseAnchor") private var day1PromiseAnchor: String = ""
 
     @Environment(\.modelContext) private var modelContext
     @State private var auth = AuthService.shared
@@ -2517,14 +2537,18 @@ private struct RootView: View {
                             // fades, not iOS cover slides. The single exit
                             // lands the user on the Today tab's program
                             // onramp.
-                            PostPurchaseFlowView(onFinish: {
-                                CoachIntroState.markShown()
-                                var t = Transaction()
-                                t.disablesAnimations = true
-                                withTransaction(t) {
-                                    showingCoachIntro = false
-                                }
-                            })
+                            PostPurchaseFlowView(
+                                onFinish: {
+                                    CoachIntroState.markShown()
+                                    var t = Transaction()
+                                    t.disablesAnimations = true
+                                    withTransaction(t) {
+                                        showingCoachIntro = false
+                                    }
+                                },
+                                promiseAction: day1PromiseAction.isEmpty ? nil : day1PromiseAction,
+                                promiseAnchor: day1PromiseAnchor.isEmpty ? nil : day1PromiseAnchor
+                            )
                             .presentationBackground(Palette.bgPrimary)
                         }
                 } else {
@@ -3119,6 +3143,53 @@ private struct ArrivalHeroPreviewHarness: View {
                 Spacer()
             }
         }
+    }
+}
+
+// MARK: - PromiseConfirmPreviewHarness (Task 10, 2026-06-28)
+//
+// Renders the post-purchase promise confirmation screen directly.
+// Seeds AppStorage with a sample promise so the view has something
+// to replay. Launch via `--debug-promise-confirm`.
+
+private struct PromiseConfirmPreviewHarness: View {
+    var body: some View {
+        ZStack {
+            Palette.programBgPrimary.ignoresSafeArea()
+            StickerScatter(placements: StickerScatter.coachIntroDefault())
+                .allowsHitTesting(false)
+            PostPurchasePromisePhase(
+                action: "log breakfast",
+                anchor: "after coffee",
+                onContinue: {}
+            )
+        }
+    }
+}
+
+// MARK: - KeptPromisePreviewHarness (Task 10, 2026-06-28)
+//
+// Seeds the day1Promise AppStorage keys so PlanView renders the
+// kept-promise card at the top. Launch via `--debug-kept-promise`.
+// Requires a real enrolled account (program plan in SwiftData).
+
+private struct KeptPromisePreviewHarness: View {
+    init() {
+        // Seed a past promise time so the card condition fires.
+        // Use yesterday at 8am so now >= promiseDate is always true.
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
+        let at8am = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: yesterday) ?? yesterday
+        UserDefaults.standard.set("log breakfast", forKey: "day1PromiseAction")
+        UserDefaults.standard.set("after coffee", forKey: "day1PromiseAnchor")
+        UserDefaults.standard.set(ISO8601DateFormatter().string(from: at8am), forKey: "day1PromiseTimeISO")
+        // Clear the kept-date so the card appears (not marked done today).
+        UserDefaults.standard.removeObject(forKey: "day1PromiseKeptDate")
+    }
+
+    var body: some View {
+        // Route through RootView so SwiftData + the full tab hierarchy
+        // are available (same as the real PlanView runtime environment).
+        RootView()
     }
 }
 #endif
