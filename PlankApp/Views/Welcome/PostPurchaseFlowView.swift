@@ -148,20 +148,34 @@ struct PostPurchaseFlowView: View {
 
 // MARK: - PostPurchasePromisePhase (Task 10, 2026-06-28)
 //
-// Shows the user's Day-1 promise back to her as a soft confirmation
+// Shows the user's Day-1 promise back to her as a sealed confirmation
 // before she lands on the Today tab.
 //
-// Premium redesign (2026-06-28): own GrainfieldBackground covers the
-// parent's programBgPrimary + coachIntroDefault scatter - this earned
-// moment uses the activation register, not the shared post-paywall
-// flow surface. ONE EarnedStickerCluster blooms at topTrailing in the
-// pre-headline anchor zone; the left-aligned copy column stays clear.
+// Three-zone ceremonial layout (full viewport):
+//   1. Upper (~32% from top via balanced flex spacers): headline settled
+//      like a receipt, centered. Not top-pinned.
+//   2. Center: the sealed-promise ticket - a thin-hairline-bordered card
+//      ~280pt wide holding "tomorrow, [anchor], you'll [action]." plus a
+//      dusty-rose heart seal. On appear the ticket STAMPS in (scale
+//      1.06->1.0, ~250ms spring) then fires ActivationHaptics.shared.commit()
+//      as the "sealed" beat.
+//   3. Grounded bottom: docked CTA via safeAreaInset; corner cluster as
+//      secondary accent. Nothing overlaps the CTA.
+//
+// The two equal Spacers() above and below the content naturally position
+// the headline at ~32% (content fixed heights: headline ~50pt, gap 44pt,
+// ticket ~160pt, reassurance ~30pt = ~284pt total; remaining ~495pt
+// split equally gives top spacer ~247pt = 32% of ~779pt usable height).
+//
+// Reduce Motion: ticket renders statically at final scale; stamp haptic
+// fires unconditionally (haptic is not motion).
 //
 // Bug fixes baked in:
-//   - 6-sticker spray: eliminated (parent scatter hidden by own bg)
-//   - Sticker/text overlap: cluster lives in the 80pt anchor zone
-//   - Vertical-line artifact: eliminated (parent scatter hidden)
-//   - Red heart: U+2665 U+FE0E forces text glyph; Palette.accent color
+//   - Empty middle void: filled by sealed-promise ticket (center anchor)
+//   - Headline top-pinned: moved to optical center-upper via balanced spacers
+//   - 6-sticker spray: parent scatter hidden by GrainfieldBackground
+//   - Sticker/text overlap: cluster corner-overlaid in ZStack, not in VStack
+//   - Red heart: U+2665 U+FE0E forces text glyph; Palette.accent dusty rose
 //
 // Named at internal (not private) access so PlankAIApp debug harnesses
 // can instantiate it directly for screenshot iteration.
@@ -171,8 +185,11 @@ struct PostPurchasePromisePhase: View {
     let anchor: String
     let onContinue: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var heroVisible = false
-    @State private var lineVisible = false
+    @State private var ticketVisible = false
+    @State private var ticketStamped = false
+    @State private var reassuranceVisible = false
     @State private var ctaVisible = false
     @State private var clusterAnimated = false
 
@@ -183,59 +200,79 @@ struct PostPurchasePromisePhase: View {
             // reads as an earned moment, not the shared flow canvas.
             GrainfieldBackground()
 
-            VStack(alignment: .leading, spacing: 0) {
-                // Cluster anchor zone - 120pt gives enough height so the
-                // 90pt cluster (bottom at y~98) clears the headline below
-                // by ~22pt. topTrailing anchors it to the screen's right
-                // edge; left-aligned text in the column below stays clear.
-                Color.clear
-                    .frame(height: 120)
-                    .earnedStickerCluster(
-                        animate: clusterAnimated,
-                        stickers: [.flower3D, .heartGlossy, .sparkleGlossy],
-                        diameter: 90,
-                        alignment: .topTrailing,
-                        inset: 8
-                    )
+            // Three-zone layout: two equal flex Spacers distribute the
+            // content to optical thirds (headline ~32%, ticket ~55%).
+            VStack(spacing: 0) {
+                // Top flex spacer - pushes headline to optical center-upper
+                Spacer()
 
+                // ZONE 1: Headline - settled, centered, not top-pinned
                 ItalicAccentText(
                     "your promise is set.",
                     italic: ["set"],
                     baseFont: Typo.heroHeadline,
                     italicFont: Typo.heroHeadlineItalic,
                     color: Palette.textPrimary,
-                    alignment: .leading
+                    alignment: .center
                 )
                 .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.center)
                 .padding(.horizontal, Space.lg)
                 .opacity(heroVisible ? 1 : 0)
-                .offset(y: heroVisible ? 0 : 12)
+                .offset(y: heroVisible ? 0 : 10)
 
-                Spacer().frame(height: 32)
+                // Fixed gap: headline -> ticket
+                Spacer().frame(height: 44)
 
-                // Heart fix: U+FE0E text-presentation selector forces a
-                // text glyph (not the red emoji). Palette.accent is the
-                // dusty rose (#C4677A) - not red, on-brand.
-                (Text("tomorrow, \(anchor), you'll \(action). we'll be here ")
-                    .font(.custom("DMSans-Regular", size: 16))
-                    .foregroundStyle(Palette.textSecondary)
+                // ZONE 2: Sealed-promise ticket (center anchor)
+                // Stamps in: scale 1.06->1.0 over ~250ms spring.
+                // Reduce-Motion: renders statically at final scale (ticket
+                // still appears; only the stamp motion is gated).
+                sealedTicket
+                    .scaleEffect(reduceMotion || ticketStamped ? 1.0 : 1.06)
+                    .opacity(ticketVisible ? 1 : 0)
+                    .animation(
+                        reduceMotion ? nil
+                            : .spring(response: 0.28, dampingFraction: 0.72),
+                        value: ticketStamped
+                    )
+
+                // Reassurance - quiet line just below the ticket
+                // Heart: U+FE0E text-presentation selector forces a text
+                // glyph (not the red emoji). Palette.accent = dusty rose
+                // #C4677A. NOT red.
+                (Text("we'll be here ")
+                    .font(.custom("DMSans-Regular", size: 14))
+                    .foregroundStyle(Palette.textSecondary.opacity(0.72))
                 + Text("\u{2665}\u{FE0E}")
-                    .font(.custom("DMSans-Regular", size: 16))
+                    .font(.custom("DMSans-Regular", size: 14))
                     .foregroundStyle(Palette.accent))
-                .padding(.horizontal, Space.lg)
-                .fixedSize(horizontal: false, vertical: true)
-                .opacity(lineVisible ? 1 : 0)
+                .padding(.top, 18)
+                .opacity(reassuranceVisible ? 1 : 0)
 
+                // Bottom flex spacer - fills space above docked CTA
                 Spacer()
-
-                // Grounded close: quiet hairline above the CTA so the
-                // lower third has intention and doesn't feel empty.
-                HairlineRule()
-                    .padding(.horizontal, Space.lg)
-                    .padding(.bottom, Space.md)
-                    .opacity(ctaVisible ? 1 : 0)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Corner cluster: top-trailing, bounded 90pt diameter, never
+            // overlapping centered copy. ZStack placement keeps it entirely
+            // out of the VStack flow so no vertical space is reserved for it.
+            VStack {
+                HStack {
+                    Spacer()
+                    EarnedStickerCluster(
+                        animate: clusterAnimated,
+                        stickers: [.flower3D, .heartGlossy, .sparkleGlossy],
+                        diameter: 90
+                    )
+                    .padding(.top, 12)
+                    .padding(.trailing, 8)
+                    .allowsHitTesting(false)
+                }
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }
         .safeAreaInset(edge: .bottom) {
             JFContinueButton(label: "continue", action: {
@@ -246,13 +283,75 @@ struct PostPurchasePromisePhase: View {
         }
         .task {
             ActivationHaptics.shared.prepare()
-            withAnimation(.easeOut(duration: 0.35)) { heroVisible = true }
-            try? await Task.sleep(for: .milliseconds(200))
+
+            // Cluster blooms first (before headline so it reads as ambient)
             clusterAnimated = true
-            try? await Task.sleep(for: .milliseconds(200))
-            withAnimation(.easeOut(duration: 0.35)) { lineVisible = true }
-            try? await Task.sleep(for: .milliseconds(300))
+
+            // Headline fades + rises in
+            try? await Task.sleep(for: .milliseconds(100))
+            withAnimation(.easeOut(duration: 0.4)) { heroVisible = true }
+
+            // Ticket appears then stamps in - fire haptic on the stamp landing
+            try? await Task.sleep(for: .milliseconds(380))
+            ticketVisible = true
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) {
+                ticketStamped = true
+            }
+            // "Sealed" haptic fires as the stamp settles (~250ms into the spring)
+            try? await Task.sleep(for: .milliseconds(180))
+            ActivationHaptics.shared.commit()
+
+            // Reassurance fades in after the ticket is settled
+            try? await Task.sleep(for: .milliseconds(140))
+            withAnimation(.easeOut(duration: 0.35)) { reassuranceVisible = true }
+
+            // CTA appears last - a beat after the reassurance
+            try? await Task.sleep(for: .milliseconds(250))
             withAnimation(.easeOut(duration: 0.35)) { ctaVisible = true }
         }
+    }
+
+    // MARK: - Sealed-promise ticket
+
+    // Premium hairline-bordered ticket card holding the user's own promise
+    // words. Thin cocoa border (0.75pt - the "clinical" weight, see
+    // HairlineRule). A dusty-rose heart seal above a hairline divider
+    // marks the commitment. Generous padding signals the luxury register.
+    private var sealedTicket: some View {
+        VStack(spacing: 0) {
+            // Heart seal - dusty rose, text glyph via U+FE0E, not red emoji
+            Text("\u{2665}\u{FE0E}")
+                .font(.custom("DMSans-Regular", size: 18))
+                .foregroundStyle(Palette.accent)
+
+            // Thin hairline divider under the seal
+            HairlineRule()
+                .frame(width: 36)
+                .padding(.top, 10)
+                .padding(.bottom, 16)
+
+            // Promise sentence - the user's own words
+            Text("tomorrow, \(anchor),\nyou'll \(action).")
+                .font(.custom("DMSans-Regular", size: 16))
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 28)
+        .padding(.vertical, 28)
+        .frame(width: 280)
+        .background(
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                // bgElevated (#FFFAF8) lifts the ticket off the bgPrimary
+                // (#FDF6F4) GrainfieldBackground so the hairline border reads.
+                // Same separation used by the kept-promise card in PlanView.
+                .fill(Palette.bgElevated)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .stroke(Palette.hairlineCocoa, lineWidth: 0.75)
+        )
+        .shadow(color: Palette.cocoaPrimary.opacity(0.06), radius: 10, x: 0, y: 2)
     }
 }
