@@ -263,7 +263,17 @@ struct OnboardingView: View {
     /// pre-selected. Now defaults to "" so case 167 starts unselected;
     /// the "most chosen pace" caption on the steady row carries the
     /// soft recommendation without anchoring the radio dot.
-    @AppStorage("onboardingPaceChoice") private var paceChoice: String = ""
+    // v1.1.3 T6 (2026-06-29): the legacy onboardingPaceChoice key (written
+    // only by case 167, cut in T5) is dead. Pace is now picked once in the
+    // reveal PacePicker, which writes the canonical onboardingPickedTier.
+    // The pre-paywall recap surfaces (prediction milestones, recap card)
+    // and the derived cadence read that tier instead - so they never show
+    // a stale/empty pace, and they default to the band-middle "steady"
+    // before the user reaches the picker. One source, every surface.
+    @AppStorage("onboardingPickedTier") private var pickedTierRaw: String = "medium"
+    private var effectivePaceKey: String {
+        ProjectionMath.paceKey(forTier: pickedTierRaw)
+    }
 
     // v2-A4 cohort signal. GLP-1 status uses the AppStorage key reserved
     // in the prior v2 plan (onboarding_glp1_status, value space:
@@ -322,7 +332,8 @@ struct OnboardingView: View {
         triedBefore = ""
         // v3 C1 — commitConfidence AppStorage declaration removed
         // alongside case 165; no reset needed.
-        paceChoice = ""
+        // v1.1.3 T6 — paceChoice reset removed (key retired); the canonical
+        // onboardingPickedTier is cleared below via removeObject.
         // 2026-06-10: cuisine multi-select + program tier single-select
         // were also leaking through. Founder bug report on the cuisine
         // question (case 169) showing italian/korean/japanese/chinese
@@ -373,15 +384,9 @@ struct OnboardingView: View {
     // Analyze
     @State private var analyzing = false
     @State private var analyzePercent = 0
-    @State private var planRevealed = false
-    // 17d-2: stagger flags + sparkle burst for the plan reveal moment.
-    // Each flag flips on its own timeline so the moment lands as a
-    // sequence — coach photo first, then the headline beats, then
-    // the plan cards — instead of everything fading in at once.
-    @State private var planHeadlineVisible = false
-    @State private var showPlanSources = false
-    @State private var planCardsVisible = false
-    @State private var planCtaVisible = false
+    // v1.1.3 T6 (2026-06-29): plan-reveal stagger flags (planRevealed,
+    // planHeadlineVisible, showPlanSources, planCardsVisible,
+    // planCtaVisible) removed with case 21's planRevealScreen.
     @State private var proofCount = 0
     @State private var celebVisible = false
 
@@ -1958,7 +1963,9 @@ struct OnboardingView: View {
 
         // ─── Post-question pipeline ─────
         case 20: EmptyView() // legacy analyzing overlay marker — superseded by 180
-        case 21: planRevealScreen
+        // v1.1.3 T6 (2026-06-29): case 21 (planRevealScreen "your plan is
+        // ready") removed - it was redundant with the post-loader
+        // projection reveal and claimed "ready" before the build loader.
         case 22: personalStatScreen
         case 23: cameraSetupScreen
         case 215: reviewPromptScreen
@@ -2176,7 +2183,15 @@ struct OnboardingView: View {
         // real steps. PairedPermissionsAsk in OnboardingRevealView is
         // now notifications-only.
         285,
-        234, 21, 250, 26, 215, 23,
+        // v1.1.3 T6 (2026-06-29) — case 21 ("your plan is ready") CUT.
+        // It claimed the plan was ready BEFORE the reveal's building
+        // loader said it was still building - a contradiction that read
+        // fake to a scam-wary cohort. The single "here it is" moment is
+        // now the post-loader projection reveal (OnboardingRevealView).
+        // 234 (plateau teach) routes straight to 250 (method preview).
+        // Day-one program rails the card carried (snap / steps / method /
+        // breathe) folded into the reveal's FirstWeekPresentation.
+        234, 250, 26, 215, 23,
     ]
 
     // v3 dead-code rip (2026-06-10) — collapsed from a conditional
@@ -2207,7 +2222,7 @@ struct OnboardingView: View {
         260: 4, 206: 4,
         // 5 — *almost there*  (BetterMe S4 — sunk-cost amplifier on
         // the highest-friction screens, pre-reveal only)
-        205: 5, 3: 5, 11: 5, 18: 5, 284: 5, 285: 5, 234: 5, 21: 5,
+        205: 5, 3: 5, 11: 5, 18: 5, 284: 5, 285: 5, 234: 5,
     ]
 
     private var currentChapter: Int { Self.chapterMap[screen] ?? 0 }
@@ -2458,31 +2473,7 @@ struct OnboardingView: View {
                          size: 28, rotation: 13, phaseDelay: 0.80),
     ]
 
-    /// HIGH treatment — plan reveal (case 21). Celebratory hand-off.
-    /// 7 stickers, weight to painterly (1 line-art + 6 painterly).
-    private static let planRevealPlacements: [StickerPlacement] = [
-        StickerPlacement(sticker: .heartsLineart,
-                         position: CGPoint(x: 0.08, y: 0.06),
-                         size: 30, rotation: -12, phaseDelay: 0.00),
-        StickerPlacement(sticker: .sparkleGlossy,
-                         position: CGPoint(x: 0.92, y: 0.08),
-                         size: 32, rotation: 13, phaseDelay: 0.13),
-        StickerPlacement(sticker: .bowSatin,
-                         position: CGPoint(x: 0.06, y: 0.22),
-                         size: 36, rotation: -10, phaseDelay: 0.27),
-        StickerPlacement(sticker: .flower3D,
-                         position: CGPoint(x: 0.94, y: 0.24),
-                         size: 36, rotation: 14, phaseDelay: 0.42),
-        StickerPlacement(sticker: .gummyBear,
-                         position: CGPoint(x: 0.94, y: 0.50),
-                         size: 38, rotation: -11, phaseDelay: 0.58),
-        StickerPlacement(sticker: .cherries,
-                         position: CGPoint(x: 0.08, y: 0.92),
-                         size: 32, rotation: 9, phaseDelay: 0.74),
-        StickerPlacement(sticker: .teddyPink,
-                         position: CGPoint(x: 0.92, y: 0.94),
-                         size: 38, rotation: -11, phaseDelay: 0.90),
-    ]
+    // v1.1.3 T6 (2026-06-29): planRevealPlacements removed with case 21.
 
     // v3 dead-code rip (2026-06-10) — v1Welcome branch removed.
     // Every install since v1.0.6 (2026-06-03) lands on v2Welcome.
@@ -3568,22 +3559,14 @@ struct OnboardingView: View {
         case "very_active": sessionLength = "twenty"
         default:            sessionLength = "ten"
         }
-        switch paceChoice {
+        // v1.1.3 T6 (2026-06-29): derive cadence from the canonical picked
+        // tier (effectivePaceKey) instead of the retired onboardingPaceChoice
+        // key. Before the reveal PacePicker, this resolves to the "steady"
+        // band-middle default - matching the prior empty-paceChoice behavior.
+        switch effectivePaceKey {
         case "gentle":  commitmentDays = "three"
         case "focused": commitmentDays = (movementBaseline == "very_active") ? "seven" : "five"
         default:        commitmentDays = "five"
-        }
-        // Pace unification — seed onboardingPickedTier from any legacy
-        // paceChoice so the reveal PacePicker opens consistent. Since
-        // T5 (2026-06-29) cut the case-167 pace question, paceChoice is
-        // normally empty and the reveal PacePicker is the sole writer of
-        // the tier (via ProjectionMath.paceKey(forTier:)). This seed only
-        // fires if a paceChoice is somehow still set.
-        if !paceChoice.isEmpty {
-            UserDefaults.standard.set(
-                ProjectionMath.tierRaw(forPaceKey: paceChoice),
-                forKey: "onboardingPickedTier"
-            )
         }
     }
 
@@ -5973,7 +5956,9 @@ struct OnboardingView: View {
             // coming out of the continue button.
             // v1.4: founder cut the illustration here — pure typography.
             body: "plateaus mean adaptation, not failure. jeni tells you what to change.",
-            next: 21,
+            // v1.1.3 T6 (2026-06-29): was next: 21 (the cut "your plan is
+            // ready" screen); now routes straight to the method preview.
+            next: 250,
             citationSource: "ACSM · 2024",
             imageLayout: .none,
             centeredType: true
@@ -7161,7 +7146,7 @@ struct OnboardingView: View {
             let totalDays = ProjectionMath.projectedDays(
                 currentKg: currentWeightKg,
                 goalKg: goalWeightKg,
-                paceKey: paceChoice
+                paceKey: effectivePaceKey
             )
             let week4kg = currentWeightKg + (goalWeightKg - currentWeightKg)
                 * Double(min(28, totalDays)) / Double(max(totalDays, 1))
@@ -7778,7 +7763,7 @@ struct OnboardingView: View {
         ProjectionMath.projectedGoalDate(
             currentKg: currentWeightKg,
             goalKg: goalWeightKg,
-            paceKey: paceChoice
+            paceKey: effectivePaceKey
         ) ?? defaultProjectionDate
     }
 
@@ -8238,211 +8223,6 @@ struct OnboardingView: View {
         }
     }
 
-    // 17d-2: sparkle burst around the coach photo. Each entry is an
-    // offset from the photo center + a size + a stagger delay. The
-
-    private var planRevealScreen: some View {
-        // v4.5 R4 (2026-06-11) — her75-3 "day one" card restyle. Coach
-        // portrait + sparkle burst + anchors card + 3 plan cards
-        // collapsed into ONE white shadow-only card with quantified
-        // rails + a real date range. Scatter stays (founder-locked
-        // milestone moment). Every number derives from her answers.
-        let lossKg = max(0, currentWeightKg - goalWeightKg)
-        let hasLossGoal = lossKg > 0.5
-        let endDate = derivedPlanEndDate()
-        let days = commitmentDaysCount(commitmentDays)
-        let mins = sessionLength.isEmpty ? 10 : sessionLengthMinutes(sessionLength)
-
-        return ZStack {
-            StickerScatter(placements: Self.planRevealPlacements)
-
-            VStack(spacing: 0) {
-                Spacer()
-
-                LineCascadeText(
-                    lines: name.isEmpty
-                        ? [.plain("congrats."),
-                           .composite(base: "your plan is ready.", italic: ["ready"])]
-                        : [.plain("congrats, \(name.lowercased())."),
-                           .composite(base: "your plan is ready.", italic: ["ready"])],
-                    baseFont: Typo.heroHeadline,
-                    italicFont: Typo.heroHeadlineItalic,
-                    alignment: .center,
-                    lineSpacing: Typo.heroHeadlineLineGap
-                )
-                .padding(.horizontal, Space.screenPadding)
-                .opacity(planHeadlineVisible ? 1 : 0)
-
-                Spacer().frame(height: Space.lg)
-
-                // The day-one card — white, shadow-only, serif masthead.
-                VStack(alignment: .leading, spacing: 12) {
-                    (Text("day ").font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
-                     + Text("one").font(.custom("Fraunces72pt-SemiBold", size: 28)))
-                        .foregroundStyle(Palette.textPrimary)
-
-                    Text(planDateRangeLabel(endDate: hasLossGoal ? endDate : nil))
-                        .font(.custom("DMSans-Regular", size: 14))
-                        .foregroundStyle(Palette.textSecondary)
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        dayOneRail(num: 1, base: "move ", italic: "\(days)× a week", suffix: " · \(mins)-min sessions")
-                        dayOneRail(num: 2, base: "snap meals ", italic: "before", suffix: " you eat · no counting")
-                        dayOneRail(num: 3, base: "", italic: "7,500", suffix: " steps · the everyday anchor")
-                        dayOneRail(num: 4, base: "one ", italic: "2-min", suffix: " read a day · the method")
-                        dayOneRail(num: 5, base: "breathe ", italic: "5 min", suffix: " on rest days")
-                    }
-                    .padding(.top, 2)
-
-                    HStack {
-                        Text("JENIFIT PROGRAM")
-                            .font(.system(size: 10, weight: .medium))
-                            .tracking(1.8)
-                            .foregroundStyle(Palette.textSecondary)
-                        Spacer()
-                        Button { showPlanSources = true } label: {
-                            Text("sources")
-                                .font(.system(size: 12))
-                                .underline()
-                                .foregroundStyle(Palette.textSecondary)
-                        }
-                        .accessibilityLabel("View research sources")
-                    }
-                    .padding(.top, 6)
-                }
-                .padding(Space.md + 4)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .fill(Palette.bgElevated)
-                        .shadow(color: Palette.cocoaPrimary.opacity(0.12), radius: 18, x: 0, y: 8)
-                )
-                .paperSheen()
-                .rotationEffect(.degrees(planCardsVisible ? -1.2 : 0))
-                .padding(.horizontal, Space.screenPadding + 6)
-                .opacity(planCardsVisible ? 1 : 0)
-                .scaleEffect(planCardsVisible ? 1 : 0.96)
-
-                Spacer()
-
-                JFContinueButton(label: "let's go") {
-                    Analytics.track(.planRevealContinueTapped)
-                    go(250)
-                }
-                .padding(.horizontal, Space.lg)
-                .padding(.bottom, Space.sm)
-                .opacity(planCtaVisible ? 1 : 0)
-            }
-            .onAppear { runPlanReveal() }
-        }
-        .sheet(isPresented: $showPlanSources) {
-            planSourcesSheet
-        }
-    }
-
-    /// "jun 11 → sep 3" (real derived range) or "starts today" when
-    /// there's no loss goal to project.
-    private func planDateRangeLabel(endDate: Date?) -> String {
-        let df = DateFormatter()
-        df.dateFormat = "MMM d"
-        let today = df.string(from: Date()).lowercased()
-        guard let endDate else { return "starts \(today)" }
-        return "\(today) → \(df.string(from: endDate).lowercased())"
-    }
-
-    /// End date from the ACSM pace band the user picked — same
-    /// ProjectionMath call as every other date surface.
-    private func derivedPlanEndDate() -> Date {
-        ProjectionMath.projectedGoalDate(
-            currentKg: currentWeightKg,
-            goalKg: goalWeightKg,
-            paceKey: paceChoice
-        ) ?? Calendar.current.date(byAdding: .weekOfYear, value: 12, to: Date()) ?? Date()
-    }
-
-    /// One quantified rail on the day-one card. Serif numeral, italic
-    /// punch on the number (the her75 sticky-note row register, done
-    /// typographically).
-    private func dayOneRail(num: Int, base: String, italic: String, suffix: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text("\(num)")
-                .font(.custom("Fraunces72pt-SemiBold", size: 17))
-                .foregroundStyle(Palette.textPrimary)
-                .frame(width: 16, alignment: .center)
-            (Text(base).font(.custom("DMSans-Regular", size: 15))
-             + Text(italic).font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
-             + Text(suffix).font(.custom("DMSans-Regular", size: 15)))
-                .foregroundStyle(Palette.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    /// Real citations behind the plan — the credibility layer Cal AI
-    /// fakes with "90% of users" theater. Ours are real, so show them.
-    private var planSourcesSheet: some View {
-        VStack(alignment: .leading, spacing: Space.md) {
-            Text("the research behind your plan")
-                .font(Typo.title)
-                .foregroundStyle(Palette.textPrimary)
-                .padding(.top, Space.lg)
-
-            VStack(alignment: .leading, spacing: Space.sm) {
-                sourceRow("ACSM position stand", "0.5–1% of body weight per week is the sustainable band. your pace sits inside it.")
-                sourceRow("wing & phelan, 2005", "a kept 5–10% is the clinical win. plans built for keeping beat plans built for speed.")
-                sourceRow("kaushal & rhodes, 2015", "short daily sessions form habits ~3× more reliably than long ones.")
-                sourceRow("helander et al., 2014", "consistency of small logs predicts outcomes better than intensity.")
-            }
-
-            Spacer()
-        }
-        .padding(.horizontal, Space.lg)
-        .presentationDetents([.medium])
-        .presentationBackground(Palette.bgPrimary)
-    }
-
-    private func sourceRow(_ title: String, _ body: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.custom("DMSans-SemiBold", size: 14))
-                .foregroundStyle(Palette.textPrimary)
-            Text(body)
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private func runPlanReveal() {
-        // Reset for re-mount (back nav replays the moment).
-        planRevealed = false
-        planHeadlineVisible = false
-        planCardsVisible = false
-        planCtaVisible = false
-
-        Analytics.track(.planRevealViewed, properties: [
-            "coach": voicePreference,
-            "body_focus_count": bodyFocus.count
-        ])
-
-        Haptics.success()
-
-        // Headline cascade runs itself (2 lines × 0.42s). Card lands
-        // after the cascade with a soft spring + tilt; CTA last.
-        withAnimation(.easeOut(duration: 0.45).delay(0.10)) {
-            planHeadlineVisible = true
-        }
-        withAnimation(Motion.gentleSpring.delay(1.05)) {
-            planCardsVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.4).delay(1.60)) {
-            planCtaVisible = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            planRevealed = true
-        }
-    }
 
     /// Consolidated nudge screen (case 23). 2026-06-29: merged the former
     /// time-picker-only case 11 into this screen so the user picks their

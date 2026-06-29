@@ -3,8 +3,9 @@ import AppTrackingTransparency
 
 // MARK: - BuildingPlanLoadingView
 //
-// Onboarding v2 Phase 5 / Component 2-of-4. The 25s "we're computing
-// your becoming plan" beat in the reveal sequence. Per Noom research
+// Onboarding v2 Phase 5 / Component 2-of-4. The ~8s "we're computing
+// your becoming plan" beat in the reveal sequence (trimmed from 25-35s
+// in v1.1.3 T6 - the single honest build beat before one reveal). Per Noom research
 // this is the reciprocity peak — users who watch a personalized plan
 // "build" out of their own answers convert at materially higher rates
 // than users who get the reveal instantly, because the wait makes the
@@ -160,6 +161,9 @@ struct BuildingPlanLoadingView: View {
     /// continues working regardless of response — only IDFA-bound
     /// attribution depends on `.authorized`.
     private func requestATTIfNeeded() async {
+        // The --debug-building harness skips ATT so simctl can time the
+        // pure loader without the system dialog pausing the tick loop.
+        if ProcessInfo.processInfo.arguments.contains("--debug-building") { return }
         guard ATTrackingManager.trackingAuthorizationStatus == .notDetermined else {
             return
         }
@@ -398,7 +402,15 @@ struct BuildingPlanLoadingView: View {
         //
         // Total time tightened 12.0s → 10.5s.
         let totalLabels = totalLabelCount
-        let totalSeconds = min(10.5, Double(totalLabels) * 1.2 + 0.5)
+        // v1.1.3 T6 (2026-06-29): trimmed to a ~8s honest build budget
+        // (was 25-35s, then 10.5s). With case 21's premature "your plan is
+        // ready" cut, this loader is the SINGLE build beat before the one
+        // projection reveal - short enough to read honest to a scam-wary
+        // cohort, long enough for the personalized label beats to land.
+        // Reduce-motion collapses to ~3s so it resolves quickly.
+        let totalSeconds = reduceMotion
+            ? 3.0
+            : min(8.0, Double(totalLabels) * 1.0 + 0.5)
         let tickCount = 100
         let perTickNs = UInt64((totalSeconds * 1_000_000_000) / Double(tickCount))
         let ticksPerLabel = max(1, tickCount / totalLabels)

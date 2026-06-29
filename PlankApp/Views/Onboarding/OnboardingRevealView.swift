@@ -49,7 +49,8 @@ struct OnboardingRevealView: View {
         debugStartAtFirstWeek: Bool = false,
         debugStartAtProjection: Bool = false,
         debugStartAtCommitment: Bool = false,
-        debugStartAtDisclaimer: Bool = false
+        debugStartAtDisclaimer: Bool = false,
+        debugStartAtBuilding: Bool = false
     ) {
         self.bodyFocus = bodyFocus
         self.sessionLengthKey = sessionLengthKey
@@ -62,6 +63,7 @@ struct OnboardingRevealView: View {
         // screen is screenshot-able without the full reveal sequence.
         // Production always starts at .disclaimer (the medical trust gate).
         self._step = State(initialValue:
+            debugStartAtBuilding   ? .building   :
             debugStartAtDisclaimer ? .disclaimer :
             debugStartAtCommitment ? .commitment :
             debugStartAtProjection ? .projection :
@@ -85,13 +87,15 @@ struct OnboardingRevealView: View {
         case pacePicker
         case projection
         case firstWeek
-        case permissions
-        // Task 7 (2026-06-28) - commitment ritual. The LAST
-        // pre-paywall screen: one small promise the user makes for
-        // tomorrow, in her own words, which schedules a Day-1 nudge.
-        // Replaces the now-dead TrialPromisePresentation (no-trial
-        // decision landed as part of the phase-1a activation pass).
+        // Task 7 (2026-06-28) - commitment ritual: one small promise the
+        // user makes for tomorrow, in her own words, which schedules a
+        // Day-1 nudge. Replaces the now-dead TrialPromisePresentation
+        // (no-trial decision landed in the phase-1a activation pass).
+        // T6 (2026-06-29) reorder: commitment now sits BEFORE permissions
+        // so the notifications ask lands right after the promise.
         case commitment
+        // The LAST pre-paywall screen - notifications ask, then the wall.
+        case permissions
     }
 
     private var hasProjection: Bool {
@@ -135,28 +139,32 @@ struct OnboardingRevealView: View {
                 .transition(.opacity)
             case .firstWeek:
                 FirstWeekPresentation(
-                    onContinue: { withAnimation(Motion.crossFade) { step = .permissions } }
+                    onContinue: { withAnimation(Motion.crossFade) { step = .commitment } }
                 )
                 .transition(.opacity)
-            case .permissions:
-                PairedPermissionsAsk(onContinue: {
-                    withAnimation(Motion.crossFade) { step = .commitment }
+            case .commitment:
+                CommitmentRitualPresentation(onContinue: {
+                    withAnimation(Motion.crossFade) { step = .permissions }
                 })
                 .transition(.opacity)
-            case .commitment:
-                CommitmentRitualPresentation(onContinue: onRevealComplete)
+            case .permissions:
+                // v1.1.3 T6 (2026-06-29): permissions is now the LAST
+                // pre-paywall beat. The commitment ritual schedules a
+                // Day-1 nudge, so the notifications ask lands right after
+                // the user makes the promise - then straight to the wall.
+                PairedPermissionsAsk(onContinue: onRevealComplete)
                     .transition(.opacity)
             }
         }
     }
 
     private func advanceFromBuilding() {
-        // Task 5 (2026-06-29): building → pacePicker → projection →
-        // firstWeek → permissions when we have weight data. PacePicker
-        // sits next to the projection it recomputes, so the single
-        // projection reveal reflects the chosen pace. Without weight,
-        // skip the derivation-dependent steps and land on firstWeek
-        // directly (it still renders with the default tier).
+        // T5/T6 (2026-06-29): building → pacePicker → projection →
+        // firstWeek → commitment → permissions when we have weight data.
+        // PacePicker sits next to the projection it recomputes, so the
+        // single projection reveal reflects the chosen pace. Without
+        // weight, skip the derivation-dependent steps and land on
+        // firstWeek directly (it still renders with the default tier).
         withAnimation(Motion.crossFade) {
             step = hasProjection ? .pacePicker : .firstWeek
         }
@@ -1278,6 +1286,22 @@ private struct FirstWeekPresentation: View {
                             .padding(.horizontal, Space.lg)
                             .opacity(weekVisible ? 1 : 0)
 
+                        // v1.1.3 T6 (2026-06-29): the everyday program rails
+                        // folded in from the cut "your plan is ready" day-one
+                        // card (case 21). The week strip above carries the
+                        // movement rhythm; these are the rails that make the
+                        // plan more than workouts. Static copy, no per-user
+                        // numbers (provenance-safe).
+                        VStack(alignment: .leading, spacing: 10) {
+                            firstWeekRail(base: "snap meals ", italic: "before", suffix: " you eat · no counting")
+                            firstWeekRail(base: "", italic: "7,500", suffix: " steps · the everyday anchor")
+                            firstWeekRail(base: "one ", italic: "2-min", suffix: " read a day · the method")
+                            firstWeekRail(base: "breathe ", italic: "5 min", suffix: " on rest days")
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, Space.lg + Space.md)
+                        .opacity(weekVisible ? 1 : 0)
+
                         // v4.6 (2026-06-11) — it-girl cutout fills the
                         // dead space under the strip (founder QA: screen
                         // read as empty below the cards).
@@ -1317,6 +1341,25 @@ private struct FirstWeekPresentation: View {
             try? await Task.sleep(nanoseconds: 320_000_000)
             withAnimation(Motion.entranceSoft) { ctaVisible = true }
         }
+    }
+
+    // One everyday-rail row, folded in from case 21's day-one card.
+    // Serif italic punch on the key word (the her75 sticky-note register,
+    // done typographically) over a small cocoa bullet.
+    private func firstWeekRail(base: String, italic: String, suffix: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Circle()
+                .fill(Palette.textSecondary.opacity(0.4))
+                .frame(width: 4, height: 4)
+                .offset(y: -3)
+            (Text(base).font(.custom("DMSans-Regular", size: 14))
+             + Text(italic).font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+             + Text(suffix).font(.custom("DMSans-Regular", size: 14)))
+                .foregroundStyle(Palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 

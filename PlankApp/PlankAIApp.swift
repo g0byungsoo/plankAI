@@ -674,6 +674,21 @@ struct PlankAIApp: App {
                         onRevealComplete: {},
                         debugStartAtCommitment: true
                     )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-building") {
+                    // v1.1.3 T6 (2026-06-29) - jumps straight to the trimmed
+                    // (~8s) building loader so simctl can time + screenshot it
+                    // without tapping through the disclaimer. Launch:
+                    // `xcrun simctl launch booted com.bk.plankAI --debug-building`
+                    OnboardingRevealView(
+                        bodyFocus: ["flatBelly"],
+                        sessionLengthKey: "ten",
+                        voicePreference: "encouraging",
+                        commitmentDaysKey: "five",
+                        currentWeightKg: 75,
+                        goalWeightKg: 65,
+                        onRevealComplete: {},
+                        debugStartAtBuilding: true
+                    )
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-disclaimer") {
                     // Medical disclaimer trust screen (Task 8). Jumps straight
                     // to DisclaimerPresentation so it can be screenshot-ed
