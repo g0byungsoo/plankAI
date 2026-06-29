@@ -71,7 +71,7 @@ struct OnboardingRevealView: View {
         // her plan BEFORE paywall. pacePicker → goalDate → assessment
         // → firstWeek form the Program Design chapter. Pace persists
         // via AppStorage so the (eventually trimmed) ProgramSetup
-        // post-paywall just reads it back — no second pick.
+        // post-paywall just reads it back - no second pick.
         case pacePicker
         case goalDate
         // Assessment-as-payoff: lands after the goal-date reveal so
@@ -1268,7 +1268,7 @@ private struct GoalDateRevealPresentation: View {
 // + earned endowed-progress label.
 //
 // Background: cream bgPrimary (intentionally different from the pink
-// programBgPrimary used by surrounding steps) — the visual "breath"
+// programBgPrimary used by surrounding steps) - the visual "breath"
 // reinforces that this screen is a reflection beat, not a reveal.
 // A single thin rule is the only "clinical" accent (no red, no charts,
 // no projected weight number).
@@ -1339,7 +1339,7 @@ private struct AssessmentPresentation: View {
 
     var body: some View {
         ZStack {
-            // Cream canvas — intentional contrast with the pink reveal
+            // Cream canvas - intentional contrast with the pink reveal
             // steps that bracket this screen. Visual breath = reflection.
             Palette.bgPrimary.ignoresSafeArea()
 
@@ -1348,7 +1348,7 @@ private struct AssessmentPresentation: View {
 
                 VStack(alignment: .leading, spacing: Space.lg) {
 
-                    // 1. Identity line — JeniHeroSerif, italic punch on "realistic"
+                    // 1. Identity line - JeniHeroSerif, italic punch on "realistic"
                     ItalicAccentText(
                         "here's your realistic arc.",
                         italic: ["realistic"],
@@ -1364,14 +1364,14 @@ private struct AssessmentPresentation: View {
                     .offset(y: heroVisible ? 0 : 10)
                     .animation(Motion.entrance, value: heroVisible)
 
-                    // Single thin rule — the only clinical accent.
+                    // Single thin rule - the only clinical accent.
                     Rectangle()
                         .fill(Palette.textPrimary.opacity(0.1))
                         .frame(height: 1)
                         .opacity(ruleVisible ? 1 : 0)
                         .animation(Motion.entrance, value: ruleVisible)
 
-                    // 2. Quiet data line — DMSans, textSecondary
+                    // 2. Quiet data line - DMSans, textSecondary
                     //    pace [X]%/wk · arrival ~[Mon D] · set conservatively
                     Text("pace \(lossRatePctText)%/wk \u{00B7} arrival ~\(arrivalDateText) \u{00B7} set conservatively")
                         .font(Typo.body)
@@ -1401,7 +1401,7 @@ private struct AssessmentPresentation: View {
                         .offset(y: credibilityVisible ? 0 : 6)
                         .animation(Motion.entrance, value: credibilityVisible)
 
-                    // 5. Earned endowed progress — small, muted, never a %
+                    // 5. Earned endowed progress - small, muted, never a %
                     Text("step 1 of your plan: complete (you did the assessment)")
                         .font(Typo.captionTracked)
                         .foregroundStyle(Palette.textSecondary.opacity(0.7))

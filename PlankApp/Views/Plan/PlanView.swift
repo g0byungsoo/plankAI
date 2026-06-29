@@ -247,7 +247,7 @@ struct PlanView: View {
     /// session even as we update lastPlanAppearAt.
     @State private var welcomeBackDaysAway: Int = 0
 
-    // Phase 1a (Task 9, 2026-06-28) — arrival horizon hero.
+    // Phase 1a (Task 9, 2026-06-28) - arrival horizon hero.
     // Captured at onAppear so goalDate is readable without a fresh
     // SwiftData fetch on every body render. nil until the user is
     // enrolled (plan == nil → planMissing = true → hero is never shown).

@@ -613,13 +613,13 @@ struct PlankAIApp: App {
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-strip") {
                     DayStripPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-arrival") {
-                    // Phase 1a (Task 9, 2026-06-28) — arrival horizon hero.
+                    // Phase 1a (Task 9, 2026-06-28) - arrival horizon hero.
                     // Renders the hero with seeded data (goalDate ~84 days out,
                     // 4 actions this week of 5 target) so it can be iterated
                     // and screenshot without a full enrolled account.
                     ArrivalHeroPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-assessment") {
-                    // TEMPORARY debug harness — jumps straight to the
+                    // TEMPORARY debug harness - jumps straight to the
                     // AssessmentPresentation beat. Provenance line variant
                     // controlled via simctl defaults write:
                     //   onboardingSleepHours five6  → short-sleep line
@@ -2827,10 +2827,10 @@ private struct RootView: View {
         if let userId = AppSync.shared.currentUserId, !userId.isEmpty {
             let record = upsertLocalUserRecord(userId: userId, data: data)
 
-            // Phase 1a — clinical baseline. Computed here so the persisted
+            // Phase 1a - clinical baseline. Computed here so the persisted
             // numbers trace directly to the collected fields (provenance rule).
             // medicalDisclaimerAckAt is declared on UserRecord but intentionally
-            // left nil — Task 8 adds the disclaimer screen that sets it.
+            // left nil - Task 8 adds the disclaimer screen that sets it.
             let cgInputs = ProgramGoalCalculator.Inputs(
                 currentWeightKg:  data.currentWeightKg,
                 goalWeightKg:     data.goalWeightKg,

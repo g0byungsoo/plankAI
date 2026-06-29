@@ -328,7 +328,7 @@ struct NotificationPermission {
     /// Canonical identifier for the one-shot Day-1 promise nudge.
     static let day1PromiseIdentifier = "day1_promise"
 
-    /// Pure body builder — replays the user's own words back to her.
+    /// Pure body builder - replays the user's own words back to her.
     /// No nagging, no imperatives. Period between anchor + action clauses
     /// (no em-dash per brand voice).
     static func day1PromiseBody(action: String, anchor: String, userName: String?) -> String {

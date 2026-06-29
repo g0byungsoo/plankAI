@@ -948,7 +948,7 @@ struct OnboardingView: View {
                 goalWeightAnnotation(currentKg: currentWeightKg, goalKg: goalWeightKg, heightCm: heightCm)
             }
         )
-        // v1.2 safety (2026-06-28) — BMI 18.5 floor on goal-weight selection.
+        // v1.2 safety (2026-06-28) - BMI 18.5 floor on goal-weight selection.
         // On appear: clamp any pre-existing stored value (returning user edge case).
         // On change: snap back to floor when user drags below it.
         // When height is 0 (not yet captured), floor = 0 → clamp is a no-op.
@@ -3940,7 +3940,7 @@ struct OnboardingView: View {
     private func goalWeightAnnotation(currentKg: Double, goalKg: Double, heightCm: Double) -> some View {
         let heightM = heightCm / 100
         let goalBmi = (heightM > 0) ? goalKg / (heightM * heightM) : 0
-        // v1.2 safety (2026-06-28) — show quiet floor line when goal is at
+        // v1.2 safety (2026-06-28) - show quiet floor line when goal is at
         // the BMI 18.5 minimum (i.e., the clamp just fired or the user
         // picked exactly the floor). 0.1 kg tolerance handles float drift.
         let floorKg = ProgramGoalCalculator.minimumGoalWeightKg(heightCm: heightCm)
@@ -4023,7 +4023,7 @@ struct OnboardingView: View {
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.leading, 16)  // align under text after dot
-            // v1.2 safety (2026-06-28) — quiet floor notice when the BMI
+            // v1.2 safety (2026-06-28) - quiet floor notice when the BMI
             // 18.5 clamp is active. Replaces the slider value silently;
             // this line tells the user why without scolding.
             if atFloor {

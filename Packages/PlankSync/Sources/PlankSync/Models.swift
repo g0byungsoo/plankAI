@@ -91,18 +91,18 @@ public final class UserRecord {
     // MARK: - Clinical baseline (Phase 1a, 2026-06-28)
     //
     // All three fields are optional so SwiftData lightweight migration covers
-    // existing rows automatically — nil means "not yet computed / not answered".
+    // existing rows automatically - nil means "not yet computed / not answered".
     //
-    // computedStartBMI — BMI at onboarding completion, derived from
+    // computedStartBMI: BMI at onboarding completion, derived from
     //   onboardingCurrentWeightKg + onboardingHeightCm via ClinicalBaseline.bmi().
     //   Auditable provenance: the persisted number always traces to a collected
     //   field (data provenance rule, see docs/STATE.md).
     //
-    // targetRatePctPerWeek — loss-rate floor × 100 from
+    // targetRatePctPerWeek: loss-rate floor × 100 from
     //   ProgramGoalCalculator.Window.lossRateFloor, which already encodes the
     //   GLP-1 / perimenopause / short-sleep cohort adjustments at onboarding.
     //
-    // medicalDisclaimerAckAt — set by the disclaimer acknowledgment screen
+    // medicalDisclaimerAckAt: set by the disclaimer acknowledgment screen
     //   (Task 8). Left nil here; nil = user has not yet seen / acked the screen.
     public var computedStartBMI: Double?
     public var targetRatePctPerWeek: Double?
@@ -110,11 +110,11 @@ public final class UserRecord {
 
     // MARK: - Habit / activation counters (Phase 1a, 2026-06-28)
     //
-    // promisesKept — cumulative count of habit completions the user has
+    // promisesKept: cumulative count of habit completions the user has
     //   honoured (lesson read, breath session, food log, weigh-in, etc.).
     //   Consumed by Task 9 (home hero) and Task 10 (kept-promise win card).
     //   Default 0; non-optional with default is migration-safe for SwiftData
-    //   lightweight migration — existing rows read 0 until first increment.
+    //   lightweight migration - existing rows read 0 until first increment.
     public var promisesKept: Int = 0
 
     /// Set true by any client-side write (settings edits, onboarding-complete)

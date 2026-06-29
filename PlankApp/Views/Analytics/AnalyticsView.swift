@@ -148,7 +148,7 @@ struct AnalyticsView: View {
     /// lean-mass framing. Default OFF: existing customers keep the legacy
     /// 1.2 g/kg target until the founder enables it.
     @AppStorage("protein_hero_enabled") private var proteinHeroEnabled = false
-    /// Medical-grade Phase 2.2 — rapid-loss safety guardrail. Default ON:
+    /// Medical-grade Phase 2.2 - rapid-loss safety guardrail. Default ON:
     /// the tripwire is a safety feature and should reach all users by default.
     @AppStorage("rapid_loss_guard_enabled") private var rapidLossGuardEnabled = true
     /// Medical-grade Phase 2.2 — flag-gated adaptive pace projection. Default
@@ -639,7 +639,7 @@ struct AnalyticsView: View {
     @State private var sectionOffset: [CGFloat] = [20, 20, 20, 20, 20, 20]
     @State private var hasAnimated = false
     @State private var showLogWeight = false
-    /// Medical-grade Phase 1a — rapid-loss care sheet. Presented after
+    /// Medical-grade Phase 1a - rapid-loss care sheet. Presented after
     /// a weight log when the RapidLossTripwire fires (>1%/wk). Care-framed,
     /// cream background, no red. Gated on `rapid_loss_guard_enabled`.
     @State private var showRapidLossCareSheet = false
@@ -1055,10 +1055,10 @@ struct AnalyticsView: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
-        // Medical-grade Phase 1a — rapid-loss care sheet. Shown after a
+        // Medical-grade Phase 1a - rapid-loss care sheet. Shown after a
         // weight log when RapidLossTripwire fires. Deferred 400 ms so the
         // weight-log sheet can fully dismiss before this one appears.
-        // Cream background, no red — care-framed per anti-shame voice.
+        // Cream background, no red - care-framed per anti-shame voice.
         .sheet(isPresented: $showRapidLossCareSheet) {
             RapidLossCareSheet(
                 message: rapidLossCareMsg ?? "",
@@ -4249,10 +4249,10 @@ struct AnalyticsView: View {
         checkRapidLossTripwire(kg: kg)
     }
 
-    /// Medical-grade Phase 1a — rapid-loss safety tripwire check. Runs after
+    /// Medical-grade Phase 1a - rapid-loss safety tripwire check. Runs after
     /// every manual weight log (both update-in-place and new-insert paths).
     /// Uses `WeightAnalytics.weeklyLossRate` (21-day window, ≥7-day span,
-    /// ≥2 logs) which returns a POSITIVE fraction when losing — the same sign
+    /// ≥2 logs) which returns a POSITIVE fraction when losing, the same sign
     /// the tripwire expects after multiplying by body weight to get kg/wk.
     /// Deferred 400 ms so the weight-log sheet can fully dismiss first.
     /// Gated on `rapid_loss_guard_enabled` + `!hideWeightStats`.
@@ -4758,9 +4758,9 @@ struct AnalyticsView: View {
 
 // MARK: - RapidLossCareSheet
 
-/// Medical-grade Phase 1a — care-framed check-in shown after a weight log when
+/// Medical-grade Phase 1a - care-framed check-in shown after a weight log when
 /// the user is losing faster than the 1%/wk safe ceiling. Cream background,
-/// no red, heart accent — anti-shame per the JeniFit voice.
+/// no red, heart accent - anti-shame per the JeniFit voice.
 private struct RapidLossCareSheet: View {
     let message: String
     let onClose: () -> Void
