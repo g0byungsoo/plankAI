@@ -219,8 +219,12 @@ struct PaywallView: View {
         // FoodFlags.isAdvertised (PostHog-only check, skips the paid
         // entitlement gate — user hasn't paid yet at paywall time).
         if FoodFlags.isAdvertised {
+            // 2026-06-29 — explicit line breaks so "weight-loss story"
+            // stays intact on its own line instead of breaking on the
+            // hyphen. line1 = name + "your", line2 = italic punch,
+            // line3 = the close.
             let punch = "weight-loss story"
-            let base = "\(namePrefix)your \(punch) starts today."
+            let base = "\(namePrefix)your\n\(punch)\nstarts today."
             return (base, [punch])
         }
 
@@ -384,8 +388,10 @@ struct PaywallView: View {
     /// localized string — never hardcoded — so it stays correct across
     /// locales + any future ASC price change. Falls back to a plain label
     /// pre-load so we never show a stale or invented number.
-    private var ctaLabel: String {
-        guard let pkg = selectedPackage else { return "start my plan" }
+    /// Billed price + cadence for the CTA suffix ("$49.99/yr"). Localized,
+    /// never hardcoded; nil pre-load so we never invent a number.
+    private var ctaPriceSuffix: String? {
+        guard let pkg = selectedPackage else { return nil }
         let price = pkg.storeProduct.localizedPriceString
         let suffix: String
         switch selectedPlan {
@@ -393,7 +399,23 @@ struct PaywallView: View {
         case .quarterly: suffix = "/3mo"
         case .weekly:    suffix = "/wk"
         }
-        return "start my plan \u{00B7} \(price)\(suffix)"
+        return "\(price)\(suffix)"
+    }
+
+    /// CTA label as composed Text — "start my plan" LEADS at full
+    /// contrast; the billed price follows at 62% so the action reads
+    /// first while the (Apple-3.1.2-safe) price stays visible.
+    private var ctaText: Text {
+        let lead = Text("start my plan")
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundStyle(Palette.textInverse)
+        if let suffix = ctaPriceSuffix {
+            return lead
+                + Text("  \u{00B7}  \(suffix)")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Palette.textInverse.opacity(0.62))
+        }
+        return lead
     }
 
     // MARK: Body
@@ -402,74 +424,107 @@ struct PaywallView: View {
         ZStack(alignment: .top) {
             Palette.bgPrimary.ignoresSafeArea()
 
-            // v4 2026-05-31 — low-opacity edge sticker scatter brings
-            // JeniFit coquette warmth back without competing with content.
-            // Sits behind everything in the ZStack so it never affects
-            // layout. 4 stickers anchored to extreme corners + mid-edges
-            // at 0.35 opacity — periphery only per coquette-luxury research
-            // (Co-Star, Mejuri pattern: decoration lives at margins, never
-            // floats across pricing logic).
-            paywallEdgeScatter
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+            // 2026-06-29 premium design polish (2-designer consensus). The
+            // screen is now zoned by emotional register so each band does
+            // one job cleanly:
+            //   ZONE 1 (warm / coquette) — identity hero + the becoming
+            //     PROJECTION as the emotional peak (animated curve, arrival
+            //     bloom, bookended you-today / her-date axis). ONE glossy
+            //     sticker by the headline + ONE bloom at the arrival = the
+            //     only two stickers on the screen.
+            //   ZONE 2 (medical-grade restraint) — "what's inside your
+            //     becoming", 3 short warm lines, hairline ticks, no sticker.
+            //   ZONE 3 (Tiffany-clean) — yearly HERO card, quiet secondary
+            //     pair, the cocoa CTA as the one dark mass, money-back row.
+            //
+            // More content than the v2 single-screen (bigger chart + the 3
+            // feature lines), so the scrollable body is partitioned from a
+            // DOCKED close (CTA + risk reversal + legal). .safeAreaInset is
+            // unreliable under the ignoresSafeArea bg ZStack here — this is
+            // the VStack{ ScrollView; docked } pattern Assessment /
+            // PacePicker presentations use.
+            VStack(spacing: 0) {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        // Status bar + topBar (Restore) reserve so the
+                        // hero always clears the Dynamic Island.
+                        Spacer().frame(height: 44)
 
-            // 2026-06-27 conversion redesign (2-expert CRO teardown).
-            // Composition now reads top-to-bottom as: identity hero →
-            // PROJECTION-as-emotional-hero (arrival date is the punch) →
-            // sunk-cost ownership line → yearly HERO pricing card (the
-            // obvious default) → secondary 12-week + weekly row → value
-            // CTA showing the billed price → confident money-back row.
-            //   slot 1: topBar (44pt)               — Restore
-            //   slot 2: heroPermission              — named identity hero
-            //   slot 3: projectionHero              — goal + arrival date
-            //   slot 4: sunkCostLine                — "your plan is ready."
-            //   slot 5: tierCardAnnualHero          — yearly, dominant
-            //   slot 6: secondaryTierRow            — 12-week + weekly
-            //   slot 7: ctaButtonV2                 — start my plan · price
-            //   slot 8: reassuranceRow              — billed today + refund
-            //   slot 9: trustAndLegalFooter
-            VStack(spacing: 10) {
-                Spacer().frame(height: 44)  // topBar reserve
+                        // ZONE 1 — warm / coquette
+                        heroPermission
+                            .overlay(alignment: .topTrailing) { headlineSticker }
+                            .padding(.horizontal, Space.lg)
 
-                heroPermission
-                    .padding(.horizontal, Space.lg)
+                        projectionHero
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, 16)
 
-                projectionHero
-                    .padding(.horizontal, Space.lg)
+                        // The chart's conclusion — pulled tight to the
+                        // projection so it reads as the curve's caption,
+                        // not a fresh section.
+                        sunkCostLine
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, 10)
 
-                sunkCostLine
-                    .padding(.horizontal, Space.lg)
+                        // ZONE 2 — medical-grade restraint
+                        whatsInsideSection
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, 22)
 
-                Spacer(minLength: 0)
+                        // ZONE 3 — Tiffany-clean pricing. The yearly hero
+                        // sits within the first viewport so the billed
+                        // price anchors on load; the secondary pair + legal
+                        // are one short scroll below.
+                        tierCardAnnualHero
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, 22)
 
-                tierCardAnnualHero
-                    .padding(.horizontal, Space.lg)
+                        // Gap to the secondary pair is larger than the gap
+                        // WITHIN the pair (8pt) so the yearly hero reads as
+                        // the obvious default.
+                        secondaryTierRow
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, 16)
 
-                secondaryTierRow
-                    .padding(.horizontal, Space.lg)
-                if offeringsLoadFailed {
-                    offeringsLoadFailedRow
-                        .padding(.horizontal, Space.lg)
+                        if offeringsLoadFailed {
+                            offeringsLoadFailedRow
+                                .padding(.horizontal, Space.lg)
+                                .padding(.top, 10)
+                        }
+
+                        trustAndLegalFooter
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, 16)
+                            .padding(.bottom, 8)
+                    }
                 }
 
-                ctaButtonV2
-                    .padding(.horizontal, Space.lg)
-                    .padding(.top, 4)
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.system(size: 11))
-                        .foregroundStyle(Palette.stateBad)
-                        .multilineTextAlignment(.center)
+                // Docked close — CTA + risk reversal always visible,
+                // never clipped. A hairline + soft lift marks the boundary
+                // so content scrolling beneath reads as a deliberate layer.
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Palette.hairlineCocoa)
+                        .frame(height: 0.5)
+                        .frame(maxWidth: .infinity)
+                    ctaButtonV2
                         .padding(.horizontal, Space.lg)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 12)
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.system(size: 11))
+                            .foregroundStyle(Palette.stateBad)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, 6)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    reassuranceRow
+                        .padding(.horizontal, Space.lg)
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
                 }
-
-                reassuranceRow
-                    .padding(.horizontal, Space.lg)
-
-                trustAndLegalFooter
-                    .padding(.horizontal, Space.lg)
-                    .padding(.bottom, 12)
+                .background(Palette.bgPrimary)
             }
 
             topBar
@@ -549,57 +604,119 @@ struct PaywallView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// 2026-06-27 — PROJECTION-as-hero. The projection was the single
-    /// highest-leverage element on the screen but was rendered smaller
-    /// than the pricing cards. Promoted to the emotional top of the
-    /// screen with the arrival DATE as the display-type punch (the date
-    /// is the most powerful lever per the CRO teardown, and it was a
-    /// tiny caption). The goal weight + date are framed as a PROJECTION
-    /// of her own inputs, never a promise — the "~x lb/wk · steady pace"
-    /// honesty qualifier stays inside the chart card (medical-grade
-    /// signal + compliance safeguard). Falls back to the bare chart when
-    /// no weight goal was set.
+    /// 2026-06-29 — PROJECTION-as-becoming-moment. The single highest-
+    /// leverage element on the screen, now the emotional hero. The
+    /// animated curve draws in on appear with a soft rose area fill, the
+    /// arrival blooms a glossy sticker last, and the axis is bookended
+    /// with identity ("you, today" → "her, sep 14") so the chart literally
+    /// tells the becoming story. The arrival DATE is the JeniHeroSerif
+    /// italic dusty-rose punch at the curve terminus (single instance — the
+    /// old duplicate top stat row is gone). The raw goal number is DEMOTED
+    /// into a small pill anchored at the endpoint; the "~x lb/wk · steady
+    /// pace" honesty qualifier stays (data-provenance + compliance safe).
+    /// Renders only when a weight-loss goal was set.
     @ViewBuilder
     private var projectionHero: some View {
-        VStack(spacing: 10) {
-            if let goal = goalWeightPunch, let date = arrivalDatePunch {
-                HStack(alignment: .bottom, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("you're on track for")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.textSecondary)
-                        Text(goal)
-                            .font(.custom("Fraunces72pt-SemiBold", size: 24))
-                            .foregroundStyle(Palette.textPrimary)
-                    }
-                    Spacer(minLength: 0)
-                    VStack(alignment: .trailing, spacing: 1) {
-                        Text("by")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.textSecondary)
-                        // The lever. JeniHeroSerif italic at display size,
-                        // dusty-rose accent — the biggest punch above the
-                        // pricing logic.
-                        Text(date)
-                            .font(.custom("JeniHeroSerif-Italic", size: 32))
-                            .foregroundStyle(Palette.accent)
-                    }
+        if let goal = goalWeightPunch, let date = arrivalDatePunch {
+            VStack(spacing: 14) {
+                PaywallBecomingChart(goalLabel: goal)
+
+                // Bookended identity axis — the axis tells the becoming
+                // story. Date leads as the rose-italic hero; the scale
+                // number supports from the endpoint pill above.
+                HStack(alignment: .bottom) {
+                    (Text("you, ")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.textSecondary)
+                     + Text("today")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Palette.textPrimary))
+                    Spacer(minLength: 12)
+                    (Text("her, ")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.textSecondary)
+                     + Text(date)
+                        .font(.custom("JeniHeroSerif-Italic", size: 22))
+                        .foregroundStyle(Palette.accent))
+                }
+
+                if let caption = paceCaption {
+                    Text(caption)
+                        .font(.system(size: 9))
+                        .foregroundStyle(Palette.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
-            becomingProjectionChip
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Palette.bgElevated)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(Palette.accent.opacity(0.22), lineWidth: 1)
+                    )
+            )
+            .plankShadow()
         }
     }
 
-    /// Enlarged from chartHeight 50 → 66 for the projection-as-hero
-    /// promotion. The qualifier ("~x lb/wk · steady pace") + goal/today
-    /// axis labels live inside this card.
-    @ViewBuilder
-    private var becomingProjectionChip: some View {
-        BecomingProjectionCard(
-            currentWeightKg: currentUserRecord?.onboardingCurrentWeightKg,
-            goalWeightKg: currentUserRecord?.onboardingGoalWeightKg,
-            chartHeight: 66
-        )
+    /// "~1.2 lb/wk · steady pace" — derived from her own current weight +
+    /// picked pace via the canonical ProjectionMath. Honest hedge that
+    /// frames the curve as a projection, never a promise. Nil when no loss
+    /// goal is set.
+    private var paceCaption: String? {
+        guard let currentKg = currentUserRecord?.onboardingCurrentWeightKg,
+              let goalKg = currentUserRecord?.onboardingGoalWeightKg,
+              currentKg > goalKg else { return nil }
+        let unit = WeightUnit.current
+        let perWeek = unit.display(fromKg: currentKg * ProjectionMath.weeklyFraction(paceKey: paywallPaceChoice))
+        let s = (perWeek == perWeek.rounded()) ? String(format: "%.0f", perWeek) : String(format: "%.1f", perWeek)
+        return "~\(s) \(unit.label)/wk \u{00B7} \(ProjectionMath.paceLabel(paceKey: paywallPaceChoice))"
+    }
+
+    /// ONE glossy sticker by the headline — the single coquette accent in
+    /// ZONE 1. Confident (full) opacity per the "no smudges" rule; the
+    /// edge-scatter ghosts were removed in this pass.
+    private var headlineSticker: some View {
+        Image("sticker_bow_iridescent")
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 30, height: 30)
+            .rotationEffect(.degrees(10))
+            .offset(x: 4, y: 2)
+            .accessibilityHidden(true)
+    }
+
+    /// ZONE 2 — "what's inside your becoming": 3 short warm noun-phrases,
+    /// not a SaaS checklist. Tracked-caps micro-label + hairline cocoa
+    /// ticks, no icons, no stickers (medical-grade restraint). References
+    /// only shipping features.
+    private var whatsInsideSection: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            Text("what's inside your becoming")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1.6)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+            VStack(alignment: .leading, spacing: 9) {
+                whatsInsideRow("your custom plan")
+                whatsInsideRow("jenimethod lessons")
+                whatsInsideRow("snap-a-photo food log")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func whatsInsideRow(_ text: String) -> some View {
+        HStack(spacing: 12) {
+            Rectangle()
+                .fill(Palette.cocoaTertiary)
+                .frame(width: 13, height: 1)
+            Text(text)
+                .font(.custom("JeniHeroSerif-Regular", size: 16))
+                .foregroundStyle(Palette.textPrimary)
+            Spacer(minLength: 0)
+        }
     }
 
     /// Picked pace — drives the arrival-date projection so the paywall
@@ -716,6 +833,24 @@ struct PaywallView: View {
                                 .padding(.vertical, 2)
                                 .background(Palette.bgInverse, in: Capsule())
                         }
+                        Text("billed yearly")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                    Spacer(minLength: 0)
+                    // The billed amount stays the dominant number on the
+                    // whole screen; per-day sits directly under it for a
+                    // clean $49.99 → $0.14/day vertical sweep. "/yr" is
+                    // quieter (cocoa-tertiary) so the figure leads.
+                    VStack(alignment: .trailing, spacing: 2) {
+                        HStack(alignment: .firstTextBaseline, spacing: 2) {
+                            Text(yearlyPrice)
+                                .font(.custom("Fraunces72pt-SemiBold", size: 28))
+                                .foregroundStyle(Palette.textPrimary)
+                            Text("/yr")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Palette.cocoaTertiary)
+                        }
                         if let perDay = yearlyPerDayText {
                             // per-day reframe — deliberately 11pt, far
                             // smaller than the 28pt billed price (3.1.2c).
@@ -724,35 +859,27 @@ struct PaywallView: View {
                                 .foregroundStyle(Palette.textSecondary)
                         }
                     }
-                    Spacer(minLength: 0)
-                    // The billed amount stays the dominant number on the
-                    // whole screen.
-                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Text(yearlyPrice)
-                            .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                            .foregroundStyle(Palette.textPrimary)
-                        Text("/yr")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.textSecondary)
-                    }
                 }
 
                 if let anchor = quarterlyAnchorCopy {
                     HStack(spacing: 6) {
-                        Text(anchor.strikethrough)
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.textSecondary)
-                            .strikethrough(true, color: Palette.textSecondary)
-                        Text("vs paying quarterly all year")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.textSecondary)
+                        // Quieted anchor — small + cocoa-tertiary + struck,
+                        // so it informs without shouting a second price.
+                        (Text(anchor.strikethrough)
+                            .strikethrough(true, color: Palette.cocoaTertiary)
+                         + Text("  vs paying quarterly all year"))
+                            .font(.system(size: 10))
+                            .foregroundStyle(Palette.cocoaTertiary)
                         Spacer(minLength: 0)
-                        (Text("save \(anchor.savings) ")
+                        // "save" gets a quiet rose-tinted pill (a visual
+                        // home) — NOT saturated accent text; rose is
+                        // reserved for emotion (the date / identity).
+                        Text("save \(anchor.savings)")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Palette.accent)
-                         + Text("\u{2665}\u{FE0E}")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.accent))
+                            .foregroundStyle(Palette.textPrimary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(Palette.accentSubtle))
                     }
                 }
             }
@@ -772,9 +899,12 @@ struct PaywallView: View {
             )
             .overlay(alignment: .topTrailing) {
                 if isSelected {
+                    // Cocoa (not rose) selection mark — keeps rose
+                    // reserved for emotion + reads Tiffany-clean against
+                    // the cocoa selected border.
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 18))
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.bgInverse)
                         .background(Palette.bgElevated, in: Circle())
                         .offset(x: 6, y: -8)
                 }
@@ -788,14 +918,16 @@ struct PaywallView: View {
     /// vs the yearly hero's 28pt) so the yearly card stays the visual
     /// hero. Both still fully selectable.
     private var secondaryTierRow: some View {
-        HStack(spacing: 10) {
+        // 8pt within-pair gap — deliberately tighter than the 16pt gap
+        // separating this pair from the yearly hero above.
+        HStack(spacing: 8) {
             secondaryTierCard(
                 plan: .quarterly, title: "12-week",
                 price: quarterlyPrice, period: "/3 mo", sub: "billed once"
             )
             secondaryTierCard(
                 plan: .weekly, title: "Weekly",
-                price: weeklyPrice, period: "/wk", sub: "pay as you go"
+                price: weeklyPrice, period: "/wk", sub: "billed weekly"
             )
         }
         .frame(maxWidth: .infinity)
@@ -842,7 +974,7 @@ struct PaywallView: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 13))
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.bgInverse)
                         .background(Palette.bgElevated, in: Circle())
                         .offset(x: 5, y: -5)
                 }
@@ -870,18 +1002,12 @@ struct PaywallView: View {
     }
 
     private var trustAndLegalFooter: some View {
+        // ZONE 3 stays Tiffany-clean — no sticker in the closing band.
         VStack(spacing: 4) {
-            HStack(spacing: 6) {
-                Image("sticker_flower_3d")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 14, height: 14)
-                    .rotationEffect(.degrees(-8))
-                    .accessibilityHidden(true)
-                Text(closingLine)
-                    .font(.system(size: 10))
-                    .foregroundStyle(Palette.textSecondary)
-            }
+            Text(closingLine)
+                .font(.system(size: 10))
+                .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
             HStack(spacing: 6) {
                 Button("terms") { legalDoc = .terms }
                     .font(.system(size: 10))
@@ -926,51 +1052,6 @@ struct PaywallView: View {
         .multilineTextAlignment(.center)
     }
 
-    /// Decorative low-opacity edge scatter — coquette warmth without
-    /// crowding. Static placements (no animation drift) so it reads as
-    /// quiet brand wallpaper, not as content. 0.35 opacity keeps it
-    /// from competing with text. 4 stickers, all at extreme edges (top
-    /// corners + bottom corners).
-    private var paywallEdgeScatter: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
-            let h = geo.size.height
-            ZStack {
-                Image("sticker_sparkle_glossy")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 28, height: 28)
-                    .rotationEffect(.degrees(-12))
-                    .opacity(0.35)
-                    .position(x: w * 0.07, y: h * 0.18)
-
-                Image("sticker_bow_iridescent")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 34, height: 34)
-                    .rotationEffect(.degrees(14))
-                    .opacity(0.35)
-                    .position(x: w * 0.94, y: h * 0.20)
-
-                Image("sticker_heart_glossy")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 26, height: 26)
-                    .rotationEffect(.degrees(11))
-                    .opacity(0.30)
-                    .position(x: w * 0.06, y: h * 0.78)
-
-                Image("sticker_star_lineart")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 24, height: 24)
-                    .rotationEffect(.degrees(-10))
-                    .opacity(0.35)
-                    .position(x: w * 0.94, y: h * 0.80)
-            }
-        }
-    }
-
     private var quarterlyPrice: String {
         quarterlyPriceText.replacingOccurrences(of: "/3 months", with: "")
     }
@@ -986,10 +1067,8 @@ struct PaywallView: View {
             Task { await purchase() }
         } label: {
             ZStack {
-                Text(ctaLabel)
-                    .font(.system(size: 17, weight: .semibold))
+                ctaText
                     .tracking(0.3)
-                    .foregroundStyle(Palette.textInverse)
                     .opacity(working ? 0 : 1)
                 if working {
                     PulsingDots(color: Palette.textInverse)
@@ -1001,9 +1080,23 @@ struct PaywallView: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Palette.textPrimary)
             )
+            // Barely-there inner top gloss — a single specular highlight
+            // so the cocoa mass reads as a pressed, premium surface.
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.10), Color.white.opacity(0.0)],
+                            startPoint: .top,
+                            endPoint: .center
+                        )
+                    )
+                    .allowsHitTesting(false)
+            )
         }
         .buttonStyle(PressFeedbackStyle())
         .disabled(working)
+        .accessibilityLabel(ctaPriceSuffix.map { "start my plan, \($0)" } ?? "start my plan")
     }
 
     // MARK: - Compact paywall helpers
@@ -1061,9 +1154,8 @@ struct PaywallView: View {
                 Task { await restore() }
             } label: {
                 Text("Restore")
-                    .font(Typo.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Palette.textSecondary)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.textSecondary.opacity(0.55))
             }
             .buttonStyle(.plain)
         }
@@ -1268,8 +1360,103 @@ struct PaywallView: View {
     }
 }
 
-// BecomingCurveShape + BecomingCurveFillShape extracted 2026-05-31 to
-// Views/Onboarding/BecomingProjectionCard.swift so the onboarding v2
-// reveal sequence can reuse them. PaywallView now uses the standalone
-// BecomingProjectionCard view directly (see becomingProjectionCard
-// computed property above).
+// MARK: - PaywallBecomingChart (2026-06-29 projection-as-becoming hero)
+//
+// The paywall's emotional peak. Reuses the canonical BecomingCurveShape /
+// BecomingCurveFillShape (so the curve matches the onboarding reveal) but
+// composes a richer hero treatment for the money screen:
+//   • soft rose AREA fill under the curve, fading to nothing at baseline
+//   • the stroke DRAWS ON over ~700ms ease-out from today → arrival
+//   • a small hollow "today" dot anchors the start
+//   • the arrival BLOOMS LAST — a glossy sticker that springs in, marking
+//     "her"; the goal weight rides a small pill anchored above the
+//     terminus (DEMOTED, never the biggest element)
+//
+// Numbers are never faked: the goal pill is her own entered goal, the
+// curve shape is the shared projection curve. Reduce-Motion snaps to the
+// fully drawn + bloomed state (no draw-on, no spring).
+private struct PaywallBecomingChart: View {
+    /// Her entered goal weight as a display string ("151 lb").
+    let goalLabel: String
+    var height: CGFloat = 84
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var drawn = false
+    @State private var bloom = false
+
+    var body: some View {
+        GeometryReader { geo in
+            // Terminus matches BecomingCurveShape's internal insets
+            // (rightX = maxX - 24, bottomY = maxY - 14).
+            let endX = geo.size.width - 24
+            let endY = geo.size.height - 14
+
+            ZStack(alignment: .topLeading) {
+                BecomingCurveFillShape()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Palette.accent.opacity(0.12),
+                                Palette.accent.opacity(0.0)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .opacity(drawn ? 1 : 0)
+
+                BecomingCurveShape()
+                    .trim(from: 0, to: drawn ? 1 : 0)
+                    .stroke(
+                        Palette.accent,
+                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
+                    )
+
+                // hollow "today" dot — the line leaves from "now"
+                Circle()
+                    .fill(Palette.bgElevated)
+                    .overlay(Circle().stroke(Palette.cocoaSecondary, lineWidth: 1.5))
+                    .frame(width: 9, height: 9)
+                    .position(x: 4, y: 7)
+                    .opacity(drawn ? 1 : 0)
+
+                // goal weight anchored in a small pill above the terminus
+                Text(goalLabel)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Palette.accentSubtle))
+                    .fixedSize()
+                    .position(x: endX - 10, y: max(14, endY - 30))
+                    .opacity(bloom ? 1 : 0)
+
+                // arrival bloom — the ONE glossy sticker marking "her"
+                Image("sticker_flower_3d")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 30, height: 30)
+                    .rotationEffect(.degrees(-6))
+                    .scaleEffect(bloom ? 1 : 0.4)
+                    .opacity(bloom ? 1 : 0)
+                    .position(x: endX, y: endY)
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(height: height)
+        .accessibilityElement()
+        .accessibilityLabel("a gentle weight-loss curve from today to your goal of \(goalLabel)")
+        .onAppear {
+            if reduceMotion {
+                drawn = true
+                bloom = true
+                return
+            }
+            withAnimation(.easeOut(duration: 0.7)) { drawn = true }
+            // the endpoint blooms last, overlapping the end of the draw
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.62)) {
+                bloom = true
+            }
+        }
+    }
+}
