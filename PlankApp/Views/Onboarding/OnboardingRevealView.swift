@@ -47,7 +47,7 @@ struct OnboardingRevealView: View {
         goalWeightKg: Double?,
         onRevealComplete: @escaping () -> Void,
         debugStartAtFirstWeek: Bool = false,
-        debugStartAtAssessment: Bool = false,
+        debugStartAtProjection: Bool = false,
         debugStartAtCommitment: Bool = false,
         debugStartAtDisclaimer: Bool = false
     ) {
@@ -64,7 +64,7 @@ struct OnboardingRevealView: View {
         self._step = State(initialValue:
             debugStartAtDisclaimer ? .disclaimer :
             debugStartAtCommitment ? .commitment :
-            debugStartAtAssessment ? .assessment :
+            debugStartAtProjection ? .projection :
             debugStartAtFirstWeek  ? .firstWeek  : .disclaimer)
     }
 
@@ -74,20 +74,16 @@ struct OnboardingRevealView: View {
         // handleOnboardingComplete reads it back to persist on UserRecord.
         case disclaimer
         case building
-        case projection
-        // v9 P9.1/P9.2 (her75 onboarding restructure): the user holds
-        // her plan BEFORE paywall. pacePicker → goalDate → assessment
-        // → firstWeek form the Program Design chapter. Pace persists
-        // via AppStorage so the (eventually trimmed) ProgramSetup
-        // post-paywall just reads it back - no second pick.
+        // Task 5 (2026-06-29) - one projection reveal. The user picks
+        // her pace, then sees the SINGLE projection climax recomputed at
+        // that pace: the becoming curve + calorie hero + goal date + the
+        // clinician credibility strip (the former assessment's two unique
+        // lines, folded in). The duplicate pace question (case 167), the
+        // GoalDateReveal step, and the assessment's second curve are cut.
+        // Pace persists via AppStorage (onboardingPickedTier) so the
+        // post-paywall ProgramSetup just reads it back - no second pick.
         case pacePicker
-        case goalDate
-        // Assessment-as-payoff: lands after the goal-date reveal so
-        // the user sees her arc validated by the inputs she gave us
-        // before we advance to the first-week preview. Dual-register
-        // card (JeniHeroSerif identity + DMSans data + provenance +
-        // credibility beat + earned-progress label).
-        case assessment
+        case projection
         case firstWeek
         case permissions
         // Task 7 (2026-06-28) - commitment ritual. The LAST
@@ -122,32 +118,18 @@ struct OnboardingRevealView: View {
                     onComplete: { advanceFromBuilding() }
                 )
                 .transition(.opacity)
+            case .pacePicker:
+                PacePickerPresentation(
+                    currentWeightKg: currentWeightKg ?? 65,
+                    goalWeightKg: goalWeightKg ?? 60,
+                    onContinue: { withAnimation(Motion.crossFade) { step = .projection } }
+                )
+                .transition(.opacity)
             case .projection:
                 ProjectionPresentation(
                     currentWeightKg: currentWeightKg,
                     goalWeightKg: goalWeightKg,
                     voicePreference: voicePreference,
-                    onContinue: { withAnimation(Motion.crossFade) { step = .pacePicker } }
-                )
-                .transition(.opacity)
-            case .pacePicker:
-                PacePickerPresentation(
-                    currentWeightKg: currentWeightKg ?? 65,
-                    goalWeightKg: goalWeightKg ?? 60,
-                    onContinue: { withAnimation(Motion.crossFade) { step = .goalDate } }
-                )
-                .transition(.opacity)
-            case .goalDate:
-                GoalDateRevealPresentation(
-                    currentWeightKg: currentWeightKg ?? 65,
-                    goalWeightKg: goalWeightKg ?? 60,
-                    onContinue: { withAnimation(Motion.crossFade) { step = .assessment } }
-                )
-                .transition(.opacity)
-            case .assessment:
-                AssessmentPresentation(
-                    currentWeightKg: currentWeightKg ?? 65,
-                    goalWeightKg: goalWeightKg ?? 60,
                     onContinue: { withAnimation(Motion.crossFade) { step = .firstWeek } }
                 )
                 .transition(.opacity)
@@ -169,12 +151,14 @@ struct OnboardingRevealView: View {
     }
 
     private func advanceFromBuilding() {
-        // v9 P9.1/P9.2: building → projection → pacePicker → goalDate
-        // → firstWeek → permissions when we have weight data; without
-        // weight, skip all derivation-dependent steps and land on
-        // firstWeek directly (it still renders with default tier).
+        // Task 5 (2026-06-29): building → pacePicker → projection →
+        // firstWeek → permissions when we have weight data. PacePicker
+        // sits next to the projection it recomputes, so the single
+        // projection reveal reflects the chosen pace. Without weight,
+        // skip the derivation-dependent steps and land on firstWeek
+        // directly (it still renders with the default tier).
         withAnimation(Motion.crossFade) {
-            step = hasProjection ? .projection : .firstWeek
+            step = hasProjection ? .pacePicker : .firstWeek
         }
     }
 }
@@ -509,6 +493,9 @@ private struct ProjectionPresentation: View {
     @State private var heroVisible = false
     @State private var calorieVisible = false
     @State private var cardVisible = false
+    // Task 5 (2026-06-29): clinician credibility strip, folded in from
+    // the now-cut assessment step. Reveals just after the curve card.
+    @State private var credibilityVisible = false
     @State private var contextVisible = false
     @State private var ctaVisible = false
     // v3 P11.6+ (2026-06-10) — per-tile cascade counter for the 6
@@ -612,6 +599,21 @@ private struct ProjectionPresentation: View {
                         .opacity(cardVisible ? 1 : 0)
                         .scaleEffect(cardVisible ? 1.0 : 0.97)
 
+                        // Task 5 (2026-06-29): clinician credibility strip,
+                        // merged from the cut assessment step. A single
+                        // hairline rule + the credibility line + (only when a
+                        // cohort modifier gentled the floor) the provenance
+                        // line. HairlineKit register so it reads as a calm lab
+                        // annotation under the curve, not a second card. The
+                        // assessment's ArcSparkline (the duplicate 3rd curve)
+                        // is dropped - the BecomingProjectionCard is the one
+                        // curve now.
+                        credibilityStrip
+                            .padding(.horizontal, Space.lg)
+                            .opacity(credibilityVisible ? 1 : 0)
+                            .offset(y: reduceMotion ? 0 : (credibilityVisible ? 0 : 6))
+                            .animation(Motion.entrance, value: credibilityVisible)
+
                         if !contextChips.isEmpty {
                             VStack(alignment: .center, spacing: 6) {
                                 Text("your actual context")
@@ -679,19 +681,60 @@ private struct ProjectionPresentation: View {
             }
             try? await Task.sleep(nanoseconds: 450_000_000)
             withAnimation(Motion.entrance) { cardVisible = true }
-            try? await Task.sleep(nanoseconds: 450_000_000)
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            withAnimation(Motion.entrance) { credibilityVisible = true }
+            try? await Task.sleep(nanoseconds: 350_000_000)
             withAnimation(Motion.entranceSoft) { contextVisible = true }
             try? await Task.sleep(nanoseconds: 350_000_000)
             withAnimation(Motion.entranceSoft) { ctaVisible = true }
         }
     }
 
+    // MARK: - Clinician credibility strip (Task 5)
+
+    /// Hairline credibility strip rendered under the projection curve,
+    /// merged from the cut assessment step. Uses HairlineKit's HairlineRule
+    /// so it sits in the calm lab-readout register. The provenance line is
+    /// omitted (not rendered empty) when no cohort modifier applied.
+    private var credibilityStrip: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            HairlineRule()
+            if let provenance = provenanceLine {
+                Text(provenance)
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text("paced like a clinician would. slower is what lasts.")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// One-line provenance tied to the cohort flag that gentled the floor
+    /// rate. Returns nil when no modifier applied (default pace) so the
+    /// line is fully omitted, not rendered empty. Every branch traces to a
+    /// real collected field (sleep / GLP-1 status / hormonal stage).
+    private var provenanceLine: String? {
+        if ProgramGoalCalculator.isShortSleeper(from: sleepHours) {
+            return "because you sleep around 6 hours, we set a gentler pace."
+        }
+        if ProgramGoalCalculator.isGLP1User(from: glp1Status) {
+            return "because of your body's signals right now, we paced this gently."
+        }
+        if ProgramGoalCalculator.isPerimenopausal(from: hormonalStage) {
+            return "because of where your body is, we paced this gently."
+        }
+        return nil
+    }
+
     // MARK: - Calorie target hero (D68 / Task 1)
 
     /// Window for the cohort-derived soft-pace floor. Matches the same
-    /// ProgramGoalCalculator.compute call in PacePickerPresentation and
-    /// GoalDateRevealPresentation so all three surfaces derive from one
-    /// consistent set of cohort inputs.
+    /// ProgramGoalCalculator.compute call in PacePickerPresentation so
+    /// both surfaces derive from one consistent set of cohort inputs.
     private var revealWindow: ProgramGoalCalculator.Window {
         ProgramGoalCalculator.compute(.init(
             currentWeightKg: currentWeightKg ?? 65,
@@ -707,7 +750,7 @@ private struct ProjectionPresentation: View {
     }
 
     /// Loss rate for the picked pace tier - the SAME rate that draws
-    /// the goal date on GoalDateRevealPresentation. Hard = 1%/wk,
+    /// the goal date on the projection card. Hard = 1%/wk,
     /// Medium = 0.75%/wk, Soft = cohort floor from ProgramGoalCalculator
     /// (0.5%, 0.4%, or 0.3% depending on sleep/GLP-1/perimenopause).
     private var pickedLossRatePctPerWeek: Double {
@@ -1454,541 +1497,6 @@ private struct PacePickerPresentation: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title) pace, \(weeks) weeks, \(tagline)\(selected ? ", selected" : "")")
-    }
-}
-
-// MARK: - GoalDateRevealPresentation (v9 P9.2)
-//
-// "you'll get there by {Month Day}." — derived from picked tier +
-// ProgramGoalCalculator.Window. Read-only on purpose; the designer
-// rejected a free scrubber because the math is the trust, not the
-// editability.
-
-private struct GoalDateRevealPresentation: View {
-
-    let currentWeightKg: Double
-    let goalWeightKg: Double
-    let onContinue: () -> Void
-
-    @AppStorage("onboardingPickedTier") private var pickedTierRaw: String = "medium"
-    @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
-    @AppStorage("onboarding_glp1_status")  private var glp1Status: String = ""
-    // v3 P11.2 (2026-06-10) — sleep load-bearing in engine.
-    @AppStorage("onboardingSleepHours")    private var sleepHours: String = ""
-    // T2 (2026-06-29): weight trend + GLP-1 phase now move pacing.
-    @AppStorage("onboarding_weight_trend") private var weightTrend: String = ""
-    @AppStorage("onboarding_glp1_phase")   private var glp1Phase: String = ""
-
-    @State private var heroVisible = false
-    @State private var dateVisible = false
-    @State private var ctaVisible = false
-
-    private var tier: IntensityTier {
-        IntensityTier(rawValue: pickedTierRaw) ?? .medium
-    }
-
-    /// v3 P11.2 (2026-06-10) — single source of truth for the
-    /// window. Was inlined twice (goalDate + totalWeeks computed it
-    /// separately). Now both share one Inputs construction so a
-    /// future signal addition only touches one place.
-    private var window: ProgramGoalCalculator.Window {
-        ProgramGoalCalculator.compute(.init(
-            currentWeightKg: currentWeightKg,
-            goalWeightKg: goalWeightKg,
-            sex: .female,
-            age: nil,
-            isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
-            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
-            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours),
-            weightTrendKey:   weightTrend,
-            glp1PhaseKey:     glp1Phase
-        ))
-    }
-
-    // Pace unification (2026-06-11): the reveal date IS the projection
-    // date at the picked tier's pace. Window (cohort science) still
-    // drives program length elsewhere; the user-facing goal date stays
-    // one family across pace selector, day-one card, here, and paywall.
-    private var goalDate: Date {
-        ProjectionMath.projectedGoalDate(
-            currentKg: currentWeightKg,
-            goalKg: goalWeightKg,
-            paceKey: ProjectionMath.paceKey(forTier: tier.rawValue)
-        ) ?? window.goalDate(from: Date(), tier: tier)
-    }
-
-    private var goalDateFormatted: String {
-        let f = DateFormatter()
-        f.dateFormat = "MMMM d"
-        return f.string(from: goalDate).lowercased()
-    }
-
-    private var totalWeeks: Int {
-        ProjectionMath.projectedWeeks(
-            currentKg: currentWeightKg,
-            goalKg: goalWeightKg,
-            paceKey: ProjectionMath.paceKey(forTier: tier.rawValue)
-        ) ?? window.weeks(for: tier)
-    }
-
-    var body: some View {
-        ZStack {
-            Palette.programBgPrimary.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                Spacer()
-
-                // her75 Phase 4 — Archetype B goal-date reveal.
-                // displayHero tokens deprecated per the re-ladder
-                // (merged into heroHeadline). Lead-in body line sets
-                // the prompt; the date lands as the 38pt italic beat
-                // with a paired haptic.
-                LineCascadeText(
-                    lines: [
-                        .plain("you'll get there by"),
-                        .italic(goalDateFormatted)
-                    ],
-                    baseFont: Typo.body,
-                    italicFont: Typo.heroHeadlineItalic,
-                    color: Palette.cocoaPrimary,
-                    alignment: .center,
-                    lineSpacing: Typo.heroHeadlineLineGap,
-                    perLineDelay: 0.55
-                )
-                .padding(.horizontal, Space.lg)
-
-                Spacer().frame(height: Space.xl)
-
-                miniTimeline
-                    .padding(.horizontal, Space.xl)
-                    .opacity(dateVisible ? 1 : 0)
-
-                Spacer()
-
-                Button(action: onContinue) {
-                    Text("continue")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                        .foregroundStyle(Palette.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(Palette.bgInverse)
-                        .clipShape(Capsule())
-                }
-                .padding(.horizontal, Space.lg)
-                .padding(.bottom, 24)
-                .opacity(ctaVisible ? 1 : 0)
-            }
-        }
-        .task {
-            withAnimation(Motion.entrance) { heroVisible = true }
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            withAnimation(Motion.entrance) { dateVisible = true }
-            try? await Task.sleep(nanoseconds: 350_000_000)
-            withAnimation(Motion.entranceSoft) { ctaVisible = true }
-        }
-    }
-
-    /// Five dots Today → 25% → 50% → 75% → Goal. Today + Goal are
-    /// emphasized; the three quarter ticks are quiet markers so the
-    /// horizon reads as substantial without being a literal ruler.
-    private var miniTimeline: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Text("today")
-                    .font(Typo.eyebrow)
-                    .tracking(1.4)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                Spacer()
-                Text("\(totalWeeks) weeks")
-                    .font(Typo.eyebrow)
-                    .tracking(1.4)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                Spacer()
-                Text("goal")
-                    .font(Typo.eyebrow)
-                    .tracking(1.4)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-            }
-            HStack(spacing: 0) {
-                dot(big: true)
-                Spacer()
-                dot(big: false)
-                Spacer()
-                dot(big: false)
-                Spacer()
-                dot(big: false)
-                Spacer()
-                // v1.6 PEAK #2 (peak-end): a single whisper sparkle on the
-                // GOAL endpoint dot the moment the date lands — restrained
-                // (one element, ~52pt, one-shot), reduce-motion-gated inside
-                // LottieEffectView. The reward is ON the focal point, not
-                // scattered across the screen.
-                dot(big: true, tinted: true)
-                    .overlay {
-                        if dateVisible {
-                            LottieEffectView(.sparklingHearts, loop: false)
-                                .frame(width: 52, height: 52)
-                                .allowsHitTesting(false)
-                        }
-                    }
-            }
-            .overlay(
-                Rectangle()
-                    .fill(Palette.cocoaPrimary.opacity(0.12))
-                    .frame(height: 1.5)
-                    .padding(.horizontal, 6),
-                alignment: .center
-            )
-        }
-    }
-
-    private func dot(big: Bool, tinted: Bool = false) -> some View {
-        Circle()
-            .fill(tinted ? Palette.accent : Palette.cocoaPrimary)
-            .frame(width: big ? 12 : 6, height: big ? 12 : 6)
-    }
-}
-
-
-// MARK: - AssessmentPresentation (Task 8, 2026-06-28)
-//
-// "assessment-as-payoff" - premium redesign using the phase-1a
-// activation design foundation. 3 vertical zones:
-//
-//   TOP    - JeniHeroSerif statement headline + arrival date as
-//            secondary serif display (the arc endpoint, the payoff).
-//
-//   MIDDLE - ArcSparkline proof: the shape the headline names.
-//            EarnedStickerCluster blooms at the arc arrival side
-//            (top trailing) after the draw completes. Plan-reveal
-//            family = earned moment; single tasteful cluster, keep-out
-//            by placement (bounded diameter x diameter corner overlay).
-//
-//   DATA   - LabReadoutBlock (pace / arrival / approach rows) +
-//            conditional cohort provenance (quiet line) +
-//            credibility beat.
-//
-//   GROUNDED CLOSE - HairlineRule + earned-progress label just above
-//   the CTA so the eye lands on completion before the button.
-//
-// Background: GrainfieldBackground - the alive cream surface. Visually
-// distinct from the flat bgPrimary that other screens use and more
-// premium for the emotional peak screen.
-//
-// Motion cascade (reduce-motion safe - foundation components gate their
-// own animation internally; all caller-added offset motion is gated on
-// the reduceMotion env value):
-//   headline -> arrival date -> arc draws -> sticker blooms ->
-//   stat block -> provenance -> credibility -> footer -> CTA.
-//
-// Haptics: prepare() on appear (no-latency first play); arcComplete()
-// fires at ~720ms after arcAnimate flips - matching the arc's 700ms
-// draw-on duration.
-//
-// Hard constraints: no red, no em-dashes, no projected weight number,
-// lowercase casual copy, reduce-motion safe throughout.
-
-private struct AssessmentPresentation: View {
-    let currentWeightKg: Double
-    let goalWeightKg: Double
-    let onContinue: () -> Void
-
-    @AppStorage("onboarding_glp1_status")  private var glp1Status: String = ""
-    @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
-    @AppStorage("onboardingSleepHours")    private var sleepHours: String = ""
-    @AppStorage("onboardingPickedTier")    private var pickedTierRaw: String = "medium"
-    // T2 (2026-06-29): weight trend + GLP-1 phase now move pacing.
-    @AppStorage("onboarding_weight_trend") private var weightTrend: String = ""
-    @AppStorage("onboarding_glp1_phase")   private var glp1Phase: String = ""
-
-    // Cascade reveal states - each flips once in the .task chain below
-    @State private var heroVisible        = false
-    @State private var dateVisible        = false
-    @State private var arcAnimate         = false
-    @State private var stickerAnimate     = false
-    @State private var dataBlockVisible   = false
-    @State private var provenanceVisible  = false
-    @State private var credibilityVisible = false
-    @State private var footerVisible      = false
-    @State private var ctaVisible         = false
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    // Compute the window once so loss-rate floor + dates share one source.
-    private var window: ProgramGoalCalculator.Window {
-        ProgramGoalCalculator.compute(.init(
-            currentWeightKg: currentWeightKg,
-            goalWeightKg: goalWeightKg,
-            sex: .female,
-            age: nil,
-            isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
-            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
-            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours),
-            weightTrendKey:   weightTrend,
-            glp1PhaseKey:     glp1Phase
-        ))
-    }
-
-    /// Weekly loss rate for the lab readout. e.g. "0.5"
-    private var lossRatePctText: String {
-        String(format: "%.1f", window.lossRateFloor * 100)
-    }
-
-    /// Arrival date in "MMM d" format. Matches GoalDateReveal's date via
-    /// the same ProjectionMath route (picked pace key). Falls back to "soon"
-    /// so the rendered text reads "~soon" rather than crashing.
-    private var arrivalDateText: String {
-        let paceKey = UserDefaults.standard.string(forKey: ProjectionMath.paceDefaultsKey)
-        return ProjectionMath.formattedShortDate(
-            currentKg: currentWeightKg,
-            goalKg: goalWeightKg,
-            paceKey: paceKey
-        ) ?? "soon"
-    }
-
-    /// One-line provenance explanation tied to the cohort flag that changed
-    /// the floor rate. Returns nil when no modifier was applied (default
-    /// 0.5%/wk) so the line is fully omitted, not rendered empty.
-    private var provenanceLine: String? {
-        if ProgramGoalCalculator.isShortSleeper(from: sleepHours) {
-            return "because you sleep around 6 hours, we set a gentler pace."
-        }
-        if ProgramGoalCalculator.isGLP1User(from: glp1Status) {
-            return "because of your body's signals right now, we paced this gently."
-        }
-        if ProgramGoalCalculator.isPerimenopausal(from: hormonalStage) {
-            return "because of where your body is, we paced this gently."
-        }
-        return nil
-    }
-
-    var body: some View {
-        ZStack {
-            // Alive cream canvas - premium surface distinct from flat bgPrimary.
-            // Intentional visual breath vs the pink reveal steps that bracket this
-            // reflection beat.
-            GrainfieldBackground()
-
-            // VStack pattern: ScrollView is explicitly constrained to the space
-            // above the docked CTA. GrainfieldBackground().ignoresSafeArea() inside
-            // this ZStack makes .safeAreaInset propagation unreliable (the button
-            // lands mid-screen rather than at the safe-area edge). The proven fix
-            // used by PacePickerPresentation / FirstWeekPresentation is a VStack
-            // that partitions scroll zone vs button band with no ambiguity.
-            VStack(spacing: 0) {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    // Top inset: 16pt (Space.md). Tight but clean - reclaims
-                    // vertical space so the full composition fits above the CTA.
-                    Spacer().frame(height: Space.md)
-
-                    // ZONE 1 - statement: headline + arrival date as serif display
-                    VStack(alignment: .leading, spacing: Space.xs) {
-                        // Identity line - locked copy, JeniHeroSerif with italic punch
-                        ItalicAccentText(
-                            "here's your realistic arc.",
-                            italic: ["realistic"],
-                            baseFont: Typo.heroHeadline,
-                            italicFont: Typo.heroHeadlineItalic,
-                            color: Palette.textPrimary,
-                            alignment: .leading
-                        )
-                        .kerning(-0.4)
-                        .lineSpacing(Typo.heroHeadlineLineGap)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .opacity(heroVisible ? 1 : 0)
-                        .offset(y: reduceMotion ? 0 : (heroVisible ? 0 : 10))
-                        .animation(Motion.entrance, value: heroVisible)
-
-                        // Arrival date promoted to secondary serif display.
-                        // This IS the arc's endpoint - the emotional payoff of the
-                        // assessment. Italic italic-Fraunces at questionHeroItalic (34pt)
-                        // reads as direction + arrival; tilde signals "about" to
-                        // match the clinical honesty of the lab readout.
-                        Text("~\(arrivalDateText)")
-                            .font(Typo.questionHeroItalic)
-                            .foregroundStyle(Palette.textSecondary)
-                            .opacity(dateVisible ? 1 : 0)
-                            .offset(y: reduceMotion ? 0 : (dateVisible ? 0 : 8))
-                            .animation(Motion.entrance, value: dateVisible)
-                    }
-                    .padding(.horizontal, Space.screenPadding)
-
-                    Spacer().frame(height: Space.md)
-
-                    // ZONE 2 - arc hero. 150pt: confident reading arc that
-                    // coexists with the full data zone + ledger in one screen.
-                    // LabReadoutBlock rowSpacing tightened (see below) recovers
-                    // ~100pt; arc at 150pt stays in the premium hero register.
-                    // 24pt side insets span nearly full content width.
-                    ArcSparkline(
-                        animate: arcAnimate,
-                        startLabel: "today",
-                        endpointLabel: arrivalDateText
-                    )
-                    .frame(height: 150)
-                    .padding(.horizontal, 24)
-
-                    // Sticker: no extra gap above - the arc's own top-right
-                    // endpoint sits close enough; cluster reads as earned by the arc.
-                    // Reduced to 60pt diameter - still earns its moment, no bulk.
-                    EarnedStickerCluster(
-                        animate: stickerAnimate,
-                        stickers: [.flower3D, .heartGlossy, .sparkleGlossy],
-                        diameter: 60
-                    )
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                    .padding(.trailing, Space.lg)
-
-                    Spacer().frame(height: Space.xs)
-
-                    // ZONE 3 - data: calm lab readout + compact 2-line caption.
-                    //
-                    // Block fades + rises as a unit when dataBlockVisible flips.
-                    // Provenance + credibility tuck tightly under the readout
-                    // in caption register - not floating as standalone body text.
-                    VStack(alignment: .leading, spacing: Space.sm) {
-                        // rowSpacing: 6 - tightened from default 14 so 3 rows
-                        // cost ~120pt instead of ~165pt. Still reads as premium;
-                        // the negative-space signal is the surrounding whitespace,
-                        // not the intra-row padding.
-                        LabReadoutBlock(rows: [
-                            .init(label: "pace",     value: "\(lossRatePctText)%/wk"),
-                            .init(label: "arrival",  value: "~\(arrivalDateText)"),
-                            .init(label: "approach", value: "conservative"),
-                        ], rowSpacing: 6)
-
-                        // Compact caption tucked tight under the readout.
-                        // Caption register (13pt) keeps these as annotation,
-                        // not a second content zone.
-                        VStack(alignment: .leading, spacing: 3) {
-                            if let provenance = provenanceLine {
-                                Text(provenance)
-                                    .font(Typo.caption)
-                                    .foregroundStyle(Palette.textSecondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .opacity(provenanceVisible ? 1 : 0)
-                                    .offset(y: reduceMotion ? 0 : (provenanceVisible ? 0 : 5))
-                                    .animation(Motion.entrance, value: provenanceVisible)
-                            }
-
-                            // Credibility beat - locked copy
-                            Text("paced like a clinician would. slower is what lasts.")
-                                .font(Typo.caption)
-                                .foregroundStyle(Palette.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .opacity(credibilityVisible ? 1 : 0)
-                                .offset(y: reduceMotion ? 0 : (credibilityVisible ? 0 : 5))
-                                .animation(Motion.entrance, value: credibilityVisible)
-                        }
-                    }
-                    .padding(.horizontal, Space.screenPadding)
-                    .opacity(dataBlockVisible ? 1 : 0)
-                    .offset(y: reduceMotion ? 0 : (dataBlockVisible ? 0 : 8))
-                    .animation(Motion.entrance, value: dataBlockVisible)
-
-                    Spacer().frame(height: Space.sm)
-
-                    // PROGRESS LEDGER - grounds the lower third.
-                    // 3 hairline rows fill the cream above the CTA and
-                    // preview the journey: done / set / next. Heart glyph uses
-                    // text-presentation selector so it renders in dusty-rose,
-                    // not emoji red. Eye travels: arc -> data -> ledger -> CTA.
-                    progressLedger
-                        .padding(.horizontal, Space.screenPadding)
-                        .opacity(footerVisible ? 1 : 0)
-                        .animation(Motion.entranceSoft, value: footerVisible)
-
-                    Spacer().frame(height: Space.md)
-                }
-            }
-
-            // Docked CTA - cream band ensures no content bleeds behind button.
-            // VStack cleanly partitions the scroll zone from the button zone;
-            // GrainfieldBackground().ignoresSafeArea() inside the ZStack makes
-            // safeAreaInset propagation unreliable (button lands mid-screen).
-            // Pattern matches PacePickerPresentation / FirstWeekPresentation.
-            JFContinueButton(label: "continue", action: onContinue)
-                .padding(.horizontal, Space.lg)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
-                .background(Palette.bgPrimary)
-                .opacity(ctaVisible ? 1 : 0)
-                .animation(Motion.entranceSoft, value: ctaVisible)
-            } // VStack
-        }
-        .task {
-            // Warm the haptic engine on appear so the first play has no latency.
-            ActivationHaptics.shared.prepare()
-
-            // Cascade: headline -> arrival date -> arc draws ->
-            // sticker blooms -> stat block -> provenance ->
-            // credibility -> footer -> CTA
-            withAnimation(Motion.entrance) { heroVisible = true }
-            try? await Task.sleep(nanoseconds: 300_000_000)
-
-            withAnimation(Motion.entrance) { dateVisible = true }
-            try? await Task.sleep(nanoseconds: 250_000_000)
-
-            // Arc draw starts. ArcSparkline drives internally:
-            // draw-on (~700ms easeOut) -> travel highlight -> arrival bloom.
-            // arcComplete() fires at the draw-on endpoint (~720ms).
-            arcAnimate = true
-            try? await Task.sleep(nanoseconds: 720_000_000)
-            ActivationHaptics.shared.arcComplete()
-
-            // Sticker blooms just after arc completes + haptic settles
-            try? await Task.sleep(nanoseconds: 80_000_000)
-            withAnimation(Motion.bloom) { stickerAnimate = true }
-
-            // Data block fades up as a unit
-            try? await Task.sleep(nanoseconds: 200_000_000)
-            withAnimation(Motion.entrance) { dataBlockVisible = true }
-            try? await Task.sleep(nanoseconds: 350_000_000)
-
-            // Provenance + credibility stagger inside the visible block
-            withAnimation(Motion.entrance) { provenanceVisible = true }
-            try? await Task.sleep(nanoseconds: 280_000_000)
-            withAnimation(Motion.entrance) { credibilityVisible = true }
-            try? await Task.sleep(nanoseconds: 280_000_000)
-
-            withAnimation(Motion.entranceSoft) { footerVisible = true }
-            try? await Task.sleep(nanoseconds: 350_000_000)
-            withAnimation(Motion.entranceSoft) { ctaVisible = true }
-        }
-    }
-
-    // MARK: - Progress ledger
-
-    // 3-row hairline ledger grounds the lower third.
-    // assessment -> done (dusty-rose heart, text-presentation so no emoji red)
-    // your pace   -> set
-    // your promise -> next  (previews the next beat in the reveal)
-    private var progressLedger: some View {
-        // rowSpacing: 6 - caption-size rows are already compact; 6pt
-        // vertical padding keeps them airy without adding bulk.
-        LabReadoutBlock(rows: [
-            .init(
-                label: "assessment",
-                value: "done \u{2665}\u{FE0E}",
-                valueColor: Palette.accent,
-                valueFont: Typo.caption
-            ),
-            .init(
-                label: "your pace",
-                value: "set",
-                valueFont: Typo.caption
-            ),
-            .init(
-                label: "your promise",
-                value: "next",
-                valueColor: Palette.cocoaTertiary,
-                valueFont: Typo.caption
-            ),
-        ], rowSpacing: 6)
     }
 }
 

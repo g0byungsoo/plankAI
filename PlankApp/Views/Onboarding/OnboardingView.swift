@@ -1419,47 +1419,14 @@ struct OnboardingView: View {
         // the same mechanism more honestly. AppStorage key retained
         // for migration safety; the question is gone.
 
-        // ─── v3 P11.1.B (2026-06-10) — pace selector upgraded ──────
-        // Cal AI S2 spec from `docs/onboarding_v3_addlist_synthesis_
-        // 2026_06_10.md`. Now ships:
-        //  - Live "weeks to becoming" callout per tier (was hardcoded
-        //    static ranges); ACSM 0.5 / 0.75 / 1.0 %/wk band applied to
-        //    the user's actual weight delta.
-        //  - Coquette stickers (seashell / bowIridescent / sparkleGlossy)
-        //    in place of SF Symbols (tortoise/hare/flame) — the asset
-        //    pack already ships these per [[feedback-design-theme]].
-        //  - Care framing on focused tier (NO red triangle, NO loose-
-        //    skin language — both rejected per Cal AI teardown §4 #4).
-        //
-        // Per the synthesis: "the single most-screenshotted onboarding
-        // screen on Reddit; pace selectors with live-update callouts
-        // lift commitment-phase conversion +12-18%." Originating screen:
-        // calai13/14/15.
-        case 167: jfQuestion(
-            "how do you want to get there?",
-            sub: nil,
-            italic: ["you"],  // v3 her75 editorial register — pace selector goes silent
-            opts: paceSelectorOpts(),
-            sel: Binding(
-                get: { paceChoice },
-                set: { paceChoice = $0; applyCadenceDerivations() }
-            ), next: 203,
-            confirmation: "got it ♥",
-            // her75 Phase 3 — audit said cut this inlineFeedback as
-            // filler; KEPT deliberately. It's the informed-consent
-            // mechanism on the focused tier (Cal AI's red-triangle
-            // warning done anti-shame, founder-locked per the v3
-            // synthesis), renders only on selection, duty-of-care-
-            // adjacent like 163/164.
-            inlineFeedback: [
-                "focused": ("we'll match the pace.", "moves quickly. sleep + protein floor matter more here than calorie math. soft week when life gets loud ♥"),
-            ],
-            stickers: [
-                "gentle":  .seashell,
-                "steady":  .bowIridescent,
-                "focused": .sparkleGlossy,
-            ]
-        )
+        // ─── v1.1.3 T5 (2026-06-29) — case 167 (pace selector) CUT ──
+        // Pace was asked twice: here AND in the reveal PacePicker. The
+        // reveal control is better composed and sits next to the single
+        // projection it recomputes, so this duplicate question is gone.
+        // The render arm + its paceSelectorOpts() helper were removed
+        // (dead-code rule). onboardingPickedTier persists from the reveal
+        // pick. The legacy onboardingPaceChoice key is no longer set in
+        // the flow; its remaining readers fall back gracefully.
 
         // ─── Delta v8 D87 — sunk-cost activation (case 168) ────────
         // Cal AI's calai10 pattern adapted. 3 options (not 2) per
@@ -2140,8 +2107,11 @@ struct OnboardingView: View {
         // replacement pattern.
         130, 7, 131, 132, 1320, 133, 286, 136,
         160, 161,
-        // Delta v8 D73 — pace selector (case 167).
-        167,
+        // v1.1.3 T5 (2026-06-29) — pace selector (case 167) CUT here.
+        // The reveal PacePickerPresentation (post-loader, next to the
+        // single projection it recomputes) is now the sole pace control;
+        // asking twice was redundant. onboardingPickedTier persists from
+        // the reveal pick, so every downstream surface still reads it.
         // Act 4 — Vulnerability + cohort signal. D83 cut 235
         // (month-signals — hormonal stage 163 captures the same
         // cycle-awareness signal at lower vulnerability cost).
@@ -2229,7 +2199,7 @@ struct OnboardingView: View {
         // 3 — what *fits*
         280: 3,  // bridge "now the numbers" (P11.1.B)
         130: 3, 7: 3, 131: 3, 132: 3, 133: 3, 286: 3, 136: 3,
-        160: 3, 161: 3, 167: 3,
+        160: 3, 161: 3,
         // 4 — your *why*
         140: 4, 158: 4, 154: 4, 155: 4, 163: 4, 164: 4,
         282: 4,  // reciprocity beat after vulnerability cluster (P11.1.B)
@@ -3603,10 +3573,12 @@ struct OnboardingView: View {
         case "focused": commitmentDays = (movementBaseline == "very_active") ? "seven" : "five"
         default:        commitmentDays = "five"
         }
-        // Pace unification (2026-06-11) — the reveal PacePicker is the
-        // SAME control as case 167, surfaced once more pre-commit. Seed
-        // its tier from the pace so it opens consistent; PacePicker
-        // writes back through ProjectionMath.paceKey(forTier:) on change.
+        // Pace unification — seed onboardingPickedTier from any legacy
+        // paceChoice so the reveal PacePicker opens consistent. Since
+        // T5 (2026-06-29) cut the case-167 pace question, paceChoice is
+        // normally empty and the reveal PacePicker is the sole writer of
+        // the tier (via ProjectionMath.paceKey(forTier:)). This seed only
+        // fires if a paceChoice is somehow still set.
         if !paceChoice.isEmpty {
             UserDefaults.standard.set(
                 ProjectionMath.tierRaw(forPaceKey: paceChoice),
@@ -3963,31 +3935,6 @@ struct OnboardingView: View {
                 }
             }
         }
-    }
-
-    private func paceSelectorOpts() -> [(String, String, String?, String?)] {
-        // v4.5 — live date math (Cal AI calai13-15). A concrete "around
-        // sep 18" outconverts an abstract week count; recomputes per
-        // option because each pace lands on a different date. All three
-        // route through ProjectionMath so the dates here are the SAME
-        // dates the day-one card, reveal, and paywall later show.
-        func dateLabel(_ paceKey: String) -> String? {
-            ProjectionMath.formattedShortDate(
-                currentKg: currentWeightKg,
-                goalKg: goalWeightKg,
-                paceKey: paceKey
-            )
-        }
-
-        let gentleSub  = dateLabel("gentle").map  { "around \($0) · easier to sustain" }  ?? "easier to sustain · 0.5%/week"
-        let steadySub  = dateLabel("steady").map  { "around \($0) · most chosen pace" }   ?? "most chosen pace · 0.75%/week"
-        let focusedSub = dateLabel("focused").map { "around \($0) · fastest healthy pace" } ?? "fastest healthy pace · 1.0%/week"
-
-        return [
-            ("gentle",  "gentle",   gentleSub,  nil),
-            ("steady",  "steady",   steadySub,  nil),
-            ("focused", "focused",  focusedSub, nil),
-        ]
     }
 
     /// v3 P11.1.A (2026-06-10) — BetterMe S1 dynamic goal-weight

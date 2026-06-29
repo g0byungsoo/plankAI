@@ -639,12 +639,14 @@ struct PlankAIApp: App {
                     // earned sticker cluster) in one scroll so the premium
                     // register can be iterated + screenshot without a screen.
                     ActivationGalleryHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-assessment") {
-                    // TEMPORARY debug harness - jumps straight to the
-                    // AssessmentPresentation beat. Provenance line variant
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-projection") {
+                    // Debug harness - jumps straight to the single projection
+                    // reveal (T5 merged the former assessment's clinician
+                    // credibility strip into it). Provenance line variant
                     // controlled via simctl defaults write:
                     //   onboardingSleepHours five6  → short-sleep line
                     //   onboarding_glp1_status current → GLP-1 line
+                    // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-projection`
                     OnboardingRevealView(
                         bodyFocus: ["flatBelly"],
                         sessionLengthKey: "ten",
@@ -653,7 +655,7 @@ struct PlankAIApp: App {
                         currentWeightKg: 75,
                         goalWeightKg: 65,
                         onRevealComplete: {},
-                        debugStartAtAssessment: true
+                        debugStartAtProjection: true
                     )
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-commitment") {
                     // Task 7 (2026-06-28) - commitment ritual screen.
