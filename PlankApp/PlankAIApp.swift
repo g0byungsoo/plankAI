@@ -2959,7 +2959,11 @@ private struct RootView: View {
                                                 forKey: "onboardingHormonalStage") ?? ""),
                 isShortSleeper:   ProgramGoalCalculator.isShortSleeper(
                                       from: UserDefaults.standard.string(
-                                                forKey: "onboardingSleepHours") ?? "")
+                                                forKey: "onboardingSleepHours") ?? ""),
+                weightTrendKey:   UserDefaults.standard.string(
+                                      forKey: "onboarding_weight_trend") ?? "",
+                glp1PhaseKey:     UserDefaults.standard.string(
+                                      forKey: "onboarding_glp1_phase") ?? ""
             )
             let cgWindow = ProgramGoalCalculator.compute(cgInputs)
             record.computedStartBMI     = ClinicalBaseline.bmi(weightKg: data.currentWeightKg,

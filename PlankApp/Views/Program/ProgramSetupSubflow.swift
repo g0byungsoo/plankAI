@@ -45,6 +45,9 @@ struct ProgramSetupSubflow: View {
     @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
     // v3 P11.2 (2026-06-10) — sleep load-bearing in engine.
     @AppStorage("onboardingSleepHours")    private var sleepHours: String = ""
+    // T2 (2026-06-29): weight trend + GLP-1 phase now move pacing.
+    @AppStorage("onboarding_weight_trend") private var weightTrend: String = ""
+    @AppStorage("onboarding_glp1_phase")   private var glp1Phase: String = ""
 
     // v1.2 medical-grade Phase 1 (2026-06-25) — safety gate. Reads height
     // (persisted by onboarding) for the BMI floor. Runs once per NEW
@@ -257,7 +260,9 @@ struct ProgramSetupSubflow: View {
             // different physiology and stays at default rate).
             isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
             isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
-            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours)
+            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours),
+            weightTrendKey:   weightTrend,
+            glp1PhaseKey:     glp1Phase
         )
     }
 

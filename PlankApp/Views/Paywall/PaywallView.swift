@@ -64,6 +64,9 @@ struct PaywallView: View {
     @AppStorage("onboardingPickedTier") private var onboardingPickedTierRaw: String = ""
     @AppStorage("onboardingHormonalStage") private var paywallHormonalStage: String = ""
     @AppStorage("onboarding_glp1_status")  private var paywallGlp1Status: String = ""
+    // T2 (2026-06-29): weight trend + GLP-1 phase now move pacing.
+    @AppStorage("onboarding_weight_trend") private var paywallWeightTrend: String = ""
+    @AppStorage("onboarding_glp1_phase")   private var paywallGlp1Phase: String = ""
 
     @Query private var userRecords: [UserRecord]
 
@@ -342,7 +345,9 @@ struct PaywallView: View {
             // happen upstream in PacePicker + ProgramSetupSubflow
             // (both of which now read sleep).
             isGLP1User:       ProgramGoalCalculator.isGLP1User(from: paywallGlp1Status),
-            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: paywallHormonalStage)
+            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: paywallHormonalStage),
+            weightTrendKey:   paywallWeightTrend,
+            glp1PhaseKey:     paywallGlp1Phase
         ))
         return window.weeks(for: tier) * 7
     }

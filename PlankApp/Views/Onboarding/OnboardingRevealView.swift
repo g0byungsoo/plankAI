@@ -544,6 +544,9 @@ private struct ProjectionPresentation: View {
     @AppStorage("onboardingHeightCm")        private var heightCm: Double = 0
     @AppStorage("onboardingAgeRange")        private var ageRange: String = ""
     @AppStorage("onb_v4_movement_baseline")  private var movementBaseline: String = ""
+    // T2 (2026-06-29): weight trend + GLP-1 phase now move pacing.
+    @AppStorage("onboarding_weight_trend")   private var weightTrend: String = ""
+    @AppStorage("onboarding_glp1_phase")     private var glp1Phase: String = ""
 
     var body: some View {
         ZStack {
@@ -697,7 +700,9 @@ private struct ProjectionPresentation: View {
             age:             nil,
             isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
             isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
-            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours)
+            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours),
+            weightTrendKey:   weightTrend,
+            glp1PhaseKey:     glp1Phase
         ))
     }
 
@@ -1293,6 +1298,9 @@ private struct PacePickerPresentation: View {
     @AppStorage("onboarding_glp1_status")  private var glp1Status: String = ""
     // v3 P11.2 (2026-06-10) — sleep now load-bearing in the engine.
     @AppStorage("onboardingSleepHours")    private var sleepHours: String = ""
+    // T2 (2026-06-29): weight trend + GLP-1 phase now move pacing.
+    @AppStorage("onboarding_weight_trend") private var weightTrend: String = ""
+    @AppStorage("onboarding_glp1_phase")   private var glp1Phase: String = ""
 
     @State private var heroVisible = false
     @State private var rowsVisible = false
@@ -1310,7 +1318,9 @@ private struct PacePickerPresentation: View {
             // <6h, mostly traded for lean-mass cost).
             isGLP1User:        ProgramGoalCalculator.isGLP1User(from: glp1Status),
             isPerimenopausal:  ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
-            isShortSleeper:    ProgramGoalCalculator.isShortSleeper(from: sleepHours)
+            isShortSleeper:    ProgramGoalCalculator.isShortSleeper(from: sleepHours),
+            weightTrendKey:    weightTrend,
+            glp1PhaseKey:      glp1Phase
         ))
     }
 
@@ -1465,6 +1475,9 @@ private struct GoalDateRevealPresentation: View {
     @AppStorage("onboarding_glp1_status")  private var glp1Status: String = ""
     // v3 P11.2 (2026-06-10) — sleep load-bearing in engine.
     @AppStorage("onboardingSleepHours")    private var sleepHours: String = ""
+    // T2 (2026-06-29): weight trend + GLP-1 phase now move pacing.
+    @AppStorage("onboarding_weight_trend") private var weightTrend: String = ""
+    @AppStorage("onboarding_glp1_phase")   private var glp1Phase: String = ""
 
     @State private var heroVisible = false
     @State private var dateVisible = false
@@ -1486,7 +1499,9 @@ private struct GoalDateRevealPresentation: View {
             age: nil,
             isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
             isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
-            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours)
+            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours),
+            weightTrendKey:   weightTrend,
+            glp1PhaseKey:     glp1Phase
         ))
     }
 
@@ -1685,6 +1700,9 @@ private struct AssessmentPresentation: View {
     @AppStorage("onboardingHormonalStage") private var hormonalStage: String = ""
     @AppStorage("onboardingSleepHours")    private var sleepHours: String = ""
     @AppStorage("onboardingPickedTier")    private var pickedTierRaw: String = "medium"
+    // T2 (2026-06-29): weight trend + GLP-1 phase now move pacing.
+    @AppStorage("onboarding_weight_trend") private var weightTrend: String = ""
+    @AppStorage("onboarding_glp1_phase")   private var glp1Phase: String = ""
 
     // Cascade reveal states - each flips once in the .task chain below
     @State private var heroVisible        = false
@@ -1708,7 +1726,9 @@ private struct AssessmentPresentation: View {
             age: nil,
             isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
             isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
-            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours)
+            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours),
+            weightTrendKey:   weightTrend,
+            glp1PhaseKey:     glp1Phase
         ))
     }
 

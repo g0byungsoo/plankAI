@@ -38,6 +38,20 @@ public enum ProgramGoalCalculator {
         /// get a wider window (slower expected pace) to keep the goal
         /// date honest.
         public let isShortSleeper: Bool
+        /// v3 T2 (2026-06-29) — raw weight-trend key from case 1320
+        /// (onboarding_weight_trend). "cycling" flags regain history.
+        /// NWCR (Wing and Phelan 2005): regain history predicts higher
+        /// re-regain risk; a gentler starting pace reduces the
+        /// fast-then-rebound cycle. Empty string = no adjustment
+        /// (regression-safe default).
+        public let weightTrendKey: String
+        /// v3 T2 (2026-06-29) — raw GLP-1 titration phase key from
+        /// case 1641 (onboarding_glp1_phase). "just_started" applies
+        /// the same cautious 0.003 floor as isGLP1User: early
+        /// titration carries elevated lean-mass risk and deep appetite
+        /// suppression even before glp1_status propagates. Empty
+        /// string = no adjustment (regression-safe default).
+        public let glp1PhaseKey: String
 
         public init(
             currentWeightKg: Double,
@@ -46,7 +60,9 @@ public enum ProgramGoalCalculator {
             age: Int?,
             isGLP1User: Bool = false,
             isPerimenopausal: Bool = false,
-            isShortSleeper: Bool = false
+            isShortSleeper: Bool = false,
+            weightTrendKey: String = "",
+            glp1PhaseKey: String = ""
         ) {
             self.currentWeightKg = currentWeightKg
             self.goalWeightKg = goalWeightKg
@@ -55,6 +71,8 @@ public enum ProgramGoalCalculator {
             self.isGLP1User = isGLP1User
             self.isPerimenopausal = isPerimenopausal
             self.isShortSleeper = isShortSleeper
+            self.weightTrendKey = weightTrendKey
+            self.glp1PhaseKey = glp1PhaseKey
         }
 
         public enum Sex: String, Codable, Sendable {
@@ -148,18 +166,30 @@ public enum ProgramGoalCalculator {
             )
         }
 
-        // Pick floor rate based on cohort flags. Cohort cascade:
-        //   GLP-1 / perimenopause → 0.3%/wk (cautious)
-        //   short sleeper (no GLP-1/peri) → 0.4%/wk (Nedeltcheva 2010)
-        //   default → 0.5%/wk (Wing & Phelan NWCR)
-        // GLP-1/peri wins over short-sleep when both are true — the
-        // physiological reason for slowness is the dominant one.
+        // Pick floor rate based on cohort flags. Cohort cascade
+        // (most-protective first):
+        //   GLP-1 / perimenopause / early GLP-1 titration (just_started)
+        //     -> 0.3%/wk (cautious). GLP-1/peri/early-tit wins over all
+        //        subordinate flags; lean-mass risk is dominant.
+        //   short sleeper (no GLP-1/peri/early-tit) -> 0.4%/wk (Nedeltcheva 2010)
+        //   regain-risk (cycling trend, no GLP-1/peri/sleep penalty)
+        //     -> 0.4%/wk (one notch below 0.5% default). NWCR: repeated
+        //        regain suggests prior pace was too aggressive; a marginally
+        //        slower start reduces the re-regain rate without adding more
+        //        than ~2 weeks on the calendar.
+        //   default -> 0.5%/wk (Wing and Phelan NWCR)
         let floor: Double = {
-            if inputs.isGLP1User || inputs.isPerimenopausal {
+            if inputs.isGLP1User || inputs.isPerimenopausal
+                || isEarlyGLP1(from: inputs.glp1PhaseKey) {
                 return cautiousLossRateFloor
             }
             if inputs.isShortSleeper {
                 return shortSleeperLossRateFloor
+            }
+            // Regain-risk only nudges the DEFAULT case; it does not
+            // override the short-sleep or cautious floors above.
+            if isRegainRisk(from: inputs.weightTrendKey) {
+                return shortSleeperLossRateFloor   // 0.004 - one notch gentler
             }
             return defaultLossRateFloor
         }()
@@ -263,6 +293,30 @@ public enum ProgramGoalCalculator {
     /// default rate per the literature).
     public static func isPerimenopausal(from hormonalStageKey: String) -> Bool {
         hormonalStageKey == "perimenopause"
+    }
+
+    /// v3 T2 (2026-06-29) — case 1320 (onboarding_weight_trend) option
+    /// keys: climbing / stable / declining / cycling. "cycling" = weight
+    /// has gone up and down repeatedly, signaling regain history.
+    /// NWCR (Wing and Phelan 2005): prior regain cycles predict higher
+    /// future regain risk; a one-notch-gentler starting pace (0.005 ->
+    /// 0.004) widens the calendar window slightly and reduces the
+    /// likelihood of another fast-then-rebound cycle. Returns false for
+    /// any other key including "" (regression-safe).
+    public static func isRegainRisk(from weightTrendKey: String) -> Bool {
+        weightTrendKey == "cycling"
+    }
+
+    /// v3 T2 (2026-06-29) — case 1641 (onboarding_glp1_phase) option
+    /// keys: just_started / few_months / established / prefer_not.
+    /// "just_started" = early GLP-1 titration: appetite suppression
+    /// is deepening, side effects are highest, lean-mass loss risk is
+    /// elevated. Apply the same cautious 0.003 floor as isGLP1User
+    /// even if the glp1_status AppStorage key has not yet propagated
+    /// (the titration-phase question is more specific). Returns false
+    /// for any other key including "" (regression-safe).
+    public static func isEarlyGLP1(from glp1PhaseKey: String) -> Bool {
+        glp1PhaseKey == "just_started"
     }
 
     // MARK: - v1.2 Safety gate (2026-06-25)
