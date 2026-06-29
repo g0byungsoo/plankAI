@@ -1092,10 +1092,11 @@ struct SafetyCheckInView: View {
         safetyScreenCompleted = true
         withAnimation(Motion.crossFade) {
             switch a.mode {
-            case .loss:        phase = .allGood
-            case .recovery:    phase = .terminal(.eatingDisorder)
-            case .blocked:     phase = .terminal(.underage)
-            case .maintenance: phase = .terminal(a.reasonKey == "bmi_low" ? .lowBMI : .pregnant)
+            case .loss:           phase = .allGood
+            case .recovery:       phase = .terminal(.eatingDisorder)
+            case .blocked:        phase = .terminal(.underage)
+            case .maintenance:    phase = .terminal(a.reasonKey == "bmi_low" ? .lowBMI : .pregnant)
+            case .clinicianFirst: phase = .terminal(.pregnant) // T7 will add a dedicated terminal
             }
         }
     }

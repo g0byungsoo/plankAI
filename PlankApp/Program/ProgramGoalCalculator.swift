@@ -332,10 +332,16 @@ public enum ProgramGoalCalculator {
 
     /// What program (if any) is appropriate after the safety screen.
     public enum ProgramMode: String, Codable, Sendable {
-        case loss          // standard loss program
-        case maintenance   // healthy/low BMI, pregnant, breastfeeding: steady, no deficit
-        case recovery      // ED screen positive: non-numeric, supportive, no goal weight
-        case blocked       // under 18: no program, supportive exit
+        case loss           // standard loss program
+        case maintenance    // healthy/low BMI, pregnant, breastfeeding, ttc: steady, no deficit
+        case recovery       // ED screen positive: non-numeric, supportive, no goal weight
+        case blocked        // under 18: no program, supportive exit
+        /// v3 T3 (2026-06-29) - medication hypoglycemia risk. A calorie deficit
+        /// on insulin or sulfonylureas can cause hypoglycemia - a physiological
+        /// hazard a wellness app cannot safely manage without clinical oversight.
+        /// Routes to a supportive "talk to your clinician first" terminal (no
+        /// deficit paywall). No drug brand names per Apple 5.2.1.
+        case clinicianFirst // insulin/sulfonylurea medication: clinician input needed first
     }
 
     /// SCOFF eating-disorder screen (Morgan 1999): 5 yes/no items,
@@ -366,6 +372,36 @@ public enum ProgramGoalCalculator {
         public let ageRange: String          // onboardingAgeRange value
         public let scoffYesCount: Int        // -1 = not taken
         public let pregnancyStatus: String   // none/pregnant/ttc/breastfeeding/prefer_not_say/""
+        /// v3 T3 (2026-06-29) - onboarding_medication_status value.
+        /// Values: none / insulin_or_sulfonylurea / other_glucose / prefer_not_say / "".
+        /// Only "insulin_or_sulfonylurea" triggers the clinicianFirst branch - these
+        /// drug classes carry a hypoglycemia risk on a calorie deficit that requires
+        /// clinical oversight. Other glucose medications do not trigger the hard route.
+        /// Default "" = no medication question answered (regression-safe).
+        public let medicationKey: String
+        /// v3 T3 (2026-06-29) - onboarding_glp1_status value (same key space as
+        /// isGLP1User helper: none/considering/past/current/prefer_not_say/"").
+        /// Used here for the SCOFF GLP-1-aware branch - current GLP-1 users may
+        /// show elevated total SCOFF scores due to expected drug effects (rapid
+        /// loss, food-noise reduction). Default "" = not answered (regression-safe).
+        public let glp1StatusKey: String
+        /// v3 T3 (2026-06-29) - onboarding_weight_trend value. Carried here for
+        /// completeness so T7's SafetyInputs builder can forward all collected
+        /// signals in one struct. Currently unused inside safetyAssessment but
+        /// available for T4+ rule additions. Default "" = not answered.
+        public let weightTrendKey: String
+        /// v3 T3 (2026-06-29) - SCOFF yes-count EXCLUDING the two GLP-1-expected
+        /// items (rapid unintentional loss item + food/thoughts-dominate item).
+        /// When >= 0 AND glp1StatusKey == "current", safetyAssessment uses THIS
+        /// count instead of scoffYesCount for the ED branch. This prevents
+        /// false-routing a current GLP-1 user whose only SCOFF positives are
+        /// expected drug effects, not genuine ED signals. The SCOFFScreenView
+        /// (T7) passes both counts; call sites that have not yet migrated leave
+        /// this at -1 (fall through to the standard total-count path).
+        /// Design rationale: a separate core count is cleaner than raising the
+        /// threshold by 1 (which would also let a 1-core-yes slip through), and
+        /// more honest than a boolean "glp1Adjusted" flag that hides the math.
+        public let scoffCoreYesCount: Int
 
         public init(
             currentWeightKg: Double,
@@ -373,7 +409,11 @@ public enum ProgramGoalCalculator {
             heightCm: Double,
             ageRange: String,
             scoffYesCount: Int,
-            pregnancyStatus: String
+            pregnancyStatus: String,
+            medicationKey: String = "",
+            glp1StatusKey: String = "",
+            weightTrendKey: String = "",
+            scoffCoreYesCount: Int = -1
         ) {
             self.currentWeightKg = currentWeightKg
             self.goalWeightKg = goalWeightKg
@@ -381,6 +421,10 @@ public enum ProgramGoalCalculator {
             self.ageRange = ageRange
             self.scoffYesCount = scoffYesCount
             self.pregnancyStatus = pregnancyStatus
+            self.medicationKey = medicationKey
+            self.glp1StatusKey = glp1StatusKey
+            self.weightTrendKey = weightTrendKey
+            self.scoffCoreYesCount = scoffCoreYesCount
         }
     }
 
@@ -399,24 +443,60 @@ public enum ProgramGoalCalculator {
         public let softConfirm: Bool
     }
 
-    /// The safety screen result. Order is intentional: age → ED → pregnancy
-    /// → BMI, most-protective first. Conservative by design (v1 routes
-    /// pregnant/breastfeeding/low-BMI to maintenance rather than a deficit).
+    /// The safety screen result. Order is intentional: age -> medication ->
+    /// ED -> pregnancy -> BMI, most-protective first. Conservative by design
+    /// (v1 routes pregnant/breastfeeding/ttc/low-BMI to maintenance rather
+    /// than a deficit). v3 T3 (2026-06-29) adds medication branch + GLP-1-aware
+    /// SCOFF + ttc routing.
     public static func safetyAssessment(_ s: SafetyInputs) -> SafetyAssessment {
         let bmiNow = s.heightCm > 0 ? bmi(weightKg: s.currentWeightKg, heightCm: s.heightCm) : 0
         let minGoal: Double? = s.heightCm > 0 ? weightForBMI(18.5, heightCm: s.heightCm) : nil
 
-        // 1. Age — under 18 gets no program.
+        // 1. Age - under 18 gets no program.
         if s.ageRange == "under18" {
             return .init(mode: .blocked, minSafeGoalKg: minGoal, currentBMI: bmiNow,
                          reasonKey: "under18", showCrisisResources: false, softConfirm: false)
         }
-        // 2. Eating-disorder screen — most-protective branch.
-        if s.scoffYesCount >= 0, scoffPositive(yesCount: s.scoffYesCount) {
+
+        // 2. Medication - insulin or sulfonylurea requires clinician input first.
+        // These drug classes lower blood glucose; a calorie deficit on top
+        // raises the hypoglycemia risk to a level a wellness app cannot safely
+        // manage without clinical oversight. This branch sits ABOVE the ED
+        // screen because it is a physiological (not psychological) hazard and
+        // the most time-critical route for this cohort.
+        // "other_glucose", "prefer_not_say", and "" do not trigger this route -
+        // those classes either have lower hypoglycemia risk or are unknown.
+        if s.medicationKey == "insulin_or_sulfonylurea" {
+            return .init(mode: .clinicianFirst, minSafeGoalKg: minGoal, currentBMI: bmiNow,
+                         reasonKey: "med_hypo", showCrisisResources: false, softConfirm: false)
+        }
+
+        // 3. Eating-disorder screen - GLP-1-aware.
+        // Standard path: 2+ total yes = positive (Morgan 1999 SCOFF threshold).
+        // GLP-1-aware path: when the user is a current GLP-1 user AND
+        // scoffCoreYesCount is provided (>=0), use the CORE count instead.
+        // Rationale: two SCOFF items - rapid unintentional loss and food/thoughts
+        // dominating daily life - are EXPECTED drug effects for current GLP-1
+        // users, not ED signals. Screening on the total count would false-positive
+        // these users and block them from an appropriate loss program. The core
+        // count (yes-items EXCLUDING those two expected-effect items) preserves
+        // the screen's sensitivity for genuine ED signals while removing the
+        // GLP-1 artefact. Call sites that have not migrated leave scoffCoreYesCount
+        // at -1 and fall through to the standard total-count path (no change).
+        let effectiveScoffCount: Int = {
+            if s.scoffCoreYesCount >= 0 && s.glp1StatusKey == "current" {
+                return s.scoffCoreYesCount
+            }
+            return s.scoffYesCount
+        }()
+        if effectiveScoffCount >= 0, scoffPositive(yesCount: effectiveScoffCount) {
             return .init(mode: .recovery, minSafeGoalKg: minGoal, currentBMI: bmiNow,
                          reasonKey: "ed_screen", showCrisisResources: true, softConfirm: false)
         }
-        // 3. Pregnancy / lactation — no intentional deficit (v1 conservative).
+
+        // 4. Pregnancy / lactation / ttc - no intentional deficit.
+        // ttc (trying to conceive): conservative pre-conception position - no
+        // aggressive deficit before implantation. Maintenance mode, not blocked.
         switch s.pregnancyStatus {
         case "pregnant":
             return .init(mode: .maintenance, minSafeGoalKg: minGoal, currentBMI: bmiNow,
@@ -424,10 +504,14 @@ public enum ProgramGoalCalculator {
         case "breastfeeding":
             return .init(mode: .maintenance, minSafeGoalKg: minGoal, currentBMI: bmiNow,
                          reasonKey: "breastfeeding", showCrisisResources: false, softConfirm: false)
+        case "ttc":
+            return .init(mode: .maintenance, minSafeGoalKg: minGoal, currentBMI: bmiNow,
+                         reasonKey: "ttc", showCrisisResources: false, softConfirm: false)
         default:
             break
         }
-        // 4. BMI floor.
+
+        // 5. BMI floor (unchanged).
         if s.heightCm > 0, bmiNow > 0 {
             if bmiNow < 18.5 {
                 return .init(mode: .maintenance, minSafeGoalKg: minGoal, currentBMI: bmiNow,

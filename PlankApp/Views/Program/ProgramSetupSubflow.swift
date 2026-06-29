@@ -195,10 +195,11 @@ struct ProgramSetupSubflow: View {
 
     private func phase(for a: ProgramGoalCalculator.SafetyAssessment) -> SafetyPhase {
         switch a.mode {
-        case .loss:        return .passed
-        case .recovery:    return .terminal(.eatingDisorder)
-        case .blocked:     return .terminal(.underage)
-        case .maintenance: return .terminal(a.reasonKey == "bmi_low" ? .lowBMI : .pregnant)
+        case .loss:           return .passed
+        case .recovery:       return .terminal(.eatingDisorder)
+        case .blocked:        return .terminal(.underage)
+        case .maintenance:    return .terminal(a.reasonKey == "bmi_low" ? .lowBMI : .pregnant)
+        case .clinicianFirst: return .terminal(.pregnant) // T7 will add a dedicated terminal
         }
     }
 
