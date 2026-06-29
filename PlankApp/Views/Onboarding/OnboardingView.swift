@@ -8452,169 +8452,181 @@ struct OnboardingView: View {
     /// allow / skip. Case 11 is now unreachable from the main flow
     /// (baseline -> 18); its definition is kept for compile safety.
     private var cameraSetupScreen: some View {
-        VStack(spacing: 0) {
-            Spacer().frame(height: Space.md)
+        // Small-phone safe (iPhone SE / 13 mini): scrollable content
+        // sits in a ScrollView; the two action buttons are docked below
+        // via safeAreaInset so they are always visible regardless of
+        // device height. Same VStack-partition pattern as the age picker
+        // and pace-picker screens.
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 0) {
+                Spacer().frame(height: Space.md)
 
-            // Heart sticker - smaller than the original (110pt -> 80pt)
-            // to leave room for the time-picker pills without overflow.
-            ZStack {
-                Circle()
-                    .fill(Palette.accent.opacity(0.12))
-                    .frame(width: 80, height: 80)
-                Image(StickerName.heartGlossy.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 58, height: 58)
-                    .opacity(StickerName.heartGlossy.style.opacity)
-            }
-
-            Spacer().frame(height: Space.sm)
-
-            // Delta v8 D76 headline preserved. Italic-Fraunces on "nudge"
-            // per locked voice-signal rules.
-            (Text("want a ").font(Typo.title)
-             + Text("nudge").font(Typo.titleItalic)
-             + Text(" from jeni?").font(Typo.title))
-                .foregroundStyle(Palette.textPrimary)
-                .multilineTextAlignment(.center)
-
-            Spacer().frame(height: Space.xs)
-
-            Text("one quiet one a day. nothing nagging.")
-                .font(Typo.body)
-                .foregroundStyle(Palette.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Space.lg)
-
-            Spacer().frame(height: Space.sm)
-
-            // Time-of-day selection - merged from former case 11.
-            // Morning defaults on appear so the user is never blocked.
-            VStack(spacing: 8) {
-                ForEach([
-                    ("morning",   "morning",   "around 7 am",   "sunrise"),
-                    ("afternoon", "afternoon", "around 1 pm",   "sun.max"),
-                    ("evening",   "evening",   "around 7 pm",   "moon.stars"),
-                ], id: \.0) { opt in
-                    OnboardingOptionCard(
-                        icon: opt.3,
-                        title: opt.1,
-                        subtitle: opt.2,
-                        isSelected: plankTime == opt.0,
-                        action: {
-                            Haptics.light()
-                            plankTime = opt.0
-                        }
-                    )
+                // Heart sticker - smaller than the original (110pt -> 80pt)
+                // to leave room for the time-picker pills without overflow.
+                ZStack {
+                    Circle()
+                        .fill(Palette.accent.opacity(0.12))
+                        .frame(width: 80, height: 80)
+                    Image(StickerName.heartGlossy.assetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 58, height: 58)
+                        .opacity(StickerName.heartGlossy.style.opacity)
                 }
-            }
-            .padding(.horizontal, Space.screenPadding)
 
-            Spacer().frame(height: Space.sm)
+                Spacer().frame(height: Space.sm)
 
-            // Notification preview card. Starts hidden; the "feel it"
-            // button below drops it in with a spring + fires a real
-            // UINotificationFeedbackGenerator success haptic so she
-            // FEELS the vibration before deciding. Pre-permission, so
-            // it is a visual+haptic simulation - no real OS banner.
-            // v1.1.1 title sync preserved ("five minutes, today." to
-            // match the actual scheduled push).
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    Image(systemName: "app.badge.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Palette.textSecondary)
-                    Text("PREVIEW")
-                        .font(.system(size: 10, weight: .bold))
-                        .tracking(1.5)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                Text("five minutes, today.")
-                    .font(.system(size: 13, weight: .semibold))
+                // Delta v8 D76 headline preserved. Italic-Fraunces on "nudge"
+                // per locked voice-signal rules.
+                (Text("want a ").font(Typo.title)
+                 + Text("nudge").font(Typo.titleItalic)
+                 + Text(" from jeni?").font(Typo.title))
                     .foregroundStyle(Palette.textPrimary)
-                Text(notificationPreviewBody)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Palette.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(Space.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Palette.bgElevated, in: RoundedRectangle(cornerRadius: 14))
-            .padding(.horizontal, Space.screenPadding)
-            // Slide-in from above: hidden until "feel it" is tapped.
-            .offset(y: cameraScreenBannerShown ? 0 : -44)
-            .opacity(cameraScreenBannerShown ? 1 : 0)
+                    .multilineTextAlignment(.center)
 
-            // "feel it" affordance. Tapping springs the banner in and
-            // fires Haptics.success() (UINotificationFeedbackGenerator
-            // .success) so the vibration is real even though the OS
-            // banner cannot appear before permission is granted.
-            // Reduce-motion gate: skip the spring but still fire haptic.
-            // Label swaps to a confirmation string after the demo plays.
-            Button {
-                guard !cameraScreenBannerShown else { return }
-                if reduceMotion {
-                    cameraScreenBannerShown = true
-                } else {
-                    withAnimation(.spring(response: 0.55, dampingFraction: 0.72)) {
-                        cameraScreenBannerShown = true
+                Spacer().frame(height: Space.xs)
+
+                Text("one quiet one a day. nothing nagging.")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.lg)
+
+                Spacer().frame(height: Space.sm)
+
+                // Time-of-day selection - merged from former case 11.
+                // Morning defaults on appear so the user is never blocked.
+                VStack(spacing: 8) {
+                    ForEach([
+                        ("morning",   "morning",   "around 7 am",   "sunrise"),
+                        ("afternoon", "afternoon", "around 1 pm",   "sun.max"),
+                        ("evening",   "evening",   "around 7 pm",   "moon.stars"),
+                    ], id: \.0) { opt in
+                        OnboardingOptionCard(
+                            icon: opt.3,
+                            title: opt.1,
+                            subtitle: opt.2,
+                            isSelected: plankTime == opt.0,
+                            action: {
+                                Haptics.light()
+                                plankTime = opt.0
+                            }
+                        )
                     }
                 }
-                // Real haptic - lands ~150ms in to coincide with the
-                // spring's visible settle.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    Haptics.success()
-                }
-            } label: {
-                Text(cameraScreenBannerShown
-                    ? "that's what it looks like \u{2665}\u{FE0E}"
-                    : "feel it first \u{2665}\u{FE0E}")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(
-                        cameraScreenBannerShown
-                            ? Palette.textSecondary
-                            : Palette.accent
-                    )
-                    .padding(.vertical, 6)
-            }
-            .buttonStyle(PressFeedbackStyle())
-            .padding(.top, Space.xs)
-            .disabled(cameraScreenBannerShown)
+                .padding(.horizontal, Space.screenPadding)
 
-            Spacer()
+                Spacer().frame(height: Space.sm)
 
-            VStack(spacing: 10) {
-                // "allow notifications" requests OS permission and on
-                // grant schedules the daily reminder at the chosen time.
-                // Map: morning -> 7am, afternoon -> 1pm, evening -> 7pm.
-                ctaBtn("allow notifications") {
-                    Haptics.medium()
-                    Task {
-                        let granted = await NotificationPermission.requestOrOpenSettings()
-                        notificationsEnabled = granted
-                        if granted {
-                            let scheduledTime = reminderTimeFromBucket(plankTime)
-                            notificationTime = scheduledTime
-                            NotificationPermission.scheduleDailyReminder(at: scheduledTime)
-                        }
-                        finish()
+                // Notification preview card. Starts hidden; the "feel it"
+                // button below drops it in with a spring + fires a real
+                // UINotificationFeedbackGenerator success haptic so she
+                // FEELS the vibration before deciding. Pre-permission, so
+                // it is a visual+haptic simulation - no real OS banner.
+                // v1.1.1 title sync preserved ("five minutes, today." to
+                // match the actual scheduled push).
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "app.badge.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Palette.textSecondary)
+                        Text("PREVIEW")
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(1.5)
+                            .foregroundStyle(Palette.textSecondary)
                     }
+                    Text("five minutes, today.")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text(notificationPreviewBody)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Palette.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                .padding(Space.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Palette.bgElevated, in: RoundedRectangle(cornerRadius: 14))
+                .padding(.horizontal, Space.screenPadding)
+                // Slide-in from above: hidden until "feel it" is tapped.
+                .offset(y: cameraScreenBannerShown ? 0 : -44)
+                .opacity(cameraScreenBannerShown ? 1 : 0)
 
+                // "feel it" affordance. Tapping springs the banner in and
+                // fires Haptics.success() (UINotificationFeedbackGenerator
+                // .success) so the vibration is real even though the OS
+                // banner cannot appear before permission is granted.
+                // Reduce-motion gate: skip the spring but still fire haptic.
+                // Label swaps to a confirmation string after the demo plays.
                 Button {
-                    Haptics.light()
-                    notificationsEnabled = false
-                    finish()
+                    guard !cameraScreenBannerShown else { return }
+                    if reduceMotion {
+                        cameraScreenBannerShown = true
+                    } else {
+                        withAnimation(.spring(response: 0.55, dampingFraction: 0.72)) {
+                            cameraScreenBannerShown = true
+                        }
+                    }
+                    // Real haptic - lands ~150ms in to coincide with the
+                    // spring's visible settle.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        Haptics.success()
+                    }
                 } label: {
-                    Text("not right now")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(Palette.textSecondary)
-                        .padding(.vertical, 8)
+                    Text(cameraScreenBannerShown
+                        ? "that's what it looks like \u{2665}\u{FE0E}"
+                        : "feel it first \u{2665}\u{FE0E}")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(
+                            cameraScreenBannerShown
+                                ? Palette.textSecondary
+                                : Palette.accent
+                        )
+                        .padding(.vertical, 6)
                 }
                 .buttonStyle(PressFeedbackStyle())
+                .padding(.top, Space.xs)
+                .disabled(cameraScreenBannerShown)
+
+                // Bottom padding so the last element clears the docked
+                // button dock when scrolled to the end on small phones.
+                Spacer().frame(height: Space.xl)
             }
-            .padding(.horizontal, Space.screenPadding)
-            .padding(.bottom, Space.lg)
+        }
+        .safeAreaInset(edge: .bottom) {
+            jfCTADock {
+                VStack(spacing: 10) {
+                    // "allow notifications" requests OS permission and on
+                    // grant schedules the daily reminder at the chosen time.
+                    // Map: morning -> 7am, afternoon -> 1pm, evening -> 7pm.
+                    ctaBtn("allow notifications") {
+                        Haptics.medium()
+                        Task {
+                            let granted = await NotificationPermission.requestOrOpenSettings()
+                            notificationsEnabled = granted
+                            if granted {
+                                let scheduledTime = reminderTimeFromBucket(plankTime)
+                                notificationTime = scheduledTime
+                                NotificationPermission.scheduleDailyReminder(at: scheduledTime)
+                            }
+                            finish()
+                        }
+                    }
+
+                    Button {
+                        Haptics.light()
+                        notificationsEnabled = false
+                        finish()
+                    } label: {
+                        Text("not right now")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(Palette.textSecondary)
+                            .padding(.vertical, 8)
+                    }
+                    .buttonStyle(PressFeedbackStyle())
+                }
+                .padding(.horizontal, Space.screenPadding)
+                .padding(.bottom, Space.lg)
+            }
         }
         .onAppear {
             // Default to morning when landing here for the first time
