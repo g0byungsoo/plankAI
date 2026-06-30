@@ -463,9 +463,68 @@ struct PaywallView: View {
         return lead
     }
 
+    // MARK: - Adaptive density (2026-06-30 real-device fit)
+    //
+    // The 59b2558 3-tier layout fit on a 6.3" 17 Pro but overflowed on
+    // the founder's smaller phone: the secondary 12-week/Weekly pair fell
+    // below the fold so only the Yearly hero showed. The value zone is now
+    // sized off the available (safe-area) height so all three tiers + the
+    // docked CTA + guarantee clear the fold WITHOUT scrolling on a 6.1"
+    // (iPhone 16) AND on the smallest current phone (iPhone SE, ~647pt
+    // usable). The hero headline + projection chart are the two heaviest
+    // elements, so they take the deepest cut on the short buckets; the
+    // headline font is now an explicit size (not Dynamic-Type-relative) so
+    // a large accessibility text setting can't silently re-overflow it.
+    private struct Metrics {
+        let topReserve: CGFloat
+        let headlineSize: CGFloat
+        let heroSpacing: CGFloat
+        let heroTop: CGFloat
+        let chartHeight: CGFloat
+        let projTop: CGFloat
+        let projVPad: CGFloat
+        let projSpacing: CGFloat
+        let sunkTop: CGFloat
+        let insideTop: CGFloat
+        let annualTop: CGFloat
+        let secondaryTop: CGFloat
+        let footerTop: CGFloat
+        let annualVPad: CGFloat
+        let secondaryVPad: CGFloat
+        /// her75 negative leading tracks the type size (≈ -0.5×size per the
+        /// JeniHeroSerif spec) so the tight hero cadence holds at any bucket.
+        var headlineLineGap: CGFloat { -0.5 * headlineSize }
+    }
+
+    /// Maps the usable (safe-area) height to a density bucket. iPhone SE
+    /// (~647pt) → tiny; smaller notched / mini (~700-755) → compact;
+    /// iPhone 16 (~759) + 17 Pro (~778) + larger → regular. Buckets are
+    /// tuned so even the tallest headline variant (the 3-line food hero)
+    /// plus all three tiers clear the fold inside each viewport.
+    private func metrics(forHeight h: CGFloat) -> Metrics {
+        if h < 700 {            // iPhone SE (3rd gen) and smaller
+            return Metrics(topReserve: 10, headlineSize: 26, heroSpacing: 4, heroTop: 2,
+                           chartHeight: 34, projTop: 7, projVPad: 6, projSpacing: 4,
+                           sunkTop: 6, insideTop: 6, annualTop: 7, secondaryTop: 6, footerTop: 7,
+                           annualVPad: 10, secondaryVPad: 9)
+        } else if h < 755 {     // compact 6.1" / 13-mini class
+            return Metrics(topReserve: 20, headlineSize: 31, heroSpacing: 6, heroTop: 3,
+                           chartHeight: 46, projTop: 9, projVPad: 10, projSpacing: 7,
+                           sunkTop: 8, insideTop: 9, annualTop: 11, secondaryTop: 8, footerTop: 9,
+                           annualVPad: 12, secondaryVPad: 11)
+        } else {                // iPhone 16 / 15 / 17 Pro / Max
+            return Metrics(topReserve: 28, headlineSize: 34, heroSpacing: 7, heroTop: 4,
+                           chartHeight: 52, projTop: 10, projVPad: 11, projSpacing: 8,
+                           sunkTop: 9, insideTop: 10, annualTop: 12, secondaryTop: 8, footerTop: 10,
+                           annualVPad: 14, secondaryVPad: 12)
+        }
+    }
+
     // MARK: Body
 
     var body: some View {
+      GeometryReader { geo in
+        let m = metrics(forHeight: geo.size.height)
         ZStack(alignment: .top) {
             Palette.bgPrimary.ignoresSafeArea()
 
@@ -492,8 +551,9 @@ struct PaywallView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
                         // Status bar + topBar (Restore) reserve so the
-                        // hero always clears the Dynamic Island.
-                        Spacer().frame(height: 40)
+                        // hero always clears the Dynamic Island. Scaled by
+                        // density so short phones reclaim the headroom.
+                        Spacer().frame(height: m.topReserve)
 
                         // FIX 3 (2026-06-29) — continuity bridge at the very
                         // top so the wall reads as the next beat of the reveal
@@ -503,44 +563,44 @@ struct PaywallView: View {
                             .padding(.horizontal, Space.lg)
 
                         // ZONE 1 - warm / coquette
-                        heroPermission
+                        heroPermission(m)
                             .overlay(alignment: .topTrailing) { headlineSticker }
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 6)
+                            .padding(.top, m.heroTop)
 
                         // FIX 1 (2026-06-29) — value section compacted so all
                         // three tiers + CTA clear the fold on first paint. The
                         // projection stays the hero, just sized down.
-                        projectionHero
+                        projectionHero(m)
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 12)
+                            .padding(.top, m.projTop)
 
                         // The chart's conclusion - pulled tight to the
                         // projection so it reads as the curve's caption,
                         // not a fresh section.
                         sunkCostLine
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 10)
+                            .padding(.top, m.sunkTop)
 
                         // ZONE 2 - medical-grade restraint, condensed to a
                         // tight single line + the ACSM/safety authority.
                         whatsInsideSection
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 12)
+                            .padding(.top, m.insideTop)
 
                         // ZONE 3 - Tiffany-clean pricing. All three tiers now
                         // render within the first viewport so the SELECTABLE
                         // group + billed price anchor on load, no scroll.
-                        tierCardAnnualHero
+                        tierCardAnnualHero(m)
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 14)
+                            .padding(.top, m.annualTop)
 
                         // Gap to the secondary pair is larger than the gap
                         // WITHIN the pair (8pt) so the yearly hero reads as
                         // the obvious default.
-                        secondaryTierRow
+                        secondaryTierRow(m)
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 8)
+                            .padding(.top, m.secondaryTop)
 
                         if offeringsLoadFailed {
                             offeringsLoadFailedRow
@@ -550,7 +610,7 @@ struct PaywallView: View {
 
                         trustAndLegalFooter
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 10)
+                            .padding(.top, m.footerTop)
                             .padding(.bottom, 4)
                     }
                 }
@@ -613,6 +673,7 @@ struct PaywallView: View {
             // highest LTV of the three tiers; defaulting here gates the
             // higher-LTV path while quarterly stays one tap away.
         }
+      }
     }
 
     // MARK: - v2 single-screen helpers (2026-05-31 redesign)
@@ -637,7 +698,7 @@ struct PaywallView: View {
     /// Quarterly-anchor-aligned hero. 2026-06-06 v3 — subhead dropped
     /// (UX brief: "headline alone carries voice"). Italic-Fraunces on
     /// "your"; hearts ♥ as terminal punctuation per voice locks.
-    private var heroPermission: some View {
+    private func heroPermission(_ m: Metrics) -> some View {
         // v9 P9.7 — bumped from 28pt to displayHero (52pt Light + 52pt
         // SemiBoldItalic) so the paywall hero lands at the her75 scale
         // matching the rest of the program-design chapter we just shipped.
@@ -652,7 +713,7 @@ struct PaywallView: View {
         // paywall. Celebration peak (ChapterCompleteView 52pt) is
         // the only register that earns the next step up.
         let parts = headlineParts
-        return VStack(spacing: 8) {
+        return VStack(spacing: m.heroSpacing) {
             // Persuasion FIX 6 (2026-06-29) — Pre-Suasion prime. She actively
             // picked an identity word at case 140 ("which one is the new
             // you?"); reference HER pick at the instant of the ask so the
@@ -669,14 +730,20 @@ struct PaywallView: View {
                     alignment: .center
                 )
             }
+            // 2026-06-30 - explicit density-scaled size (was the
+            // Dynamic-Type-relative Typo.heroHeadline). Fixing the size
+            // keeps the fold math deterministic across phone sizes AND
+            // accessibility text settings, which is what guarantees all
+            // three tiers stay above the fold. her75 register holds: same
+            // JeniHeroSerif roman/italic faces, tight negative leading.
             ItalicAccentText(
                 parts.base,
                 italic: parts.italic,
-                baseFont: Typo.heroHeadline,
-                italicFont: Typo.heroHeadlineItalic,
+                baseFont: .custom("JeniHeroSerif-Regular", size: m.headlineSize),
+                italicFont: .custom("JeniHeroSerif-Italic", size: m.headlineSize),
                 alignment: .center
             )
-            .lineSpacing(Typo.heroHeadlineLineGap)
+            .lineSpacing(m.headlineLineGap)
             .tracking(-0.4)
             .padding(.horizontal, 8)
             .fixedSize(horizontal: false, vertical: true)
@@ -709,12 +776,12 @@ struct PaywallView: View {
     /// pace" honesty qualifier stays (data-provenance + compliance safe).
     /// Renders only when a weight-loss goal was set.
     @ViewBuilder
-    private var projectionHero: some View {
+    private func projectionHero(_ m: Metrics) -> some View {
         if let goal = goalWeightPunch, let date = arrivalDatePunch {
-            VStack(spacing: 9) {
-                // Sized down (84 -> 58) so the curve stays the emotional
-                // hero while the three tiers clear the fold below.
-                PaywallBecomingChart(goalLabel: goal, height: 58)
+            VStack(spacing: m.projSpacing) {
+                // Sized down (84 -> 38-52 by density) so the curve stays the
+                // emotional hero while the three tiers clear the fold below.
+                PaywallBecomingChart(goalLabel: goal, height: m.chartHeight)
 
                 // Bookended identity axis - the axis tells the becoming
                 // story. Date leads as the rose-italic hero; the scale
@@ -743,7 +810,7 @@ struct PaywallView: View {
                 }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.vertical, m.projVPad)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(Palette.bgElevated)
@@ -963,7 +1030,7 @@ struct PaywallView: View {
     /// and the LABELED anchor (strikethrough tied to the yearly card +
     /// "vs paying quarterly all year" so the reference is defensible, not
     /// fabricated).
-    private var tierCardAnnualHero: some View {
+    private func tierCardAnnualHero(_ m: Metrics) -> some View {
         let isSelected = selectedPlan == .yearly
         return Button {
             Haptics.light()
@@ -1035,7 +1102,7 @@ struct PaywallView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.vertical, m.annualVPad)
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -1068,24 +1135,24 @@ struct PaywallView: View {
     /// Smaller, lower-contrast (hairline border, muted titles, 17pt price
     /// vs the yearly hero's 28pt) so the yearly card stays the visual
     /// hero. Both still fully selectable.
-    private var secondaryTierRow: some View {
+    private func secondaryTierRow(_ m: Metrics) -> some View {
         // 8pt within-pair gap - deliberately tighter than the 16pt gap
         // separating this pair from the yearly hero above.
         HStack(spacing: 8) {
             secondaryTierCard(
                 plan: .quarterly, title: "12-week",
-                price: quarterlyPrice, period: "/3 mo", sub: "billed once"
+                price: quarterlyPrice, period: "/3 mo", sub: "billed once", m: m
             )
             secondaryTierCard(
                 plan: .weekly, title: "Weekly",
-                price: weeklyPrice, period: "/wk", sub: "billed weekly"
+                price: weeklyPrice, period: "/wk", sub: "billed weekly", m: m
             )
         }
         .frame(maxWidth: .infinity)
     }
 
     private func secondaryTierCard(
-        plan: Plan, title: String, price: String, period: String, sub: String
+        plan: Plan, title: String, price: String, period: String, sub: String, m: Metrics
     ) -> some View {
         let isSelected = selectedPlan == plan
         return Button {
@@ -1109,7 +1176,7 @@ struct PaywallView: View {
                     .foregroundStyle(Palette.textSecondary.opacity(0.8))
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .padding(.vertical, m.secondaryVPad)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(Palette.bgElevated.opacity(isSelected ? 1 : 0.45))
