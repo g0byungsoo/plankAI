@@ -232,16 +232,32 @@ const FOOD_VISION_SCHEMA = {
 // what the user actually eats. Closes the "When Tom Eats Kimchi"
 // 58% cultural-bias gap (arXiv 2503.16826).
 
-function buildSystemPrompt(cuisineProfile: string | null): string {
+function buildSystemPrompt(
+  cuisineProfile: string | null,
+  dietaryProfile: string | null,
+): string {
   const cuisineLine = cuisineProfile && cuisineProfile.trim().length > 0
     ? `the user usually eats: ${cuisineProfile}. lean on this for BOTH calorie priors AND naming — if a dish matches this cuisine, name it the way someone from that food culture would.`
     : "no cuisine profile available; use neutral priors, but still prefer authentic dish names over generic descriptions.";
+
+  // v1.1.3 (2026-06-29) — dietary pattern + restrictions + allergies
+  // (onboarding case 170, CSV of keys like vegetarian, dairy_free,
+  // nut_allergy, halal, low_carb, none). Helps the model name dishes
+  // consistently with the user's pattern and, when an allergen is
+  // present, surface it in notes. NOT medical advice and NOT a hard
+  // safety guarantee — the model flags what it can see; the app copy
+  // carries the disclaimer.
+  const dietaryLine = dietaryProfile && dietaryProfile.trim().length > 0
+    && dietaryProfile.trim() !== "none"
+    ? `the user's dietary pattern / restrictions / allergies: ${dietaryProfile}. respect this when naming and when offering any guidance; if a visible item plausibly conflicts with a stated allergy or restriction (e.g. nuts, shellfish, dairy, gluten, egg), call it out plainly in the notes field so they can double-check. never claim a dish is safe.`
+    : "no dietary restrictions provided; do not assume any.";
 
   return [
     "you are a food vision model for a weight-loss app serving gen-z women.",
     "your job: name the food authentically, COUNT what is visibly present, anchor portion mass to a scale reference, and estimate calories + macros for the WHOLE visible food.",
     "",
     cuisineLine,
+    dietaryLine,
     "",
     "=== STEP 1 — COUNT FIRST (before any gram or kcal number) ===",
     "for EACH item decide discrete vs continuous, then size it:",
@@ -525,6 +541,7 @@ Deno.serve(async (req: Request) => {
     image_base64?: string;
     text?: string;
     cuisine_profile?: string;
+    dietary_profile?: string;
   };
   try {
     body = await req.json();
@@ -553,10 +570,11 @@ Deno.serve(async (req: Request) => {
   }
 
   const cuisineProfile = body.cuisine_profile ?? null;
+  const dietaryProfile = body.dietary_profile ?? null;
 
   // ---------- LLM call ----------
 
-  const systemPrompt = buildSystemPrompt(cuisineProfile);
+  const systemPrompt = buildSystemPrompt(cuisineProfile, dietaryProfile);
 
   // GPT-5 + o1-class reasoning models use `max_completion_tokens`
   // instead of the legacy `max_tokens`. gpt-4o still accepts

@@ -352,6 +352,7 @@ public struct QuickAddView: View {
         defer { isSubmitting = false }
 
         let dispatcher = FoodCaptureDispatcher()
+        dispatcher.dietaryProfile = dietaryProfile
         do {
             let result = try await dispatcher.dispatch(
                 .text(text, cuisineProfile: cuisineProfile)
@@ -373,6 +374,13 @@ public struct QuickAddView: View {
 
     private var cuisineProfile: String? {
         UserDefaults.standard.string(forKey: "onboardingCuisinePreference")
+    }
+
+    /// v1.1.3 (2026-06-29) — dietary pattern + restrictions + allergies
+    /// CSV from onboarding (case 170). Read straight into the food-vision
+    /// dietary_profile hint, same as cuisineProfile.
+    private var dietaryProfile: String? {
+        UserDefaults.standard.string(forKey: "onboarding_dietary")
     }
 }
 

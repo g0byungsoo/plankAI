@@ -41,6 +41,14 @@ public final class FoodCaptureDispatcher {
     /// fall back to neutral priors per FOOD_VISION_SCHEMA.
     public var cuisineProfile: String?
 
+    /// v1.1.3 (2026-06-29) — optional dietary pattern + restrictions +
+    /// allergies CSV injected into the LLM system prompt parallel to
+    /// `cuisineProfile`. Comes from the user's `onboarding_dietary`
+    /// AppStorage key (case 170). nil = no dietary context. Lets food
+    /// recognition + meal guidance respect restrictions and flag
+    /// allergens.
+    public var dietaryProfile: String?
+
     public func dispatch(_ capture: FoodCapture) async throws -> CapturedFood {
         switch capture {
 
@@ -66,7 +74,8 @@ public final class FoodCaptureDispatcher {
             do {
                 identified = try await visionService.scan(
                     imageData: imageData,
-                    cuisineProfile: cuisineProfile
+                    cuisineProfile: cuisineProfile,
+                    dietaryProfile: dietaryProfile
                 )
             } catch let visionError as VisionError {
                 // Wrap so call sites can pattern-match on either
@@ -114,7 +123,8 @@ public final class FoodCaptureDispatcher {
             do {
                 let identified = try await visionService.scanText(
                     description,
-                    cuisineProfile: cuisineProfile
+                    cuisineProfile: cuisineProfile,
+                    dietaryProfile: dietaryProfile
                 )
                 return await Self.enrich(identified, using: FoodModule.nutritionLookup)
             } catch let visionError as VisionError {

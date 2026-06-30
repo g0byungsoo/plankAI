@@ -210,6 +210,16 @@ struct OnboardingView: View {
     /// context, not a forced single bucket.
     @AppStorage("onboardingCuisinePreference") private var cuisinePreferenceCSV: String = ""
 
+    /// v1.1.3 (2026-06-29) — dietary pattern + restrictions + allergies
+    /// (case 170). CSV of dietary keys (vegetarian, vegan, dairy_free,
+    /// nut_allergy, halal, low_carb, none, etc.). Table-stakes for a
+    /// nutrition program AND an allergy-safety item. Feeds the
+    /// FoodVisionService system prompt as a `dietary_profile` hint the
+    /// SAME way `onboardingCuisinePreference` feeds `cuisine_profile`, so
+    /// recognition + any meal guidance respect restrictions + flag
+    /// allergens. Multi-select; "none" is treated as mutually exclusive.
+    @AppStorage("onboarding_dietary") private var dietaryCSV: String = ""
+
     /// v9 P9.9 — non-scale-victory commitment moment (case 136). CSV
     /// of NSV keys (core, energy, clothes, sleep). Replaces the cut
     /// body-image slider screens (134/135) as the conversion-load-
@@ -356,6 +366,9 @@ struct OnboardingView: View {
         // pre-selected on a fresh re-run. Same reason both: AppStorage
         // persists across runs and neither key was in this reset.
         cuisinePreferenceCSV = ""
+        // v1.1.3 (2026-06-29) — dietary multi-select (case 170); same
+        // AppStorage-persistence leak as cuisine, so reset on re-run.
+        dietaryCSV = ""
         nsvPriorityCSV = ""
         UserDefaults.standard.removeObject(forKey: "onboardingPickedTier")
         // 2026-06-11 founder bug report: movement question (case 8)
@@ -1443,7 +1456,70 @@ struct OnboardingView: View {
                     cuisinePreferenceCSV = newValue.sorted().joined(separator: ",")
                 }
             ),
-            next: 110
+            next: 170
+        )
+
+        // ─── v1.1.3 (2026-06-29) — dietary pattern + restrictions +
+        // allergies (case 170) ──────────────────────────────────────
+        //
+        // Sits right after the cuisine chips (169) since both are food-
+        // preference signals. Was entirely absent before — table-stakes
+        // for a nutrition program AND an allergy-safety item. Reuses the
+        // exact compact emoji-chip multi-select (jfCuisineChips /
+        // CuisineChip) for visual consistency with 169.
+        //
+        // Keys save as CSV to `onboarding_dietary` and feed the food-
+        // vision `dietary_profile` hint the same way cuisine feeds
+        // `cuisine_profile`, so recognition + meal guidance respect the
+        // user's restrictions and flag allergens. "none" (no
+        // restrictions) is mutually exclusive: picking it clears the
+        // others, and picking any other clears "none".
+        //
+        // Routes to case 110 (the slot 169 used to route to).
+        case 170: jfCuisineChips(
+            "anything we should cook around?",
+            sub: "patterns, allergies, the lot. pick all that apply.",
+            italic: ["around"],
+            opts: [
+                ("vegetarian",       "\u{1F966}", "vegetarian"),
+                ("vegan",            "\u{1F331}", "vegan"),
+                ("pescatarian",      "\u{1F41F}", "pescatarian"),
+                ("dairy_free",       "\u{1F95B}", "dairy-free"),
+                ("gluten_free",      "\u{1F33E}", "gluten-free"),
+                ("nut_allergy",      "\u{1F95C}", "nut allergy"),
+                ("shellfish_allergy", "\u{1F990}", "shellfish allergy"),
+                ("egg_allergy",      "\u{1F373}", "egg allergy"),
+                ("halal",            "\u{262A}\u{FE0F}", "halal"),
+                ("kosher",           "\u{2721}\u{FE0F}", "kosher"),
+                ("low_carb",         "\u{1F951}", "low-carb / keto"),
+                ("none",             "\u{2705}",  "no restrictions"),
+            ],
+            sel: Binding<Set<String>>(
+                get: {
+                    Set(dietaryCSV
+                        .split(separator: ",")
+                        .map(String.init)
+                        .filter { !$0.isEmpty })
+                },
+                set: { newValue in
+                    // "no restrictions" is mutually exclusive. If the
+                    // user just added "none", drop everything else; if
+                    // they added anything else, drop "none".
+                    let current = Set(dietaryCSV
+                        .split(separator: ",")
+                        .map(String.init)
+                        .filter { !$0.isEmpty })
+                    var resolved = newValue
+                    if newValue.contains("none") && !current.contains("none") {
+                        resolved = ["none"]
+                    } else if newValue.count > current.count {
+                        resolved.remove("none")
+                    }
+                    dietaryCSV = resolved.sorted().joined(separator: ",")
+                }
+            ),
+            next: 110,
+            footnote: "helps us tailor your food guidance and flag allergens. not medical advice."
         )
 
         // v9 P9.9 (her75 + conversion-expert spec, 2026-06-10) — the
@@ -2063,7 +2139,11 @@ struct OnboardingView: View {
         // v4.6 (2026-06-11) — 169 (cuisine photo grid) revived from the
         // v3 C6 cut; the cuisine signal feeds the in-app calorie-vision
         // prompt and the cohort eats across cuisines.
-        162, 166, 156, 157, 159, 169,
+        // v1.1.3 (2026-06-29) — 170 (dietary pattern + restrictions +
+        // allergies) follows 169 (cuisine). Both food-preference; 170
+        // is table-stakes for the nutrition program + an allergy-safety
+        // item, and feeds the food-vision dietary_profile hint.
+        162, 166, 156, 157, 159, 169, 170,
         //
         // Act 2 — Workout/activity (demoted, post-food-wedge).
         // v3 C2 (2026-06-10) — cut 270 (habit-window quiz). The
@@ -2224,7 +2304,7 @@ struct OnboardingView: View {
         // 1 — about you
         200: 1, 230: 1, 1: 1, 100: 1, 283: 1,  // cohort credibility (P11.1.B)
         // 2 — your *rhythm*
-        162: 2, 166: 2, 156: 2, 157: 2, 159: 2, 169: 2,
+        162: 2, 166: 2, 156: 2, 157: 2, 159: 2, 169: 2, 170: 2,
         8: 2,
         // 3 — what *fits*
         280: 3,  // bridge "now the numbers" (P11.1.B)
@@ -3693,7 +3773,8 @@ struct OnboardingView: View {
         sel: Binding<Set<String>>,
         next: Int,
         confirmation: String? = nil,
-        minSelection: Int = 1
+        minSelection: Int = 1,
+        footnote: String? = nil
     ) -> some View {
         VStack(spacing: 0) {
             jfHeader(title, sub: sub, italic: italic)
@@ -3721,7 +3802,16 @@ struct OnboardingView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, Space.screenPadding)
                 .padding(.top, Space.md)
-                .padding(.bottom, Space.lg)
+                .padding(.bottom, footnote == nil ? Space.lg : Space.md)
+
+                if let footnote {
+                    Text(footnote)
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, Space.screenPadding)
+                        .padding(.bottom, Space.lg)
+                }
             }
             .scrollBounceBehavior(.basedOnSize)
             .scrollEdgeFade()

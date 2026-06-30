@@ -91,7 +91,8 @@ public final class FoodVisionService: Sendable {
     /// JSON response, map to CapturedFood.
     public func scan(
         imageData: Data,
-        cuisineProfile: String?
+        cuisineProfile: String?,
+        dietaryProfile: String? = nil
     ) async throws -> CapturedFood {
         #if DEBUG
         if let fault = try await Self.debugFault() { return fault }
@@ -100,7 +101,8 @@ public final class FoodVisionService: Sendable {
             body: ScanRequestBody(
                 image_base64: imageData.base64EncodedString(),
                 text: nil,
-                cuisine_profile: cuisineProfile
+                cuisine_profile: cuisineProfile,
+                dietary_profile: dietaryProfile
             )
         )
     }
@@ -113,7 +115,8 @@ public final class FoodVisionService: Sendable {
     /// vision-token cost).
     public func scanText(
         _ text: String,
-        cuisineProfile: String?
+        cuisineProfile: String?,
+        dietaryProfile: String? = nil
     ) async throws -> CapturedFood {
         #if DEBUG
         if let fault = try await Self.debugFault() { return fault }
@@ -122,7 +125,8 @@ public final class FoodVisionService: Sendable {
             body: ScanRequestBody(
                 image_base64: nil,
                 text: text,
-                cuisine_profile: cuisineProfile
+                cuisine_profile: cuisineProfile,
+                dietary_profile: dietaryProfile
             )
         )
     }
@@ -307,6 +311,13 @@ private struct ScanRequestBody: Encodable {
     let image_base64: String?
     let text: String?
     let cuisine_profile: String?
+    /// v1.1.3 (2026-06-29) — CSV of onboarding dietary keys
+    /// (vegetarian, dairy_free, nut_allergy, halal, low_carb, none…).
+    /// Injected into the EF system prompt parallel to cuisine_profile
+    /// so recognition + meal guidance respect restrictions + flag
+    /// allergens. Optional for backwards-compat: legacy EF deploys that
+    /// don't read it simply ignore the field.
+    let dietary_profile: String?
 }
 
 /// Response body shape. Mirrors `FOOD_VISION_SCHEMA` in

@@ -1997,6 +1997,12 @@ public struct PhotoCaptureView: View {
     /// reaches captureTapped's catch arms unchanged from the user's
     /// perspective.
     private func dispatchPhotoWithRetry(_ jpeg: Data) async throws -> CapturedFood {
+        // v1.1.3 (2026-06-29) — feed the dietary pattern + restrictions +
+        // allergies hint (onboarding case 170) into the food-vision system
+        // prompt so recognition respects restrictions + flags allergens.
+        // Read straight from AppStorage, same as QuickAdd's cuisine wiring.
+        dispatcher.dietaryProfile = UserDefaults.standard
+            .string(forKey: "onboarding_dietary")
         let backoffsNs: [UInt64] = [0, 500_000_000, 1_000_000_000]
         var lastError: Error?
         for (attempt, backoff) in backoffsNs.enumerated() {
