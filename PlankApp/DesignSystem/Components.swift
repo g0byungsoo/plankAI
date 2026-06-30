@@ -1104,10 +1104,9 @@ struct BiometricSlider: View {
             // ── Right: big value display, centered vertically. ──
             VStack(spacing: 4) {
                 Text(format(value))
-                    // Editorial serif numeral — matches the age wheel's
-                    // JeniHeroSerif so all four onboarding number screens
-                    // read as one register, not utilitarian system-bold.
-                    .font(.custom("JeniHeroSerif-Regular", size: 60))
+                    // Reverted to system-bold (the serif numeral overflowed
+                    // the fixed slider layout + collided with the ruler).
+                    .font(.system(size: 64, weight: .bold))
                     .foregroundStyle(Palette.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -1352,16 +1351,16 @@ struct HorizontalBiometricSlider: View {
             // Big value display + small unit subscript.
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(numberText)
-                    // Editorial serif numeral — matches the age wheel +
-                    // height ruler so the number screens share one register.
-                    .font(.custom("JeniHeroSerif-Regular", size: 58))
+                    // Reverted to system-bold (the serif numeral overflowed
+                    // the fixed slider layout + collided with the ruler).
+                    .font(.system(size: 56, weight: .bold))
                     .foregroundStyle(Palette.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 if let u = displayedUnit {
                     Text(u)
-                        .font(.custom("DMSans-Medium", size: 18))
-                        .foregroundStyle(Palette.textSecondary)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Palette.textPrimary)
                 }
             }
             .animation(.easeOut(duration: 0.12), value: value)

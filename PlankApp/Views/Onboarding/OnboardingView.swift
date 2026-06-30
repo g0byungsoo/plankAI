@@ -9430,8 +9430,8 @@ private extension View {
 private struct AgeWheelPicker: View {
     @Binding var age: Int
     var range: ClosedRange<Int> = 13...80
-    private let rowH: CGFloat = 64
-    private let visibleRows = 5
+    private let rowH: CGFloat = 100
+    private let visibleRows = 3
     @State private var pos: Int?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -9462,7 +9462,7 @@ private struct AgeWheelPicker: View {
                 LazyVStack(spacing: 0) {
                     ForEach(range, id: \.self) { a in
                         Text("\(a)")
-                            .font(.custom("JeniHeroSerif-Regular", size: 54))
+                            .font(.custom("JeniHeroSerif-Regular", size: 84))
                             .monospacedDigit()
                             .foregroundStyle(Palette.textPrimary)
                             .frame(maxWidth: .infinity, alignment: .center)
