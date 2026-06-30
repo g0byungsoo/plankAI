@@ -145,7 +145,7 @@ struct PaywallView: View {
     private var debugMockPricing: Bool { false }
     #endif
 
-    /// 2026-06-29 — DEBUG-only one-screen-redesign preview. When the app
+    /// 2026-06-29 - DEBUG-only one-screen-redesign preview. When the app
     /// is launched with `--debug-paywall` (no RC packages, no UserRecord
     /// hydrated in-sim), the projection hero + per-day + anchor copy all
     /// read from real fields that are empty, so the screen would render
@@ -418,7 +418,7 @@ struct PaywallView: View {
     /// RevenueCat `localizedPriceString` and only falls back to the mock
     /// string when no package has resolved yet. This closes the
     /// 2026-06-27 mismatch (CTA "$29.99/3mo" while the yearly card read
-    /// "$49.99") AND the blank-CTA case — when offerings are still
+    /// "$49.99") AND the blank-CTA case - when offerings are still
     /// loading the button now carries the displayed card's price instead
     /// of dropping the value exchange. Never hardcoded; never a number
     /// that disagrees with the selected card.

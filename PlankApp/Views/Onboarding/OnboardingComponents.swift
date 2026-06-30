@@ -775,7 +775,7 @@ enum SafetyTerminalVariant: Equatable {
         case .breastfeeding:
             return "while you're breastfeeding, your body needs steady fuel, not a deficit. we'll keep things gentle and protein-forward instead of chasing a goal weight \u{2661}"
         case .clinicianFirst:
-            return "what you shared tells us a calorie plan is one to set up together with your clinician first. some medications change how your body handles a deficit, so this is a plan to make with them, not on your own.\n\nonce you've checked in with them, we'll be right here. you're always welcome to explore the lessons and gentle habits in the meantime \u{2661}"
+            return "what you shared tells us a calorie plan is one to set up together with your clinician first. some medications change how your body handles a deficit, so this is a plan to make with them, not on your own.\n\nonce you've checked in with them, we'll be right here when you're ready \u{2661}"
         case .maintenance(let isLowBMI):
             return isLowBMI
                 ? "your weight is already in a healthy range for your height, so a loss plan isn't the right fit right now. we'll be here when your goals shift \u{2661}"

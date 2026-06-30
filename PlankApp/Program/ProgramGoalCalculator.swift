@@ -38,14 +38,14 @@ public enum ProgramGoalCalculator {
         /// get a wider window (slower expected pace) to keep the goal
         /// date honest.
         public let isShortSleeper: Bool
-        /// v3 T2 (2026-06-29) — raw weight-trend key from case 1320
+        /// v3 T2 (2026-06-29) - raw weight-trend key from case 1320
         /// (onboarding_weight_trend). "cycling" flags regain history.
         /// NWCR (Wing and Phelan 2005): regain history predicts higher
         /// re-regain risk; a gentler starting pace reduces the
         /// fast-then-rebound cycle. Empty string = no adjustment
         /// (regression-safe default).
         public let weightTrendKey: String
-        /// v3 T2 (2026-06-29) — raw GLP-1 titration phase key from
+        /// v3 T2 (2026-06-29) - raw GLP-1 titration phase key from
         /// case 1641 (onboarding_glp1_phase). "just_started" applies
         /// the same cautious 0.003 floor as isGLP1User: early
         /// titration carries elevated lean-mass risk and deep appetite
@@ -295,7 +295,7 @@ public enum ProgramGoalCalculator {
         hormonalStageKey == "perimenopause"
     }
 
-    /// v3 T2 (2026-06-29) — case 1320 (onboarding_weight_trend) option
+    /// v3 T2 (2026-06-29) - case 1320 (onboarding_weight_trend) option
     /// keys: climbing / stable / declining / cycling. "cycling" = weight
     /// has gone up and down repeatedly, signaling regain history.
     /// NWCR (Wing and Phelan 2005): prior regain cycles predict higher
@@ -307,7 +307,7 @@ public enum ProgramGoalCalculator {
         weightTrendKey == "cycling"
     }
 
-    /// v3 T2 (2026-06-29) — case 1641 (onboarding_glp1_phase) option
+    /// v3 T2 (2026-06-29) - case 1641 (onboarding_glp1_phase) option
     /// keys: just_started / few_months / established / prefer_not.
     /// "just_started" = early GLP-1 titration: appetite suppression
     /// is deepening, side effects are highest, lean-mass loss risk is

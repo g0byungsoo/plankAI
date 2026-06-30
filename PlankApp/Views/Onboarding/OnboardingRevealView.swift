@@ -11,11 +11,14 @@ import UserNotifications
 //   2. ProjectionPresentation    — full-bleed BecomingProjectionCard so
 //                                  the curve is the whole hero, not a
 //                                  small tile inside a paywall.
-//   3. PairedPermissionsAsk      — HealthKit + Notifications on one
-//                                  screen with one Continue. Post-reveal
-//                                  asks land far better than mid-onboarding
-//                                  asks because the user has already
-//                                  emotionally signed in to the plan.
+//   3. NudgePermissionAsk        - the founder's redesigned notification
+//                                  opt-in (iOS notification-mock banner +
+//                                  "tap to feel it" haptic + 3 time pills).
+//                                  Post-reveal asks land far better than
+//                                  mid-onboarding asks because the user has
+//                                  already emotionally signed in to the plan.
+//                                  HealthKit is a separate mid-onboarding
+//                                  ask (case 285), so this is notifs-only.
 //
 // The original 4-screen plan had a MirrorSummary "your X → plan choice"
 // beat between projection + permissions. Cut because the founder felt it
@@ -52,7 +55,8 @@ struct OnboardingRevealView: View {
         debugStartAtCommitment: Bool = false,
         debugStartAtDisclaimer: Bool = false,
         debugStartAtBuilding: Bool = false,
-        debugStartAtSafety: Bool = false
+        debugStartAtSafety: Bool = false,
+        debugStartAtPermissions: Bool = false
     ) {
         self.bodyFocus = bodyFocus
         self.sessionLengthKey = sessionLengthKey
@@ -65,13 +69,14 @@ struct OnboardingRevealView: View {
         // screen is screenshot-able without the full reveal sequence.
         // Production always starts at .disclaimer (the medical trust gate).
         self._step = State(initialValue:
-            debugStartAtBuilding   ? .building   :
-            debugStartAtSafety     ? .safety     :
-            debugStartAtDisclaimer ? .disclaimer :
-            debugStartAtCommitment ? .commitment :
-            debugStartAtProjection ? .projection :
-            debugStartAtRatingAsk  ? .ratingAsk  :
-            debugStartAtFirstWeek  ? .firstWeek  : .disclaimer)
+            debugStartAtBuilding    ? .building    :
+            debugStartAtSafety      ? .safety      :
+            debugStartAtDisclaimer  ? .disclaimer  :
+            debugStartAtCommitment  ? .commitment  :
+            debugStartAtProjection  ? .projection  :
+            debugStartAtRatingAsk   ? .ratingAsk   :
+            debugStartAtPermissions ? .permissions :
+            debugStartAtFirstWeek   ? .firstWeek   : .disclaimer)
     }
 
     private enum Step: Int {
@@ -187,8 +192,16 @@ struct OnboardingRevealView: View {
                 // pre-paywall beat. The commitment ritual schedules a
                 // Day-1 nudge, so the notifications ask lands right after
                 // the user makes the promise - then straight to the wall.
-                PairedPermissionsAsk(onContinue: onRevealComplete)
-                    .transition(.opacity)
+                // v1.1.3 reconcile (2026-06-29): this is the founder's
+                // redesigned notification-mock nudge (banner + "tap to
+                // feel it" + time pills), reclaimed from the orphaned
+                // case 23. HealthKit stays its own mid-onboarding ask
+                // (case 285), so this screen is notifications-only.
+                NudgePermissionAsk(
+                    voicePreference: voicePreference,
+                    onContinue: onRevealComplete
+                )
+                .transition(.opacity)
             }
         }
     }
@@ -1023,7 +1036,7 @@ private struct ProjectionPresentation: View {
             lossRatePctPerWeek:   pickedLossRatePctPerWeek
         )
         #if DEBUG
-        print("[D68] calorie hero — kg=\(kg) h=\(height) age=\(age) " +
+        print("[D68] calorie hero - kg=\(kg) h=\(height) age=\(age) " +
               "activity=\(movementBaseline) tier=\(pickedTierRaw) " +
               "rate=\(pickedLossRatePctPerWeek) kcal=\(kcal)")
         #endif
@@ -1257,168 +1270,197 @@ private struct FlowingChips: View {
     }
 }
 
-// MARK: - PairedPermissionsAsk
+// MARK: - NudgePermissionAsk
 //
-// HealthKit + Notifications on one screen with one Continue. Each row
-// is independently tappable to fire its own iOS permission sheet, but
-// the user can press Continue at any time — the design intentionally
-// makes both opt-in (not gates). Per peak-end research, asking after
-// the reveal (vs. mid-onboarding) materially increases grant rate
-// because the user has already emotionally signed in.
+// The founder's #1 onboarding redesign: the notification opt-in, rebuilt
+// as a true-to-iOS notification-mock banner ("want a nudge from jeni?")
+// that drops in + buzzes on appear, a "tap to feel it" CoreHaptics replay,
+// and three time pills (morning / afternoon / evening) that map straight
+// to scheduleDailyReminder. It used to live as case 23 (cameraSetupScreen)
+// in OnboardingView; T8 cut that case from the flow as "redundant," which
+// orphaned the redesign and left the plainer paired-row ask as the only
+// notification beat the user saw. v1.1.3 reconcile (2026-06-29): the
+// redesigned nudge is now the LIVE permission ask, here at the tail of the
+// reveal cascade (the last pre-paywall beat). The HealthKit ask is
+// unaffected - it is its own mid-onboarding screen (case 285,
+// HealthKitPermissionScreen), so this screen stays notifications-only.
 //
-// Wires to existing services so the grant + scheduling flow stays
-// consistent with the Settings tab + StepsPulseTile path:
-//   - HealthKit: StepsService.shared.requestAccess()
-//   - Notifications: NotificationPermission.request() + scheduleDailyReminder
+// Persists the user's choice the same way the old case 23 did: writes
+// `plankTime` + `notificationsEnabled` to the canonical keys (read back
+// by NotificationTimeBucket + NotificationSettingsView + onComplete) and
+// schedules the daily reminder at the picked bucket on grant.
 
-private struct PairedPermissionsAsk: View {
+private struct NudgePermissionAsk: View {
+    let voicePreference: String
     let onContinue: () -> Void
 
+    // Canonical keys. The nudge runs inside the reveal (a separate view
+    // from OnboardingView, which already assembled its completion data),
+    // so it writes the keys directly; OnboardingView's onRevealComplete
+    // re-reads them into the persisted OnboardingData before onComplete.
+    @AppStorage("plankTime") private var plankTime: String = ""
+    @AppStorage("notificationsEnabled") private var notificationsEnabled = false
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var heroVisible = false
-    @State private var rowsVisible = false
-    @State private var ctaVisible = false
-    @State private var healthRequested = false
-    @State private var notifsRequested = false
-    @State private var requestingHealth = false
-    @State private var requestingNotifs = false
+    @State private var bannerVisible = false
+    @State private var pillsVisible = false
+    @State private var requesting = false
+
+    // Voice-adaptive preview body, synced to the real scheduled push so the
+    // mock she feels matches the nudge she'll get. Mirrors the former case
+    // 23 (cameraSetupScreen) copy.
+    private var previewBody: String {
+        switch voicePreference {
+        case "encouraging": return "five minutes is enough today. small moves still count."
+        case "balanced":    return "sam picked a short one. easy to finish."
+        default:            return "kira's got a short one ready today."
+        }
+    }
 
     var body: some View {
         ZStack {
-            // v8 P8.5: permissions screen ships at the tail of the
-            // reveal cascade — keep the pink continuity through to
-            // the paywall handoff.
+            // Keep the pink reveal-cascade continuity through to the
+            // paywall handoff (same background as the rest of the reveal).
             Palette.programBgPrimary.ignoresSafeArea()
 
-            VStack(spacing: Space.lg) {
-                Spacer(minLength: Space.xl)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    Spacer().frame(height: Space.lg)
 
-                // v3 P11.1.C (2026-06-10) — HK ask moved to mid-
-                // onboarding (case 285, Cal AI S5). This screen is now
-                // notifications-only. Headline updated from "two quiet
-                // things" → "one quiet ritual ping ♥" per her75 editorial
-                // register (silent sub, single hero).
-                // her75 Phase 4 — promoted 26pt custom → 38pt
-                // heroHeadline (the ONE in-app register, Archetype B).
-                ItalicAccentText(
-                    "one quiet ritual ping.",
-                    italic: ["quiet"],
-                    baseFont: Typo.heroHeadline,
-                    italicFont: Typo.heroHeadlineItalic,
-                    color: Palette.textPrimary,
-                    alignment: .center
-                )
-                .kerning(-0.4)
-                .lineSpacing(Typo.heroHeadlineLineGap)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, Space.screenPadding)
-                .opacity(heroVisible ? 1 : 0)
-                .scaleEffect(heroVisible ? 1.0 : 0.96)
+                    // Delta v8 D76 headline preserved. Italic on "nudge"
+                    // per the locked voice-signal rules.
+                    (Text("want a ").font(Typo.title)
+                     + Text("nudge").font(Typo.titleItalic)
+                     + Text(" from jeni?").font(Typo.title))
+                        .foregroundStyle(Palette.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .opacity(heroVisible ? 1 : 0)
 
-                VStack(spacing: Space.md) {
-                    permissionRow(
-                        title: "a daily ritual ping",
-                        body: "one gentle nudge a day. no streak-loss threats.",
-                        requested: notifsRequested,
-                        loading: requestingNotifs,
-                        action: requestNotifications
+                    Spacer().frame(height: Space.xs)
+
+                    Text("one quiet one a day. nothing nagging.")
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Space.lg)
+                        .opacity(heroVisible ? 1 : 0)
+
+                    Spacer().frame(height: Space.lg)
+
+                    // The hero: a true-to-iOS notification banner that drops
+                    // in + buzzes on appear and replays the buzz on tap, so
+                    // she feels exactly what jeni's nudge will feel like
+                    // before granting permission.
+                    NudgeNotificationBanner(
+                        title: "five minutes, today.",
+                        message: previewBody
                     )
+                    .padding(.horizontal, Space.screenPadding)
+                    .opacity(bannerVisible ? 1 : 0)
+
+                    Spacer().frame(height: Space.lg)
+
+                    // Time-of-day selection (morning / afternoon / evening).
+                    // Compact editorial rows; morning defaults on appear so
+                    // the user is never blocked. Maps to scheduleDailyReminder.
+                    VStack(spacing: 8) {
+                        ForEach([
+                            ("morning",   "morning",   "around 7 am"),
+                            ("afternoon", "afternoon", "around 1 pm"),
+                            ("evening",   "evening",   "around 7 pm"),
+                        ], id: \.0) { opt in
+                            OnboardingOptionCard(
+                                title: opt.1,
+                                subtitle: opt.2,
+                                isSelected: plankTime == opt.0,
+                                action: {
+                                    Haptics.light()
+                                    plankTime = opt.0
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, Space.screenPadding)
+                    .opacity(pillsVisible ? 1 : 0)
+
+                    Spacer().frame(height: Space.lg)
                 }
-                .padding(.horizontal, Space.md)
-                .opacity(rowsVisible ? 1 : 0)
-
-                Spacer()
-
-                JFContinueButton(label: "continue", action: onContinue)
-                    .padding(.horizontal, Space.lg)
-                    .padding(.bottom, 32)
-                    .opacity(ctaVisible ? 1 : 0)
             }
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 10) {
+                JFContinueButton(
+                    label: "allow notifications",
+                    action: { allow() },
+                    isLoading: requesting,
+                    firesHaptic: false
+                )
+
+                Button {
+                    Haptics.light()
+                    notificationsEnabled = false
+                    onContinue()
+                } label: {
+                    Text("not right now")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Palette.textSecondary)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(PressFeedbackStyle())
+            }
+            .padding(.horizontal, Space.lg)
+            .padding(.bottom, 32)
+            .opacity(pillsVisible ? 1 : 0)
+        }
+        .onAppear {
+            if plankTime.isEmpty { plankTime = "morning" }
         }
         .task {
+            // Reduce-motion: skip the staggered fade-rise (the banner
+            // self-gates its own drop + keeps the haptic) but still reveal
+            // every element so nothing is left invisible.
+            guard !reduceMotion else {
+                heroVisible = true; bannerVisible = true; pillsVisible = true
+                return
+            }
             withAnimation(Motion.entrance) { heroVisible = true }
-            try? await Task.sleep(nanoseconds: 320_000_000)
-            withAnimation(Motion.entrance) { rowsVisible = true }
+            try? await Task.sleep(nanoseconds: 220_000_000)
+            withAnimation(Motion.entrance) { bannerVisible = true }
             try? await Task.sleep(nanoseconds: 300_000_000)
-            withAnimation(Motion.entranceSoft) { ctaVisible = true }
+            withAnimation(Motion.entranceSoft) { pillsVisible = true }
         }
     }
 
-    private func permissionRow(
-        title: String,
-        body: String,
-        requested: Bool,
-        loading: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(alignment: .top, spacing: Space.md) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(title)
-                        .font(.custom("Fraunces72pt-SemiBold", size: 17))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text(body)
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.textSecondary)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 0)
-                if loading {
-                    ProgressView()
-                        .controlSize(.small)
-                } else if requested {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundStyle(Palette.accent)
-                        .transition(.scale.combined(with: .opacity))
-                } else {
-                    Text("allow")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
-                        .foregroundStyle(Palette.accent)
-                }
-            }
-            .padding(16)
-            .scrapbookCardBackground()
-        }
-        .buttonStyle(.plain)
-        .disabled(requested || loading)
-    }
-
-    private func requestHealthAccess() {
-        guard !requestingHealth, !healthRequested else { return }
-        requestingHealth = true
-        Task {
-            await StepsService.shared.requestAccess()
-            await MainActor.run {
-                withAnimation(Motion.entranceSoft) {
-                    requestingHealth = false
-                    healthRequested = true
-                }
-            }
-        }
-    }
-
-    private func requestNotifications() {
-        guard !requestingNotifs, !notifsRequested else { return }
-        requestingNotifs = true
+    private func allow() {
+        guard !requesting else { return }
+        Haptics.medium()
+        requesting = true
         Task {
             let granted = await NotificationPermission.requestOrOpenSettings()
-            if granted {
-                // Schedule the default 8am reminder. Settings tab still
-                // lets the user change time + voice afterwards; this is
-                // just so a granted permission produces an actual cue
-                // by tomorrow instead of waiting for a manual schedule.
-                let cal = Calendar.current
-                let defaultTime = cal.date(bySettingHour: 8, minute: 0, second: 0, of: Date()) ?? Date()
-                NotificationPermission.scheduleDailyReminder(at: defaultTime)
-            }
             await MainActor.run {
-                withAnimation(Motion.entranceSoft) {
-                    requestingNotifs = false
-                    notifsRequested = true
+                notificationsEnabled = granted
+                if granted {
+                    NotificationPermission.scheduleDailyReminder(at: reminderTimeFromBucket(plankTime))
                 }
+                requesting = false
+                onContinue()
             }
         }
+    }
+
+    // Bucket -> wall-clock time. morning 7am / afternoon 1pm / evening 7pm
+    // (mirrors the former case 23 mapping so the scheduled cue is identical).
+    private func reminderTimeFromBucket(_ bucket: String) -> Date {
+        let hour: Int = {
+            switch bucket {
+            case "morning":   return 7
+            case "afternoon": return 13
+            case "evening":   return 19
+            default:          return 9
+            }
+        }()
+        return Calendar.current.date(from: DateComponents(hour: hour)) ?? Date()
     }
 }
 

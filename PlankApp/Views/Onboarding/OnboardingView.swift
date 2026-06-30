@@ -85,10 +85,6 @@ struct OnboardingView: View {
         if let i = args.firstIndex(of: "--onboarding-screen"), i + 1 < args.count,
            let n = Int(args[i + 1]) {
             self._screen = State(wrappedValue: n)
-        } else if args.contains("--debug-nudge") {
-            // Jump straight to the notification opt-in screen (case 23,
-            // cameraSetupScreen) for sim capture / design review.
-            self._screen = State(wrappedValue: 23)
         } else if args.contains("--debug-medication") {
             // Jump straight to the medication / hypoglycemia intake screen
             // (case 1642, T4) for sim capture / design review.
@@ -332,7 +328,7 @@ struct OnboardingView: View {
         triedBefore = ""
         // v3 C1 — commitConfidence AppStorage declaration removed
         // alongside case 165; no reset needed.
-        // v1.1.3 T6 — paceChoice reset removed (key retired); the canonical
+        // v1.1.3 T6 - paceChoice reset removed (key retired); the canonical
         // onboardingPickedTier is cleared below via removeObject.
         // 2026-06-10: cuisine multi-select + program tier single-select
         // were also leaking through. Founder bug report on the cuisine
@@ -562,6 +558,17 @@ struct OnboardingView: View {
                         applyCadenceDerivations()
                         data.commitmentDaysPerWeek = commitmentDaysCount(commitmentDays)
                         data.sessionLengthMinutes = sessionLengthMinutes(sessionLength)
+                        // v1.1.3 reconcile: the notification nudge now lives
+                        // in the reveal (NudgePermissionAsk), AFTER this data
+                        // was assembled in finish(). It wrote the canonical
+                        // keys directly, so re-read them here before
+                        // onComplete persists OnboardingData (else the stale
+                        // empty captured at finish() would clobber the pick).
+                        let nudgeBucket = UserDefaults.standard.string(forKey: "plankTime") ?? ""
+                        let nudgeNotifsOn = UserDefaults.standard.bool(forKey: "notificationsEnabled")
+                        if !nudgeBucket.isEmpty { data.plankTime = nudgeBucket }
+                        data.notificationsEnabled = nudgeNotifsOn
+                        data.notificationTime = nudgeNotifsOn ? reminderTimeFromBucket(nudgeBucket) : nil
                         showRevealSequence = false
                         onComplete(data)
                     } else {
@@ -1424,7 +1431,7 @@ struct OnboardingView: View {
         // the same mechanism more honestly. AppStorage key retained
         // for migration safety; the question is gone.
 
-        // ─── v1.1.3 T5 (2026-06-29) — case 167 (pace selector) CUT ──
+        // ─── v1.1.3 T5 (2026-06-29) - case 167 (pace selector) CUT ──
         // Pace was asked twice: here AND in the reveal PacePicker. The
         // reveal control is better composed and sits next to the single
         // projection it recomputes, so this duplicate question is gone.
@@ -1525,7 +1532,7 @@ struct OnboardingView: View {
             ]
         )
 
-        // ─── 1642 — medication / hypoglycemia intake (T4, v1.1.3) ──────
+        // ─── 1642 - medication / hypoglycemia intake (T4, v1.1.3) ──────
         // The single biggest deficit-safety hazard for the GLP-1-adjacent
         // cohort: insulin + sulfonylureas lower blood sugar, and a calorie
         // deficit compounds that. Surfaced here, right after the GLP-1
@@ -1966,9 +1973,6 @@ struct OnboardingView: View {
         // v1.1.3 T6 (2026-06-29): case 21 (planRevealScreen "your plan is
         // ready") removed - it was redundant with the post-loader
         // projection reveal and claimed "ready" before the build loader.
-        case 22: personalStatScreen
-        case 23: cameraSetupScreen
-        case 215: reviewPromptScreen
 
         // ─── Method preview (250) — "what you get with me" ──────────
         // Post-2026-05-30 flow: sits between brand promises (240) and
@@ -2004,16 +2008,6 @@ struct OnboardingView: View {
         // method preview. Reciprocity > forced commitment for TikTok-
         // acquired Gen Z; IKEA effect freshest right after plan reveal.
         case 240: brandPromisesScreen
-        // Delta v8 D82 — post-reveal sunk-cost lock. Case 26 now lands
-        // IMMEDIATELY after the reveal (250) and IMMEDIATELY before the
-        // rating + final beats, framed as preserving the becoming plan
-        // she just saw. The `.sunkCostLock` mode swaps the headline
-        // copy + hero sticker; the auth mechanics are unchanged.
-        // 240 (brandPromises) and 22 (personal stat) are removed from
-        // v2FlowOrder per D83. Routes to 215 (rating prompt) — case 215
-        // gracefully skips itself when the rating trigger is ineligible.
-        case 26: SignInPromptView(onContinue: { Haptics.medium(); go(215) },
-                                  mode: .sunkCostLock)
 
         // Legacy showcase screens (kept for Phase 5 reuse, not in flow)
         case 4: chartScreen
@@ -2114,7 +2108,7 @@ struct OnboardingView: View {
         // replacement pattern.
         130, 7, 131, 132, 1320, 133, 286, 136,
         160, 161,
-        // v1.1.3 T5 (2026-06-29) — pace selector (case 167) CUT here.
+        // v1.1.3 T5 (2026-06-29) - pace selector (case 167) CUT here.
         // The reveal PacePickerPresentation (post-loader, next to the
         // single projection it recomputes) is now the sole pace control;
         // asking twice was redundant. onboardingPickedTier persists from
@@ -2128,7 +2122,7 @@ struct OnboardingView: View {
         // in P11.1.B (BetterMe A5 pattern, real cohort framing not
         // adversarial comparison).
         140, 158, 154, 155, 163, 164, 1641,
-        // v1.1.3 T4 (2026-06-29) — medication / hypoglycemia intake.
+        // v1.1.3 T4 (2026-06-29) - medication / hypoglycemia intake.
         // Sits in the medical-context cluster right after the GLP-1
         // questions; feeds the pre-paywall safety gate (T7). Drug
         // CLASSES only, no brand names (Apple 5.2.1).
@@ -2183,7 +2177,7 @@ struct OnboardingView: View {
         // real steps. PairedPermissionsAsk in OnboardingRevealView is
         // now notifications-only.
         285,
-        // v1.1.3 T6 (2026-06-29) — case 21 ("your plan is ready") CUT.
+        // v1.1.3 T6 (2026-06-29) - case 21 ("your plan is ready") CUT.
         // It claimed the plan was ready BEFORE the reveal's building
         // loader said it was still building - a contradiction that read
         // fake to a scam-wary cohort. The single "here it is" moment is
@@ -2192,7 +2186,7 @@ struct OnboardingView: View {
         // Day-one program rails the card carried (snap / steps / method /
         // breathe) folded into the reveal's FirstWeekPresentation.
         //
-        // v1.1.3 T8 (2026-06-29) — admin friction moved off the run to the
+        // v1.1.3 T8 (2026-06-29) - admin friction moved off the run to the
         // wall. Cases 215 (rating), 23 (notification opt-in - the legacy-
         // named cameraSetupScreen), and 26 (sign-in) USED to sit here,
         // between the method preview and the projection reveal + paywall,
@@ -2201,19 +2195,24 @@ struct OnboardingView: View {
         //     it after the coach intro, where the user is already committed
         //     (PostPurchaseRatingView). methodPreviewScreen (250) routes
         //     straight to finish() -> reveal -> wall.
-        //   - 23 (notification opt-in) is REMOVED here as a duplicate: the
-        //     reveal's PairedPermissionsAsk is already the single canonical
-        //     notifications ask (the last pre-paywall beat, per T6), so a
-        //     second pre-reveal ask was redundant. No post-paywall dup is
-        //     added (one ask, not three).
+        //   - 23 (notification opt-in) is removed FROM THIS POSITION, but
+        //     its redesigned content (the iOS notification-mock nudge +
+        //     "tap to feel it" haptic + time pills) is NOT lost: the
+        //     v1.1.3 reconcile (2026-06-29) made it the reveal's live
+        //     permissions step (NudgePermissionAsk), the last pre-paywall
+        //     beat per T6. So there is still exactly one notifications ask,
+        //     and it is the founder's redesign - not the plainer paired
+        //     row. HealthKit stays its own mid-onboarding ask (case 285).
         //   - 26 (sign-in) was already ORPHANED in the forward flow (no
         //     go(26)/next:26 routed to it; 250 -> 215 skipped it). The
         //     anonymous-first model carries the entitlement across a later
         //     upgrade with no stranding (RevenueCat appUserID = Supabase
         //     uid, preserved on anon -> apple/email upgrade), so forcing
         //     sign-in pre-paywall was never needed. Removed from the order.
-        // The case arms for 23/215/26 stay in the switch below (unreachable,
-        // matching the file's "legacy screens kept, not in flow" convention).
+        // v1.1.3 reconcile (2026-06-29): the now-truly-unreachable case
+        // arms for 22/23/26/215 + their view bodies were DELETED here (the
+        // nudge's content has a live home in the reveal), per the dead-code
+        // rule. Only reachable screens remain in the switch below.
         234, 250,
     ]
 
@@ -2226,7 +2225,7 @@ struct OnboardingView: View {
     // 5-chapter map. Surfaces a tiny lowercase eyebrow above the
     // progress bar so each new chapter is felt as a sub-goal
     // (Kivetz et al. 2006 goal-gradient). The method-preview tail
-    // (250) is intentionally absent — "almost there" stops being
+    // (250) is intentionally absent - "almost there" stops being
     // accurate the moment the plan is about to be shown. (T8 removed
     // 26/215/23 from the flow entirely.)
     private static let chapterMap: [Int: Int] = [
@@ -5095,26 +5094,6 @@ struct OnboardingView: View {
         .onAppear { withAnimation { reviewVisible = true } }
     }
 
-    // MARK: - Program (unused, kept for reference)
-
-    private var programScreen: some View {
-        ZStack {
-            GradientBlob(colors: [Palette.accent, Palette.accentSubtle, Palette.stateGood]).offset(y: 100)
-            VStack(spacing: 0) {
-                Spacer()
-                AnimatedIcon(name: "calendar", size: 52)
-                Spacer().frame(height: Space.lg)
-                Text("30 days.\n5 exercises.\nOne mission.").font(Typo.title)
-                    .foregroundStyle(Palette.textPrimary).multilineTextAlignment(.center)
-                Spacer().frame(height: Space.sm)
-                Text("Start with plank. Earn the rest.\nYour core score tracks everything.")
-                    .font(Typo.body).foregroundStyle(Palette.textSecondary).multilineTextAlignment(.center)
-                Spacer()
-                ctaBtn("Continue") { Haptics.light(); go(23) }
-            }.padding(.horizontal, Space.screenPadding)
-        }
-    }
-
     // MARK: - Name (screen 15)
 
     @FocusState private var nameFieldFocused: Bool
@@ -5413,16 +5392,6 @@ struct OnboardingView: View {
         }
     }
 
-    /// Mirror of NotificationPermission.dailyReminderBody — kept in
-    /// sync so the onboarding mockup matches what the user actually
-    /// receives post-grant. Don't drift.
-    private var notificationPreviewBody: String {
-        switch voicePreference {
-        case "encouraging": return "five minutes is enough today. small moves still count."
-        case "balanced":    return "sam picked a short one. easy to finish."
-        default:            return "kira's got a short one ready today."
-        }
-    }
 
     private var coachFeedback: String {
         switch voicePreference {
@@ -7933,26 +7902,6 @@ struct OnboardingView: View {
         }
     }
 
-    private func startAnalyzing() {
-        analyzePercent = 0
-        for i in 0...100 {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.5 * Double(i) / 100) {
-                withAnimation(.easeOut(duration: 0.15)) { analyzePercent = i }
-                if i % 20 == 0 { Haptics.light() }
-                if i == 100 {
-                    Haptics.success()
-                    // hold ~0.9s so the restrained Lottie peak plays before
-                    // we cross-fade into the reveal (no confetti — the reveal
-                    // sequence is the second, bigger peak).
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-                        withAnimation { analyzing = false }
-                        go(21)
-                    }
-                }
-            }
-        }
-    }
-
     // ═══════════════════════════════════════
     // MARK: - PLAN REVEAL + CAMERA + PAYWALL
     // ═══════════════════════════════════════
@@ -8257,303 +8206,6 @@ struct OnboardingView: View {
         }
     }
 
-
-    /// Consolidated nudge screen (case 23). 2026-06-29: merged the former
-    /// time-picker-only case 11 into this screen so the user picks their
-    /// preferred time AND grants permission in a single beat. The flow
-    /// is: headline -> time pills -> "feel it" demo (banner + haptic) ->
-    /// allow / skip. Case 11 is now unreachable from the main flow
-    /// (baseline -> 18); its definition is kept for compile safety.
-    private var cameraSetupScreen: some View {
-        // Small-phone safe (iPhone SE / 13 mini): scrollable content
-        // sits in a ScrollView; the two action buttons are docked below
-        // via safeAreaInset so they are always visible regardless of
-        // device height. Same VStack-partition pattern as the age picker
-        // and pace-picker screens.
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 0) {
-                Spacer().frame(height: Space.lg)
-
-                // No heart sticker — this is a question/permission beat, not
-                // one of the 3 earned sticker moments. Editorial restraint
-                // (per the scatter-milestone rule); the notification mock
-                // below is the visual anchor.
-
-                // Delta v8 D76 headline preserved. Italic-Fraunces on "nudge"
-                // per locked voice-signal rules.
-                (Text("want a ").font(Typo.title)
-                 + Text("nudge").font(Typo.titleItalic)
-                 + Text(" from jeni?").font(Typo.title))
-                    .foregroundStyle(Palette.textPrimary)
-                    .multilineTextAlignment(.center)
-
-                Spacer().frame(height: Space.xs)
-
-                Text("one quiet one a day. nothing nagging.")
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Space.lg)
-
-                Spacer().frame(height: Space.lg)
-
-                // The hero: a true-to-iOS notification banner that drops in
-                // + buzzes on appear and replays the buzz on tap, so she
-                // feels exactly what jeni's nudge will feel like before
-                // granting permission. Title synced to the real scheduled
-                // push; body is voice-adaptive.
-                NudgeNotificationBanner(
-                    title: "five minutes, today.",
-                    message: notificationPreviewBody
-                )
-                .padding(.horizontal, Space.screenPadding)
-
-                Spacer().frame(height: Space.lg)
-
-                // Time-of-day selection - merged from former case 11.
-                // Morning defaults on appear so the user is never blocked.
-                // Icons dropped → compact editorial rows (the leading-glyph
-                // circle was the #1 template tell; compact mode also keeps
-                // the notification mock above the fold).
-                VStack(spacing: 8) {
-                    ForEach([
-                        ("morning",   "morning",   "around 7 am"),
-                        ("afternoon", "afternoon", "around 1 pm"),
-                        ("evening",   "evening",   "around 7 pm"),
-                    ], id: \.0) { opt in
-                        OnboardingOptionCard(
-                            title: opt.1,
-                            subtitle: opt.2,
-                            isSelected: plankTime == opt.0,
-                            action: {
-                                Haptics.light()
-                                plankTime = opt.0
-                            }
-                        )
-                    }
-                }
-                .padding(.horizontal, Space.screenPadding)
-
-                // Bottom padding so the last element clears the docked
-                // button dock when scrolled to the end on small phones.
-                Spacer().frame(height: Space.lg)
-            }
-        }
-        .safeAreaInset(edge: .bottom) {
-            jfCTADock {
-                VStack(spacing: 10) {
-                    // "allow notifications" requests OS permission and on
-                    // grant schedules the daily reminder at the chosen time.
-                    // Map: morning -> 7am, afternoon -> 1pm, evening -> 7pm.
-                    ctaBtn("allow notifications") {
-                        Haptics.medium()
-                        Task {
-                            let granted = await NotificationPermission.requestOrOpenSettings()
-                            notificationsEnabled = granted
-                            if granted {
-                                let scheduledTime = reminderTimeFromBucket(plankTime)
-                                notificationTime = scheduledTime
-                                NotificationPermission.scheduleDailyReminder(at: scheduledTime)
-                            }
-                            finish()
-                        }
-                    }
-
-                    Button {
-                        Haptics.light()
-                        notificationsEnabled = false
-                        finish()
-                    } label: {
-                        Text("not right now")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(Palette.textSecondary)
-                            .padding(.vertical, 8)
-                    }
-                    .buttonStyle(PressFeedbackStyle())
-                }
-                .padding(.horizontal, Space.screenPadding)
-                .padding(.bottom, Space.lg)
-            }
-        }
-        .onAppear {
-            // Default to morning when landing here for the first time
-            // (plankTime was set by the now-removed case 11 in prior
-            // builds; the consolidated screen sets it here instead).
-            if plankTime.isEmpty { plankTime = "morning" }
-        }
-    }
-
-    /// Soft review prefilter, fires right after plan reveal. 2026-05-30
-    /// (epic #1 child #6): copy re-framed from "loving jenifit so far?"
-    /// to "love your plan?" so the user is rating the personalization
-    /// they just experienced (the plan reveal) rather than a product
-    /// they haven't used yet. Article evidence (200+ app teardown): 152
-    /// reviews at 4.8 from mid-onboarding placement after a wow moment.
-    /// Routes through RatingPromptService.postPlanReveal so the
-    /// per-trigger lifetime flag + 30-day soft cooldown + legacy
-    /// onboardingReviewPromptShown back-compat all apply.
-    private var reviewPromptScreen: some View {
-        // 2026-05-30 visual upgrade: matches the brand-promises screen
-        // chrome so the post-plan-reveal sequence (plan reveal → brand
-        // promises → review prompt) reads as one coherent moment. The
-        // sticker scatter + scrapbook-card hero + italic-Fraunces voice
-        // signal carry across all three screens.
-        ZStack {
-            OnboardingAtmosphere()  // v1.1: continuous canvas vs the transparent nav
-
-            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
-
-            VStack(spacing: 0) {
-                Spacer()
-
-                // Card hero — hero sticker on accent halo INSIDE the
-                // scrapbook chrome. Same shape as the brand-promises
-                // card so the visual rhythm of the screen pair is
-                // continuous.
-                VStack(spacing: Space.lg) {
-                    ZStack {
-                        Circle()
-                            .fill(Palette.accent.opacity(0.12))
-                            .frame(width: 96, height: 96)
-                        Image(StickerName.heartGlossy.assetName)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 68, height: 68)
-                            .opacity(StickerName.heartGlossy.style.opacity)
-                    }
-                    .padding(.top, Space.md)
-
-                    (Text("love ").font(Typo.title)
-                     + Text("your plan").font(Typo.titleItalic)
-                     + Text("?").font(Typo.title))
-                        .foregroundStyle(Palette.textPrimary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Space.md)
-
-                    Text("a quick rating helps other women find us, and keeps the app independent.")
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Space.md)
-                        .padding(.bottom, Space.md)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.vertical, Space.md)
-                .frame(maxWidth: .infinity)
-                .scrapbookCardBackground()
-                .padding(.horizontal, Space.screenPadding)
-
-                Spacer()
-
-                VStack(spacing: 10) {
-                    ctaBtn("loving it") {
-                        Haptics.success()
-                        handleReviewPromptYes()
-                        // Brief delay so the system sheet has a beat to
-                        // appear before we slide forward; if iOS
-                        // suppresses it (quota, throttle), the user
-                        // just lands on the next screen.
-                        // 2026-06-06: route to 23 (final). Pre-D82 this
-                        // routed to 26 (sign-in came AFTER rating); D82
-                        // flipped the order so sign-in is now upstream
-                        // of the rating ask.
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                            go(23)
-                        }
-                    }
-
-                    Button {
-                        Haptics.light()
-                        handleReviewPromptNo()
-                        go(23)
-                    } label: {
-                        Text("not yet")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(Palette.textSecondary)
-                            .padding(.vertical, 8)
-                    }
-                    .buttonStyle(PressFeedbackStyle())
-                }
-                .padding(.horizontal, Space.screenPadding)
-                .padding(.bottom, Space.lg)
-            }
-        }
-        .onAppear {
-            // If the postPlanReveal trigger is ineligible (already fired
-            // for this install, or 30-day cooldown active), skip directly
-            // to the next screen so the user isn't shown a prompt that
-            // can't actually fire SKStoreReviewController. Existing
-            // v1.0.6 users with the legacy onboardingReviewPromptShown
-            // flag set fall through this gate too.
-            // 2026-06-07: post-plan-reveal is now the SOLE rating ask in
-            // the onboarding flow. The earlier loader-sentiment overlay
-            // (BuildingPlanLoadingView, ~75% loader) was dropped because
-            // it double-fired SKStoreReviewController against this gate
-            // — neither side called RatingPromptService.markShown so
-            // both passed eligibility and a "love"-tapping user got
-            // two rating asks ~60s apart.
-            if !RatingPromptService.shared.isEligible(for: .postPlanReveal) {
-                go(23)
-            }
-        }
-    }
-
-    /// 4-sticker scatter for the review-prompt sentiment gate. Same
-    /// edge-only coordinates as the brand-promises screen so the
-    /// post-plan-reveal sequence (240 brand promises → 250 method
-    /// preview → 215 review prompt) feels visually continuous.
-    private static let reviewPromptPlacements: [StickerPlacement] = [
-        StickerPlacement(sticker: .sparkleGlossy,
-                         position: CGPoint(x: 0.10, y: 0.10),
-                         size: 30, rotation: -8, phaseDelay: 0.00),
-        StickerPlacement(sticker: .heartsLineart,
-                         position: CGPoint(x: 0.92, y: 0.12),
-                         size: 32, rotation: 14, phaseDelay: 0.25),
-        StickerPlacement(sticker: .ribbonLineart,
-                         position: CGPoint(x: 0.08, y: 0.86),
-                         size: 28, rotation: -11, phaseDelay: 0.55),
-        StickerPlacement(sticker: .bowIridescent,
-                         position: CGPoint(x: 0.92, y: 0.88),
-                         size: 32, rotation: 9, phaseDelay: 0.80),
-    ]
-
-    /// "Loving it" path — fire the system review sheet via
-    /// RatingPromptService. Marks the postPlanReveal trigger shown +
-    /// updates the global cooldown timestamp so the other two triggers
-    /// (sessionThreePR, dayStreakSeven) honor the 30-day spacing.
-    private func handleReviewPromptYes() {
-        // Keep the legacy AppStorage flag in sync so older code paths
-        // that still read it (any v1.0.6 holdovers) see the consistent
-        // "already shown" signal.
-        onboardingReviewPromptShown = true
-        RatingPromptService.shared.markShown(.postPlanReveal)
-        RatingPromptService.shared.trackSentimentResult(trigger: .postPlanReveal, sentimentYes: true)
-        RatingPromptService.shared.presentSystemReviewSheet()
-    }
-
-    /// "Not yet" path — record the sentiment-no, mark the trigger shown
-    /// (so we don't re-prompt next session), continue onboarding.
-    /// Per the spec, slot 1 ("not yet" in onboarding) does NOT route to
-    /// FeedbackView — that's reserved for slots 2-3 where the user has
-    /// actually used the product.
-    private func handleReviewPromptNo() {
-        onboardingReviewPromptShown = true
-        RatingPromptService.shared.markShown(.postPlanReveal)
-        RatingPromptService.shared.trackSentimentResult(trigger: .postPlanReveal, sentimentYes: false)
-    }
-
-    /// Q11 plankTime bucket → a "morning" / "in the afternoon" / etc.
-    /// fragment that fits inside the notification screen subtitle.
-    private func humanReadableReminderTime(_ bucket: String) -> String {
-        switch bucket {
-        case "morning":   return "every morning"
-        case "afternoon": return "each afternoon"
-        case "evening":   return "every evening"
-        case "whenever":  return "every day"
-        default:          return "every day"
-        }
-    }
-
     /// Q11 plankTime bucket → a real Date for the daily reminder.
     /// Hours match the bucket spirit: morning=7am, afternoon=1pm,
     /// evening=7pm, whenever=9am.
@@ -8568,13 +8220,6 @@ struct OnboardingView: View {
             }
         }()
         return cal.date(from: DateComponents(hour: hour)) ?? Date()
-    }
-
-    private func tR(_ ic: String, _ tx: String) -> some View {
-        HStack(spacing: Space.sm) {
-            Image(systemName: ic).font(.system(size: 16)).foregroundStyle(Palette.textSecondary).frame(width: 24)
-            Text(tx).font(.system(size: 15)).foregroundStyle(Palette.textPrimary)
-        }
     }
 
     // ═══════════════════════════════════════
@@ -8796,148 +8441,6 @@ struct OnboardingView: View {
         .opacity(beforeAfterVisible ? 1 : 0)
         .offset(y: beforeAfterVisible ? 0 : CGFloat(8 + index * 4))
         .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.3 + Double(index) * 0.12), value: beforeAfterVisible)
-    }
-
-    // ═══════════════════════════════════════
-    // MARK: - PERSONAL STAT (screen 22)
-    // ═══════════════════════════════════════
-
-    private var personalStatScreen: some View {
-        let focusLabel = focusArea == "abs" ? "Abs Definition" :
-                         focusArea == "obliques" ? "Waist Sculpting" :
-                         focusArea == "lowerBack" ? "Core Strength" : "Full Core"
-
-        let difficultyLabel: String = {
-            if experience == "never" || experience == "gaveUp" { return "Beginner" }
-            if activityLevel == "active" || activityLevel == "athlete" { return "Intermediate" }
-            if baseline == "30to60" || baseline == "over60" { return "Intermediate" }
-            return "Beginner"
-        }()
-
-        let sessionMin = sessionLength.isEmpty ? "7" : sessionLength
-        let daysPerWeek = commitmentDays.isEmpty ? "5" : commitmentDays
-        let weeklyMinutes = (Int(sessionMin) ?? 7) * (Int(daysPerWeek) ?? 5)
-
-        return VStack(spacing: 0) {
-            Spacer()
-
-            Text("YOUR PLAN")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(Palette.accent)
-                .tracking(2)
-                .opacity(personalStatVisible ? 1 : 0)
-
-            Spacer().frame(height: Space.md)
-
-            if !name.trimmingCharacters(in: .whitespaces).isEmpty {
-                Text("Built for \(name)")
-                    .font(Typo.titleItalic)
-                    .foregroundStyle(Palette.textPrimary)
-                    .opacity(personalStatVisible ? 1 : 0)
-                    .offset(y: personalStatVisible ? 0 : 10)
-            }
-
-            Spacer().frame(height: Space.lg + 8)
-
-            // 2026-05-30 visual upgrade: data-driven plan details now
-            // sit in a single scrapbook chrome card (24pt corners, 1.5pt
-            // accent border, hard offset shadow) instead of 6 separate
-            // floating chips. Reads as "this is your plan artifact" —
-            // matches the plan reveal capability ladder + the post-plan-
-            // reveal sequence visual rhythm.
-            VStack(spacing: 0) {
-                planDetail(icon: "target", label: "Focus", value: focusLabel, index: 0)
-                Divider().background(Palette.divider).padding(.horizontal, Space.md)
-                planDetail(icon: "chart.bar", label: "Level", value: difficultyLabel, index: 1)
-                Divider().background(Palette.divider).padding(.horizontal, Space.md)
-                planDetail(icon: "clock", label: "Sessions", value: "\(sessionMin) min", index: 2)
-                Divider().background(Palette.divider).padding(.horizontal, Space.md)
-                planDetail(icon: "calendar", label: "Frequency", value: "\(daysPerWeek) days/week", index: 3)
-                Divider().background(Palette.divider).padding(.horizontal, Space.md)
-                planDetail(icon: "flame", label: "Weekly total", value: "\(weeklyMinutes) min", index: 4)
-                Divider().background(Palette.divider).padding(.horizontal, Space.md)
-                planDetail(icon: "waveform", label: "Coach", value: selectedCoachName, index: 5)
-            }
-            .padding(.vertical, Space.xs)
-            .frame(maxWidth: .infinity)
-            .scrapbookCardBackground()
-            .padding(.horizontal, Space.screenPadding)
-
-            Spacer().frame(height: Space.lg)
-
-            // What adapts
-            VStack(spacing: 6) {
-                Text("Your workouts adapt based on:")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Palette.textSecondary)
-
-                HStack(spacing: 8) {
-                    adaptTag("session ratings")
-                    adaptTag("plank benchmarks")
-                    adaptTag("consistency")
-                }
-            }
-            .opacity(personalStatVisible ? 1 : 0)
-            .animation(.easeOut(duration: 0.3).delay(1.0), value: personalStatVisible)
-
-            Spacer()
-            ctaBtn("Almost done") { Haptics.medium(); go(23) }
-                .opacity(personalStatVisible ? 1 : 0)
-        }
-        .background(Palette.bgPrimary)
-        .onAppear {
-            Haptics.success()
-            withAnimation(Motion.entrance) { personalStatVisible = true }
-        }
-    }
-
-    /// 2026-05-30 visual upgrade: per-row background + corner removed
-    /// since rows now live inside a single scrapbook chrome card on
-    /// personalStatScreen. Staggered entrance animation (delay × index)
-    /// preserved so the rows still feel like they're settling in one
-    /// at a time.
-    private func planDetail(icon: String, label: String, value: String, index: Int) -> some View {
-        HStack {
-            Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundStyle(Palette.accent)
-                .frame(width: 20)
-            Text(label)
-                .font(.system(size: 15))
-                .foregroundStyle(Palette.textSecondary)
-            Spacer()
-            Text(value)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Palette.textPrimary)
-        }
-        .padding(.horizontal, Space.md)
-        .padding(.vertical, 12)
-        .opacity(personalStatVisible ? 1 : 0)
-        .offset(y: personalStatVisible ? 0 : CGFloat(6 + index * 3))
-        .animation(.spring(response: 0.45, dampingFraction: 0.8).delay(0.2 + Double(index) * 0.08), value: personalStatVisible)
-    }
-
-    private func adaptTag(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(Palette.accent)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Palette.accent.opacity(0.08))
-            .clipShape(Capsule())
-    }
-
-    private func statRow(_ emoji: String, _ text: String) -> some View {
-        HStack(spacing: 10) {
-            Text(emoji).font(.system(size: 16))
-            Text(text)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(Palette.textPrimary)
-            Spacer()
-        }
-        .padding(14)
-        .background(Palette.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // ═══════════════════════════════════════
@@ -9795,12 +9298,17 @@ struct OnboardingData {
     // Existing fields — downstream consumers (PlankAIApp.handleOnboardingComplete,
     // UserRecord schema, WorkoutGenerator) read these by name. Don't rename.
     let goal, experience: String; let baselineHoldSeconds: Int; let barriers: [String]
-    let ageRange, activityLevel, focusArea, plankTime: String
+    let ageRange, activityLevel, focusArea: String
+    // var (not let): the reveal nudge (NudgePermissionAsk) is the live
+    // notifications ask now, and it runs AFTER finish() assembles this
+    // data; onRevealComplete refreshes plankTime + the two notification
+    // fields from the canonical keys the nudge wrote.
+    var plankTime: String
     // var (not let): the reveal PacePicker can re-pick the pace after
     // assembly, and onRevealComplete refreshes these two derived fields.
     var commitmentDaysPerWeek: Int
     var sessionLengthMinutes: Int
-    let notificationsEnabled: Bool; let notificationTime: Date?; let name, voicePreference: String
+    var notificationsEnabled: Bool; var notificationTime: Date?; let name, voicePreference: String
 
     // JeniFit phase 4 additions. New onboarding question content writes
     // these in addition to the legacy fields above. Defaults make them

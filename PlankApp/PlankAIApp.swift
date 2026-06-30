@@ -473,7 +473,7 @@ struct PlankAIApp: App {
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-checkin") {
                     SafetyCheckInView(onFinish: {})
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-gate") {
-                    // T7 + safety-fix (2026-06-29) — the pre-paywall safety gate.
+                    // T7 + safety-fix (2026-06-29) - the pre-paywall safety gate.
                     // Auto-assesses from seeded AppStorage so each branch is one
                     // launch + one screenshot. Seed then launch, e.g.:
                     //   defaults write com.bk.plankAI onboarding_medication_status -string insulin_or_sulfonylurea
@@ -754,12 +754,24 @@ struct PlankAIApp: App {
                         debugStartAtRatingAsk: true
                     )
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-nudge") {
-                    // Notification opt-in screen ("want a nudge from jeni?",
-                    // case 23 / cameraSetupScreen) rendered directly for sim
-                    // capture + design review of the iOS notification mock +
-                    // its arrival haptic. Launch:
+                    // The founder's redesigned notification opt-in nudge
+                    // ("want a nudge from jeni?" - iOS notification-mock
+                    // banner + "tap to feel it" haptic + time pills). It now
+                    // lives as the reveal's LIVE permissions step
+                    // (NudgePermissionAsk), reclaimed from the orphaned case
+                    // 23. Jumps straight there for sim capture + design
+                    // review. Launch:
                     // `xcrun simctl launch booted com.bk.plankAI --debug-nudge`
-                    OnboardingView(onComplete: { _ in })
+                    OnboardingRevealView(
+                        bodyFocus: ["flatBelly"],
+                        sessionLengthKey: "ten",
+                        voicePreference: "encouraging",
+                        commitmentDaysKey: "five",
+                        currentWeightKg: 75,
+                        goalWeightKg: 65,
+                        onRevealComplete: {},
+                        debugStartAtPermissions: true
+                    )
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-medication") {
                     // Medication / hypoglycemia intake screen (case 1642, T4)
                     // rendered directly for sim capture + design review. The
@@ -767,11 +779,11 @@ struct PlankAIApp: App {
                     // `xcrun simctl launch booted com.bk.plankAI --debug-medication`
                     OnboardingView(onComplete: { _ in })
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-paywall") {
-                    // 2026-06-29 — neat one-screen paywall redesign preview.
+                    // 2026-06-29 - neat one-screen paywall redesign preview.
                     // Renders PaywallView with DEBUG mock pricing + mock
                     // projection data (no RC packages / no UserRecord needed
-                    // in-sim) so the full layout — projection hero, yearly
-                    // card, per-day + save anchor, docked CTA — renders for
+                    // in-sim) so the full layout - projection hero, yearly
+                    // card, per-day + save anchor, docked CTA - renders for
                     // visual verification. Launch:
                     // `xcrun simctl launch booted com.bk.plankAI --debug-paywall`
                     PaywallView(

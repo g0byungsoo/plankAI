@@ -4,7 +4,7 @@ import SwiftUI
 /// nudge-permission screen ("want a nudge from jeni?"). It renders the
 /// real app icon (the jenifit bow mark in a squircle tile), the app name
 /// + relative time, a bold notification title and a body line inside real
-/// iOS banner chrome — frosted material, ~22pt squircle, hairline glass
+/// iOS banner chrome - frosted material, ~22pt squircle, hairline glass
 /// edge, soft drop shadow.
 ///
 /// On appear it drops + settles in like a notification arriving and fires
@@ -106,7 +106,7 @@ struct NudgeNotificationBanner: View {
             }
             return
         }
-        // Drop in from the top + settle, then buzz as it lands — the
+        // Drop in from the top + settle, then buzz as it lands - the
         // cadence of a real notification arriving.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.74)) {
