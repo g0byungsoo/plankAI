@@ -305,6 +305,22 @@ struct OnboardingView: View {
     // Drug CLASSES only, never a brand name (Apple 5.2.1). AppStorage-only
     // for now (persistence P0), like glp1Status + weightTrend.
     @AppStorage("onboarding_medication_status") private var medicationStatus: String = ""
+    // v1.1.3 (2026-06-29) — goal DIRECTION (case 1330). Until now "management"
+    // was only ever INFERRED from goalWeight < currentWeight, so an intentional
+    // maintainer (or the high-LTV "keep off what i've lost" post-reset cohort)
+    // had to game the sliders and still got a deficit plan. This explicit choice
+    // routes the non-loss answers to the maintenance machinery (goal == current
+    // -> compute() returns a maintenance window; isMaintenanceReveal renders the
+    // "your plan, steady" variant). Value space: lose / maintain / maintain_kept
+    // / recomp. A CHOICE maintainer is NOT a safety case — she still sees her
+    // real maintenance number (TDEE); only ED/pregnant suppress numbers. No drug
+    // names (Apple 5.2.1). AppStorage-only for now, like the sibling intake keys.
+    @AppStorage("onboarding_goal_direction") private var goalDirection: String = ""
+    // program_mode mirror — written here the moment a non-loss direction is
+    // chosen so the signal is set before the post-paywall build/PlanView read it.
+    // The pre-paywall safety gate re-derives it from the assessment, but honors
+    // an explicit maintenance choice when the user is otherwise safe (.loss).
+    @AppStorage("program_mode") private var programMode: String = "loss"
 
     /// Wipes every single-select v2 field back to "" so no option renders
     /// pre-highlighted on the first visit to each question. Called once
@@ -359,6 +375,22 @@ struct OnboardingView: View {
         // leaks the same way - clear it so no option pre-highlights on
         // re-runs or re-onboard paths.
         medicationStatus = ""
+        // 2026-06-29: goal-direction (case 1330) — same persistence leak;
+        // clear so no direction pre-highlights on a fresh re-run.
+        goalDirection = ""
+    }
+
+    /// Re-seed the goal weight to a realistic ~10% loss when it is currently
+    /// flat (>= current — the state a prior "maintain" pick leaves it in).
+    /// Mirrors the seed in case 1320's onAppear so switching back from a
+    /// maintenance choice to lose/recomp restores a coherent loss goal +
+    /// projection climax. Clamped to the BMI-18.5 floor. No-op when current
+    /// weight isn't collected yet, or when a real loss goal already exists.
+    private func reseedLossGoalIfFlat() {
+        guard currentWeightKg > 0, goalWeightKg >= currentWeightKg else { return }
+        let floor = ProgramGoalCalculator.minimumGoalWeightKg(heightCm: heightCm)
+        let tenPercentLoss = (currentWeightKg * 0.90).rounded()
+        goalWeightKg = floor > 0 ? max(floor, tenPercentLoss) : tenPercentLoss
     }
 
     // v4.6 — notification-banner drop-in on the nudge screen (case 11).
@@ -1037,7 +1069,9 @@ struct OnboardingView: View {
                 ("declining", "slowly coming down",  nil, "arrow.down.right"),
                 ("cycling",   "up and down",         nil, "arrow.up.arrow.down"),
             ],
-            sel: $weightTrend, next: 133
+            // v1.1.3 (2026-06-29) - routes to the goal-DIRECTION question (1330)
+            // before the goal-weight slider, so the chosen direction frames it.
+            sel: $weightTrend, next: 1330
         )
         .onAppear {
             // Seed the goal weight to a realistic ~10% default loss on first
@@ -1054,6 +1088,53 @@ struct OnboardingView: View {
                 let tenPercentLoss = (currentWeightKg * 0.90).rounded()
                 goalWeightKg = floor > 0 ? max(floor, tenPercentLoss) : tenPercentLoss
                 goalWeightInitialized = true
+            }
+        }
+
+        // ─── 1330 — goal DIRECTION (v1.1.3, 2026-06-29) ────────────────
+        // The explicit weight-MANAGEMENT unlock. Before this, "management"
+        // was only ever inferred from goalWeight < currentWeight, so an
+        // intentional maintainer (or the high-LTV "keep off what i've lost"
+        // post-reset cohort) had to game the sliders and STILL got a deficit
+        // plan. This single-select frames the goal-weight slider that follows:
+        //   lose          -> normal loss (current behaviour, deficit plan).
+        //   maintain       -> goal == current -> compute() maintenance window,
+        //                     "your plan, steady" reveal, her real TDEE shown.
+        //   maintain_kept  -> same maintenance machinery; honors the post-loss
+        //                     cohort WITHOUT naming any drug (Apple 5.2.1 safe).
+        //   recomp         -> a gentle tone-up deficit (clamped ~0.25%/wk).
+        // A CHOICE maintainer is NOT a safety case: she keeps her numbers
+        // (only ED/pregnant suppress numbers). The onChange pre-fills the goal
+        // so the math is maintenance the moment she picks; program_mode mirrors.
+        case 1330: jfQuestion(
+            "what are we working toward?",
+            sub: nil,
+            italic: ["working toward"],  // her75 editorial register
+            opts: [
+                ("lose",          "lose weight",            nil, "arrow.down.right"),
+                ("maintain",      "maintain where i am",    nil, "equal.circle"),
+                ("maintain_kept", "keep off what i've lost", nil, "shield.lefthalf.filled"),
+                ("recomp",        "tone up and get stronger", nil, "figure.strengthtraining.traditional"),
+            ],
+            sel: $goalDirection, next: 133
+        )
+        .onChange(of: goalDirection) { _, newValue in
+            switch newValue {
+            case "maintain", "maintain_kept":
+                // Maintenance: goal == current so the deficit math is zero and
+                // the reveal renders the steady (non-loss) variant. program_mode
+                // persists for the post-paywall build + PlanView (provenance:
+                // the maintenance calorie is her real TDEE, not a phantom).
+                if currentWeightKg > 0 { goalWeightKg = currentWeightKg }
+                programMode = "maintenance"
+            case "recomp":
+                // Gentle tone-up deficit; restore a loss goal if a prior
+                // maintain pick had flattened it to current.
+                programMode = "loss"
+                reseedLossGoalIfFlat()
+            default:  // "lose"
+                programMode = "loss"
+                reseedLossGoalIfFlat()
             }
         }
 
@@ -2009,7 +2090,13 @@ struct OnboardingView: View {
         // branch (164/1641) and skipped for everyone, leaving
         // onboarding_medication_status unset and the pre-paywall safety gate
         // unable to ever reach .clinicianFirst.
-        130, 7, 131, 132, 1320, 133, 1642, 286, 136,
+        // v1.1.3 (2026-06-29) - goal DIRECTION (case 1330) sits right before
+        // the goal-weight slider (133), after the weight-trajectory read (1320),
+        // so the chosen direction FRAMES the slider: a maintainer's goal is
+        // pre-filled to her current weight (delta 0 -> maintenance), a loser
+        // keeps the seeded ~10% loss. Unlocks an explicit weight-MANAGEMENT
+        // path instead of inferring it from the sliders.
+        130, 7, 131, 132, 1320, 1330, 133, 1642, 286, 136,
         160, 161,
         // v1.1.3 T5 (2026-06-29) - pace selector (case 167) CUT here.
         // The reveal PacePickerPresentation (post-loader, next to the
@@ -2141,7 +2228,7 @@ struct OnboardingView: View {
         8: 2,
         // 3 — what *fits*
         280: 3,  // bridge "now the numbers" (P11.1.B)
-        130: 3, 7: 3, 131: 3, 132: 3, 133: 3, 286: 3, 136: 3,
+        130: 3, 7: 3, 131: 3, 132: 3, 1330: 3, 133: 3, 286: 3, 136: 3,
         160: 3, 161: 3,
         // 4 — your *why*
         140: 4, 158: 4, 154: 4, 155: 4, 163: 4, 164: 4,

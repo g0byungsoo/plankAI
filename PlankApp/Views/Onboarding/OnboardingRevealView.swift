@@ -319,6 +319,9 @@ struct SafetyGatePresentation: View {
     @AppStorage("onboarding_medication_status") private var medicationStatus: String = ""
     @AppStorage("onboarding_glp1_status")       private var glp1Status: String = ""
     @AppStorage("onboarding_weight_trend")      private var weightTrend: String = ""
+    // v1.1.3 (2026-06-29): explicit goal direction (case 1330). Lets the gate
+    // preserve a maintenance CHOICE for an otherwise-safe (.loss) user.
+    @AppStorage("onboarding_goal_direction")    private var goalDirection: String = ""
 
     // Persisted safety outputs. pregnancyStatus + scoff counts are written
     // by the collection screens here; safety_screen_completed + program_mode
@@ -398,7 +401,19 @@ struct SafetyGatePresentation: View {
     }
 
     private func route(_ a: ProgramGoalCalculator.SafetyAssessment) {
-        programMode = a.mode.rawValue
+        // v1.1.3 (2026-06-29): honor an explicit maintenance CHOICE (case 1330)
+        // when the user is otherwise safe. A healthy choice-maintainer assesses
+        // as .loss (goal == current, no safety flag), which would otherwise
+        // overwrite her "maintenance" program_mode back to "loss". Genuine
+        // safety modes (recovery / blocked / clinicianFirst / safety-maintenance)
+        // are MORE protective and still take precedence — they only ever fire
+        // for non-.loss assessments.
+        if a.mode == .loss
+            && (goalDirection == "maintain" || goalDirection == "maintain_kept") {
+            programMode = ProgramGoalCalculator.ProgramMode.maintenance.rawValue
+        } else {
+            programMode = a.mode.rawValue
+        }
         safetyScreenCompleted = true
         // Persist the adaptation so it is genuinely applied (projection reveal
         // + post-paywall program build), not just narrated in the gate note.
@@ -881,6 +896,16 @@ private struct ProjectionPresentation: View {
     // the non-numeric maintenance reveal, and a >=0 cap clamps the picked rate.
     @AppStorage("safety_pace_cap")            private var safetyPaceCap: Double = -1
     @AppStorage("safety_numeric_suppression") private var safetyNumericSuppression: Bool = false
+    // v1.1.3 (2026-06-29): explicit goal direction (case 1330). A "recomp"
+    // (tone-up) choice clamps the deficit to a gentle glide so the calorie
+    // number reflects the gentler pace she chose, not her picked tier.
+    // maintain / maintain_kept reach the maintenance reveal via goal == current
+    // (isMaintenanceReveal), so they need no special-case here.
+    @AppStorage("onboarding_goal_direction")  private var goalDirection: String = ""
+
+    /// Gentle tone-up deficit (~0.25%/wk) for the recomp cohort. Below the
+    /// 0.5% default floor — a small, lean-mass-sparing deficit.
+    private let recompGentleRate: Double = 0.0025
 
     /// FIX 3 (2026-06-29): true when she has weights but no loss delta
     /// (already at / below goal). Drives the maintenance-framed reveal so a
@@ -978,9 +1003,13 @@ private struct ProjectionPresentation: View {
                         }
 
                         // The loss curve + becoming (goal) date. Omitted for
-                        // safety-suppressed cohorts so a pregnant / ED / zero-cap
-                        // user never sees a loss trajectory or a goal date.
-                        if !suppressNumbers {
+                        // EVERY maintenance reveal — the safety-suppressed cohorts
+                        // (pregnant / ED / zero-cap) AND the choice maintainers
+                        // (maintain / maintain_kept / delta-0) — so no one who
+                        // isn't on a loss path ever sees a loss trajectory. The
+                        // choice maintainer still keeps her steady calorie number
+                        // (gated separately on estimatedCalorieTarget).
+                        if !isMaintenanceReveal {
                             BecomingProjectionCard(
                                 currentWeightKg: currentWeightKg,
                                 goalWeightKg: goalWeightKg
@@ -1169,8 +1198,11 @@ private struct ProjectionPresentation: View {
         }()
         // Clamp to the safety pace cap when one was set at the gate. paceCap 0
         // -> rate 0 (no deficit); 0.0025 -> gentle 0.25%/wk; -1 -> uncapped.
-        if safetyPaceCap >= 0 { return min(tierRate, safetyPaceCap) }
-        return tierRate
+        var rate = tierRate
+        if safetyPaceCap >= 0 { rate = min(rate, safetyPaceCap) }
+        // v1.1.3: a recomp (tone-up) choice glides gently regardless of tier.
+        if goalDirection == "recomp" { rate = min(rate, recompGentleRate) }
+        return rate
     }
 
     /// TDEE-based daily calorie target from collected onboarding fields.
@@ -1230,6 +1262,10 @@ private struct ProjectionPresentation: View {
     /// reveal pill. Routed through ProjectionMath at the user's picked
     /// pace so it matches the pace selector, day-one card, and paywall.
     private var goalDateText: String? {
+        // v1.1.3: a maintenance reveal has no loss goal, so it shows no goal
+        // date (the "by <date> your becoming date" tile is omitted). A choice
+        // maintainer sees her steady calorie number, never a loss trajectory.
+        if isMaintenanceReveal { return nil }
         guard let curr = currentWeightKg, let goal = goalWeightKg else { return nil }
         return ProjectionMath.formattedLongDate(
             currentKg: curr,

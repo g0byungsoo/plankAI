@@ -717,6 +717,7 @@
 		A3B5E1F19C2D4F0192A30001 /* JeniMethodRitualSafetyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3B5E1F09C2D4F0192A30001 /* JeniMethodRitualSafetyTests.swift */; };
 		DF33E8C556F14C709E875A8D /* ProgramGoalCalculatorSafetyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7DDCF5CAE584C29B7345CA9 /* ProgramGoalCalculatorSafetyTests.swift */; };
 		FA0001FA0001FA0001FA0001 /* GoalWeightFloorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0002FA0002FA0002FA0002 /* GoalWeightFloorTests.swift */; };
+		FA0003FA0003FA0003FA0003 /* GoalDirectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0004FA0004FA0004FA0004 /* GoalDirectionTests.swift */; };
 		CB0002CB0002CB0002CB0002 /* ClinicalBaseline.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0001CB0001CB0001CB0001 /* ClinicalBaseline.swift */; };
 		CB0004CB0004CB0004CB0004 /* ClinicalBaselineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0003CB0003CB0003CB0003 /* ClinicalBaselineTests.swift */; };
 		RL0002RL0002RL0002RL0002 /* RapidLossTripwire.swift in Sources */ = {isa = PBXBuildFile; fileRef = RL0001RL0001RL0001RL0001 /* RapidLossTripwire.swift */; };
@@ -2108,6 +2109,7 @@
 		A3B5E1F09C2D4F0192A30001 /* JeniMethodRitualSafetyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMethodRitualSafetyTests.swift; sourceTree = "<group>"; };
 		C7DDCF5CAE584C29B7345CA9 /* ProgramGoalCalculatorSafetyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProgramGoalCalculatorSafetyTests.swift; sourceTree = "<group>"; };
 		FA0002FA0002FA0002FA0002 /* GoalWeightFloorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GoalWeightFloorTests.swift; sourceTree = "<group>"; };
+		FA0004FA0004FA0004FA0004 /* GoalDirectionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GoalDirectionTests.swift; sourceTree = "<group>"; };
 		CB0001CB0001CB0001CB0001 /* ClinicalBaseline.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClinicalBaseline.swift; sourceTree = "<group>"; };
 		CB0003CB0003CB0003CB0003 /* ClinicalBaselineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClinicalBaselineTests.swift; sourceTree = "<group>"; };
 		RL0001RL0001RL0001RL0001 /* RapidLossTripwire.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RapidLossTripwire.swift; sourceTree = "<group>"; };
@@ -2849,6 +2851,7 @@
 				A3B5E1F09C2D4F0192A30001 /* JeniMethodRitualSafetyTests.swift */,
 				C7DDCF5CAE584C29B7345CA9 /* ProgramGoalCalculatorSafetyTests.swift */,
 				FA0002FA0002FA0002FA0002 /* GoalWeightFloorTests.swift */,
+				FA0004FA0004FA0004FA0004 /* GoalDirectionTests.swift */,
 				CB0003CB0003CB0003CB0003 /* ClinicalBaselineTests.swift */,
 				RL0003RL0003RL0003RL0003 /* RapidLossTripwireTests.swift */,
 				HP0003HP0003HP0003HP0003 /* HabitProgressTests.swift */,
@@ -5992,6 +5995,7 @@
 				A3B5E1F19C2D4F0192A30001 /* JeniMethodRitualSafetyTests.swift in Sources */,
 				DF33E8C556F14C709E875A8D /* ProgramGoalCalculatorSafetyTests.swift in Sources */,
 				FA0001FA0001FA0001FA0001 /* GoalWeightFloorTests.swift in Sources */,
+				FA0003FA0003FA0003FA0003 /* GoalDirectionTests.swift in Sources */,
 				CB0004CB0004CB0004CB0004 /* ClinicalBaselineTests.swift in Sources */,
 				RL0004RL0004RL0004RL0004 /* RapidLossTripwireTests.swift in Sources */,
 				HP0004HP0004HP0004HP0004 /* HabitProgressTests.swift in Sources */,

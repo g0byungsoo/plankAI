@@ -62,6 +62,11 @@ struct ProgramSetupSubflow: View {
     // Read so the SHIPPED program matches the adapted projection, not a normal
     // loss plan. (The screen itself ran pre-paywall; this only reads the cap.)
     @AppStorage("safety_pace_cap") private var safetyPaceCap: Double = -1
+    // v1.1.3 (2026-06-29): explicit goal direction (case 1330). A "recomp"
+    // (tone-up) choice builds a GENTLE deficit (~0.25%/wk) so the shipped plan
+    // matches the gentler reveal. maintain / maintain_kept arrive with goal ==
+    // current, which already yields a maintenance window (no special-case).
+    @AppStorage("onboarding_goal_direction") private var goalDirection: String = ""
 
     // Authenticated user id used by ProgramService.startProgram.
     // Read from the same source other AppSync calls use (AppSync.shared.currentUserId).
@@ -205,8 +210,19 @@ struct ProgramSetupSubflow: View {
             // handled via safetyAdjustedGoalWeightKg (goal == current -> the
             // calculator returns a maintenance window) so the stored plan also
             // carries no deficit, not just a clamped rate.
-            paceCapPctPerWeek: safetyPaceCap > 0 ? safetyPaceCap : nil
+            paceCapPctPerWeek: effectiveLossCap
         )
+    }
+
+    // v1.1.3 (2026-06-29): the loss-rate cap the built program glides at.
+    // A safety cap (gate) wins when present — it is the more protective
+    // signal. Otherwise a recomp choice clamps to the gentle 0.25%/wk glide.
+    // A 0 safety cap returns nil here (it is realized via the goal == current
+    // path in safetyAdjustedGoalWeightKg, not a rate clamp).
+    private var effectiveLossCap: Double? {
+        if safetyPaceCap > 0 { return safetyPaceCap }
+        if goalDirection == "recomp" { return 0.0025 }
+        return nil
     }
 
     // v1.2 safety (2026-06-29): a zero pace cap (pregnant / ED / low-BMI)
