@@ -1028,7 +1028,7 @@ private struct ProjectionPresentation: View {
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("women who keep it off lose slowly - national weight control registry")
+            Text("women who keep it off lose slowly, per the national weight control registry")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
