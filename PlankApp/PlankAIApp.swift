@@ -733,6 +733,24 @@ struct PlankAIApp: App {
                         onRevealComplete: {},
                         debugStartAtFirstWeek: true
                     )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-rating-ask") {
+                    // Jumps straight to the in-onboarding rating ask beat
+                    // (RatingAskPresentation) so it can be screenshot without
+                    // running the full reveal sequence. The eligibility gate
+                    // self-skips when onboardingReviewPromptShown=true - clear
+                    // it first: `xcrun simctl spawn booted defaults delete
+                    // com.bk.plankAI onboardingReviewPromptShown`
+                    // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-rating-ask`
+                    OnboardingRevealView(
+                        bodyFocus: ["flatBelly"],
+                        sessionLengthKey: "ten",
+                        voicePreference: "encouraging",
+                        commitmentDaysKey: "five",
+                        currentWeightKg: nil,
+                        goalWeightKg: nil,
+                        onRevealComplete: {},
+                        debugStartAtRatingAsk: true
+                    )
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-nudge") {
                     // Notification opt-in screen ("want a nudge from jeni?",
                     // case 23 / cameraSetupScreen) rendered directly for sim
