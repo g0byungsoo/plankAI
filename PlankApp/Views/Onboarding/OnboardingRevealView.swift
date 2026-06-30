@@ -344,9 +344,11 @@ struct SafetyGatePresentation: View {
             case .scoff:
                 SCOFFScreenView(onComplete: handleScoff)
             case .terminal(let variant):
-                // Dead-end. onContinueGently intentionally no-ops so the
-                // user stays on the supportive screen - no app access.
-                SafetyRecoveryView(variant: variant, onContinueGently: {})
+                // Access-for-all (founder 2026-06-29): every cohort PROCEEDS
+                // to the paywall with an ADAPTED plan (paceCap / numeric
+                // suppression), never a dead-end. The supportive note's CTA
+                // advances via onPassed().
+                SafetyRecoveryView(variant: variant, onContinueGently: { onPassed() })
             }
         }
         .onAppear {
@@ -398,18 +400,21 @@ struct SafetyGatePresentation: View {
             // floor prevents underweight targeting. Continues to building.
             onPassed()
         case .maintenance:
-            // Pregnant / breastfeeding / ttc / BMI < 18.5. Selling a
-            // weight-loss plan to any of these cohorts is a medical +
-            // compliance + refund risk. Route to a supportive dead-end
-            // terminal BEFORE the paywall - never charge then reject
-            // (Apple 5.1.1). lowBMI flag selects copy variant.
+            // Pregnant / breastfeeding / ttc / BMI < 18.5. These get an
+            // ADAPTED plan (no deficit via paceCap + numeric suppression),
+            // a brief supportive note, then they PROCEED to the paywall -
+            // access for everyone (founder 2026-06-29). lowBMI selects copy.
             let variant = SafetyTerminalVariant.maintenance(lowBMI: a.reasonKey == "bmi_low")
             withAnimation(Motion.crossFade) { phase = .terminal(variant) }
         case .recovery:
+            // ED-screen positive: non-numeric supportive plan + non-blocking
+            // resources, then proceed to the paywall.
             withAnimation(Motion.crossFade) { phase = .terminal(.eatingDisorder) }
         case .blocked:
+            // Under 18: gentlest habit-first plan + guardian note, then proceed.
             withAnimation(Motion.crossFade) { phase = .terminal(.underage) }
         case .clinicianFirst:
+            // Insulin / sulfonylurea: clinician-aware plan + review note, then proceed.
             withAnimation(Motion.crossFade) { phase = .terminal(.clinicianFirst) }
         }
     }

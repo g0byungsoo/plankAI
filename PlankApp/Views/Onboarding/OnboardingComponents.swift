@@ -767,66 +767,65 @@ enum SafetyTerminalVariant: Equatable {
     /// clinician first. No drug brand names (Apple 5.2.1); no deficit; no
     /// goal weight. Replaces the T3 placeholder that reused .pregnant copy.
     case clinicianFirst
-    /// (safety fix) maintenance terminal - pre-paywall gate only.
+    /// (access-for-all) maintenance note - pre-paywall, ADVANCING.
     /// lowBMI=true when reasonKey=="bmi_low" (current BMI < 18.5);
     /// false for pregnant / breastfeeding / ttc (no-deficit season).
-    /// Dead-end: no app access, no paywall, no loss plan. On-brand,
-    /// anti-shame, no em-dashes, no "AI", only locked tokens.
+    /// The note's CTA proceeds to the paywall with an adapted (no-deficit)
+    /// plan. On-brand, anti-shame, no em-dashes, no "AI", only locked tokens.
     case maintenance(lowBMI: Bool)
 
     var headline: String {
         switch self {
-        case .eatingDisorder: return "let's take this gently."
-        case .lowBMI:         return "you're already there."
-        case .underage:       return "we'll be here."
-        case .pregnant:       return "steady is perfect."
-        case .breastfeeding:  return "fed and steady."
-        case .clinicianFirst: return "let's loop in your clinician."
+        case .eatingDisorder: return "your plan, made gentle."
+        case .lowBMI:         return "strong and steady it is."
+        case .underage:       return "gentle it is."
+        case .pregnant:       return "nourishment first."
+        case .breastfeeding:  return "steady and fed."
+        case .clinicianFirst: return "clinician-aware it is."
         case .maintenance(let isLowBMI):
             return isLowBMI
-                ? "you're already in a good place."
-                : "let's not chase a number right now."
+                ? "strong and steady it is."
+                : "nourishment first."
         }
     }
     var headlineItalic: [String] {
         switch self {
-        case .eatingDisorder: return ["gently"]
-        case .lowBMI:         return ["there"]
-        case .underage:       return ["here"]
-        case .pregnant:       return ["perfect"]
-        case .breastfeeding:  return ["steady"]
+        case .eatingDisorder: return ["gentle"]
+        case .lowBMI:         return ["strong"]
+        case .underage:       return ["gentle"]
+        case .pregnant:       return ["nourishment"]
+        case .breastfeeding:  return ["fed"]
         case .clinicianFirst: return ["clinician"]
         case .maintenance(let isLowBMI):
-            return isLowBMI ? ["good"] : ["now"]
+            return isLowBMI ? ["strong"] : ["nourishment"]
         }
     }
     var bodyText: String {
         switch self {
         case .eatingDisorder:
-            return "some of what you shared tells us a numbers-and-goal-weight plan might not be the kindest thing for you right now. so we're going to skip it. no calorie counting, no goal weight, no pressure.\n\nyour relationship with food matters more than any number, and you deserve real support for it \u{2661}"
+            return "we've shaped your plan around how you feel and how you fuel - no calorie targets, no goal weight, no pressure. if your relationship with food or your body ever feels heavy, support is here whenever you want it \u{2661}"
         case .lowBMI:
-            return "your weight is already in a healthy range for your height, so a loss plan isn't the kindest fit. we'll focus on feeling strong and steady instead, no deficit, no goal weight \u{2661}"
+            return "your weight is already in a healthy range for your height, so we've built your plan around feeling strong and steady rather than loss. let's go \u{2661}"
         case .underage:
-            return "jenifit's plans are built for 18 and up. please be gentle with yourself, and come find us when the time is right \u{2661}"
+            return "we've kept your plan gentle and habit-focused. if you're under 18, it's a good idea to go through it with a parent, guardian, or doctor \u{2661}"
         case .pregnant:
-            return "weight loss isn't the goal during pregnancy. we'll keep things gentle and supportive and skip the deficit and goal weight. your clinician is the best guide for what's right for you \u{2661}"
+            return "right now your plan is about nourishment and gentle movement, not a deficit. please check it with your clinician - they're the best guide for what's right for you \u{2661}"
         case .breastfeeding:
-            return "while you're breastfeeding, your body needs steady fuel, not a deficit. we'll keep things gentle and protein-forward instead of chasing a goal weight \u{2661}"
+            return "while you're breastfeeding, your body needs steady fuel, so we've kept your plan gentle and protein-forward, no aggressive deficit. talk to your clinician about a pace that protects your supply \u{2661}"
         case .clinicianFirst:
-            return "what you shared tells us a calorie plan is one to set up together with your clinician first. some medications change how your body handles a deficit, so this is a plan to make with them, not on your own.\n\nonce you've checked in with them, we'll be right here when you're ready \u{2661}"
+            return "some medications change how your body handles a deficit, so we've built your plan to be clinician-aware. please review the pace with your prescriber - they may want to adjust your dose. then you're all set \u{2661}"
         case .maintenance(let isLowBMI):
             return isLowBMI
-                ? "your weight is already in a healthy range for your height, so a loss plan isn't the right fit right now. we'll be here when your goals shift \u{2661}"
-                : "this season is about nourishing yourself, not a deficit. come back when the time is right, and we'll build your plan then \u{2661}"
+                ? "your weight is already in a healthy range for your height, so we've built your plan around feeling strong and steady rather than loss. let's go \u{2661}"
+                : "right now your plan is about nourishing yourself, not a deficit. if you're pregnant or trying to conceive, please check it with your clinician first. then we're good to go \u{2661}"
         }
     }
     var ctaLabel: String {
         switch self {
-        case .eatingDisorder: return "continue gently"
-        case .underage:       return "okay"
-        case .clinicianFirst: return "okay"
-        case .maintenance:    return "okay"
-        default:              return "sounds good"
+        case .eatingDisorder:           return "build my gentle plan"
+        case .pregnant, .breastfeeding: return "build my gentle plan"
+        case .maintenance(let isLowBMI): return isLowBMI ? "build my plan" : "build my gentle plan"
+        default:                        return "build my plan"
         }
     }
     var showsResources: Bool { self == .eatingDisorder }
