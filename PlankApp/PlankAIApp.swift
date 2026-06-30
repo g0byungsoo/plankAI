@@ -636,18 +636,6 @@ struct PlankAIApp: App {
                     //   day1PromiseAction "log breakfast"
                     //   day1PromiseAnchor "after coffee"
                     PromiseConfirmPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-postpurchase-rating") {
-                    // v1.1.3 T8 (2026-06-29) - the rating ask relocated from
-                    // onboarding case 215 to the post-purchase flow. Renders
-                    // PostPurchaseRatingView on the program canvas so simctl
-                    // can screenshot the new placement without a real purchase.
-                    // Launch: `... --debug-postpurchase-rating`
-                    ZStack {
-                        Palette.programBgPrimary.ignoresSafeArea()
-                        StickerScatter(placements: StickerScatter.coachIntroDefault())
-                            .allowsHitTesting(false)
-                        PostPurchaseRatingView(onContinue: {})
-                    }
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-kept-promise") {
                     // Task 10 (2026-06-28) - Day-1 kept-promise card on the Today screen.
                     // Seeds day1Promise* AppStorage values + a past promise time so

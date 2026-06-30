@@ -47,6 +47,7 @@ struct OnboardingRevealView: View {
         goalWeightKg: Double?,
         onRevealComplete: @escaping () -> Void,
         debugStartAtFirstWeek: Bool = false,
+        debugStartAtRatingAsk: Bool = false,
         debugStartAtProjection: Bool = false,
         debugStartAtCommitment: Bool = false,
         debugStartAtDisclaimer: Bool = false,
@@ -69,6 +70,7 @@ struct OnboardingRevealView: View {
             debugStartAtDisclaimer ? .disclaimer :
             debugStartAtCommitment ? .commitment :
             debugStartAtProjection ? .projection :
+            debugStartAtRatingAsk  ? .ratingAsk  :
             debugStartAtFirstWeek  ? .firstWeek  : .disclaimer)
     }
 
@@ -97,6 +99,14 @@ struct OnboardingRevealView: View {
         case pacePicker
         case projection
         case firstWeek
+        // In-onboarding App Store rating ask at the peak positive moment.
+        // Placed right after firstWeek (user has just seen her plan in
+        // motion) and before commitment + permissions. Pre-paywall, so it
+        // grants no app access. Apple-compliant: both "yes" (native sheet)
+        // and "not yet" (no private form) route to the identical next step
+        // (.commitment). RatingPromptService eligibility gate self-skips
+        // ineligible installs invisibly.
+        case ratingAsk
         // Task 7 (2026-06-28) - commitment ritual: one small promise the
         // user makes for tomorrow, in her own words, which schedules a
         // Day-1 nudge. Replaces the now-dead TrialPromisePresentation
@@ -158,6 +168,11 @@ struct OnboardingRevealView: View {
                 .transition(.opacity)
             case .firstWeek:
                 FirstWeekPresentation(
+                    onContinue: { withAnimation(Motion.crossFade) { step = .ratingAsk } }
+                )
+                .transition(.opacity)
+            case .ratingAsk:
+                RatingAskPresentation(
                     onContinue: { withAnimation(Motion.crossFade) { step = .commitment } }
                 )
                 .transition(.opacity)
@@ -2355,5 +2370,140 @@ private struct ChipFlowLayout: Layout {
             x += size.width + spacing
             rowH = max(rowH, size.height)
         }
+    }
+}
+
+// MARK: - RatingAskPresentation
+//
+// In-onboarding App Store rating ask. Placed right after the firstWeek beat
+// (the peak positive moment - the user has just seen her plan in motion) and
+// before the commitment + permissions screens. This is PRE-paywall, so it
+// grants no app access and is never shown to non-onboarding flows.
+//
+// Apple compliance contract (strictly enforced):
+//   - "yes" triggers the native SKStoreReviewController sheet via
+//     RatingPromptService.presentSystemReviewSheet(). No custom star UI.
+//   - "not yet" advances to the SAME next step (.commitment). No private
+//     feedback form, no alternative routing. Review-gating is App Review
+//     rejection grounds (App Store Review Guidelines §1.1.7). Both paths
+//     are identical in where they land.
+//   - RatingPromptService.isEligible() gate: per-install lifetime flag +
+//     30-day cooldown + legacy-flag backward-compat. The .task() calls
+//     onContinue() immediately when ineligible so the beat is invisible.
+//
+// Voice: lowercase her75, italic-Fraunces punch on "loving", hearts as
+// terminal punctuation only, no "AI" word, no em-dashes.
+private struct RatingAskPresentation: View {
+    let onContinue: () -> Void
+
+    // Keeps in sync with the legacy AppStorage flag checked by
+    // RatingPromptService's backward-compat path (v1.0.6 guard).
+    @AppStorage("onboardingReviewPromptShown") private var onboardingReviewPromptShown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @State private var heroVisible = false
+    @State private var ctaVisible  = false
+
+    var body: some View {
+        ZStack {
+            // Continues the bgPrimary cream canvas from firstWeek - no
+            // visual break entering this beat.
+            Palette.bgPrimary.ignoresSafeArea()
+
+            VStack(spacing: Space.lg) {
+                Spacer(minLength: Space.xl)
+
+                // her75 editorial headline. Italic punch on "loving" as
+                // the emotional word; lowercase casual register.
+                ItalicAccentText(
+                    "loving your plan?",
+                    italic: ["loving"],
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .center
+                )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, Space.screenPadding)
+                .opacity(heroVisible ? 1 : 0)
+                .scaleEffect(reduceMotion ? 1.0 : (heroVisible ? 1.0 : 0.96))
+                .animation(Motion.entrance, value: heroVisible)
+
+                Text("a quick rating helps other women find us.")
+                    .font(Typo.body)
+                    .foregroundStyle(Palette.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Space.lg)
+                    .opacity(heroVisible ? 1 : 0)
+                    .animation(Motion.entranceSoft, value: heroVisible)
+
+                Spacer()
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            // Compliance: "yes" triggers the native sheet via
+            // RatingPromptService. "not yet" advances WITHOUT showing
+            // any private feedback form. Both paths lead to .commitment.
+            // The 0.6s delay on "yes" lets the system sheet appear before
+            // the cross-fade forward; if iOS suppresses it (quota) the
+            // user just lands on the commitment screen normally.
+            JFContinueButton(
+                label: "yes \u{2665}\u{FE0E}",
+                action: {
+                    Haptics.success()
+                    handleYes()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        onContinue()
+                    }
+                },
+                firesHaptic: false,
+                secondaryLabel: "not yet",
+                secondaryAction: {
+                    // JFContinueButton fires Haptics.light() for the
+                    // secondary tap itself; no double-haptic here.
+                    handleNo()
+                    onContinue()
+                }
+            )
+            .opacity(ctaVisible ? 1 : 0)
+            .animation(Motion.entranceSoft, value: ctaVisible)
+        }
+        .task {
+            // Self-skip when the trigger is ineligible - don't show a
+            // prompt the system would suppress anyway. Per-install
+            // lifetime flag + 30-day cooldown + legacy-flag guard.
+            guard RatingPromptService.shared.isEligible(for: .postPlanReveal) else {
+                onContinue()
+                return
+            }
+            withAnimation(Motion.entrance) { heroVisible = true }
+            try? await Task.sleep(nanoseconds: 360_000_000)
+            withAnimation(Motion.entranceSoft) { ctaVisible = true }
+        }
+    }
+
+    // MARK: - Rating handlers
+
+    // "yes" - mark prompt shown + fire native review sheet.
+    // Marks the per-trigger flag so neither path re-triggers on the
+    // same install. The trigger flag marks "shown" on the gate itself,
+    // not on the user's choice, per the original RatingPromptService
+    // design contract (markShown = "the gate appeared").
+    private func handleYes() {
+        onboardingReviewPromptShown = true
+        RatingPromptService.shared.markShown(.postPlanReveal)
+        RatingPromptService.shared.trackSentimentResult(trigger: .postPlanReveal, sentimentYes: true)
+        RatingPromptService.shared.presentSystemReviewSheet()
+    }
+
+    // "not yet" - mark shown (quota consumed), no system sheet.
+    // Advances to the SAME next step as "yes". No feedback form,
+    // no alternative routing. Apple-compliant: both paths identical.
+    private func handleNo() {
+        onboardingReviewPromptShown = true
+        RatingPromptService.shared.markShown(.postPlanReveal)
+        RatingPromptService.shared.trackSentimentResult(trigger: .postPlanReveal, sentimentYes: false)
     }
 }
