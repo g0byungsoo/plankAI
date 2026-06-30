@@ -1304,33 +1304,45 @@ struct OnboardingView: View {
         // Routes to case 110 (next in v2 flow after the wedge).
         // resolveNext handles the old `next: 201` fallback for v1.
         //
-        // 2026-06-29 - moved off the 4-photo grid to a premium compact
-        // row multi-select. The photo grid only had on-brand cutouts for
-        // 6 cuisines; expanding to ~10 for inclusivity would have meant
-        // either mismatched/missing plate images or a half-photographed
-        // grid. A clean typographic row list scales to 10 elegantly AND
-        // is arguably MORE inclusive (no one scans the grid for "my
-        // culture" and finds it un-pictured). Ordered by US-TikTok-cohort
-        // weight. Keys stay coherent with the food-vision cuisine_profile
-        // hint: existing "mexican" / "eastAsian" / etc. keys are
-        // preserved (the mexican label just broadens to cover latin
-        // american); new keys (soulFood / middleEastern / caribbean /
-        // everything) are additive and read straight into the prompt.
-        case 169: jfMulti(
+        // 2026-06-29 - moved off broad text rows to a compact emoji-chip
+        // wrap (founder direction). SPECIFIC cultures (korean / japanese /
+        // chinese, not "east asian") in a small flow-layout multi-select:
+        // the emoji adds warmth + scannability and a real plate is named,
+        // so no one scans for "my culture" and finds it un-pictured.
+        // ~19 cuisines wrap into compact cocoa-on-select chips. Keys feed
+        // the food-vision cuisine_profile hint + QuickAdd pools (the raw
+        // CSV is passed straight through, exactly as before): existing
+        // keys (korean/japanese/chinese/indian/italian/mexican/american/
+        // caribbean/middleEastern/soulFood/everything) are preserved; new
+        // keys (thai/vietnamese/filipino/french/greek/spanish/brazilian/
+        // ethiopian) are additive and have matching QuickAdd pools.
+        // Emoji: flags where clean, food/globe where no clean flag
+        // (caribbean 🌴 / middle eastern 🧆 / ethiopian 🫓 / soul food 🍗 /
+        // everything 🌍). Saves CSV to `onboardingCuisinePreference`.
+        case 169: jfCuisineChips(
             "what's usually on your plate?",
-            sub: "pick all the ones that show up often.",
+            sub: "tap all the ones that show up often.",
             italic: ["plate"],
             opts: [
-                ("american",      "american",                 nil, nil),
-                ("mexican",       "mexican / latin american", nil, nil),
-                ("italian",       "italian",                  nil, nil),
-                ("eastAsian",     "east asian",               nil, nil),
-                ("southAsian",    "south asian",              nil, nil),
-                ("mediterranean", "mediterranean",            nil, nil),
-                ("soulFood",      "soul food / southern",     nil, nil),
-                ("middleEastern", "middle eastern",           nil, nil),
-                ("caribbean",     "caribbean",                nil, nil),
-                ("everything",    "a bit of everything",      nil, nil),
+                ("korean",       "\u{1F1F0}\u{1F1F7}", "korean"),
+                ("japanese",     "\u{1F1EF}\u{1F1F5}", "japanese"),
+                ("chinese",      "\u{1F1E8}\u{1F1F3}", "chinese"),
+                ("thai",         "\u{1F1F9}\u{1F1ED}", "thai"),
+                ("vietnamese",   "\u{1F1FB}\u{1F1F3}", "vietnamese"),
+                ("filipino",     "\u{1F1F5}\u{1F1ED}", "filipino"),
+                ("indian",       "\u{1F1EE}\u{1F1F3}", "indian"),
+                ("italian",      "\u{1F1EE}\u{1F1F9}", "italian"),
+                ("french",       "\u{1F1EB}\u{1F1F7}", "french"),
+                ("greek",        "\u{1F1EC}\u{1F1F7}", "greek"),
+                ("spanish",      "\u{1F1EA}\u{1F1F8}", "spanish"),
+                ("mexican",      "\u{1F1F2}\u{1F1FD}", "mexican"),
+                ("brazilian",    "\u{1F1E7}\u{1F1F7}", "brazilian"),
+                ("caribbean",    "\u{1F334}",          "caribbean"),
+                ("middleEastern", "\u{1F9C6}",         "middle eastern"),
+                ("ethiopian",    "\u{1FAD3}",          "ethiopian"),
+                ("american",     "\u{1F1FA}\u{1F1F8}", "american"),
+                ("soulFood",     "\u{1F357}",          "soul food"),
+                ("everything",   "\u{1F30D}",          "a bit of everything"),
             ],
             sel: Binding<Set<String>>(
                 get: {
@@ -3688,6 +3700,63 @@ struct OnboardingView: View {
                         }
                     }
                 }
+                .padding(.horizontal, Space.screenPadding)
+                .padding(.top, Space.md)
+                .padding(.bottom, Space.lg)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollEdgeFade()
+        }
+        .safeAreaInset(edge: .bottom) {
+            jfCTADock {
+                JFContinueButton(
+                    label: "continue",
+                    action: { advance(to: next, confirmation: confirmation) },
+                    isEnabled: sel.wrappedValue.count >= minSelection
+                )
+            }
+        }
+    }
+
+    /// Compact emoji-chip multi-select (case 169 cuisine picker). Same
+    /// header + docked-CTA scaffold as jfMulti, but the options render as
+    /// small wrapping chips (emoji + label) in a flow layout instead of
+    /// full-width rows — premium + scannable for the ~19 specific cultures.
+    /// Selected = filled cocoa with cream label; unselected = elevated
+    /// cream with a hairline. `opts` is (key, emoji, label).
+    private func jfCuisineChips(
+        _ title: String, sub: String? = nil,
+        italic: [String] = [],
+        opts: [(String, String, String)],
+        sel: Binding<Set<String>>,
+        next: Int,
+        confirmation: String? = nil,
+        minSelection: Int = 1
+    ) -> some View {
+        VStack(spacing: 0) {
+            jfHeader(title, sub: sub, italic: italic)
+
+            ScrollView {
+                OnboardingChipFlow(hSpacing: Space.sm, vSpacing: Space.sm) {
+                    ForEach(opts, id: \.0) { key, emoji, label in
+                        CuisineChip(
+                            emoji: emoji,
+                            label: label,
+                            isSelected: sel.wrappedValue.contains(key),
+                            action: {
+                                Haptics.light()
+                                withAnimation(.spring(response: 0.25)) {
+                                    if sel.wrappedValue.contains(key) {
+                                        sel.wrappedValue.remove(key)
+                                    } else {
+                                        sel.wrappedValue.insert(key)
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, Space.screenPadding)
                 .padding(.top, Space.md)
                 .padding(.bottom, Space.lg)
@@ -9363,3 +9432,82 @@ struct PressFeedbackStyle: ButtonStyle {
     }
 }
 
+
+// MARK: - Cuisine chip flow (onboarding case 169)
+
+/// A compact wrapping flow layout for the emoji cuisine chips. iOS 16+
+/// `Layout`: left-aligned chips that wrap to the proposed width, used so
+/// ~19 specific-culture chips read as a scannable cloud instead of a long
+/// row list. Greedy single-pass row packing.
+private struct OnboardingChipFlow: Layout {
+    var hSpacing: CGFloat = 8
+    var vSpacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
+        let maxWidth = proposal.width ?? UIScreen.main.bounds.width
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth && x > 0 {
+                x = 0
+                y += rowHeight + vSpacing
+                rowHeight = 0
+            }
+            x += size.width + hSpacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: maxWidth, height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
+        let maxWidth = bounds.width
+        var x: CGFloat = bounds.minX
+        var y: CGFloat = bounds.minY
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x - bounds.minX + size.width > maxWidth && x > bounds.minX {
+                x = bounds.minX
+                y += rowHeight + vSpacing
+                rowHeight = 0
+            }
+            subview.place(at: CGPoint(x: x, y: y), anchor: .topLeading, proposal: ProposedViewSize(size))
+            x += size.width + hSpacing
+            rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
+/// One compact cuisine chip: emoji + lowercase label. Selected fills cocoa
+/// with a cream label; unselected is elevated cream with a cocoa hairline.
+private struct CuisineChip: View {
+    let emoji: String
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Text(emoji)
+                    .font(.system(size: 15))
+                Text(label)
+                    .font(Typo.heroSubpill)
+                    .foregroundStyle(isSelected ? Palette.textInverse : Palette.textPrimary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(isSelected ? Palette.textPrimary : Palette.bgElevated)
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .strokeBorder(isSelected ? Color.clear : Palette.hairlineCocoa, lineWidth: 1)
+            )
+        }
+        .buttonStyle(PressFeedbackStyle())
+    }
+}

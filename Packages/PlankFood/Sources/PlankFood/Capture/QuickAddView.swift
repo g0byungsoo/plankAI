@@ -648,6 +648,57 @@ extension QuickAddSuggestion {
             "grilled plantains",
             "ackee and saltfish",
         ],
+        // 2026-06-29 - case 169 specific-culture chip expansion. New keys
+        // read straight into the food-vision cuisine_profile hint; these
+        // pools keep their QuickAdd suggestion chips on-brand + cohort-real.
+        "thai": [
+            "pad thai with chicken",
+            "green curry with rice",
+            "thai basil chicken (pad krapow)",
+            "mango sticky rice",
+        ],
+        "vietnamese": [
+            "chicken pho",
+            "banh mi sandwich",
+            "vermicelli bowl (bun)",
+            "fresh spring rolls",
+        ],
+        "filipino": [
+            "chicken adobo with rice",
+            "pancit bihon",
+            "lumpia (3 pieces)",
+            "sinigang (sour soup)",
+        ],
+        "french": [
+            "nicoise salad",
+            "ratatouille",
+            "croque madame",
+            "quiche lorraine slice",
+        ],
+        "greek": [
+            "chicken souvlaki bowl",
+            "greek salad with feta",
+            "chicken gyro wrap",
+            "spanakopita slice",
+        ],
+        "spanish": [
+            "seafood paella",
+            "spanish tortilla slice",
+            "gambas al ajillo",
+            "patatas bravas",
+        ],
+        "brazilian": [
+            "grilled picanha with rice and beans",
+            "feijoada bowl",
+            "grilled chicken with farofa",
+            "acai bowl",
+        ],
+        "ethiopian": [
+            "doro wat with injera",
+            "misir wat (red lentils)",
+            "gomen (collard greens)",
+            "veggie combo platter",
+        ],
         "everything": [
             "sweetgreen harvest bowl",
             "protein smoothie",

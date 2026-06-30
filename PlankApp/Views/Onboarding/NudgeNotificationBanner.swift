@@ -68,30 +68,40 @@ struct NudgeNotificationBanner: View {
         .padding(.leading, 12)
         .padding(.trailing, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        // A real iOS banner is LIGHT (frosted near-white), not the dark
+        // tint .regularMaterial resolved to over the cream screen. Frost
+        // an ultra-thin material and lift it toward white so it reads as a
+        // genuine system banner sitting on the cream, with a soft hairline
+        // + drop shadow.
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(Color.white.opacity(0.6))
+                )
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.55), lineWidth: 0.5)
+                .strokeBorder(Color.white.opacity(0.7), lineWidth: 0.5)
         )
-        .shadow(color: Color.black.opacity(0.12), radius: 18, x: 0, y: 8)
+        .shadow(color: Color.black.opacity(0.10), radius: 18, x: 0, y: 8)
     }
 
-    /// The app icon: the jenifit bow mark inset on a soft-rose squircle
-    /// tile so it reads instantly as "an icon from this app." iOS app
-    /// icons are ~22.5% corner-radius squircles; 9 / 38 matches that.
+    /// The app icon: the REAL filled jenifit app icon (the same artwork
+    /// the home screen shows) rendered edge-to-edge in the squircle, so it
+    /// reads instantly as "a notification from this app" — no mismatched
+    /// tinted tile, no floating inset logo. iOS app icons are ~22.5%
+    /// corner-radius squircles; 9 / 38 matches that.
     private var icon: some View {
-        RoundedRectangle(cornerRadius: 9, style: .continuous)
-            .fill(Palette.accentSubtle)
+        Image("app_icon_notification")
+            .resizable()
+            .scaledToFill()
             .frame(width: 38, height: 38)
-            .overlay(
-                Image("logo_jenifit_bow")
-                    .resizable()
-                    .scaledToFit()
-                    .padding(7)
-            )
+            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.6), lineWidth: 0.5)
+                    .strokeBorder(Color.black.opacity(0.06), lineWidth: 0.5)
             )
     }
 
