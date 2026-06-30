@@ -729,6 +729,12 @@ enum SafetyTerminalVariant: Equatable {
     /// clinician first. No drug brand names (Apple 5.2.1); no deficit; no
     /// goal weight. Replaces the T3 placeholder that reused .pregnant copy.
     case clinicianFirst
+    /// (safety fix) maintenance terminal - pre-paywall gate only.
+    /// lowBMI=true when reasonKey=="bmi_low" (current BMI < 18.5);
+    /// false for pregnant / breastfeeding / ttc (no-deficit season).
+    /// Dead-end: no app access, no paywall, no loss plan. On-brand,
+    /// anti-shame, no em-dashes, no "AI", only locked tokens.
+    case maintenance(lowBMI: Bool)
 
     var headline: String {
         switch self {
@@ -738,6 +744,10 @@ enum SafetyTerminalVariant: Equatable {
         case .pregnant:       return "steady is perfect."
         case .breastfeeding:  return "fed and steady."
         case .clinicianFirst: return "let's loop in your clinician."
+        case .maintenance(let isLowBMI):
+            return isLowBMI
+                ? "you're already in a good place."
+                : "let's not chase a number right now."
         }
     }
     var headlineItalic: [String] {
@@ -748,6 +758,8 @@ enum SafetyTerminalVariant: Equatable {
         case .pregnant:       return ["perfect"]
         case .breastfeeding:  return ["steady"]
         case .clinicianFirst: return ["clinician"]
+        case .maintenance(let isLowBMI):
+            return isLowBMI ? ["good"] : ["now"]
         }
     }
     var bodyText: String {
@@ -764,6 +776,10 @@ enum SafetyTerminalVariant: Equatable {
             return "while you're breastfeeding, your body needs steady fuel, not a deficit. we'll keep things gentle and protein-forward instead of chasing a goal weight \u{2661}"
         case .clinicianFirst:
             return "what you shared tells us a calorie plan is one to set up together with your clinician first. some medications change how your body handles a deficit, so this is a plan to make with them, not on your own.\n\nonce you've checked in with them, we'll be right here. you're always welcome to explore the lessons and gentle habits in the meantime \u{2661}"
+        case .maintenance(let isLowBMI):
+            return isLowBMI
+                ? "your weight is already in a healthy range for your height, so a loss plan isn't the right fit right now. we'll be here when your goals shift \u{2661}"
+                : "this season is about nourishing yourself, not a deficit. come back when the time is right, and we'll build your plan then \u{2661}"
         }
     }
     var ctaLabel: String {
@@ -771,6 +787,7 @@ enum SafetyTerminalVariant: Equatable {
         case .eatingDisorder: return "continue gently"
         case .underage:       return "okay"
         case .clinicianFirst: return "okay"
+        case .maintenance:    return "okay"
         default:              return "sounds good"
         }
     }

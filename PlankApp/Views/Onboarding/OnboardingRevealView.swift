@@ -134,10 +134,11 @@ struct OnboardingRevealView: View {
                 )
                 .transition(.opacity)
             case .safety:
-                // T7: the safety gate. onPassed (.loss / .maintenance /
-                // softConfirm) continues to the building loader; non-loss
-                // outcomes park on a supportive terminal INSIDE the gate
-                // (a dead-end that never reaches building / paywall / app).
+                // T7 + safety-fix: the safety gate. ONLY .loss (including
+                // softConfirm) calls onPassed and continues to the building
+                // loader. .maintenance (pregnant/BF/ttc/low-BMI), .recovery,
+                // .blocked, and .clinicianFirst all park on supportive dead-end
+                // terminals inside the gate - never reaching building/paywall/app.
                 SafetyGatePresentation(
                     onPassed: { withAnimation(Motion.crossFade) { step = .building } }
                 )
@@ -219,11 +220,12 @@ struct OnboardingRevealView: View {
 // signal comes from the onboarding question (onboarding_medication_status,
 // Task 4).
 //
-// Branch contract (T7):
-//   .loss / .maintenance / softConfirm -> onPassed() -> continue to building
-//      (a pregnant/breastfeeding/ttc/low-BMI user proceeds to a
-//       maintenance-framed plan via program_mode = "maintenance"; no
-//       aggressive deficit copy).
+// Branch contract (T7 + safety-fix):
+//   .loss / softConfirm       -> onPassed() -> continue to building -> paywall
+//      (softConfirm = healthy-range BMI is folded into .loss by safetyAssessment;
+//       program math softens the deficit. THIS IS THE ONLY MODE THAT CONTINUES.)
+//   .maintenance (pregnant / breastfeeding / ttc / BMI < 18.5)
+//                             -> SafetyRecoveryView(.maintenance) DEAD-END
 //   .recovery (ED)            -> SafetyRecoveryView(.eatingDisorder) DEAD-END
 //   .blocked (under 18)       -> SafetyRecoveryView(.underage)       DEAD-END
 //   .clinicianFirst (insulin) -> SafetyRecoveryView(.clinicianFirst) DEAD-END
@@ -324,12 +326,20 @@ struct SafetyGatePresentation: View {
         programMode = a.mode.rawValue
         safetyScreenCompleted = true
         switch a.mode {
-        case .loss, .maintenance:
-            // The ONLY paths that pass the gate. .maintenance carries
-            // program_mode = "maintenance" so the build stays non-deficit;
-            // softConfirm (healthy BMI) is folded into .loss here and the
-            // program math softens it. Both continue to building -> paywall.
+        case .loss:
+            // The ONLY mode that passes the gate. softConfirm (healthy
+            // BMI, reasonKey=="bmi_healthy") is folded into .loss by
+            // safetyAssessment; program math softens the deficit for
+            // that sub-case. Continues to building -> paywall.
             onPassed()
+        case .maintenance:
+            // Pregnant / breastfeeding / ttc / BMI < 18.5. Selling a
+            // weight-loss plan to any of these cohorts is a medical +
+            // compliance + refund risk. Route to a supportive dead-end
+            // terminal BEFORE the paywall - never charge then reject
+            // (Apple 5.1.1). lowBMI flag selects copy variant.
+            let variant = SafetyTerminalVariant.maintenance(lowBMI: a.reasonKey == "bmi_low")
+            withAnimation(Motion.crossFade) { phase = .terminal(variant) }
         case .recovery:
             withAnimation(Motion.crossFade) { phase = .terminal(.eatingDisorder) }
         case .blocked:
@@ -345,6 +355,7 @@ struct SafetyGatePresentation: View {
 // AppStorage so each branch is one launch + one screenshot:
 //   insulin       -> clinician-first terminal (/tmp/t7_clinician.png)
 //   scoff >= 2    -> recovery terminal        (/tmp/t7_recovery.png)
+//   pregnant      -> maintenance terminal     (/tmp/maintenance_terminal.png)
 //   clean         -> "safety passed" proceed marker (/tmp/t7_loss.png)
 // The passed marker proves a clean user PROCEEDS toward the wall and does
 // NOT land on app content (no MainTabView).

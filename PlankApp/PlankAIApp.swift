@@ -473,13 +473,15 @@ struct PlankAIApp: App {
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-checkin") {
                     SafetyCheckInView(onFinish: {})
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-safety-gate") {
-                    // T7 (2026-06-29) — the pre-paywall safety gate. Auto-
-                    // assesses from seeded AppStorage so each branch is one
+                    // T7 + safety-fix (2026-06-29) — the pre-paywall safety gate.
+                    // Auto-assesses from seeded AppStorage so each branch is one
                     // launch + one screenshot. Seed then launch, e.g.:
                     //   defaults write com.bk.plankAI onboarding_medication_status -string insulin_or_sulfonylurea
                     //     → clinician-first terminal
                     //   defaults write com.bk.plankAI safety_scoff_yes -int 3 (+ safety_scoff_core 3)
                     //     → recovery terminal
+                    //   defaults write com.bk.plankAI safety_pregnancy_status -string pregnant
+                    //     → maintenance terminal (pregnancy variant)
                     //   (clean defaults) → "safety passed" proceed marker
                     SafetyGateDebugHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-protein-hero") {
