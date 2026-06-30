@@ -499,14 +499,15 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            // v1.1 "quiet luxury" pass — the flat cream canvas becomes a
-            // living one: OnboardingAtmosphere is the same cream base with a
-            // custom Metal shader (glacially-drifting warm-light pools + fine
-            // breathing grain). A whisper of life behind the question flow,
-            // never competing with copy. Reduce-motion freezes it. The cream
-            // fill is always present, so the bg holds even if the shader
-            // no-ops. (Was: Palette.programBgPrimary, the same cream.)
-            OnboardingAtmosphere()
+            // Surface unify (2026-06-27) — every onboarding screen now shares
+            // the app-wide GrainfieldBackground (quiet single upper-bloom +
+            // breathing grain, intensity 0.05) used on the reveal, activation
+            // and paywall surfaces. Converges the question flow onto the one
+            // premium surface so the whole flow reads coherent end to end.
+            // Reduce-motion freezes it; the cream fill is always present so the
+            // bg holds even if the shader no-ops.
+            // (Was: OnboardingAtmosphere, a busier 3-warm-pool shader.)
+            GrainfieldBackground()
 
             // v3 P11.6 (2026-06-10) — navBar pinned via ZStack top
             // alignment, NOT inside a VStack with currentScreen.
@@ -2630,7 +2631,7 @@ struct OnboardingView: View {
     private var v2Welcome: some View {
         GeometryReader { geo in
             ZStack {
-                Palette.bgPrimary.ignoresSafeArea()
+                GrainfieldBackground()  // surface unify: one premium surface end to end
 
                 StickerScatter(placements: Self.welcomePlacements)
 
@@ -6440,10 +6441,10 @@ struct OnboardingView: View {
         let promise = Self.brandPromises[brandPromiseIndex]
         return ZStack {
             // v1.1 polish (2026-06-26): was a flat Palette.bgPrimary fill,
-            // which now seams against the transparent nav (atmosphere shows
-            // behind the bar). Use the same living canvas as the question
-            // screens so the background is continuous edge-to-edge.
-            OnboardingAtmosphere()
+            // which now seams against the transparent nav. Use the same living
+            // canvas as the question screens so the background is continuous
+            // edge-to-edge. Surface unify (2026-06-27) → GrainfieldBackground.
+            GrainfieldBackground()
 
             // Sticker scatter — edge-only, matches consent-ritual
             // placement coordinates (the screen we replaced) so the
@@ -6616,7 +6617,7 @@ struct OnboardingView: View {
         // padding 6→2, replaced all Space.lg between sections with
         // Space.sm. Net cut ~180pt → CTA visible in first viewport.
         return ZStack {
-            OnboardingAtmosphere()  // v1.1: continuous canvas vs the transparent nav
+            GrainfieldBackground()  // surface unify: one premium surface end to end
             // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             VStack(spacing: 0) {
@@ -6918,7 +6919,7 @@ struct OnboardingView: View {
 
     private var tierLadderScreen: some View {
         ZStack {
-            OnboardingAtmosphere()  // v1.1: continuous canvas vs the transparent nav
+            GrainfieldBackground()  // surface unify: one premium surface end to end
             // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             ScrollView(showsIndicators: false) {
@@ -7077,7 +7078,7 @@ struct OnboardingView: View {
 
     private var habitWindowQuizScreen: some View {
         ZStack {
-            OnboardingAtmosphere()  // v1.1: continuous canvas vs the transparent nav
+            GrainfieldBackground()  // surface unify: one premium surface end to end
             // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             ScrollView(showsIndicators: false) {
@@ -7703,7 +7704,7 @@ struct OnboardingView: View {
 
     private var loadingCarouselScreen: some View {
         ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
+            GrainfieldBackground()  // surface unify: one premium surface end to end
             // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
 
             VStack(spacing: 0) {
@@ -8061,7 +8062,7 @@ struct OnboardingView: View {
         // single restrained line-art Lottie plays — the engineered
         // mid-journey peak (peak-end), brand-safe (NOT confetti).
         ZStack {
-            OnboardingAtmosphere()
+            GrainfieldBackground()
             VStack(spacing: 0) {
                 Spacer()
                 HStack(alignment: .firstTextBaseline, spacing: 2) {

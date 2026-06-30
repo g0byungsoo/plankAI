@@ -1597,9 +1597,10 @@ private struct NudgePermissionAsk: View {
 
     var body: some View {
         ZStack {
-            // Keep the pink reveal-cascade continuity through to the
-            // paywall handoff (same background as the rest of the reveal).
-            Palette.programBgPrimary.ignoresSafeArea()
+            // Surface unify (2026-06-27): share the app-wide GrainfieldBackground
+            // with the rest of the reveal + onboarding so the pre-paywall handoff
+            // sits on the one premium surface (was Palette.programBgPrimary).
+            GrainfieldBackground()
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
