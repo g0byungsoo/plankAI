@@ -225,6 +225,67 @@ final class ProgramGoalCalculatorSafetyTests: XCTestCase {
         XCTAssertFalse(result.numericSuppression, "normal loss must show numbers")
     }
 
+    // MARK: - Pace-cap APPLICATION (the bug: cap was computed, never applied)
+    //
+    // SafetyAssessment.paceCap is now consumed at the program build (via
+    // ProgramGoalCalculator.compute's paceCapPctPerWeek) and at the projection
+    // reveal. These lock the compute-layer clamp the build relies on.
+
+    // Baseline: 80 -> 70 kg at the default 0.5%/wk floor needs 25 weeks
+    // (10 / (80 * 0.005) = 25). Used as the uncapped reference below.
+    func testUncappedFloorReference() {
+        let w = ProgramGoalCalculator.compute(.init(
+            currentWeightKg: 80, goalWeightKg: 70, sex: .female, age: 28))
+        XCTAssertEqual(w.maxWeeks, 25)
+        XCTAssertFalse(w.isMaintenance)
+    }
+
+    // A zero pace cap (pregnant / ED / low-BMI) must force a MAINTENANCE window
+    // regardless of the loss delta - the built program carries no deficit, so
+    // the shipped plan matches the suppressed projection (rate 0, no numbers).
+    func testZeroPaceCapForcesMaintenanceWindow() {
+        let w = ProgramGoalCalculator.compute(.init(
+            currentWeightKg: 80, goalWeightKg: 70, sex: .female, age: 28,
+            paceCapPctPerWeek: 0.0))
+        XCTAssertTrue(w.isMaintenance, "zero pace cap must build a zero-deficit maintenance plan")
+        XCTAssertEqual(w.deltaKg, 0,  "maintenance window reports no deficit")
+    }
+
+    // A gentle 0.25%/wk cap (breastfeeding / ttc / under-18 / clinician-first)
+    // must stretch the calendar vs the uncapped 0.5%/wk floor: 10 / (80 *
+    // 0.0025) = 50 weeks. Proves the cap actually clamps the floor rate.
+    func testGentlePaceCapStretchesWindow() {
+        let w = ProgramGoalCalculator.compute(.init(
+            currentWeightKg: 80, goalWeightKg: 70, sex: .female, age: 28,
+            paceCapPctPerWeek: 0.0025))
+        XCTAssertFalse(w.isMaintenance)
+        XCTAssertEqual(w.maxWeeks, 50, "0.25%/wk cap must stretch the window to 50 weeks")
+        XCTAssertEqual(w.lossRateFloor, 0.0025, accuracy: 1e-9,
+                       "floor must be clamped down to the cap")
+    }
+
+    // The gentle cap also clamps the FAST (Hard) tier: the min-weeks side uses
+    // the capped rate, never the 1%/wk ceiling. 10 / (80 * 0.0025) = 50, so
+    // minWeeks must be far above the uncapped 13-week Hard plan.
+    func testGentlePaceCapClampsFastTierToo() {
+        let w = ProgramGoalCalculator.compute(.init(
+            currentWeightKg: 80, goalWeightKg: 70, sex: .female, age: 28,
+            paceCapPctPerWeek: 0.0025))
+        XCTAssertGreaterThanOrEqual(w.minWeeks, 50,
+            "the Hard tier must also obey the cap, not the 1%/wk ceiling")
+    }
+
+    // Regression: a nil pace cap leaves the normal band untouched.
+    func testNilPaceCapLeavesNormalBand() {
+        let capped = ProgramGoalCalculator.compute(.init(
+            currentWeightKg: 80, goalWeightKg: 70, sex: .female, age: 28,
+            paceCapPctPerWeek: nil))
+        let plain = ProgramGoalCalculator.compute(.init(
+            currentWeightKg: 80, goalWeightKg: 70, sex: .female, age: 28))
+        XCTAssertEqual(capped.minWeeks, plain.minWeeks)
+        XCTAssertEqual(capped.maxWeeks, plain.maxWeeks)
+    }
+
     // Medication does NOT route clinicianFirst for "other_glucose" or "none" or "prefer_not_say"
     func testOtherMedicationDoesNotRouteToClinician() {
         let s = SI(

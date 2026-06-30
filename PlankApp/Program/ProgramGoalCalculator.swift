@@ -52,6 +52,15 @@ public enum ProgramGoalCalculator {
         /// suppression even before glp1_status propagates. Empty
         /// string = no adjustment (regression-safe default).
         public let glp1PhaseKey: String
+        /// v1.2 safety (2026-06-29) - hard cap on the weekly loss rate,
+        /// written by the pre-paywall safety gate (SafetyAssessment.paceCap)
+        /// and read back at the program build site. nil = uncapped (normal
+        /// ACSM band). A positive cap (e.g. 0.0025 = 0.25%/wk) clamps BOTH
+        /// the max + floor rates so every tier maps to a gentler glide and a
+        /// later goal date. A cap <= 0 forces a zero-deficit maintenance
+        /// window (pregnant / ED / low-BMI). Defaulted nil so existing call
+        /// sites + tests are unaffected.
+        public let paceCapPctPerWeek: Double?
 
         public init(
             currentWeightKg: Double,
@@ -62,7 +71,8 @@ public enum ProgramGoalCalculator {
             isPerimenopausal: Bool = false,
             isShortSleeper: Bool = false,
             weightTrendKey: String = "",
-            glp1PhaseKey: String = ""
+            glp1PhaseKey: String = "",
+            paceCapPctPerWeek: Double? = nil
         ) {
             self.currentWeightKg = currentWeightKg
             self.goalWeightKg = goalWeightKg
@@ -73,6 +83,7 @@ public enum ProgramGoalCalculator {
             self.isShortSleeper = isShortSleeper
             self.weightTrendKey = weightTrendKey
             self.glp1PhaseKey = glp1PhaseKey
+            self.paceCapPctPerWeek = paceCapPctPerWeek
         }
 
         public enum Sex: String, Codable, Sendable {
@@ -156,6 +167,18 @@ public enum ProgramGoalCalculator {
 
     public static func compute(_ inputs: Inputs) -> Window {
         let delta = inputs.currentWeightKg - inputs.goalWeightKg
+        // Safety pace cap <= 0 (pregnant / ED / low-BMI): no deficit at all.
+        // Return a maintenance window so the built program carries zero loss
+        // rate, matching the suppressed projection.
+        if let cap = inputs.paceCapPctPerWeek, cap <= 0 {
+            return Window(
+                deltaKg: 0,
+                minWeeks: absoluteMinWeeks,
+                maxWeeks: 30,  // maintenance default
+                lossRateFloor: defaultLossRateFloor,
+                isMaintenance: true
+            )
+        }
         guard delta > 0 else {
             return Window(
                 deltaKg: 0,
@@ -194,11 +217,20 @@ public enum ProgramGoalCalculator {
             return defaultLossRateFloor
         }()
 
+        // Safety pace cap > 0 (e.g. breastfeeding / ttc / under-18 / clinician
+        // -first = 0.25%/wk): clamp BOTH the fast (Hard) rate and the gentle
+        // floor so EVERY tier maps to a glide no faster than the cap, and the
+        // goal date stretches accordingly. The built program is then genuinely
+        // gentler, not just labelled so.
+        let cap = inputs.paceCapPctPerWeek
+        let effectiveMaxRate = cap.map { min(maxLossRate, $0) } ?? maxLossRate
+        let effectiveFloor   = cap.map { min(floor, $0) } ?? floor
+
         // weeks = delta / (current * rate_per_week)
         // minWeeks uses MAX rate (1%/wk = fastest sustainable).
         // maxWeeks uses MIN rate (0.5% or 0.3%/wk = slowest, gentlest).
-        let rawMin = delta / (inputs.currentWeightKg * maxLossRate)
-        let rawMax = delta / (inputs.currentWeightKg * floor)
+        let rawMin = delta / (inputs.currentWeightKg * effectiveMaxRate)
+        let rawMax = delta / (inputs.currentWeightKg * effectiveFloor)
 
         let minWeeks = clampWeeks(Int(rawMin.rounded(.up)))
         let maxWeeks = clampWeeks(Int(rawMax.rounded(.up)))
@@ -207,7 +239,7 @@ public enum ProgramGoalCalculator {
             deltaKg: delta,
             minWeeks: minWeeks,
             maxWeeks: max(minWeeks, maxWeeks),  // safety: max >= min
-            lossRateFloor: floor,
+            lossRateFloor: effectiveFloor,
             isMaintenance: false
         )
     }

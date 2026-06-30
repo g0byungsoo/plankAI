@@ -328,6 +328,14 @@ struct SafetyGatePresentation: View {
     @AppStorage("safety_scoff_core")            private var scoffCore: Int = -1
     @AppStorage("safety_screen_completed")      private var safetyScreenCompleted: Bool = false
     @AppStorage("program_mode")                 private var programMode: String = "loss"
+    // The adaptation, persisted so it is ACTUALLY APPLIED downstream (the
+    // projection reveal + the post-paywall program build), not just reflected
+    // in the gate note. paceCap: -1 = no cap (uncapped loss user); 0 = hard
+    // zero-deficit (pregnant / ED / low-BMI); 0.0025 = gentle 0.25%/wk floor.
+    // numericSuppression: hide all numeric loss targets (calorie / goal date /
+    // loss curve) for clinically-unsafe-to-quantify cohorts (ED + pregnant).
+    @AppStorage("safety_pace_cap")              private var safetyPaceCap: Double = -1
+    @AppStorage("safety_numeric_suppression")   private var safetyNumericSuppression: Bool = false
 
     @State private var phase: Phase = .pregnancy
     private enum Phase: Equatable {
@@ -392,6 +400,10 @@ struct SafetyGatePresentation: View {
     private func route(_ a: ProgramGoalCalculator.SafetyAssessment) {
         programMode = a.mode.rawValue
         safetyScreenCompleted = true
+        // Persist the adaptation so it is genuinely applied (projection reveal
+        // + post-paywall program build), not just narrated in the gate note.
+        safetyPaceCap = a.paceCap ?? -1
+        safetyNumericSuppression = a.numericSuppression
         switch a.mode {
         case .loss:
             // The ONLY mode that passes the gate. Includes bmi_healthy
@@ -457,6 +469,29 @@ struct SafetyGateDebugHarness: View {
                 SafetyGatePresentation(onPassed: { passed = true }, debugAutoAssess: true)
             }
         }
+    }
+}
+
+// Debug harness for `--debug-projection-suppressed`. Seeds the persisted
+// safety-suppression flag in init (synchronously, before body builds, so the
+// projection's @AppStorage reads it) then jumps to the projection with a REAL
+// loss delta. Proves the adaptation is applied: a suppressed cohort gets the
+// non-numeric reveal even though current (75) > goal (65).
+struct SuppressedProjectionDebugHarness: View {
+    init() {
+        UserDefaults.standard.set(true, forKey: "safety_numeric_suppression")
+    }
+    var body: some View {
+        OnboardingRevealView(
+            bodyFocus: ["flatBelly"],
+            sessionLengthKey: "ten",
+            voicePreference: "encouraging",
+            commitmentDaysKey: "five",
+            currentWeightKg: 75,
+            goalWeightKg: 65,
+            onRevealComplete: {},
+            debugStartAtProjection: true
+        )
     }
 }
 #endif
@@ -841,13 +876,32 @@ private struct ProjectionPresentation: View {
     // credibility strip - honest (she passed it to get here) + trust-building
     // for the scam-wary buyer. No competitor runs this screen.
     @AppStorage("safety_screen_completed")   private var safetyScreenCompleted: Bool = false
+    // Safety adaptation, written at the gate (SafetyGatePresentation.route).
+    // These make the adaptation REAL on the reveal: a zero pace cap routes to
+    // the non-numeric maintenance reveal, and a >=0 cap clamps the picked rate.
+    @AppStorage("safety_pace_cap")            private var safetyPaceCap: Double = -1
+    @AppStorage("safety_numeric_suppression") private var safetyNumericSuppression: Bool = false
 
     /// FIX 3 (2026-06-29): true when she has weights but no loss delta
     /// (already at / below goal). Drives the maintenance-framed reveal so a
     /// delta-0 user reaches a coherent climax instead of a gutted screen.
+    /// Also true for safety-suppressed cohorts (ED + pregnant) and any
+    /// zero-pace-cap cohort: they get the same non-numeric "your plan, steady"
+    /// reveal - NO calorie hero, NO goal date, NO loss curve.
     private var isMaintenanceReveal: Bool {
+        if safetyNumericSuppression || safetyPaceCap == 0 { return true }
         guard let curr = currentWeightKg, let goal = goalWeightKg else { return false }
         return curr <= goal
+    }
+
+    /// True ONLY for safety-suppressed cohorts (ED + pregnant via
+    /// numericSuppression, plus any zero-pace-cap cohort like low-BMI). When
+    /// true, EVERY numeric loss target is omitted: no calorie hero, no goal /
+    /// becoming date, no loss curve - matching the clamped program build. A
+    /// plain delta-0 maintenance user (curr <= goal, no safety flag) is NOT
+    /// suppressed: she keeps the maintenance-TDEE calorie + card (FIX 3).
+    private var suppressNumbers: Bool {
+        safetyNumericSuppression || safetyPaceCap == 0
     }
 
     var body: some View {
@@ -923,13 +977,18 @@ private struct ProjectionPresentation: View {
                                 .opacity(calorieVisible ? 1 : 0)
                         }
 
-                        BecomingProjectionCard(
-                            currentWeightKg: currentWeightKg,
-                            goalWeightKg: goalWeightKg
-                        )
-                        .padding(.horizontal, Space.md)
-                        .opacity(cardVisible ? 1 : 0)
-                        .scaleEffect(cardVisible ? 1.0 : 0.97)
+                        // The loss curve + becoming (goal) date. Omitted for
+                        // safety-suppressed cohorts so a pregnant / ED / zero-cap
+                        // user never sees a loss trajectory or a goal date.
+                        if !suppressNumbers {
+                            BecomingProjectionCard(
+                                currentWeightKg: currentWeightKg,
+                                goalWeightKg: goalWeightKg
+                            )
+                            .padding(.horizontal, Space.md)
+                            .opacity(cardVisible ? 1 : 0)
+                            .scaleEffect(cardVisible ? 1.0 : 0.97)
+                        }
 
                         // Task 5 (2026-06-29): clinician credibility strip,
                         // merged from the cut assessment step. A single
@@ -1101,11 +1160,17 @@ private struct ProjectionPresentation: View {
     private var pickedLossRatePctPerWeek: Double {
         if isMaintenanceReveal { return 0 }
         let tier = IntensityTier(rawValue: pickedTierRaw) ?? .medium
-        switch tier {
-        case .hard:   return 0.01
-        case .medium: return 0.0075
-        case .soft:   return revealWindow.lossRateFloor
-        }
+        let tierRate: Double = {
+            switch tier {
+            case .hard:   return 0.01
+            case .medium: return 0.0075
+            case .soft:   return revealWindow.lossRateFloor
+            }
+        }()
+        // Clamp to the safety pace cap when one was set at the gate. paceCap 0
+        // -> rate 0 (no deficit); 0.0025 -> gentle 0.25%/wk; -1 -> uncapped.
+        if safetyPaceCap >= 0 { return min(tierRate, safetyPaceCap) }
+        return tierRate
     }
 
     /// TDEE-based daily calorie target from collected onboarding fields.
@@ -1122,6 +1187,11 @@ private struct ProjectionPresentation: View {
     ///   activityKey   <- onb_v4_movement_baseline (movement baseline Q)
     ///   lossRate      <- onboardingPickedTier via pickedLossRatePctPerWeek
     private var estimatedCalorieTarget: Int? {
+        // Safety-suppressed cohorts (ED / pregnant / zero-pace-cap) get NO
+        // numeric target at all. Returning nil here is the single chokepoint:
+        // it drops the calorie hero card AND skips the foodDailyTarget stamp in
+        // the reveal cascade, so no loss number is shown or persisted for her.
+        if suppressNumbers { return nil }
         guard let kg = currentWeightKg, kg > 0 else {
             #if DEBUG
             print("[D68] calorie hero SKIPPED — currentWeightKg=\(currentWeightKg ?? -1)")

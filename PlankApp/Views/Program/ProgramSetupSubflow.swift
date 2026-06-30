@@ -56,6 +56,12 @@ struct ProgramSetupSubflow: View {
     // moved pre-paywall in T7 (2026-06-29); this subflow no longer reads
     // the safety_* output keys - it trusts the pre-paywall gate.
     @AppStorage("onboardingHeightCm") private var heightCm: Double = 0
+    // v1.2 safety (2026-06-29): the pre-paywall gate persisted the adaptation
+    // here. -1 = no cap; 0 = zero-deficit (pregnant / ED / low-BMI) -> build a
+    // genuine maintenance plan; 0.0025 = gentle 0.25%/wk -> clamp every tier.
+    // Read so the SHIPPED program matches the adapted projection, not a normal
+    // loss plan. (The screen itself ran pre-paywall; this only reads the cap.)
+    @AppStorage("safety_pace_cap") private var safetyPaceCap: Double = -1
 
     // Authenticated user id used by ProgramService.startProgram.
     // Read from the same source other AppSync calls use (AppSync.shared.currentUserId).
@@ -181,7 +187,7 @@ struct ProgramSetupSubflow: View {
     private var goalInputs: ProgramGoalCalculator.Inputs {
         .init(
             currentWeightKg: currentWeightKg,
-            goalWeightKg: safeGoalWeightKg,
+            goalWeightKg: safetyAdjustedGoalWeightKg,
             sex: ProgramGoalCalculator.sex(fromGenderKey: gender),  // FIX 4: collected gender (case 130)
             age: parsedAge,
             // v3 P11.2 (2026-06-10) — routed through engine-v2 helpers.
@@ -194,8 +200,23 @@ struct ProgramSetupSubflow: View {
             isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
             isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: sleepHours),
             weightTrendKey:   weightTrend,
-            glp1PhaseKey:     glp1Phase
+            glp1PhaseKey:     glp1Phase,
+            // Positive cap clamps every tier to the gentler glide. A 0 cap is
+            // handled via safetyAdjustedGoalWeightKg (goal == current -> the
+            // calculator returns a maintenance window) so the stored plan also
+            // carries no deficit, not just a clamped rate.
+            paceCapPctPerWeek: safetyPaceCap > 0 ? safetyPaceCap : nil
         )
+    }
+
+    // v1.2 safety (2026-06-29): a zero pace cap (pregnant / ED / low-BMI)
+    // builds a genuine zero-deficit plan. Setting the effective goal weight to
+    // current weight makes ProgramGoalCalculator.compute return a maintenance
+    // window AND persists goalWeightKg == currentWeightKg on the plan record,
+    // so the shipped program carries no deficit at all - matching the
+    // suppressed projection. Any other cap leaves the BMI-18.5-clamped goal.
+    private var safetyAdjustedGoalWeightKg: Double {
+        safetyPaceCap == 0 ? currentWeightKg : safeGoalWeightKg
     }
 
     // v1.2 medical-grade (2026-06-25) — never build a program targeting a
@@ -701,7 +722,10 @@ struct ProgramSetupSubflow: View {
 
         let input = ProgramService.StartProgramInput(
             currentWeightKg: currentWeightKg,
-            goalWeightKg: safeGoalWeightKg,
+            // safetyAdjustedGoalWeightKg == currentWeightKg for a 0 pace cap,
+            // so the persisted plan is genuinely zero-deficit. goalInputs (the
+            // window source) reads the same adjusted goal + the >0 cap clamp.
+            goalWeightKg: safetyAdjustedGoalWeightKg,
             tier: pickedTier,
             goalCalculator: goalInputs,
             startDate: Calendar.current.startOfDay(for: .now)

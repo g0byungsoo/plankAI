@@ -686,6 +686,15 @@ struct PlankAIApp: App {
                         onRevealComplete: {},
                         debugStartAtProjection: true
                     )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-projection-suppressed") {
+                    // v1.2 safety (2026-06-29) - proves the safety adaptation is
+                    // APPLIED, not cosmetic. Seeds safety_numeric_suppression =
+                    // true (the ED / pregnant gate output) then jumps to the
+                    // projection with a REAL loss delta (75 -> 65). The reveal
+                    // must still render its non-numeric "your plan, steady"
+                    // variant: NO calorie hero, NO goal date, NO loss curve.
+                    // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-projection-suppressed`
+                    SuppressedProjectionDebugHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-commitment") {
                     // Task 7 (2026-06-28) - commitment ritual screen.
                     // Jumps straight to CommitmentRitualPresentation so
