@@ -499,37 +499,22 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            // v1.7 transition-port (2026-06-30) — REPRODUCE THE REVEAL'S
-            // "dip-to-black + afterimage + smooth dissolve" on question swaps.
+            // v1.8 (2026-06-30) — SEAMLESS cross-dissolve on question swaps,
+            // identical to the loading → "your plan, ready" reveal the founder
+            // loves. No dip-to-black: the earlier controlled black veil (a
+            // pulsed Color.black overlay) read as an ANNOYING blackout on every
+            // single swap, so it is removed entirely.
             //
-            // What the reveal actually does (MEASURED, not theorized): hosted
-            // in a `.fullScreenCover`, each reveal beat paints its own opaque
-            // GrainfieldBackground and cross-dissolves over the cover's black
-            // window. Frame-by-frame luminance of the real reveal shows a
-            // GENTLE dip — it bottoms at YAVG ~140 (≈30% darkening from the
-            // ~206 cream) and NEVER goes near-black.
-            //
-            // The "obvious" port — give each question screen its own opaque bg
-            // and cross-dissolve over a Color.black backstop — does NOT
-            // reproduce this INLINE in the WindowGroup. Measured: it plunges to
-            // YAVG ~16 (full black) for 1-2 frames on every steady-state swap.
-            // Cause: unlike the fullScreenCover host, the inline `.id`-keyed
-            // crossfade has a 1-2 frame window where the outgoing group is gone
-            // and the incoming group has not yet composited, fully exposing the
-            // black backstop — a harsh flash, strictly worse than the reveal.
-            // (Verified independent of the Metal grain: a pure solid-cream
-            // group over Color.black flashes identically.)
-            //
-            // So we keep ONE persistent GrainfieldBackground (the unified cream
-            // surface, no per-swap re-mount → no Metal churn, grain holds at
-            // rest) and cross-dissolve only the CONTENT over it (the outgoing
-            // copy lingers as the incoming arrives = the afterimage ghost). The
-            // dip itself is a CONTROLLED black veil (the Color.black +
-            // keyframeAnimator layer below, zIndex 6) pulsed to a ~30% peak on
-            // each swap — matching the reveal's
-            // measured ~140 bottom, with zero risk of a full-black flash
-            // because there is no black backstop to expose. Reduce-motion
-            // freezes the shader AND drops the veil pulse.
+            // The mechanism is exactly OnboardingRevealView's: ONE persistent
+            // GrainfieldBackground (the unified cream surface — it does NOT
+            // re-mount per swap, so the cream stays rock-steady and the grain
+            // holds at rest, no Metal churn) with only the CONTENT cross-
+            // dissolving over it. The outgoing copy lingers as the incoming
+            // arrives = a soft afterimage ghost, never a darkening. Because the
+            // surface is persistent and always cream there is no black backstop
+            // to expose, so the swap can never flash dark — the luminance stays
+            // high (cream) across the whole crossover. Reduce-motion freezes the
+            // shader; the cross-fade stays pure opacity either way.
             GrainfieldBackground()
 
             // v3 P11.6 (2026-06-10) — navBar pinned via outer ZStack top
@@ -571,30 +556,6 @@ struct OnboardingView: View {
                     .zIndex(5)
                     .transition(.opacity)
             }
-
-            // v1.7 transition-port (2026-06-30) — the controlled DIP. A black
-            // veil over the whole screen (grain + content + nav) whose opacity
-            // is PULSED 0 → ~0.30 → 0 on every `screen` change, synchronized
-            // with the 0.45s content cross-dissolve. This is what gives the
-            // reveal's "dip-to-black": the screen darkens to ~30% at the
-            // crossover (matching the reveal's MEASURED ~140 YAVG bottom) then
-            // lifts. It is a controlled value animation (not an exposed
-            // backstop), so it can never overshoot to a full-black flash the
-            // way an inline opaque-per-screen-over-Color.black crossfade does.
-            // At rest the veil holds at 0 (invisible). Reduce-motion drops the
-            // peak to 0 so the swap is a plain content cross-fade with no dip.
-            Color.black
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-                .zIndex(6)
-                .keyframeAnimator(initialValue: 0.0, trigger: screen) { view, dim in
-                    view.opacity(dim)
-                } keyframes: { _ in
-                    KeyframeTrack {
-                        CubicKeyframe(reduceMotion ? 0.0 : 0.30, duration: 0.22)
-                        CubicKeyframe(0.0, duration: 0.23)
-                    }
-                }
 
             if analyzing { analyzingScreen.transition(.opacity).zIndex(10) }
 
