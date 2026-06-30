@@ -749,7 +749,9 @@ private struct ChecklistMark: View {
 
 // A thin medical cross inside a hairline ring - the header trust motif.
 // Two rounded capsules so the cross reads as drawn, not a font glyph.
-private struct ClinicalCrossMark: View {
+// Promoted to internal (2026-06-29) so the safety gate in
+// OnboardingComponents can share the same clinical-intake header motif.
+struct ClinicalCrossMark: View {
     var body: some View {
         ZStack {
             Circle().stroke(Palette.hairlineCocoa, lineWidth: 1)
@@ -840,16 +842,17 @@ private struct ProjectionPresentation: View {
 
     var body: some View {
         ZStack {
-            // v8 P8.5: reveal hero — the moment the program clicks
-            // into focus. Pink directly (not the conditional helper)
-            // so the user crosses INTO the program era visually here.
-            Palette.programBgPrimary.ignoresSafeArea()
+            // FIX 2 (2026-06-29): the reveal peak now sits on the same
+            // alive cream surface as the disclaimer + commitment, not a
+            // flat fill. programBgPrimary aliases to cream bgPrimary;
+            // Grainfield adds the paper-and-light depth so the peak reads
+            // as the most composed surface in the flow, not the plainest.
+            GrainfieldBackground(intensity: 0.06)
 
-            // Delta v8 (2026-06-06) — wrapped scrollable content with
-            // pinned CTA. Adding the 5-tile multi-proof grid (D74)
-            // grew total content height past the viewport on most
-            // devices, cutting headline + CTA. Now content scrolls;
-            // CTA stays fixed at the bottom.
+            // Content scrolls; the CTA is docked below via safeAreaInset
+            // (see the modifier on the ZStack). The 6-tile multi-proof
+            // grid grows content past the viewport on most devices, so
+            // the scroll + docked-CTA split keeps headline + CTA on screen.
             VStack(spacing: 0) {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: Space.lg) {
@@ -886,7 +889,7 @@ private struct ProjectionPresentation: View {
                         Text(isMaintenanceReveal
                              ? "you're right where you want to be. here's the fuel to hold it."
                              : "here's the shape of the next 12 weeks, drawn from your answers.")
-                            .font(.system(size: 14))
+                            .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, Space.lg)
@@ -902,7 +905,7 @@ private struct ProjectionPresentation: View {
                             // this reveal, so it IS hers before the wall -
                             // provenance-clean. Frame it as owned, not teased.
                             Text("this number is yours to keep.")
-                                .font(.system(size: 12))
+                                .font(Typo.caption)
                                 .foregroundStyle(Palette.textSecondary)
                                 .multilineTextAlignment(.center)
                                 .frame(maxWidth: .infinity)
@@ -950,25 +953,18 @@ private struct ProjectionPresentation: View {
                         Spacer().frame(height: Space.md)
                     }
                 }
-
-                // Pinned CTA — always visible regardless of scroll
-                // position. Subtle separator above so the boundary
-                // reads as intentional, not clipped.
-                Button(action: onContinue) {
-                    Text("continue")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                        .foregroundStyle(Palette.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(Palette.bgInverse)
-                        .clipShape(Capsule())
-                }
-                .padding(.horizontal, Space.lg)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
-                .background(Palette.programBgPrimary)
-                .opacity(ctaVisible ? 1 : 0)
             }
+        }
+        // FIX 1 (2026-06-29): canonical JFContinueButton docked via
+        // safeAreaInset, replacing the hand-rolled 52pt italic-Fraunces
+        // cocoa capsule. her75 CTAs are functional sans, height 56, with
+        // the locked disabled / press / haptic states.
+        .safeAreaInset(edge: .bottom) {
+            JFContinueButton(label: "continue", action: onContinue)
+                .padding(.top, 8)
+                .background(Palette.bgPrimary)
+                .opacity(ctaVisible ? 1 : 0)
+                .animation(Motion.entranceSoft, value: ctaVisible)
         }
         .task {
             // Reveal cascade per D68: headline → CALORIE HERO → weight
@@ -1247,24 +1243,16 @@ private struct ProjectionPresentation: View {
             }
 
             Text("a starting plan. we'll tune yours over the first few weeks ♥")
-                .font(.system(size: 12))
+                .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 2)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Palette.accent.opacity(0.18))
-                    .offset(x: 5, y: 5)
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Palette.bgElevated)
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Palette.accent, lineWidth: 1.5)
-            }
-        )
+        // FIX 5 (2026-06-29): the inline 24pt accent-border card is the
+        // canonical `.scrapbookCard()` chrome duplicated by hand.
+        .scrapbookCard()
     }
 
     /// v3 P11.6+ (2026-06-10) — per-tile cascade wrapper. Tile at
@@ -1608,9 +1596,10 @@ private struct FirstWeekPresentation: View {
 
     var body: some View {
         ZStack {
-            // Same pink canvas as the projection step — continuity into
-            // the next reveal beat.
-            Palette.programBgPrimary.ignoresSafeArea()
+            // FIX 2 (2026-06-29): same alive cream surface as the
+            // projection peak — continuity into the next reveal beat, on
+            // the disclaimer's Grainfield tier rather than a flat fill.
+            GrainfieldBackground()
 
             VStack(spacing: 0) {
                 ScrollView(showsIndicators: false) {
@@ -1634,7 +1623,7 @@ private struct FirstWeekPresentation: View {
                         .scaleEffect(heroVisible ? 1.0 : 0.96)
 
                         Text("the rhythm your plan runs on.")
-                            .font(.system(size: 14))
+                            .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, Space.lg)
@@ -1648,7 +1637,7 @@ private struct FirstWeekPresentation: View {
                         )
 
                         Text("you can change pace or rest days anytime.")
-                            .font(.system(size: 12))
+                            .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary.opacity(0.7))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, Space.lg)
@@ -1685,22 +1674,16 @@ private struct FirstWeekPresentation: View {
                         Spacer().frame(height: Space.lg)
                     }
                 }
-
-                Button(action: onContinue) {
-                    Text("continue")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                        .foregroundStyle(Palette.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(Palette.bgInverse)
-                        .clipShape(Capsule())
-                }
-                .padding(.horizontal, Space.lg)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
-                .background(Palette.programBgPrimary)
-                .opacity(ctaVisible ? 1 : 0)
             }
+        }
+        // FIX 1 (2026-06-29): canonical JFContinueButton docked via
+        // safeAreaInset, replacing the hand-rolled italic-Fraunces capsule.
+        .safeAreaInset(edge: .bottom) {
+            JFContinueButton(label: "continue", action: onContinue)
+                .padding(.top, 8)
+                .background(Palette.bgPrimary)
+                .opacity(ctaVisible ? 1 : 0)
+                .animation(Motion.entranceSoft, value: ctaVisible)
         }
         .task {
             withAnimation(Motion.entrance) { heroVisible = true }
@@ -1806,7 +1789,7 @@ private struct PacePickerPresentation: View {
                         .scaleEffect(heroVisible ? 1.0 : 0.96)
 
                         Text("ACSM-safe range. you can change this later.")
-                            .font(.system(size: 12))
+                            .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary.opacity(0.7))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, Space.lg)
@@ -1824,22 +1807,16 @@ private struct PacePickerPresentation: View {
                         Spacer().frame(height: Space.lg)
                     }
                 }
-
-                Button(action: onContinue) {
-                    Text("continue")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
-                        .foregroundStyle(Palette.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(Palette.bgInverse)
-                        .clipShape(Capsule())
-                }
-                .padding(.horizontal, Space.lg)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
-                .background(Palette.programBgPrimary)
-                .opacity(ctaVisible ? 1 : 0)
             }
+        }
+        // FIX 1 (2026-06-29): canonical JFContinueButton docked via
+        // safeAreaInset, replacing the hand-rolled italic-Fraunces capsule.
+        .safeAreaInset(edge: .bottom) {
+            JFContinueButton(label: "continue", action: onContinue)
+                .padding(.top, 8)
+                .background(Palette.bgPrimary)
+                .opacity(ctaVisible ? 1 : 0)
+                .animation(Motion.entranceSoft, value: ctaVisible)
         }
         .task {
             withAnimation(Motion.entrance) { heroVisible = true }

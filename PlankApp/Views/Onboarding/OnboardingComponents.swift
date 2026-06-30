@@ -601,7 +601,7 @@ struct SCOFFScreenView: View {
             .padding(.top, Space.xl)
             .padding(.bottom, Space.md)
         }
-        .background(Palette.bgPrimary.ignoresSafeArea())
+        .background(GrainfieldBackground())
         .safeAreaInset(edge: .bottom) {
             JFContinueButton(
                 label: "continue",
@@ -612,12 +612,28 @@ struct SCOFFScreenView: View {
             .padding(.top, Space.sm)
             .padding(.bottom, Space.lg)
             .background(Palette.bgPrimary)
-            .overlay(alignment: .top) { Rectangle().fill(Palette.divider.opacity(0.7)).frame(height: 1) }
+            .overlay(alignment: .top) { HairlineRule() }
         }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Space.sm) {
+            // FIX 3 (2026-06-29): clinical document-header, same motif as
+            // the medical disclaimer — tracked-caps chart label + drawn
+            // cross in a hairline ring + a precise rule beneath. Pulls the
+            // safety gate onto the disclaimer's composed-intake tier.
+            HStack(alignment: .center) {
+                Text("safety screening")
+                    .font(Typo.kicker)
+                    .kerning(0.18 * 10)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 12)
+                ClinicalCrossMark()
+                    .frame(width: 26, height: 26)
+            }
+            HairlineRule()
+                .padding(.bottom, Space.xs)
             ItalicAccentText(
                 "a gentle check, first.",
                 italic: ["gentle"],
@@ -651,7 +667,7 @@ struct SCOFFScreenView: View {
         .padding(Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Palette.bgElevated))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Palette.divider, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Palette.hairlineCocoa, lineWidth: 1))
     }
 
     private func choice(_ label: String, selected: Bool, action: @escaping () -> Void) -> some View {
@@ -714,7 +730,7 @@ struct SafetyResourcesCard: View {
         .padding(Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Palette.bgElevated))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Palette.divider, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Palette.hairlineCocoa, lineWidth: 1))
     }
 
     private func resourceRow(title: String, detail: String, urlString: String) -> some View {
@@ -836,6 +852,9 @@ struct SafetyRecoveryView: View {
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
 
+                // FIX 3: clinical header-seam shared across the gate.
+                HairlineRule()
+
                 Text(variant.bodyText)
                     .font(.custom("DMSans-Regular", size: 16))
                     .lineSpacing(5)
@@ -848,14 +867,14 @@ struct SafetyRecoveryView: View {
             .padding(.top, Space.xl)
             .padding(.bottom, Space.md)
         }
-        .background(Palette.bgPrimary.ignoresSafeArea())
+        .background(GrainfieldBackground())
         .safeAreaInset(edge: .bottom) {
             JFContinueButton(label: variant.ctaLabel, action: { Haptics.light(); onContinueGently() })
                 .padding(.horizontal, Space.lg)
                 .padding(.top, Space.sm)
                 .padding(.bottom, Space.lg)
                 .background(Palette.bgPrimary)
-                .overlay(alignment: .top) { Rectangle().fill(Palette.divider.opacity(0.7)).frame(height: 1) }
+                .overlay(alignment: .top) { HairlineRule() }
         }
     }
 }
@@ -879,6 +898,9 @@ struct SafetyConsentView: View {
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
 
+                // FIX 3: clinical header-seam shared across the gate.
+                HairlineRule()
+
                 Text("jenifit is here to help you build kind, steady habits. a couple of things to be clear about, because they matter:")
                     .font(.custom("DMSans-Regular", size: 16))
                     .lineSpacing(5)
@@ -900,14 +922,14 @@ struct SafetyConsentView: View {
             .padding(.top, Space.xl)
             .padding(.bottom, Space.md)
         }
-        .background(Palette.bgPrimary.ignoresSafeArea())
+        .background(GrainfieldBackground())
         .safeAreaInset(edge: .bottom) {
             JFContinueButton(label: "i understand", action: { Haptics.light(); onAccept() })
                 .padding(.horizontal, Space.lg)
                 .padding(.top, Space.sm)
                 .padding(.bottom, Space.lg)
                 .background(Palette.bgPrimary)
-                .overlay(alignment: .top) { Rectangle().fill(Palette.divider.opacity(0.7)).frame(height: 1) }
+                .overlay(alignment: .top) { HairlineRule() }
         }
     }
 
@@ -958,6 +980,10 @@ struct SafetyPregnancyView: View {
                     .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
+                // FIX 3: clinical header-seam, same hairline register as
+                // the disclaimer + SCOFF screen.
+                HairlineRule()
+
                 VStack(spacing: Space.sm) {
                     ForEach(options, id: \.key) { opt in
                         SafetySelectRow(label: opt.label, selected: selected == opt.key) {
@@ -970,7 +996,7 @@ struct SafetyPregnancyView: View {
             .padding(.top, Space.xl)
             .padding(.bottom, Space.md)
         }
-        .background(Palette.bgPrimary.ignoresSafeArea())
+        .background(GrainfieldBackground())
         .safeAreaInset(edge: .bottom) {
             JFContinueButton(
                 label: "continue",
@@ -981,7 +1007,7 @@ struct SafetyPregnancyView: View {
             .padding(.top, Space.sm)
             .padding(.bottom, Space.lg)
             .background(Palette.bgPrimary)
-            .overlay(alignment: .top) { Rectangle().fill(Palette.divider.opacity(0.7)).frame(height: 1) }
+            .overlay(alignment: .top) { HairlineRule() }
         }
     }
 }
@@ -1013,7 +1039,7 @@ struct SafetySelectRow: View {
             .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Palette.bgElevated))
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(selected ? Palette.cocoaPrimary.opacity(0.5) : Palette.divider, lineWidth: 1)
+                    .stroke(selected ? Palette.cocoaPrimary.opacity(0.5) : Palette.hairlineCocoa, lineWidth: 1)
             )
             .contentShape(Rectangle())
         }
@@ -1089,7 +1115,7 @@ struct SafetyCheckInView: View {
             .padding(.top, Space.xl)
             .padding(.bottom, Space.md)
         }
-        .background(Palette.bgPrimary.ignoresSafeArea())
+        .background(GrainfieldBackground())
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: Space.sm) {
                 JFContinueButton(label: "start the check", action: {
@@ -1107,7 +1133,7 @@ struct SafetyCheckInView: View {
             .padding(.top, Space.sm)
             .padding(.bottom, Space.lg)
             .background(Palette.bgPrimary)
-            .overlay(alignment: .top) { Rectangle().fill(Palette.divider.opacity(0.7)).frame(height: 1) }
+            .overlay(alignment: .top) { HairlineRule() }
         }
     }
 
@@ -1134,14 +1160,14 @@ struct SafetyCheckInView: View {
             .padding(.top, Space.xl)
             .padding(.bottom, Space.md)
         }
-        .background(Palette.bgPrimary.ignoresSafeArea())
+        .background(GrainfieldBackground())
         .safeAreaInset(edge: .bottom) {
             JFContinueButton(label: "done", action: { Haptics.light(); finish(markCompleted: true) })
                 .padding(.horizontal, Space.lg)
                 .padding(.top, Space.sm)
                 .padding(.bottom, Space.lg)
                 .background(Palette.bgPrimary)
-                .overlay(alignment: .top) { Rectangle().fill(Palette.divider.opacity(0.7)).frame(height: 1) }
+                .overlay(alignment: .top) { HairlineRule() }
         }
     }
 
