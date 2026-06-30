@@ -3164,7 +3164,17 @@ private struct RootView: View {
         record.name = data.name
         record.onboardingGoal = data.goal
         record.onboardingExperience = data.experience
-        record.onboardingBaselineHoldSeconds = data.baselineHoldSeconds
+        // 2026-06-29: the plank-hold question (case 3) was cut.
+        // `data.baselineHoldSeconds` is now a movement-derived difficulty
+        // PROXY (used only for userBaselineSeconds / the workout engine) —
+        // it is NOT a measured plank hold. This record field feeds the
+        // Becoming "PLANK PROGRESS · from Ns at start" mastery curve, which
+        // is a plank-provenance claim, so it must stay nil unless the user
+        // has a real plank baseline. Data-provenance rule: every number in
+        // UI traces to a collected field; movement-fit is not a plank hold.
+        // Leaving it nil means the mastery curve (gated on > 0) simply
+        // doesn't render for users who never logged a real plank.
+        record.onboardingBaselineHoldSeconds = nil
         record.onboardingBarriers = data.barriers
         record.onboardingAgeRange = data.ageRange
         record.onboardingActivityLevel = data.activityLevel

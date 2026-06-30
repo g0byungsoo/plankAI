@@ -139,7 +139,11 @@ struct OnboardingView: View {
     // experience into one Q (v4 plan §D). New storage, never reuses old
     // columns; derived mirrors keep every legacy consumer fed.
     @AppStorage("onb_v4_movement_baseline") private var movementBaseline = ""
-    @State private var baseline = ""
+    // 2026-06-29: the explicit "how long can you hold a plank?" question
+    // (case 3) was cut — it read as a workout-app tell to the diet-first
+    // cohort. The difficulty seed now derives from `movementBaseline`
+    // (case 8) via WorkoutGenerator.baselineSeconds(forMovementBaseline:),
+    // so the old `baseline` @State + `bS(_:)` mapping are gone.
     @State private var barriers: Set<String> = []
     @State private var ageRange = ""
     @State private var activityLevel = ""
@@ -686,7 +690,9 @@ struct OnboardingView: View {
         case 205: SectionDividerScreen(
             title: "almost yours",
             dwellSeconds: 1.6,
-            onAdvance: { go(3) }
+            // 2026-06-29: was go(3) (the cut plank question); routes
+            // straight to the name input (case 18) now.
+            onAdvance: { go(18) }
         )
 
         // ─── Recap card — "so here's you" ───────────────────────
@@ -831,10 +837,11 @@ struct OnboardingView: View {
                 ("google",     "google search",       nil, "globe"),
                 ("other",      "somewhere else",      nil, "ellipsis.circle"),
             ],
-            // Delta v8 D87 — routes to sunk-cost activation Q (case 168)
-            // BEFORE the food wedge starts. v1 users walk past 168 via
-            // resolveNext to whatever comes next in v1FlowOrder.
-            sel: $acquisitionSource, next: 168,
+            // 2026-06-29: case 168 ("been here before?") was cut — it
+            // duplicated case 158 (priorAttempts, which feeds the CBT
+            // curriculum) and had no downstream consumer. Routes straight
+            // to the cohort-credibility slot (case 283) now.
+            sel: $acquisitionSource, next: 283,
             // v1.6: real brand marks for the platforms; JeniFit stickers
             // for the human/other answers.
             stickers: [
@@ -1828,136 +1835,17 @@ struct OnboardingView: View {
         )
 
         // ─── Part 6 — Ready to start ────────────────────────────
-        // v3 P11.9 (2026-06-10) — StickerScatter removed; her75
-        // editorial restraint on question screens.
-        case 3:
-            jfQuestion(
-                    "how long can you hold a plank?",
-                    sub: nil,  // her75 Phase 1 — "Not sure" option carries the affordance
-                    opts: [
-                        ("under15",   "Under 15s",  "Just starting",       "stopwatch"),
-                        ("fifteen30", "15-30s",     "Building a base",     "stopwatch.fill"),
-                        ("thirty60",  "30-60s",     "Solid foundation",    "timer"),
-                        ("sixtyPlus", "60+ seconds","Strong already",      "flame.fill"),
-                        ("notSure",   "Not sure",   "We'll figure it out", "questionmark.circle"),
-                    ],
-                    sel: $baseline, next: 18
-                )
-        // 2026-06-29: case 11 (time-picker-only nudge screen) removed
-        // from the live flow. Time selection + permission ask are now
-        // consolidated into case 23 (cameraSetupScreen). Case 11 stays
-        // defined below so the switch compiles, but is unreachable from
-        // the main flow (baseline -> 18 -> ... -> 23).
-
-        // v3 P11.1.C (2026-06-10) — Cal AI A8 notification pre-prime.
-        // Was: "When should we send your daily reminder?" — labor-coded.
-        // Now: her75 hero "want a nudge from *jeni*?" + mockup iOS
-        // notification preview visual + time-of-day pills. The mockup
-        // primes the iOS permission dialog that fires later (+34% allow
-        // rate per Apple dev session 2024). NO pointing-finger emoji.
-        // her75 Phase 1 §3(d) (2026-06-10) — ScrollView REMOVED. With
-        // the 38pt re-ladder + 3 pills + 1 mockup card the content
-        // fits one viewport on iPhone 13 mini. her75 onboarding is
-        // one-viewport per screen; if it doesn't fit, the screen has
-        // too much content.
-        case 11: VStack(spacing: 0) {
-            jfHeader("want a nudge from jeni?")
-                .padding(.top, Space.md)
-            Spacer().frame(height: Space.lg)
-            HStack(spacing: 10) {
-                // Real app-icon treatment (founder QA 2026-06-11): the
-                // bow logo on a white icon tile, like the actual banner.
-                // Full-bleed app-icon tile — the pink jenifit logo fills
-                // the squircle edge-to-edge like a real push banner (was a
-                // small bow inset on a white tile, which read as "not
-                // filled with the logo").
-                Image("logo_jenifit_bow")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 38, height: 38)
-                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack {
-                        Text("jenifit")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Palette.textPrimary)
-                        Spacer()
-                        Text("now")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                    // The mock mirrors the REAL daily reminder she'll
-                    // receive (title + body from NotificationPermission),
-                    // so the preview is the actual promise the app keeps.
-                    Text("five minutes, today.")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Palette.textPrimary)
-                        .lineLimit(1)
-                    ItalicAccentText(
-                        "small moves still count. they always have ♥",
-                        italic: ["always"],
-                        baseFont: .system(size: 13),
-                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13),
-                        color: Palette.textSecondary,
-                        alignment: .leading
-                    )
-                    .lineLimit(1)
-                }
-            }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Palette.bgElevated)
-                    .shadow(color: Palette.cocoaPrimary.opacity(0.08), radius: 8, x: 0, y: 4)
-            )
-            .padding(.horizontal, Space.screenPadding)
-            // Apple-banner drop-in: slides down from above with the
-            // system spring, lands with a soft tick. Reduce-motion snaps.
-            .offset(y: nudgeBannerDropped ? 0 : -72)
-            .opacity(nudgeBannerDropped ? 1 : 0)
-            .onAppear {
-                guard !nudgeBannerDropped else { return }
-                if reduceMotion {
-                    nudgeBannerDropped = true
-                } else {
-                    withAnimation(.spring(response: 0.55, dampingFraction: 0.74).delay(0.4)) {
-                        nudgeBannerDropped = true
-                    }
-                    // Land the haptic with the banner's visual settle
-                    // (0.4 delay + ~0.45 spring), not before it.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
-                        Haptics.soft()
-                    }
-                }
-            }
-            Spacer().frame(height: Space.md)
-            VStack(spacing: 10) {
-                ForEach([
-                    ("morning",   "morning",   "around 7 am",   "sunrise"),
-                    ("afternoon", "afternoon", "around 1 pm",   "sun.max"),
-                    ("evening",   "evening",   "around 7 pm",   "moon.stars"),
-                ], id: \.0) { opt in
-                    OnboardingOptionCard(
-                        icon: opt.3,
-                        title: opt.1,
-                        subtitle: opt.2,
-                        isSelected: plankTime == opt.0,
-                        action: {
-                            Haptics.light()
-                            plankTime = opt.0
-                        }
-                    )
-                }
-            }
-            .padding(.horizontal, Space.screenPadding)
-            Spacer()
-            JFContinueButton(
-                label: "continue",
-                action: { advance(to: 18, confirmation: nil) },
-                isEnabled: !plankTime.isEmpty
-            )
-        }
-
+        // 2026-06-29 cuts:
+        //   • case 3 ("how long can you hold a plank?") — the clearest
+        //     workout-app tell for the diet-first / post-Ozempic cohort.
+        //     The difficulty seed now derives from movementBaseline
+        //     (case 8) via WorkoutGenerator.baselineSeconds(...). 205
+        //     routes straight to 18.
+        //   • case 11 (time-picker-only nudge screen) — the redesigned
+        //     notification ask (NudgePermissionAsk in the reveal) now
+        //     owns notification timing + scheduleDailyReminder, so this
+        //     duplicate picker is gone. It was already unreachable (case
+        //     3 jumped to 18, skipping it) before this removal.
         case 18: nameInput
         case 19: coachSelector
 
@@ -2023,7 +1911,7 @@ struct OnboardingView: View {
         ], sel: $barriers, next: 7)
         case 6: celebrationScreen
         case 9: didYouKnowScreen
-        case 10: jfQuestion("Legacy single-focus", sub: nil, opts: [("fullCore", "Full core", nil, nil)], sel: $focusArea, next: 11)
+        case 10: jfQuestion("Legacy single-focus", sub: nil, opts: [("fullCore", "Full core", nil, nil)], sel: $focusArea, next: 18)  // 2026-06-29: was next: 11 (cut); legacy orphan, not in flowOrder
         case 12: formScreen
         case 13: featureShowcaseScreen
         case 14: socialProofScreen
@@ -2070,14 +1958,15 @@ struct OnboardingView: View {
         // Act 1 — Soft entry: welcome → anti-shame anchor → soft "why" →
         // attribution. Low-stakes commitment, get her one screen in.
         200, 230, 1, 100,
+        // 2026-06-29: case 168 ("been here before?") CUT — it duplicated
+        // case 158 (priorAttempts, which feeds the CBT curriculum) and had
+        // no downstream consumer. case 100 now routes straight to 283.
         //
-        // Delta v8 D87 — sunk-cost activation Q FIRST (case 168).
-        168,
         // v3 P11.1.B (2026-06-10) — cohort credibility slot (case 283,
-        // BetterMe A5). Patterns-match copy (NOT a fabricated count)
-        // sits right after the sunk-cost activation Q so the user has
-        // stated intent before social proof tries to validate it. Swap
-        // pattern copy for real count when ~250 paid users land.
+        // BetterMe A5). Patterns-match copy (NOT a fabricated count) sits
+        // right after attribution so the user has stated intent before
+        // social proof tries to validate it. Swap pattern copy for real
+        // count when ~250 paid users land.
         283,
         //
         // Delta v7 + v8 — FOOD WEDGE early. Diet-first pivot signal.
@@ -2181,7 +2070,10 @@ struct OnboardingView: View {
         // (coach pickers are retention levers, not trial-start
         // levers). Discoverability moves to Settings > "your coach"
         // post-paywall.
-        205, 3, 11, 18,
+        // 2026-06-29: cases 3 (plank-hold question) + 11 (duplicate
+        // nudge-time picker) CUT. 205 routes straight to 18 (name input);
+        // notification timing is owned by NudgePermissionAsk in the reveal.
+        205, 18,
         // v3 P11.1.C (2026-06-10) — 2-checkbox consent (BetterMe A6).
         // Final commit beat before the plateau teach + plan reveal.
         284,
@@ -2243,7 +2135,7 @@ struct OnboardingView: View {
     // 26/215/23 from the flow entirely.)
     private static let chapterMap: [Int: Int] = [
         // 1 — about you
-        200: 1, 230: 1, 1: 1, 100: 1, 168: 1, 283: 1,  // cohort credibility (P11.1.B)
+        200: 1, 230: 1, 1: 1, 100: 1, 283: 1,  // cohort credibility (P11.1.B)
         // 2 — your *rhythm*
         162: 2, 166: 2, 156: 2, 157: 2, 159: 2, 169: 2,
         8: 2,
@@ -2258,7 +2150,7 @@ struct OnboardingView: View {
         260: 4, 206: 4,
         // 5 — *almost there*  (BetterMe S4 — sunk-cost amplifier on
         // the highest-friction screens, pre-reveal only)
-        205: 5, 3: 5, 11: 5, 18: 5, 284: 5, 285: 5, 234: 5,
+        205: 5, 18: 5, 284: 5, 285: 5, 234: 5,
     ]
 
     private var currentChapter: Int { Self.chapterMap[screen] ?? 0 }
@@ -2447,25 +2339,8 @@ struct OnboardingView: View {
                          size: 38, rotation: -8, phaseDelay: 0.85),
     ]
 
-    /// LIGHT treatment — 4 small stickers for the plank baseline
-    /// question (case 3). The "starting line" moment — sticker mix
-    /// evokes athletic + capability themes (ribbon, star, sparkle).
-    /// Right-edge column avoids overlap with the option list which
-    /// fills most of the screen below the header.
-    private static let baselinePlacements: [StickerPlacement] = [
-        StickerPlacement(sticker: .ribbonLineart,
-                         position: CGPoint(x: 0.92, y: 0.08),
-                         size: 28, rotation: 12, phaseDelay: 0.00),
-        StickerPlacement(sticker: .starLineart,
-                         position: CGPoint(x: 0.08, y: 0.10),
-                         size: 26, rotation: -10, phaseDelay: 0.25),
-        StickerPlacement(sticker: .sparkleGlossy,
-                         position: CGPoint(x: 0.94, y: 0.32),
-                         size: 28, rotation: -8, phaseDelay: 0.50),
-        StickerPlacement(sticker: .heartGlossy,
-                         position: CGPoint(x: 0.06, y: 0.92),
-                         size: 28, rotation: 10, phaseDelay: 0.78),
-    ]
+    // 2026-06-29: `baselinePlacements` (sticker scatter for the cut plank
+    // baseline question, case 3) removed — its only consumer is gone.
 
     /// LIGHT treatment — 3 small stickers for the identity question
     /// (case 140), the emotional wedge moment.
@@ -7511,14 +7386,16 @@ struct OnboardingView: View {
             return "your weekly cadence"
         }()
 
-        // Stage 4 — plank baseline reference (the signature metric).
+        // Stage 4 — movement-fit reference. The plank-baseline question
+        // (case 3) was cut 2026-06-29; the carousel now reflects the
+        // movement-fit answer (case 8, `movementBaseline`).
         let baselineFragment: String = {
-            switch baseline {
-            case "under15":   return "your starting baseline"
-            case "fifteen30": return "your 15–30s baseline"
-            case "thirty60":  return "your 30–60s baseline"
-            case "sixtyPlus": return "your 60s+ baseline"
-            default:          return "your starting baseline"
+            switch movementBaseline {
+            case "barely":      return "your starting point"
+            case "walks":       return "your everyday movement"
+            case "regular_ish": return "your current rhythm"
+            case "very_active": return "your active baseline"
+            default:            return "your starting point"
             }
         }()
 
@@ -8653,7 +8530,15 @@ struct OnboardingView: View {
 
         var data = OnboardingData(
             goal: goal, experience: experience,
-            baselineHoldSeconds: bS(baseline),
+            // 2026-06-29: the explicit plank-hold question (case 3) was
+            // cut. The workout difficulty seed (userBaselineSeconds) now
+            // derives from the movement-fit answer (case 8). This is a
+            // strength PROXY for the engine — it is NOT a measured plank
+            // hold, so it must never reach the Becoming "from Ns at start"
+            // plank-provenance surface (see PlankAIApp: onboardingBaseline-
+            // HoldSeconds is left nil so that tile only renders with a real
+            // plank_benchmark session).
+            baselineHoldSeconds: WorkoutGenerator.baselineSeconds(forMovementBaseline: movementBaseline),
             barriers: derivedBarriers,
             ageRange: ageRange, activityLevel: activityLevel,
             focusArea: derivedFocusArea, plankTime: plankTime,
@@ -8701,17 +8586,6 @@ struct OnboardingView: View {
         // user is still on it.
         pendingRevealData = data
         withAnimation(Motion.crossFade) { showRevealSequence = true }
-    }
-
-    private func bS(_ b: String) -> Int {
-        switch b {
-        case "under15":   return 10
-        case "fifteen30": return 20
-        case "thirty60":  return 45
-        case "sixtyPlus": return 60
-        case "notSure":   return 15
-        default:          return 15
-        }
     }
 
     private func sessionLengthMinutes(_ key: String) -> Int {

@@ -1117,4 +1117,22 @@ struct WorkoutGenerator {
             ageRange: ageRange
         ))
     }
+
+    /// Derive the starting-strength seed (`baselineSeconds`) from the
+    /// onboarding movement-fit answer (case 8, `movementBaseline`) rather
+    /// than an explicit plank-hold question. The "how long can you hold a
+    /// plank?" screen was cut (it read as a workout-app tell to the
+    /// diet-first cohort), so the difficulty engine now reads a strength
+    /// proxy off how movement already fits the user's life. Movement
+    /// frequency is a sound, low-friction proxy for baseline core
+    /// endurance. Keys map to the case-8 option keys.
+    static func baselineSeconds(forMovementBaseline movement: String) -> Int {
+        switch movement {
+        case "barely":      return 20
+        case "walks":       return 30
+        case "regular_ish": return 45
+        case "very_active": return 60
+        default:            return 20
+        }
+    }
 }
