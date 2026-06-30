@@ -484,6 +484,13 @@ struct PlankAIApp: App {
                     //     → maintenance terminal (pregnancy variant)
                     //   (clean defaults) → "safety passed" proceed marker
                     SafetyGateDebugHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-hold-promise") {
+                    // Hold-to-promise (2026-06-30) — renders the commitment
+                    // ritual close in isolation so the press-and-hold seal can
+                    // be screenshotted without walking the full onboarding.
+                    // Add --debug-hold-auto-seal to auto-run the hold + capture
+                    // the sealed "promised ♥" state.
+                    HoldPromiseDebugHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-protein-hero") {
                     // v1.2 (2026-06-26) — medical-grade Phase 2.3: cohort-aware
                     // protein floor + lean-mass framing (flag-gated). Left =

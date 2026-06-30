@@ -118,6 +118,64 @@ final class ActivationHaptics {
         if !played { UINotificationFeedbackGenerator().notificationOccurred(.success) }
     }
 
+    /// Build a rising-intensity continuous "building pressure" ramp for a
+    /// press-and-hold gesture (the hold-to-promise seal). Returns an opaque
+    /// handle the caller can `.stop()` the instant she releases early, so
+    /// the buzz dies with the gesture. Both intensity AND sharpness climb
+    /// across the hold so it reads as tension accumulating toward the seal,
+    /// not a flat drone. Returns nil if CoreHaptics is unsupported - the
+    /// caller still gets the `commit()` payoff on seal, just no ramp.
+    func makeHoldRamp(duration: TimeInterval) -> HoldHapticHandle? {
+        guard supportsHaptics else { return nil }
+        prepare()
+        guard let engine else { return nil }
+        do {
+            let event = CHHapticEvent(
+                eventType: .hapticContinuous,
+                parameters: [
+                    CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+                    CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5)
+                ],
+                relativeTime: 0,
+                duration: duration
+            )
+            // Intensity climbs from a soft floor to full as the ring fills;
+            // the last stretch ramps fastest so the approach to 100% feels
+            // like it's gathering toward the seal.
+            let intensityCurve = CHHapticParameterCurve(
+                parameterID: .hapticIntensityControl,
+                controlPoints: [
+                    .init(relativeTime: 0, value: 0.16),
+                    .init(relativeTime: duration * 0.65, value: 0.62),
+                    .init(relativeTime: duration, value: 1.0)
+                ],
+                relativeTime: 0
+            )
+            // Sharpness rises too: a soft hum at the start sharpens to a
+            // crisp edge as the seal nears.
+            let sharpnessCurve = CHHapticParameterCurve(
+                parameterID: .hapticSharpnessControl,
+                controlPoints: [
+                    .init(relativeTime: 0, value: 0.2),
+                    .init(relativeTime: duration, value: 0.75)
+                ],
+                relativeTime: 0
+            )
+            let pattern = try CHHapticPattern(
+                events: [event],
+                parameterCurves: [intensityCurve, sharpnessCurve]
+            )
+            let player = try engine.makeAdvancedPlayer(with: pattern)
+            try player.start(atTime: CHHapticTimeImmediate)
+            return HoldHapticHandle(player: player)
+        } catch {
+            #if DEBUG
+            print("[ActivationHaptics] hold ramp failed: \(error)")
+            #endif
+            return nil
+        }
+    }
+
     /// Light, playful landing: a small transient plus a tiny bounce, for
     /// a sticker settling into place.
     func stickerSettle() {
@@ -216,5 +274,21 @@ final class ActivationHaptics {
             #endif
             return false
         }
+    }
+}
+
+// MARK: - HoldHapticHandle
+//
+// Opaque handle around a running CoreHaptics advanced player for the
+// hold-to-promise ramp. The hold gesture starts the ramp on press-down
+// and must `stop()` it the instant she releases early (or the moment the
+// seal fires) so the buzz never outlives the gesture. Safe to call
+// `stop()` more than once - a second stop on an already-finished player
+// is swallowed.
+struct HoldHapticHandle {
+    fileprivate let player: CHHapticAdvancedPatternPlayer
+
+    func stop() {
+        try? player.stop(atTime: CHHapticTimeImmediate)
     }
 }

@@ -2299,11 +2299,24 @@ private struct CommitmentRitualPresentation: View {
         }
         .background(GrainfieldBackground())
         .safeAreaInset(edge: .bottom) {
-            // Docked CTA. As a safeAreaInset the cream band sits at the
+            // Docked seal. As a safeAreaInset the cream band sits at the
             // true safe-area edge and the ScrollView insets its content by
             // this band's full height, so the replay can always scroll
             // clear. bgPrimary keeps scroll content from showing through.
-            JFContinueButton(label: "continue", action: confirmAndContinue)
+            //
+            // HOLD-TO-PROMISE (2026-06-30): the passive "continue" tap is
+            // replaced by an effortful press-and-hold seal. She holds while
+            // an accent arc traces the pill + a CoreHaptics ramp builds;
+            // at 100% it commits via confirmAndContinue. Releasing early
+            // springs back, nothing commits - the promise has to be MEANT.
+            // Reduce Motion / VoiceOver fall back to a plain tap inside the
+            // component. The component owns the seal haptic, so
+            // confirmAndContinue no longer fires its own commit().
+            HoldToPromiseButton(
+                label: "hold to promise",
+                onSeal: confirmAndContinue,
+                autoHoldForDebug: ProcessInfo.processInfo.arguments.contains("--debug-hold-auto-seal")
+            )
                 .padding(.top, 8)
                 .background(Palette.bgPrimary)
                 .opacity(ctaVisible ? 1 : 0)
@@ -2438,9 +2451,10 @@ private struct CommitmentRitualPresentation: View {
     // MARK: - Confirm + schedule
 
     private func confirmAndContinue() {
-        // Premium haptic commit BEFORE any state mutation. The "this
-        // counts" beat fires while the user's finger is still in contact.
-        ActivationHaptics.shared.commit()
+        // The commit haptic + seal flourish are now owned by
+        // HoldToPromiseButton (it fires ActivationHaptics.commit() the
+        // instant the hold completes, finger still in contact). This runs
+        // AFTER the seal lands, so it just persists + schedules + advances.
 
         // GLP-1 current: effective action matches the on-screen replay.
         let effectiveAction = (glp1Status == "current") ? "protect your muscle" : selectedAction
@@ -2469,6 +2483,20 @@ private struct CommitmentRitualPresentation: View {
             }
             await MainActor.run { onContinue() }
         }
+    }
+}
+
+// MARK: - HoldPromiseDebugHarness
+//
+// Debug harness for `--debug-hold-promise`: renders the real commitment
+// ritual in isolation (skipping the ~53-screen onboarding) so the
+// resting "hold to promise" seal can be screenshotted. Add
+// `--debug-hold-auto-seal` to auto-run the hold on appear and capture
+// the sealed "promised ♥" state; `onContinue` is a no-op so the sealed
+// pill stays put for the screenshot instead of advancing.
+struct HoldPromiseDebugHarness: View {
+    var body: some View {
+        CommitmentRitualPresentation(onContinue: {})
     }
 }
 
