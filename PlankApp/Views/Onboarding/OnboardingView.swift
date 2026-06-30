@@ -362,10 +362,26 @@ struct OnboardingView: View {
     // v4.6 — welcome demo frame page cycler (plan / camera / steps).
     @State private var welcomeDemoPage = 0
 
-    // Persuasion FIX 1 (2026-06-29) — the cohort avatar marquee state
-    // (cohortMarqueeIndex + cohortMarqueeAssets) was removed with the
-    // fabricated real-time-crowd conveyor on case 283. Case 283 is now an
-    // honest typography-only UNITY screen; no avatar assets are referenced.
+    // Cohort UNITY marquee (case 283). 12 illustrated it-girl profiles.
+    //
+    // 2026-06-29 revival - the avatar carousel is BACK per founder
+    // direction, but stripped of the fabrication that got the prior
+    // version pulled. The old conveyor inserted "a new arrival every
+    // 1.6s," which read as a live real-time join feed (a fabricated
+    // count with no substantiation - FTC-exposed). This version is a
+    // CONTINUOUS, seamless drift: a community of faces that's always
+    // there, never a counter ticking up. No number, no "joining now,"
+    // no timestamp. Identity + aspiration only. Reduce-motion gated to
+    // a static row. Assets are ILLUSTRATED cutouts (not real people /
+    // stock), confirmed present in Assets.xcassets.
+    private static let cohortMarqueeAssets: [String] = [
+        "onb-cohort-1", "onb-cohort-2", "onb-cohort-3",
+        "onb-profile-latte", "onb-profile-cap", "onb-profile-scarf",
+        "onb-profile-bun", "onb-profile-phone", "onb-profile-smoothie",
+        "onb-profile-towel", "onb-profile-braid", "onb-profile-book",
+    ]
+    // Continuous horizontal offset for the seamless marquee loop.
+    @State private var cohortMarqueeOffset: CGFloat = 0
 
     // Confirmation badge state — fired only at strategic commits
     // (5–7 across the full flow), not after every question. Goal is
@@ -1287,21 +1303,34 @@ struct OnboardingView: View {
         //
         // Routes to case 110 (next in v2 flow after the wedge).
         // resolveNext handles the old `next: 201` fallback for v1.
-        // v4.6 (2026-06-11) — revived from the v3 C6 cut per founder
-        // direction (cuisine signal lifts in-app calorie-vision
-        // accuracy) and upgraded to the it-girl photo grid: one food
-        // cutout per option, multi-select.
-        case 169: jfPhotoMulti(
+        //
+        // 2026-06-29 - moved off the 4-photo grid to a premium compact
+        // row multi-select. The photo grid only had on-brand cutouts for
+        // 6 cuisines; expanding to ~10 for inclusivity would have meant
+        // either mismatched/missing plate images or a half-photographed
+        // grid. A clean typographic row list scales to 10 elegantly AND
+        // is arguably MORE inclusive (no one scans the grid for "my
+        // culture" and finds it un-pictured). Ordered by US-TikTok-cohort
+        // weight. Keys stay coherent with the food-vision cuisine_profile
+        // hint: existing "mexican" / "eastAsian" / etc. keys are
+        // preserved (the mexican label just broadens to cover latin
+        // american); new keys (soulFood / middleEastern / caribbean /
+        // everything) are additive and read straight into the prompt.
+        case 169: jfMulti(
             "what's usually on your plate?",
             sub: "pick all the ones that show up often.",
             italic: ["plate"],
             opts: [
-                ("american",      "american",      "onb-cuisine-american"),
-                ("italian",       "italian",       "onb-cuisine-italian"),
-                ("mexican",       "mexican",       "onb-cuisine-mexican"),
-                ("eastAsian",     "east asian",    "onb-cuisine-eastasian"),
-                ("southAsian",    "south asian",   "onb-cuisine-southasian"),
-                ("mediterranean", "mediterranean", "onb-cuisine-mediterranean"),
+                ("american",      "american",                 nil, nil),
+                ("mexican",       "mexican / latin american", nil, nil),
+                ("italian",       "italian",                  nil, nil),
+                ("eastAsian",     "east asian",               nil, nil),
+                ("southAsian",    "south asian",              nil, nil),
+                ("mediterranean", "mediterranean",            nil, nil),
+                ("soulFood",      "soul food / southern",     nil, nil),
+                ("middleEastern", "middle eastern",           nil, nil),
+                ("caribbean",     "caribbean",                nil, nil),
+                ("everything",    "a bit of everything",      nil, nil),
             ],
             sel: Binding<Set<String>>(
                 get: {
@@ -1660,19 +1689,20 @@ struct OnboardingView: View {
 
         // ─── v3 P11.1.B (2026-06-10) — Cohort UNITY (case 283) ──────
         //
-        // Persuasion FIX 1 (2026-06-29) — KILLED the manufactured social
-        // proof. The prior version ran a sliding avatar conveyor +
-        // "women like you are already inside" that fabricated the
-        // impression of a real-time crowd with NO substantiated count -
-        // the single most scam-coded, FTC-exposed element for a
-        // post-Ozempic, medical-grade-positioned brand. Converted to
-        // honest UNITY (Cialdini): shared IDENTITY, not a crowd count.
-        // No avatars, no implied/fabricated number. The warm in-group
-        // "women like you ... you'll fit right in" stays; every word is
-        // a true descriptor of the cohort, not a claim about volume.
-        // Pure typography per the her75 simplest-screens register.
+        // 2026-06-29 - the rotating avatar carousel is RESTORED above an
+        // honest UNITY headline (Cialdini: shared IDENTITY). The prior
+        // conveyor was pulled because it inserted "a new arrival every
+        // 1.6s," fabricating a live real-time crowd with NO substantiated
+        // count (FTC-exposed for a post-Ozempic, medical-grade brand).
+        // The fix isn't to drop the engaging visual - it's to drop the
+        // fabrication. This marquee drifts CONTINUOUSLY (a community of
+        // faces that's simply there), never a counter ticking up. The
+        // copy stays a true cohort descriptor: no number, no "joining
+        // now," no timestamp, no volume claim. Reduce-motion → static.
         case 283: VStack(spacing: 0) {
             Spacer()
+            cohortMarquee
+                .padding(.bottom, Space.lg)
             ItalicAccentText(
                 "this was made for women like you.",
                 italic: ["like you"],
@@ -3564,6 +3594,61 @@ struct OnboardingView: View {
         }
     }
 
+    /// Continuous, seamless avatar marquee for the cohort UNITY screen
+    /// (case 283). Two back-to-back copies of the 12 illustrated
+    /// profiles drift left at a gentle constant speed; shifting by
+    /// exactly one set-width makes the loop seamless. Edges soft-fade
+    /// via a gradient mask so faces dissolve in and out (premium, not a
+    /// hard clip). Decorative only - no count, no live-join semantics.
+    /// Reduce-motion holds the row static.
+    private var cohortMarquee: some View {
+        let avatar: CGFloat = 58
+        let gap: CGFloat = 14
+        let setWidth = CGFloat(Self.cohortMarqueeAssets.count) * (avatar + gap)
+        // The drifting row is hung as an OVERLAY on a clear, screen-width
+        // host so its huge intrinsic width can't propagate up and blow
+        // out the centered headline's wrapping. .clipped() keeps the
+        // overflow out of the host's bounds; the gradient mask soft-fades
+        // faces in + out at the edges.
+        return Color.clear
+            .frame(height: avatar + 12)
+            .frame(maxWidth: .infinity)
+            .overlay(alignment: .leading) {
+                HStack(spacing: gap) {
+                    ForEach(0..<2, id: \.self) { copy in
+                        ForEach(Array(Self.cohortMarqueeAssets.enumerated()), id: \.offset) { idx, asset in
+                            Image(asset)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: avatar, height: avatar)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.white, lineWidth: 2.5))
+                                .shadow(color: .black.opacity(0.07), radius: 6, y: 3)
+                                .id("\(asset)-\(copy)-\(idx)")
+                        }
+                    }
+                }
+                .fixedSize()
+                .offset(x: cohortMarqueeOffset)
+            }
+            .clipped()
+            .mask(
+                LinearGradient(
+                    colors: [.clear, .black, .black, .clear],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .accessibilityHidden(true)
+            .onAppear {
+                guard !reduceMotion else { return }
+                cohortMarqueeOffset = 0
+                withAnimation(.linear(duration: 36).repeatForever(autoreverses: false)) {
+                    cohortMarqueeOffset = -setWidth
+                }
+            }
+    }
+
     private func jfMulti(
         _ title: String, sub: String? = nil,
         italic: [String] = [],
@@ -4095,58 +4180,6 @@ struct OnboardingView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
             .scrollEdgeFade()
-        }
-    }
-
-    /// Multi-select photo grid — same card chrome as jfPhotoChoice.
-    /// Built for the cuisine question (169): food cutout per option.
-    private func jfPhotoMulti(
-        _ title: String, sub: String? = nil,
-        italic: [String] = [],
-        opts: [(key: String, label: String, asset: String)],
-        sel: Binding<Set<String>>,
-        next: Int,
-        confirmation: String? = nil
-    ) -> some View {
-        VStack(spacing: 0) {
-            jfHeader(title, sub: sub, italic: italic)
-
-            ScrollView {
-                LazyVGrid(
-                    columns: [GridItem(.flexible(), spacing: Space.optionGap),
-                              GridItem(.flexible(), spacing: Space.optionGap)],
-                    spacing: Space.optionGap
-                ) {
-                    ForEach(Array(opts.enumerated()), id: \.element.key) { idx, opt in
-                        StaggeredReveal(index: idx) {
-                            photoChoiceCard(opt: opt, isSelected: sel.wrappedValue.contains(opt.key)) {
-                                Haptics.light()
-                                withAnimation(Motion.tap) {
-                                    if sel.wrappedValue.contains(opt.key) {
-                                        sel.wrappedValue.remove(opt.key)
-                                    } else {
-                                        sel.wrappedValue.insert(opt.key)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, Space.screenPadding)
-                .padding(.top, Space.md)
-                .padding(.bottom, Space.lg)
-            }
-            .scrollBounceBehavior(.basedOnSize)
-            .scrollEdgeFade()
-        }
-        .safeAreaInset(edge: .bottom) {
-            jfCTADock {
-                JFContinueButton(
-                    label: "continue",
-                    action: { advance(to: next, confirmation: confirmation) },
-                    isEnabled: !sel.wrappedValue.isEmpty
-                )
-            }
         }
     }
 

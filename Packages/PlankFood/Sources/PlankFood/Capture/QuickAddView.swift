@@ -627,6 +627,32 @@ extension QuickAddSuggestion {
             "hummus with pita",
             "chicken shawarma wrap",
         ],
+        // 2026-06-29 - onboarding case 169 cuisine inclusivity expansion.
+        // New keys read straight into the food-vision cuisine_profile
+        // hint; these pools keep their QuickAdd suggestion chips on-brand.
+        "soulFood": [
+            "fried chicken with collard greens",
+            "shrimp and grits",
+            "baked mac and cheese",
+            "cornbread with honey butter",
+        ],
+        "middleEastern": [
+            "chicken shawarma plate",
+            "falafel with hummus",
+            "lamb kofta with rice",
+            "tabbouleh salad",
+        ],
+        "caribbean": [
+            "jerk chicken with rice and peas",
+            "oxtail stew",
+            "grilled plantains",
+            "ackee and saltfish",
+        ],
+        "everything": [
+            "sweetgreen harvest bowl",
+            "protein smoothie",
+            "avocado toast with egg",
+        ],
         "other": [
             "sweetgreen harvest bowl",
             "protein smoothie",
