@@ -727,18 +727,11 @@ struct OnboardingView: View {
         // her75 IMG_6280 silence. Cases 201/202/204 deleted (orphans),
         // 203 cut from flow (the becoming divider read as filler
         // between the vulnerability cluster and identity Q).
-        case 200: SectionDividerScreen(
-            title: "your story",
-            dwellSeconds: 1.6,
-            onAdvance: { go(230) }
-        )
-        case 205: SectionDividerScreen(
-            title: "almost yours",
-            dwellSeconds: 1.6,
-            // 2026-06-29: was go(3) (the cut plank question); routes
-            // straight to the name input (case 18) now.
-            onAdvance: { go(18) }
-        )
+        // 2026-06-30: cases 200 ("your story") + 205 ("almost yours")
+        // SectionDividerScreen dwell beats CUT — the chapter eyebrow above
+        // the progress bar already marks sections; these 1.6s dwells were
+        // dead speed bumps on the run to the wall. welcome (0) now routes
+        // straight to 230; recap (206) routes straight to 18.
 
         // ─── Recap card — "so here's you" ───────────────────────
         // Mid-flow recap reflecting 4 of the user's own answers back to
@@ -1054,7 +1047,10 @@ struct OnboardingView: View {
             // of the older "honest pace" pace-coded line. RevenueCat
             // teardown finding: immediate emotional reciprocity after
             // sensitive disclosures lifts conversion materially.
-            confirmation: "thank you. that's the hard one. ♥",
+            // 2026-06-30: de-duped from "that's the hard one ♥" (case 132's
+            // line) to a distinct trust-reciprocity beat so the two
+            // back-to-back weight screens don't echo the same reassurance.
+            confirmation: "thank you for trusting us with that. ♥",
             annotation: {
                 goalWeightAnnotation(currentKg: currentWeightKg, goalKg: goalWeightKg, heightCm: heightCm)
             }
@@ -1182,12 +1178,11 @@ struct OnboardingView: View {
             maxPosition: bodyTypeCurrent,
             markerPosition: bodyTypeCurrent,
             contextLine: "You said you're at: \(["Cut", "Lean", "Athletic", "Average", "Curvy", "Soft"][bodyTypeCurrent])",
-            // Routes to case 160 (reshape transition) → case 161 (first
-            // prediction) → case 203. PostHog 2026-05-26 audit found
-            // case 135 was going direct to 203 — skipping both screens.
-            // flowOrder had them sequential (134, 135, 160, 161, 203);
-            // forward routing didn't match. Fixed.
-            next: 160
+            // 2026-06-30: was next: 160 (reshape transition, CUT along with
+            // 161 first-prediction). This case (135) is itself an orphan
+            // (134/135 cut from flowOrder per the v9 P9.8 founder QA), so the
+            // route is unreachable; repointed to 140 to keep the hint live.
+            next: 140
         )
         .onAppear {
             // Seed desired body type from current on first mount. The
@@ -1330,27 +1325,10 @@ struct OnboardingView: View {
                 // descriptor, same "no fixed cadence" signal (key unchanged).
                 ("chaotic",     "no real pattern", nil, "wind.snow"),
             ],
-            sel: $eatingCadence, next: 157
-        )
-
-        case 157: jfQuestion(
-            // "when do you stop eating?" read as a willpower cutoff + the
-            // ascending ladder implied earlier=better (a TRE value judgment,
-            // also evidence-weak). "wind down" = same circadian signal, no
-            // restriction coding.
-            "when does eating wind down?",
-            sub: nil,
-            opts: [
-                ("before_7", "before 7pm",  nil, "sunrise"),
-                ("by_8",     "7 to 8pm",    nil, "sun.horizon"),
-                ("by_10",    "8 to 10pm",   nil, "moon"),
-                ("late",     "after 10pm",  nil, "moon.zzz"),
-                ("varies",   "varies",      nil, "cloud"),
-            ],
-            // Delta v7 — routes to prior-win (159) which still has
-            // "logging_food" as an option. After food wedge completes
-            // we hand off to Act 2 (workout) via 201.
-            sel: $eatingWindow, next: 159
+            // 2026-06-30: was next: 157 (eating-window Q, CUT — evidence-weak,
+            // no pacing/program/food consumer). cadence carries the eating
+            // signal; routes straight to prior-win (159).
+            sel: $eatingCadence, next: 159
         )
 
         // ─── v2-A3: Identity + previous-attempt anchor block ────────
@@ -1560,7 +1538,9 @@ struct OnboardingView: View {
                     nsvPriorityCSV = newValue.sorted().joined(separator: ",")
                 }
             ),
-            next: 160,
+            // 2026-06-30: was next: 160 (reshape transition + 161 first-
+            // prediction, both CUT). Routes straight to 140 (next live case).
+            next: 140,
             confirmation: "we'll watch for these."
         )
 
@@ -2024,8 +2004,10 @@ struct OnboardingView: View {
         case 19: coachSelector
 
         // ─── Phase 5 — prediction / loading / plan reveal ─────
-        case 160: reshapeTransitionScreen
-        case 161: firstPredictionScreen
+        // 2026-06-30: cases 160 (reshapeTransitionScreen) + 161
+        // (firstPredictionScreen) deleted — 161 duplicated the reveal
+        // projection (the single intended climax) + self-labelled "rough
+        // sketch"; 160 only set it up. See flowOrder note.
         case 170: rePredictionScreen
         case 180: loadingCarouselScreen
         // case 181 finalPredictionScreen dropped 2026-06-01 (C1).
@@ -2131,7 +2113,10 @@ struct OnboardingView: View {
     private static let v2FlowOrder: [Int] = [
         // Act 1 — Soft entry: welcome → anti-shame anchor → soft "why" →
         // attribution. Low-stakes commitment, get her one screen in.
-        200, 230, 1, 100,
+        // 2026-06-30: case 200 ("your story" 1.6s divider dwell) CUT — the
+        // chapter eyebrow already marks sections; the dwell was a dead speed
+        // bump. welcome (case 0) now routes straight to 230 (anti-shame).
+        230, 1, 100,
         // 2026-06-29: case 168 ("been here before?") CUT — it duplicated
         // case 158 (priorAttempts, which feeds the CBT curriculum) and had
         // no downstream consumer. case 100 now routes straight to 283.
@@ -2163,7 +2148,12 @@ struct OnboardingView: View {
         // 2026-06-29 conviction beat — case 292 (name "food noise") sits
         // BETWEEN the food-relationship Q (162) and the pre-eat wedge
         // (166). 162's next: was repointed to 292; 292 continues to 166.
-        162, 292, 166, 156, 157, 159, 169, 170,
+        // 2026-06-30: case 157 (eating-window Q) CUT — evidence-weak (a TRE
+        // value judgment) with NO pacing/program/food consumer; its only
+        // writer was this screen and onboardingEatingWindow is synced but
+        // never read as a feature input. cadence (156) carries the eating
+        // signal; 156's next: repointed to 159.
+        162, 292, 166, 156, 159, 169, 170,
         //
         // Act 2 — Workout/activity (demoted, post-food-wedge).
         // v3 C2 (2026-06-10) — cut 270 (habit-window quiz). The
@@ -2197,7 +2187,14 @@ struct OnboardingView: View {
         // keeps the seeded ~10% loss. Unlocks an explicit weight-MANAGEMENT
         // path instead of inferring it from the sliders.
         130, 7, 131, 132, 1320, 1330, 133, 1642, 286, 136,
-        160, 161,
+        // 2026-06-30: cases 160 (reshape transition) + 161 (first-prediction
+        // "rough sketch" chart) CUT. 161 was a DUPLICATE climax of the reveal
+        // projection (same becoming-curve + goal date) that self-labelled
+        // "rough sketch / still to sharpen" — a "we're guessing" tell to a
+        // scam-wary cohort that stole the real reveal's thunder. 160 only
+        // existed to set up 161; its "strong core / lifted energy" callouts
+        // are already carried by 136 (NSV priorities) + 286 (realistic-target
+        // reframe), so it was cut cleanly. 136's next: repointed to 140.
         // v1.1.3 T5 (2026-06-29) - pace selector (case 167) CUT here.
         // The reveal PacePickerPresentation (post-loader, next to the
         // single projection it recomputes) is now the sole pace control;
@@ -2266,9 +2263,12 @@ struct OnboardingView: View {
         // levers). Discoverability moves to Settings > "your coach"
         // post-paywall.
         // 2026-06-29: cases 3 (plank-hold question) + 11 (duplicate
-        // nudge-time picker) CUT. 205 routes straight to 18 (name input);
-        // notification timing is owned by NudgePermissionAsk in the reveal.
-        205, 18,
+        // nudge-time picker) CUT. notification timing is owned by
+        // NudgePermissionAsk in the reveal.
+        // 2026-06-30: case 205 ("almost yours" 1.6s divider dwell) CUT —
+        // like 200, the chapter eyebrow already marks sections; dead speed
+        // bump. recap card (206) now routes straight to 18 (name input).
+        18,
         // v3 P11.1.C (2026-06-10) — 2-checkbox consent (BetterMe A6).
         // Final commit beat before the plateau teach + plan reveal.
         284,
@@ -2330,14 +2330,13 @@ struct OnboardingView: View {
     // 26/215/23 from the flow entirely.)
     private static let chapterMap: [Int: Int] = [
         // 1 — about you
-        200: 1, 230: 1, 1: 1, 100: 1, 283: 1,  // cohort credibility (P11.1.B)
+        230: 1, 1: 1, 100: 1, 283: 1,  // cohort credibility (P11.1.B)
         // 2 — your *rhythm*
-        162: 2, 166: 2, 156: 2, 157: 2, 159: 2, 169: 2, 170: 2,
+        162: 2, 166: 2, 156: 2, 159: 2, 169: 2, 170: 2,
         8: 2,
         // 3 — what *fits*
         280: 3,  // bridge "now the numbers" (P11.1.B)
         130: 3, 7: 3, 131: 3, 132: 3, 1330: 3, 133: 3, 286: 3, 136: 3,
-        160: 3, 161: 3,
         // 4 — your *why*
         140: 4, 158: 4, 154: 4, 155: 4, 163: 4, 164: 4,
         282: 4,  // reciprocity beat after vulnerability cluster (P11.1.B)
@@ -2345,7 +2344,7 @@ struct OnboardingView: View {
         260: 4, 206: 4,
         // 5 — *almost there*  (BetterMe S4 — sunk-cost amplifier on
         // the highest-friction screens, pre-reveal only)
-        205: 5, 18: 5, 284: 5, 285: 5, 234: 5,
+        18: 5, 284: 5, 285: 5, 234: 5,
     ]
 
     private var currentChapter: Int { Self.chapterMap[screen] ?? 0 }
@@ -3155,7 +3154,10 @@ struct OnboardingView: View {
     private var welcomeCTA: some View {
         Button {
             Haptics.light()
-            go(200) // Part 1 divider
+            go(230) // 2026-06-30: was go(200) ("your story" divider, CUT);
+            // welcome routes straight to the anti-shame anchor (230). go()
+            // can't resolveNext from welcome (case 0 isn't in flowOrder), so
+            // this MUST point at a live case directly.
         } label: {
             // Lowercase "continue" replaces "Get started". Research:
             // brand-coined verbs ("start becoming," "begin your journey")
@@ -5659,7 +5661,9 @@ struct OnboardingView: View {
 
                 Spacer()
 
-                ctaBtn("continue") { Haptics.light(); go(205) }
+                // 2026-06-30: was go(205) ("almost yours" divider, CUT);
+                // recap routes straight to the name input (case 18).
+                ctaBtn("continue") { Haptics.light(); go(18) }
             }
         }
         .background(Palette.bgPrimary)
@@ -7250,173 +7254,11 @@ struct OnboardingView: View {
                          size: 28, rotation: -10, phaseDelay: 0.85),
     ]
 
-    // Reshape transition (160). The "stubborn fat will shed" moment
-    // reframed for empowerment: no before/after pairing, no shame-coded
-    // labels — just the radiant goal-state body and supportive copy.
-    // Annotations call out positive markers (strong core, lifted energy)
-    // rather than naming what's "wrong" about the current body.
-    // v4.6 (2026-06-11): AI-character render replaced with the it-girl
-    // editorial cutout (from behind, sage set) per founder direction.
-    private var reshapeTransitionScreen: some View {
-        // v1.4 edge-bleed editorial: minimal centered type up top, the figure
-        // running off the bottom edge, the positive callouts floating beside
-        // her torso. Was a boxed cutout floating mid-screen with a hard cut.
-        ZStack(alignment: .bottom) {
-            Image("onb-itgirl-reshape")
-                .resizable()
-                .scaledToFit()
-                .frame(height: 470)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .offset(y: 64)
-                .ignoresSafeArea(edges: .bottom)
-                .accessibilityHidden(true)
-                .softInRise(delay: 0.15, rise: 14)
-
-            VStack(spacing: 0) {
-                Spacer().frame(height: Space.xl)
-                ItalicAccentText(
-                    "your body will reshape. quietly.",
-                    italic: ["quietly"],
-                    baseFont: Typo.heroHeadline,
-                    italicFont: Typo.heroHeadlineItalic,
-                    color: Palette.textPrimary,
-                    alignment: .center
-                )
-                .kerning(-0.4)
-                .lineSpacing(Typo.heroHeadlineLineGap)
-                .fixedSize(horizontal: false, vertical: true)
-                .softInRise(haptic: true)
-
-                Spacer().frame(height: Space.md)
-
-                Text("steady wins. no crash, no rebound.")
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .softInRise(delay: 0.30)
-
-                Spacer()
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, Space.screenPadding)
-        }
-        .overlay(alignment: .topTrailing) {
-            // Positive callouts float beside her torso (mid-right).
-            VStack(alignment: .trailing, spacing: 10) {
-                callout("strong core")
-                callout("lifted energy")
-            }
-            .padding(.trailing, Space.md)
-            .padding(.top, 300)
-            .softInRise(delay: 0.30, rise: 10)
-        }
-        .safeAreaInset(edge: .bottom) {
-            jfCTADock {
-                JFContinueButton(label: "continue") { go(161) }
-            }
-        }
-    }
-
-    /// Pill-shaped positive callout used on the reshape screen. Soft
-    /// accent-rose chip with a leading dot — reads as a label, not a
-    /// diagnostic.
-    private func callout(_ text: String) -> some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(Palette.accent)
-                .frame(width: 6, height: 6)
-            Text(text)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Palette.textPrimary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Palette.accentSubtle, in: Capsule())
-    }
-
-    // First weight prediction (161). 2026 voice refresh — "you could
-    // be at [X] by [date]" instead of "We predict you'll be …". Drops
-    // the corporate "we predict" voice; "could" frames the chart as a
-    // projection from the user's own inputs, not a promise (post-Ozempic
-    // safe + TikTok-moderation safe per the 2026 audience research).
-    private var firstPredictionScreen: some View {
-        ZStack {
-            // her75 Phase 2 (2026-06-10) — StickerScatter cut; editorial restraint.
-            // C2 + chart-fill (2026-06-01): .rough chart styling +
-            // headline now clearly labels 138 lb as "the goal" (prior
-            // "roughly, around 138 lb." read as floating). Below-chart
-            // slot shows the inputs we'll use to sharpen — Zeigarnik
-            // + anticipation pattern (the user sees what's still
-            // coming, which lifts continuation intent).
-            predictionScreen(
-                eyebrow: "rough sketch",
-                headlinePrefix: "goal: ",
-                headlineSuffix: ".",
-                subhead: "early estimate. it sharpens as you answer more.",
-                badge: nil,
-                target: predictionDate(),
-                next: 203,
-                style: .rough,
-                belowChart: { stillToSharpenRow }
-            )
-        }
-        .onAppear {
-            Analytics.track(.projectionChartViewed,
-                            properties: ["placement": "first_prediction"])
-        }
-    }
-
-    /// "Still to sharpen" + trust anchor — fills the rough-chart screen
-    /// (case 161) with two layers: (1) anticipation chips listing upcoming
-    /// credibility-grade inputs, (2) inline trust anchor with science
-    /// citation + founder voice. Conversion levers: Zeigarnik anticipation,
-    /// research credibility (ZOE-pattern), founder intimacy.
-    private var stillToSharpenRow: some View {
-        VStack(alignment: .leading, spacing: Space.md) {
-            VStack(alignment: .leading, spacing: Space.sm) {
-                Text("STILL TO SHARPEN")
-                    .font(.system(size: 10, weight: .medium))
-                    .tracking(1.6)
-                    .foregroundStyle(Palette.textSecondary)
-
-                // T9 (2026-06-29): list only inputs that genuinely move
-                // the pacing math. sleep (Nedeltcheva floor) + cycle/peri
-                // (0.3%/wk floor) + weight trend (Task 2 cycling floor) +
-                // glp-1 phase (Task 2 just_started 0.003 floor). Removed
-                // "eating" + "stress" - neither moves the pace formula.
-                HStack(spacing: 6) {
-                    ForEach(["sleep", "cycle", "weight trend", "glp-1"], id: \.self) { item in
-                        Text(item)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Palette.textSecondary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Capsule().stroke(Palette.divider, lineWidth: 1))
-                    }
-                }
-            }
-
-            // Trust anchor — small italic-Fraunces founder voice + science chip
-            HStack(spacing: 8) {
-                Text("acsm 0.5-1%/wk")
-                    .font(.system(size: 10, weight: .medium))
-                    .tracking(0.6)
-                    .foregroundStyle(Palette.textSecondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Capsule().stroke(Palette.divider, lineWidth: 1))
-
-                (Text("the ")
-                    .font(.custom("Fraunces72pt-Regular", size: 13))
-                 + Text("sustainable")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                 + Text(" band."))
-                    .font(.custom("Fraunces72pt-Regular", size: 13))
-                    .foregroundStyle(Palette.textSecondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
+    // 2026-06-30: reshapeTransitionScreen (160) + its callout(_:) helper +
+    // firstPredictionScreen (161) + its stillToSharpenRow helper DELETED.
+    // 161 was a duplicate of the reveal projection climax + self-labelled
+    // "rough sketch"; 160 only set it up. predictionScreen / predictionDate
+    // stay — still used by rePredictionScreen + the reveal projection.
 
     // Re-prediction (170). 2026 voice refresh — drops the "Still on
     // track!" corporate badge (reads like a fitness-coach pat-on-the-
