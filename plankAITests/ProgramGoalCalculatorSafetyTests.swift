@@ -46,7 +46,6 @@ final class ProgramGoalCalculatorSafetyTests: XCTestCase {
         XCTAssertEqual(result.mode, .clinicianFirst)
         XCTAssertEqual(result.reasonKey, "med_hypo")
         XCTAssertFalse(result.showCrisisResources)
-        XCTAssertFalse(result.softConfirm)
     }
 
     // (b) current-GLP-1 user with 2 total yes but ONLY expected-effect items (core=0)
@@ -147,6 +146,83 @@ final class ProgramGoalCalculatorSafetyTests: XCTestCase {
         let result = ProgramGoalCalculator.safetyAssessment(s)
         XCTAssertEqual(result.mode, .maintenance)
         XCTAssertEqual(result.reasonKey, "bmi_low")
+    }
+
+    // MARK: - Healthy-BMI normal loss plan (founder correction)
+    //
+    // A woman with a healthy BMI wants to lose weight for aesthetic or fitness
+    // reasons. This is valid. She must NOT be capped or suppressed.
+    // The goal-weight picker BMI-18.5 floor is the only guard needed.
+
+    // Healthy BMI (22) with a loss goal -> normal .loss, uncapped, numbers shown.
+    func testHealthyBMIGetsNormalLossNoCap() {
+        // BMI 22 at 165 cm -> weight = 22 * (1.65)^2 = 22 * 2.7225 = ~59.9 kg.
+        let heightCm = 165.0
+        let weightKg = 22.0 * (heightCm / 100) * (heightCm / 100)
+        let s = SI(
+            currentWeightKg: weightKg,
+            goalWeightKg: weightKg - 5,
+            heightCm: heightCm,
+            ageRange: "adult",
+            scoffYesCount: 0,
+            pregnancyStatus: "none",
+            medicationKey: "none"
+        )
+        let result = ProgramGoalCalculator.safetyAssessment(s)
+        XCTAssertEqual(result.mode, .loss,           "healthy-BMI must get a full .loss plan")
+        XCTAssertEqual(result.reasonKey, "bmi_healthy")
+        XCTAssertNil(result.paceCap,                 "healthy-BMI must be uncapped (nil)")
+        XCTAssertFalse(result.numericSuppression,    "healthy-BMI must show numbers")
+    }
+
+    // Underweight (BMI < 18.5) -> maintenance. Genuine health concern; stays adapted.
+    func testUnderweightGetsMaintenanceNotLoss() {
+        // BMI 17 at 165 cm -> weight = 17 * 2.7225 = ~46.3 kg
+        let heightCm = 165.0
+        let weightKg = 17.0 * (heightCm / 100) * (heightCm / 100)
+        let s = SI(
+            currentWeightKg: weightKg,
+            goalWeightKg: weightKg - 5,
+            heightCm: heightCm,
+            ageRange: "adult",
+            scoffYesCount: 0,
+            pregnancyStatus: "none",
+            medicationKey: "none"
+        )
+        let result = ProgramGoalCalculator.safetyAssessment(s)
+        XCTAssertEqual(result.mode, .maintenance, "underweight must stay in maintenance")
+        XCTAssertEqual(result.reasonKey, "bmi_low")
+        XCTAssertEqual(result.paceCap, 0.0,       "underweight has a zero-deficit cap")
+        XCTAssertFalse(result.numericSuppression, "underweight: show nourishment numbers, not loss")
+    }
+
+    // Pregnant -> zero-deficit cap AND numeric suppression (no loss numbers ever).
+    func testPregnantGetsZeroDeficitAndSuppression() {
+        let s = SI(
+            currentWeightKg: 75, goalWeightKg: 60, heightCm: 165,
+            ageRange: "adult", scoffYesCount: 0, pregnancyStatus: "pregnant",
+            medicationKey: "none"
+        )
+        let result = ProgramGoalCalculator.safetyAssessment(s)
+        XCTAssertEqual(result.mode, .maintenance)
+        XCTAssertEqual(result.reasonKey, "pregnant")
+        XCTAssertEqual(result.paceCap, 0.0,      "pregnant must have hard zero-deficit cap")
+        XCTAssertTrue(result.numericSuppression, "pregnant must suppress all loss numbers")
+    }
+
+    // Normal loss (no special flags, BMI > 25) -> uncapped, numbers shown.
+    func testNormalLossIsUncappedNoSuppression() {
+        // 80 kg at 165 cm -> BMI = 80 / 2.7225 = ~29.4 (overweight). Clean path.
+        let s = SI(
+            currentWeightKg: 80, goalWeightKg: 70, heightCm: 165,
+            ageRange: "adult", scoffYesCount: 0, pregnancyStatus: "none",
+            medicationKey: "none"
+        )
+        let result = ProgramGoalCalculator.safetyAssessment(s)
+        XCTAssertEqual(result.mode, .loss)
+        XCTAssertEqual(result.reasonKey, "ok")
+        XCTAssertNil(result.paceCap,              "normal loss must be uncapped")
+        XCTAssertFalse(result.numericSuppression, "normal loss must show numbers")
     }
 
     // Medication does NOT route clinicianFirst for "other_glucose" or "none" or "prefer_not_say"

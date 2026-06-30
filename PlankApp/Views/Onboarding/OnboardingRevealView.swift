@@ -149,11 +149,13 @@ struct OnboardingRevealView: View {
                 )
                 .transition(.opacity)
             case .safety:
-                // T7 + safety-fix: the safety gate. ONLY .loss (including
-                // softConfirm) calls onPassed and continues to the building
-                // loader. .maintenance (pregnant/BF/ttc/low-BMI), .recovery,
-                // .blocked, and .clinicianFirst all park on supportive dead-end
-                // terminals inside the gate - never reaching building/paywall/app.
+                // T7 + safety-fix: the safety gate. ONLY .loss calls onPassed
+                // and continues to the building loader. This includes bmi_healthy
+                // (BMI 18.5-24.9): a healthy-BMI user gets a full .loss plan
+                // with no cap - no adaptive note, no softening (founder decision).
+                // .maintenance (pregnant/BF/ttc/low-BMI), .recovery, .blocked,
+                // and .clinicianFirst all park on supportive dead-end terminals
+                // inside the gate - never reaching building/paywall/app.
                 SafetyGatePresentation(
                     onPassed: { withAnimation(Motion.crossFade) { step = .building } }
                 )
@@ -280,10 +282,13 @@ struct OnboardingRevealView: View {
 // signal comes from the onboarding question (onboarding_medication_status,
 // Task 4).
 //
-// Branch contract (T7 + safety-fix):
-//   .loss / softConfirm       -> onPassed() -> continue to building -> paywall
-//      (softConfirm = healthy-range BMI is folded into .loss by safetyAssessment;
-//       program math softens the deficit. THIS IS THE ONLY MODE THAT CONTINUES.)
+// Branch contract:
+//   .loss (all cases, including bmi_healthy) -> onPassed() -> building -> paywall.
+//      Healthy-BMI (18.5-24.9) is a full .loss user - no cap, no adaptive note,
+//      no softening. The BMI-18.5 goal-weight picker floor (minimumGoalWeightKg)
+//      prevents targeting an underweight goal; that is the only guard this cohort
+//      needs. Founder decision 2026-06-29: TikTok cohort in the healthy range
+//      wants to lose weight for aesthetic/fitness reasons; that is a valid goal.
 //   .maintenance (pregnant / breastfeeding / ttc / BMI < 18.5)
 //                             -> SafetyRecoveryView(.maintenance) DEAD-END
 //   .recovery (ED)            -> SafetyRecoveryView(.eatingDisorder) DEAD-END
@@ -387,10 +392,10 @@ struct SafetyGatePresentation: View {
         safetyScreenCompleted = true
         switch a.mode {
         case .loss:
-            // The ONLY mode that passes the gate. softConfirm (healthy
-            // BMI, reasonKey=="bmi_healthy") is folded into .loss by
-            // safetyAssessment; program math softens the deficit for
-            // that sub-case. Continues to building -> paywall.
+            // The ONLY mode that passes the gate. Includes bmi_healthy
+            // (BMI 18.5-24.9): healthy-BMI gets a full normal loss plan -
+            // no cap, no adaptive note. The BMI-18.5 goal-weight picker
+            // floor prevents underweight targeting. Continues to building.
             onPassed()
         case .maintenance:
             // Pregnant / breastfeeding / ttc / BMI < 18.5. Selling a

@@ -454,8 +454,39 @@ public enum ProgramGoalCalculator {
         public let reasonKey: String
         /// True when crisis resources (NEDA / 988) must be surfaced.
         public let showCrisisResources: Bool
-        /// True for BMI 18.5–24.9: allow a loss program but soften + confirm.
-        public let softConfirm: Bool
+
+        /// Effective weekly loss-rate cap for the program reveal.
+        /// nil  = uncapped - normal ACSM 0.5-1%/wk band (reasonKey "ok" and
+        ///        "bmi_healthy"). Healthy-BMI is a full .loss user; the
+        ///        BMI-18.5 goal-weight picker floor is the only guard needed.
+        /// 0.0  = hard zero-deficit: pregnant + ED-positive (physiological
+        ///        or psychological risk on any calorie deficit).
+        /// 0.0025 = gentle 0.25%/wk cap: breastfeeding, ttc, under-18,
+        ///          clinician-first (med_hypo), underweight maintenance (bmi_low).
+        /// Derived from reasonKey; adding new reasonKeys here never churns the
+        /// struct's init surface or Equatable conformance.
+        public var paceCap: Double? {
+            switch reasonKey {
+            case "pregnant", "ed_screen": return 0.0
+            case "breastfeeding", "ttc":  return 0.0025
+            case "under18":               return 0.0025
+            case "med_hypo":              return 0.0025
+            case "bmi_low":               return 0.0
+            default:                      return nil   // "ok" + "bmi_healthy" - uncapped
+            }
+        }
+
+        /// True when all numeric loss targets (calorie hero, goal date, loss
+        /// curve) must be suppressed. Only for conditions where numeric WL
+        /// framing is clinically unsafe. Derived from reasonKey. False for
+        /// bmi_healthy - she gets the same full numeric reveal as a clean
+        /// loss user.
+        public var numericSuppression: Bool {
+            switch reasonKey {
+            case "ed_screen", "pregnant": return true
+            default:                      return false
+            }
+        }
     }
 
     /// The safety screen result. Order is intentional: age -> medication ->
@@ -470,7 +501,7 @@ public enum ProgramGoalCalculator {
         // 1. Age - under 18 gets no program.
         if s.ageRange == "under18" {
             return .init(mode: .blocked, minSafeGoalKg: minGoal, currentBMI: bmiNow,
-                         reasonKey: "under18", showCrisisResources: false, softConfirm: false)
+                         reasonKey: "under18", showCrisisResources: false)
         }
 
         // 2. Medication - insulin or sulfonylurea requires clinician input first.
@@ -483,7 +514,7 @@ public enum ProgramGoalCalculator {
         // those classes either have lower hypoglycemia risk or are unknown.
         if s.medicationKey == "insulin_or_sulfonylurea" {
             return .init(mode: .clinicianFirst, minSafeGoalKg: minGoal, currentBMI: bmiNow,
-                         reasonKey: "med_hypo", showCrisisResources: false, softConfirm: false)
+                         reasonKey: "med_hypo", showCrisisResources: false)
         }
 
         // 3. Eating-disorder screen - GLP-1-aware.
@@ -506,7 +537,7 @@ public enum ProgramGoalCalculator {
         }()
         if effectiveScoffCount >= 0, scoffPositive(yesCount: effectiveScoffCount) {
             return .init(mode: .recovery, minSafeGoalKg: minGoal, currentBMI: bmiNow,
-                         reasonKey: "ed_screen", showCrisisResources: true, softConfirm: false)
+                         reasonKey: "ed_screen", showCrisisResources: true)
         }
 
         // 4. Pregnancy / lactation / ttc - no intentional deficit.
@@ -515,30 +546,38 @@ public enum ProgramGoalCalculator {
         switch s.pregnancyStatus {
         case "pregnant":
             return .init(mode: .maintenance, minSafeGoalKg: minGoal, currentBMI: bmiNow,
-                         reasonKey: "pregnant", showCrisisResources: false, softConfirm: false)
+                         reasonKey: "pregnant", showCrisisResources: false)
         case "breastfeeding":
             return .init(mode: .maintenance, minSafeGoalKg: minGoal, currentBMI: bmiNow,
-                         reasonKey: "breastfeeding", showCrisisResources: false, softConfirm: false)
+                         reasonKey: "breastfeeding", showCrisisResources: false)
         case "ttc":
             return .init(mode: .maintenance, minSafeGoalKg: minGoal, currentBMI: bmiNow,
-                         reasonKey: "ttc", showCrisisResources: false, softConfirm: false)
+                         reasonKey: "ttc", showCrisisResources: false)
         default:
             break
         }
 
-        // 5. BMI floor (unchanged).
+        // 5. BMI safety check.
         if s.heightCm > 0, bmiNow > 0 {
             if bmiNow < 18.5 {
+                // Underweight: genuine health concern. Maintenance mode - no deficit
+                // plan is appropriate. The supportive dead-end terminal stays.
                 return .init(mode: .maintenance, minSafeGoalKg: minGoal, currentBMI: bmiNow,
-                             reasonKey: "bmi_low", showCrisisResources: false, softConfirm: false)
+                             reasonKey: "bmi_low", showCrisisResources: false)
             }
             if bmiNow < 25 {
-                // Healthy range: loss allowed, but soften + require confirm.
+                // Healthy range (18.5-24.9): FULL normal .loss plan - no cap,
+                // no suppression, no adaptive note. Many users in this range
+                // want to lose weight for aesthetic or fitness reasons; that
+                // is a valid and supported goal. The only guard is the
+                // BMI-18.5 goal-weight picker floor (minimumGoalWeightKg),
+                // which prevents targeting an underweight goal. Normal ACSM
+                // 0.5-1%/wk band applies - same as the "ok" path below.
                 return .init(mode: .loss, minSafeGoalKg: minGoal, currentBMI: bmiNow,
-                             reasonKey: "bmi_healthy", showCrisisResources: false, softConfirm: true)
+                             reasonKey: "bmi_healthy", showCrisisResources: false)
             }
         }
         return .init(mode: .loss, minSafeGoalKg: minGoal, currentBMI: bmiNow,
-                     reasonKey: "ok", showCrisisResources: false, softConfirm: false)
+                     reasonKey: "ok", showCrisisResources: false)
     }
 }
