@@ -824,6 +824,11 @@ private struct ProjectionPresentation: View {
     @AppStorage("onboarding_glp1_phase")     private var glp1Phase: String = ""
     // FIX 4 (2026-06-29): collected gender (case 130) -> BMR-formula sex.
     @AppStorage("onboardingGender")          private var gender: String = ""
+    // Persuasion FIX 4 (2026-06-29): true once she passed the pre-paywall
+    // safety gate. Surfaced as a quiet "safety-screened" receipt on the
+    // credibility strip - honest (she passed it to get here) + trust-building
+    // for the scam-wary buyer. No competitor runs this screen.
+    @AppStorage("safety_screen_completed")   private var safetyScreenCompleted: Bool = false
 
     /// FIX 3 (2026-06-29): true when she has weights but no loss delta
     /// (already at / below goal). Drives the maintenance-framed reveal so a
@@ -892,6 +897,17 @@ private struct ProjectionPresentation: View {
                                 .padding(.horizontal, Space.lg)
                                 .opacity(calorieVisible ? 1 : 0)
                                 .scaleEffect(calorieVisible ? 1.0 : 0.97)
+                            // Persuasion FIX 5 (2026-06-29): reciprocity gift.
+                            // The target already persists to foodDailyTarget on
+                            // this reveal, so it IS hers before the wall -
+                            // provenance-clean. Frame it as owned, not teased.
+                            Text("this number is yours to keep.")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Palette.textSecondary)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
+                                .padding(.horizontal, Space.lg)
+                                .opacity(calorieVisible ? 1 : 0)
                         }
 
                         BecomingProjectionCard(
@@ -1020,6 +1036,16 @@ private struct ProjectionPresentation: View {
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+            // Persuasion FIX 4 (2026-06-29): quiet safety-screen receipt.
+            // Honest - she passed the pre-paywall gate to reach this screen.
+            // Check glyph (not a heart) keeps the terminal-heart rule clean;
+            // textSecondary hairline register so it reads as a calm credential.
+            if safetyScreenCompleted {
+                Text("safety-screened before you started \u{2713}")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -2548,10 +2574,14 @@ private struct RatingAskPresentation: View {
             VStack(spacing: Space.lg) {
                 Spacer(minLength: Space.xl)
 
-                // her75 editorial headline. Italic punch on "loving" as
-                // the emotional word; lowercase casual register.
+                // her75 editorial headline. Persuasion KEEP-touch
+                // (2026-06-29): lead with the value she just saw (the plan
+                // reveal) BEFORE the ask, instead of asking her to give
+                // first. Reciprocity-respecting, still compliant (native
+                // prompt, no review-gating, both paths continue). Italic
+                // punch on "loving"; lowercase casual register.
                 ItalicAccentText(
-                    "loving your plan?",
+                    "you've seen your plan. loving it so far?",
                     italic: ["loving"],
                     baseFont: Typo.heroHeadline,
                     italicFont: Typo.heroHeadlineItalic,

@@ -362,14 +362,10 @@ struct OnboardingView: View {
     // v4.6 — welcome demo frame page cycler (plan / camera / steps).
     @State private var welcomeDemoPage = 0
 
-    // v4.6 round 3 — cohort marquee (case 283). 12 it-girl profiles.
-    @State private var cohortMarqueeIndex = 0
-    private static let cohortMarqueeAssets: [String] = [
-        "onb-cohort-1", "onb-cohort-2", "onb-cohort-3",
-        "onb-profile-latte", "onb-profile-cap", "onb-profile-scarf",
-        "onb-profile-bun", "onb-profile-phone", "onb-profile-smoothie",
-        "onb-profile-towel", "onb-profile-braid", "onb-profile-book",
-    ]
+    // Persuasion FIX 1 (2026-06-29) — the cohort avatar marquee state
+    // (cohortMarqueeIndex + cohortMarqueeAssets) was removed with the
+    // fabricated real-time-crowd conveyor on case 283. Case 283 is now an
+    // honest typography-only UNITY screen; no avatar assets are referenced.
 
     // Confirmation badge state — fired only at strategic commits
     // (5–7 across the full flow), not after every question. Goal is
@@ -1662,62 +1658,23 @@ struct OnboardingView: View {
             next: 171  // routes to first psychometric fear
         )
 
-        // ─── v3 P11.1.B (2026-06-10) — Cohort credibility (case 283) ──
+        // ─── v3 P11.1.B (2026-06-10) — Cohort UNITY (case 283) ──────
         //
-        // BetterMe A5 cohort-specific social proof. Pattern-language
-        // (not a fabricated count) until ~250 paid users land. Slot:
-        // late Ch1 after the sunk-cost activation Q (168).
-        //
-        // Grok bow-huddle illustration pulled 2026-06-10 per founder
-        // QA. Pending art-direction decision (her75 photo collage vs
-        // curated sticker arrangement vs pure typography). For now,
-        // pure typography + sub line — restraint per the her75
-        // simplest-screens register.
+        // Persuasion FIX 1 (2026-06-29) — KILLED the manufactured social
+        // proof. The prior version ran a sliding avatar conveyor +
+        // "women like you are already inside" that fabricated the
+        // impression of a real-time crowd with NO substantiated count -
+        // the single most scam-coded, FTC-exposed element for a
+        // post-Ozempic, medical-grade-positioned brand. Converted to
+        // honest UNITY (Cialdini): shared IDENTITY, not a crowd count.
+        // No avatars, no implied/fabricated number. The warm in-group
+        // "women like you ... you'll fit right in" stays; every word is
+        // a true descriptor of the cohort, not a claim about volume.
+        // Pure typography per the her75 simplest-screens register.
         case 283: VStack(spacing: 0) {
             Spacer()
-            // v4.6 round 9 — circular avatar conveyor. Reads as women
-            // joining in real time: a new circle slides in from the
-            // right every 1.6s, the oldest slips out left, the newest
-            // arrival lands slightly larger then settles into the row.
-            // Clean: 4 framed circles, one motion, nothing else.
-            HStack(spacing: 14) {
-                ForEach(0..<4, id: \.self) { slot in
-                    let i = cohortMarqueeIndex + slot
-                    let asset = Self.cohortMarqueeAssets[i % Self.cohortMarqueeAssets.count]
-                    let isNewest = slot == 3
-                    Image(asset)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: isNewest ? 72 : 64, height: isNewest ? 72 : 64)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white, lineWidth: 2.5))
-                        .shadow(color: .black.opacity(0.07), radius: 6, y: 3)
-                        .id("\(asset)-\(i)")
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .trailing)
-                                .combined(with: .scale(scale: 0.6))
-                                .combined(with: .opacity),
-                            removal: .move(edge: .leading).combined(with: .opacity)
-                        ))
-                }
-            }
-            .frame(height: 80)
-            .clipped()
-            .accessibilityHidden(true)
-            .padding(.bottom, Space.lg)
-            .task {
-                guard !reduceMotion else { return }
-                while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: 1_600_000_000)
-                    guard !Task.isCancelled else { break }
-                    withAnimation(Motion.gentleSpring) {
-                        cohortMarqueeIndex = (cohortMarqueeIndex + 1)
-                            % Self.cohortMarqueeAssets.count
-                    }
-                }
-            }
             ItalicAccentText(
-                "women like you are already inside.",
+                "this was made for women like you.",
                 italic: ["like you"],
                 baseFont: Typo.heroHeadline,
                 italicFont: Typo.heroHeadlineItalic,
@@ -1728,11 +1685,9 @@ struct OnboardingView: View {
             .lineSpacing(Typo.heroHeadlineLineGap)
             .padding(.horizontal, Space.screenPadding)
             Spacer().frame(height: Space.lg)
-            // Reworded for provenance: "#1 barrier" was an unsubstantiated
-            // numeric superlative + "your patterns match" over-claimed an
-            // analytic match from a few taps. Now a non-ranked self-report
-            // descriptor + belonging line; age band widened off the hardcoded
-            // 25-34 (the cohort is 22-35, so the tails contradicted it).
+            // Provenance-clean: a non-ranked self-report descriptor + a
+            // belonging line. No count, no superlative. Age band reflects
+            // the real cohort (22-35).
             Text("women in their 20s and 30s who name food noise as the hard part. you'll fit right in.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)

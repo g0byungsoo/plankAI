@@ -70,6 +70,18 @@ struct PaywallView: View {
     // FIX 4 (2026-06-29): collected gender (case 130) -> BMR-formula sex.
     @AppStorage("onboardingGender")        private var paywallGender: String = ""
 
+    // Persuasion pass (2026-06-29) — honest, provenance-clean reads:
+    //  - day1Promise* : her own written commitment (CommitmentRitual), echoed
+    //    on the wall so the ask lands against her own words.
+    //  - identityFeeling : the identity word she actively picked (case 140),
+    //    primed at the instant of the ask (Pre-Suasion privileged moment).
+    //  - safety_screen_completed : true once she passed the pre-paywall safety
+    //    gate; surfaced as a quiet trust receipt for the scam-wary buyer.
+    @AppStorage("day1PromiseAction")       private var day1PromiseAction: String = ""
+    @AppStorage("day1PromiseAnchor")       private var day1PromiseAnchor: String = ""
+    @AppStorage("identityFeeling")         private var identityFeeling: String = ""
+    @AppStorage("safety_screen_completed") private var safetyScreenCompleted: Bool = false
+
     @Query private var userRecords: [UserRecord]
 
     @State private var auth = AuthService.shared
@@ -623,18 +635,49 @@ struct PaywallView: View {
         // paywall. Celebration peak (ChapterCompleteView 52pt) is
         // the only register that earns the next step up.
         let parts = headlineParts
-        return ItalicAccentText(
-            parts.base,
-            italic: parts.italic,
-            baseFont: Typo.heroHeadline,
-            italicFont: Typo.heroHeadlineItalic,
-            alignment: .center
-        )
-        .lineSpacing(Typo.heroHeadlineLineGap)
-        .tracking(-0.4)
-        .padding(.horizontal, 8)
-        .fixedSize(horizontal: false, vertical: true)
+        return VStack(spacing: 8) {
+            // Persuasion FIX 6 (2026-06-29) — Pre-Suasion prime. She actively
+            // picked an identity word at case 140 ("which one is the new
+            // you?"); reference HER pick at the instant of the ask so the
+            // in-group identity is the last thing primed before the price.
+            // Her own data (identityFeeling), so provenance-clean. Omitted
+            // (not rendered empty) when she picked "prefer not to say".
+            if let word = identityPrimeWord {
+                ItalicAccentText(
+                    "for the \(word) you.",
+                    italic: [word],
+                    baseFont: .system(size: 13),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13),
+                    color: Palette.textSecondary,
+                    alignment: .center
+                )
+            }
+            ItalicAccentText(
+                parts.base,
+                italic: parts.italic,
+                baseFont: Typo.heroHeadline,
+                italicFont: Typo.heroHeadlineItalic,
+                alignment: .center
+            )
+            .lineSpacing(Typo.heroHeadlineLineGap)
+            .tracking(-0.4)
+            .padding(.horizontal, 8)
+            .fixedSize(horizontal: false, vertical: true)
+        }
         .frame(maxWidth: .infinity)
+    }
+
+    /// The identity word she picked at case 140 ("powerful" / "calm" /
+    /// "light" / "strong" / "radiant"), or nil when she skipped / picked
+    /// prefer-not-to-say so the prime is omitted rather than rendered blank.
+    private var identityPrimeWord: String? {
+        let word = identityFeeling.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let allowed: Set<String> = ["powerful", "calm", "light", "strong", "radiant"]
+        guard allowed.contains(word) else {
+            if debugPaywallPreview { return "radiant" }
+            return nil
+        }
+        return word
     }
 
     /// 2026-06-29 - PROJECTION-as-becoming-moment. The single highest-
@@ -739,6 +782,19 @@ struct PaywallView: View {
                 whatsInsideRow("jenimethod lessons")
                 whatsInsideRow("snap-a-photo food log")
             }
+            // Persuasion FIX 3 (2026-06-29) — carry the authority the flow
+            // earned (ACSM pacing band + the pre-paywall safety gate) to the
+            // wall. Both clauses are true: the pace IS ACSM-banded, and she
+            // DID pass the safety screen to reach here. Hairline register
+            // (textSecondary, small) so it reads as a quiet credential, not
+            // a loud claim. Safety clause only when she actually passed.
+            Text(safetyScreenCompleted
+                 ? "paced to ACSM guidance \u{00B7} safety-screened before you started."
+                 : "paced to ACSM guidance \u{00B7} built for sustainable loss.")
+                .font(.system(size: 11))
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -800,20 +856,56 @@ struct PaywallView: View {
     /// the single punch word "ready" per the locked voice signal.
     private var sunkCostLine: some View {
         VStack(spacing: 3) {
-            ItalicAccentText(
-                "your plan is ready.",
-                italic: ["ready"],
-                baseFont: .system(size: 16, weight: .semibold),
-                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
-                color: Palette.textPrimary,
-                alignment: .center
-            )
-            Text("built from your answers, not a template.")
-                .font(.system(size: 12))
-                .foregroundStyle(Palette.textSecondary)
+            if let promise = commitmentEcho {
+                // Persuasion FIX 2 (2026-06-29) — echo her OWN written
+                // promise (CommitmentRitual) back at the ask. 100% her data:
+                // both halves come straight from day1PromiseAction /
+                // day1PromiseAnchor, so this is provenance-clean, no claim,
+                // no fabricated number. Italic-Fraunces on the punch word
+                // "ready" per the locked voice signal.
+                Text(promise)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                ItalicAccentText(
+                    "your plan is ready to keep it.",
+                    italic: ["ready"],
+                    baseFont: .system(size: 16, weight: .semibold),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+                    color: Palette.textPrimary,
+                    alignment: .center
+                )
+            } else {
+                // Empty-guard fallback — the original line, unchanged, when
+                // she skipped the ritual (either promise key blank).
+                ItalicAccentText(
+                    "your plan is ready.",
+                    italic: ["ready"],
+                    baseFont: .system(size: 16, weight: .semibold),
+                    italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16),
+                    color: Palette.textPrimary,
+                    alignment: .center
+                )
+                Text("built from your answers, not a template.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+            }
         }
         .frame(maxWidth: .infinity)
         .multilineTextAlignment(.center)
+    }
+
+    /// Her own written commitment, echoed verbatim. Nil (-> fallback copy)
+    /// when either half is blank, so the line never reads broken. e.g.
+    /// "you promised: tomorrow, after coffee, you'll log breakfast."
+    private var commitmentEcho: String? {
+        let action = day1PromiseAction.trimmingCharacters(in: .whitespacesAndNewlines)
+        let anchor = day1PromiseAnchor.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !action.isEmpty, !anchor.isEmpty else {
+            if debugPaywallPreview { return "you promised: tomorrow, after coffee, you'll log breakfast." }
+            return nil
+        }
+        return "you promised: tomorrow, \(anchor), you'll \(action)."
     }
 
     /// Derived strikethrough + savings copy for the anchor line. Returns
