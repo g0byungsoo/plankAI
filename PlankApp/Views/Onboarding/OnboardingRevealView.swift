@@ -1012,6 +1012,14 @@ private struct ProjectionPresentation: View {
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+            Text("the 0.5-1% a week range clinicians use (ACSM)")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("women who keep it off lose slowly - national weight control registry")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -1153,12 +1161,19 @@ private struct ProjectionPresentation: View {
                 }
                 if let date = goalDateText {
                     staggeredTile(at: 1) {
-                        proofTile(
-                            eyebrow: "by",
-                            value: date,
-                            valueFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
-                            sub: "your becoming date"
-                        )
+                        VStack(alignment: .leading, spacing: 2) {
+                            proofTile(
+                                eyebrow: "by",
+                                value: date,
+                                valueFont: .custom("Fraunces72pt-SemiBoldItalic", size: 22),
+                                sub: "your becoming date"
+                            )
+                            Text("an estimate, not a promise.")
+                                .font(.system(size: 10))
+                                .foregroundStyle(Palette.textSecondary)
+                                .padding(.horizontal, 12)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                         .frame(width: 130)
                     }
                 }

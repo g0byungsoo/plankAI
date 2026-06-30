@@ -1555,8 +1555,8 @@ struct OnboardingView: View {
             "one quick health question.",
             sub: "are you taking any medication that lowers your blood sugar?",
             opts: [
-                ("insulin_or_sulfonylurea", "insulin or a sulfonylurea",  nil, "cross.case"),
-                ("other_glucose",           "another glucose medication", nil, "pills"),
+                ("insulin_or_sulfonylurea", "insulin, or a daily pill for blood sugar", nil, "cross.case"),
+                ("other_glucose",           "another diabetes or blood-sugar medication", nil, "pills"),
                 ("none",                     "no",                         nil, "leaf"),
                 ("prefer_not_say",           "prefer not to say",          nil, "lock"),
             ],

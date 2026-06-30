@@ -676,18 +676,40 @@ struct SCOFFScreenView: View {
     }
 }
 
-/// Crisis-resource card — surfaced on a positive ED screen. Tappable rows
-/// open the dialer / messages (US resources).
+/// Crisis-resource card - surfaced on a positive ED screen. Tappable rows
+/// open the dialer / messages. Lines verified operational 2026-06-29 (US).
 struct SafetyResourcesCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.sm) {
-            Text("support, any time")
-                .font(.custom("DMSans-Medium", size: 12))
-                .kerning(1.5)
+            HStack(spacing: 4) {
+                Text("support, any time")
+                    .font(.custom("DMSans-Medium", size: 12))
+                    .kerning(1.5)
+                    .foregroundStyle(Palette.textSecondary)
+                Text("(US)")
+                    .font(.custom("DMSans-Regular", size: 12))
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            resourceRow(
+                title: "national alliance for eating disorders helpline",
+                detail: "1-866-662-1235 (mon-fri)",
+                urlString: "tel:18666621235"
+            )
+            resourceRow(
+                title: "988 suicide & crisis lifeline",
+                detail: "call or text 988",
+                urlString: "tel:988"
+            )
+            resourceRow(
+                title: "crisis text line",
+                detail: "text HOME to 741741",
+                urlString: "sms:741741"
+            )
+            Text("outside the US, your local crisis line can help.")
+                .font(.custom("DMSans-Regular", size: 12))
                 .foregroundStyle(Palette.textSecondary)
-            resourceRow(title: "NEDA helpline", detail: "1-800-931-2237", urlString: "tel:18009312237")
-            resourceRow(title: "988 suicide & crisis lifeline", detail: "call or text 988", urlString: "tel:988")
-            resourceRow(title: "crisis text line", detail: "text \u{201C}NEDA\u{201D} to 741741", urlString: "sms:741741")
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
         }
         .padding(Space.md)
         .frame(maxWidth: .infinity, alignment: .leading)
