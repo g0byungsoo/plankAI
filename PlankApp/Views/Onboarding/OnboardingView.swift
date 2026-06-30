@@ -759,6 +759,15 @@ struct OnboardingView: View {
         case 234: educationalPlateauScreen       // before plan reveal
         case 166: educationalPreEatScreen        // delta v7 — diet-first wedge early
 
+        // ─── Conviction beats (2026-06-29, education-expert audit) ────
+        // The two "impress her" teach moments. case 292 names food noise
+        // right after the food-relationship Q (162); case 290 names why
+        // every past plan came back, late in the flow (after the fears
+        // psychometrics, before the tier-ladder transformation preview)
+        // so conviction peaks toward the wall. Both reduce-motion gated.
+        case 290: whyItCameBackScreen
+        case 292: foodNoiseScreen
+
         // ─── N1 — "anything we should know about this month?" ────
         // Hormonal-acknowledgment moment. Net-new question, but no
         // DB column change — `monthSignals` is local @State only.
@@ -1581,7 +1590,11 @@ struct OnboardingView: View {
             // Delta v7 — routes to the new pre-eat permission wedge
             // (case 166) instead of the sleep Q. The food block now
             // sits at the top of onboarding.
-            sel: $foodRelationship, next: 166,
+            // 2026-06-29 conviction beat — routes to the food-noise teach
+            // (case 292) FIRST, which then continues to 166. Naming the
+            // concept right after she names her food relationship is the
+            // "they get me" beat that pre-sells the food rail.
+            sel: $foodRelationship, next: 292,
             // v1.6: a JeniFit sticker per answer gives the abstract
             // food-relationship ideas a warm visual handle.
             stickers: [
@@ -1986,7 +1999,11 @@ struct OnboardingView: View {
                     relatability3 = $0
                 }
             ),
-            next: 260,
+            // 2026-06-29 conviction beat — routes to the "why it came back
+            // last time" teach (case 290) before the tier-ladder preview
+            // (260). She has just named the fear of giving up again; 290
+            // answers it with the actual mechanism + NWCR credibility.
+            next: 290,
             confirmation: "we hear you. ♥",
             accentImage: "onb-itgirl-psych-stretch"
         )
@@ -2143,7 +2160,10 @@ struct OnboardingView: View {
         // allergies) follows 169 (cuisine). Both food-preference; 170
         // is table-stakes for the nutrition program + an allergy-safety
         // item, and feeds the food-vision dietary_profile hint.
-        162, 166, 156, 157, 159, 169, 170,
+        // 2026-06-29 conviction beat — case 292 (name "food noise") sits
+        // BETWEEN the food-relationship Q (162) and the pre-eat wedge
+        // (166). 162's next: was repointed to 292; 292 continues to 166.
+        162, 292, 166, 156, 157, 159, 169, 170,
         //
         // Act 2 — Workout/activity (demoted, post-food-wedge).
         // v3 C2 (2026-06-10) — cut 270 (habit-window quiz). The
@@ -2207,6 +2227,14 @@ struct OnboardingView: View {
         // tier ladder so the user has already invested ~40 screens
         // and the fears land as recognition, not extraction.
         171, 172, 173,
+        // 2026-06-29 conviction beat — case 290 ("why it came back last
+        // time") sits AFTER the fears psychometrics (171-173) and BEFORE
+        // the tier-ladder transformation preview (260). 173's next: was
+        // repointed to 290; 290 continues to 260. This is the marquee
+        // "impress + conviction" beat, placed where conviction should peak
+        // toward the wall (names metabolic adaptation + all-or-nothing +
+        // the missing maintenance phase, cites the NWCR honestly).
+        290,
         // v3 cuts (2026-06-10) — C1: 165 (commitConfidence, fully
         // dead — written, never read). C5: 145 (video demo, defer
         // A/B v1.5). C3: 170 (re-prediction, redundant with 161
@@ -6040,6 +6068,233 @@ struct OnboardingView: View {
             next: 1,
             imageLayout: .none,
             centeredType: true
+        )
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // MARK: - Conviction teach beats (2026-06-29, education-expert audit)
+    // ════════════════════════════════════════════════════════════════
+    //
+    // The two "impress her" teach moments. Premium her75 editorial
+    // register — a JeniHeroSerif hero, a tight mechanism explainer of
+    // hairline-separated editorial rows (NOT option cards: no chrome,
+    // roman-numeral accents, a punch phrase + gloss per row), an optional
+    // conviction close, and an optional honest credential line. Every
+    // element rises in on the soft-in curve, staggered, reduce-motion
+    // gated (softInRise snaps to final state when reduce-motion is on).
+    //
+    // Compliance: no drug names, no equivalence/"alternative" claims, no
+    // first-party numeric weight-loss promises, hearts terminal-only,
+    // attribution-only (NWCR characterized honestly, no fabricated stat),
+    // only locked tokens (accent / cocoa scale / hairlineCocoa).
+
+    /// One mechanism point: a roman-numeral accent + a Fraunces punch
+    /// phrase + a DMSans gloss line.
+    private struct ConvictionPoint {
+        let numeral: String
+        let punch: String
+        let gloss: String
+    }
+
+    private func mechanismPointRow(_ p: ConvictionPoint) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 14) {
+            // Editorial numeral — italic Fraunces in the dusty-rose accent.
+            // Reads as a magazine enumeration mark, not a checkbox.
+            Text(p.numeral)
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 19))
+                .foregroundStyle(Palette.accent)
+                .frame(width: 24, alignment: .leading)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(p.punch)
+                    .font(.custom("Fraunces72pt-SemiBold", size: 18))
+                    .foregroundStyle(Palette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(p.gloss)
+                    .font(.custom("DMSans-Regular", size: 14))
+                    .foregroundStyle(Palette.textSecondary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 11)
+    }
+
+    /// The shared layout for both conviction beats. Static editorial
+    /// column (no scroll register), but wrapped in a `basedOnSize`
+    /// ScrollView so a smaller device can never clip the credential /
+    /// CTA — when the content fits (iPhone 17 Pro), it reads identical to
+    /// a fixed teach screen.
+    private func convictionTeachScreen(
+        headline: String,
+        headlineItalic: [String],
+        lead: String? = nil,
+        points: [ConvictionPoint],
+        closing: String? = nil,
+        closingItalic: [String] = [],
+        citationClaim: String? = nil,
+        citationSource: String? = nil,
+        next: Int
+    ) -> some View {
+        // Stagger budget: headline (0) → lead (0.18) → points (0.30+) →
+        // close → credential. cascadeStep keeps the points 0.12 apart.
+        let cascadeStep = 0.12
+        let pointsBase = lead == nil ? 0.22 : 0.32
+        let afterPoints = pointsBase + Double(points.count) * cascadeStep
+
+        return ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer().frame(height: Space.lg)
+
+                ItalicAccentText(
+                    headline,
+                    italic: headlineItalic,
+                    baseFont: Typo.heroHeadline,
+                    italicFont: Typo.heroHeadlineItalic,
+                    color: Palette.textPrimary,
+                    alignment: .leading
+                )
+                .kerning(-0.4)
+                .lineSpacing(Typo.heroHeadlineLineGap)
+                .fixedSize(horizontal: false, vertical: true)
+                .softInRise(haptic: true)
+
+                if let lead {
+                    Spacer().frame(height: Space.md)
+                    Text(lead)
+                        .font(Typo.body)
+                        .foregroundStyle(Palette.textSecondary)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: 340, alignment: .leading)
+                        .softInRise(delay: 0.18)
+                }
+
+                Spacer().frame(height: Space.lg)
+
+                // Mechanism rows — hairline-bracketed editorial table.
+                VStack(spacing: 0) {
+                    HairlineRule()
+                    ForEach(Array(points.enumerated()), id: \.offset) { idx, point in
+                        mechanismPointRow(point)
+                            .softInRise(delay: pointsBase + Double(idx) * cascadeStep)
+                        HairlineRule()
+                    }
+                }
+
+                if let closing {
+                    Spacer().frame(height: Space.md)
+                    ItalicAccentText(
+                        closing,
+                        italic: closingItalic,
+                        baseFont: .custom("Fraunces72pt-SemiBold", size: 21),
+                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 21),
+                        color: Palette.textPrimary,
+                        alignment: .leading
+                    )
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .softInRise(delay: afterPoints + 0.06)
+                }
+
+                // Honest credential — a claim in the legible cocoa register
+                // with a tracked-caps source tag beneath. Attribution only.
+                if let citationClaim {
+                    Spacer().frame(height: Space.md)
+                    VStack(alignment: .leading, spacing: 7) {
+                        Rectangle()
+                            .fill(Palette.hairlineCocoa)
+                            .frame(width: 28, height: 0.75)
+                        Text(citationClaim)
+                            .font(.custom("DMSans-Regular", size: 14))
+                            .foregroundStyle(Palette.cocoaSecondary)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let citationSource {
+                            Text(citationSource)
+                                .font(Typo.captionTracked)
+                                .textCase(.uppercase)
+                                .kerning(1.8)
+                                .foregroundStyle(Palette.cocoaTertiary)
+                        }
+                    }
+                    .frame(maxWidth: 340, alignment: .leading)
+                    .softInRise(delay: afterPoints + 0.16)
+                }
+
+                Spacer().frame(height: Space.lg)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Space.screenPadding)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .safeAreaInset(edge: .bottom) {
+            jfCTADock {
+                JFContinueButton(label: "continue") {
+                    advance(to: next, confirmation: nil)
+                }
+            }
+        }
+    }
+
+    // case 290 — "why it came back last time." Names the mechanism her
+    // past attempts failed (metabolic adaptation, all-or-nothing, the
+    // missing maintenance phase) and positions JeniFit for exactly the
+    // part other plans quit on. NWCR cited honestly (slow losers keep it
+    // off). No shame, no numeric promise, no drug names.
+    private var whyItCameBackScreen: some View {
+        convictionTeachScreen(
+            headline: "it wasn't your willpower.",
+            headlineItalic: ["willpower."],
+            lead: "the last plan didn't fail because you're weak. three things were quietly working against you.",
+            points: [
+                ConvictionPoint(
+                    numeral: "i",
+                    punch: "your body adapts.",
+                    gloss: "cut too hard and your metabolism slows to match. the loss stalls, then it creeps back."
+                ),
+                ConvictionPoint(
+                    numeral: "ii",
+                    punch: "all-or-nothing breaks.",
+                    gloss: "one off day ends a strict plan, and a normal slip starts to feel like a personal failure."
+                ),
+                ConvictionPoint(
+                    numeral: "iii",
+                    punch: "no one stayed for the after.",
+                    gloss: "most plans rush you to a number, then leave. keeping it off is the part they skip."
+                ),
+            ],
+            closing: "we're built for the part they quit on.",
+            closingItalic: ["quit"],
+            citationClaim: "the women who keep it off lose slowly and ride out the stalls.",
+            citationSource: "national weight control registry",
+            next: 260
+        )
+    }
+
+    // case 292 — names "food noise." The cohort's defining post-Ozempic
+    // concept; naming it = instant recognition + pre-sells the food rail.
+    // It's biology, not willpower. No drug names, no "alternative" framing.
+    private var foodNoiseScreen: some View {
+        convictionTeachScreen(
+            headline: "that's called food noise.",
+            headlineItalic: ["food noise."],
+            lead: "the chatter that never quite quiets. what to eat, when, how much. the bargaining at 9pm.",
+            points: [
+                ConvictionPoint(
+                    numeral: "i",
+                    punch: "it's not willpower.",
+                    gloss: "you're not failing at discipline. for some bodies the signal is simply louder."
+                ),
+                ConvictionPoint(
+                    numeral: "ii",
+                    punch: "it's biology.",
+                    gloss: "hunger hormones and habit loops keep the thought running in the background."
+                ),
+            ],
+            closing: "your plan is built to turn the volume down.",
+            closingItalic: ["volume"],
+            next: 166
         )
     }
 

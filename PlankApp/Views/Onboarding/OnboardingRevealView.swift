@@ -943,6 +943,7 @@ private struct ProjectionPresentation: View {
             // grid grows content past the viewport on most devices, so
             // the scroll + docked-CTA split keeps headline + CTA on screen.
             VStack(spacing: 0) {
+              ScrollViewReader { proxy in
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: Space.lg) {
                         Spacer().frame(height: Space.md)
@@ -1029,6 +1030,7 @@ private struct ProjectionPresentation: View {
                         // is dropped - the BecomingProjectionCard is the one
                         // curve now.
                         credibilityStrip
+                            .id("credibility")
                             .padding(.horizontal, Space.lg)
                             .opacity(credibilityVisible ? 1 : 0)
                             .offset(y: reduceMotion ? 0 : (credibilityVisible ? 0 : 6))
@@ -1051,6 +1053,23 @@ private struct ProjectionPresentation: View {
                         Spacer().frame(height: Space.md)
                     }
                 }
+                // 2026-06-29 conviction Beat 3 — DEBUG-only harness to
+                // screenshot the promoted "science behind your pace"
+                // credential card, which lives below the projection curve
+                // (off the first viewport). Auto-scrolls to it after the
+                // reveal cascade settles. No effect in release.
+                #if DEBUG
+                .onAppear {
+                    if ProcessInfo.processInfo.arguments.contains("--debug-projection-credibility") {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.8) {
+                            withAnimation(.easeInOut(duration: 0.6)) {
+                                proxy.scrollTo("credibility", anchor: .center)
+                            }
+                        }
+                    }
+                }
+                #endif
+              }
             }
         }
         // FIX 1 (2026-06-29): canonical JFContinueButton docked via
@@ -1109,39 +1128,87 @@ private struct ProjectionPresentation: View {
     /// merged from the cut assessment step. Uses HairlineKit's HairlineRule
     /// so it sits in the calm lab-readout register. The provenance line is
     /// omitted (not rendered empty) when no cohort modifier applied.
+    // 2026-06-29 (conviction audit, Beat 3): PROMOTED from a loose stack
+    // of textSecondary captions (which read as a legal footer) into ONE
+    // designed "the science behind your pace" credential card. A titled
+    // header + a hairline-bracketed table of accent-marker credential
+    // rows, each pairing an honest claim (cocoa register) with a
+    // tracked-caps SOURCE tag — so the rigor reads as a credential to a
+    // scam-wary buyer, not a disclaimer. Attribution only: NWCR is
+    // characterized honestly, no fabricated stat, no numeric promise.
+    // Reduce-motion is already gated at the call site (credibilityVisible).
     private var credibilityStrip: some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            HairlineRule()
-            if let provenance = provenanceLine {
-                Text(provenance)
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 0) {
+            // Title — the promotion from footer to credential section.
+            HStack(spacing: 8) {
+                Rectangle()
+                    .fill(Palette.accent)
+                    .frame(width: 14, height: 1.5)
+                Text("the science behind your pace")
+                    .font(Typo.captionTracked)
+                    .textCase(.uppercase)
+                    .kerning(1.8)
+                    .foregroundStyle(Palette.cocoaSecondary)
             }
-            Text("paced like a clinician would. slower is what lasts.")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("the 0.5-1% a week range clinicians use (ACSM)")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("women who keep it off lose slowly, per the national weight control registry")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            .padding(.bottom, Space.sm)
+
+            HairlineRule()
+
+            // Cohort provenance (only when a modifier gentled the floor) —
+            // rendered as the LEAD credential so "calibrated for you" lands
+            // first. Omitted entirely on the default pace.
+            if let provenance = provenanceLine {
+                paceCredentialRow(claim: provenance, source: "calibrated for you")
+                HairlineRule()
+            }
+            paceCredentialRow(
+                claim: "paced to the 0.5-1% a week range clinicians use. slower is what lasts.",
+                source: "ACSM"
+            )
+            HairlineRule()
+            paceCredentialRow(
+                claim: "women who keep it off lose slowly, and ride out the stalls.",
+                source: "national weight control registry"
+            )
             // Persuasion FIX 4 (2026-06-29): quiet safety-screen receipt.
             // Honest - she passed the pre-paywall gate to reach this screen.
-            // Check glyph (not a heart) keeps the terminal-heart rule clean;
-            // textSecondary hairline register so it reads as a calm credential.
+            // Check glyph (not a heart) keeps the terminal-heart rule clean.
             if safetyScreenCompleted {
-                Text("safety-screened before you started \u{2713}")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                HairlineRule()
+                paceCredentialRow(
+                    claim: "safety-screened before you started.",
+                    source: "pre-paywall check \u{2713}"
+                )
             }
+            HairlineRule()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// One credential row — an accent marker, an honest claim in the
+    /// legible cocoa register, and a tracked-caps SOURCE tag beneath.
+    private func paceCredentialRow(claim: String, source: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Circle()
+                .fill(Palette.accent)
+                .frame(width: 5, height: 5)
+                .padding(.top, 6)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(claim)
+                    .font(.custom("DMSans-Regular", size: 14))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(source)
+                    .font(Typo.captionTracked)
+                    .textCase(.uppercase)
+                    .kerning(1.6)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 11)
     }
 
     /// One-line provenance tied to the cohort flag that gentled the floor
