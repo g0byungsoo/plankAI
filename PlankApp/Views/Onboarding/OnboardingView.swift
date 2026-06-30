@@ -4073,8 +4073,12 @@ struct OnboardingView: View {
     /// is set, falls back to generic horizons so the screen still
     /// reads sensibly. Floors each tier at 4 weeks so very-small
     /// deltas don't read "~1 week" (which would over-promise).
-    // v4.5 case 286 — effort-down reframe. her75 teach-beat register:
-    // 2-line Didone cascade + one plain sub + quiet citation line.
+    // v4.5 case 286 — effort-down reframe. her75 teach-beat register.
+    // v1.9 (2026-06-30): folded into the shared `educationalScreen` builder
+    // so its typography + spacing + 2-beat reveal are byte-identical to the
+    // other teach screens (was a hand-rolled copy with a LineCascadeText hero
+    // whose line-by-line cascade fought the "one coherent reveal" goal). The
+    // intentional 2-line break is preserved with a hard `\n`.
     private var realisticTargetScreen: some View {
         let curr = max(0, currentWeightKg)
         let lossKg = max(0, curr - goalWeightKg)
@@ -4084,67 +4088,17 @@ struct OnboardingView: View {
             ? "even \(fivePctLb) lb changes how clothes fit."
             : "the version you keep is the one built slowly."
 
-        // v1.4 edge-bleed editorial composition (matches educationalScreen):
-        // minimal type up top, sneakers running off the bottom screen edge.
-        return ZStack(alignment: .bottom) {
-            Image("onb-movement-sneakers")
-                .resizable()
-                .scaledToFit()
-                .frame(height: 440)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.trailing, Space.sm)
-                .offset(y: 60)
-                .ignoresSafeArea(edges: .bottom)
-                .accessibilityHidden(true)
-                .softInRise(delay: 0.15, rise: 14)
-
-            VStack(alignment: .leading, spacing: 0) {
-                Spacer().frame(height: Space.xl)
-                LineCascadeText(
-                    lines: [
-                        .plain("you don't need"),
-                        .composite(base: "a dramatic number.", italic: ["dramatic"]),
-                    ],
-                    baseFont: Typo.heroHeadline,
-                    italicFont: Typo.heroHeadlineItalic,
-                    lineSpacing: Typo.heroHeadlineLineGap
-                )
-
-                Spacer().frame(height: Space.md)
-
-                Text(subLine)
-                    .font(Typo.body)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: 320, alignment: .leading)
-                    .softInRise(delay: 0.30)
-
-                Spacer().frame(height: Space.md)
-
-                HStack(spacing: 8) {
-                    Rectangle()
-                        .fill(Palette.hairlineCocoa)
-                        .frame(width: 22, height: 0.5)
-                    Text("WING & PHELAN · 2005")
-                        .font(Typo.captionTracked)
-                        .textCase(.uppercase)
-                        .kerning(2)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                }
-                .softInRise(delay: 0.50)
-
-                Spacer()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Space.screenPadding)
-        }
-        .safeAreaInset(edge: .bottom) {
-            jfCTADock {
-                JFContinueButton(label: "continue") {
-                    advance(to: 136, confirmation: nil)
-                }
-            }
-        }
+        return educationalScreen(
+            headline: "you don't need\na dramatic number.",
+            italicWords: ["dramatic"],
+            body: subLine,
+            next: 136,
+            citationSource: "wing & phelan · 2005",
+            accentImage: "onb-movement-sneakers",
+            imageLayout: .bleedTrailing,
+            imageHeight: 440,
+            imageBleed: 60
+        )
     }
 
     /// v3 P11.1.A (2026-06-10) — BetterMe S1 dynamic goal-weight
@@ -5918,6 +5872,7 @@ struct OnboardingView: View {
     ) -> some View {
         VStack(spacing: 0) {
             Spacer()
+            // ── BEAT 1 — the exhale hero settles with the cross-dissolve.
             ItalicAccentText(
                 headline,
                 italic: italicWords,
@@ -5929,15 +5884,18 @@ struct OnboardingView: View {
             .kerning(-0.4)
             .lineSpacing(Typo.heroHeadlineLineGap)
             .padding(.horizontal, Space.screenPadding)
-            .softInRise(haptic: true)
+            .softInRise(haptic: true, fade: false)
+            // ── BEAT 2 — the supporting line reveals as one unit, on the
+            // shared teach cadence + the same title → sub `Space.md` gap.
             if let supporting {
                 Text(supporting)
-                    .font(Typo.body)
+                    .font(Typo.teachSub)
                     .foregroundStyle(Palette.textSecondary)
+                    .lineSpacing(Typo.teachSubLineSpacing)
                     .multilineTextAlignment(.center)
-                    .padding(.top, Space.lg)
+                    .padding(.top, Space.md)
                     .padding(.horizontal, Space.lg)
-                    .softInRise(delay: 0.30)
+                    .softInRise(delay: Self.teachBlockBeat)
             }
             Spacer()
             JFContinueButton(label: "continue") { go(next) }
@@ -5997,7 +5955,9 @@ struct OnboardingView: View {
                     .offset(y: imageBleed)          // push the base past the edge
                     .ignoresSafeArea(edges: .bottom)
                     .accessibilityHidden(true)
-                    .softInRise(delay: 0.15, rise: 14)
+                    // Beat 1 — the bleed image rides the page cross-dissolve
+                    // with a small settle, alongside the headline.
+                    .softInRise(rise: 12, fade: false)
             }
 
             // ── TYPE — minimal, top register ──
@@ -6005,6 +5965,7 @@ struct OnboardingView: View {
                 // image screens top-align; pure-type screens center.
                 if hasImage { Spacer().frame(height: Space.xl) } else { Spacer() }
 
+                // ── BEAT 1 — the hero settles in with the cross-dissolve.
                 ItalicAccentText(
                     headline,
                     italic: italicWords,
@@ -6016,33 +5977,36 @@ struct OnboardingView: View {
                 .kerning(-0.4)
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
-                .softInRise(haptic: true)
+                .softInRise(haptic: true, fade: false)
 
-                if let bodyLine {
-                    Spacer().frame(height: Space.md)
-                    Text(bodyLine)
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textSecondary)
-                        .multilineTextAlignment(multiAlign)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: 320, alignment: centeredType ? .center : .leading)
-                        .softInRise(delay: 0.30)
-                }
-
-                if let citationSource {
-                    Spacer().frame(height: Space.md)
-                    HStack(spacing: 8) {
-                        Rectangle()
-                            .fill(Palette.hairlineCocoa)
-                            .frame(width: 22, height: 0.5)
-                        Text(citationSource)
-                            .font(Typo.captionTracked)
-                            .textCase(.uppercase)
-                            .kerning(2)
-                            .foregroundStyle(Palette.cocoaTertiary)
+                // ── BEAT 2 — body + citation reveal together as ONE unit.
+                VStack(alignment: hAlign, spacing: 0) {
+                    if let bodyLine {
+                        Spacer().frame(height: Space.md)
+                        Text(bodyLine)
+                            .font(Typo.teachSub)
+                            .foregroundStyle(Palette.textSecondary)
+                            .lineSpacing(Typo.teachSubLineSpacing)
+                            .multilineTextAlignment(multiAlign)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: 320, alignment: centeredType ? .center : .leading)
                     }
-                    .softInRise(delay: 0.50)
+
+                    if let citationSource {
+                        Spacer().frame(height: Space.lg)
+                        HStack(spacing: 8) {
+                            Rectangle()
+                                .fill(Palette.hairlineCocoa)
+                                .frame(width: 22, height: 0.5)
+                            Text(citationSource)
+                                .font(Typo.captionTracked)
+                                .textCase(.uppercase)
+                                .kerning(2)
+                                .foregroundStyle(Palette.cocoaTertiary)
+                        }
+                    }
                 }
+                .softInRise(delay: Self.teachBlockBeat)
 
                 Spacer()
             }
@@ -6089,6 +6053,13 @@ struct OnboardingView: View {
     // attribution-only (NWCR characterized honestly, no fabricated stat),
     // only locked tokens (accent / cocoa scale / hairlineCocoa).
 
+    /// Beat-2 delay for the teach / bridge / conviction screens: the moment
+    /// the rest of the block reveals after the hero settles. ~0.42s lands the
+    /// reveal right as the headline finishes its rise, reading as one
+    /// intentional 2-beat (NOT a per-line cascade). Shared so every editorial
+    /// screen reveals on the same cadence.
+    private static let teachBlockBeat: Double = 0.42
+
     /// One mechanism point: a roman-numeral accent + a Fraunces punch
     /// phrase + a DMSans gloss line.
     private struct ConvictionPoint {
@@ -6099,26 +6070,27 @@ struct OnboardingView: View {
 
     private func mechanismPointRow(_ p: ConvictionPoint) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 14) {
-            // Editorial numeral — italic Fraunces in the dusty-rose accent.
+            // Editorial numeral — italic Fraunces in the dusty-rose accent,
+            // matched to the punch size so the marker shares its optical line.
             // Reads as a magazine enumeration mark, not a checkbox.
             Text(p.numeral)
-                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 19))
+                .font(Typo.teachNumeral)
                 .foregroundStyle(Palette.accent)
                 .frame(width: 24, alignment: .leading)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(p.punch)
-                    .font(.custom("Fraunces72pt-SemiBold", size: 18))
+                    .font(Typo.teachPunch)
                     .foregroundStyle(Palette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(p.gloss)
-                    .font(.custom("DMSans-Regular", size: 14))
+                    .font(Typo.teachBody)
                     .foregroundStyle(Palette.textSecondary)
-                    .lineSpacing(2)
+                    .lineSpacing(Typo.teachBodyLineSpacing)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 11)
+        .padding(.vertical, 13)
     }
 
     /// The shared layout for both conviction beats. Static editorial
@@ -6137,16 +6109,11 @@ struct OnboardingView: View {
         citationSource: String? = nil,
         next: Int
     ) -> some View {
-        // Stagger budget: headline (0) → lead (0.18) → points (0.30+) →
-        // close → credential. cascadeStep keeps the points 0.12 apart.
-        let cascadeStep = 0.12
-        let pointsBase = lead == nil ? 0.22 : 0.32
-        let afterPoints = pointsBase + Double(points.count) * cascadeStep
-
         return ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
                 Spacer().frame(height: Space.lg)
 
+                // ── BEAT 1 — the hero settles in with the page cross-dissolve.
                 ItalicAccentText(
                     headline,
                     italic: headlineItalic,
@@ -6158,70 +6125,73 @@ struct OnboardingView: View {
                 .kerning(-0.4)
                 .lineSpacing(Typo.heroHeadlineLineGap)
                 .fixedSize(horizontal: false, vertical: true)
-                .softInRise(haptic: true)
+                .softInRise(haptic: true, fade: false)
 
-                if let lead {
-                    Spacer().frame(height: Space.md)
-                    Text(lead)
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textSecondary)
-                        .lineSpacing(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: 340, alignment: .leading)
-                        .softInRise(delay: 0.18)
-                }
-
-                Spacer().frame(height: Space.lg)
-
-                // Mechanism rows — hairline-bracketed editorial table.
-                VStack(spacing: 0) {
-                    HairlineRule()
-                    ForEach(Array(points.enumerated()), id: \.offset) { idx, point in
-                        mechanismPointRow(point)
-                            .softInRise(delay: pointsBase + Double(idx) * cascadeStep)
-                        HairlineRule()
-                    }
-                }
-
-                if let closing {
-                    Spacer().frame(height: Space.md)
-                    ItalicAccentText(
-                        closing,
-                        italic: closingItalic,
-                        baseFont: .custom("Fraunces72pt-SemiBold", size: 21),
-                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 21),
-                        color: Palette.textPrimary,
-                        alignment: .leading
-                    )
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .softInRise(delay: afterPoints + 0.06)
-                }
-
-                // Honest credential — a claim in the legible cocoa register
-                // with a tracked-caps source tag beneath. Attribution only.
-                if let citationClaim {
-                    Spacer().frame(height: Space.md)
-                    VStack(alignment: .leading, spacing: 7) {
-                        Rectangle()
-                            .fill(Palette.hairlineCocoa)
-                            .frame(width: 28, height: 0.75)
-                        Text(citationClaim)
-                            .font(.custom("DMSans-Regular", size: 14))
-                            .foregroundStyle(Palette.cocoaSecondary)
-                            .lineSpacing(2)
+                // ── BEAT 2 — the ENTIRE rest of the block reveals as ONE unit,
+                // a single soft opacity + rise on one shared delay. No more
+                // per-line bloom. Rhythm: title → sub `Space.md`, then a
+                // uniform `Space.lg` between every block beneath.
+                VStack(alignment: .leading, spacing: 0) {
+                    if let lead {
+                        Spacer().frame(height: Space.md)
+                        Text(lead)
+                            .font(Typo.teachSub)
+                            .foregroundStyle(Palette.textSecondary)
+                            .lineSpacing(Typo.teachSubLineSpacing)
                             .fixedSize(horizontal: false, vertical: true)
-                        if let citationSource {
-                            Text(citationSource)
-                                .font(Typo.captionTracked)
-                                .textCase(.uppercase)
-                                .kerning(1.8)
-                                .foregroundStyle(Palette.cocoaTertiary)
+                            .frame(maxWidth: 340, alignment: .leading)
+                    }
+
+                    Spacer().frame(height: Space.lg)
+
+                    // Mechanism rows — hairline-bracketed editorial table.
+                    VStack(spacing: 0) {
+                        HairlineRule()
+                        ForEach(Array(points.enumerated()), id: \.offset) { _, point in
+                            mechanismPointRow(point)
+                            HairlineRule()
                         }
                     }
-                    .frame(maxWidth: 340, alignment: .leading)
-                    .softInRise(delay: afterPoints + 0.16)
+
+                    if let closing {
+                        Spacer().frame(height: Space.lg)
+                        ItalicAccentText(
+                            closing,
+                            italic: closingItalic,
+                            baseFont: Typo.teachClosing,
+                            italicFont: Typo.teachClosingItalic,
+                            color: Palette.textPrimary,
+                            alignment: .leading
+                        )
+                        .lineSpacing(Typo.teachBodyLineSpacing)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    // Honest credential — a claim in the legible cocoa register
+                    // with a tracked-caps source tag beneath. Attribution only.
+                    if let citationClaim {
+                        Spacer().frame(height: Space.lg)
+                        VStack(alignment: .leading, spacing: 7) {
+                            Rectangle()
+                                .fill(Palette.hairlineCocoa)
+                                .frame(width: 28, height: 0.75)
+                            Text(citationClaim)
+                                .font(Typo.teachCitation)
+                                .foregroundStyle(Palette.cocoaSecondary)
+                                .lineSpacing(Typo.teachBodyLineSpacing)
+                                .fixedSize(horizontal: false, vertical: true)
+                            if let citationSource {
+                                Text(citationSource)
+                                    .font(Typo.captionTracked)
+                                    .textCase(.uppercase)
+                                    .kerning(1.8)
+                                    .foregroundStyle(Palette.cocoaTertiary)
+                            }
+                        }
+                        .frame(maxWidth: 340, alignment: .leading)
+                    }
                 }
+                .softInRise(delay: Self.teachBlockBeat)
 
                 Spacer().frame(height: Space.lg)
             }
@@ -9387,30 +9357,44 @@ struct StaggeredReveal<Content: View>: View {
     }
 }
 
-// MARK: - SoftInRise (v1.1 transition-consistency pass)
+// MARK: - SoftInRise (v1.9 — restrained teach-screen reveal, 2026-06-30)
 //
-// Reusable per-element soft-in: an offset rise on appear (the page
-// transition owns the FADE, per the motion-quality pass), with an optional
-// single soft haptic on settle. Lets the teach + bridge screens reveal with
-// the same rhythm as the question screens they're interleaved with, instead
-// of hard-cutting their content in. Reduce-motion snaps to final + no haptic.
+// The founder flagged the old per-element reveal as "bloom spam": every line
+// (title, sub, each numbered point, closing, citation) carried its OWN
+// staggered `scaleEffect(0.97)` materialize, so a 5-6 element teach screen
+// fired 5-6 little blooms in sequence — repetitive and busy.
+//
+// The fix is TWO things working together:
+//   1. The SCALE is gone. Scale was the "bloom." This modifier now does only
+//      a soft opacity + a small (≤6pt) rise. Premium settle, no pop.
+//   2. The builders no longer stagger per element. They reveal in just TWO
+//      beats: the headline (beat 1), then the ENTIRE rest of the block as a
+//      SINGLE unit (beat 2, one shared delay). See `convictionTeachScreen` /
+//      `educationalScreen` / `bridgeScreen`.
+//
+// `fade`: the page swap is a cross-dissolve over a persistent GrainfieldBackground
+// (the unified seamless transition). Beat-1 elements (headline, bleed image)
+// pass `fade: false` so the cross-dissolve owns their opacity — adding a second
+// opacity ramp double-fades the no-delay headline into mud. They still carry a
+// small offset settle. Beat-2 (the delayed block) passes `fade: true` so it is
+// held invisible through the swap, then reveals once as its own beat.
+//
+// Reduce-motion snaps to final state (full opacity, no offset) + skips the haptic.
 private struct SoftInRise: ViewModifier {
     var delay: Double = 0
-    var rise: CGFloat = 8
+    var rise: CGFloat = 6
     var haptic: Bool = false
+    /// Beat-1 elements pass `false` (cross-dissolve owns the fade); the
+    /// delayed beat-2 block keeps `true` so it stays hidden until its beat.
+    var fade: Bool = true
 
     @State private var appeared = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content
-            // v1.6: MATERIALIZE (scale toward 1.0 + a trimmed rise) on the
-            // reveal's 0.55 curve — the depth register. No element opacity:
-            // the page cross-fade (transparent content over the persistent
-            // GrainfieldBackground) owns the fade, so adding it here would
-            // double-fade the no-delay headline into mud.
-            .scaleEffect(reduceMotion || appeared ? 1 : 0.97, anchor: .center)
-            .offset(y: appeared ? 0 : rise)
+            .opacity(fade && !reduceMotion && !appeared ? 0 : 1)
+            .offset(y: appeared || reduceMotion ? 0 : rise)
             .task {
                 guard !appeared else { return }
                 if reduceMotion { appeared = true; return }
@@ -9427,9 +9411,11 @@ private struct SoftInRise: ViewModifier {
 }
 
 private extension View {
-    /// Onboarding soft-in: offset rise on appear + optional one-shot haptic.
-    func softInRise(delay: Double = 0, rise: CGFloat = 8, haptic: Bool = false) -> some View {
-        modifier(SoftInRise(delay: delay, rise: rise, haptic: haptic))
+    /// Onboarding soft-in: opacity + a small offset rise on appear, with an
+    /// optional one-shot haptic. Pass `fade: false` for beat-1 elements that
+    /// ride the page cross-dissolve (see `SoftInRise`).
+    func softInRise(delay: Double = 0, rise: CGFloat = 6, haptic: Bool = false, fade: Bool = true) -> some View {
+        modifier(SoftInRise(delay: delay, rise: rise, haptic: haptic, fade: fade))
     }
 }
 

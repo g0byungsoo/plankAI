@@ -286,6 +286,45 @@ enum Typo {
     /// One register tighter than `captionTracked` (10 vs 11) so the
     /// kicker reads as page furniture, not a section eyebrow.
     static let kicker = font("DMSans-Medium", size: 10, relativeTo: .caption2)
+
+    // MARK: - Teach-screen editorial register (2026-06-30)
+    //
+    // The TEACH / BRIDGE / CONVICTION single-message onboarding screens
+    // (built for real life · now the numbers · you don't need a dramatic
+    // number · it wasn't your willpower · that's called food noise) share
+    // ONE type hierarchy so the line-height + vertical rhythm reads the
+    // same on every screen. The hero title stays `heroHeadline` (38pt) +
+    // `heroHeadlineLineGap`; everything below it uses these tokens with the
+    // matching `teach*LineSpacing` so the leading ratio (~0.3 × size) is
+    // constant across sub, body, gloss, and citation. Inter-block rhythm
+    // is `Space.md` (title → sub) then a uniform `Space.lg` between every
+    // block beneath — set at the call site, identical on all five screens.
+
+    /// Teach subtitle / lead line. DM Sans 16, sits one `Space.md` under
+    /// the hero. Pair with `teachSubLineSpacing`.
+    static let teachSub = font("DMSans-Regular", size: 16, relativeTo: .body)
+    /// Proportional leading for `teachSub` (~0.31 × size).
+    static let teachSubLineSpacing: CGFloat = 5
+
+    /// Teach body / mechanism-gloss line. DM Sans 15, one register under
+    /// the sub. Pair with `teachBodyLineSpacing`.
+    static let teachBody = font("DMSans-Regular", size: 15, relativeTo: .body)
+    /// Proportional leading for `teachBody` + `teachCitation` (~0.3 × size).
+    static let teachBodyLineSpacing: CGFloat = 4
+
+    /// Mechanism-point punch lead — Fraunces SemiBold 18.
+    static let teachPunch = font("Fraunces72pt-SemiBold", size: 18, relativeTo: .title3)
+    /// Mechanism-point roman numeral — Fraunces SemiBoldItalic, matched to
+    /// the punch size so the marker sits on the same optical line.
+    static let teachNumeral = font("Fraunces72pt-SemiBoldItalic", size: 18, relativeTo: .title3)
+
+    /// Conviction closing line — Fraunces SemiBold 20.
+    static let teachClosing = font("Fraunces72pt-SemiBold", size: 20, relativeTo: .title3)
+    static let teachClosingItalic = font("Fraunces72pt-SemiBoldItalic", size: 20, relativeTo: .title3)
+
+    /// Honest-credential claim — DM Sans 14, sits above the tracked-caps
+    /// source tag. Pair with `teachBodyLineSpacing`.
+    static let teachCitation = font("DMSans-Regular", size: 14, relativeTo: .footnote)
 }
 
 // MARK: - Spacing (4pt base)
