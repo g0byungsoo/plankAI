@@ -319,6 +319,21 @@ public enum ProgramGoalCalculator {
         glp1PhaseKey == "just_started"
     }
 
+    /// case 130 (gender) option keys: female / male / nonbinary / private.
+    /// Maps the collected gender to the BMR-formula sex so the calorie
+    /// math respects it (Mifflin-St Jeor male vs female differ by 166 kcal
+    /// at the same weight/height/age). nonbinary / prefer-not-to-say / unset
+    /// fall to `.unspecified`, which `CalorieTargetCalculator` treats with
+    /// the conservative female formula. Centralizes the mapping so every
+    /// calc call site reads the collected value through one place.
+    public static func sex(fromGenderKey genderKey: String) -> Inputs.Sex {
+        switch genderKey {
+        case "male":   return .male
+        case "female": return .female
+        default:       return .unspecified   // nonbinary / private / unset
+        }
+    }
+
     // MARK: - v1.2 Safety gate (2026-06-25)
     //
     // Additive clinical-safety layer (spec:

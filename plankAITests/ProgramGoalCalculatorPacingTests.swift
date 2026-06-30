@@ -149,4 +149,65 @@ final class ProgramGoalCalculatorPacingTests: XCTestCase {
                 "glp1PhaseKey '\(key)' must produce the default 0.005 floor")
         }
     }
+
+    // MARK: - FIX 2 — soft-tier date uses the cohort floor, not a flat 0.005
+    //
+    // Pre-fix: the calorie hero used `revealWindow.lossRateFloor` (0.003 for
+    // a GLP-1 user) but the projected DATE drew gentle at a hard-coded 0.005,
+    // so the date she saw wasn't actually gentler while the provenance line
+    // said it was. The fix stores the cohort floor in
+    // `ProjectionMath.softFloorDefaultsKey`, which `weeklyFraction("gentle")`
+    // now reads. This test proves the date + the calorie deficit imply the
+    // SAME %/wk for a cohort-floor user picking soft.
+
+    override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: ProjectionMath.softFloorDefaultsKey)
+        super.tearDown()
+    }
+
+    func testSoftTierDateUsesCohortFloorNotFlatGentle() {
+        // GLP-1 user -> cautious 0.003 floor. Modest delta keeps both the
+        // cohort date and the default date inside the 4..26 ProjectionMath band.
+        let curr = 70.0, goal = 66.0   // delta 4kg
+        let glp1Window = ProgramGoalCalculator.compute(.init(
+            currentWeightKg: curr,
+            goalWeightKg: goal,
+            sex: .female,
+            age: nil,
+            isGLP1User: true,
+            isPerimenopausal: false,
+            isShortSleeper: false
+        ))
+        XCTAssertEqual(glp1Window.lossRateFloor, 0.003, accuracy: 0.0001,
+            "GLP-1 user must get the cautious 0.003 floor")
+
+        // No floor stored yet -> gentle falls back to the flat 0.005.
+        UserDefaults.standard.removeObject(forKey: ProjectionMath.softFloorDefaultsKey)
+        let flatWeeks = ProjectionMath.projectedWeeks(currentKg: curr, goalKg: goal, paceKey: "gentle")
+        XCTAssertEqual(ProjectionMath.weeklyFraction(paceKey: "gentle"), 0.005, accuracy: 0.0001,
+            "unset floor -> gentle defaults to 0.005 (regression lock)")
+
+        // Persist the cohort floor (what the reveal does) -> gentle is now cohort-aware.
+        UserDefaults.standard.set(glp1Window.lossRateFloor, forKey: ProjectionMath.softFloorDefaultsKey)
+        XCTAssertEqual(ProjectionMath.weeklyFraction(paceKey: "gentle"), 0.003, accuracy: 0.0001,
+            "stored cohort floor must drive the gentle rate (no more flat 0.005)")
+
+        guard let cohortWeeks = ProjectionMath.projectedWeeks(currentKg: curr, goalKg: goal, paceKey: "gentle"),
+              let flat = flatWeeks else {
+            return XCTFail("projectedWeeks must resolve for a loss goal")
+        }
+        // Cohort floor is gentler -> strictly MORE weeks (a later, truly
+        // gentler date) than the flat 0.005 path.
+        XCTAssertGreaterThan(cohortWeeks, flat,
+            "the cohort-floor gentle date must be later than the flat-0.005 date")
+
+        // Consistency: the date %/wk and the calorie-deficit %/wk now match.
+        // Calorie deficit for soft uses revealWindow.lossRateFloor (0.003);
+        // the date implies delta/(curr*weeks) -> must be ~0.003, not ~0.005.
+        let dateImpliedRate = (curr - goal) / (curr * Double(cohortWeeks))
+        XCTAssertEqual(dateImpliedRate, glp1Window.lossRateFloor, accuracy: 0.0004,
+            "the soft date must imply the same %/wk the calorie deficit uses")
+        XCTAssertLessThan(dateImpliedRate, 0.0045,
+            "the soft date must be clearly gentler than the generic 0.005")
+    }
 }

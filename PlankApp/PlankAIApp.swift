@@ -669,6 +669,23 @@ struct PlankAIApp: App {
                         onRevealComplete: {},
                         debugStartAtProjection: true
                     )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-projection-maintenance") {
+                    // FIX 3 (2026-06-29) - delta-0 (maintenance) reveal. Equal
+                    // current + goal weight so the projection step renders its
+                    // maintenance-framed variant (maintenance-TDEE calorie hero
+                    // + "your plan, steady" headline, curve gracefully omitted)
+                    // instead of gutting the reveal. Launch:
+                    // `xcrun simctl launch booted com.bk.plankAI --debug-projection-maintenance`
+                    OnboardingRevealView(
+                        bodyFocus: ["flatBelly"],
+                        sessionLengthKey: "ten",
+                        voicePreference: "encouraging",
+                        commitmentDaysKey: "five",
+                        currentWeightKg: 70,
+                        goalWeightKg: 70,
+                        onRevealComplete: {},
+                        debugStartAtProjection: true
+                    )
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-commitment") {
                     // Task 7 (2026-06-28) - commitment ritual screen.
                     // Jumps straight to CommitmentRitualPresentation so
@@ -3063,7 +3080,7 @@ private struct RootView: View {
             let cgInputs = ProgramGoalCalculator.Inputs(
                 currentWeightKg:  data.currentWeightKg,
                 goalWeightKg:     data.goalWeightKg,
-                sex:              data.gender == "male" ? .male : .female,
+                sex:              ProgramGoalCalculator.sex(fromGenderKey: data.gender),  // FIX 4: centralized mapping
                 // TODO(age): age is passed nil because OnboardingData.ageRange is a band string ("18_24"),
                 // not a parsed Int, and the current rate math doesn't use age. If ProgramGoalCalculator.compute()
                 // ever uses age (e.g. age-stratified loss-rate floors / TDEE), parse `data.ageRange` here AND

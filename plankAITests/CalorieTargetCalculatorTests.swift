@@ -116,4 +116,38 @@ final class CalorieTargetCalculatorTests: XCTestCase {
         XCTAssertNotEqual(target, 80 * 22,
             "TDEE-derived result should differ from the old 22*kg rule of thumb")
     }
+
+    // MARK: (f) FIX 4 — sex respected: male vs female differ by 166 (Mifflin)
+
+    /// Mifflin-St Jeor: male BMR = 10w + 6.25h - 5a + 5; female = ...- 161.
+    /// The constant gap is +5 - (-161) = 166 kcal. A male user wrongly run
+    /// on the female formula is exactly 166 kcal under-counted, so wiring the
+    /// collected gender (case 130) through to the sex param must surface this
+    /// gap.
+    func testMaleVsFemaleBMRDifferByMifflinConstant() {
+        let male = CalorieTargetCalculator.bmrRaw(
+            weightKg: kg, heightCm: cm, age: age, sex: .male
+        )
+        let female = CalorieTargetCalculator.bmrRaw(
+            weightKg: kg, heightCm: cm, age: age, sex: .female
+        )
+        XCTAssertEqual(male - female, 166, accuracy: 0.0001,
+            "male and female Mifflin-St Jeor BMR must differ by exactly 166 kcal")
+        // .unspecified uses the conservative female formula (cohort default).
+        let unspecified = CalorieTargetCalculator.bmrRaw(
+            weightKg: kg, heightCm: cm, age: age, sex: .unspecified
+        )
+        XCTAssertEqual(unspecified, female, accuracy: 0.0001,
+            ".unspecified must fall back to the female formula")
+    }
+
+    // MARK: (g) FIX 4 — gender-key mapping is correct
+
+    func testGenderKeyMapsToSex() {
+        XCTAssertEqual(ProgramGoalCalculator.sex(fromGenderKey: "male"), .male)
+        XCTAssertEqual(ProgramGoalCalculator.sex(fromGenderKey: "female"), .female)
+        XCTAssertEqual(ProgramGoalCalculator.sex(fromGenderKey: "nonbinary"), .unspecified)
+        XCTAssertEqual(ProgramGoalCalculator.sex(fromGenderKey: "private"), .unspecified)
+        XCTAssertEqual(ProgramGoalCalculator.sex(fromGenderKey: ""), .unspecified)
+    }
 }

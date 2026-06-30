@@ -39,6 +39,16 @@ struct OnboardingRevealView: View {
     let goalWeightKg: Double?
     let onRevealComplete: () -> Void
 
+    // FIX 2 (2026-06-29) — cohort signals so we can compute + persist the
+    // cohort-aware soft-tier floor rate ONCE, before the pace-picker /
+    // projection render, so the gentle date they see matches the cohort
+    // floor the calorie deficit uses (see persistSoftFloorRate).
+    @AppStorage("onboardingHormonalStage") private var revealHormonalStage: String = ""
+    @AppStorage("onboarding_glp1_status")  private var revealGlp1Status: String = ""
+    @AppStorage("onboardingSleepHours")    private var revealSleepHours: String = ""
+    @AppStorage("onboarding_weight_trend") private var revealWeightTrend: String = ""
+    @AppStorage("onboarding_glp1_phase")   private var revealGlp1Phase: String = ""
+
     @State private var step: Step
 
     init(
@@ -207,15 +217,52 @@ struct OnboardingRevealView: View {
     }
 
     private func advanceFromBuilding() {
+        // FIX 2 (2026-06-29): persist the cohort-aware soft floor BEFORE the
+        // pace-picker renders, so its soft-row week count + the projection
+        // date both draw gentle at the cohort floor (not a flat 0.005).
+        persistSoftFloorRate()
         // T5/T6 (2026-06-29): building → pacePicker → projection →
-        // firstWeek → commitment → permissions when we have weight data.
+        // firstWeek → commitment → permissions when we have a loss goal.
         // PacePicker sits next to the projection it recomputes, so the
-        // single projection reveal reflects the chosen pace. Without
-        // weight, skip the derivation-dependent steps and land on
-        // firstWeek directly (it still renders with the default tier).
-        withAnimation(Motion.crossFade) {
-            step = hasProjection ? .pacePicker : .firstWeek
+        // single projection reveal reflects the chosen pace.
+        // FIX 3 (2026-06-29): never gut the reveal. With a loss goal -> full
+        // pace-picker + projection. With weights but NO loss (delta <= 0,
+        // maintenance) -> still show the projection (maintenance-framed: the
+        // calorie/identity reveal renders, the curve gracefully omits) so she
+        // reaches a coherent climax before the wall. Only a user with no
+        // weight data at all falls through to firstWeek.
+        let next: Step
+        if hasProjection {
+            next = .pacePicker
+        } else if currentWeightKg != nil && goalWeightKg != nil {
+            next = .projection
+        } else {
+            next = .firstWeek
         }
+        withAnimation(Motion.crossFade) { step = next }
+    }
+
+    /// FIX 2 (2026-06-29): compute the cohort soft-tier floor from the
+    /// collected cohort signals and stash it in UserDefaults so every
+    /// `ProjectionMath.weeklyFraction(paceKey: "gentle")` reader (the reveal
+    /// date, pace-row weeks, paywall hero, becoming card) derives the soft
+    /// date from the SAME rate the calorie deficit uses. The floor is
+    /// independent of sex + weight (compute() ignores sex for the rate math),
+    /// so a placeholder sex is fine here. Defaults to 0.005 for a non-cohort
+    /// user, which leaves behavior unchanged.
+    private func persistSoftFloorRate() {
+        let window = ProgramGoalCalculator.compute(.init(
+            currentWeightKg: currentWeightKg ?? 65,
+            goalWeightKg:    goalWeightKg    ?? 60,
+            sex:             .unspecified,
+            age:             nil,
+            isGLP1User:       ProgramGoalCalculator.isGLP1User(from: revealGlp1Status),
+            isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: revealHormonalStage),
+            isShortSleeper:   ProgramGoalCalculator.isShortSleeper(from: revealSleepHours),
+            weightTrendKey:   revealWeightTrend,
+            glp1PhaseKey:     revealGlp1Phase
+        ))
+        UserDefaults.standard.set(window.lossRateFloor, forKey: ProjectionMath.softFloorDefaultsKey)
     }
 }
 
@@ -775,6 +822,16 @@ private struct ProjectionPresentation: View {
     // T2 (2026-06-29): weight trend + GLP-1 phase now move pacing.
     @AppStorage("onboarding_weight_trend")   private var weightTrend: String = ""
     @AppStorage("onboarding_glp1_phase")     private var glp1Phase: String = ""
+    // FIX 4 (2026-06-29): collected gender (case 130) -> BMR-formula sex.
+    @AppStorage("onboardingGender")          private var gender: String = ""
+
+    /// FIX 3 (2026-06-29): true when she has weights but no loss delta
+    /// (already at / below goal). Drives the maintenance-framed reveal so a
+    /// delta-0 user reaches a coherent climax instead of a gutted screen.
+    private var isMaintenanceReveal: Bool {
+        guard let curr = currentWeightKg, let goal = goalWeightKg else { return false }
+        return curr <= goal
+    }
 
     var body: some View {
         ZStack {
@@ -804,8 +861,8 @@ private struct ProjectionPresentation: View {
                         // allowance at 38pt. Padding + fixedSize lets it
                         // wrap inside the safe width.
                         ItalicAccentText(
-                            "your becoming, plotted",
-                            italic: ["plotted"],
+                            isMaintenanceReveal ? "your plan, steady" : "your becoming, plotted",
+                            italic: isMaintenanceReveal ? ["steady"] : ["plotted"],
                             baseFont: Typo.heroHeadline,
                             italicFont: Typo.heroHeadlineItalic,
                             color: Palette.textPrimary,
@@ -818,7 +875,12 @@ private struct ProjectionPresentation: View {
                         .opacity(heroVisible ? 1 : 0)
                         .scaleEffect(heroVisible ? 1.0 : 0.96)
 
-                        Text("here's the shape of the next 12 weeks, drawn from your answers.")
+                        // FIX 3: maintenance subhead when there's no loss delta
+                        // (the curve omits, so "shape of the next 12 weeks"
+                        // would read as a broken promise).
+                        Text(isMaintenanceReveal
+                             ? "you're right where you want to be. here's the fuel to hold it."
+                             : "here's the shape of the next 12 weeks, drawn from your answers.")
                             .font(.system(size: 14))
                             .foregroundStyle(Palette.textSecondary)
                             .multilineTextAlignment(.center)
@@ -980,7 +1042,7 @@ private struct ProjectionPresentation: View {
         ProgramGoalCalculator.compute(.init(
             currentWeightKg: currentWeightKg ?? 65,
             goalWeightKg:    goalWeightKg    ?? 60,
-            sex:             .female,
+            sex:             ProgramGoalCalculator.sex(fromGenderKey: gender),
             age:             nil,
             isGLP1User:       ProgramGoalCalculator.isGLP1User(from: glp1Status),
             isPerimenopausal: ProgramGoalCalculator.isPerimenopausal(from: hormonalStage),
@@ -994,7 +1056,10 @@ private struct ProjectionPresentation: View {
     /// the goal date on the projection card. Hard = 1%/wk,
     /// Medium = 0.75%/wk, Soft = cohort floor from ProgramGoalCalculator
     /// (0.5%, 0.4%, or 0.3% depending on sleep/GLP-1/perimenopause).
+    /// FIX 3: a maintenance reveal (no loss delta) uses a 0 deficit so the
+    /// calorie number is an honest maintenance TDEE, not a phantom deficit.
     private var pickedLossRatePctPerWeek: Double {
+        if isMaintenanceReveal { return 0 }
         let tier = IntensityTier(rawValue: pickedTierRaw) ?? .medium
         switch tier {
         case .hard:   return 0.01
@@ -1031,7 +1096,7 @@ private struct ProjectionPresentation: View {
             currentWeightKg:      kg,
             heightCm:             height,
             age:                  age,
-            sex:                  .female,
+            sex:                  ProgramGoalCalculator.sex(fromGenderKey: gender),
             activityKey:          movementBaseline,
             lossRatePctPerWeek:   pickedLossRatePctPerWeek
         )
@@ -1649,6 +1714,8 @@ private struct PacePickerPresentation: View {
     // T2 (2026-06-29): weight trend + GLP-1 phase now move pacing.
     @AppStorage("onboarding_weight_trend") private var weightTrend: String = ""
     @AppStorage("onboarding_glp1_phase")   private var glp1Phase: String = ""
+    // FIX 4 (2026-06-29): collected gender (case 130) -> BMR-formula sex.
+    @AppStorage("onboardingGender")        private var gender: String = ""
 
     @State private var heroVisible = false
     @State private var rowsVisible = false
@@ -1658,7 +1725,7 @@ private struct PacePickerPresentation: View {
         ProgramGoalCalculator.compute(.init(
             currentWeightKg: currentWeightKg,
             goalWeightKg: goalWeightKg,
-            sex: .female,
+            sex: ProgramGoalCalculator.sex(fromGenderKey: gender),
             age: nil,
             // v3 P11.2 (2026-06-10) — routed through engine-v2 helpers
             // so cohort-flag mappings stay DRY. Sleep now adjusts the

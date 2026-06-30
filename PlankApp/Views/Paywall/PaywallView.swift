@@ -67,6 +67,8 @@ struct PaywallView: View {
     // T2 (2026-06-29): weight trend + GLP-1 phase now move pacing.
     @AppStorage("onboarding_weight_trend") private var paywallWeightTrend: String = ""
     @AppStorage("onboarding_glp1_phase")   private var paywallGlp1Phase: String = ""
+    // FIX 4 (2026-06-29): collected gender (case 130) -> BMR-formula sex.
+    @AppStorage("onboardingGender")        private var paywallGender: String = ""
 
     @Query private var userRecords: [UserRecord]
 
@@ -335,7 +337,7 @@ struct PaywallView: View {
         let window = ProgramGoalCalculator.compute(.init(
             currentWeightKg: current,
             goalWeightKg: goal,
-            sex: .female,
+            sex: ProgramGoalCalculator.sex(fromGenderKey: paywallGender),  // FIX 4
             age: nil,
             // v3 P11.2 (2026-06-10) — routed through engine-v2 helpers.
             // Note: paywall doesn't yet read sleep — adding it would

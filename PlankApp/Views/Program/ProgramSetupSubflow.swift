@@ -48,6 +48,8 @@ struct ProgramSetupSubflow: View {
     // T2 (2026-06-29): weight trend + GLP-1 phase now move pacing.
     @AppStorage("onboarding_weight_trend") private var weightTrend: String = ""
     @AppStorage("onboarding_glp1_phase")   private var glp1Phase: String = ""
+    // FIX 4 (2026-06-29): collected gender (case 130) -> BMR-formula sex.
+    @AppStorage("onboardingGender")        private var gender: String = ""
 
     // Height (persisted by onboarding) still feeds the BMI 18.5 goal-weight
     // clamp at program build (safeGoalWeightKg). The safety SCREEN itself
@@ -180,7 +182,7 @@ struct ProgramSetupSubflow: View {
         .init(
             currentWeightKg: currentWeightKg,
             goalWeightKg: safeGoalWeightKg,
-            sex: .female,  // JeniFit cohort default; will read profile-sex when added
+            sex: ProgramGoalCalculator.sex(fromGenderKey: gender),  // FIX 4: collected gender (case 130)
             age: parsedAge,
             // v3 P11.2 (2026-06-10) — routed through engine-v2 helpers.
             // NB: ProgramSetupSubflow's old check accepted both

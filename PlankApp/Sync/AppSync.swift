@@ -612,6 +612,11 @@ final class AppSync {
             "onboardingPickedTier", "onboardingPaceChoice",
             "onboardingCurrentWeightKg", "onboardingGoalWeightKg",
             "onboarding_weight_trend",
+            // FIX 4 (2026-06-29) gender + height (BMR-formula inputs) and the
+            // cohort-aware soft-tier floor are user-scoped - sweep them so a
+            // new account on the same device never inherits the prior user's
+            // body data or pacing. (onboardingHeightCm was missing too.)
+            "onboardingGender", "onboardingHeightCm", "onboardingSoftFloorRate",
             "onboardingGoalDate", "onboardingCuisinePreference",
             "onboardingAgeRange", "onboardingActivityLevel",
             "onboardingBodyFocusKey", "onboardingReviewPromptShown",

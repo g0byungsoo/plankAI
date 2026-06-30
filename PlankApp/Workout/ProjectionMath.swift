@@ -26,11 +26,36 @@ enum ProjectionMath {
     /// OnboardingView (case 167) and the reveal PacePicker write-back.
     static let paceDefaultsKey = "onboardingPaceChoice"
 
+    /// Cohort-aware soft-tier floor rate, written once at reveal time from
+    /// `ProgramGoalCalculator.Window.lossRateFloor`. The gentle (soft) pace
+    /// is the ONLY tier whose rate is cohort-dependent: a GLP-1 /
+    /// perimenopausal / short-sleep / regain-risk user gets a gentler floor
+    /// (0.003 / 0.004) than the 0.005 default. Pre-fix this side-channel was
+    /// missing, so the projected DATE drew gentle at a hard-coded 0.005
+    /// while the calorie target used the cohort floor — the date she saw
+    /// wasn't actually gentler, yet the provenance line said it was. Storing
+    /// the floor here makes every surface that reads `weeklyFraction` (the
+    /// reveal date, the pace-row week counts, the paywall hero, the becoming
+    /// card) derive the soft date from the same cohort-aware rate the
+    /// calorie deficit uses. Mirrors the existing `paceDefaultsKey`
+    /// side-channel pattern. 0 / unset = no reveal yet -> 0.005 default.
+    static let softFloorDefaultsKey = "onboardingSoftFloorRate"
+
+    /// Soft (gentle) pace rate. Reads the cohort floor stored at reveal
+    /// time; falls back to the 0.005 default when unset, and clamps to the
+    /// calculator's cohort band [0.003, 0.005] defensively.
+    static func softFloorRate() -> Double {
+        let stored = UserDefaults.standard.double(forKey: softFloorDefaultsKey)
+        guard stored > 0 else { return 0.005 }
+        return min(max(stored, 0.003), 0.005)
+    }
+
     /// ACSM 0.5–1%/wk sustainable-loss band, keyed by pace choice.
     /// Unknown / empty keys anchor at steady (0.75%) — the band middle.
+    /// gentle is cohort-aware (see `softFloorRate`).
     static func weeklyFraction(paceKey: String?) -> Double {
         switch paceKey {
-        case "gentle":  return 0.005
+        case "gentle":  return softFloorRate()
         case "focused": return 0.01
         default:        return 0.0075
         }

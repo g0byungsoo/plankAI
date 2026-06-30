@@ -1021,12 +1021,19 @@ struct OnboardingView: View {
             sel: $weightTrend, next: 133
         )
         .onAppear {
-            // Seed the goal weight from the user's current weight on
-            // first mount so the slider opens at "no change yet" rather
-            // than the previous hardcoded 60 kg default. User actively
-            // drags down/up from there.
-            if !goalWeightInitialized {
-                goalWeightKg = currentWeightKg
+            // Seed the goal weight to a realistic ~10% default loss on first
+            // mount (Wing & Phelan 2005 - 5-10% is the clinically meaningful
+            // band) so the reveal climax ALWAYS has a real goal even if she
+            // never drags the slider. Pre-fix this seeded goal == current
+            // (delta 0), which made hasProjection false and SKIPPED the
+            // pace-picker + projection climax right before the paywall - a
+            // gutted reveal. Clamped to the BMI-18.5 floor so a low-BMI user
+            // never seeds below safe; if the floor is at/above current the
+            // delta stays <= 0 and the reveal's maintenance path handles it.
+            if !goalWeightInitialized, currentWeightKg > 0 {
+                let floor = ProgramGoalCalculator.minimumGoalWeightKg(heightCm: heightCm)
+                let tenPercentLoss = (currentWeightKg * 0.90).rounded()
+                goalWeightKg = floor > 0 ? max(floor, tenPercentLoss) : tenPercentLoss
                 goalWeightInitialized = true
             }
         }
@@ -1533,16 +1540,17 @@ struct OnboardingView: View {
         )
 
         // ─── 1642 - medication / hypoglycemia intake (T4, v1.1.3) ──────
-        // The single biggest deficit-safety hazard for the GLP-1-adjacent
-        // cohort: insulin + sulfonylureas lower blood sugar, and a calorie
-        // deficit compounds that. Surfaced here, right after the GLP-1
-        // cluster (164/1641), and fed to the pre-paywall safety gate (T7),
-        // where SafetyInputs.medicationKey == "insulin_or_sulfonylurea"
-        // routes to .clinicianFirst (no deficit until a clinician weighs
-        // in). Drug CLASSES only - insulin + sulfonylurea are categories,
-        // never brand names (Apple 5.2.1). Supportive, non-actionable
-        // framing. Value space matches SafetyInputs.medicationKey. Rejoins
-        // the flow at 282 (reciprocity beat), same as 1641.
+        // The single biggest deficit-safety hazard, and NOT GLP-1-specific:
+        // insulin + sulfonylureas lower blood sugar, and a calorie deficit
+        // compounds that. So this is a UNIVERSAL question - it sits in the
+        // biometric cluster right after goal weight (133) on the path every
+        // user walks, and feeds the pre-paywall safety gate (T7), where
+        // SafetyInputs.medicationKey == "insulin_or_sulfonylurea" routes to
+        // .clinicianFirst (no deficit until a clinician weighs in). Drug
+        // CLASSES only - insulin + sulfonylurea are categories, never brand
+        // names (Apple 5.2.1). Supportive, non-actionable framing. Value
+        // space matches SafetyInputs.medicationKey. Continues to the
+        // realistic-target reframe (286), the next universal-cluster screen.
         case 1642: jfQuestion(
             "one quick health question.",
             sub: "are you taking any medication that lowers your blood sugar?",
@@ -1552,7 +1560,7 @@ struct OnboardingView: View {
                 ("none",                     "no",                         nil, "leaf"),
                 ("prefer_not_say",           "prefer not to say",          nil, "lock"),
             ],
-            sel: $medicationStatus, next: 282,
+            sel: $medicationStatus, next: 286,
             // Honest footnote (WeAskBecauseRow prepends "we ask because ").
             // No citation chip - the reason carries itself. italic-Fraunces
             // on the punch words per the voice signal.
@@ -2106,7 +2114,16 @@ struct OnboardingView: View {
         // cards), positioned in the same slot. Both her75 designer
         // and the Gen-Z conversion expert independently specced this
         // replacement pattern.
-        130, 7, 131, 132, 1320, 133, 286, 136,
+        // v1.1.3 T4-fix (2026-06-29) - medication / hypoglycemia intake
+        // (case 1642) lives in the UNIVERSAL biometric cluster, right after
+        // goal weight (133) and before the realistic-target reframe (286).
+        // Insulin / sulfonylurea users exist across the whole population,
+        // not just the GLP-1 cohort, so this safety question must be on the
+        // path EVERY user walks - it was previously gated behind the GLP-1
+        // branch (164/1641) and skipped for everyone, leaving
+        // onboarding_medication_status unset and the pre-paywall safety gate
+        // unable to ever reach .clinicianFirst.
+        130, 7, 131, 132, 1320, 133, 1642, 286, 136,
         160, 161,
         // v1.1.3 T5 (2026-06-29) - pace selector (case 167) CUT here.
         // The reveal PacePickerPresentation (post-loader, next to the
@@ -2122,11 +2139,10 @@ struct OnboardingView: View {
         // in P11.1.B (BetterMe A5 pattern, real cohort framing not
         // adversarial comparison).
         140, 158, 154, 155, 163, 164, 1641,
-        // v1.1.3 T4 (2026-06-29) - medication / hypoglycemia intake.
-        // Sits in the medical-context cluster right after the GLP-1
-        // questions; feeds the pre-paywall safety gate (T7). Drug
-        // CLASSES only, no brand names (Apple 5.2.1).
-        1642,
+        // v1.1.3 T4-fix (2026-06-29) - case 1642 (medication / hypoglycemia)
+        // MOVED out of this GLP-1 cluster up to the universal biometric
+        // cluster (after 133) so EVERY user answers it, not just GLP-1 users.
+        // See the note there.
         // v3 P11.1.B reciprocity beat (case 282, Cal AI A7) — dedicated
         // screen acknowledging the vulnerable disclosures. Goes BEFORE
         // the bridge #2 + psychometric fears so the trust compound
@@ -8600,6 +8616,12 @@ struct OnboardingView: View {
         // v1.2 medical-grade (2026-06-25) — mirror height to AppStorage so
         // the program safety gate (BMI floor) can read it without a fetch.
         UserDefaults.standard.set(heightCm, forKey: "onboardingHeightCm")
+        // FIX 4 (2026-06-29) — mirror the collected gender (case 130) to
+        // AppStorage so the reveal calorie math + paywall + program setup
+        // read the real BMR-formula sex instead of hard-coding female (a
+        // male user on the female formula is ~166 kcal off). Written here,
+        // before the reveal sequence is shown, alongside heightCm.
+        UserDefaults.standard.set(gender, forKey: "onboardingGender")
         data.currentWeightKg = currentWeightKg
         data.goalWeightKg = goalWeightKg
         data.bodyTypeCurrent = bodyTypeCurrent
