@@ -493,43 +493,54 @@ struct PaywallView: View {
                     VStack(spacing: 0) {
                         // Status bar + topBar (Restore) reserve so the
                         // hero always clears the Dynamic Island.
-                        Spacer().frame(height: 44)
+                        Spacer().frame(height: 40)
+
+                        // FIX 3 (2026-06-29) — continuity bridge at the very
+                        // top so the wall reads as the next beat of the reveal
+                        // she just earned (IKEA/labor effect), not a fresh
+                        // "now pay" context switch.
+                        planBridgeLine
+                            .padding(.horizontal, Space.lg)
 
                         // ZONE 1 - warm / coquette
                         heroPermission
                             .overlay(alignment: .topTrailing) { headlineSticker }
                             .padding(.horizontal, Space.lg)
+                            .padding(.top, 6)
 
+                        // FIX 1 (2026-06-29) — value section compacted so all
+                        // three tiers + CTA clear the fold on first paint. The
+                        // projection stays the hero, just sized down.
                         projectionHero
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 14)
+                            .padding(.top, 12)
 
                         // The chart's conclusion - pulled tight to the
                         // projection so it reads as the curve's caption,
                         // not a fresh section.
                         sunkCostLine
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 12)
+                            .padding(.top, 10)
 
-                        // ZONE 2 - medical-grade restraint
+                        // ZONE 2 - medical-grade restraint, condensed to a
+                        // tight single line + the ACSM/safety authority.
                         whatsInsideSection
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 16)
+                            .padding(.top, 12)
 
-                        // ZONE 3 - Tiffany-clean pricing. The yearly hero
-                        // sits within the first viewport so the billed
-                        // price anchors on load; the secondary pair + legal
-                        // are one short scroll below.
+                        // ZONE 3 - Tiffany-clean pricing. All three tiers now
+                        // render within the first viewport so the SELECTABLE
+                        // group + billed price anchor on load, no scroll.
                         tierCardAnnualHero
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 16)
+                            .padding(.top, 14)
 
                         // Gap to the secondary pair is larger than the gap
                         // WITHIN the pair (8pt) so the yearly hero reads as
                         // the obvious default.
                         secondaryTierRow
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 10)
+                            .padding(.top, 8)
 
                         if offeringsLoadFailed {
                             offeringsLoadFailedRow
@@ -539,22 +550,28 @@ struct PaywallView: View {
 
                         trustAndLegalFooter
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, 12)
-                            .padding(.bottom, 6)
+                            .padding(.top, 10)
+                            .padding(.bottom, 4)
                     }
                 }
 
-                // Docked close - CTA + risk reversal always visible,
-                // never clipped. A hairline + soft lift marks the boundary
-                // so content scrolling beneath reads as a deliberate layer.
+                // Docked close - guarantee + CTA always visible, never
+                // clipped. A hairline + soft lift marks the boundary so
+                // content scrolling beneath reads as a deliberate layer.
                 VStack(spacing: 0) {
                     Rectangle()
                         .fill(Palette.hairlineCocoa)
                         .frame(height: 0.5)
                         .frame(maxWidth: .infinity)
-                    ctaButtonV2
+                    // FIX 2 (2026-06-29) — elevated risk reversal sits
+                    // directly ABOVE the CTA in a confident weight (was the
+                    // faintest text on the screen).
+                    guaranteeBanner
                         .padding(.horizontal, Space.lg)
                         .padding(.top, 12)
+                    ctaButtonV2
+                        .padding(.horizontal, Space.lg)
+                        .padding(.top, 10)
                     if let errorMessage {
                         Text(errorMessage)
                             .font(.system(size: 11))
@@ -564,9 +581,9 @@ struct PaywallView: View {
                             .padding(.top, 6)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    reassuranceRow
+                    billedTodayLine
                         .padding(.horizontal, Space.lg)
-                        .padding(.top, 12)
+                        .padding(.top, 8)
                         .padding(.bottom, 8)
                 }
                 .background(Palette.bgPrimary)
@@ -694,8 +711,10 @@ struct PaywallView: View {
     @ViewBuilder
     private var projectionHero: some View {
         if let goal = goalWeightPunch, let date = arrivalDatePunch {
-            VStack(spacing: 14) {
-                PaywallBecomingChart(goalLabel: goal)
+            VStack(spacing: 9) {
+                // Sized down (84 -> 58) so the curve stays the emotional
+                // hero while the three tiers clear the fold below.
+                PaywallBecomingChart(goalLabel: goal, height: 58)
 
                 // Bookended identity axis - the axis tells the becoming
                 // story. Date leads as the rose-italic hero; the scale
@@ -712,7 +731,7 @@ struct PaywallView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(Palette.textSecondary)
                      + Text(date)
-                        .font(.custom("JeniHeroSerif-Italic", size: 22))
+                        .font(.custom("JeniHeroSerif-Italic", size: 20))
                         .foregroundStyle(Palette.accent))
                 }
 
@@ -723,12 +742,13 @@ struct PaywallView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
-            .padding(16)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(Palette.bgElevated)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .stroke(Palette.accent.opacity(0.22), lineWidth: 1)
                     )
             )
@@ -771,17 +791,15 @@ struct PaywallView: View {
     /// ticks, no icons, no stickers (medical-grade restraint). References
     /// only shipping features.
     private var whatsInsideSection: some View {
-        VStack(alignment: .leading, spacing: 11) {
-            Text("what's inside your becoming")
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(1.6)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.cocoaTertiary)
-            VStack(alignment: .leading, spacing: 9) {
-                whatsInsideRow("your custom plan")
-                whatsInsideRow("jenimethod lessons")
-                whatsInsideRow("snap-a-photo food log")
-            }
+        VStack(spacing: 5) {
+            // FIX 1 (2026-06-29) — the 3-row checklist condensed to ONE
+            // tight serif line so the tiers clear the fold. Same three
+            // shipping features, now a single editorial inventory line.
+            Text("your custom plan \u{00B7} jenimethod lessons \u{00B7} food log")
+                .font(.custom("JeniHeroSerif-Regular", size: 15))
+                .foregroundStyle(Palette.textPrimary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
             // Persuasion FIX 3 (2026-06-29) — carry the authority the flow
             // earned (ACSM pacing band + the pre-paywall safety gate) to the
             // wall. Both clauses are true: the pace IS ACSM-banded, and she
@@ -793,22 +811,10 @@ struct PaywallView: View {
                  : "paced to ACSM guidance \u{00B7} built for sustainable loss.")
                 .font(.system(size: 11))
                 .foregroundStyle(Palette.textSecondary)
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 2)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func whatsInsideRow(_ text: String) -> some View {
-        HStack(spacing: 12) {
-            Rectangle()
-                .fill(Palette.cocoaTertiary)
-                .frame(width: 13, height: 1)
-            Text(text)
-                .font(.custom("JeniHeroSerif-Regular", size: 16))
-                .foregroundStyle(Palette.textPrimary)
-            Spacer(minLength: 0)
-        }
+        .frame(maxWidth: .infinity)
     }
 
     /// Picked pace - drives the arrival-date projection so the paywall
@@ -1170,29 +1176,55 @@ struct PaywallView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// 2026-06-27 - confident reassurance row, directly UNDER the CTA.
-    /// Previously the lowest-contrast text on the screen; the money-back
-    /// guarantee + cancel-anytime are the risk-reversal that closes the
-    /// sale, so they now read legibly (textPrimary lead line, small
-    /// shield icon). No trial copy - pay-upfront, billed today. Heart is
-    /// dusty-rose terminal punctuation per the locked voice signal.
-    private var reassuranceRow: some View {
-        VStack(spacing: 5) {
-            HStack(spacing: 6) {
-                Image(systemName: "checkmark.shield.fill")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Palette.accent)
-                Text("billed today \u{00B7} cancel anytime")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Palette.textPrimary)
-            }
-            (Text("not happy? we offer a money-back guarantee ")
-                .font(.system(size: 12))
-                .foregroundStyle(Palette.textSecondary)
-             + Text("\u{2665}\u{FE0E}")
-                .font(.system(size: 12))
-                .foregroundStyle(Palette.accent))
+    /// FIX 3 (2026-06-29) — IKEA/labor-effect continuity bridge at the very
+    /// top of the wall. Reads the paywall as the next beat of the reveal she
+    /// just earned, not a fresh "now pay" screen. Lowercase casual; italic-
+    /// Fraunces on the punch word "built" per the locked voice signal.
+    private var planBridgeLine: some View {
+        ItalicAccentText(
+            "the plan you just built.",
+            italic: ["built"],
+            baseFont: .system(size: 13),
+            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15),
+            color: Palette.textSecondary,
+            alignment: .center
+        )
+        .frame(maxWidth: .infinity)
+    }
+
+    /// FIX 2 (2026-06-29) — elevated risk reversal directly ABOVE the CTA.
+    /// For a hard pay-upfront wall the money-back guarantee is the #1 honest
+    /// conversion lever, so it now reads in a confident, legible weight
+    /// (shield in accent + label at textPrimary semibold) instead of the
+    /// faintest gray line on the screen. Real guarantee. "cancel anytime"
+    /// trails as the supporting clause.
+    private var guaranteeBanner: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark.shield.fill")
+                .font(.system(size: 13))
+                .foregroundStyle(Palette.accent)
+            (Text("money-back guarantee")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.textPrimary)
+             + Text("  \u{00B7}  cancel anytime")
+                .font(.system(size: 13))
+                .foregroundStyle(Palette.textSecondary))
         }
+        .frame(maxWidth: .infinity)
+        .multilineTextAlignment(.center)
+    }
+
+    /// Quiet billing disclosure under the CTA — pay-upfront clarity (charged
+    /// today, no trial) kept legible but subordinate to the elevated
+    /// guarantee above. Heart is dusty-rose terminal punctuation per the
+    /// locked voice signal.
+    private var billedTodayLine: some View {
+        (Text("billed today")
+            .font(.system(size: 12))
+            .foregroundStyle(Palette.textSecondary)
+         + Text(" \u{2665}\u{FE0E}")
+            .font(.system(size: 12))
+            .foregroundStyle(Palette.accent))
         .frame(maxWidth: .infinity)
         .multilineTextAlignment(.center)
     }
