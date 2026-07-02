@@ -15,6 +15,7 @@ final class PlankFoodTests: XCTestCase {
             .photo(Data()),
             .quickAdd(PantryItemID("matcha_latte_oat_m")),
             .imOutTonight(cuisine: .mexican),
+            .text("two eggs and toast", cuisineProfile: nil),
         ]
 
         for capture in cases {
@@ -25,6 +26,9 @@ final class PlankFoodTests: XCTestCase {
                 XCTAssertEqual(id.value, "matcha_latte_oat_m")
             case .imOutTonight(let cuisine):
                 XCTAssertEqual(cuisine, .mexican)
+            case .text(let description, let cuisineProfile):
+                XCTAssertEqual(description, "two eggs and toast")
+                XCTAssertNil(cuisineProfile)
             }
         }
     }

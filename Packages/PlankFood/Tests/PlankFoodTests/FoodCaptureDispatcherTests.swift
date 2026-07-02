@@ -146,7 +146,9 @@ final class FoodCaptureDispatcherTests: XCTestCase {
     }
 
     func testNutritionSourceCases() {
-        XCTAssertEqual(NutritionSource.allCases.count, 4)
+        // 4 lookup-family cases + llmDirect + usdaCalibrated +
+        // usdaOverride (v1.0.7 direct-kcal rewrite).
+        XCTAssertEqual(NutritionSource.allCases.count, 7)
     }
 }
 
