@@ -65,16 +65,23 @@ work but is preserved for history, not for guidance.
   `PlankApp/Views/DietEducation/Reader/`.
 
 ### Snap Food (food rail)
-- Camera → vision pipeline (GPT-5 base + Claude Opus 4.7
-  confidence-gated fallback + Gemini 2.5 Flash food-or-not pre-filter).
-- 3-slide result carousel: dense tap-edit slide + food-log share card
-  (handwritten Pinterest register) + satiety + aesthetic close.
-- `IngredientEditSheet` behind pencil tap (original-portion tick +
-  reset + confidence hint).
-- Food journal swipe-to-delete + photo timeline.
-- QuickAdd: dynamic chip suggestions (recents + cuisine).
-- Cross-view refresh via `NotificationCenter` for weight chart +
-  food journal.
+- v1.2 rebuild (2026-07-01). Input modes: snap / describe / again
+  (one-tap relog via `RecentMealsSheet`).
+- Camera → vision EF (single OpenAI model, env-selected; app-side
+  USDA calibration on low-confidence items) → single-surface result:
+  full-bleed photo + `SnapResultView` two-detent panel (carousel
+  retired).
+- Editing: fraction chips (ate about half), inline portion steppers,
+  `IngredientEditorSheet` with coherent macro↔kcal math
+  (`PlateEditSession`, unit-tested), "fix it with words" +
+  "+ add something" via `SnapRefine` (EF text path — live today).
+- Scanning = Metal `snapSweep` pass (SPM-compiled
+  `SnapShaders.metal`); capture bloom; calm chrome (2pt border).
+- Share = on-photo composer (`SnapShareSlide` font rail); preview IS
+  the exported PNG.
+- Per-item detail persists per entry (device-local); journal detail
+  ledger + relog. Photo+text context awaits
+  `supabase functions deploy food-vision`.
 - Files: `Packages/PlankFood/`,
   `PlankApp/Views/Analytics/` (food log surfaces).
 

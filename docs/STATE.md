@@ -68,18 +68,35 @@ Sharing: lesson quote share card as luxury magazine pull-quote (organic
 acquisition lever). See `PlankApp/Views/DietEducation/`.
 
 ### Snap Food (food rail)
-Camera capture → vision pipeline (GPT-5 base + Claude Opus 4.7
-confidence-gated fallback) → 3-slide result carousel:
-1. Dense slide with tap-edit (`IngredientEditSheet`), total weight,
-   cuisine tag, confidence hint, archetype-aware comparative insight.
-2. Food-log share card (handwritten Pinterest register, no text
-   shadows).
-3. Satiety + aesthetic close.
+v1.2 rebuild (2026-07-01). Three input modes behind one toolbar:
+**snap** (camera) / **describe** (text → same estimate pipeline) /
+**again** (`RecentMealsSheet` one-tap relog).
 
-Food journal swipe-to-delete, photo timeline, weight chart cross-view
-refresh via `NotificationCenter` (avoids stale state when navigating
-between Becoming and the food rail). QuickAdd has dynamic chip
-suggestions (recents + cuisine). See `Packages/PlankFood/`.
+Camera capture → vision EF (single OpenAI model via
+`FOOD_VISION_MODEL` env; the app-side USDA calibration sweep guards
+low-confidence items) → **single-surface result stage**: photo goes
+full bleed, `SnapResultView` rises as a two-detent editorial panel —
+count-up kcal hero + protein co-hero, "ate about half" fraction
+chips, always-visible ingredient ledger with inline portion steppers,
+tap-through `IngredientEditorSheet` with coherent macro↔kcal math
+(`PlateEditSession` in `SnapResultMath.swift`, unit-tested), inline
+"fix it with words" + "+ add something" composer (`SnapRefine`
+through the EF text path — live against the deployed backend), the
+jeni note (`ResultDetailCopy`) integrated, on-photo share composer
+(`SnapShareSlide` font rail; preview IS the exported PNG). Scanning
+is a Metal pass (`snapSweep`: diagonal warm band + grain,
+`SnapShaders.metal` in the SPM package). The 3-slide carousel is
+retired.
+
+Per-item nutrition detail persists with every entry (device-local
+JSONL, backwards-compatible); journal detail shows the ledger +
+"again" relog. Photo-scan capture notes + photo-grounded corrections
+activate on the next `supabase functions deploy food-vision` (the EF
+folds `text` into image requests as trusted context).
+
+Food journal long-press delete, photo timeline, matched-geometry
+meal detail. QuickAdd (describe) has dynamic chip suggestions
+(recents + cuisine). See `Packages/PlankFood/`.
 
 ### Becoming dashboard
 Today's energy tile, protein gauge, weight trend canvas (EMA line +
