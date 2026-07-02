@@ -59,6 +59,9 @@ struct OnboardingRevealView: View {
         currentWeightKg: Double?,
         goalWeightKg: Double?,
         onRevealComplete: @escaping () -> Void,
+        // v5: the flow already ran disclaimer (signature screen) + the
+        // safety gate (care cluster); its reveal starts at the loader.
+        skipsPreamble: Bool = false,
         debugStartAtFirstWeek: Bool = false,
         debugStartAtRatingAsk: Bool = false,
         debugStartAtProjection: Bool = false,
@@ -86,21 +89,21 @@ struct OnboardingRevealView: View {
             debugStartAtProjection  ? .projection  :
             debugStartAtRatingAsk   ? .ratingAsk   :
             debugStartAtPermissions ? .permissions :
-            debugStartAtFirstWeek   ? .firstWeek   : .disclaimer)
+            debugStartAtFirstWeek   ? .firstWeek   :
+            skipsPreamble           ? .building    : .disclaimer)
     }
 
     private enum Step: Int {
-        // Medical trust gate - always the FIRST screen. Writes
-        // medicalDisclaimerAckAtISO to AppStorage on acknowledgment;
-        // handleOnboardingComplete reads it back to persist on UserRecord.
+        // v5 (2026-07-02): the reveal now STARTS at the building loader.
+        // The medical disclaimer acknowledgment folded into the v5
+        // signature screen (same medicalDisclaimerAckAtISO key), and the
+        // safety gate relocated to the end of the v5 numbers act ("the
+        // care part") — still pre-paywall, now also pre-vulnerability-
+        // cluster, and no longer a cold shower at peak anticipation.
+        // Both moves keep every side effect; only position changed.
+        // Legacy v4.5 entry (--onboarding-v4) still routes disclaimer +
+        // safety through these cases.
         case disclaimer
-        // Task 7 (2026-06-29) - safety gate, moved PRE-paywall. Runs the
-        // pregnancy + SCOFF + medication + BMI screen EXACTLY ONCE, right
-        // after the disclaimer and before the building loader, so a
-        // pregnant / under-18 / ED / insulin user is routed to a supportive
-        // dead-end BEFORE the hard paywall - never charge-then-reject
-        // (Apple 5.1.1 + refund + medical risk). The post-paywall
-        // ProgramSetupSubflow no longer screens (de-duplicated).
         case safety
         case building
         // Task 5 (2026-06-29) - one projection reveal. The user picks
@@ -190,7 +193,13 @@ struct OnboardingRevealView: View {
                 )
                 .transition(.opacity)
             case .ratingAsk:
-                RatingAskPresentation(
+                // v5 (2026-07-02): the pre-wall rating ask was intent
+                // bleed at the exact moment impulse must compound — the
+                // rating surface lives post-purchase
+                // (PostPurchaseRatingView). This slot now answers the
+                // fear she named in Act IV with a shipping plan
+                // mechanic; it self-skips when no fear was kept.
+                OV5FearResolutionPresentation(
                     onContinue: { withAnimation(Motion.crossFade) { step = .commitment } }
                 )
                 .transition(.opacity)
