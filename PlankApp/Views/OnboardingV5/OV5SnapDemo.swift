@@ -37,16 +37,20 @@ struct OV5SnapDemoScreen: View {
     @Namespace private var ns
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    // Founder photography — real plates from real days (round 2: the
+    // demo must taste like the actual product, not stock). Estimates
+    // are honest reads of these exact plates, ±band carried like the
+    // shipping result card.
     private static let meals: [DemoMeal] = [
-        .init(key: "bowl", asset: "onb-v5-demo-bowl",
-              title: "salmon avocado bowl", kcal: 610, range: 80, protein: 36,
-              rows: [("glazed salmon", 250), ("sushi rice", 195), ("avocado", 120), ("edamame + cucumber", 45)]),
+        .init(key: "poke", asset: "onb-v5-demo-poke",
+              title: "ahi poke bowl", kcal: 500, range: 75, protein: 41,
+              rows: [("ahi tuna", 165), ("sushi rice", 300), ("shoyu + limu", 35)]),
         .init(key: "toast", asset: "onb-v5-demo-toast",
-              title: "avocado toast + jammy eggs", kcal: 490, range: 70, protein: 22,
-              rows: [("sourdough", 180), ("jammy eggs", 140), ("avocado", 120), ("berries", 50)]),
-        .init(key: "pasta", asset: "onb-v5-demo-pasta",
-              title: "rigatoni alla vodka", kcal: 680, range: 110, protein: 22,
-              rows: [("rigatoni", 420), ("vodka sauce", 180), ("parmesan", 80)]),
+              title: "avocado toast, eggs + berries", kcal: 445, range: 65, protein: 19,
+              rows: [("sourdough", 100), ("avocado", 120), ("scrambled eggs", 190), ("strawberries", 35)]),
+        .init(key: "oysters", asset: "onb-v5-demo-oysters",
+              title: "fried oysters + tartar", kcal: 600, range: 110, protein: 22,
+              rows: [("fried oysters", 480), ("tartar", 120)]),
     ]
 
     var body: some View {
@@ -71,18 +75,18 @@ struct OV5SnapDemoScreen: View {
             OV5Header(
                 title: "watch what one photo can tell us.",
                 italic: ["tell"],
-                sub: "pick a plate. one of ours, so you can feel it."
+                sub: "pick one. they're ours, from real days."
             )
 
             Spacer()
 
             // Three prints, fanned — the ONE place photos tilt (they
             // read as physical prints, not UI).
-            HStack(spacing: -26) {
+            HStack(spacing: -34) {
                 ForEach(Array(Self.meals.enumerated()), id: \.element.key) { idx, meal in
                     mealCard(meal)
-                        .rotationEffect(.degrees(idx == 0 ? -4 : idx == 1 ? 1.5 : 5))
-                        .offset(y: idx == 1 ? -14 : 0)
+                        .rotationEffect(.degrees(idx == 0 ? -5 : idx == 1 ? 1 : 5.5))
+                        .offset(y: idx == 1 ? -18 : 0)
                         .zIndex(idx == 1 ? 2 : 1)
                         .ov5Beat2(extraDelay: Double(idx) * 0.08)
                 }
@@ -113,13 +117,13 @@ struct OV5SnapDemoScreen: View {
             Image(meal.asset)
                 .resizable()
                 .scaledToFill()
-                .frame(width: 128, height: 164)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .frame(width: 150, height: 196)
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 .padding(6)
                 .background(
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(Color.white)
-                        .shadow(color: Palette.cocoaPrimary.opacity(0.16), radius: 12, x: 0, y: 6)
+                        .shadow(color: Palette.cocoaPrimary.opacity(0.15), radius: 13, x: 0, y: 7)
                 )
                 .matchedGeometryEffect(id: meal.key, in: ns, isSource: phase == .pick)
         }

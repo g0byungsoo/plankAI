@@ -109,27 +109,33 @@ struct OV5HerFileScreen: View {
 
 struct OV5SignatureScreen: View {
     let flow: OV5Flow
+    // Round 2: nothing arrives pre-checked — a signature she didn't
+    // make is worthless. UI state is local; commit writes the store
+    // explicitly so downstream consent readers get REAL values (their
+    // own @AppStorage defaults are true, so an unwritten key would
+    // silently read as consent).
+    @State private var consentPersonalize = false
+    @State private var consentDay2 = false
     @State private var ackMedical = false
 
     var body: some View {
-        @Bindable var store = flow.store
         VStack(spacing: 0) {
             Spacer().frame(height: 44)
             OV5Header(
                 title: "sign her in.",
                 italic: ["sign"],
-                sub: store.name.isEmpty ? nil : "the fine print, \(store.name.lowercased()). all of it honest."
+                sub: flow.store.name.isEmpty ? nil : "the fine print, \(flow.store.name.lowercased()). all of it honest."
             )
 
             VStack(spacing: 0) {
                 signatureRow(
-                    isOn: $store.consentPersonalize,
+                    isOn: $consentPersonalize,
                     title: "use my answers to personalize my plan",
                     sub: "the whole point. pace, food, lessons. tuned to your file."
                 )
                 Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
                 signatureRow(
-                    isOn: $store.consentDay2,
+                    isOn: $consentDay2,
                     title: "check on me in the first days",
                     sub: "a gentle nudge or two while the habit is newborn."
                 )
@@ -156,12 +162,18 @@ struct OV5SignatureScreen: View {
             Spacer()
         }
         .ov5CTA("signed", isEnabled: ackMedical) {
+            // Explicit writes for all three — including false — so the
+            // consent keys carry HER choices, never a reader's default.
+            flow.store.consentPersonalize = consentPersonalize
+            flow.store.consentDay2 = consentDay2
             // The disclaimer acknowledgment folds into this signature
             // moment — same key the reveal's old disclaimer step wrote.
             flow.store.disclaimerAcked = true
             flow.advance()
         }
-        .onAppear { ackMedical = flow.store.disclaimerAcked }
+        .onAppear {
+            ackMedical = flow.store.disclaimerAcked
+        }
     }
 
     private func signatureRow(isOn: Binding<Bool>, title: String, sub: String) -> some View {

@@ -48,10 +48,10 @@ struct OV5AttributionScreen: View {
                 options: [
                     .init(key: "tiktok", label: "tiktok", leadingAsset: "onb-logo-tiktok"),
                     .init(key: "instagram", label: "instagram", leadingAsset: "onb-logo-instagram"),
-                    .init(key: "friend", label: "a friend told me", icon: "person.2"),
+                    .init(key: "friend", label: "a friend told me"),
                     .init(key: "app_store", label: "app store", leadingAsset: "onb-logo-appstore"),
                     .init(key: "google", label: "google", leadingAsset: "onb-logo-google"),
-                    .init(key: "other", label: "somewhere else", icon: "ellipsis.circle"),
+                    .init(key: "other", label: "somewhere else"),
                 ],
                 selection: $store.acquisitionSource,
                 onCommit: { flow.advance() }

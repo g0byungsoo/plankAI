@@ -89,7 +89,7 @@ struct OV5SelectRow: View {
                         .foregroundStyle(Palette.cocoaTertiary)
                 }
             }
-            .padding(.vertical, 13)
+            .padding(.vertical, 16)
             .contentShape(Rectangle())
             .opacity(isStruck ? 0.38 : 1)
             .animation(.easeOut(duration: 0.25).delay(strikeDelay), value: isStruck)

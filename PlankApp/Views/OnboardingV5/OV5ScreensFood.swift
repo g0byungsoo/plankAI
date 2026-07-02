@@ -342,13 +342,14 @@ struct OV5PriorWinScreen: View {
 struct OV5CuisineScreen: View {
     let flow: OV5Flow
 
+    // Round 2 trim: 12 chips, not a tag manager. The long tail lives in
+    // the in-app food preferences; the CSV key + vision-prompt contract
+    // is unchanged.
     private static let cuisines: [(String, String)] = [
         ("korean", "korean"), ("japanese", "japanese"), ("chinese", "chinese"),
-        ("thai", "thai"), ("vietnamese", "vietnamese"), ("filipino", "filipino"),
-        ("indian", "indian"), ("italian", "italian"), ("french", "french"),
-        ("greek", "greek"), ("spanish", "spanish"), ("mexican", "mexican"),
-        ("brazilian", "brazilian"), ("caribbean", "caribbean"),
-        ("ethiopian", "ethiopian"), ("american", "american"),
+        ("thai", "thai"), ("vietnamese", "vietnamese"), ("indian", "indian"),
+        ("italian", "italian"), ("french", "french"), ("greek", "greek"),
+        ("mexican", "mexican"), ("american", "american"),
         ("everything", "a bit of everything"),
     ]
 

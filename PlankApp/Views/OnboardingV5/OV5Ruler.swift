@@ -220,10 +220,10 @@ struct OV5RulerScreen<DerivedLine: View>: View {
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 10)
-                .background(
-                    Capsule().fill(Palette.bgElevated)
-                        .shadow(color: Color.black.opacity(0.05), radius: 14, x: 0, y: 4)
-                )
+                // Flat paper, not floating chrome: the serif numeral
+                // carries the weight; a hairline holds the edge.
+                .background(Capsule().fill(Palette.bgElevated))
+                .overlay(Capsule().strokeBorder(Palette.hairlineCocoa, lineWidth: 1))
                 .ov5Beat2()
 
                 Spacer().frame(height: Space.lg)

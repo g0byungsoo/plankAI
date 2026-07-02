@@ -1613,6 +1613,19 @@ private struct NudgePermissionAsk: View {
         promiseAction.isEmpty ? "five minutes, today." : "your promise, gently."
     }
 
+    /// "arrives mornings, around 7 am ♥" — derived from the bucket her
+    /// promise seeded; falls back to morning copy pre-seed.
+    private var nudgeTimeLine: String {
+        let bucket = plankTime.isEmpty
+            ? (Self.bucket(fromPromiseISO: promiseTimeISO) ?? "morning")
+            : plankTime
+        switch bucket {
+        case "afternoon": return "arrives afternoons, around 1 pm · change anytime in settings"
+        case "evening": return "arrives evenings, around 7 pm · change anytime in settings"
+        default: return "arrives mornings, around 7 am · change anytime in settings"
+        }
+    }
+
     private var previewBody: String {
         if !promiseAction.isEmpty {
             let anchor = promiseAnchor.isEmpty ? "tomorrow" : promiseAnchor
@@ -1693,28 +1706,16 @@ private struct NudgePermissionAsk: View {
 
                     Spacer().frame(height: Space.lg)
 
-                    // Time-of-day selection (morning / afternoon / evening).
-                    // Compact editorial rows; morning defaults on appear so
-                    // the user is never blocked. Maps to scheduleDailyReminder.
-                    VStack(spacing: 8) {
-                        ForEach([
-                            ("morning",   "morning",   "around 7 am"),
-                            ("afternoon", "afternoon", "around 1 pm"),
-                            ("evening",   "evening",   "around 7 pm"),
-                        ], id: \.0) { opt in
-                            OnboardingOptionCard(
-                                title: opt.1,
-                                subtitle: opt.2,
-                                isSelected: plankTime == opt.0,
-                                action: {
-                                    Haptics.light()
-                                    plankTime = opt.0
-                                }
-                            )
-                        }
-                    }
-                    .padding(.horizontal, Space.screenPadding)
-                    .opacity(pillsVisible ? 1 : 0)
+                    // Round 2 (2026-07-02): the time rows are GONE. Her
+                    // promise already chose tomorrow's hour — the banner
+                    // wears it, and plankTime seeds from the same choice
+                    // (.onAppear below). One decision on this screen:
+                    // allow. A quiet line says when the nudge arrives.
+                    Text(nudgeTimeLine)
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .padding(.horizontal, Space.lg)
+                        .opacity(pillsVisible ? 1 : 0)
 
                     Spacer().frame(height: Space.lg)
                 }
@@ -2018,6 +2019,11 @@ private struct PacePickerPresentation: View {
     @State private var heroVisible = false
     @State private var rowsVisible = false
     @State private var ctaVisible = false
+    // Round 2 (2026-07-02): no pre-selected pace. The stored default
+    // ("medium") exists for downstream readers, but the ROWS render
+    // unchosen until she commits one — the pace must be her decision,
+    // not a form default. Continue gates on the pick.
+    @State private var hasPicked = false
 
     private var window: ProgramGoalCalculator.Window {
         ProgramGoalCalculator.compute(.init(
@@ -2086,7 +2092,7 @@ private struct PacePickerPresentation: View {
         // FIX 1 (2026-06-29): canonical JFContinueButton docked via
         // safeAreaInset, replacing the hand-rolled italic-Fraunces capsule.
         .safeAreaInset(edge: .bottom) {
-            JFContinueButton(label: "continue", action: onContinue)
+            JFContinueButton(label: "continue", action: onContinue, isEnabled: hasPicked)
                 .padding(.top, 8)
                 .background(Palette.bgPrimary)
                 .opacity(ctaVisible ? 1 : 0)
@@ -2102,7 +2108,7 @@ private struct PacePickerPresentation: View {
     }
 
     private func paceRow(tier: IntensityTier, title: String, tagline: String) -> some View {
-        let selected = pickedTierRaw == tier.rawValue
+        let selected = hasPicked && pickedTierRaw == tier.rawValue
         // Pace unification (2026-06-11): row weeks come from the same
         // ProjectionMath the pace selector + paywall use, so the number
         // here never disagrees with the dates she already saw.
@@ -2113,6 +2119,7 @@ private struct PacePickerPresentation: View {
         ) ?? window.weeks(for: tier)
         return Button {
             Haptics.light()
+            withAnimation(Motion.tap) { hasPicked = true }
             pickedTierRaw = tier.rawValue
             // Write back to the canonical pace key so every downstream
             // surface (goal-date reveal, paywall chart, day-one card)
@@ -2203,7 +2210,8 @@ private struct CommitmentRitualPresentation: View {
     let onContinue: () -> Void
 
     @AppStorage("onboarding_glp1_status") private var glp1Status: String = ""
-    @AppStorage("onboardingSleepHours")   private var sleepHours: String = ""
+    // (sleepHours read removed with the round-2 prefill helpers — the
+    // short-sleeper anchor default died with pre-selection itself.)
     @AppStorage("userName")              private var userName: String = ""
 
     // Persisted outputs - consumed by Task 10 Day-1 surfacing
@@ -2212,9 +2220,16 @@ private struct CommitmentRitualPresentation: View {
     @AppStorage("day1PromiseTimeISO") private var storedTimeISO: String = ""
 
     // Chip selections initialized on appear to incorporate AppStorage values.
+    // Round 2 (2026-07-02): nothing pre-picked. A promise assembled
+    // from defaults is a form, not a promise — every slot is her tap.
+    // The seal stays ghosted until when + what + time all exist.
     @State private var selectedAnchor: String = ""
     @State private var selectedAction: String = ""
-    @State private var selectedTime: String = "8am"
+    @State private var selectedTime: String = ""
+
+    private var promiseComplete: Bool {
+        !selectedAnchor.isEmpty && !selectedAction.isEmpty && !selectedTime.isEmpty
+    }
 
     // Cascade reveal states
     @State private var heroVisible         = false
@@ -2251,15 +2266,9 @@ private struct CommitmentRitualPresentation: View {
         let meal = UserDefaults.standard.string(forKey: "onb_v5_snap_demo_meal") ?? ""
         return !meal.isEmpty && meal != "skipped"
     }
-
-    private var defaultAnchor: String {
-        ProgramGoalCalculator.isShortSleeper(from: sleepHours) ? "after i wake up" : "after coffee"
-    }
-
-    private var defaultAction: String {
-        if didSnapDemo { return "snap your first real meal" }
-        return glp1Status == "current" ? "get protein in" : "log breakfast"
-    }
+    // (round 2: the old defaultAnchor/defaultAction prefill helpers are
+    // gone — nothing pre-selects; the rehearsed demo action only LEADS
+    // the chip order.)
 
     // MARK: Time-chip to tomorrow Date
 
@@ -2381,17 +2390,27 @@ private struct CommitmentRitualPresentation: View {
                             .opacity(promiseLabelVisible ? 1 : 0)
                             .animation(Motion.entranceSoft, value: promiseLabelVisible)
 
-                        // Live replay: assembles word-by-word on first reveal
-                        // (~50ms/word) and swaps ONLY the changed slot on chip
-                        // tap. Reduce-motion: final state immediately.
-                        CommitmentReplayView(
-                            anchor: selectedAnchor,
-                            action: selectedAction,
-                            glp1: glp1Status == "current",
-                            isRevealed: replayVisible,
-                            fontSize: 26
-                        )
+                        if promiseComplete {
+                            // Live replay: assembles word-by-word on first
+                            // reveal and swaps ONLY the changed slot on chip
+                            // tap. Reduce-motion: final state immediately.
+                            CommitmentReplayView(
+                                anchor: selectedAnchor,
+                                action: selectedAction,
+                                glp1: glp1Status == "current",
+                                isRevealed: replayVisible,
+                                fontSize: 26
+                            )
+                            .transition(.opacity.combined(with: .offset(y: 6)))
+                        } else {
+                            // Empty state — the sentence is HERS to build.
+                            Text("when · what · time. it builds here.")
+                                .font(.custom("JeniHeroSerif-Italic", size: 20))
+                                .foregroundStyle(Palette.cocoaTertiary)
+                                .transition(.opacity)
+                        }
                     }
+                    .animation(Motion.entranceSoft, value: promiseComplete)
                 }
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, Space.screenPadding)
@@ -2417,21 +2436,32 @@ private struct CommitmentRitualPresentation: View {
             // Reduce Motion / VoiceOver fall back to a plain tap inside the
             // component. The component owns the seal haptic, so
             // confirmAndContinue no longer fires its own commit().
-            HoldToPromiseButton(
-                label: "hold to promise",
-                onSeal: confirmAndContinue,
-                autoHoldForDebug: ProcessInfo.processInfo.arguments.contains("--debug-hold-auto-seal")
-            )
-                .padding(.top, 8)
-                .background(Palette.bgPrimary)
-                .opacity(ctaVisible ? 1 : 0)
-                .animation(Motion.entranceSoft, value: ctaVisible)
-        }
-        .onAppear {
-            // Initialize defaults on appear (not init) so AppStorage
-            // values are already resolved before we read them.
-            if selectedAnchor.isEmpty { selectedAnchor = defaultAnchor }
-            if selectedAction.isEmpty { selectedAction = defaultAction }
+            Group {
+                if promiseComplete {
+                    HoldToPromiseButton(
+                        label: "hold to promise",
+                        onSeal: confirmAndContinue,
+                        autoHoldForDebug: ProcessInfo.processInfo.arguments.contains("--debug-hold-auto-seal")
+                    )
+                } else {
+                    // Ghost until the promise exists — the same
+                    // dimmed-cocoa register as a disabled JFContinue.
+                    Text("choose when · what · time")
+                        .font(.custom("DMSans-SemiBold", size: 16))
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Palette.cocoaPrimary.opacity(0.12))
+                        .clipShape(Capsule())
+                        .padding(.horizontal, Space.lg)
+                        .padding(.bottom, 24)
+                }
+            }
+            .padding(.top, 8)
+            .background(Palette.bgPrimary)
+            .opacity(ctaVisible ? 1 : 0)
+            .animation(Motion.entranceSoft, value: ctaVisible)
+            .animation(Motion.entranceSoft, value: promiseComplete)
         }
         .task {
             // Warm the haptic engine on appear - no latency on first play.

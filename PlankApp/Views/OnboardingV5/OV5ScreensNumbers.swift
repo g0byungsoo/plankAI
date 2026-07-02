@@ -68,7 +68,7 @@ struct OV5StressScreen: View {
     var body: some View {
         @Bindable var store = flow.store
         OV5Screen {
-            OV5Header(title: "and the stress level?", italic: ["stress"])
+            OV5Header(title: "how heavy is life right now?", italic: ["heavy"])
             OV5SelectList(
                 options: [
                     .init(key: "low", label: "low"),
@@ -91,7 +91,7 @@ struct OV5GenderScreen: View {
             OV5Header(
                 title: "which body does the math use?",
                 italic: ["math"],
-                sub: "calorie math differs by sex. answer however fits."
+                sub: "calorie math differs by sex."
             )
             OV5SelectList(
                 options: [
