@@ -2982,8 +2982,16 @@ private struct RootView: View {
                         Task { await auth.retryBootstrap() }
                     }
                     .transition(.opacity)
-                } else {
+                } else if ProcessInfo.processInfo.arguments.contains("--onboarding-v4") {
+                    // Debug escape to the legacy v4.5 flow while v5
+                    // burns in. Remove with the v4.5 code sweep.
                     OnboardingView(onComplete: handleOnboardingComplete)
+                        .transition(.opacity)
+                } else {
+                    // Onboarding v5 (2026-07-02) — typed state machine,
+                    // her75 interaction language, snap demo, relocated
+                    // safety gate. Same completion pipeline.
+                    OnboardingV5Flow(onComplete: handleOnboardingComplete)
                         .transition(.opacity)
                 }
             }
