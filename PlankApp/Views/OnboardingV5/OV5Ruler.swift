@@ -106,6 +106,16 @@ struct OV5Ruler: View {
             .gesture(drag(centerX: centerX))
         }
         .frame(height: tickAreaHeight + 28)
+        // Shared hook for the XCUITest onboarding walker (same id the
+        // v4.5 walker's rulerDrag helper targets).
+        .accessibilityIdentifier("biometric_ruler")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("value ruler")
+        .accessibilityValue("\(Int(value))")
+        .accessibilityAdjustableAction { direction in
+            let next = direction == .increment ? value + step : value - step
+            value = min(max(next, range.lowerBound), range.upperBound)
+        }
     }
 
     private func bandFrame(anchorX: CGFloat, centerX: CGFloat) -> CGRect {

@@ -19,7 +19,7 @@ struct OV5HerFileScreen: View {
             // means abandoning a concrete object (endowment mechanic).
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(store.name.isEmpty ? "her" : store.name.lowercased())
+                    Text(store.name.isEmpty ? "her" : "\(store.name.lowercased())'s")
                         .font(.custom("JeniHeroSerif-Italic", size: 30))
                     Text("file")
                         .font(.custom("JeniHeroSerif-Regular", size: 30))
@@ -56,7 +56,7 @@ struct OV5HerFileScreen: View {
                         .kerning(1.98)
                         .foregroundStyle(Palette.cocoaTertiary)
                     Spacer()
-                    Text("♥")
+                    Text("♥\u{FE0E}")
                         .font(.custom("JeniHeroSerif-Regular", size: 13))
                         .foregroundStyle(Palette.accent)
                 }
@@ -125,7 +125,7 @@ struct OV5SignatureScreen: View {
                 signatureRow(
                     isOn: $store.consentPersonalize,
                     title: "use my answers to personalize my plan",
-                    sub: "the whole point. pace, food, lessons — tuned to your file."
+                    sub: "the whole point. pace, food, lessons. tuned to your file."
                 )
                 Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.33)
                 signatureRow(

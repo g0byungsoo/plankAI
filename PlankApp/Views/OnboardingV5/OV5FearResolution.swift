@@ -104,7 +104,7 @@ struct OV5FearResolutionPresentation: View {
                 fearItalic: ["stop?"],
                 answer: "the rhythm stays.",
                 answerItalic: ["stays."],
-                mechanic: "everything the plan builds — protein, steps, the daily pattern — is yours, not the prescription's. whenever that chapter ends, this one holds."
+                mechanic: "everything the plan builds is yours, not the prescription's. protein, steps, the daily pattern. whenever that chapter ends, this one holds."
             )
         }
         if fearPrior == "yes" {
@@ -113,7 +113,7 @@ struct OV5FearResolutionPresentation: View {
                 fearItalic: ["hard"],
                 answer: "we planned for the day you'd usually quit.",
                 answerItalic: ["quit."],
-                mechanic: "your plan carries built-in reset weeks. a bad day is in the math — tomorrow resets, nothing is forfeited."
+                mechanic: "your plan carries built-in reset weeks. a bad day is in the math. tomorrow resets, nothing is forfeited."
             )
         }
         if fearDiet == "yes" {
@@ -122,9 +122,9 @@ struct OV5FearResolutionPresentation: View {
                 currentKg: currentKg, goalKg: goalKg,
                 paceKey: ProjectionMath.paceKey(forTier: pickedTierRaw)
             ) {
-                weeksLine = "your plan runs about \(weeks) weeks, then shifts to keeping — a program with an end, not a diet without one."
+                weeksLine = "your plan runs about \(weeks) weeks, then shifts to keeping. a program with an end, not a diet without one."
             } else {
-                weeksLine = "your plan is a program with an end and a keeping phase — not a diet without one."
+                weeksLine = "your plan is a program with an end and a keeping phase. not a diet without one."
             }
             return Resolution(
                 fear: "this turns into another diet.",

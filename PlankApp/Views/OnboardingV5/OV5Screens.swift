@@ -54,7 +54,10 @@ struct OnboardingV5Flow: View {
                 commitmentDaysKey: commitmentDaysKey,
                 currentWeightKg: flow.store.currentWeightKg,
                 goalWeightKg: flow.store.goalWeightKg,
-                onRevealComplete: { completeAfterReveal() }
+                onRevealComplete: { completeAfterReveal() },
+                // v5 already ran the disclaimer (signature screen) and
+                // the safety gate (care cluster) — start at the loader.
+                skipsPreamble: true
             )
         }
         .sheet(isPresented: $showSignInSheet) {

@@ -65,6 +65,28 @@ struct PlankAIApp: App {
             UserDefaults.standard.removeObject(forKey: "ratingPrompt.postPlanReveal.shown")
             UserDefaults.standard.removeObject(forKey: "ratingPrompt.lastDate")
             UserDefaults.standard.removeObject(forKey: "onboardingReviewPromptShown")
+            // v5 resume-safe store: sweep every persisted answer so the
+            // walker always exercises a truly fresh flow (strikes,
+            // branches, and receipts re-derive from blank state).
+            let d = UserDefaults.standard
+            for key in d.dictionaryRepresentation().keys where key.hasPrefix("onb_v5_") {
+                d.removeObject(forKey: key)
+            }
+            for key in ["onboarding_glp1_status", "onboarding_glp1_phase",
+                        "onboarding_glp1_stop_window", "onboarding_appetite_return",
+                        "onboardingFoodRelationship", "onboardingEatingCadence",
+                        "onboardingPriorWin", "onboardingCuisinePreference",
+                        "onboarding_dietary", "onb_v4_movement_baseline",
+                        "onboardingSleepHours", "onboardingStressLevel",
+                        "onboarding_weight_trend", "onboarding_goal_direction",
+                        "onboardingNsvPriority", "onboarding_medication_status",
+                        "onboardingHormonalStage", "onboardingPriorAttempts",
+                        "onb_fear_quickResults", "onb_fear_anotherDiet",
+                        "onb_fear_priorAttempt", "onb_fear_offramp",
+                        "onb_fear_regain", "medicalDisclaimerAckAtISO",
+                        "onboardingPickedTier"] {
+                d.removeObject(forKey: key)
+            }
         }
         // In-app QA hook: lands the walker on MainTabView as a
         // completed-onboarding user (pair with --uitest-pro-access for

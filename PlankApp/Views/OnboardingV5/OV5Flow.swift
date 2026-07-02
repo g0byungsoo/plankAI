@@ -147,15 +147,28 @@ final class OV5Store {
     var sleepHours: String { didSet { d.set(sleepHours, forKey: "onboardingSleepHours") } }
     var stressLevel: String { didSet { d.set(stressLevel, forKey: "onboardingStressLevel") } }
     var gender: String { didSet { d.set(gender, forKey: "onb_v5_gender") } }
-    var ageYears: Int { didSet { d.set(ageYears, forKey: "onb_v5_age_years") } }
+    var ageYears: Int { didSet {
+        d.set(ageYears, forKey: "onb_v5_age_years")
+        // The relocated safety gate reads the canonical band mid-flow.
+        d.set(ageRangeBucket, forKey: "onboardingAgeRange")
+    } }
     var heightCm: Double { didSet {
         d.set(heightCm, forKey: "onb_v5_height_cm")
         // Mirror v4.5 finish(): the safety gate's BMI floor reads height
         // from AppStorage without a fetch.
         d.set(heightCm, forKey: "onboardingHeightCm")
     } }
-    var currentWeightKg: Double { didSet { d.set(currentWeightKg, forKey: "onb_v5_weight_kg") } }
-    var goalWeightKg: Double { didSet { d.set(goalWeightKg, forKey: "onb_v5_goal_kg") } }
+    var currentWeightKg: Double { didSet {
+        d.set(currentWeightKg, forKey: "onb_v5_weight_kg")
+        // Canonical mirrors, written live: the mid-flow safety gate +
+        // the reveal's fear-resolution read these before
+        // handleOnboardingComplete re-persists them at completion.
+        d.set(currentWeightKg, forKey: "onboardingCurrentWeightKg")
+    } }
+    var goalWeightKg: Double { didSet {
+        d.set(goalWeightKg, forKey: "onb_v5_goal_kg")
+        d.set(goalWeightKg, forKey: "onboardingGoalWeightKg")
+    } }
     var weightTrend: String { didSet { d.set(weightTrend, forKey: "onboarding_weight_trend") } }
     var goalDirection: String { didSet { d.set(goalDirection, forKey: "onboarding_goal_direction"); applyGoalDirection() } }
     var nsvPriority: Set<String> { didSet { d.set(nsvPriority.sorted().joined(separator: ","), forKey: "onboardingNsvPriority") } }

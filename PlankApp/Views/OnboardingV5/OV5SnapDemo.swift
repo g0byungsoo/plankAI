@@ -124,6 +124,8 @@ struct OV5SnapDemoScreen: View {
                 .matchedGeometryEffect(id: meal.key, in: ns, isSource: phase == .pick)
         }
         .buttonStyle(PressFeedbackStyle())
+        .accessibilityIdentifier("demo_meal_\(meal.key)")
+        .accessibilityLabel(meal.title)
     }
 
     private func pick(_ meal: DemoMeal) {

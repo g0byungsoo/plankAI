@@ -509,3 +509,359 @@ final class SnapCarouselUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 1.2)     // kcal roll on video
     }
 }
+
+// MARK: - Onboarding v5 walker (2026-07-02)
+//
+// Deterministic beat-by-beat walk of the v5 flow (typed state machine,
+// cross-off auto-advance, rulers, snap demo, care cluster, reveal) from
+// welcome to the hard paywall, one screenshot per beat. Cohort variant
+// via GLP1_COHORT env (none | current | past | considering).
+//
+//   xcodebuild test -project plankAI.xcodeproj -scheme plankAI \
+//     -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+//     -only-testing:plankAIUITests/OnboardingV5WalkerUITests
+final class OnboardingV5WalkerUITests: XCTestCase {
+
+    private var app: XCUIApplication!
+    private var shot = 0
+
+    override func setUpWithError() throws {
+        continueAfterFailure = true
+    }
+
+    private func snap(_ name: String) {
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = String(format: "%02d_%@", shot, name)
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        shot += 1
+    }
+
+    /// Wait for a HITTABLE button whose label CONTAINS the needle (the
+    /// two-beat entrance holds elements at opacity 0 — they exist before
+    /// they can be hit), snap, tap. Multi-select chips + toggling rows
+    /// pass `retryIfPresent: false` so a retap can't undo them; advance-
+    /// class buttons retry once when the tap didn't take (cold-launch
+    /// first-tap race).
+    @discardableResult
+    private func tapButton(_ needle: String, shotName: String? = nil,
+                           timeout: TimeInterval = 10, settle: TimeInterval = 1.0,
+                           retryIfPresent: Bool = false) -> Bool {
+        let b = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", needle)
+        ).firstMatch
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if b.exists && b.isHittable { break }
+            Thread.sleep(forTimeInterval: 0.25)
+        }
+        guard b.exists && b.isHittable else {
+            snap("MISSING_\(needle.replacingOccurrences(of: " ", with: "_"))")
+            return false
+        }
+        if let shotName { Thread.sleep(forTimeInterval: 0.55); snap(shotName) }
+        b.tap()
+        Thread.sleep(forTimeInterval: settle)
+        if retryIfPresent, b.exists, b.isHittable {
+            b.tap()
+            Thread.sleep(forTimeInterval: settle)
+        }
+        return true
+    }
+
+    /// Receipts / bridges advance on a whole-surface tap. Marker-strict:
+    /// when the expected screen never appears we do NOT blind-tap the
+    /// center (a stray center-tap on a stalled screen can toggle
+    /// answers — the run-5 SCOFF corruption).
+    private func tapThrough(_ shotName: String, marker: String, settle: TimeInterval = 1.0) {
+        let m = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", marker)
+        ).firstMatch
+        guard m.waitForExistence(timeout: 10) else {
+            snap("MISSING_\(shotName)")
+            return
+        }
+        Thread.sleep(forTimeInterval: 0.9)
+        snap(shotName)
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        Thread.sleep(forTimeInterval: settle)
+    }
+
+    private func dragRuler(fromX: CGFloat, toX: CGFloat) {
+        let ruler = app.otherElements["biometric_ruler"].firstMatch
+        let host: XCUIElement = ruler.exists ? ruler : app
+        let start = host.coordinate(withNormalizedOffset: CGVector(dx: fromX, dy: 0.5))
+        let end = host.coordinate(withNormalizedOffset: CGVector(dx: toX, dy: 0.5))
+        start.press(forDuration: 0.05, thenDragTo: end)
+        Thread.sleep(forTimeInterval: 0.7)
+    }
+
+    func testWalkV5ToPaywall() throws {
+        app = XCUIApplication()
+        app.launchArguments += ["--uitest-fresh-onboarding"]
+        let cohort = ProcessInfo.processInfo.environment["GLP1_COHORT"] ?? "none"
+        app.launch()
+
+        addUIInterruptionMonitor(withDescription: "system alerts") { alert in
+            for label in ["Allow", "Allow Once", "OK", "Don't Allow", "Not Now"] {
+                let b = alert.buttons[label]
+                if b.exists { b.tap(); return true }
+            }
+            return false
+        }
+
+        // act i — her arrival
+        tapButton("i'm ready", shotName: "welcome", settle: 1.6, retryIfPresent: true)
+        tapButton("okay", shotName: "antiShame")
+        tapButton("quiet the food noise", shotName: "outcome")
+        tapButton("tiktok", shotName: "attribution")
+        tapThrough("credibility", marker: "right place")
+        // name — type, then continue
+        let nameField = app.textFields.firstMatch
+        if nameField.waitForExistence(timeout: 8) {
+            Thread.sleep(forTimeInterval: 0.8)
+            snap("name")
+            nameField.tap()
+            nameField.typeText("maya")
+        }
+        tapButton("continue", settle: 1.2)
+
+        // act ii — glp1 status fork
+        switch cohort {
+        case "current":
+            tapButton("yes, i'm on one", shotName: "glp1Status", settle: 0.6)
+            tapButton("continue", settle: 1.2)
+            tapButton("a few months in", shotName: "glp1Phase", settle: 0.6)
+            tapButton("continue", settle: 1.2)
+            tapButton("late week", shotName: "appetiteRhythm")
+            tapButton("continue", shotName: "muscleMath")
+        case "past":
+            tapButton("i was. not anymore", shotName: "glp1Status", settle: 0.6)
+            tapButton("continue", settle: 1.2)
+            tapButton("3 to 6 months", shotName: "stopWindow", settle: 0.6)
+            tapButton("continue", settle: 1.2)
+            tapButton("creeping back", shotName: "appetiteReturn")
+            tapButton("continue", shotName: "regainTruth")
+        case "considering":
+            tapButton("thinking about it", shotName: "glp1Status", settle: 0.6)
+            tapButton("continue", settle: 1.2)
+            tapButton("continue", shotName: "consideringAgency")
+        default:
+            tapButton("no", shotName: "glp1Status", settle: 0.6)
+            tapButton("continue", settle: 1.2)
+        }
+
+        // food story
+        tapButton("comfort", shotName: "foodRelationship")
+        tapButton("continue", shotName: "foodNoise")
+        tapButton("show me", shotName: "preEat")
+
+        // snap demo
+        let bowl = app.buttons["demo_meal_bowl"].firstMatch
+        if bowl.waitForExistence(timeout: 8) {
+            Thread.sleep(forTimeInterval: 0.9)
+            snap("snapDemo_pick")
+            bowl.tap()
+            Thread.sleep(forTimeInterval: 1.2)
+            snap("snapDemo_scanning")
+            Thread.sleep(forTimeInterval: 1.6)
+            snap("snapDemo_result")
+        }
+        tapButton("day one, you do this for real", settle: 1.2)
+
+        tapButton("3 steady meals", shotName: "eatingCadence")
+        tapButton("less sugar", shotName: "priorWin")
+        // cuisine chips (multi) + continue
+        tapButton("korean", shotName: "cuisine", settle: 0.3)
+        tapButton("italian", settle: 0.3)
+        tapButton("continue", settle: 1.2)
+        tapButton("none of these", shotName: "dietary", settle: 0.4)
+        tapButton("continue", settle: 1.2)
+        tapThrough("receiptFood", marker: "food story")
+
+        // act iii — numbers
+        tapThrough("numbersBridge", marker: "gently")
+        tapButton("walks here and there", shotName: "movement")
+        tapButton("5 to 6", shotName: "sleep")
+        tapButton("manageable", shotName: "stress")
+        tapButton("female", shotName: "gender")
+        // age ruler
+        Thread.sleep(forTimeInterval: 0.8); snap("age")
+        dragRuler(fromX: 0.5, toX: 0.42)
+        tapButton("continue", settle: 1.0)
+        // height ruler
+        Thread.sleep(forTimeInterval: 0.8); snap("height")
+        tapButton("continue", settle: 1.0)
+        // weight ruler — drag left = increase; commit twice (confirmation beat)
+        Thread.sleep(forTimeInterval: 0.8); snap("weight")
+        dragRuler(fromX: 0.6, toX: 0.35)
+        tapButton("that's me", settle: 1.6)
+        snap("weight_confirmed")
+        Thread.sleep(forTimeInterval: 0.8)
+        tapButton("up and down", shotName: "weightTrend")
+        tapButton("lose weight", shotName: "goalDirection")
+        // goal ruler — drag right = decrease toward goal
+        Thread.sleep(forTimeInterval: 0.9); snap("goalWeight")
+        dragRuler(fromX: 0.4, toX: 0.62)
+        snap("goalWeight_band")
+        tapButton("continue", settle: 1.2)
+        tapButton("continue", shotName: "targetReframe")
+        tapButton("energy that lasts", shotName: "nsv", settle: 0.3)
+        tapButton("clothes that fit right", settle: 0.3)
+        tapButton("continue", settle: 1.2)
+        tapThrough("careBridge", marker: "care part")
+        tapButton("no", shotName: "medication", settle: 0.5)
+        tapButton("continue", settle: 1.2)
+
+        // safety gate: pregnancy → SCOFF (all no) → passes. The 5 SCOFF
+        // items overflow the fold — answer visible rows, scroll, repeat
+        // until the docked continue enables.
+        tapButton("none of these", shotName: "gate_pregnancy", settle: 0.4)
+        tapButton("continue", settle: 1.2)
+        Thread.sleep(forTimeInterval: 0.8)
+        snap("gate_scoff")
+        for round in 0..<5 {
+            let nos = app.buttons.matching(NSPredicate(format: "label == %@", "no"))
+                .allElementsBoundByIndex
+            for b in nos where b.exists && b.isHittable {
+                b.tap(); Thread.sleep(forTimeInterval: 0.12)
+            }
+            let cont = app.buttons["continue"].firstMatch
+            if cont.exists && cont.isEnabled { break }
+            if round < 4 {
+                app.swipeUp()
+                Thread.sleep(forTimeInterval: 0.6)
+            }
+        }
+        snap("gate_scoff_answered")
+        tapButton("continue", settle: 1.6)
+        tapThrough("receiptNumbers", marker: "carry")
+
+        // act iv — the part nobody asks
+        tapButton("calm", shotName: "identity", settle: 1.0)
+        tapButton("cycling regularly", shotName: "hormonal", settle: 0.5)
+        tapButton("continue", settle: 1.2)
+        tapButton("lost count", shotName: "startedOver", settle: 2.0)
+        tapThrough("dataMirror", marker: "truth")
+        tapButton("yes, that's me", shotName: "fear1", settle: 1.2)
+        tapButton("not really", shotName: "fear2", settle: 1.2)
+        tapButton("yes, that's me", shotName: "fear3", settle: 1.2)
+        tapButton("this is the one", shotName: "whyItCameBack")
+        tapThrough("receiptCarry", marker: "almost")
+
+        // act v — almost hers
+        tapButton("this is me", shotName: "herFile")
+        tapButton("i know this is a plan", shotName: "signature", settle: 0.4)
+        tapButton("signed", settle: 1.2)
+        tapButton("not now", shotName: "healthKit", settle: 1.2)
+        // hold to build
+        Thread.sleep(forTimeInterval: 0.9)
+        snap("holdToBuild")
+        let holdButton = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "hold to build")
+        ).firstMatch
+        if holdButton.waitForExistence(timeout: 6) {
+            holdButton.press(forDuration: 1.8)
+        } else {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.88)).press(forDuration: 1.8)
+        }
+        Thread.sleep(forTimeInterval: 1.5)
+
+        // reveal: building → pace → projection → firstWeek →
+        // fearResolution → commitment → permissions → wall.
+        // The ATT dialog fires ~30% into the loader; interruption
+        // monitors don't trigger on existence polls, so dismiss it
+        // directly on springboard.
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        Thread.sleep(forTimeInterval: 3.0)
+        snap("building")
+        let attAllow = springboard.buttons["Allow"]
+        let attDeny = springboard.buttons["Ask App Not to Track"]
+        if attAllow.waitForExistence(timeout: 6) {
+            attAllow.tap()
+        } else if attDeny.exists {
+            attDeny.tap()
+        }
+        Thread.sleep(forTimeInterval: 1.0)
+        snap("building_tape")
+        tapButton("see your plan", shotName: "building_done", timeout: 30, settle: 1.6)
+        tapButton("steady", shotName: "pacePicker", settle: 0.6)
+        tapButton("continue", settle: 1.6)
+        Thread.sleep(forTimeInterval: 1.4)
+        snap("projection")
+        // projection's continue label varies; try common ones
+        if !tapButton("continue", timeout: 4, settle: 1.4) {
+            _ = tapButton("keep", timeout: 3, settle: 1.4)
+        }
+        Thread.sleep(forTimeInterval: 1.0)
+        snap("firstWeek")
+        if !tapButton("continue", timeout: 4, settle: 1.4) {
+            _ = tapButton("let's go", timeout: 3, settle: 1.4)
+        }
+        // fear resolution (fires because fear1/fear3 = yes)
+        Thread.sleep(forTimeInterval: 1.0)
+        snap("fearResolution")
+        _ = tapButton("keep going", timeout: 6, settle: 1.4)
+
+        // commitment ritual: pick chips if present, then hold-to-promise
+        Thread.sleep(forTimeInterval: 1.2)
+        snap("commitment")
+        let promiseHold = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "seal your promise")
+        ).firstMatch
+        if promiseHold.waitForExistence(timeout: 6) {
+            promiseHold.press(forDuration: 1.6)
+        }
+        Thread.sleep(forTimeInterval: 1.6)
+
+        // permissions (notification mock) → wall
+        snap("permissions")
+        for label in ["allow notifications", "not right now", "maybe later", "continue"] {
+            if tapButton(label, timeout: 3, settle: 1.0) { break }
+        }
+        // The real iOS notification permission alert.
+        let notifAllow = springboard.buttons["Allow"]
+        if notifAllow.waitForExistence(timeout: 5) { notifAllow.tap() }
+
+        // hard paywall = end state
+        Thread.sleep(forTimeInterval: 3.0)
+        snap("paywall")
+    }
+}
+
+// Temporary diagnosis: dump the welcome element tree + frames, tap the
+// CTA by element AND by coordinate, and report what the screen shows
+// afterward. Deleted once the v5 walker is green.
+final class OV5DiagUITests: XCTestCase {
+    func testWelcomeTapDiagnosis() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--uitest-fresh-onboarding"]
+        app.launch()
+        Thread.sleep(forTimeInterval: 5.0)
+
+        let ready = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "i'm ready")
+        ).firstMatch
+        print("DIAG ready.exists=\(ready.exists) hittable=\(ready.exists ? ready.isHittable : false) frame=\(ready.exists ? "\(ready.frame)" : "-")")
+        print("DIAG TREE-BEGIN")
+        print(app.debugDescription.prefix(6000))
+        print("DIAG TREE-END")
+
+        if ready.exists { ready.tap() }
+        Thread.sleep(forTimeInterval: 2.5)
+        let okay = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "okay")
+        ).firstMatch
+        print("DIAG after-element-tap okay.exists=\(okay.exists)")
+
+        if !okay.exists, ready.exists {
+            // Coordinate tap at the button's visual center.
+            ready.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            Thread.sleep(forTimeInterval: 2.5)
+            print("DIAG after-coord-tap okay.exists=\(okay.exists)")
+        }
+        let att = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        att.name = "diag_final"; att.lifetime = .keepAlways
+        add(att)
+    }
+}
