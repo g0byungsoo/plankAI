@@ -592,8 +592,23 @@ Deno.serve(async (req: Request) => {
   // text-described foods as to photographed ones.
   let userContent: unknown;
   if (hasImage) {
+    // v1.2 (2026-07-01) — when BOTH an image and text arrive, the text
+    // is user-supplied context riding the photo (a capture-time note
+    // like "restaurant portion, extra dressing" or a fix-with-words
+    // correction that references the actual shot). Fold it into the
+    // instruction so the model reads the plate WITH her words. Image-
+    // only requests behave exactly as before. Cooking fat + dressing
+    // context is the #1 systematic undercount source in photo-only
+    // estimation — one user sentence closes most of it.
+    const contextLine = hasText
+      ? ` context from the user (trust it over visual guesses where they conflict): "${textDescription}".`
+      : "";
     userContent = [
-      { type: "text", text: "what is on this plate? estimate kcal + macros directly." },
+      {
+        type: "text",
+        text:
+          `what is on this plate? estimate kcal + macros directly.${contextLine}`,
+      },
       {
         type: "image_url",
         image_url: {

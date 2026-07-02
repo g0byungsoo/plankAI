@@ -151,20 +151,24 @@ public struct QuickAddView: View {
     // MARK: - Header
 
     @ViewBuilder private var header: some View {
+        // v1.2 — the "describe" mode headline joins the her75 hero
+        // register (JeniHeroSerif + italic punch) instead of system
+        // semibold; heart stays terminal punctuation, text-presentation.
         VStack(spacing: 8) {
             (
-                Text("what'd you ")
-                    .font(.system(size: 28, weight: .semibold))
+                Text("what did you ")
+                    .font(.custom("JeniHeroSerif-Regular", size: 30))
                 + Text("eat")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 28))
-                + Text(" ♥")
-                    .font(.system(size: 28, weight: .semibold))
+                    .font(.custom("JeniHeroSerif-Italic", size: 30))
+                + Text("? \u{2665}\u{FE0E}")
+                    .font(.custom("JeniHeroSerif-Regular", size: 22))
+                    .foregroundColor(FoodTheme.accent)
             )
             .foregroundStyle(FoodTheme.textPrimary)
             .multilineTextAlignment(.center)
 
             Text("type any meal or drink. jeni'll figure out the calories.")
-                .font(.system(size: 14))
+                .font(.custom("DMSans-Regular", size: 14))
                 .foregroundStyle(FoodTheme.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 12)
@@ -199,15 +203,22 @@ public struct QuickAddView: View {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 Task { await submit() }
             } label: {
+                // v1.2 — disabled state joins the one-CTA system: cocoa
+                // ghost (12% fill + faint cocoa label), never a washed
+                // grey capsule with white text.
                 Text("log it")
                     .font(.custom("DMSans-SemiBold", size: 16))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(
+                        trimmedInput.isEmpty
+                        ? FoodTheme.textPrimary.opacity(0.35)
+                        : FoodTheme.bgPrimary
+                    )
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(
                         Capsule().fill(
                             trimmedInput.isEmpty
-                            ? FoodTheme.textPrimary.opacity(0.35)
+                            ? FoodTheme.textPrimary.opacity(0.12)
                             : FoodTheme.textPrimary
                         )
                     )
@@ -221,11 +232,17 @@ public struct QuickAddView: View {
         .padding(18)
         .background(FoodTheme.bgElevated)
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        // v1.2 — the hard offset shadow + 1.5pt rose border read
+        // scrapbook-loud next to the rebuilt result card; the input
+        // joins the soft-luxury chrome (cocoa hairline + warm shadow).
         .overlay(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(FoodTheme.accent.opacity(0.35), lineWidth: 1.5)
+                .stroke(FoodTheme.textPrimary.opacity(0.10), lineWidth: 0.75)
         )
-        .shadow(color: FoodTheme.textPrimary.opacity(0.15), radius: 0, x: 3, y: 3)
+        .shadow(
+            color: Color(red: 0.36, green: 0.20, blue: 0.18).opacity(0.08),
+            radius: 14, x: 0, y: 5
+        )
     }
 
     // MARK: - Suggestions block
@@ -280,28 +297,14 @@ public struct QuickAddView: View {
     // MARK: - Loading overlay
 
     @ViewBuilder private var loadingOverlay: some View {
+        // v1.2 — the dark scrim + spinner read clinical against the
+        // cream flow. Now a cream veil with the breathing serif line
+        // (same in-flight vocabulary as the result card's composer).
         ZStack {
-            Color.black.opacity(0.4).ignoresSafeArea()
-
-            VStack(spacing: 18) {
-                ProgressView()
-                    .scaleEffect(1.4)
-                    .tint(.white)
-
-                (
-                    Text("jeni's ")
-                        .font(.system(size: 15))
-                    + Text("thinking")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15))
-                    + Text(" ♥")
-                        .font(.system(size: 15))
-                )
-                .foregroundStyle(.white)
-            }
-            .padding(28)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))
+            FoodTheme.bgPrimary.opacity(0.88).ignoresSafeArea()
+            DescribeBreatheLine()
         }
-        .colorScheme(.dark)
+        .transition(.opacity)
     }
 
     // MARK: - Error banner
@@ -768,6 +771,33 @@ extension QuickAddSuggestion {
             "chamomile tea with honey",
         ],
     ]
+}
+
+// MARK: - DescribeBreatheLine
+//
+// v1.2 — the describe-mode in-flight state: the same breathing italic
+// serif vocabulary as the result card's composer. No spinner.
+
+private struct DescribeBreatheLine: View {
+    @State private var bright = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        (Text("reading your ")
+            .font(.custom("JeniHeroSerif-Regular", size: 20))
+        + Text("words")
+            .font(.custom("JeniHeroSerif-Italic", size: 20))
+        + Text("…")
+            .font(.custom("JeniHeroSerif-Regular", size: 20)))
+            .foregroundStyle(FoodTheme.textPrimary.opacity(bright ? 1.0 : 0.5))
+            .onAppear {
+                guard !reduceMotion else { bright = true; return }
+                withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
+                    bright = true
+                }
+            }
+            .accessibilityLabel("working on it")
+    }
 }
 
 #endif  // canImport(UIKit)

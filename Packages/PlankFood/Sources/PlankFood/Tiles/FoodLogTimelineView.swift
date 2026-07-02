@@ -99,7 +99,21 @@ public struct FoodLogTimelineView: View {
                     .zIndex(10)
             }
         }
-        .onAppear { refresh() }
+        .onAppear {
+            refresh()
+            #if DEBUG
+            // Sim QA: `--debug-journal-detail` auto-opens the first
+            // entry's detail overlay for screenshot capture.
+            if ProcessInfo.processInfo.arguments.contains("--debug-journal-detail"),
+               selectedEntry == nil {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+                        selectedEntry = entries.first
+                    }
+                }
+            }
+            #endif
+        }
         .onReceive(FoodLogPersister.changeNotifier) { _ in refresh() }
         // v1.0.9 D3.C — UIActivityViewController share sheet, hosted
         // via a SwiftUI sheet. Reusing the existing ShareSheet UIKit
@@ -498,6 +512,29 @@ public struct FoodLogTimelineView: View {
                     .padding(.top, 24)
                 }
 
+                // v1.2 — per-ingredient ledger for entries written by
+                // the rebuilt snap flow (itemsDetail persisted). Older
+                // entries simply don't show the block.
+                if let detail = entry.itemsDetail, detail.count > 1 {
+                    VStack(spacing: 6) {
+                        ForEach(Array(detail.prefix(4).enumerated()), id: \.offset) { _, item in
+                            HStack(alignment: .firstTextBaseline) {
+                                Text(item.name.lowercased())
+                                    .font(.custom("DMSans-Regular", size: 12))
+                                    .foregroundStyle(FoodTheme.textSecondary)
+                                    .lineLimit(1)
+                                Spacer(minLength: 10)
+                                Text("\(Int(item.kcal.rounded())) cal")
+                                    .font(.custom("DMSans-Regular", size: 12))
+                                    .foregroundStyle(FoodTheme.textSecondary.opacity(0.85))
+                                    .monospacedDigit()
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 44)
+                    .padding(.top, 16)
+                }
+
                 HStack(spacing: FoodTheme.Space.md) {
                     Button {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -511,6 +548,28 @@ public struct FoodLogTimelineView: View {
                             .frame(height: 40)
                             .background(Capsule().stroke(FoodTheme.textPrimary.opacity(0.15), lineWidth: 1))
                     }
+
+                    // v1.2 — one-tap relog. The same meal, kept again
+                    // with a fresh timestamp; the "kept ♡" beat lands,
+                    // then the detail closes onto the refreshed list.
+                    Button {
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                        FoodLogPersister.relog(entry, userId: userId)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            closeDetail()
+                        }
+                    } label: {
+                        (Text("again ")
+                            .font(.custom("DMSans-SemiBold", size: 14))
+                        + Text("\u{2661}")
+                            .font(.custom("DMSans-Regular", size: 13)))
+                            .foregroundStyle(FoodTheme.accent)
+                            .padding(.horizontal, 18)
+                            .frame(height: 40)
+                            .background(Capsule().stroke(FoodTheme.accent.opacity(0.45), lineWidth: 1))
+                    }
+                    .accessibilityLabel("log this again")
+
                     Button {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         closeDetail()
