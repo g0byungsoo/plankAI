@@ -17,11 +17,18 @@ import SwiftUI
 //     view-appear so the first real scan doesn't pay the cold start
 
 @MainActor
-struct SnapSweepOverlay: View {
+public struct SnapSweepOverlay: View {
 
     let isActive: Bool
 
-    var body: some View {
+    // Public: the onboarding snap demo (OV5SnapDemo) runs the REAL scan
+    // pass over its staged plates — the product magic pre-paywall is
+    // only honest if it is literally the same Metal pass.
+    public init(isActive: Bool) {
+        self.isActive = isActive
+    }
+
+    public var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0,
                                 paused: !isActive)) { timeline in
             // Modulo keeps the float uniform small (shader-side fract
