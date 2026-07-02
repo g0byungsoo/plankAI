@@ -623,6 +623,20 @@ struct PlankAIApp: App {
                     ResultCarouselPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-snap-camera") {
                     SnapCameraDebugHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-describe") {
+                    // v1.2 snap rebuild — the describe (text) entry mode
+                    // in isolation, restyled register.
+                    QuickAddView(
+                        onLogged: { _ in },
+                        onScanInstead: {},
+                        onDismiss: {},
+                        userId: "debug-journal-user"
+                    )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-food-journal") {
+                    // v1.2 snap rebuild — seeded journal + detail overlay
+                    // (pair with --debug-journal-detail to auto-open the
+                    // first entry's detail).
+                    FoodJournalPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-becoming") {
                     BecomingPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-home") {
@@ -1615,28 +1629,67 @@ private struct ResultCarouselPreviewHarness: View {
     }()
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                // v1.0.25 — fake camera photo behind. In production
-                // this is the frozen camera frame; in the harness we
-                // simulate with the rose gradient so the floating
-                // cards on slides 1+2 read against a photo-like
-                // backdrop.
-                Image(uiImage: Self.mockPhoto)
-                    .resizable()
-                    .scaledToFill()
-                    .ignoresSafeArea()
-                NutritionCarousel(
-                    result: Self.mockFood,
-                    photo: Self.mockPhoto,
-                    mealLabel: "Breakfast",
-                    dishName: "scrambled eggs + avocado toast +2",
-                    carouselHeight: geo.size.height - 60,
-                    onEditItem: { _ in },
-                    onLogPair: { _ in }
-                )
-                .padding(.top, 50)
-            }
+        // v1.2 snap-food rebuild — the harness now mounts the
+        // production result surface (full-bleed photo + SnapResultView
+        // panel) so the card can be iterated in isolation with a
+        // 4-item mock plate.
+        ZStack {
+            Image(uiImage: Self.mockPhoto)
+                .resizable()
+                .scaledToFill()
+                .ignoresSafeArea()
+            SnapResultView(
+                food: Self.mockFood,
+                mealLabel: "breakfast",
+                dishName: "scrambled eggs + avocado toast +2",
+                onLog: { _ in },
+                onRetake: {},
+                onShare: {},
+                onEdited: { _ in },
+                // Offline mock refine so the composer round-trip can be
+                // exercised in the harness: fix-words returns the plate
+                // at 80% (visible number roll), add appends an oil item.
+                refine: { request in
+                    try await Task.sleep(nanoseconds: 1_400_000_000)
+                    switch request {
+                    case .fixWords(let current, _):
+                        let scaled = current.items.map { item in
+                            CapturedItem(
+                                id: item.id, name: item.name,
+                                portionGrams: item.portionGrams * 0.8,
+                                portionGramsLow: item.portionGramsLow * 0.8,
+                                portionGramsHigh: item.portionGramsHigh * 0.8,
+                                usdaSearchTerms: item.usdaSearchTerms,
+                                preparation: item.preparation,
+                                cuisineHint: item.cuisineHint,
+                                confidence: item.confidence, notes: item.notes,
+                                kcal: (item.kcal ?? 0) * 0.8,
+                                proteinG: (item.proteinG ?? 0) * 0.8,
+                                carbsG: (item.carbsG ?? 0) * 0.8,
+                                fatG: (item.fatG ?? 0) * 0.8,
+                                fiberG: (item.fiberG ?? 0) * 0.8,
+                                nutritionSource: item.nutritionSource
+                            )
+                        }
+                        return .rebased(CapturedFood(
+                            items: scaled, plateType: current.plateType,
+                            source: current.source, confidence: current.confidence,
+                            needsSecondPhoto: false, secondPhotoHint: nil,
+                            kcalLow: current.kcalLow.map { $0 * 0.8 },
+                            kcalHigh: current.kcalHigh.map { $0 * 0.8 }
+                        ))
+                    case .addItem:
+                        return .added([CapturedItem(
+                            id: UUID().uuidString, name: "olive oil drizzle",
+                            portionGrams: 10, portionGramsLow: 5, portionGramsHigh: 15,
+                            usdaSearchTerms: ["olive oil"], preparation: "raw",
+                            cuisineHint: nil, confidence: 0.8, notes: nil,
+                            kcal: 80, proteinG: 0, carbsG: 0, fatG: 9, fiberG: 0,
+                            nutritionSource: .llmDirect
+                        )])
+                    }
+                }
+            )
         }
     }
 }
@@ -1653,6 +1706,8 @@ private struct ResultCarouselPreviewHarness: View {
 //   --debug-snap-camera --food-debug-autostart --food-debug-empty
 //   --debug-snap-camera --food-debug-autostart --food-debug-hang --food-debug-deadline 30  (hold scanning to screenshot)
 private struct SnapCameraDebugHarness: View {
+    @State private var showRecents = false
+
     init() {
         FoodModule.configure(
             visionService: FoodVisionService(
@@ -1670,7 +1725,95 @@ private struct SnapCameraDebugHarness: View {
             onDismiss: {},
             onCaptured: { _, _ in },
             onQuickAddTapped: {},
-            onImOutTapped: {}
+            onImOutTapped: {},
+            onAgainTapped: {
+                FoodJournalPreviewHarness.seedIfNeeded()
+                showRecents = true
+            }
+        )
+        .sheet(isPresented: $showRecents) {
+            RecentMealsSheet(
+                userId: FoodJournalPreviewHarness.debugUserId,
+                onLogged: { showRecents = false },
+                onClose: { showRecents = false }
+            )
+            .presentationDetents([.fraction(0.55), .large])
+            .presentationDragIndicator(.visible)
+        }
+        .task {
+            // `--debug-again-sheet` auto-opens the relog sheet with
+            // seeded recents for screenshot capture.
+            if ProcessInfo.processInfo.arguments.contains("--debug-again-sheet") {
+                try? await Task.sleep(nanoseconds: 1_200_000_000)
+                FoodJournalPreviewHarness.seedIfNeeded()
+                showRecents = true
+            }
+        }
+    }
+}
+
+// MARK: - FoodJournalPreviewHarness — seeded journal + detail
+//
+// v1.2 snap rebuild (2026-07-01) — mounts the real FoodLogTimelineView
+// against a seeded debug user so journal rows, the meal-detail morph,
+// the per-item ledger, and the relog action can be verified in the
+// simulator. Seeds go through FoodLogPersister.relog (persist() wants
+// a ModelContext; relog builds entries directly).
+
+private struct FoodJournalPreviewHarness: View {
+    static let debugUserId = "debug-journal-user"
+
+    init() { Self.seedIfNeeded() }
+
+    static func seedIfNeeded() {
+        guard FoodLogPersister.allEntries(userId: debugUserId).isEmpty else { return }
+        let seeds: [FoodLogPersister.FoodLogEntry] = [
+            .init(
+                id: UUID().uuidString, loggedAt: Date(),
+                title: "jeyuk bokkeum + steamed rice",
+                kcal: 820, protein: 52, carbs: 68, fat: 34, fiber: 6,
+                items: ["jeyuk bokkeum", "steamed rice"],
+                source: "photo",
+                itemsDetail: [
+                    .init(name: "jeyuk bokkeum", portionG: 320, kcal: 640,
+                          protein: 48, carbs: 22, fat: 34),
+                    .init(name: "steamed rice", portionG: 150, kcal: 180,
+                          protein: 4, carbs: 46, fat: 0),
+                ]
+            ),
+            .init(
+                id: UUID().uuidString, loggedAt: Date(),
+                title: "greek yogurt with berries",
+                kcal: 220, protein: 18, carbs: 24, fat: 6, fiber: 4,
+                items: ["greek yogurt", "mixed berries"],
+                source: "text",
+                itemsDetail: [
+                    .init(name: "greek yogurt", portionG: 170, kcal: 150,
+                          protein: 16, carbs: 8, fat: 5),
+                    .init(name: "mixed berries", portionG: 80, kcal: 70,
+                          protein: 2, carbs: 16, fat: 1),
+                ]
+            ),
+            .init(
+                id: UUID().uuidString, loggedAt: Date(),
+                title: "matcha latte with oat milk",
+                kcal: 140, protein: 4, carbs: 18, fat: 6, fiber: 1,
+                items: ["matcha latte"],
+                source: "text",
+                itemsDetail: nil
+            ),
+        ]
+        for seed in seeds {
+            FoodLogPersister.relog(seed, userId: debugUserId)
+        }
+    }
+
+    var body: some View {
+        FoodLogTimelineView(
+            userId: Self.debugUserId,
+            dailyTarget: 1950,
+            onAddTapped: {},
+            onDismiss: {}
         )
     }
 }

@@ -72,6 +72,20 @@ public struct CountUpNumber: View {
         }
         .kerning(-(size * 0.012))  // -1.2% size — her75 display tracking
         .onAppear { runReveal() }
+        // v1.2 snap-food rebuild — the target can move after the first
+        // reveal (portion steppers, "ate about half" chips, corrections).
+        // Re-roll to the new value with the native digit roll; no curtsy
+        // (that flourish is reserved for the arrival moment).
+        .onChange(of: target) { _, newTarget in
+            guard newTarget != displayedValue else { return }
+            if reduceMotion {
+                displayedValue = newTarget
+                return
+            }
+            withAnimation(.easeOut(duration: 0.5)) {
+                displayedValue = newTarget
+            }
+        }
     }
 
     private func runReveal() {
