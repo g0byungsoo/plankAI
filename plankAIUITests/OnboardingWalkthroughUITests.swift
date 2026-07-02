@@ -476,3 +476,36 @@ final class InAppQAUITests: XCTestCase {
         }
     }
 }
+
+// MARK: - SnapCarouselUITests — 3-slide result carousel swipe QA
+//
+// v1.2 (2026-07-02) — drives the restored result carousel in the
+// ResultCarouselPreviewHarness: swipe across plate → note → share and
+// back, then confirm an in-panel control (fraction chip) still taps
+// after the carousel wrap. Run with a concurrent sim video recording
+// for frame-by-frame transition review.
+final class SnapCarouselUITests: XCTestCase {
+
+    func testSwipeAcrossCarouselSlides() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--debug-result-carousel"]
+        app.launch()
+
+        Thread.sleep(forTimeInterval: 2.8)     // rise-in + cascade settle
+
+        app.swipeLeft()                        // plate → note
+        Thread.sleep(forTimeInterval: 1.8)     // sparkles twinkle on video
+        app.swipeLeft()                        // note → share
+        Thread.sleep(forTimeInterval: 1.8)
+        app.swipeRight()                       // share → note
+        Thread.sleep(forTimeInterval: 1.2)
+        app.swipeRight()                       // note → plate
+        Thread.sleep(forTimeInterval: 1.2)
+
+        // The carousel wrap must not eat taps inside the panel.
+        let half = app.buttons["ate about half"]
+        XCTAssertTrue(half.waitForExistence(timeout: 3), "fraction chip missing after swipes")
+        half.tap()
+        Thread.sleep(forTimeInterval: 1.2)     // kcal roll on video
+    }
+}

@@ -621,6 +621,11 @@ struct PlankAIApp: App {
                     HandwrittenSnapPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-result-carousel") {
                     ResultCarouselPreviewHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-sparkle-burst") {
+                    // v1.2 — the Sparkling lottie (retinted, replaces the
+                    // heart + star explosion) over a cocoa stand-in for
+                    // the photo, looped on a timer for visual QA.
+                    SparkleBurstPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-snap-camera") {
                     SnapCameraDebugHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-describe") {
@@ -1540,7 +1545,18 @@ private struct HandwrittenLessonPreviewHarness: View {
 /// rose-gradient placeholder photo so the founder can review the
 /// new slides without going through the camera + paywall.
 private struct ResultCarouselPreviewHarness: View {
-    @State private var selectedPage: Int = 0
+    /// `--carousel-page=N` (0 plate · 1 note · 2 share) jumps straight
+    /// to a slide for screenshot capture, same arg the v1.1.2 carousel
+    /// harness used.
+    @State private var selectedPage: Int = {
+        if let arg = ProcessInfo.processInfo.arguments.first(where: {
+            $0.hasPrefix("--carousel-page=")
+        }), let n = Int(arg.dropFirst("--carousel-page=".count)),
+            (0..<3).contains(n) {
+            return n
+        }
+        return 0
+    }()
 
     private static let mockItems: [CapturedItem] = [
         CapturedItem(
@@ -1631,20 +1647,31 @@ private struct ResultCarouselPreviewHarness: View {
     var body: some View {
         // v1.2 snap-food rebuild — the harness now mounts the
         // production result surface (full-bleed photo + SnapResultView
-        // panel) so the card can be iterated in isolation with a
+        // carousel) so the slides can be iterated in isolation with a
         // 4-item mock plate.
         ZStack {
             Image(uiImage: Self.mockPhoto)
                 .resizable()
                 .scaledToFill()
                 .ignoresSafeArea()
+                .task {
+                    // `--carousel-autoplay` walks plate → note → share →
+                    // back while a sim video records, for frame-by-frame
+                    // transition review (XCUITest swipes need a tty).
+                    guard ProcessInfo.processInfo.arguments.contains("--carousel-autoplay") else { return }
+                    try? await Task.sleep(nanoseconds: 2_600_000_000)
+                    for target in [1, 2, 1, 0] {
+                        withAnimation(.easeOut(duration: 0.3)) { selectedPage = target }
+                        try? await Task.sleep(nanoseconds: 1_800_000_000)
+                    }
+                }
             SnapResultView(
                 food: Self.mockFood,
                 mealLabel: "breakfast",
                 dishName: "scrambled eggs + avocado toast +2",
+                page: $selectedPage,
                 onLog: { _ in },
                 onRetake: {},
-                onShare: {},
                 onEdited: { _ in },
                 // Offline mock refine so the composer round-trip can be
                 // exercised in the harness: fix-words returns the plate
@@ -1690,6 +1717,36 @@ private struct ResultCarouselPreviewHarness: View {
                     }
                 }
             )
+        }
+    }
+}
+
+// MARK: - SparkleBurstPreviewHarness — result-land sparkle lottie
+//
+// v1.2 (2026-07-02) — replays FoodResultExplosion (the retinted
+// Sparkling burst) every 2.4s over a warm cocoa gradient so the
+// retint, the stagger, and the mirrored echo can be eyeballed in
+// the sim without driving a real scan through PlanView.
+private struct SparkleBurstPreviewHarness: View {
+    @State private var trigger = 0
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.32, green: 0.22, blue: 0.20),
+                    Color(red: 0.18, green: 0.12, blue: 0.11),
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+            .ignoresSafeArea()
+            FoodResultExplosion(triggerId: trigger)
+        }
+        .task {
+            while !Task.isCancelled {
+                trigger += 1
+                try? await Task.sleep(nanoseconds: 2_400_000_000)
+            }
         }
     }
 }

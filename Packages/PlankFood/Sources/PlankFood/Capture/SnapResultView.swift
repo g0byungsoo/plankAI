@@ -3,22 +3,24 @@ import SwiftUI
 
 // MARK: - SnapResultView
 //
-// v1.2 snap-food rebuild (2026-07-01) — the single-surface result card
-// that replaces the 3-slide NutritionCarousel. The captured photo now
-// fills the whole screen (the host swaps the letterboxed camera frame
-// out) and this card rises over it as a two-detent editorial panel:
-// peek shows the verdict, a pull expands the working room.
+// v1.2 snap-food rebuild (2026-07-01) — the editorial result panel that
+// rises over the full-bleed captured photo, restructured (2026-07-02,
+// founder call) as a 3-slide carousel: the swipe vocabulary of the
+// v1.1.2 NutritionCarousel kept, the panel design language new.
 //
-// Everything the category's best correction UX offers lives on ONE
-// surface, no slide-hunting:
+//   slide 1 — the plate: kcal hero (count-up roll) + protein co-hero +
+//             honest ± range, fraction chips (all · ¾ · half · bites),
+//             ingredient ledger with portion steppers, tap-through
+//             deep editor, "fix it with words" / "+ add something"
+//   slide 2 — a note from jeni: the anti-shame copy engine gets its
+//             own breathing room + a sparkle accent
+//   slide 3 — share: the on-photo composer (SnapShareSlide) slides in
+//             over the SAME steady photo; what she sees is the PNG
 //
-//   - kcal hero (count-up roll) + protein co-hero + honest ± range
-//   - "how much of it" fraction chips (all · ¾ · half · a few bites) —
-//     the one-tap fix for the #1 real-world error (portion overcount)
-//   - always-visible ingredient ledger, per-row portion steppers,
-//     tap-through to the deep editor (coherent macro↔kcal math)
-//   - the jeni note (anti-shame copy engine) integrated, not exiled
-//     to a slide
+// Slides 1-2 share the two-detent panel chrome (peek shows the
+// verdict, a pull expands the working room); slide 3 goes full-bleed.
+// The photo never moves — surfaces carousel over it. White dots ride
+// the top, host chrome (close vs back/share) swaps on the binding.
 //
 // All mutation routes through PlateEditSession (SnapResultMath.swift);
 // this file is presentation + choreography only.
@@ -30,13 +32,16 @@ public struct SnapResultView: View {
     let dishName: String
     let onLog: (CapturedFood) -> Void
     let onRetake: () -> Void
-    let onShare: () -> Void
     /// Fired on every committed edit with the rebuilt plate so the
     /// host's mirror (persist + share) stays in sync.
     let onEdited: (CapturedFood) -> Void
     /// The natural-language refine pipeline ("fix it with words" +
     /// "+ add something"). nil hides both affordances (previews).
     let refine: ((SnapRefineRequest) async throws -> SnapRefineOutcome)?
+    /// Carousel slide (0 plate · 1 note · 2 share). Host-owned so the
+    /// floating chrome (close vs back/share-CTA) can swap with it and
+    /// debug args can jump slides.
+    @Binding var page: Int
 
     @State private var session: PlateEditSession
     @State private var revealed: Int = 0
@@ -68,18 +73,18 @@ public struct SnapResultView: View {
         food: CapturedFood,
         mealLabel: String,
         dishName: String,
+        page: Binding<Int>,
         onLog: @escaping (CapturedFood) -> Void,
         onRetake: @escaping () -> Void,
-        onShare: @escaping () -> Void,
         onEdited: @escaping (CapturedFood) -> Void,
         refine: ((SnapRefineRequest) async throws -> SnapRefineOutcome)? = nil
     ) {
         self.initialFood = food
         self.mealLabel = mealLabel
         self.dishName = dishName
+        _page = page
         self.onLog = onLog
         self.onRetake = onRetake
-        self.onShare = onShare
         self.onEdited = onEdited
         self.refine = refine
         _session = State(initialValue: PlateEditSession(food: food))
@@ -99,41 +104,30 @@ public struct SnapResultView: View {
                 lo: peekHeight, hi: fullHeight
             )
 
-            VStack(spacing: 0) {
-                header
-                    .contentShape(Rectangle())
-                    .gesture(detentDrag(peek: peekHeight, full: fullHeight))
-
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 14) {
-                        heroBlock.cascade(1, revealed)
-                        fractionChips.cascade(2, revealed)
-                        hairline.cascade(3, revealed)
-                        ledger.cascade(3, revealed)
-                        if refine != nil {
-                            composerBlock.cascade(4, revealed)
-                        }
-                        hairline.cascade(4, revealed)
-                        jeniSection.cascade(4, revealed)
+            ZStack(alignment: .top) {
+                TabView(selection: $page) {
+                    panelSlide(liveHeight: liveHeight, peek: peekHeight, full: fullHeight) {
+                        platePage
                     }
-                    .padding(.horizontal, 22)
-                    .padding(.top, 2)
-                    .padding(.bottom, 18)
-                }
-                .scrollDismissesKeyboard(.interactively)
+                    .tag(0)
 
-                footer
+                    panelSlide(liveHeight: liveHeight, peek: peekHeight, full: fullHeight) {
+                        notePage
+                    }
+                    .tag(1)
+
+                    shareSlide
+                        .tag(2)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+
+                slideDots
             }
-            .frame(height: liveHeight, alignment: .top)
-            .frame(maxWidth: .infinity)
-            .background(cardChrome)
-            .frame(maxHeight: .infinity, alignment: .bottom)
-            .offset(y: risen ? 0 : 44)
-            .opacity(risen ? 1 : 0)
-            .animation(
-                reduceMotion ? .none : .spring(response: 0.42, dampingFraction: 0.86),
-                value: expanded
-            )
+        }
+        .onChange(of: page) { _, _ in
+            // A slide swap shouldn't strand the composer keyboard over
+            // the note or share slide.
+            composerFocused = false
         }
         .onAppear {
             if reduceMotion {
@@ -195,6 +189,107 @@ public struct SnapResultView: View {
             .presentationDetents([.fraction(0.72), .large])
             .presentationDragIndicator(.visible)
         }
+    }
+
+    // MARK: - Carousel slides
+
+    /// The shared two-detent panel chrome. Slides 1-2 each wrap their
+    /// content in this so the whole panel carousels TikTok-style (card
+    /// slides as one object); the detent state is shared, so a swap
+    /// mid-expanded keeps the height.
+    @ViewBuilder
+    private func panelSlide<Content: View>(
+        liveHeight: CGFloat, peek: CGFloat, full: CGFloat,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(spacing: 0) {
+            header
+                .contentShape(Rectangle())
+                .gesture(detentDrag(peek: peek, full: full))
+
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 14) {
+                    content()
+                }
+                .padding(.horizontal, 22)
+                .padding(.top, 2)
+                .padding(.bottom, 18)
+            }
+            .scrollDismissesKeyboard(.interactively)
+
+            footer
+        }
+        .frame(height: liveHeight, alignment: .top)
+        .frame(maxWidth: .infinity)
+        .background(cardChrome)
+        .frame(maxHeight: .infinity, alignment: .bottom)
+        .offset(y: risen ? 0 : 44)
+        .opacity(risen ? 1 : 0)
+        .animation(
+            reduceMotion ? .none : .spring(response: 0.42, dampingFraction: 0.86),
+            value: expanded
+        )
+    }
+
+    /// Slide 1 — the working page: verdict + every correction lever.
+    @ViewBuilder private var platePage: some View {
+        heroBlock.cascade(1, revealed)
+        fractionChips.cascade(2, revealed)
+        hairline.cascade(3, revealed)
+        ledger.cascade(3, revealed)
+        if refine != nil {
+            composerBlock.cascade(4, revealed)
+        }
+    }
+
+    /// Slide 3 — the on-photo share composer. SnapShareSlide draws
+    /// overlay-only (embedsPhoto: false down the stack), so the host's
+    /// steady photo backdrop shows through and the swipe reads as the
+    /// composer chrome sliding in over the plate.
+    private var shareSlide: some View {
+        SnapShareSlide(
+            photo: nil,
+            mealLabel: mealLabel,
+            dishName: dishTitleText,
+            itemNames: session.effectiveItems.map { $0.name },
+            totals: shareTotals()
+        )
+    }
+
+    private func shareTotals() -> (carbs: Int, protein: Int, fat: Int, fiber: Int, kcal: Int) {
+        let food = session.rebuiltFood()
+        return (
+            carbs: Int(food.items.compactMap { $0.carbsG }.reduce(0, +).rounded()),
+            protein: Int(food.items.compactMap { $0.proteinG }.reduce(0, +).rounded()),
+            fat: Int(food.items.compactMap { $0.fatG }.reduce(0, +).rounded()),
+            fiber: Int(food.items.compactMap { $0.fiberG }.reduce(0, +).rounded()),
+            kcal: displayKcal(session.totals)
+        )
+    }
+
+    /// TikTok-register dots, floating on the photo above the panel.
+    /// Tappable — a dot tap pages the carousel like a swipe would.
+    private var slideDots: some View {
+        HStack(spacing: 7) {
+            ForEach(0..<3, id: \.self) { i in
+                Button {
+                    guard page != i else { return }
+                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    withAnimation(.easeOut(duration: 0.3)) { page = i }
+                } label: {
+                    Circle()
+                        .fill(.white.opacity(page == i ? 0.95 : 0.38))
+                        .frame(width: 6.5, height: 6.5)
+                        .contentShape(Rectangle().inset(by: -6))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(["your plate", "a note from jeni", "share it"][i])
+                .accessibilityAddTraits(page == i ? .isSelected : [])
+            }
+        }
+        .shadow(color: .black.opacity(0.30), radius: 5, y: 1)
+        .padding(.top, 20)
+        .animation(.easeOut(duration: 0.25), value: page)
     }
 
     // MARK: - Edit plumbing
@@ -892,43 +987,52 @@ public struct SnapResultView: View {
         return max(70, min(150, Int(raw.rounded())))
     }
 
-    @ViewBuilder private var jeniSection: some View {
+    /// Slide 2 — the note gets its own breathing room (founder call:
+    /// the anti-shame beat deserves a slide, not a footnote under the
+    /// ledger). Bigger serif, a sparkle accent in the Sparkling-lottie
+    /// motion language, nothing to edit.
+    @ViewBuilder private var notePage: some View {
         let copy = detailCopy
-        VStack(alignment: .leading, spacing: 12) {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text("a note from jeni")
-                .font(.custom("JeniHeroSerif-Italic", size: 16))
+                .font(.custom("JeniHeroSerif-Italic", size: 22))
                 .foregroundStyle(FoodTheme.accent)
+            NoteSparkles()
+                .offset(y: -4)
+            Spacer(minLength: 0)
+        }
+        .padding(.top, 8)
 
-            HStack(alignment: .top, spacing: 12) {
-                Capsule()
-                    .fill(FoodTheme.accent.opacity(0.8))
-                    .frame(width: 2)
-                jeniNoteText(copy.jeniNote)
-            }
+        HStack(alignment: .top, spacing: 12) {
+            Capsule()
+                .fill(FoodTheme.accent.opacity(0.8))
+                .frame(width: 2)
+            jeniNoteText(copy.jeniNote)
+        }
 
-            dayFitText(copy.dayFit)
+        dayFitText(copy.dayFit)
 
-            if let proteinRow = copy.details.first(where: { $0.progress != nil }) {
-                proteinTodayRow(proteinRow)
-            }
+        if let proteinRow = copy.details.first(where: { $0.progress != nil }) {
+            proteinTodayRow(proteinRow)
+                .padding(.top, 4)
+        }
 
-            if let p = copy.provenance {
-                Text(p)
-                    .font(.custom("DMSans-Regular", size: 11))
-                    .foregroundStyle(FoodTheme.textSecondary.opacity(0.7))
-            }
+        if let p = copy.provenance {
+            Text(p)
+                .font(.custom("DMSans-Regular", size: 11))
+                .foregroundStyle(FoodTheme.textSecondary.opacity(0.7))
         }
     }
 
     private func jeniNoteText(_ n: PunchLine) -> some View {
         (Text(n.prefix)
-            .font(.custom("JeniHeroSerif-Regular", size: 17))
+            .font(.custom("JeniHeroSerif-Regular", size: 19))
         + Text(n.punch)
-            .font(.custom("JeniHeroSerif-Italic", size: 17))
+            .font(.custom("JeniHeroSerif-Italic", size: 19))
         + Text(n.suffix)
-            .font(.custom("JeniHeroSerif-Regular", size: 17)))
+            .font(.custom("JeniHeroSerif-Regular", size: 19)))
             .foregroundStyle(FoodTheme.textPrimary)
-            .lineSpacing(2.5)
+            .lineSpacing(3)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -995,7 +1099,9 @@ public struct SnapResultView: View {
 
             footerCircle("square.and.arrow.up", label: "share") {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                onShare()
+                // The share composer is the carousel's third slide —
+                // the button rides you there, spatially.
+                withAnimation(.easeOut(duration: 0.3)) { page = 2 }
             }
         }
         .padding(.horizontal, 22)
@@ -1092,6 +1198,83 @@ private struct RefiningBreatheText: View {
                 }
             }
             .accessibilityLabel("working on it")
+    }
+}
+
+// MARK: - NoteSparkles
+//
+// The note slide's accent, in the motion language of the founder's
+// Sparkling.json lottie (which plays app-side on result land): concave
+// four-point stars that pop 0 → 100 → 0 with an ease-in-out, staggered.
+// Re-drawn natively here so the SPM package stays dependency-free and
+// the fill honors the locked rose token at any size. Reduce-motion
+// holds a static, faded cluster.
+
+private struct NoteSparkles: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            star(size: 17, delay: 0.0, tilt: -14, dx: 1, dy: 2, opacity: 0.95)
+            star(size: 9, delay: 0.85, tilt: 12, dx: -14, dy: -7, opacity: 0.65)
+            star(size: 11, delay: 1.7, tilt: 24, dx: 14, dy: -5, opacity: 0.78)
+        }
+        .frame(width: 44, height: 28)
+        .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private func star(
+        size: CGFloat, delay: Double, tilt: Double,
+        dx: CGFloat, dy: CGFloat, opacity: Double
+    ) -> some View {
+        let glyph = SparkleGlyph()
+            .fill(FoodTheme.accent.opacity(opacity))
+            .frame(width: size, height: size)
+            .rotationEffect(.degrees(tilt))
+            .offset(x: dx, y: dy)
+        if reduceMotion {
+            glyph.scaleEffect(0.85).opacity(0.8)
+        } else {
+            // The lottie's per-star pop (0→100→0, easy-ease) softened
+            // for an ambient surface: stars breathe 30 ↔ 100 on a
+            // staggered 2.6s round, so the cluster is always present
+            // and always alive — twinkle, not strobe.
+            KeyframeAnimator(initialValue: 0.3, repeating: true) { value in
+                glyph.scaleEffect(value)
+            } keyframes: { _ in
+                CubicKeyframe(0.3, duration: max(0.01, delay))
+                CubicKeyframe(1.0, duration: 0.45)
+                CubicKeyframe(0.3, duration: 0.55)
+                CubicKeyframe(0.3, duration: max(0.01, 2.6 - delay - 1.0))
+            }
+        }
+    }
+}
+
+/// Concave-edged four-point star — the Sparkling.json polystar
+/// silhouette (inner/outer radius ratio ~0.22 with heavy inner
+/// smoothing reads as quad curves pulled to the diagonals).
+private struct SparkleGlyph: Shape {
+    func path(in rect: CGRect) -> Path {
+        let c = CGPoint(x: rect.midX, y: rect.midY)
+        let r = min(rect.width, rect.height) / 2
+        let inner = r * 0.22
+        let tips = (0..<4).map { i -> CGPoint in
+            let a = CGFloat(i) * .pi / 2 - .pi / 2
+            return CGPoint(x: c.x + cos(a) * r, y: c.y + sin(a) * r)
+        }
+        let controls = (0..<4).map { i -> CGPoint in
+            let a = CGFloat(i) * .pi / 2 - .pi / 4
+            return CGPoint(x: c.x + cos(a) * inner, y: c.y + sin(a) * inner)
+        }
+        var p = Path()
+        p.move(to: tips[0])
+        for i in 0..<4 {
+            p.addQuadCurve(to: tips[(i + 1) % 4], control: controls[i])
+        }
+        p.closeSubpath()
+        return p
     }
 }
 #endif

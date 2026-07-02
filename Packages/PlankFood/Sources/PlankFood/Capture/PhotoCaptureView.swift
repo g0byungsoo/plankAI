@@ -121,12 +121,12 @@ public struct PhotoCaptureView: View {
 
     /// v1.2 snap-food rebuild (2026-07-01) — result-stage state. When a
     /// scan lands, the letterboxed camera frame swaps for a full-bleed
-    /// photo + the SnapResultView editorial panel. `photoSettled`
-    /// drives the ken-burns settle (1.07 → 1.0) on arrival;
-    /// `shareMode` swaps the result card for the on-photo share
-    /// composer (SnapShareSlide + font rail); the rendered PNG hands
+    /// photo + the SnapResultView carousel. `photoSettled` drives the
+    /// ken-burns settle (1.07 → 1.0) on arrival; `resultPage` is the
+    /// carousel slide (0 plate · 1 note · 2 share composer) — host-owned
+    /// so the floating chrome swaps with it; the rendered PNG hands
     /// off to the system share sheet.
-    @State private var shareMode: Bool = false
+    @State private var resultPage: Int = 0
     @State private var photoSettled: Bool = false
     @State private var showShareActivity: Bool = false
     @State private var shareRenderedImage: UIImage?
@@ -340,7 +340,7 @@ public struct PhotoCaptureView: View {
                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                 onResultLanded()
             } else {
-                shareMode = false
+                resultPage = 0
                 photoSettled = false
             }
         }
@@ -1036,12 +1036,12 @@ public struct PhotoCaptureView: View {
         }
     }
 
-    // MARK: - Result stage (full-bleed photo + editorial panel)
+    // MARK: - Result stage (full-bleed photo + carousel)
 
     /// v1.2 snap-food rebuild — a landed scan promotes the photo to the
-    /// whole screen and floats SnapResultView over it as a two-detent
-    /// panel. Share swaps the panel for the on-photo composer
-    /// (SnapShareSlide + font rail) without the photo ever moving.
+    /// whole screen and floats the SnapResultView carousel over it
+    /// (plate panel · jeni note · on-photo share composer). The photo
+    /// never moves; the slides carousel over it.
     @ViewBuilder
     private func resultStage(_ result: CapturedFood) -> some View {
         ZStack {
@@ -1060,31 +1060,57 @@ public struct PhotoCaptureView: View {
             .ignoresSafeArea()
             .allowsHitTesting(false)
 
-            if shareMode {
-                shareStage(result)
-                    .transition(.opacity)
-            } else {
-                SnapResultView(
-                    food: result,
-                    mealLabel: mealTypeLabel,
-                    dishName: dishNameLabel(result),
-                    onLog: { edited in
-                        capturedResult = edited
-                        onCaptured(edited, galleryImage ?? camera.frozenFrame)
-                    },
-                    onRetake: retakeFromResult,
-                    onShare: {
-                        withAnimation(.easeInOut(duration: 0.32)) { shareMode = true }
-                    },
-                    onEdited: { edited in capturedResult = edited },
-                    refine: { request in
-                        try await SnapRefine.run(request, dispatcher: dispatcher)
-                    }
-                )
-                .transition(.opacity)
+            SnapResultView(
+                food: result,
+                mealLabel: mealTypeLabel,
+                dishName: dishNameLabel(result),
+                page: $resultPage,
+                onLog: { edited in
+                    capturedResult = edited
+                    onCaptured(edited, galleryImage ?? camera.frozenFrame)
+                },
+                onRetake: retakeFromResult,
+                onEdited: { edited in capturedResult = edited },
+                refine: { request in
+                    try await SnapRefine.run(request, dispatcher: dispatcher)
+                }
+            )
 
-                VStack {
-                    HStack {
+            // Floating chrome swaps with the carousel slide: close on
+            // the panel slides, back + share-CTA on the composer slide.
+            VStack {
+                HStack {
+                    if resultPage == 2 {
+                        Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            withAnimation(.easeOut(duration: 0.3)) { resultPage = 1 }
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .background(.ultraThinMaterial, in: Circle())
+                                .colorScheme(.dark)
+                        }
+                        .accessibilityLabel("back to result")
+
+                        Spacer()
+
+                        Button {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            renderAndShare(result)
+                        } label: {
+                            (Text("share it ")
+                                .font(.custom("DMSans-SemiBold", size: 15))
+                            + Text("\u{2665}\u{FE0E}")
+                                .font(.custom("DMSans-SemiBold", size: 13)))
+                                .foregroundStyle(FoodTheme.bgPrimary)
+                                .padding(.horizontal, 20)
+                                .frame(height: 44)
+                                .background(Capsule().fill(FoodTheme.textPrimary))
+                        }
+                        .accessibilityLabel("share it")
+                    } else {
                         Spacer()
                         glassButton(systemName: "xmark", action: {
                             camera.unfreezePreview()
@@ -1092,24 +1118,29 @@ public struct PhotoCaptureView: View {
                         })
                         .accessibilityLabel("close")
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 6)
-                    Spacer()
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
+                Spacer()
             }
+            .animation(.easeOut(duration: 0.22), value: resultPage == 2)
         }
-        .animation(.easeInOut(duration: 0.32), value: shareMode)
         .onAppear {
             photoSettled = false
             withAnimation(reduceMotion ? .none : .easeOut(duration: 1.1)) {
                 photoSettled = true
             }
             #if DEBUG
-            // Sim QA: `--debug-share-mode` jumps straight into the
-            // on-photo share composer for screenshot capture.
-            if ProcessInfo.processInfo.arguments.contains("--debug-share-mode") {
+            // Sim QA: jump the carousel to a slide for screenshot
+            // capture (`--debug-share-mode` kept for older run scripts).
+            if ProcessInfo.processInfo.arguments.contains("--debug-share-mode")
+                || ProcessInfo.processInfo.arguments.contains("--debug-result-share") {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-                    withAnimation(.easeInOut(duration: 0.32)) { shareMode = true }
+                    withAnimation(.easeOut(duration: 0.3)) { resultPage = 2 }
+                }
+            } else if ProcessInfo.processInfo.arguments.contains("--debug-result-note") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                    withAnimation(.easeOut(duration: 0.3)) { resultPage = 1 }
                 }
             }
             #endif
@@ -1160,59 +1191,7 @@ public struct PhotoCaptureView: View {
             galleryImage = nil
         }
         shareRenderedImage = nil
-    }
-
-    // MARK: - Share stage (on-photo composer)
-
-    /// The share composer rides the SAME full-bleed photo: scrim +
-    /// dish typography + the Instagram-style font rail (SnapShareSlide),
-    /// with back / share chrome along the top. What she sees IS the
-    /// 1080×1920 PNG the share button exports.
-    @ViewBuilder
-    private func shareStage(_ result: CapturedFood) -> some View {
-        ZStack(alignment: .top) {
-            SnapShareSlide(
-                photo: galleryImage ?? camera.frozenFrame,
-                mealLabel: mealTypeLabel,
-                dishName: dishNameLabel(result),
-                itemNames: result.items.map { $0.name },
-                totals: shareTotals(result)
-            )
-
-            HStack {
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    withAnimation(.easeInOut(duration: 0.32)) { shareMode = false }
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(.white)
-                        .frame(width: 44, height: 44)
-                        .background(.ultraThinMaterial, in: Circle())
-                        .colorScheme(.dark)
-                }
-                .accessibilityLabel("back to result")
-
-                Spacer()
-
-                Button {
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    renderAndShare(result)
-                } label: {
-                    (Text("share it ")
-                        .font(.custom("DMSans-SemiBold", size: 15))
-                    + Text("\u{2665}\u{FE0E}")
-                        .font(.custom("DMSans-SemiBold", size: 13)))
-                        .foregroundStyle(FoodTheme.bgPrimary)
-                        .padding(.horizontal, 20)
-                        .frame(height: 44)
-                        .background(Capsule().fill(FoodTheme.textPrimary))
-                }
-                .accessibilityLabel("share it")
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 6)
-        }
+        resultPage = 0
     }
 
     private func shareTotals(_ food: CapturedFood) -> (carbs: Int, protein: Int, fat: Int, fiber: Int, kcal: Int) {
