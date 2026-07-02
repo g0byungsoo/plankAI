@@ -44,13 +44,48 @@ reads RevenueCat's localized `storeProduct.localizedPriceString` per
 Apple Guideline 3.1.2(a) — no hard-coded prices.
 
 ### Onboarding
-Onboarding v4.5 her75 register, ~53 screens. Cohort routing via
-`onboarding_glp1_status` AppStorage key (`no` / `considering` / `past` /
-`current` / `prefer_not_say`). Custom weight-loss plan duration derived
-per-user from `ProgramGoalCalculator` — three cohort modifiers
-encoded (GLP-1 / perimenopause floor at 0.3%/wk, short-sleep penalty per
-Nedeltcheva 2010, Wing-and-Phelan default at 0.5%/wk). Live date math on
-the pace screen ("around august 14") recomputes per pace.
+**v5 ground-up rebuild (2026-07-02)** — `PlankApp/Views/OnboardingV5/`,
+typed step state machine (no Int cases), ~46 beats in 5 acts with
+GLP-1 cohort branches. Docs: `docs/onboarding_v5/` (INTENT / PANEL /
+STRATEGY / FLOW / DATA_CONTRACT / SHIPPED — read SHIPPED.md first).
+
+Interaction language: cross-off strikethrough single-selects with
+auto-advance; her75 tick rulers (haptic detents, digit-roll serif pill,
+rose delta band, live weeks math); rapid-fire fear statements with
+strike-the-fear; act-end receipts that mirror her answers back; snap
+demo mid-food-wedge (real Metal `snapSweep` over 3 staged plates, the
+flow's single luminance inversion, honest "one of ours" framing);
+her-file dossier + signature (consent + disclaimer in one beat) +
+hold-to-build close.
+
+Structure: GLP-1 status asked at the top of Act II as a path-fact —
+current (phase + appetite rhythm + muscle-math teach), past (stop
+window + appetite return + regain-truth teach, maintain-kept surfaced
+first), considering (agency teach). Safety gate (SCOFF/pregnancy/BMI/
+meds) relocated into "the care part" at the end of the numbers act —
+still pre-paywall, no longer at peak anticipation. Name in Act I so the
+dossier, loader, projection, and wall are addressed to her.
+
+Reveal (shared with legacy, `skipsPreamble` for v5): receipt-tape
+loader (cites LIVE keys only — the v4.5 dead-field narration bug is
+fixed), pace picker, projection with causal receipt rows ("because you
+X → we Y", rendered only when the engine modifier fired), first week
+(cohort-routed rails), fear-resolution beat (replaced the pre-wall
+rating ask; rating is post-purchase only), commitment ritual (merged
+time anchor writes day1PromiseTimeISO + plankTime; demo pre-leads
+"snap your first real meal"), nudge ask (banner payload = her promise
+at her time + trial-reminder promise row).
+
+Cohort pace floors unchanged (`ProgramGoalCalculator`): GLP-1 /
+perimenopause 0.3%/wk, short-sleep penalty, regain-risk notch; new
+`onboarding_glp1_stop_window` / `onboarding_appetite_return` /
+`onb_v5_appetite_rhythm` keys feed loader + reveal copy. Data contract
+preserved byte-for-byte (`docs/onboarding_v5/DATA_CONTRACT.md`).
+
+Legacy v4.5 (`OnboardingView.swift`) stays reachable via
+`--onboarding-v4` during burn-in; sweep scheduled after founder
+device sign-off. QA: `OnboardingV5WalkerUITests` walks welcome→paywall
+with a screenshot per beat (`TEST_RUNNER_GLP1_COHORT` for branches).
 
 ### Program / Plan tab
 Today screen with archetype pill (7 archetypes; tap-to-explain sheet),

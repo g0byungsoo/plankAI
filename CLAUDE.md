@@ -35,15 +35,25 @@ work but is preserved for history, not for guidance.
 - Files: `PlankApp/Payment/`, `PlankApp/Views/Paywall/`.
 
 ### Onboarding
-- v4.5 her75 register, ~53 screens. JeniHeroSerif on hero headlines.
-- Cohort routing via `onboarding_glp1_status` AppStorage key (`no` /
-  `considering` / `past` / `current` / `prefer_not_say`).
-- Custom weight-loss plan duration derived per-user from
-  `ProgramGoalCalculator`. Three cohort modifiers encoded: GLP-1 /
-  perimenopause floor (0.3%/wk), short-sleep penalty per Nedeltcheva
-  2010, Wing-and-Phelan default (0.5%/wk).
-- Live date math on the pace screen recomputes per pace.
-- Files: `PlankApp/Views/Onboarding/`.
+- **v5 rebuild (2026-07-02)**: typed state machine, 5 acts, ~46 beats,
+  GLP-1 branches (current/past/considering) asked at the top of Act II.
+  Read `docs/onboarding_v5/SHIPPED.md` before touching anything here.
+- Interaction language: cross-off single-selects (auto-advance), tick
+  rulers w/ haptic detents + delta band, strike-the-fear statements,
+  act-end receipts, snap demo (real Metal sweep over staged plates),
+  her-file dossier + signature + hold-to-build.
+- Safety gate relocated to "the care part" (end of numbers act, still
+  pre-paywall). Name collected in Act I (dossier/loader/projection/wall
+  all addressed). Rating ask is post-purchase ONLY.
+- Reveal: receipt-tape loader (live keys only), causal receipts on the
+  projection, cohort-routed first-week rails, merged promise/nudge time
+  anchor, trial-reminder promise row on the notification ask.
+- Data contract identical to v4.5 (`docs/onboarding_v5/DATA_CONTRACT.md`);
+  cohort pace floors unchanged in `ProgramGoalCalculator`.
+- Legacy v4.5 reachable via `--onboarding-v4` until the sweep.
+- QA: `OnboardingV5WalkerUITests` (screenshot per beat;
+  `TEST_RUNNER_GLP1_COHORT=current|past` for branches).
+- Files: `PlankApp/Views/OnboardingV5/` (+ legacy `PlankApp/Views/Onboarding/`).
 
 ### Program / Plan tab
 - Today screen with archetype pill (7 archetypes; tap-to-explain

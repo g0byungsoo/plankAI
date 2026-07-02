@@ -72,6 +72,9 @@ final class OnboardingWalkthroughUITests: XCTestCase {
             "show me my plan", "show me how it feels",
             "continue", "Continue",
             "see your plan", "let's go", "start now", "connected",
+            // v5 fear-resolution beat (also on the legacy path, where it
+            // replaced the pre-wall rating ask).
+            "keep going",
             "allow notifications",
         ]
 
