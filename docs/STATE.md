@@ -74,19 +74,30 @@ v1.2 rebuild (2026-07-01). Three input modes behind one toolbar:
 
 Camera capture → vision EF (single OpenAI model via
 `FOOD_VISION_MODEL` env; the app-side USDA calibration sweep guards
-low-confidence items) → **single-surface result stage**: photo goes
-full bleed, `SnapResultView` rises as a two-detent editorial panel —
-count-up kcal hero + protein co-hero, "ate about half" fraction
-chips, always-visible ingredient ledger with inline portion steppers,
-tap-through `IngredientEditorSheet` with coherent macro↔kcal math
-(`PlateEditSession` in `SnapResultMath.swift`, unit-tested), inline
-"fix it with words" + "+ add something" composer (`SnapRefine`
-through the EF text path — live against the deployed backend), the
-jeni note (`ResultDetailCopy`) integrated, on-photo share composer
-(`SnapShareSlide` font rail; preview IS the exported PNG). Scanning
-is a Metal pass (`snapSweep`: diagonal warm band + grain,
-`SnapShaders.metal` in the SPM package). The 3-slide carousel is
-retired.
+low-confidence items) → **result stage: 3-slide carousel over the
+full-bleed photo** (2026-07-02, founder call — the v1.1.2 swipe
+vocabulary restored in the v1.2 panel design; the photo never moves,
+the slides carousel over it, white dots ride the top):
+
+- slide 1 "the plate" — two-detent editorial panel: count-up kcal
+  hero + protein co-hero, "ate about half" fraction chips,
+  always-visible ingredient ledger with inline portion steppers,
+  tap-through `IngredientEditorSheet` with coherent macro↔kcal math
+  (`PlateEditSession` in `SnapResultMath.swift`, unit-tested),
+  inline "fix it with words" + "+ add something" composer
+  (`SnapRefine` through the EF text path — live against the
+  deployed backend).
+- slide 2 "a note from jeni" — the anti-shame note
+  (`ResultDetailCopy`) on its own panel slide, native sparkle
+  accent.
+- slide 3 "share" — the on-photo composer (`SnapShareSlide` font
+  rail; preview IS the exported PNG) slides in full-bleed over the
+  same steady plate.
+
+Scanning is a Metal pass (`snapSweep`: diagonal warm band + grain,
+`SnapShaders.metal` in the SPM package). Result-land plays the
+retinted Sparkling lottie burst (`FoodResultExplosion`; rose body +
+light-pink rim per locked palette — replaced the heart + star pair).
 
 Per-item nutrition detail persists with every entry (device-local
 JSONL, backwards-compatible); journal detail shows the ledger +

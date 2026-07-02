@@ -68,17 +68,20 @@ work but is preserved for history, not for guidance.
 - v1.2 rebuild (2026-07-01). Input modes: snap / describe / again
   (one-tap relog via `RecentMealsSheet`).
 - Camera → vision EF (single OpenAI model, env-selected; app-side
-  USDA calibration on low-confidence items) → single-surface result:
-  full-bleed photo + `SnapResultView` two-detent panel (carousel
-  retired).
-- Editing: fraction chips (ate about half), inline portion steppers,
-  `IngredientEditorSheet` with coherent macro↔kcal math
+  USDA calibration on low-confidence items) → result = 3-slide
+  carousel over the full-bleed photo (2026-07-02): plate panel ·
+  jeni note (sparkle accent) · on-photo share composer. Photo never
+  moves; white dots on top; `SnapResultView` owns the slides.
+- Editing (slide 1): fraction chips (ate about half), inline portion
+  steppers, `IngredientEditorSheet` with coherent macro↔kcal math
   (`PlateEditSession`, unit-tested), "fix it with words" +
   "+ add something" via `SnapRefine` (EF text path — live today).
 - Scanning = Metal `snapSweep` pass (SPM-compiled
   `SnapShaders.metal`); capture bloom; calm chrome (2pt border).
-- Share = on-photo composer (`SnapShareSlide` font rail); preview IS
-  the exported PNG.
+  Result-land = retinted Sparkling lottie burst
+  (`FoodResultExplosion`; replaced heart + star).
+- Share (slide 3) = on-photo composer (`SnapShareSlide` font rail);
+  preview IS the exported PNG.
 - Per-item detail persists per entry (device-local); journal detail
   ledger + relog. Photo+text context awaits
   `supabase functions deploy food-vision`.
