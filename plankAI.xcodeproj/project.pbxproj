@@ -144,6 +144,7 @@
 		20053CE4E0EB08CBD9A994A4 /* matson_prep_full_overhead_forward_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 43BEC3D4564B0B56CCA0E41D /* matson_prep_full_overhead_forward_lunge.m4a */; };
 		2033A8F3D1639BF1AA13190F /* BecomingDayCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5183C5640DB23179835EE385 /* BecomingDayCard.swift */; };
 		20D8C4A84F7FC6E08E889D88 /* jeni_prep_full_forward_fold_bind.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 2CB752AFD1A8E12AE8CAEBA5 /* jeni_prep_full_forward_fold_bind.m4a */; };
+		2121D02FA4EFC05AF3FFCB6F /* OV5DeviceDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B2C5F26530161CFB61DF741 /* OV5DeviceDemo.swift */; };
 		21F68BB13179B00644EBFE10 /* prep_short_donkey_kick.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 982E91BB2E05E27029E88082 /* prep_short_donkey_kick.m4a */; };
 		2202FA3112C0B69CF376E336 /* prep_short_kneeling_quad_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 87F358FC615CC06F0087109A /* prep_short_kneeling_quad_stretch.m4a */; };
 		2228BFA3B084EDE2EBB4DCE7 /* jeni_prep_full_cobra.m4a in Resources */ = {isa = PBXBuildFile; fileRef = C193D70E8F8837164DF47FB9 /* jeni_prep_full_cobra.m4a */; };
@@ -1451,6 +1452,7 @@
 		09F7019D89E585A28A333F71 /* jeni_prep_short_sumo_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_sumo_squat.m4a; sourceTree = "<group>"; };
 		09FB65E235D866CC1740613B /* prep_short_sumo_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_sumo_squat.m4a; sourceTree = "<group>"; };
 		0A6FC1B565C26331E9C6EEE0 /* prep_short_jumping_lunges.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_jumping_lunges.m4a; sourceTree = "<group>"; };
+		0B2C5F26530161CFB61DF741 /* OV5DeviceDemo.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OV5DeviceDemo.swift; sourceTree = "<group>"; };
 		0B73EC4EB3FB0432EC26F1D7 /* matson_prep_full_side_leg_jack.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_side_leg_jack.m4a; sourceTree = "<group>"; };
 		0BB64E32EBED00FEC2528A7E /* prep_full_side_plank.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_side_plank.m4a; sourceTree = "<group>"; };
 		0C1AC5C2552F72E9FC1A3354 /* ProjectionMath.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProjectionMath.swift; sourceTree = "<group>"; };
@@ -4494,6 +4496,7 @@
 				A8F964FAF35ACCCFC04B195D /* OV5Collage.swift */,
 				69070DA08CD1FEF9AA983192 /* OV5SnapDemo.swift */,
 				757B2BEE29253FB55BAE0C34 /* OV5FearResolution.swift */,
+				0B2C5F26530161CFB61DF741 /* OV5DeviceDemo.swift */,
 			);
 			name = OnboardingV5;
 			path = OnboardingV5;
@@ -6047,6 +6050,7 @@
 				04E4D8294A925B6F5E520CC9 /* OV5Collage.swift in Sources */,
 				5B11C6AB7DF267447148BB8D /* OV5SnapDemo.swift in Sources */,
 				41F3F5A8A7E619139FC1EB64 /* OV5FearResolution.swift in Sources */,
+				2121D02FA4EFC05AF3FFCB6F /* OV5DeviceDemo.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

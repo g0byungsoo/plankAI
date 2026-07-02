@@ -614,7 +614,7 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         }
 
         // act i — her arrival
-        tapButton("i'm ready", shotName: "welcome", settle: 1.6, retryIfPresent: true)
+        tapButton("continue", shotName: "welcome", settle: 1.6, retryIfPresent: true)
         tapButton("okay", shotName: "antiShame")
         tapButton("quiet the food noise", shotName: "outcome")
         tapButton("tiktok", shotName: "attribution")
@@ -659,12 +659,12 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         tapButton("continue", shotName: "foodNoise")
         tapButton("show me", shotName: "preEat")
 
-        // snap demo
-        let bowl = app.buttons["demo_meal_bowl"].firstMatch
-        if bowl.waitForExistence(timeout: 8) {
+        // snap demo (founder plates: poke is the marquee)
+        let poke = app.buttons["demo_meal_poke"].firstMatch
+        if poke.waitForExistence(timeout: 8) {
             Thread.sleep(forTimeInterval: 0.9)
             snap("snapDemo_pick")
-            bowl.tap()
+            poke.tap()
             Thread.sleep(forTimeInterval: 1.2)
             snap("snapDemo_scanning")
             Thread.sleep(forTimeInterval: 1.6)
@@ -754,7 +754,11 @@ final class OnboardingV5WalkerUITests: XCTestCase {
 
         // act v — almost hers
         tapButton("this is me", shotName: "herFile")
-        tapButton("i know this is a plan", shotName: "signature", settle: 0.4)
+        // signature: nothing pre-checked (round 2) — sign all three.
+        tapButton("use my answers", shotName: "signature", settle: 0.3, retryIfPresent: false)
+        tapButton("check on me", settle: 0.3, retryIfPresent: false)
+        tapButton("i know this is a plan", settle: 0.4, retryIfPresent: false)
+        snap("signature_signed")
         tapButton("signed", settle: 1.2)
         tapButton("not now", shotName: "healthKit", settle: 1.2)
         // hold to build
@@ -806,14 +810,19 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         snap("fearResolution")
         _ = tapButton("keep going", timeout: 6, settle: 1.4)
 
-        // commitment ritual: pick chips if present, then hold-to-promise
+        // commitment ritual: nothing pre-picked (round 2) — choose
+        // when + what + time, then hold-to-promise.
         Thread.sleep(forTimeInterval: 1.2)
         snap("commitment")
+        tapButton("after i wake up", settle: 0.35, retryIfPresent: false)
+        tapButton("log breakfast", settle: 0.35, retryIfPresent: false)
+        tapButton("8am", settle: 0.6, retryIfPresent: false)
+        snap("commitment_built")
         let promiseHold = app.buttons.matching(
             NSPredicate(format: "label CONTAINS[c] %@", "seal your promise")
         ).firstMatch
         if promiseHold.waitForExistence(timeout: 6) {
-            promiseHold.press(forDuration: 1.6)
+            promiseHold.press(forDuration: 1.9)
         }
         Thread.sleep(forTimeInterval: 1.6)
 
