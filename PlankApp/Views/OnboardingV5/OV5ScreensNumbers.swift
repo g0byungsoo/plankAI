@@ -561,7 +561,16 @@ struct OV5SafetyGateScreen: View {
     let flow: OV5Flow
     var body: some View {
         SafetyGatePresentation(
-            onPassed: { flow.advance() }
+            onPassed: {
+                // access-for-all: onPassed fires for every cohort; the
+                // gate wrote program_mode + adaptation keys just before.
+                let d = UserDefaults.standard
+                Analytics.track("ov5_gate_outcome", properties: [
+                    "mode": d.string(forKey: "program_mode") ?? "loss",
+                    "numeric_suppression": d.bool(forKey: "safety_numeric_suppression"),
+                ])
+                flow.advance()
+            }
         )
     }
 }

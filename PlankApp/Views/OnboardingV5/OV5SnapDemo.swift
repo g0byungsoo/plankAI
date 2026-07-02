@@ -277,6 +277,10 @@ struct OV5SnapDemoScreen: View {
 
             JFContinueButton(label: "day one, you do this for real", action: {
                 flow.store.snapDemoMeal = picked?.key ?? ""
+                Analytics.track("ov5_demo_completed", properties: [
+                    "meal": picked?.key ?? "",
+                    "glp1": flow.store.glp1Status.isEmpty ? "unset" : flow.store.glp1Status,
+                ])
                 flow.advance()
             })
             .padding(.top, 16)

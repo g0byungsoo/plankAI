@@ -504,12 +504,24 @@ final class OV5Flow {
             onQuestionsComplete?()
             return
         }
+        // One event name + step properties = full-funnel resolution in
+        // PostHog without an event-per-screen explosion (the v4.5
+        // instrumentation gap the 06-21 findings flagged).
+        Analytics.track("ov5_step_advanced", properties: [
+            "from": current.rawValue,
+            "to": next.rawValue,
+            "act": current.act,
+            "glp1": store.glp1Status.isEmpty ? "unset" : store.glp1Status,
+        ])
         history.append(current)
         withAnimation(Motion.crossFade) { current = next }
     }
 
     func back() {
         guard let prev = history.popLast() else { return }
+        Analytics.track("ov5_step_back", properties: [
+            "from": current.rawValue, "to": prev.rawValue,
+        ])
         withAnimation(Motion.crossFade) { current = prev }
     }
 
