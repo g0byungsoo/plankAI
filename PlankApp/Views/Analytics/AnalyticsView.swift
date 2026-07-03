@@ -650,6 +650,8 @@ struct AnalyticsView: View {
     /// Founder's "no scrolling" rule honored: snapshot one viewport,
     /// detail one tap away.
     @State private var showDepthSheet = false
+    /// App v2 — Becoming's own settings entry.
+    @State private var showProfileHubFromBecoming = false
     /// v1.1 food journal — opened from the plates teaser.
     @State private var showFoodJournal = false
     /// Calorie camera over the journal (the timeline's + button).
@@ -828,6 +830,23 @@ struct AnalyticsView: View {
                         }
                         .accessibilityLabel("keep today's page — share your day card")
                     }
+                    // App v2 — settings reachable from Becoming (audit
+                    // weakness: ProfileHub was Today-only). A slim
+                    // leading mark above the hero; the hero's sticker
+                    // + share glyph own the trailing column.
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        HStack {
+                            JKQuietMark(
+                                systemName: "line.3.horizontal",
+                                accessibilityLabel: "settings"
+                            ) {
+                                showProfileHubFromBecoming = true
+                            }
+                            Spacer()
+                        }
+                        .padding(.leading, -12)
+                        .padding(.bottom, -10)
+                    }
                     .opacity(sectionOpacity[0])
                     .offset(y: sectionOffset[0])
                     .blur(radius: headerBlur)
@@ -995,6 +1014,11 @@ struct AnalyticsView: View {
                     .string(forKey: "onboardingCuisinePreference"),
                 onDismiss: { showCaptureFromBecoming = false }
             )
+        }
+        .sheet(isPresented: $showProfileHubFromBecoming) {
+            ProfileHubView(onClose: { showProfileHubFromBecoming = false })
+                .presentationDetents([.large])
+                .presentationBackground(Palette.bgPrimary)
         }
         .sheet(isPresented: $showDepthSheet) {
             becomingDepthSheet
@@ -1387,18 +1411,9 @@ struct AnalyticsView: View {
                 .padding(.top, 4)
             }
 
-            // 3. Macros — horizontal proportional stack-bar with all 4
-            //    macros (protein in accent rose to mirror the gauge
-            //    above). Compact card, dense visual.
-            if todayFoodMacros.kcal > 0 {
-                BecomingMacroRow(
-                    protein: Int(todayFoodMacros.protein.rounded()),
-                    carbs: Int(todayFoodMacros.carbs.rounded()),
-                    fat: Int(todayFoodMacros.fat.rounded()),
-                    fiber: Int(todayFoodMacros.fiber.rounded())
-                )
-                .padding(.top, 2)
-            }
+            // App v2 curation: the macro stack-bar left this surface —
+            // full macros live inside the meal detail; protein (the
+            // tile above) is the only macro Becoming leads with.
 
             // 4. Trend canvas (promoted) — the outcome anchor for the
             //    WL cohort lands BEFORE the food details. Card chrome
@@ -1454,37 +1469,10 @@ struct AnalyticsView: View {
                 .padding(.top, 4)
             }
 
-            // 6. Moved stripe — soft activity register. NO kcal
-            //    numeric (GLP-1 safety: exchange-economy framing is
-            //    the #1 driver of disordered tracking patterns).
-            //    Italic closing line ("body used some of what you
-            //    fed it ♡") carries the meaning without bargaining
-            //    math.
-            BecomingMovedStrip(
-                steps: StepsService.shared.todayCount,
-                workoutMinutes: todayWorkoutMinutes,
-                breathMinutes: todayBreathMinutes,
-                stepsWeek: movedWeekSeries.steps,
-                plankWeek: movedWeekSeries.plank,
-                breathWeek: movedWeekSeries.breath
-            )
-            .padding(.top, 2)
-
-            // 7. Cumulative deeds — compressed 2x2 grid + food-
-            //    noise-quieted closing italic. The identity moat
-            //    against Cal AI; lifetime totals visible at a glance.
-            if lifetimeDeeds.plates > 0 || lifetimeDeeds.lessons > 0 || lifetimeDeeds.breaths > 0 {
-                BecomingDeedsCounter(
-                    plates: lifetimeDeeds.plates,
-                    lessons: lifetimeDeeds.lessons,
-                    breathMinutes: lifetimeDeeds.breathMinutes,
-                    platesSince: deedsSinceDates.plates,
-                    lessonsSince: deedsSinceDates.lessons,
-                    breathSince: deedsSinceDates.breath,
-                    foodNoiseSince: deedsSinceDates.lessons
-                )
-                .padding(.top, 6)
-            }
+            // App v2 curation: the moved stripe + cumulative deeds
+            // relocated into the depth sheet — Today owns live daily
+            // state now; Becoming leads with the payoff (trend +
+            // week + food story) and stays under six modules.
 
             // v1.1.0 Sprint A (2026-06-15) — LastNightSleepCard is built
             // and verified (see commented mount below + `--debug-sleep-
@@ -3240,6 +3228,27 @@ struct AnalyticsView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 28) {
+                    // App v2 — relocated from the main stack (Today
+                    // owns live state; depth holds the long tail).
+                    BecomingMovedStrip(
+                        steps: StepsService.shared.todayCount,
+                        workoutMinutes: todayWorkoutMinutes,
+                        breathMinutes: todayBreathMinutes,
+                        stepsWeek: movedWeekSeries.steps,
+                        plankWeek: movedWeekSeries.plank,
+                        breathWeek: movedWeekSeries.breath
+                    )
+                    if lifetimeDeeds.plates > 0 || lifetimeDeeds.lessons > 0 || lifetimeDeeds.breaths > 0 {
+                        BecomingDeedsCounter(
+                            plates: lifetimeDeeds.plates,
+                            lessons: lifetimeDeeds.lessons,
+                            breathMinutes: lifetimeDeeds.breathMinutes,
+                            platesSince: deedsSinceDates.plates,
+                            lessonsSince: deedsSinceDates.lessons,
+                            breathSince: deedsSinceDates.breath,
+                            foodNoiseSince: deedsSinceDates.lessons
+                        )
+                    }
                     if !onboardingBarriers.isEmpty {
                         barrierCard
                     }

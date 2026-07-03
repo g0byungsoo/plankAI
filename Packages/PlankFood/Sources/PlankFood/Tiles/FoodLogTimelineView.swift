@@ -657,13 +657,18 @@ private struct FoodLogRowView: View {
     var heroNS: Namespace.ID? = nil
     var photoHidden: Bool = false
 
+    // App v2 (docs/app_v2/10_DESIGN_SYSTEM.md §plate catalog): the
+    // journal row stops being a database row. Photo-forward 4:5
+    // matte, serif title, and PROTEIN as the only macro at rest —
+    // the `p · c · f` monospaced footnote (the MFP-era grammar the
+    // brand rejects) lives only inside the detail view now.
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: 14) {
             iconBubble
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(displayTitle)
-                    .font(.custom("Fraunces72pt-Regular", size: 15))
+                    .font(.custom("Fraunces72pt-Regular", size: 16))
                     .foregroundStyle(FoodTheme.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
@@ -672,32 +677,39 @@ private struct FoodLogRowView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(FoodTheme.textSecondary)
                     .monospacedDigit()
+
+                if Int(entry.protein.rounded()) > 0 {
+                    Text("\(Int(entry.protein.rounded()))g protein")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(FoodTheme.accent)
+                }
             }
 
             Spacer(minLength: 8)
 
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("\(Int(entry.kcal.rounded())) kcal")
-                    .font(.system(size: 13, weight: .semibold))
+            VStack(alignment: .trailing, spacing: 0) {
+                Text("\(Int(entry.kcal.rounded()))")
+                    .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(FoodTheme.textPrimary)
                     .monospacedDigit()
-                macroLine
+                Text("cal")
+                    .font(.system(size: 10))
                     .foregroundStyle(FoodTheme.textSecondary)
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
         .padding(.horizontal, 10)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(FoodTheme.bgElevated)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(FoodTheme.accent.opacity(0.18), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(FoodTheme.textPrimary.opacity(0.07), lineWidth: 0.66)
         )
         .shadow(
-            color: FoodTheme.textPrimary.opacity(0.06),
-            radius: 0, x: 2, y: 2
+            color: FoodTheme.textPrimary.opacity(0.04),
+            radius: 5, x: 0, y: 2
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
@@ -710,21 +722,24 @@ private struct FoodLogRowView: View {
     /// the SAME matte shape so the rhythm holds — never a grey
     /// placeholder, never the old pink circle.
     @ViewBuilder private var iconBubble: some View {
+        // 4:5 magazine crop — the plate leads the row. Text-only
+        // entries render a cream recipe-card mini (serif initial) so
+        // the grid never shows a dead grey glyph.
         let matte = Group {
             if let photo = FoodPhotoStore.photo(entryId: entry.id) {
                 Image(uiImage: photo)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 56, height: 56)
+                    .frame(width: 64, height: 80)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             } else {
                 ZStack {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(FoodTheme.bgElevated)
-                        .frame(width: 56, height: 56)
-                    Image(systemName: iconName)
-                        .font(.system(size: 18, weight: .regular))
-                        .foregroundStyle(FoodTheme.textSecondary)
+                        .frame(width: 64, height: 80)
+                    Text(String(displayTitle.prefix(1)))
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 24))
+                        .foregroundStyle(FoodTheme.accent)
                 }
             }
         }
@@ -749,19 +764,6 @@ private struct FoodLogRowView: View {
         .accessibilityHidden(true)
     }
 
-    /// Matches CaptureSource raw values from CapturedFood.swift —
-    /// "photo" / "quick_add" / "im_out" / "text" etc. SF Symbols
-    /// chosen to read at small bubble size (40pt) without color tint.
-    private var iconName: String {
-        switch entry.source {
-        case "im_out":              return "fork.knife"
-        case "quick_add", "text":   return "pencil"
-        case "photo":               return "camera"
-        case "restaurant_estimate": return "fork.knife"
-        default:                    return "fork.knife.circle"
-        }
-    }
-
     private var displayTitle: String {
         let trimmed = entry.title.trimmingCharacters(in: .whitespaces)
         return trimmed.isEmpty ? "scanned plate" : trimmed.lowercased()
@@ -773,19 +775,6 @@ private struct FoodLogRowView: View {
         fmt.amSymbol = "am"
         fmt.pmSymbol = "pm"
         return fmt.string(from: entry.loggedAt)
-    }
-
-    @ViewBuilder private var macroLine: some View {
-        let p = Int(entry.protein.rounded())
-        let c = Int(entry.carbs.rounded())
-        let f = Int(entry.fat.rounded())
-        // Render the macro footnote only when there's something to
-        // show — pre-D3.B entries (no macros) just show kcal.
-        if p + c + f > 0 {
-            Text("p \(p) · c \(c) · f \(f)")
-                .font(.system(size: 11))
-                .monospacedDigit()
-        }
     }
 
     private var accessibilityLabel: String {

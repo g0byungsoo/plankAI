@@ -22,6 +22,16 @@ class OrientationManager {
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        // App v2 — notification taps route through AppRouter (queued
+        // until the entitled shell mounts; docs/app_v2/09).
+        NotificationDelegate.shared.install()
+        return true
+    }
+
+    func application(
+        _ application: UIApplication,
         supportedInterfaceOrientationsFor window: UIWindow?
     ) -> UIInterfaceOrientationMask {
         OrientationManager.shared.allowedOrientations
