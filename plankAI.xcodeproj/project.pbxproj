@@ -64,6 +64,7 @@
 		0CA042EA3DC8D66AEC6761F2 /* jeni_prep_short_tabletop_bridge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 79517CD7035B64EA70F7D0D2 /* jeni_prep_short_tabletop_bridge.m4a */; };
 		0CBCEA27EEA092A6A2A33588 /* AppPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD6BB856F6D549D50617DFC2 /* AppPhase.swift */; };
 		0CC832378A8AA7A591F510E6 /* prep_short_hip_flexor_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8C7F1443999F719D2324FBD7 /* prep_short_hip_flexor_stretch.m4a */; };
+		0D6730EFE353F8E3C7222552 /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E243620C5D9F7F9DE8E0C2E /* InsightEngine.swift */; };
 		0DA18B7E05B37EF0CA11F1E0 /* matson_prep_short_side_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F13B17DE7321DDCB8D15AB92 /* matson_prep_short_side_lunge.m4a */; };
 		0E1AE4AC5AA35F0C25D0DCF7 /* jeni_prep_short_good_morning.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 929F1C6F5163AAB74A041814 /* jeni_prep_short_good_morning.m4a */; };
 		0E282B467B8FB6CFBCEA021C /* prep_short_flutter_kicks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 5E8890E889EB4DC67B5CFEBF /* prep_short_flutter_kicks.m4a */; };
@@ -661,6 +662,7 @@
 		8EC1320F0856C14B325F9DC0 /* matson_prep_short_seated_knee_tuck.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9FD34BE9978677A2DB443EAF /* matson_prep_short_seated_knee_tuck.m4a */; };
 		8EC3096ECD3E183D8AF0F8A8 /* matson_prep_short_good_morning.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 337F0A2C4E2E866AD9FC697B /* matson_prep_short_good_morning.m4a */; };
 		8EE72450D98AD26BBCBC22E4 /* matson_prep_full_alternating_superman.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 700407B100F8A094072FA007 /* matson_prep_full_alternating_superman.m4a */; };
+		8F3F736BFDC051A4578EEF02 /* BecomingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCEF0DC434ECE616057F77A6 /* BecomingView.swift */; };
 		8F95EC1EF81415AF78762493 /* prep_full_hamstring_stretch_standing.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 05F2DC48D2C8029929E4B9C2 /* prep_full_hamstring_stretch_standing.m4a */; };
 		8FACC524C818CBA0163147EA /* prep_short_side_tilt.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 84489FE5C2F60CE70718F769 /* prep_short_side_tilt.m4a */; };
 		9001D6BCF0595BE03AFA78F0 /* CoachNoteCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81D6B088477AAFF00A7CFB80 /* CoachNoteCard.swift */; };
@@ -2154,6 +2156,7 @@
 		9D97D7F8383C76FC23F69C97 /* prep_short_cat_cow.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_cat_cow.m4a; sourceTree = "<group>"; };
 		9DDE4A14424B40D7616FD604 /* jeni_prep_full_leg_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_leg_raise.m4a; sourceTree = "<group>"; };
 		9E194357523841A1224BBA25 /* matson_prep_full_reverse_to_forward_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_reverse_to_forward_lunge.m4a; sourceTree = "<group>"; };
+		9E243620C5D9F7F9DE8E0C2E /* InsightEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InsightEngine.swift; sourceTree = "<group>"; };
 		9F1FB64AA5387E2A5D1CDBF9 /* jeni_prep_short_lying_glute_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_lying_glute_stretch.m4a; sourceTree = "<group>"; };
 		9F3571464229870CAD8CE627 /* prep_full_standing_side_bend.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_standing_side_bend.m4a; sourceTree = "<group>"; };
 		9F75B02554E00B12592930FD /* matson_prep_full_good_morning.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_good_morning.m4a; sourceTree = "<group>"; };
@@ -2532,6 +2535,7 @@
 		BC6E6E2D6ACA41137907C1E6 /* jeni_prep_full_bird_dog.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_bird_dog.m4a; sourceTree = "<group>"; };
 		BC7BC938B64F5C3450F63D14 /* jeni_prep_short_side_leg_jack.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_side_leg_jack.m4a; sourceTree = "<group>"; };
 		BCE0D62BA7D705BFC4DE6CE8 /* BecomingProjectionCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BecomingProjectionCard.swift; sourceTree = "<group>"; };
+		BCEF0DC434ECE616057F77A6 /* BecomingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BecomingView.swift; sourceTree = "<group>"; };
 		BD0D1A2B3C4D5E6F70819294 /* BodoniModa.ttf */ = {isa = PBXFileReference; includeInIndex = 1; path = BodoniModa.ttf; sourceTree = "<group>"; };
 		BD190CB62D170F351E750B0F /* jeni_prep_short_high_knees.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_high_knees.m4a; sourceTree = "<group>"; };
 		BD653C774A6BE2358F5271C2 /* prep_short_side_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_side_lunge.m4a; sourceTree = "<group>"; };
@@ -2891,6 +2895,7 @@
 				7DE68484624232C7D08B09EC /* PrescriptionEngineV2.swift */,
 				E682F4F6CAB7860F17C9FCDA /* DailyBriefEngine.swift */,
 				6EB8892868259BBDEE62A7B4 /* TodayStateService.swift */,
+				9E243620C5D9F7F9DE8E0C2E /* InsightEngine.swift */,
 			);
 			name = Program;
 			path = Program;
@@ -2934,6 +2939,15 @@
 				414E63DF0E30E490383BDE3C /* LessonPracticeView.swift */,
 			);
 			path = DietEducation;
+			sourceTree = "<group>";
+		};
+		3CD833E8BAAA0FB8AB2020DD /* Becoming */ = {
+			isa = PBXGroup;
+			children = (
+				BCEF0DC434ECE616057F77A6 /* BecomingView.swift */,
+			);
+			name = Becoming;
+			path = Becoming;
 			sourceTree = "<group>";
 		};
 		444B08DEAEE5086AFA86F549 /* plankAIUITests */ = {
@@ -3209,6 +3223,7 @@
 				EC2CFA9A86AF5C7AEFC2FD13 /* OnboardingV5 */,
 				D11B3C923530B6F713AA2F72 /* Migration */,
 				E5E6DB8497493A4E3F5D77B7 /* Today */,
+				3CD833E8BAAA0FB8AB2020DD /* Becoming */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -6215,6 +6230,8 @@
 				E09EADC5CF8877CAEAE99C73 /* ChatToolRouter.swift in Sources */,
 				B781394E8C4EE12ACAAD29D0 /* JeniChatView.swift in Sources */,
 				010C5266E0731C2FEB1D520D /* NotificationDelegate.swift in Sources */,
+				0D6730EFE353F8E3C7222552 /* InsightEngine.swift in Sources */,
+				8F3F736BFDC051A4578EEF02 /* BecomingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

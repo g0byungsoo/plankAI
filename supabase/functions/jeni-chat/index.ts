@@ -213,25 +213,21 @@ Deno.serve(async (req) => {
   const dayStart = new Date();
   dayStart.setUTCHours(0, 0, 0, 0);
   try {
-    const [{ count: userCount }, { data: budgetRows }] = await Promise.all([
+    const [{ count: userCount }, { data: spentData }] = await Promise.all([
       service
         .from("jeni_chat_telemetry")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
         .eq("status", "ok")
         .gte("created_at", dayStart.toISOString()),
-      service
-        .from("jeni_chat_telemetry")
-        .select("cost_usd")
-        .gte("created_at", dayStart.toISOString()),
+      // SQL-side sum (deploy-audit R5): a row-select sum silently
+      // caps at PostgREST max_rows; the RPC can't.
+      service.rpc("jeni_chat_spend_today"),
     ]);
     if ((userCount ?? 0) >= PER_USER_DAILY_LIMIT) {
       return jsonResponse(429, { error: "daily_message_limit" });
     }
-    const spent = (budgetRows ?? []).reduce(
-      (sum: number, r: { cost_usd: number | null }) => sum + (Number(r.cost_usd) || 0),
-      0,
-    );
+    const spent = Number(spentData ?? 0);
     if (spent >= DAILY_BUDGET_USD) {
       return jsonResponse(429, { error: "daily_budget_reached" });
     }
@@ -317,9 +313,11 @@ Deno.serve(async (req) => {
   });
 
   if (!upstream.ok || !upstream.body) {
-    const detail = await upstream.text().catch(() => "");
+    // Never forward provider error bodies to clients (deploy-audit
+    // R8); the status code is enough for the app's friendly line.
+    await upstream.text().catch(() => "");
     logTelemetry(service, userId, 0, 0, "upstream_error", Date.now() - started);
-    return jsonResponse(502, { error: "upstream", detail: detail.slice(0, 400) });
+    return jsonResponse(502, { error: "upstream" });
   }
 
   let inputTokens = 0;

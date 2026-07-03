@@ -2754,6 +2754,17 @@ private struct RootView: View {
     /// swaps never flash the wall (07_GATING suppression-hold).
     @State private var lastStablePhase: AppPhase?
 
+    #if DEBUG
+    /// QA-seed helper: user-scoped weight-log count (the nil-latest
+    /// guard broke when cloud hydration restored one stray old log).
+    private func seededWeightCount(userId: String, in context: ModelContext) -> Int {
+        let descriptor = FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        return (try? context.fetchCount(descriptor)) ?? 0
+    }
+    #endif
+
     private var currentPhase: AppPhase {
         AppPhaseMachine.derive(.init(
             hasCompletedOnboarding: hasCompletedOnboarding,
@@ -2956,6 +2967,12 @@ private struct RootView: View {
                 d.set(29, forKey: "onb_v5_age_years")
                 d.set("female", forKey: "onboardingGender")
                 d.set("walks", forKey: "onb_v4_movement_baseline")
+                // Seeded QA accounts are past the migration moment
+                // (pair --uitest-force-migration to test it instead).
+                if !ProcessInfo.processInfo.arguments.contains("--uitest-force-migration"),
+                   (d.string(forKey: "appV2SeenAt") ?? "").isEmpty {
+                    d.set(ISO8601DateFormatter().string(from: .now), forKey: "appV2SeenAt")
+                }
             }
             if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
                let uid = auth.currentUser?.id.uuidString,
@@ -2975,12 +2992,57 @@ private struct RootView: View {
                     userId: uid,
                     in: modelContext
                 )
-                // Backdate the start so "day 12" states render
-                // (strip history, receipts, brief variety).
-                if let plan = ProgramService.shared.activePlan(userId: uid, in: modelContext) {
-                    plan.startDate = Calendar.current.date(byAdding: .day, value: -11, to: .now) ?? .now
+            }
+            // Backdate the start so "day 12" states render — EVERY
+            // launch, because cloud hydration (LWW) restores the
+            // un-backdated startDate the creation upsert pushed.
+            // pendingUpsert=true makes the backdate win server-side.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
+               let uid = auth.currentUser?.id.uuidString,
+               let plan = ProgramService.shared.activePlan(userId: uid, in: modelContext) {
+                let targetStart = Calendar.current.date(byAdding: .day, value: -11, to: .now) ?? .now
+                if !Calendar.current.isDate(plan.startDate, inSameDayAs: targetStart) {
+                    plan.startDate = targetStart
+                    plan.pendingUpsert = true
+                    plan.updatedAt = .now
                     try? modelContext.save()
+                    Task { await AppSync.shared.upsertProgramPlan(plan) }
                 }
+            }
+            // Weight history so the trend story + canvas render
+            // (6 weigh-ins easing 75.4 → 74.2 over 11 days).
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
+               let uid = auth.currentUser?.id.uuidString,
+               seededWeightCount(userId: uid, in: modelContext) < 3 {
+                let series: [(daysAgo: Int, kg: Double)] = [
+                    (11, 75.4), (9, 75.1), (7, 75.2), (5, 74.8), (2, 74.5), (0, 74.2),
+                ]
+                for point in series {
+                    let record = WeightLogRecord(
+                        userId: uid,
+                        weightKg: point.kg,
+                        loggedAt: Calendar.current.date(byAdding: .day, value: -point.daysAgo, to: .now) ?? .now,
+                        source: "manual"
+                    )
+                    record.pendingUpsert = false   // QA data stays local
+                    modelContext.insert(record)
+                }
+                try? modelContext.save()
+            }
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program") {
+                let uid = auth.currentUser?.id.uuidString ?? "NIL"
+                let plan = ProgramService.shared.activePlan(userId: uid, in: modelContext)
+                let day = plan.map {
+                    ProgramScheduleCalculator.compute(
+                        .init(startDate: $0.startDate, totalDays: $0.totalDays)
+                    ).programDay
+                }
+                let kg = TargetsService.latestWeightKg(userId: uid, in: modelContext)
+                NSLog("[SeedQA] uid=%@ plan=%@ day=%@ latestKg=%@",
+                      String(uid.prefix(8)),
+                      plan?.id.prefix(8).description ?? "nil",
+                      day.map(String.init) ?? "nil",
+                      kg.map { String($0) } ?? "nil")
             }
             #endif
             await AppSync.shared.onLaunch(modelContext: modelContext)

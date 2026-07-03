@@ -49,7 +49,9 @@ create policy coach_messages_delete on public.coach_messages
 --     service-role only, mirrors food_vision_telemetry)
 create table if not exists public.jeni_chat_telemetry (
   id bigint generated always as identity primary key,
-  user_id uuid not null,
+  -- Nullable + ON DELETE SET NULL so delete-account leaves no
+  -- orphaned user UUIDs (mirrors food_vision_telemetry exactly).
+  user_id uuid references auth.users(id) on delete set null,
   model text,
   input_tokens int,
   output_tokens int,
@@ -61,6 +63,23 @@ create table if not exists public.jeni_chat_telemetry (
 create index if not exists jeni_chat_telemetry_user_day
   on public.jeni_chat_telemetry (user_id, created_at);
 alter table public.jeni_chat_telemetry enable row level security;
+
+-- Server-side spend sum so the EF's global budget check can't be
+-- silently capped by PostgREST max_rows (deploy-audit R5). SECURITY
+-- DEFINER + service-role-only execute (revoked from clients).
+create or replace function public.jeni_chat_spend_today()
+returns numeric
+language sql
+security definer
+set search_path = ''
+as $$
+  select coalesce(sum(cost_usd), 0)
+  from public.jeni_chat_telemetry
+  where created_at >= date_trunc('day', now());
+$$;
+revoke execute on function public.jeni_chat_spend_today() from public;
+revoke execute on function public.jeni_chat_spend_today() from anon;
+revoke execute on function public.jeni_chat_spend_today() from authenticated;
 
 -- 4 ─ day_reflections
 create table if not exists public.day_reflections (

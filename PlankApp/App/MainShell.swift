@@ -150,6 +150,12 @@ struct JeniChatHost: View {
 
 struct BecomingHost: View {
     var body: some View {
-        AnalyticsView()
+        if ProcessInfo.processInfo.arguments.contains("--legacy-becoming") {
+            // Founder-comparison escape while v2.1 burns in; swept
+            // with the AnalyticsView retirement.
+            AnalyticsView()
+        } else {
+            BecomingView()
+        }
     }
 }
