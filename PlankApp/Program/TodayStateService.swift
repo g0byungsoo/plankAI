@@ -23,6 +23,9 @@ struct TodaySnapshot {
     let day: PrescriptionEngineV2.Day?
     /// itemKey → state ("empty"/"complete"/"skipped"/"autoCompleted")
     let checkStates: [String: String]
+    /// programDay → completed-check count for the strip's visible
+    /// window (today ±10 days) — the day strip reads this.
+    let completionWindow: [Int: Int]
 
     // food
     let kcalEaten: Int
@@ -76,6 +79,7 @@ enum TodayStateService {
         var totalDays = 0
         var day: PrescriptionEngineV2.Day?
         var checkStates: [String: String] = [:]
+        var completionWindow: [Int: Int] = [:]
 
         // — weight
         let weightLogs = fetchWeightLogs(userId: userId, in: context)
@@ -113,6 +117,9 @@ enum TodayStateService {
             )
             checkStates = fetchCheckStates(
                 userId: userId, planId: plan.id, programDay: programDay, in: context
+            )
+            completionWindow = fetchCompletionWindow(
+                userId: userId, planId: plan.id, around: programDay, in: context
             )
         }
 
@@ -159,6 +166,7 @@ enum TodayStateService {
             totalDays: totalDays,
             day: day,
             checkStates: checkStates,
+            completionWindow: completionWindow,
             kcalEaten: Int(macros.kcal.rounded()),
             proteinEatenG: Int(macros.protein.rounded()),
             plates: plates,
@@ -196,6 +204,29 @@ enum TodayStateService {
         )
         let checks = (try? context.fetch(descriptor)) ?? []
         return Dictionary(uniqueKeysWithValues: checks.map { ($0.itemKey, $0.state) })
+    }
+
+    /// Completed-check counts for the strip window (±10 days around
+    /// today) — bounded, unlike the v1 all-days hydrate.
+    @MainActor
+    private static func fetchCompletionWindow(
+        userId: String, planId: String, around programDay: Int, in context: ModelContext
+    ) -> [Int: Int] {
+        let lo = programDay - 10, hi = programDay + 10
+        let descriptor = FetchDescriptor<ProgramDayCheckRecord>(
+            predicate: #Predicate {
+                $0.userId == userId
+                && $0.programPlanId == planId
+                && $0.programDay >= lo
+                && $0.programDay <= hi
+            }
+        )
+        let checks = (try? context.fetch(descriptor)) ?? []
+        var counts: [Int: Int] = [:]
+        for check in checks where check.state == "complete" || check.state == "autoCompleted" {
+            counts[check.programDay, default: 0] += 1
+        }
+        return counts
     }
 
     // MARK: - Derived metrics

@@ -120,10 +120,14 @@ struct TodayHost: View {
 
     var body: some View {
         Group {
-            if programEraEnabled {
+            if !programEraEnabled {
+                ProgramOnrampView()
+            } else if ProcessInfo.processInfo.arguments.contains("--legacy-today") {
+                // Founder-comparison escape while v2 burns in; swept
+                // with the PlanView retirement (P8).
                 PlanView()
             } else {
-                ProgramOnrampView()
+                TodayView()
             }
         }
     }

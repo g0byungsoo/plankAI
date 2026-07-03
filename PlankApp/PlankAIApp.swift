@@ -2911,6 +2911,53 @@ private struct RootView: View {
                     return TargetsService.proteinTargetG(weightKg: kg)
                 }
             )
+            #if DEBUG
+            // App v2 QA — seed an enrolled program for the current
+            // user so TodayView renders without walking onboarding +
+            // the setup subflow. Pair with --uitest-pro-access.
+            //   xcrun simctl launch booted com.bk.plankAI \
+            //     --uitest-inapp-qa --uitest-pro-access --uitest-seed-program
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
+               auth.currentUser != nil {
+                let d = UserDefaults.standard
+                // Always re-assert (--uitest-inapp-qa clears these at
+                // init on every launch).
+                d.set(true, forKey: "programEraEnabled")
+                d.set(true, forKey: "hasEnrolledInProgram")
+                d.set("maya", forKey: "userName")
+                d.set(75.0, forKey: "onboardingCurrentWeightKg")
+                d.set(65.0, forKey: "onboardingGoalWeightKg")
+                d.set(165.0, forKey: "onboardingHeightCm")
+                d.set(29, forKey: "onb_v5_age_years")
+                d.set("female", forKey: "onboardingGender")
+                d.set("walks", forKey: "onb_v4_movement_baseline")
+            }
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
+               let uid = auth.currentUser?.id.uuidString,
+               ProgramService.shared.activePlan(userId: uid, in: modelContext) == nil {
+                _ = ProgramService.shared.startProgram(
+                    input: ProgramService.StartProgramInput(
+                        currentWeightKg: 75.0,
+                        goalWeightKg: 65.0,
+                        tier: .medium,
+                        goalCalculator: ProgramGoalCalculator.Inputs(
+                            currentWeightKg: 75.0,
+                            goalWeightKg: 65.0,
+                            sex: .female,
+                            age: 29
+                        )
+                    ),
+                    userId: uid,
+                    in: modelContext
+                )
+                // Backdate the start so "day 12" states render
+                // (strip history, receipts, brief variety).
+                if let plan = ProgramService.shared.activePlan(userId: uid, in: modelContext) {
+                    plan.startDate = Calendar.current.date(byAdding: .day, value: -11, to: .now) ?? .now
+                    try? modelContext.save()
+                }
+            }
+            #endif
             await AppSync.shared.onLaunch(modelContext: modelContext)
             // Steps: silent permission probe at launch (never prompts).
             // StepsService's docs always promised this call; it was only

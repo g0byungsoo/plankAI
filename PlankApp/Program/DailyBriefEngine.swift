@@ -54,7 +54,7 @@ enum DailyBriefEngine {
         // 1 — the kept promise (day 1-2 only; the loop's first win)
         if ctx.promiseJustKept {
             return Brief(
-                line: "you did the thing you said you'd do. that's the whole *skill* \u{2665}\u{FE0E}",
+                line: "you did the thing you said you'd do. that's the whole skill \u{2665}\u{FE0E}",
                 italic: ["skill"],
                 chatSeed: "she kept her day-one promise. acknowledge it and set up today lightly."
             )
@@ -64,7 +64,7 @@ enum DailyBriefEngine {
         //     return moment is where retention is won or lost)
         if ctx.daysSinceLastOpen >= 2 {
             return Brief(
-                line: "back after \(ctx.daysSinceLastOpen) days. *begin again* is the strategy, not the failure \u{2665}\u{FE0E}",
+                line: "back after \(ctx.daysSinceLastOpen) days. begin again is the strategy, not the failure \u{2665}\u{FE0E}",
                 italic: ["begin again"],
                 chatSeed: "she's back after \(ctx.daysSinceLastOpen) days away. no guilt. re-entry plan for today."
             )
@@ -74,7 +74,7 @@ enum DailyBriefEngine {
         //     >1%/wk sustained → protein reframe, never "slow down")
         if let rate = ctx.lossRatePctPerWeek, rate > 0.01 {
             return Brief(
-                line: "you're moving quickly. a *protein-forward* week keeps it lean \u{2665}\u{FE0E}",
+                line: "you're moving quickly. a protein-forward week keeps it lean \u{2665}\u{FE0E}",
                 italic: ["protein-forward"],
                 chatSeed: "her trend shows faster than 1% per week. explain the lean-mass case for protein without alarm."
             )
@@ -84,14 +84,14 @@ enum DailyBriefEngine {
         if let delta = ctx.emaDelta7dKg {
             if delta <= -0.2 {
                 return Brief(
-                    line: "your trend line eased down this week. quiet, *real* movement.",
+                    line: "your trend line eased down this week. quiet, real movement.",
                     italic: ["real"],
                     chatSeed: "her 7-day trend is gently down. name it and connect it to what she did."
                 )
             }
             if delta >= 0.4 && !ctx.maintenanceMode {
                 return Brief(
-                    line: "the line drifted up a little. water and rhythm do this. *the week* decides, not the day.",
+                    line: "the line drifted up a little. water and rhythm do this. the week decides, not the day.",
                     italic: ["the week"],
                     chatSeed: "her trend ticked up ~0.4kg over 7 days. explain fluctuation science calmly, then one anchor for today."
                 )
@@ -101,9 +101,9 @@ enum DailyBriefEngine {
         // 5 — weigh-in day framing
         if ctx.isWeighInDay {
             let line = ctx.weighInIsStaleFallback
-                ? "it's been a minute since the scale. one *data point*, zero verdicts."
+                ? "it's been a minute since the scale. one data point, zero verdicts."
                 : (ctx.maintenanceMode
-                    ? "sunday trend check. you're not chasing a number, you're *keeping* one \u{2665}\u{FE0E}"
+                    ? "sunday trend check. you're not chasing a number, you're keeping one \u{2665}\u{FE0E}"
                     : "trend-line day. thirty seconds, then it's behind you.")
             return Brief(
                 line: line,
@@ -122,40 +122,40 @@ enum DailyBriefEngine {
         case .protein:
             if ctx.glp1Cohort == .onGlp1, let target = ctx.proteinTargetG {
                 return Brief(
-                    line: "a protein day. small plates count double — aim near *\(target)g* \u{2665}\u{FE0E}",
+                    line: "a protein day. small plates count double. aim near \(target)g \u{2665}\u{FE0E}",
                     italic: ["\(target)g"],
                     chatSeed: "protein day on glp-1. she may have low appetite; suggest dense, gentle options."
                 )
             }
             let lines = [
-                ("a protein day. one *strong* plate at a time.", ["strong"]),
-                ("protein leads today. it's the quiet *keeper* of muscle.", ["keeper"]),
+                ("a protein day. one strong plate at a time.", ["strong"]),
+                ("protein leads today. it's the quiet keeper of muscle.", ["keeper"]),
             ]
             let pick = lines[seedIndex % lines.count]
             return Brief(line: pick.0, italic: pick.1, chatSeed: "protein day. one concrete plate idea if she asks.")
         case .movement:
             return Brief(
-                line: "a movement day. it's on the plan because *you* said yes to it.",
+                line: "a movement day. it's on the plan because you said yes to it.",
                 italic: ["you"],
                 chatSeed: "movement day. she committed to this cadence; encourage without pressure."
             )
         case .balanced:
             let lines = [
-                ("a balanced day. nothing heroic, everything *counted*.", ["counted"]),
-                ("today asks for *steady*, not perfect.", ["steady"]),
+                ("a balanced day. nothing heroic, everything counted.", ["counted"]),
+                ("today asks for steady, not perfect.", ["steady"]),
             ]
             let pick = lines[seedIndex % lines.count]
             return Brief(line: pick.0, italic: pick.1, chatSeed: "balanced day. keep it light.")
         case .rest:
             if ctx.glp1Cohort == .postGlp1 {
                 return Brief(
-                    line: "a rest day. rest is how the *kept* version of you gets built \u{2665}\u{FE0E}",
+                    line: "a rest day. rest is how the kept version of you gets built \u{2665}\u{FE0E}",
                     italic: ["kept"],
                     chatSeed: "rest day for a post-glp-1 maintainer. reinforce that rest is part of keeping it."
                 )
             }
             return Brief(
-                line: "a rest day. softness is *strategy*, not slack \u{2665}\u{FE0E}",
+                line: "a rest day. softness is strategy, not slack \u{2665}\u{FE0E}",
                 italic: ["strategy"],
                 chatSeed: "rest day. one breath session is the whole assignment."
             )

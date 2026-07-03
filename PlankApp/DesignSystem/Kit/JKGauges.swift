@@ -35,8 +35,11 @@ struct JKProteinArc: View {
         VStack(spacing: 8) {
             ZStack {
                 arc(trim: 1, color: Palette.accentSubtle, width: 6)
-                arc(trim: fraction, color: met ? Palette.cocoaPrimary : Palette.accent, width: 6)
-                    .animation(Motion.easedFinal, value: fraction)
+                if fraction > 0 {
+                    arc(trim: fraction, color: met ? Palette.cocoaPrimary : Palette.accent, width: 6)
+                        .animation(Motion.easedFinal, value: fraction)
+                        .transition(.opacity)
+                }
 
                 VStack(spacing: 1) {
                     Text("\(grams)")
@@ -70,7 +73,7 @@ struct JKProteinArc: View {
 
     private func arc(trim: Double, color: Color, width: CGFloat) -> some View {
         Circle()
-            .trim(from: 0, to: (sweep / 360) * max(0.015, trim))
+            .trim(from: 0, to: (sweep / 360) * min(1, max(0.02, trim)))
             .stroke(color, style: StrokeStyle(lineWidth: width, lineCap: .round))
             .rotationEffect(.degrees(startAngle))
     }
@@ -95,14 +98,17 @@ struct JKStepsRing: View {
         VStack(spacing: 6) {
             ZStack {
                 Circle().stroke(Palette.accentSubtle, lineWidth: 5)
-                Circle()
-                    .trim(from: 0, to: max(0.02, fraction))
-                    .stroke(
-                        fraction >= 1 ? Palette.cocoaPrimary : Palette.accent,
-                        style: StrokeStyle(lineWidth: 5, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .animation(Motion.easedFinal, value: fraction)
+                if fraction > 0 {
+                    Circle()
+                        .trim(from: 0, to: max(0.02, fraction))
+                        .stroke(
+                            fraction >= 1 ? Palette.cocoaPrimary : Palette.accent,
+                            style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                        )
+                        .rotationEffect(.degrees(-90))
+                        .animation(Motion.easedFinal, value: fraction)
+                        .transition(.opacity)
+                }
                 Image(systemName: "figure.walk")
                     .font(.system(size: 15, weight: .light))
                     .foregroundStyle(Palette.cocoaSecondary)

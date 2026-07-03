@@ -195,14 +195,17 @@ struct JKMiniRing: View {
         ZStack {
             Circle()
                 .stroke(Palette.accentSubtle, lineWidth: 3)
-            Circle()
-                .trim(from: 0, to: max(0.02, min(1, progress)))
-                .stroke(
-                    isDone ? Palette.cocoaPrimary : Palette.accent,
-                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-                .animation(Motion.easedFinal, value: progress)
+            if progress > 0 {
+                Circle()
+                    .trim(from: 0, to: max(0.02, min(1, progress)))
+                    .stroke(
+                        isDone ? Palette.cocoaPrimary : Palette.accent,
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .animation(Motion.easedFinal, value: progress)
+                    .transition(.opacity)
+            }
         }
         .frame(width: 26, height: 26)
         .accessibilityHidden(true)
