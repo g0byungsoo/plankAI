@@ -59,9 +59,22 @@ Doc set: `docs/app_v2/` (00-11 + SCIENCE.md). What changed:
   `--uitest-force-migration`, `--uitest-today-bottom`,
   `--debug-jenikit` (component gallery).
 
-Founder actions pending: deploy jeni-chat EF + run the migration SQL
-(founder credential), device pass on Today/chat/becoming, then the
-PlanView + dead-code sweep (P8 list in `docs/app_v2/11`).
+**v2.1 pass (same day):** Becoming REBUILT as the insight layer
+(`Views/Becoming/BecomingView.swift` + `Program/InsightEngine.swift`
+— trend-as-coach-story, ranked pattern insights with ask-jeni seeds,
+method journey, wins receipts; `docs/app_v2/12_BECOMING_V2.md`).
+Day-complete silk sweep (`jkSilk` Metal shader, frame-diff verified).
+Workout celebration de-emoji'd (typographic "kept."). Onramp speaks
+receipt grammar. Deploy-safety audit GO/GO with pre-deploy fixes
+(telemetry FK, budget-sum RPC, 502 leak) — founder checklist at
+`docs/app_v2/13_DEPLOY_SAFETY.md`; usage data + feature-by-feature
+status + sweep list at `14_V21_NOTES.md`.
+
+Founder actions pending: run the migration SQL then deploy jeni-chat
+(exact checklist in `docs/app_v2/13_DEPLOY_SAFETY.md` — verified
+safe for the live app in any order vs the release), device pass,
+then the legacy sweep (`--legacy-today` / `--legacy-becoming` /
+v4.5 escapes; list in `14_V21_NOTES.md`).
 
 This is the source-of-truth doc. Read it first. Anything earlier in
 `docs/archive/` documented a research pass or pivot that informed shipped
