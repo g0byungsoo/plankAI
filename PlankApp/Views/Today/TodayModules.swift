@@ -36,12 +36,19 @@ final class TodayModuleState {
         case logWeight
         case markAsDone(ProgramDayPrescription)
         case profileHub
+        case stepsDetail
+        /// Future-day peek (≤ +7) / lock (beyond) from the strip.
+        case dayPeek(day: Int)
+        case dayLock(day: Int)
 
         var id: String {
             switch self {
             case .logWeight: return "logWeight"
             case .markAsDone: return "markAsDone"
             case .profileHub: return "profileHub"
+            case .stepsDetail: return "stepsDetail"
+            case .dayPeek: return "dayPeek"
+            case .dayLock: return "dayLock"
             }
         }
     }
@@ -101,7 +108,7 @@ final class TodayModuleState {
         case .workout(let tier, let minutes, let bodyFocus):
             openWorkout(tier: tier, minutes: minutes, bodyFocus: bodyFocus)
         case .steps:
-            return   // auto-tracks; silent tap (detail sheet is v2.1)
+            present(sheet: .stepsDetail)
         case .breath:
             present(cover: .breathSession)
         case .weighIn:

@@ -168,71 +168,65 @@ struct PreRoutineView: View {
         }
     }
 
-    // MARK: - Stats row
+    // MARK: - The brief (App v2.2)
+    //
+    // The doorway to the app's weakest-completing feature (26% of
+    // purchasers ever finish a workout) was also its busiest screen:
+    // three hard-offset stat cards + a bordered tip box. v2.2 makes
+    // it one breath — the receipt grammar the rest of the app speaks
+    // (quiet cause -> serif consequence) and the tip as jeni's line,
+    // unboxed. Less to read = less reason to back out.
 
     private var statsRow: some View {
         let rounds = workout.exercises.map { $0.round }.max() ?? 1
-        return HStack(spacing: Space.sm) {
-            statCard(icon: "clock", value: "\(workout.estimatedDuration)", unit: "min")
-            statCard(icon: "figure.run", value: "\(workout.exercises.count)", unit: "moves")
-            statCard(icon: "arrow.2.circlepath", value: "\(rounds)", unit: rounds == 1 ? "round" : "rounds")
+        return VStack(spacing: 0) {
+            JKReceiptRow(
+                lead: "time",
+                punch: "\(workout.estimatedDuration) minutes",
+                punchItalic: ["minutes"],
+                showsRule: false
+            )
+            JKReceiptRow(
+                lead: "moves",
+                punch: rounds == 1
+                    ? "\(workout.exercises.count), one round"
+                    : "\(workout.exercises.count), in \(rounds) rounds",
+                punchItalic: []
+            )
+            JKReceiptRow(
+                lead: "you can",
+                punch: "pause or end anytime",
+                punchItalic: ["anytime"]
+            )
         }
+        .padding(.horizontal, Space.sm)
     }
 
-    private func statCard(icon: String, value: String, unit: String) -> some View {
-        VStack(spacing: 2) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Palette.accent)
-                .padding(.bottom, 4)
-            Text(value)
-                .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                .foregroundStyle(Palette.textPrimary)
-            Text(unit)
-                .font(Typo.caption)
-                .foregroundStyle(Palette.textSecondary)
-                .tracking(1)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Space.md)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Palette.accent.opacity(0.15))
-                    .offset(x: 4, y: 4)
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Palette.bgElevated)
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Palette.accent, lineWidth: 1.5)
-            }
-        )
-    }
-
-    // MARK: - Tip card
+    // MARK: - Jeni's line (was: tip card)
 
     private var tipCard: some View {
-        HStack(alignment: .top, spacing: Space.sm) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Palette.accent)
-                .padding(.top, 3)
-            Text(tip)
-                .font(Typo.body)
-                .foregroundStyle(Palette.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(Space.md)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Palette.accent.opacity(0.15))
-                    .offset(x: 4, y: 4)
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Palette.accentSubtle.opacity(0.45))
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Palette.accent.opacity(0.5), lineWidth: 1.5)
-            }
+        ItalicAccentText(
+            tip,
+            italic: tipItalicWords,
+            baseFont: .custom("JeniHeroSerif-Regular", size: 19),
+            italicFont: .custom("JeniHeroSerif-Italic", size: 19),
+            color: Palette.textPrimary,
+            alignment: .leading
         )
+        .lineSpacing(-2)
+        .kerning(-0.2)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Space.sm)
+        .padding(.top, Space.xs)
+    }
+
+    /// Punch word for the tip line — first brand verb found.
+    private var tipItalicWords: [String] {
+        let candidates = ["steady", "gentle", "strong", "yours", "showing up",
+                          "counts", "energy", "pace"]
+        let lower = tip.lowercased()
+        return Array(candidates.filter { lower.contains($0) }.prefix(1))
     }
 
     // MARK: - Exercise list

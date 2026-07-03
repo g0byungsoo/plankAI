@@ -170,7 +170,18 @@ struct TodayView: View {
             totalDays: snapshot.totalDays,
             completionByDay: snapshot.completionWindow,
             centeredDay: snapshot.programDay,
-            onTap: { _ in }
+            onTap: { day in
+                // Future days: warm peek within a week, lock beyond.
+                // Past days stay quiet by design in v2 (the strip is
+                // orientation, not time travel — v1's past-day browse
+                // is an intentional simplification, documented).
+                guard case .locked(let futureDay) = day else { return }
+                if futureDay <= snapshot.programDay + 7 {
+                    modules.present(sheet: .dayPeek(day: futureDay))
+                } else {
+                    modules.present(sheet: .dayLock(day: futureDay))
+                }
+            }
         )
     }
 

@@ -200,6 +200,36 @@ private struct TodayModuleHost: ViewModifier {
             ProfileHubView(onClose: { state.activeSheet = nil })
                 .presentationDetents([.large])
                 .presentationBackground(Palette.bgPrimary)
+
+        case .stepsDetail:
+            TodayStepsSheet(goal: snapshot?.targets.steps ?? 7_500)
+                .presentationDetents([.fraction(0.62)])
+                .presentationBackground(Palette.bgPrimary)
+
+        case .dayPeek(let day):
+            ProgramDayPeekSheet(
+                day: day,
+                archetype: ProgramDayArchetype.archetype(
+                    forProgramDay: day,
+                    glp1Status: CohortStore.glp1StatusKey,
+                    restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
+                ),
+                onDismiss: { state.dismissSheet() }
+            )
+            .presentationDetents([.fraction(0.42)])
+            .presentationDragIndicator(.hidden)
+            .presentationBackground(Palette.bgElevated)
+
+        case .dayLock(let day):
+            ProgramLockSheet(
+                lockedDay: day,
+                currentDay: snapshot?.programDay ?? 1,
+                totalDays: snapshot?.totalDays ?? 84,
+                onDismiss: { state.dismissSheet() }
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.hidden)
+            .presentationBackground(Palette.bgElevated)
         }
     }
 }
