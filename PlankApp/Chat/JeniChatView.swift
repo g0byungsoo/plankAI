@@ -251,16 +251,46 @@ struct JeniChatView: View {
         session.send()
     }
 
+    // v2.5 — chips are STATE-AWARE: the empty composer offers the
+    // conversation she actually needs right now, computed from the
+    // live snapshot. Max three; provenance rule applies (no chip
+    // references data that doesn't exist).
     private var suggestionChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip("what should i eat tonight?")
-                chip("why is my weight up today?")
-                chip("i had a rough day")
+                ForEach(stateAwareChips, id: \.self) { text in
+                    chip(text)
+                }
             }
             .padding(.horizontal, Space.lg)
         }
         .scrollBounceBehavior(.basedOnSize)
+    }
+
+    private var stateAwareChips: [String] {
+        var chips: [String] = []
+        let snap = TodayStateService.snapshot(userId: userId, in: modelContext)
+        let hour = Calendar.current.component(.hour, from: .now)
+
+        if snap.daysSinceLastOpen >= 2 {
+            chips.append("i fell off. help me restart")
+        }
+        if let target = snap.targets.proteinG,
+           hour >= 15, snap.proteinEatenG < Int(Double(target) * 0.7) {
+            chips.append("what should i eat tonight?")
+        }
+        if let delta = snap.emaDelta7dKg, delta >= 0.25 {
+            chips.append("why is my weight up?")
+        }
+        if hour >= 20 || CohortStore.isHighStress {
+            chips.append("i'm having a craving")
+        }
+        // Steady-state fills.
+        for fallback in ["what's my plan today?", "i had a rough day", "explain my trend"] {
+            if chips.count >= 3 { break }
+            if !chips.contains(fallback) { chips.append(fallback) }
+        }
+        return Array(chips.prefix(3))
     }
 
     private func chip(_ text: String) -> some View {

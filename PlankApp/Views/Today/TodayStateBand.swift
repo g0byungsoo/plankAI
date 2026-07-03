@@ -143,6 +143,77 @@ struct EveningClose: View {
                     .padding(.top, Space.xs)
                     .transition(.opacity)
             }
+
+            // v2.5 — one line for her file (Journal v1). A guided,
+            // archetype-aware prompt; one optional line, never an
+            // essay. Device-local by dayKey; joins the cloud
+            // day_reflections table with the sync batch.
+            VStack(alignment: .leading, spacing: 8) {
+                Text(reflectionPrompt)
+                    .font(.custom("JeniHeroSerif-Italic", size: 16))
+                    .foregroundStyle(Palette.cocoaSecondary)
+                if savedNote.isEmpty {
+                    HStack(spacing: 10) {
+                        TextField("one line, if you want", text: $noteDraft)
+                            .font(.custom("DMSans-Regular", size: 14))
+                            .foregroundStyle(Palette.textPrimary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 9)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(Palette.bgElevated)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
+                            )
+                            .onSubmit { saveNote() }
+                        if !noteDraft.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Button {
+                                saveNote()
+                            } label: {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(Palette.textInverse)
+                                    .frame(width: 32, height: 32)
+                                    .background(Circle().fill(Palette.cocoaPrimary))
+                            }
+                            .buttonStyle(JKPress())
+                        }
+                    }
+                } else {
+                    Text("\u{201C}\(savedNote)\u{201D} · kept in her file")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .transition(.opacity)
+                }
+            }
+            .padding(.top, Space.md)
+        }
+    }
+
+    @State private var noteDraft: String = ""
+    @State private var savedNote: String =
+        UserDefaults.standard.string(
+            forKey: "day.note.\(TodayStateService.dayKey())"
+        ) ?? ""
+
+    private func saveNote() {
+        let text = noteDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        UserDefaults.standard.set(text, forKey: "day.note.\(TodayStateService.dayKey())")
+        withAnimation(Motion.entranceSoft) { savedNote = text }
+        Haptics.soft()
+    }
+
+    /// Archetype-aware guided prompt — reflection with a direction,
+    /// never homework.
+    private var reflectionPrompt: String {
+        switch snapshot.day?.archetype {
+        case .protein: return "what did a strong plate look like today?"
+        case .movement: return "what felt possible once you started?"
+        case .rest: return "what did the rest give back?"
+        default: return "what should tomorrow-you remember about today?"
         }
     }
 

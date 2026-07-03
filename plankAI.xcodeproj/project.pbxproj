@@ -407,6 +407,7 @@
 		5B9300EE38D14E4B298DE0AF /* jeni_prep_short_side_crunch_hip_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 902716F1A2CC20189EDDEB6D /* jeni_prep_short_side_crunch_hip_raise.m4a */; };
 		5C13D6FDFEE0BEFF24556317 /* jeni_prep_short_back_extension_lying.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8B9B8CC74D053FA36589E99F /* jeni_prep_short_back_extension_lying.m4a */; };
 		5C66F9452827A35F884E40DF /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 497B84BED7952F84A2354358 /* Foundation.framework */; };
+		5C8BFE2825EAA5A5DE1489F1 /* NotificationOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0E33540B98511E67DB39D0 /* NotificationOrchestrator.swift */; };
 		5CCD588EABC9D97A2127A2C4 /* matson_prep_full_plank_frog_jump.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CEE03801726E7B2DB1CE41BC /* matson_prep_full_plank_frog_jump.m4a */; };
 		5CDAC64C819410F726C61BB2 /* BecomingDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F44F328F8EE99D980EC7549 /* BecomingDashboard.swift */; };
 		5CF2F6ED3D55732509DEC13E /* ProgramSetupSubflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53A5E70C002553C02FF1070A /* ProgramSetupSubflow.swift */; };
@@ -1595,6 +1596,7 @@
 		28C47E5AF5D2808FF5F53834 /* jeni_prep_full_cow_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_cow_stretch.m4a; sourceTree = "<group>"; };
 		29CAA7BD352DDD731EBDD6D5 /* matson_focus_intro_roundButt.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_focus_intro_roundButt.m4a; sourceTree = "<group>"; };
 		2A008025E09379F68F58ABAB /* matson_prep_full_single_leg_calf_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_single_leg_calf_raise.m4a; sourceTree = "<group>"; };
+		2A0E33540B98511E67DB39D0 /* NotificationOrchestrator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationOrchestrator.swift; sourceTree = "<group>"; };
 		2A72574BA2A0AA0303138132 /* jeni_prep_short_burpee_pushup.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_burpee_pushup.m4a; sourceTree = "<group>"; };
 		2A9998E4545A16ECD127643D /* jeni_prep_full_mountain_climbers.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_mountain_climbers.m4a; sourceTree = "<group>"; };
 		2AAB2B287953F690A026B72A /* prep_full_back_extension_lying.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_back_extension_lying.m4a; sourceTree = "<group>"; };
@@ -4485,6 +4487,7 @@
 				979100359E146E2612D09A20 /* RecapNotificationService.swift */,
 				68954E9E5E1EAD2666B9007D /* NotificationTimeBucket.swift */,
 				C2109B5F3C3DA051CE6DED3A /* NotificationDelegate.swift */,
+				2A0E33540B98511E67DB39D0 /* NotificationOrchestrator.swift */,
 			);
 			path = Notifications;
 			sourceTree = "<group>";
@@ -6199,6 +6202,7 @@
 				AD8B4FBD9C3B0FE02AC734CF /* TodayStepsSheet.swift in Sources */,
 				9DD8B76D1A032E2647B5BCD3 /* FutureRailCard.swift in Sources */,
 				27581F935BAF60F5675A18A1 /* StepsPulseTile.swift in Sources */,
+				5C8BFE2825EAA5A5DE1489F1 /* NotificationOrchestrator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

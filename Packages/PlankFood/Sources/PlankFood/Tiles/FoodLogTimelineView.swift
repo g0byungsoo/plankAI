@@ -312,7 +312,10 @@ public struct FoodLogTimelineView: View {
                     .font(.custom("JeniHeroSerif-Regular", size: 26))
                     .foregroundStyle(FoodTheme.textPrimary)
                 Spacer()
-                Text("about \(Int(kcalTotal.rounded())) cal")
+                // App v2.5 — the day reads as a pattern, not a sum:
+                // protein leads, plates count, kcal stays honest with
+                // "about" (photo estimates carry real error bars).
+                Text(dayReceipt(for: dayStart, kcalTotal: kcalTotal))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(FoodTheme.textSecondary)
                     .monospacedDigit()
@@ -339,6 +342,18 @@ public struct FoodLogTimelineView: View {
                 .accessibilityLabel("share \(dayLabel(for: dayStart))")
             }
         }
+    }
+
+    /// "62g protein · 3 plates · about 1,420 cal" — protein first.
+    private func dayReceipt(for dayStart: Date, kcalTotal: Double) -> String {
+        let cal = Calendar.current
+        let dayEntries = entries.filter { cal.isDate($0.loggedAt, inSameDayAs: dayStart) }
+        let protein = Int(dayEntries.map(\.protein).reduce(0, +).rounded())
+        var parts: [String] = []
+        if protein > 0 { parts.append("\(protein)g protein") }
+        parts.append(dayEntries.count == 1 ? "1 plate" : "\(dayEntries.count) plates")
+        parts.append("about \(Int(kcalTotal.rounded())) cal")
+        return parts.joined(separator: " · ")
     }
 
     private func eyebrowDate(for date: Date) -> String {

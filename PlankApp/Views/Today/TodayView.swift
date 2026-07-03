@@ -114,7 +114,11 @@ struct TodayView: View {
                                 italic: chain.italic,
                                 action: {
                                     modules.chainSuggestion = nil
-                                    router.open(chain.route)
+                                    if let seed = chain.chatSeed {
+                                        router.openChat(seed: seed)
+                                    } else if let route = chain.route {
+                                        router.open(route)
+                                    }
                                 }
                             )
                             .padding(.horizontal, Space.lg)
@@ -298,7 +302,12 @@ struct TodayView: View {
     // MARK: - Evening
 
     private var isEvening: Bool {
-        Calendar.current.component(.hour, from: .now) >= 18
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitest-force-evening") {
+            return true
+        }
+        #endif
+        return Calendar.current.component(.hour, from: .now) >= 18
     }
 
     private func storeReflection(_ feeling: String) {
@@ -315,6 +324,14 @@ struct TodayView: View {
         guard !userId.isEmpty else { return }
         let fresh = TodayStateService.snapshot(userId: userId, in: modelContext)
         snapshot = fresh
+
+        // v2.5 — the daily anchor speaks tomorrow's line (once/day).
+        if fresh.isEnrolled {
+            NotificationOrchestrator.refreshDailyAnchor(
+                programDay: fresh.programDay,
+                totalDays: fresh.totalDays
+            )
+        }
 
         // The day-complete moment: every binary beat landed. Fires
         // once per crossing (never on restore — the first snapshot

@@ -43,6 +43,8 @@ enum DailyBriefEngine {
         /// Day-1 promise kept yesterday/today (kept-promise flow).
         var promiseJustKept: Bool
         var proteinTargetG: Int?
+        /// Yesterday's steps vs goal — the easiest-lever thread.
+        var yesterdayStepsHitGoal: Bool
         var maintenanceMode: Bool
         var glp1Cohort: Glp1Cohort
         var dayKey: String            // "2026-07-03" — the seed
@@ -109,6 +111,16 @@ enum DailyBriefEngine {
                 line: line,
                 italic: ctx.weighInIsStaleFallback ? ["data point"] : (ctx.maintenanceMode ? ["keeping"] : []),
                 chatSeed: "today is her weigh-in day. pre-frame it as data, not judgment."
+            )
+        }
+
+        // 5.5 — the easiest lever, acknowledged (steps are the one
+        //       behavior this cohort already believes in)
+        if ctx.yesterdayStepsHitGoal, stableSeed(ctx.dayKey) % 3 == 0 {
+            return Brief(
+                line: "your legs hit the goal yesterday. the easiest lever is already moving \u{2665}\u{FE0E}",
+                italic: ["easiest lever"],
+                chatSeed: "she hit her step goal yesterday. connect walking to the plan without turning it into a fitness thing."
             )
         }
 

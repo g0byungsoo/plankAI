@@ -155,6 +155,11 @@ enum TodayStateService {
             daysSinceLastOpen: gap,
             promiseJustKept: promiseKept,
             proteinTargetG: targets.proteinG,
+            yesterdayStepsHitGoal: {
+                let weekly = StepsService.shared.weeklyCounts
+                guard weekly.count >= 2 else { return false }
+                return weekly[weekly.count - 2] >= targets.steps
+            }(),
             maintenanceMode: CohortStore.isMaintenanceMode,
             glp1Cohort: CohortStore.glp1Cohort,
             dayKey: dayKey()

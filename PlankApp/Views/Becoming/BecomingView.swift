@@ -48,6 +48,18 @@ struct BecomingView: View {
                         .padding(.top, Space.hero)
                         .jkBeat1()
 
+                    if snapshot?.isEnrolled == false {
+                        // v2.5 — the fresh-user state is designed, not
+                        // hidden sections: one line, one action.
+                        JKEmptyState(
+                            line: "your story starts on day one",
+                            italic: ["day one"],
+                            actionLabel: "open today",
+                            action: { router.tab = .today }
+                        )
+                        .padding(.top, Space.xl)
+                    }
+
                     trendStory
                         .padding(.top, Space.lg)
                         .jkBeat2()
@@ -55,6 +67,9 @@ struct BecomingView: View {
                     weekStrip
                         .padding(.top, Space.section)
                         .jkBeat2(extraDelay: 0.08)
+
+                    sundayReceipt
+                        .padding(.top, Space.section)
 
                     insightCards
                         .padding(.top, Space.section)
@@ -465,6 +480,51 @@ struct BecomingView: View {
                 }
             }
             .padding(.horizontal, Space.lg)
+        }
+    }
+
+    // MARK: - Sunday receipt (v2.5 — the week, kept)
+
+    @ViewBuilder private var sundayReceipt: some View {
+        if Calendar.current.component(.weekday, from: .now) == 1,
+           let week, week.loggedDays7 + week.last7.compactMap(\.steps).filter({ $0 > 0 }).count > 0 {
+            VStack(alignment: .leading, spacing: Space.md) {
+                Text("the week, kept")
+                    .font(Typo.captionTracked)
+                    .kerning(1.98)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+
+                VStack(spacing: 0) {
+                    if week.loggedDays7 > 0 {
+                        JKReceiptRow(
+                            lead: "plates seen",
+                            punch: "\(week.last7.map(\.plates).reduce(0, +)), across \(week.loggedDays7) days",
+                            punchItalic: [],
+                            showsRule: false
+                        )
+                    }
+                    if let target = week.proteinTargetG, target > 0, week.proteinDaysHit > 0 {
+                        JKReceiptRow(
+                            lead: "protein landed",
+                            punch: "\(week.proteinDaysHit) of 7 days",
+                            punchItalic: ["landed"]
+                        )
+                    }
+                    if let delta = week.emaDelta7dKg, abs(delta) >= 0.1,
+                       !snapshot!.targets.numericsSuppressed {
+                        JKReceiptRow(
+                            lead: "the line",
+                            punch: delta < 0
+                                ? "eased down \(Int((abs(delta) * 1000).rounded()))g"
+                                : "held its ground",
+                            punchItalic: [delta < 0 ? "eased down" : "held"]
+                        )
+                    }
+                }
+            }
+            .padding(.horizontal, Space.lg)
+            .jkBeat2(extraDelay: 0.1)
         }
     }
 

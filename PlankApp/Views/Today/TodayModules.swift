@@ -65,7 +65,9 @@ final class TodayModuleState {
         let lead: String
         let text: String
         let italic: [String]
-        let route: AppRouter.Route
+        /// Either a module route or a jeni conversation seed.
+        let route: AppRouter.Route?
+        var chatSeed: String? = nil
     }
     var chainSuggestion: ChainSuggestion?
 
@@ -244,16 +246,46 @@ final class TodayModuleState {
 
     func markAuto(_ beat: ProgramDayPrescription) {
         mark(beat, state: .autoCompleted)
-        // v2.4: a lesson is a rep, not a read — completing it offers
-        // ONE related action (breath if today carries it, else the
-        // evening plate). Cleared on tap or next day.
-        if case .lesson = beat {
+        // v2.5: everything chains — the next right action, one-shot
+        // and quiet. Lessons become reps; workouts hand to protein;
+        // plates hand to jeni; weigh-ins hand to the trend.
+        switch beat {
+        case .lesson:
             chainSuggestion = ChainSuggestion(
                 lead: "put it to work",
                 text: "sixty seconds of breath",
                 italic: ["breath"],
                 route: .breath
             )
+        case .workout:
+            chainSuggestion = ChainSuggestion(
+                lead: "kept",
+                text: "protein soon keeps the build",
+                italic: ["protein"],
+                route: .snap
+            )
+        case .snapMeal:
+            let d = UserDefaults.standard
+            let hour = Calendar.current.component(.hour, from: .now)
+            if hour >= 15 {
+                chainSuggestion = ChainSuggestion(
+                    lead: "seen",
+                    text: "want a dinner idea from jeni?",
+                    italic: ["dinner idea"],
+                    route: nil,
+                    chatSeed: "she just logged a plate. suggest one gentle dinner idea that closes her protein gap; keep it one pan."
+                )
+            }
+            _ = d
+        case .weighIn:
+            chainSuggestion = ChainSuggestion(
+                lead: "logged",
+                text: "the trend line does the thinking",
+                italic: ["trend line"],
+                route: .trend
+            )
+        default:
+            break
         }
     }
 
