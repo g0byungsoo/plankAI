@@ -554,17 +554,25 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         let b = app.buttons.matching(
             NSPredicate(format: "label CONTAINS[c] %@", needle)
         ).firstMatch
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
-            if b.exists && b.isHittable { break }
-            Thread.sleep(forTimeInterval: 0.25)
-        }
-        guard b.exists && b.isHittable else {
+        // Wait on EXISTS only — cheap snapshot. isHittable evaluation
+        // can hang or false-negative under indefinite animations
+        // (welcome's demo cycle + sticker float), which burned whole
+        // walks on the slower 16e sim.
+        guard b.waitForExistence(timeout: timeout) else {
             snap("MISSING_\(needle.replacingOccurrences(of: " ", with: "_"))")
             return false
         }
         if let shotName { Thread.sleep(forTimeInterval: 0.55); snap(shotName) }
-        b.tap()
+        if b.isHittable {
+            b.tap()
+        } else {
+            // Coordinate-tap the element's frame center directly —
+            // bypasses the hittability gate XCUI applies to tap().
+            let f = b.frame
+            app.coordinate(withNormalizedOffset: .zero)
+                .withOffset(CGVector(dx: f.midX, dy: f.midY))
+                .tap()
+        }
         Thread.sleep(forTimeInterval: settle)
         if retryIfPresent, b.exists, b.isHittable {
             b.tap()
@@ -617,10 +625,12 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         // act i — her arrival. The welcome runs two indefinite
         // animations (device-demo cycle + sticker float), so element
         // polls during the launch window can block on quiescence —
-        // settle flat first (the diag test's dodge), then a generous
-        // first timeout.
-        Thread.sleep(forTimeInterval: 5.5)
-        tapButton("continue", shotName: "welcome", timeout: 25, settle: 1.6, retryIfPresent: true)
+        // wait for foreground, settle flat (the diag test's dodge),
+        // then a generous first timeout (cold first-launch on a
+        // freshly booted sim can be slow: auth bootstrap + fonts).
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 6.0)
+        tapButton("continue", shotName: "welcome", timeout: 40, settle: 1.6, retryIfPresent: true)
         tapButton("okay", shotName: "antiShame")
         tapButton("quiet the food noise", shotName: "outcome")
         tapButton("tiktok", shotName: "attribution")
