@@ -310,4 +310,54 @@ final class SurfaceInventoryUITests: XCTestCase {
         snap("breath_receipt")
     }
 
+    /// v2.4 — live a day: real mutations, not visits. Marks the
+    /// method beat done (sheet confirm -> strike-through), logs a
+    /// weight through the sheet, and ledgers the struck states.
+    func testLivedDay() throws {
+        let dir = ProcessInfo.processInfo.environment["INVENTORY_DIR"]
+            ?? "/tmp/jenifit_inventory"
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitest-inapp-qa", "--uitest-pro-access", "--uitest-seed-program",
+        ]
+        app.launch()
+        sleep(7)
+
+        func snap(_ name: String) {
+            let png = XCUIScreen.main.screenshot().pngRepresentation
+            FileManager.default.createFile(atPath: "\(dir)/7\(name).png", contents: png)
+        }
+
+        // Mark the method beat done via the manual sheet.
+        let methodRow = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'the method'")
+        ).firstMatch
+        guard methodRow.waitForExistence(timeout: 6) else { return }
+        methodRow.press(forDuration: 0.8)
+        sleep(2)
+        let markDone = app.buttons["mark as done"].firstMatch
+        if markDone.waitForExistence(timeout: 3) {
+            markDone.tap()
+            sleep(2)
+        }
+        snap("0_lived_method_struck")
+
+        // Log a weight through the trend-check beat when present.
+        let weighRow = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'trend check'")
+        ).firstMatch
+        if weighRow.exists && weighRow.isHittable {
+            weighRow.tap()
+            sleep(2)
+            snap("1_lived_weigh_sheet")
+            for label in ["save", "log it", "keep it"] {
+                let b = app.buttons[label].firstMatch
+                if b.exists && b.isHittable { b.tap(); break }
+            }
+            sleep(2)
+        }
+        snap("2_lived_day_state")
+    }
+
 }

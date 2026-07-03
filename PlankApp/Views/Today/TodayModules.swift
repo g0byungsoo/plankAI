@@ -59,6 +59,22 @@ final class TodayModuleState {
     var activeSheet: Sheet?
     var routineStep: RoutineStep = .pre
 
+    /// v2.4 — the read-becomes-a-rep chain: set when a lesson
+    /// completes, rendered by TodayView as a one-shot "next:" line.
+    struct ChainSuggestion: Equatable {
+        let lead: String
+        let text: String
+        let italic: [String]
+        let route: AppRouter.Route
+    }
+    var chainSuggestion: ChainSuggestion?
+
+    /// v2.4 — the five-minute floor. Remembers today's workout
+    /// parameters so the brief's "make it 5 minutes" door can
+    /// regenerate at the floor without re-deriving context.
+    @ObservationIgnored private var lastWorkoutTier: IntensityTier = .medium
+    @ObservationIgnored private var lastWorkoutBodyFocus: String?
+
     // Injected by the host modifier on appear.
     @ObservationIgnored var modelContext: ModelContext?
     @ObservationIgnored var userId: String = ""
@@ -176,7 +192,17 @@ final class TodayModuleState {
 
     // MARK: - Workout generation (mirrors PlanView.openWorkout)
 
+    /// The floor: regenerate today's session at 5 minutes. No guilt
+    /// gradient — the smallest session she'll finish beats the
+    /// optimal one she'll skip (26% completion is the evidence).
+    func shrinkWorkoutToFloor() {
+        Haptics.soft()
+        openWorkout(tier: lastWorkoutTier, minutes: 5, bodyFocus: lastWorkoutBodyFocus)
+    }
+
     private func openWorkout(tier: IntensityTier, minutes: Int, bodyFocus: String?) {
+        lastWorkoutTier = tier
+        lastWorkoutBodyFocus = bodyFocus
         let d = UserDefaults.standard
         let focusToken = bodyFocus ?? (d.string(forKey: "bodyFocus") ?? "fullBody")
         let focus: [BodyFocus] = BodyFocus(rawValue: focusToken).map { [$0] } ?? [.fullBody]
@@ -218,6 +244,17 @@ final class TodayModuleState {
 
     func markAuto(_ beat: ProgramDayPrescription) {
         mark(beat, state: .autoCompleted)
+        // v2.4: a lesson is a rep, not a read — completing it offers
+        // ONE related action (breath if today carries it, else the
+        // evening plate). Cleared on tap or next day.
+        if case .lesson = beat {
+            chainSuggestion = ChainSuggestion(
+                lead: "put it to work",
+                text: "sixty seconds of breath",
+                italic: ["breath"],
+                route: .breath
+            )
+        }
     }
 
     func mark(_ beat: ProgramDayPrescription, state: ProgramService.ChecklistState) {

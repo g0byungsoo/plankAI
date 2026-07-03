@@ -105,6 +105,23 @@ struct TodayView: View {
                         )
                         .padding(.top, Space.md)
 
+                        // v2.4 — the read-becomes-a-rep chain (one-shot,
+                        // set by lesson completion).
+                        if let chain = modules.chainSuggestion {
+                            JKChainLine(
+                                lead: chain.lead,
+                                suggestion: chain.text,
+                                italic: chain.italic,
+                                action: {
+                                    modules.chainSuggestion = nil
+                                    router.open(chain.route)
+                                }
+                            )
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, Space.sm)
+                            .transition(.opacity.combined(with: .offset(y: 6)))
+                        }
+
                         TodayStateBand(
                             snapshot: snapshot,
                             liveSteps: steps.todayCount,

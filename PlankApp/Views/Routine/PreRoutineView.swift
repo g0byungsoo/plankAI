@@ -9,6 +9,10 @@ struct PreRoutineView: View {
     let workout: WorkoutPreset
     let onStart: () -> Void
     let onCancel: () -> Void
+    /// v2.4 — the five-minute floor: regenerates today's session at
+    /// 5 minutes (17_FEATURE_EVALUATION §2). nil hides the door
+    /// (already at the floor, or hosts that don't support it).
+    var onShrink: (() -> Void)? = nil
 
     /// Phase 9.26 — content opacity for the fade-in appear animation.
     /// The fullScreenCover binding is set with `Transaction.disablesAnimations`
@@ -371,8 +375,12 @@ struct PreRoutineView: View {
     // v1.1 module pass — the one-CTA system (never italic serif
     // inside a button; her75 buttons are plain sans).
     private var startButton: some View {
-        JFContinueButton(label: "start workout") {
-            onStart()
-        }
+        JFContinueButton(
+            label: "start workout",
+            action: { onStart() },
+            secondaryLabel: (onShrink != nil && workout.estimatedDuration > 5)
+                ? "make it 5 minutes" : nil,
+            secondaryAction: onShrink
+        )
     }
 }

@@ -204,12 +204,17 @@ enum BreathOccasion: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    // App v2.4 (17_FEATURE_EVALUATION §1): the doorways stop asking
+    // how she wants to FEEL (meditation-app grammar) and start naming
+    // the MOMENTS this audience actually reaches for a brake: the
+    // craving wave, the sideways day, loud food noise, begin-again.
+    // Raw values are unchanged — quick-start prefs persist.
     var chipLabel: String {
         switch self {
-        case .settled: return "settled"
-        case .sleepy:  return "sleepy"
-        case .steady:  return "steady"
-        case .awake:   return "awake"
+        case .settled: return "a craving wave"
+        case .sleepy:  return "the day went sideways"
+        case .steady:  return "food noise is loud"
+        case .awake:   return "begin again"
         }
     }
 
@@ -228,10 +233,10 @@ enum BreathOccasion: String, CaseIterable, Identifiable {
     /// never a 4-7-8-specific promise.
     var occasionLine: String {
         switch self {
-        case .settled: return "five minutes of this lifted mood more than meditation in stanford's trial."
-        case .sleepy:  return "a long exhale tells your body the day is over. slower breath before bed is linked to falling asleep faster."
-        case .steady:  return "your heart and breath sync into one rhythm. racing mind slows to match."
-        case .awake:   return "short equal breaths wake the system back up. before the day starts asking."
+        case .settled: return "cravings crest and pass like a wave, usually inside two minutes. the long exhale is how you ride it instead of feeding it."
+        case .sleepy:  return "one sideways day doesn't move a trend line. this is the brake between the feeling and the fridge, then the day is over."
+        case .steady:  return "when your body slows, the noise gets quieter. one rhythm, in and out, until it's background again."
+        case .awake:   return "the reset that restarts the plan. sixty seconds, then the next small thing."
         }
     }
 }

@@ -105,7 +105,7 @@ struct BreathworkIntroView: View {
             Spacer().frame(height: Space.lg)
 
             ItalicAccentText(
-                "how do you want to feel?",
+                "what are we resetting?",
                 italic: ["feel"],
                 baseFont: Typo.heroHeadline,
                 italicFont: Typo.heroHeadlineItalic,

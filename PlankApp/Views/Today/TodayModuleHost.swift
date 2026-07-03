@@ -118,7 +118,8 @@ private struct TodayModuleHost: ViewModifier {
                                 state.routineStep = .session
                             }
                         },
-                        onCancel: { state.dismissCover() }
+                        onCancel: { state.dismissCover() },
+                        onShrink: { state.shrinkWorkoutToFloor() }
                     )
                     .transition(.opacity)
                 } else {
