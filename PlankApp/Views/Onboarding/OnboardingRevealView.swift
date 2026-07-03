@@ -2231,7 +2231,12 @@ private struct CommitmentRitualPresentation: View {
     @State private var selectedTime: String = ""
 
     private var promiseComplete: Bool {
-        !selectedAnchor.isEmpty && !selectedAction.isEmpty && !selectedTime.isEmpty
+        // GLP-1 current: WHAT is the fixed clinical row ("protect your
+        // muscle"), display-only — selectedAction never gets a UI write,
+        // so it must not gate the seal (round-3 regression catch: the
+        // hold stayed ghosted forever for the current cohort).
+        let actionOK = glp1Status == "current" || !selectedAction.isEmpty
+        return !selectedAnchor.isEmpty && actionOK && !selectedTime.isEmpty
     }
 
     // Cascade reveal states
@@ -2252,17 +2257,14 @@ private struct CommitmentRitualPresentation: View {
     private let timeChips   = ["8am", "12pm", "6pm"]
 
     private var actionChips: [String] {
-        // v5: a completed snap demo makes "snap your first real meal"
-        // the lead chip — she confirms the action she already rehearsed
-        // instead of choosing among cold options (demo → contract).
+        // Only the non-current cohorts see selectable WHAT chips (current
+        // gets the fixed clinical row). A completed snap demo makes
+        // "snap your first real meal" the lead chip — she confirms the
+        // action she already rehearsed (demo → contract).
         if didSnapDemo {
-            return glp1Status == "current"
-                ? ["snap your first real meal", "get protein in", "log breakfast"]
-                : ["snap your first real meal", "log breakfast", "log my first meal"]
+            return ["snap your first real meal", "log breakfast", "log my first meal"]
         }
-        return glp1Status == "current"
-            ? ["get protein in", "snap what i eat", "log my first meal"]
-            : ["log breakfast", "snap what i eat", "log my first meal"]
+        return ["log breakfast", "snap what i eat", "log my first meal"]
     }
 
     private var didSnapDemo: Bool {
@@ -2352,7 +2354,16 @@ private struct CommitmentRitualPresentation: View {
                     if glp1Status == "current" {
                         whatDisplayRow
                     } else {
-                        chipGroup(label: "WHAT", chips: actionChips, selected: $selectedAction)
+                        VStack(alignment: .leading, spacing: 4) {
+                            chipGroup(label: "WHAT", chips: actionChips, selected: $selectedAction)
+                            if didSnapDemo {
+                                // demo → contract continuity: the lead
+                                // chip is the action she rehearsed.
+                                Text("from your practice run")
+                                    .font(Typo.caption)
+                                    .foregroundStyle(Palette.cocoaTertiary)
+                            }
+                        }
                     }
                     chipGroup(label: "TIME", chips: timeChips,    selected: $selectedTime)
                 }
@@ -2449,7 +2460,7 @@ private struct CommitmentRitualPresentation: View {
                 } else {
                     // Ghost until the promise exists — the same
                     // dimmed-cocoa register as a disabled JFContinue.
-                    Text("choose when · what · time")
+                    Text(glp1Status == "current" ? "choose when · time" : "choose when · what · time")
                         .font(.custom("DMSans-SemiBold", size: 16))
                         .foregroundStyle(Palette.cocoaTertiary)
                         .frame(maxWidth: .infinity)

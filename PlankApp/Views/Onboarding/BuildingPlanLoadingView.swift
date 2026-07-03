@@ -295,13 +295,15 @@ struct BuildingPlanLoadingView: View {
         }
     }
 
+    // Tape lines render lineLimit(1) — keep every variant ≤ ~40 chars so
+    // nothing ellipsizes at 390pt-wide devices (device catch 2026-07-03).
     private var stopWindowLabel: String {
         switch glp1StopWindow {
-        case "under3": return "months off the shot · defending what you built…"
-        case "three6": return "3-6 months off · defending what you built…"
-        case "six12": return "6-12 months off · defending what you built…"
-        case "overyear": return "a year past the shot · keeping it yours…"
-        default: return "the after-chapter · keeping what you built…"
+        case "under3": return "fresh off the shot · defending it…"
+        case "three6": return "3-6 months off · defending it…"
+        case "six12": return "6-12 months off · defending it…"
+        case "overyear": return "a year off the shot · keeping it yours…"
+        default: return "the after-chapter · keeping it yours…"
         }
     }
 

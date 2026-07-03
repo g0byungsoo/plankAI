@@ -1,5 +1,6 @@
 import SwiftUI
 import PlankFood
+import PlankSync
 
 // MARK: - TodayStateBand
 //
@@ -201,9 +202,19 @@ struct EveningClose: View {
     private func saveNote() {
         let text = noteDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
-        UserDefaults.standard.set(text, forKey: "day.note.\(TodayStateService.dayKey())")
+        let dayKey = TodayStateService.dayKey()
+        UserDefaults.standard.set(text, forKey: "day.note.\(dayKey)")
         withAnimation(Motion.entranceSoft) { savedNote = text }
         Haptics.soft()
+        // v2.6 — jeni's memory seam: local-first, cloud when the
+        // migration lands (fire-and-forget, silent until then).
+        let feeling = UserDefaults.standard.string(forKey: "day.reflection.\(dayKey)") ?? "noted"
+        Task {
+            await AppSync.shared.upsertDayReflection(
+                userId: snapshot.plan?.userId ?? "",
+                dayKey: dayKey, feeling: feeling, note: text
+            )
+        }
     }
 
     /// Archetype-aware guided prompt — reflection with a direction,

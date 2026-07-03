@@ -77,56 +77,69 @@ struct OV5SnapDemoScreen: View {
     // MARK: pick
 
     private var pickStage: some View {
-        VStack(spacing: 0) {
-            Spacer().frame(height: 30)
-            OV5Header(
-                title: "watch what one photo can tell us.",
-                italic: ["tell"],
-                sub: "pick one. they're ours, from real days."
-            )
+        // Geometry-driven so the fan can NEVER exceed the screen: the
+        // fixed 150pt cards overflowed every device narrower than
+        // ~430pt, and the HStack's intrinsic width inflated the whole
+        // VStack — which is what pushed the HEADLINE off both edges on
+        // the founder's phone (device catch, 2026-07-03). Cards size to
+        // fit inside 16pt margins and cap at 150.
+        GeometryReader { geo in
+            let overlap: CGFloat = 34
+            let cardW = min(150, (geo.size.width - 32 + 2 * overlap) / 3 - 12)
+            let cardH = cardW * 196 / 150
 
-            // Capped so the fan rides upper-middle instead of sinking
-            // into a dead center (round-2 rhythm pass).
-            Spacer(minLength: Space.lg).frame(maxHeight: 110)
+            VStack(spacing: 0) {
+                Spacer().frame(height: 30)
+                OV5Header(
+                    title: "watch what one photo can tell us.",
+                    italic: ["tell"],
+                    sub: "pick one. they're ours, from real days."
+                )
 
-            // Three prints, fanned — the ONE place photos tilt (they
-            // read as physical prints, not UI).
-            HStack(spacing: -34) {
-                ForEach(Array(Self.meals.enumerated()), id: \.element.key) { idx, meal in
-                    mealCard(meal)
-                        .rotationEffect(.degrees(idx == 0 ? -5 : idx == 1 ? 1 : 5.5))
-                        .offset(y: idx == 1 ? -18 : 0)
-                        .zIndex(idx == 1 ? 2 : 1)
-                        .ov5Beat2(extraDelay: Double(idx) * 0.08)
+                // Capped so the fan rides upper-middle instead of sinking
+                // into a dead center (round-2 rhythm pass).
+                Spacer(minLength: Space.lg).frame(maxHeight: 110)
+
+                // Three prints, fanned — the ONE place photos tilt (they
+                // read as physical prints, not UI).
+                HStack(spacing: -overlap) {
+                    ForEach(Array(Self.meals.enumerated()), id: \.element.key) { idx, meal in
+                        mealCard(meal, width: cardW, height: cardH)
+                            .rotationEffect(.degrees(idx == 0 ? -5 : idx == 1 ? 1 : 5.5))
+                            .offset(y: idx == 1 ? -18 : 0)
+                            .zIndex(idx == 1 ? 2 : 1)
+                            .ov5Beat2(extraDelay: Double(idx) * 0.08)
+                    }
                 }
-            }
-            .padding(.horizontal, Space.md)
+                .frame(maxWidth: .infinity)
 
-            Spacer()
+                Spacer()
 
-            Button {
-                flow.store.snapDemoMeal = "skipped"
-                flow.advance()
-            } label: {
-                Text("skip the practice run")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .underline()
+                Button {
+                    flow.store.snapDemoMeal = "skipped"
+                    flow.advance()
+                } label: {
+                    Text("skip the practice run")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .underline()
+                }
+                .buttonStyle(.plain)
+                .padding(.bottom, Space.lg)
+                .ov5Beat2(extraDelay: 0.3)
             }
-            .buttonStyle(.plain)
-            .padding(.bottom, Space.lg)
-            .ov5Beat2(extraDelay: 0.3)
+            .frame(width: geo.size.width, height: geo.size.height)
         }
     }
 
-    private func mealCard(_ meal: DemoMeal) -> some View {
+    private func mealCard(_ meal: DemoMeal, width: CGFloat, height: CGFloat) -> some View {
         Button {
             pick(meal)
         } label: {
             Image(meal.asset)
                 .resizable()
                 .scaledToFill()
-                .frame(width: 150, height: 196)
+                .frame(width: width, height: height)
                 .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 .padding(6)
                 .background(

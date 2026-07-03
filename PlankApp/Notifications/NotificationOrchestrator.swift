@@ -1,25 +1,30 @@
 import Foundation
 import UserNotifications
 
-// MARK: - NotificationOrchestrator (v2.5 — the anchor's voice)
+// MARK: - NotificationOrchestrator (v2.6 — per-day anchor laddering)
 //
-// docs/app_v2/09_NOTIFICATIONS.md's core promise, implemented: the
-// daily anchor speaks the SAME voice as the app — tomorrow's
-// archetype line, at her hour, refreshed on every Today open so
-// push and in-app copy never diverge. Same canonical id and the
-// same surgical-removal discipline as the legacy scheduler (never
-// touches trial-end or the day-1 promise).
+// docs/app_v2/24_NOTIFICATION_ORCHESTRATOR.md. The daily anchor is a
+// LADDER of seven one-shot notifications (ids anchor_d1..anchor_d7),
+// each carrying THAT morning's line for the day it fires — tomorrow's
+// archetype, her name, the program's voice. Rebuilt once per day from
+// Today's refresh, so:
+//   - a user away for a week hears seven DIFFERENT fresh lines, not
+//     one stale repeat (v2.5's staleness bound removed);
+//   - past day 7 of silence the ladder simply ends — no zombie nags
+//     (the winback push is a different intent with its own budget).
 //
-// Staleness bound: the trigger repeats, so a user away for 2+ days
-// hears the last-scheduled line until she returns — acceptable, and
-// strictly better than the static line it replaces. Full per-day
-// one-shot laddering arrives with the orchestrator consolidation.
+// Surgical-removal discipline: ONLY the ladder ids + the legacy
+// repeating ids are ever removed. Trial-end, day-1 promise, day-2
+// engagement, and day-5 anti-refund pushes are never touched.
 
 enum NotificationOrchestrator {
 
     /// Once-per-day guard so Today's refresh loop doesn't thrash
     /// the notification center.
     private static let lastRefreshKey = "orchestrator.anchorRefreshDayKey"
+
+    static let ladderIds: [String] = (1...7).map { "anchor_d\($0)" }
+    static let legacyIds: [String] = ["daily_reminder", "daily-plank"]
 
     @MainActor
     static func refreshDailyAnchor(programDay: Int, totalDays: Int) {
@@ -32,54 +37,63 @@ enum NotificationOrchestrator {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized else { return }
             Task { @MainActor in
-                schedule(programDay: programDay)
+                scheduleLadder(programDay: programDay, totalDays: totalDays)
                 d.set(todayKey, forKey: lastRefreshKey)
             }
         }
     }
 
     @MainActor
-    private static func schedule(programDay: Int) {
-        let tomorrow = ProgramDayArchetype.archetype(
-            forProgramDay: programDay + 1,
-            glp1Status: CohortStore.glp1StatusKey,
-            restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
-        )
+    private static func scheduleLadder(programDay: Int, totalDays: Int) {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: ladderIds + legacyIds)
 
+        let hour = NotificationTimeBucket.userPreferred.hour(for: .reminder) ?? 9
         let name = UserDefaults.standard.string(forKey: "userName") ?? ""
         let who = name.isEmpty ? "" : "\(name), "
-        let body: String
-        switch tomorrow {
-        case .protein:
-            body = "\(who)tomorrow is a protein day. one strong plate at a time \u{2665}"
-        case .movement:
-            body = "\(who)tomorrow is a movement day. small counts fully."
-        case .balanced:
-            body = "\(who)tomorrow asks for steady, not perfect."
-        case .rest:
-            body = "\(who)tomorrow is a rest day. nothing heavy \u{2665}"
+        let cal = Calendar.current
+
+        for offset in 1...7 {
+            let targetProgramDay = programDay + offset
+            guard targetProgramDay <= totalDays else { break }
+            guard let fireDay = cal.date(byAdding: .day, value: offset, to: .now) else { continue }
+
+            var comps = cal.dateComponents([.year, .month, .day], from: fireDay)
+            comps.hour = hour
+            comps.minute = 0
+
+            let archetype = ProgramDayArchetype.archetype(
+                forProgramDay: targetProgramDay,
+                glp1Status: CohortStore.glp1StatusKey,
+                restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
+            )
+
+            let content = UNMutableNotificationContent()
+            content.title = "day \(targetProgramDay) is ready"
+            content.body = anchorLine(archetype, who: who, offset: offset)
+            content.sound = .default
+            content.userInfo = ["deeplink": "jenifit://today"]
+
+            center.add(UNNotificationRequest(
+                identifier: "anchor_d\(offset)",
+                content: content,
+                trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+            ))
         }
+    }
 
-        let center = UNUserNotificationCenter.current()
-        center.removePendingNotificationRequests(withIdentifiers: [
-            "daily_reminder", "daily-plank",
-        ])
-
-        let content = UNMutableNotificationContent()
-        content.title = "your plan, tomorrow"
-        content.body = body
-        content.sound = .default
-        content.userInfo = ["deeplink": "jenifit://today"]
-
-        var components = DateComponents()
-        components.hour = NotificationTimeBucket.userPreferred.hour(for: .reminder) ?? 9
-        components.minute = 0
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
-        center.add(UNNotificationRequest(
-            identifier: "daily_reminder",
-            content: content,
-            trigger: trigger
-        ))
+    /// The day's line — archetype voice, with the later rungs easing
+    /// into begin-again register (day 3+ of silence is a comeback
+    /// moment, not a reminder moment).
+    private static func anchorLine(_ archetype: ProgramDayArchetype, who: String, offset: Int) -> String {
+        if offset >= 3 {
+            return "\(who)the plan kept your place. begin again, anytime \u{2665}"
+        }
+        switch archetype {
+        case .protein:  return "\(who)today is a protein day. one strong plate at a time \u{2665}"
+        case .movement: return "\(who)today is a movement day. small counts fully."
+        case .balanced: return "\(who)today asks for steady, not perfect."
+        case .rest:     return "\(who)today is a rest day. nothing heavy \u{2665}"
+        }
     }
 }

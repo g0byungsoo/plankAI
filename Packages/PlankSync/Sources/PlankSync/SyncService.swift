@@ -585,6 +585,35 @@ public actor SyncService {
         }
     }
 
+    // MARK: - Day reflection upsert (app v2.6 — jeni's memory seam)
+    //
+    // Fire-and-forget; the table ships with the 20260703 migration.
+    // Until the founder applies it this 404s and we stay local-first
+    // (same graceful posture as the chat transport). Deterministic id
+    // (userId-dayKey) makes retries idempotent.
+
+    public func upsertDayReflection(
+        userId: String, dayKey: String, feeling: String, note: String?
+    ) async {
+        guard !userId.isEmpty else { return }
+        let payload = SupabaseDayReflectionUpsert(
+            id: "\(userId.lowercased())-\(dayKey)",
+            user_id: userId,
+            day_key: dayKey,
+            feeling: feeling,
+            note: note
+        )
+        do {
+            try await supabase.from("day_reflections")
+                .upsert(payload)
+                .execute()
+        } catch {
+            #if DEBUG
+            print("[SyncService] upsertDayReflection deferred (table not deployed yet?): \(error)")
+            #endif
+        }
+    }
+
     // MARK: - Program plan upsert / fetch (v1.1 program pivot)
 
     public func upsertProgramPlan(_ plan: ProgramPlanRecord) async {
@@ -932,6 +961,14 @@ public actor SyncService {
 /// JSON numbers, optionals are JSON null when nil, exercise_results is a
 /// proper JSON array (jsonb column). Property names use snake_case to map
 /// directly to the columns without relying on encoder strategy.
+private struct SupabaseDayReflectionUpsert: Encodable {
+    let id: String
+    let user_id: String
+    let day_key: String
+    let feeling: String
+    let note: String?
+}
+
 private struct SupabaseSessionLogUpsert: Encodable {
     let id: String
     let user_id: String

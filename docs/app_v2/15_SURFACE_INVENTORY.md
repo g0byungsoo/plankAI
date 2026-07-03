@@ -1,4 +1,12 @@
-# 15 — Surface coverage inventory (v2.2 → v2.3)
+# 15 — Surface coverage inventory (v2.2 → v2.6 RC)
+
+**v2.6 RC update:** the ledger now also carries 91 (setup
+commitment), 92 (Becoming Sunday receipt block), 93 (the weekly
+receipt card artifact), and the ✕ rows are GONE — PlanView,
+AnalyticsView, and their private deps were deleted this pass (see
+21 §6); the only remaining flag-gated legacy is onboarding v4.5
+(pre-existing separate gate). Every surface reachable in production
+is v2.
 
 **v2.3 update:** the ledger below is superseded by the CURRENT-RUN
 ledger (16 → 18+ PNGs from one fresh run of all three walker legs;

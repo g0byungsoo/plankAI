@@ -131,11 +131,9 @@ struct TodayHost: View {
         Group {
             if !programEraEnabled {
                 ProgramOnrampView()
-            } else if ProcessInfo.processInfo.arguments.contains("--legacy-today") {
-                // Founder-comparison escape while v2 burns in; swept
-                // with the PlanView retirement (P8).
-                PlanView()
             } else {
+                // v2.6 RC — PlanView retired (the before-comparison is
+                // production build 22 itself; no old JeniFit compiles).
                 TodayView()
             }
         }
@@ -150,12 +148,7 @@ struct JeniChatHost: View {
 
 struct BecomingHost: View {
     var body: some View {
-        if ProcessInfo.processInfo.arguments.contains("--legacy-becoming") {
-            // Founder-comparison escape while v2.1 burns in; swept
-            // with the AnalyticsView retirement.
-            AnalyticsView()
-        } else {
-            BecomingView()
-        }
+        // v2.6 RC — AnalyticsView retired with PlanView.
+        BecomingView()
     }
 }

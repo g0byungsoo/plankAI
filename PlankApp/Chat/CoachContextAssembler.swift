@@ -87,6 +87,22 @@ enum CoachContextAssembler {
             out["targets"] = ["steps": snapshot.targets.steps]
         }
 
+        // — her file (v2.6): the evening note is jeni's memory.
+        // Yesterday's note first (this morning's most useful echo),
+        // today's if present. Truncated; the persona is instructed
+        // to reference gently, at most once, never quote at length.
+        let noteStore = UserDefaults.standard
+        if let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: .now) {
+            let yKey = TodayStateService.dayKey(for: yesterday)
+            if let note = noteStore.string(forKey: "day.note.\(yKey)"), !note.isEmpty {
+                out["her_note_yesterday"] = String(note.prefix(140))
+            }
+        }
+        if let today = noteStore.string(forKey: "day.note.\(TodayStateService.dayKey())"),
+           !today.isEmpty {
+            out["her_note_today"] = String(today.prefix(140))
+        }
+
         // — profile texture (only answered fields)
         var profile: [String: Any] = [:]
         if !CohortStore.sleepHoursKey.isEmpty { profile["sleep"] = CohortStore.sleepHoursKey }

@@ -87,6 +87,11 @@ create table if not exists public.day_reflections (
   user_id uuid not null references auth.users(id) on delete cascade,
   day_key text not null,
   feeling text not null,
+  -- v2.6: the evening close's optional "one line for her file".
+  -- Added while the migration is still undeployed (the table does
+  -- not exist in prod yet), so this is a file edit, not a schema
+  -- change against live data.
+  note text,
   created_at timestamptz not null default now(),
   unique (user_id, day_key)
 );

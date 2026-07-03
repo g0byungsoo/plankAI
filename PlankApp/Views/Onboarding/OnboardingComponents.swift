@@ -344,6 +344,18 @@ struct NotificationPermission {
         content.title = "tomorrow, you begin."
         content.body = body
         content.sound = .default
+        // Demo → contract → trigger: when her promise is a snap/log/
+        // protein action, the tap lands DIRECTLY in the snap camera —
+        // zero navigation between trigger and behavior (the lifecycle
+        // panel's highest-leverage D1 wire, cashable now that AppRouter
+        // ships the jenifit:// grammar; NotificationDelegate reads the
+        // `deeplink` userInfo key and queues until .main so unpaid
+        // users still land on the wall first).
+        let action = (UserDefaults.standard.string(forKey: "day1PromiseAction") ?? "").lowercased()
+        if action.contains("snap") || action.contains("log") || action.contains("protein")
+            || action.contains("muscle") {
+            content.userInfo["deeplink"] = "jenifit://snap"
+        }
         let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
         let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
         center.add(.init(identifier: day1PromiseIdentifier, content: content, trigger: trigger))

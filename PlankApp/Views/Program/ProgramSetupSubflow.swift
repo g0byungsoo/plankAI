@@ -138,6 +138,12 @@ struct ProgramSetupSubflow: View {
     // id and, if onboarding already collected the pace, jump to the commit
     // page (existing-user opt-in keeps the full 3-page flow).
     private func onSetupAppear() {
+        #if DEBUG
+        // Sim QA: land directly on the commitment page for capture.
+        if ProcessInfo.processInfo.arguments.contains("--debug-program-setup-commit") {
+            page = .commitment
+        }
+        #endif
         userId = AppSync.shared.currentUserId ?? ""
         if let tier = IntensityTier(rawValue: onboardingPickedTierRaw) {
             pickedTier = tier
@@ -588,21 +594,23 @@ struct ProgramSetupSubflow: View {
             )
             .fixedSize(horizontal: false, vertical: true)
 
-            // v8 P8.8: collapsed from "we'll start your program tomorrow.
-            // day one." (read doubled). Italic punch on the temporal word.
+            // v2.6 RC — the mechanics start the plan TODAY
+            // (startDate = startOfDay(.now)); the old "tomorrow" copy
+            // was factually wrong AND surrendered day-0 activation,
+            // the exact cliff in the retention data. Say the truth:
             (
-                Text("your program starts ")
+                Text("day one is ")
                     .font(Typo.body)
                     .foregroundStyle(Palette.cocoaSecondary)
                 +
-                Text("tomorrow.")
+                Text("today.")
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16))
                     .foregroundStyle(Palette.cocoaSecondary)
             )
 
             // Day 1 preview card — what tomorrow looks like.
             VStack(alignment: .leading, spacing: 14) {
-                Text("day one")
+                Text("today, day one")
                     .font(Typo.editorialEyebrow)
                     .foregroundStyle(Palette.cocoaTertiary)
                     .textCase(.uppercase)
@@ -626,6 +634,24 @@ struct ProgramSetupSubflow: View {
                     .stroke(Palette.hairlineCocoa, lineWidth: 0.66)
             )
             .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
+
+            // v2.6 RC — what jeni carries (so she knows the program
+            // watches FOR her, not the other way around).
+            VStack(alignment: .leading, spacing: 10) {
+                Text("jeni carries")
+                    .font(Typo.editorialEyebrow)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .textCase(.uppercase)
+                    .kerning(0.66)
+                carriesLine("your protein number, sized to you")
+                carriesLine("your trend line, read weekly, never daily")
+                carriesLine("your plan, resized when life happens")
+            }
+
+            Text("sized to your floor, not your best day. that's why it holds.")
+                .font(.custom("JeniHeroSerif-Italic", size: 16))
+                .foregroundStyle(Palette.cocoaSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -728,6 +754,19 @@ struct ProgramSetupSubflow: View {
             } else {
                 onComplete(false)
             }
+        }
+    }
+
+    private func carriesLine(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Circle()
+                .fill(Palette.cocoaPrimary.opacity(0.35))
+                .frame(width: 4, height: 4)
+                .padding(.top, 7)
+            Text(text)
+                .font(Typo.body)
+                .foregroundStyle(Palette.cocoaSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

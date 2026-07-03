@@ -449,6 +449,16 @@ final class AppSync {
 
     // MARK: - Program (v1.1 program pivot)
 
+    /// v2.6 — the evening reflection (jeni's memory seam).
+    func upsertDayReflection(
+        userId: String, dayKey: String, feeling: String, note: String?
+    ) async {
+        guard let service = syncService, !userId.isEmpty else { return }
+        await service.upsertDayReflection(
+            userId: userId, dayKey: dayKey, feeling: feeling, note: note
+        )
+    }
+
     func upsertProgramPlan(_ plan: ProgramPlanRecord) async {
         guard let service = syncService else { return }
         guard !plan.userId.isEmpty else { return }

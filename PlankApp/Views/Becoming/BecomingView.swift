@@ -34,6 +34,12 @@ struct BecomingView: View {
     @State private var showLogWeight = false
     @State private var showProfileHub = false
     @State private var showJournal = false
+    /// v2.6 — the weekly receipt artifact export (Sunday block).
+    private struct ReceiptShareItem: Identifiable {
+        let id = UUID()
+        let image: UIImage
+    }
+    @State private var receiptShare: ReceiptShareItem? = nil
 
     @AppStorage("weightUnit") private var weightUnitRaw: String = "lb"
     private var weightUnit: WeightUnit { WeightUnit(rawValue: weightUnitRaw) ?? .lb }
@@ -115,6 +121,10 @@ struct BecomingView: View {
             ProfileHubView(onClose: { showProfileHub = false })
                 .presentationDetents([.large])
                 .presentationBackground(Palette.bgPrimary)
+        }
+        .sheet(item: $receiptShare) { item in
+            LessonQuoteShareSheet(items: [item.image], onComplete: { receiptShare = nil })
+                .ignoresSafeArea()
         }
         .fullScreenCover(isPresented: $showJournal) {
             FoodLogTimelineView(
@@ -486,7 +496,7 @@ struct BecomingView: View {
     // MARK: - Sunday receipt (v2.5 — the week, kept)
 
     @ViewBuilder private var sundayReceipt: some View {
-        if Calendar.current.component(.weekday, from: .now) == 1,
+        if isReceiptDay,
            let week, week.loggedDays7 + week.last7.compactMap(\.steps).filter({ $0 > 0 }).count > 0 {
             VStack(alignment: .leading, spacing: Space.md) {
                 Text("the week, kept")
@@ -499,7 +509,7 @@ struct BecomingView: View {
                     if week.loggedDays7 > 0 {
                         JKReceiptRow(
                             lead: "plates seen",
-                            punch: "\(week.last7.map(\.plates).reduce(0, +)), across \(week.loggedDays7) days",
+                            punch: plateWeekPunch(week),
                             punchItalic: [],
                             showsRule: false
                         )
@@ -516,16 +526,81 @@ struct BecomingView: View {
                         JKReceiptRow(
                             lead: "the line",
                             punch: delta < 0
-                                ? "eased down \(Int((abs(delta) * 1000).rounded()))g"
+                                ? "eased down about \(roundedGrams(delta))g"
                                 : "held its ground",
                             punchItalic: [delta < 0 ? "eased down" : "held"]
                         )
                     }
                 }
+
+                JKChainLine(
+                    lead: "keep it",
+                    suggestion: "save the week as a card",
+                    italic: ["card"],
+                    action: {
+                        if let model = receiptModel(),
+                           let image = WeeklyReceiptRenderer.render(model) {
+                            Haptics.soft()
+                            receiptShare = ReceiptShareItem(image: image)
+                        }
+                    }
+                )
+                .padding(.top, Space.xs)
             }
             .padding(.horizontal, Space.lg)
             .jkBeat2(extraDelay: 0.1)
         }
+    }
+
+    private func plateWeekPunch(_ week: WeekState) -> String {
+        let plates = week.last7.map(\.plates).reduce(0, +)
+        let days = week.loggedDays7
+        let dayWord = days == 1 ? "day" : "days"
+        return "\(plates), across \(days) \(dayWord)"
+    }
+
+    /// Nearest 50g with "about" — the same honesty register the
+    /// trend story uses (photo-and-scale data doesn't earn 1g).
+    private func roundedGrams(_ deltaKg: Double) -> Int {
+        let g = abs(deltaKg) * 1000
+        return max(50, Int((g / 50).rounded()) * 50)
+    }
+
+    private var isReceiptDay: Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitest-force-receipt") {
+            return true
+        }
+        #endif
+        return Calendar.current.component(.weekday, from: .now) == 1
+    }
+
+    /// The artifact's numbers — same WeekState the on-screen block
+    /// reads (provenance rule: nothing on the card she didn't live).
+    private func receiptModel() -> WeeklyReceiptCard.Model? {
+        guard let week else { return nil }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "MMMM d"
+        let start = Calendar.current.date(byAdding: .day, value: -6, to: .now) ?? .now
+        let range = "\(fmt.string(from: start).lowercased()) to \(fmt.string(from: .now).lowercased())"
+        let stepsTotal = week.last7.compactMap(\.steps).reduce(0, +)
+        var trendLine: String? = nil
+        if let delta = week.emaDelta7dKg, abs(delta) >= 0.1,
+           snapshot?.targets.numericsSuppressed == false {
+            trendLine = delta < 0
+                ? "eased down about \(roundedGrams(delta))g"
+                : "held its ground"
+        }
+        return WeeklyReceiptCard.Model(
+            weekRange: range,
+            plates: week.last7.map(\.plates).reduce(0, +),
+            loggedDays: week.loggedDays7,
+            proteinDaysHit: week.proteinDaysHit,
+            stepsTotal: stepsTotal > 0 ? stepsTotal : nil,
+            trendLine: trendLine,
+            resets: 0,   // breath-per-day not in WeekState yet; row hides at 0 (doc 25)
+            jeniLine: "seven days, kept the way you keep things now \u{2665}\u{FE0E}"
+        )
     }
 
     // MARK: - Refresh

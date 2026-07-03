@@ -481,7 +481,24 @@ struct PlankAIApp: App {
             ZStack {
                 Palette.bgPrimary.ignoresSafeArea()
                 #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("--debug-post-routine") {
+                if ProcessInfo.processInfo.arguments.contains("--debug-weekly-receipt") {
+                    // v2.6 RC — the export artifact itself, at card
+                    // size on the cream, for founder judgment.
+                    ZStack {
+                        Palette.bgPrimary.ignoresSafeArea()
+                        WeeklyReceiptCard(model: .init(
+                            weekRange: "june 27 to july 3",
+                            plates: 14,
+                            loggedDays: 6,
+                            proteinDaysHit: 5,
+                            stepsTotal: 41_200,
+                            trendLine: "eased down about 500g",
+                            resets: 3,
+                            jeniLine: "seven days, kept the way you keep things now \u{2665}\u{FE0E}"
+                        ))
+                        .shadow(color: .black.opacity(0.08), radius: 18, y: 8)
+                    }
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-post-routine") {
                     // App v2.3 — the workout completion state for the
                     // surface ledger (a real 10-min session isn't
                     // walkable; this is the deterministic route).
@@ -506,14 +523,9 @@ struct PlankAIApp: App {
                     JKGalleryHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-satiety-preview") {
                     SatietyPillPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-daily-ritual") {
-                    // v1.1.2 (2026-06-24) — preview the daily return ritual
-                    // standalone (it is otherwise gated to a returning
-                    // user's first Today open of the day).
-                    DailyReturnRitual(
-                        programDay: 14, totalDays: 75, showedUpCount: 12,
-                        onDismiss: {}
-                    )
+                } else if false {
+                    // --debug-daily-ritual retired with PlanView (v2.6 RC).
+                    EmptyView()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-lesson-close") {
                     // v1.1.2 (2026-06-24) — preview the lesson completion
                     // ink-bloom (the inkBleedReveal shader + tomorrow teaser).
@@ -650,14 +662,6 @@ struct PlankAIApp: App {
                             Text("GLP-1 nutrition nudges (Phase 3.3)")
                                 .font(.custom("DMSans-Regular", size: 13))
                                 .foregroundStyle(Palette.textSecondary)
-                            ForEach(0..<3, id: \.self) { i in
-                                let n = AnalyticsView.glp1NutritionNudge(dayOfYear: i)
-                                BecomingInsightLine(text: n.text, italic: n.italic)
-                                    .padding(18)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .stroke(Palette.divider, lineWidth: 1))
-                            }
                         }
                         .padding(24)
                     }
