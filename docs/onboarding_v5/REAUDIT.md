@@ -61,3 +61,13 @@ hairline + eyebrow) · reveal tail the founder loved.
 Poke is the marquee (her real lunch, protein hero — the GLP-1 pill
 lands on 41g). Oysters carry the anti-shame stance. Steak + pizza shots
 skipped (orientation/light unusable).
+
+## Round-2/3 closure (verified 2026-07-02, fresh-sim walk)
+
+Every fix on the list landed and walked: founder-photo demo (poke
+composed above the panel via per-plate bleed shift), zero preselects
+(pace / signature / promise chips / nudge time), device-demo welcome
+(founder-picked direction, his poke in the viewfinder), icon sweep,
+flat ruler pill, 12-chip cuisine, promise replay assembling on gated
+insertion, promise hour owning the nudge bucket. Remaining taste calls
+live with the founder on device.
