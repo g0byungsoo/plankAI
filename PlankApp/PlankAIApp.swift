@@ -460,7 +460,11 @@ struct PlankAIApp: App {
             ZStack {
                 Palette.bgPrimary.ignoresSafeArea()
                 #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("--debug-satiety-preview") {
+                if ProcessInfo.processInfo.arguments.contains("--debug-jenikit") {
+                    // App v2 — the JeniKit component gallery
+                    // (docs/app_v2/10_DESIGN_SYSTEM.md).
+                    JKGalleryHarness()
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-satiety-preview") {
                     SatietyPillPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-daily-ritual") {
                     // v1.1.2 (2026-06-24) — preview the daily return ritual
