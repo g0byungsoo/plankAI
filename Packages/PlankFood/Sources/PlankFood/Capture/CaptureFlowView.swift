@@ -115,6 +115,7 @@ public struct CaptureFlowView: View {
 
             case .camera:
                 PhotoCaptureView(
+                    userId: userId,
                     onDismiss: onDismiss,
                     onCaptured: { food, photo in
                         // v1.0.8 Phase P (2026-06-08) — photo path

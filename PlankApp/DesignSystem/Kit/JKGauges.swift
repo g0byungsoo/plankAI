@@ -199,14 +199,18 @@ struct JKKcalLine: View {
     let kcal: Int
     let target: Int?
 
+    @State private var awakened = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             if let target {
-                Text("\(kcal.formatted())")
+                Text("\((awakened ? kcal : 0).formatted())")
                     .font(Typo.numeralStat)
                     .monospacedDigit()
                     .foregroundStyle(Palette.textPrimary)
                     .contentTransition(.numericText())
+                    .animation(Motion.easedFinal, value: awakened)
                 Text("of ~\(target.formatted()) today")
                     .font(Typo.numeralMeta)
                     .kerning(0.1)
@@ -223,6 +227,14 @@ struct JKKcalLine: View {
                     .foregroundStyle(Palette.textSecondary)
             }
         }
+        .modifier(JKAwakenOnVisible(threshold: 0.6) {
+            guard !awakened else { return }
+            if reduceMotion {
+                awakened = true
+            } else {
+                withAnimation(.easeOut(duration: 0.7).delay(0.34)) { awakened = true }
+            }
+        })
         .accessibilityElement(children: .combine)
     }
 

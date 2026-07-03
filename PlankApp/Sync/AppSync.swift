@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 import Observation
 import SwiftData
 import PlankSync
@@ -665,6 +666,33 @@ final class AppSync {
         for key in keys {
             defaults.removeObject(forKey: key)
         }
+
+        // v2.8 identity audit — DATE-SUFFIXED user-scoped families
+        // added by app v2 (evening feeling, her-file note, kept rep,
+        // day-progress mirrors, anchor refresh guard). These are
+        // per-identity: the note reaches jeni's context envelope, so
+        // leaking it to the next account on this device would hand
+        // one user's private words to another user's coach. Prefix
+        // sweep because the keys carry dayKey suffixes.
+        let scopedPrefixes = [
+            "day.note.", "day.reflection.", "lesson.rep.kept.",
+            "stats.shown_up_count", "day1Promise",
+            "orchestrator.anchorRefreshDayKey",
+        ]
+        for key in defaults.dictionaryRepresentation().keys {
+            if scopedPrefixes.contains(where: { key.hasPrefix($0) }) {
+                defaults.removeObject(forKey: key)
+            }
+        }
+
+        // The v2.6 anchor ladder is per-identity content (her name,
+        // her program day) — remove the rungs alongside the legacy
+        // reminder so the next account never hears the prior user's
+        // plan.
+        UNUserNotificationCenter.current().removePendingNotificationRequests(
+            withIdentifiers: NotificationOrchestrator.ladderIds
+                + NotificationOrchestrator.legacyIds
+        )
     }
 
     /// v1.1.1 sign-out sweep. Per the AuthService comment, sign-out

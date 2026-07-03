@@ -34,6 +34,9 @@ import AudioToolbox
 
 @MainActor
 public struct PhotoCaptureView: View {
+    /// v2.8 — account scoping for the "today's protein" context
+    /// (the unscoped read summed every account on the device).
+    public var userId: String = ""
 
     // MARK: - State
 
@@ -190,6 +193,7 @@ public struct PhotoCaptureView: View {
     // MARK: - Init
 
     public init(
+        userId: String = "",
         onDismiss: @escaping () -> Void,
         onCaptured: @escaping (CapturedFood, UIImage?) -> Void,
         onQuickAddTapped: @escaping () -> Void = {},
@@ -197,6 +201,7 @@ public struct PhotoCaptureView: View {
         onResultLanded: @escaping () -> Void = {},
         onAgainTapped: @escaping () -> Void = {}
     ) {
+        self.userId = userId
         self.onDismiss = onDismiss
         self.onCaptured = onCaptured
         self.onQuickAddTapped = onQuickAddTapped
@@ -1061,6 +1066,7 @@ public struct PhotoCaptureView: View {
             .allowsHitTesting(false)
 
             SnapResultView(
+                userId: userId,
                 food: result,
                 mealLabel: mealTypeLabel,
                 dishName: dishNameLabel(result),

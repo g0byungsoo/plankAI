@@ -30,7 +30,7 @@ public enum DailyShareRenderer {
     ) -> UIImage? {
         let entries = FoodLogPersister.allEntries(userId: userId)
             .filter { Calendar.current.isDate($0.loggedAt, inSameDayAs: date) }
-        let macros = FoodLogPersister.todayMacros()
+        let macros = FoodLogPersister.todayMacros(userId: userId)
         let pills = buildPills(entries: entries, macros: macros, dailyTarget: dailyTarget)
 
         // Photo-backed polaroids — load each gridded entry's stored

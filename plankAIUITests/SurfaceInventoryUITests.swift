@@ -8,8 +8,10 @@ import XCTest
 // writes a PNG per stop to INVENTORY_DIR (simulator processes share
 // the host filesystem). The doc's before/after ledger cites these.
 //
-// Run:
-//   INVENTORY_DIR=/tmp/jenifit_inventory xcodebuild test \
+// Run (NOTE: xcodebuild only forwards TEST_RUNNER_-prefixed env to
+// the runner — a bare INVENTORY_DIR never arrives and captures land
+// in the default path):
+//   TEST_RUNNER_INVENTORY_DIR=/tmp/jenifit_inventory xcodebuild test \
 //     -only-testing:plankAIUITests/SurfaceInventoryUITests
 
 final class SurfaceInventoryUITests: XCTestCase {

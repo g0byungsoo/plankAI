@@ -24,7 +24,9 @@ struct JKPlateStrip: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                ForEach(items) { item in
+                // v2.8 — plates arrive like dealt cards: a per-index
+                // stagger (60ms) with a soft rise, once per mount.
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     Button {
                         Haptics.light()
                         onTapItem?(item)
@@ -39,6 +41,7 @@ struct JKPlateStrip: View {
                         }
                     }
                     .buttonStyle(JKPress())
+                    .jkBeat2(extraDelay: 0.06 * Double(index))
                     .accessibilityLabel("\(item.title), \(item.time)")
                 }
 

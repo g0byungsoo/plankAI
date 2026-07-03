@@ -26,6 +26,7 @@ import SwiftUI
 // this file is presentation + choreography only.
 
 public struct SnapResultView: View {
+    var userId: String = ""
 
     let initialFood: CapturedFood
     let mealLabel: String
@@ -70,6 +71,7 @@ public struct SnapResultView: View {
     var loggedAt: Date = Date()
 
     public init(
+        userId: String = "",
         food: CapturedFood,
         mealLabel: String,
         dishName: String,
@@ -79,6 +81,7 @@ public struct SnapResultView: View {
         onEdited: @escaping (CapturedFood) -> Void,
         refine: ((SnapRefineRequest) async throws -> SnapRefineOutcome)? = nil
     ) {
+        self.userId = userId
         self.initialFood = food
         self.mealLabel = mealLabel
         self.dishName = dishName
@@ -973,7 +976,12 @@ public struct SnapResultView: View {
             food: session.rebuiltFood(),
             ctx: ResultDetailContext(
                 proteinTargetG: proteinTargetG,
-                todayLoggedProtein: Int(FoodLogPersister.todayMacros().protein.rounded()),
+                todayLoggedProtein: Int(
+                    (userId.isEmpty
+                        ? FoodLogPersister.todayMacros()
+                        : FoodLogPersister.todayMacros(userId: userId)
+                    ).protein.rounded()
+                ),
                 kcalTarget: Int(foodDailyTarget),
                 isGlp1: isGlp1Cohort,
                 hour: Calendar.current.component(.hour, from: loggedAt)
