@@ -249,6 +249,11 @@ struct BreathworkSessionView: View {
         VStack(spacing: 0) {
             Spacer()
 
+            // v2.9 motion pass — after sixty seconds of rhythm, the
+            // receipt EXHALES into place instead of hard-swapping:
+            // headline settles, the mechanism follows, her week
+            // assembles dot by dot, then the door. (The flow video
+            // showed every element landing on one frame.)
             ItalicAccentText("that's your body settling.",
                              italic: ["settling"],
                              baseFont: titleFont,
@@ -256,7 +261,8 @@ struct BreathworkSessionView: View {
                              color: Palette.textPrimary,
                              alignment: .center)
                 .opacity(completeVisible ? 1 : 0)
-                .offset(y: completeVisible ? 0 : 8)
+                .offset(y: completeVisible ? 0 : 10)
+                .animation(.easeOut(duration: 0.55), value: completeVisible)
 
             Text(techProtocol.receiptLine)
                 .font(Typo.body)
@@ -265,27 +271,40 @@ struct BreathworkSessionView: View {
                 .padding(.horizontal, Space.lg)
                 .padding(.top, Space.sm)
                 .opacity(completeVisible ? 1 : 0)
+                .offset(y: completeVisible ? 0 : 8)
+                .animation(.easeOut(duration: 0.5).delay(0.35), value: completeVisible)
 
             // Her breath week — real BreathworkState data, gain-framed
-            // (the same dot idiom as Becoming's week row).
+            // (the same dot idiom as Becoming's week row). Dots bloom
+            // in sequence; the week assembles itself.
             let flags = BreathworkState.shared.weekDayFlags
             let count = flags.filter { $0 }.count
             VStack(spacing: 8) {
                 HStack(spacing: 7) {
-                    ForEach(Array(flags.enumerated()), id: \.offset) { _, breathed in
-                        if breathed {
-                            Circle().fill(Palette.cocoaPrimary).frame(width: 7, height: 7)
-                        } else {
-                            Circle().stroke(Palette.divider, lineWidth: 1.2).frame(width: 7, height: 7)
+                    ForEach(Array(flags.enumerated()), id: \.offset) { index, breathed in
+                        Group {
+                            if breathed {
+                                Circle().fill(Palette.cocoaPrimary).frame(width: 7, height: 7)
+                            } else {
+                                Circle().stroke(Palette.divider, lineWidth: 1.2).frame(width: 7, height: 7)
+                            }
                         }
+                        .scaleEffect(completeVisible ? 1 : 0.2)
+                        .opacity(completeVisible ? 1 : 0)
+                        .animation(
+                            .spring(response: 0.42, dampingFraction: 0.68)
+                                .delay(0.7 + 0.07 * Double(index)),
+                            value: completeVisible
+                        )
                     }
                 }
                 Text(count == 1 ? "1 breath day this week" : "\(count) breath days this week")
                     .font(.custom("DMSans-Regular", size: 12))
                     .foregroundStyle(Palette.textSecondary)
+                    .opacity(completeVisible ? 1 : 0)
+                    .animation(.easeOut(duration: 0.5).delay(1.15), value: completeVisible)
             }
             .padding(.top, Space.lg)
-            .opacity(completeVisible ? 1 : 0)
 
             Spacer()
 
@@ -296,6 +315,7 @@ struct BreathworkSessionView: View {
                 onLater()
             }
             .opacity(completeVisible ? 1 : 0)
+            .animation(.easeOut(duration: 0.5).delay(1.3), value: completeVisible)
         }
     }
 
@@ -349,10 +369,12 @@ struct BreathworkSessionView: View {
         withAnimation(.easeInOut(duration: 0.5)) {
             phase = .complete
         }
-        withAnimation(.easeInOut(duration: 0.6).delay(0.3)) {
+        // v2.9 — per-element animations own the cascade; the flag
+        // flips plainly so the transaction can't flatten the stagger.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             completeVisible = true
+            Haptics.success()
         }
-        Haptics.success()
         // Stamp the completion so the home BreathworkHomeCard + Becoming
         // BreathworkBentoTile reflect the new count immediately. Idempotent
         // (~60s coalesce) so any race with a fast user double-tap on
