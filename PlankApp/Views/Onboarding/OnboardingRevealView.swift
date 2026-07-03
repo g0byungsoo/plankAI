@@ -1748,11 +1748,14 @@ private struct NudgePermissionAsk: View {
         }
         .onAppear {
             // v5 merged time anchor: the promise beat already asked when
-            // tomorrow starts — seed the daily-nudge bucket from HER
-            // chosen hour so the two asks can never contradict (promise
-            // at 6pm + nudge at 7am was the run-8 walker catch).
-            if plankTime.isEmpty {
-                plankTime = Self.bucket(fromPromiseISO: promiseTimeISO) ?? "morning"
+            // tomorrow starts — her chosen hour OWNS the daily-nudge
+            // bucket (a stale earlier value must never contradict the
+            // promise she just sealed; the round-3 walk showed exactly
+            // that: promise 8am, arrives-line "afternoons").
+            if let promised = Self.bucket(fromPromiseISO: promiseTimeISO) {
+                plankTime = promised
+            } else if plankTime.isEmpty {
+                plankTime = "morning"
             }
         }
         .task {
@@ -2746,6 +2749,11 @@ private struct CommitmentReplayView: View {
             if reduceMotion {
                 opacities = Array(repeating: 1.0, count: 6)
                 offsetsY  = Array(repeating: 0.0, count: 6)
+            } else if isRevealed {
+                // v5 round-2: the replay is INSERTED once the promise
+                // completes, with isRevealed already true — onChange
+                // never fires on late insertion, so cascade here.
+                runWordCascade()
             }
         }
         .onChange(of: isRevealed) { _, revealed in
@@ -2755,15 +2763,7 @@ private struct CommitmentReplayView: View {
                 offsetsY  = Array(repeating: 0.0, count: 6)
                 return
             }
-            // Left-to-right word cascade: one word every ~50ms
-            for i in 0..<tokenCount {
-                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.05) {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
-                        opacities[i] = 1.0
-                        offsetsY[i]  = 0.0
-                    }
-                }
-            }
+            runWordCascade()
         }
         .onChange(of: anchor) { _, newAnchor in
             // Before reveal: just keep display in sync, no animation.
@@ -2790,6 +2790,20 @@ private struct CommitmentReplayView: View {
             .lineLimit(1)
             .opacity(reduceMotion ? 1.0 : (index < opacities.count ? opacities[index] : 1.0))
             .offset(y: reduceMotion ? 0 : (index < offsetsY.count ? offsetsY[index] : 0))
+    }
+
+    /// Left-to-right word cascade: one word every ~50ms. Shared by the
+    /// isRevealed onChange (legacy path) and onAppear (v5, where the
+    /// replay is inserted only once the promise completes).
+    private func runWordCascade() {
+        for i in 0..<tokenCount {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.05) {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
+                    opacities[i] = 1.0
+                    offsetsY[i]  = 0.0
+                }
+            }
+        }
     }
 
     // Soft per-slot swap: old word fades/lifts out (~110ms ease-in),

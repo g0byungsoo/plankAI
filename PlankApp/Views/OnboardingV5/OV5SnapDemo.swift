@@ -23,6 +23,9 @@ private struct DemoMeal: Identifiable, Equatable {
     let range: Int         // ± band
     let protein: Int
     let rows: [(String, Int)]
+    /// Full-bleed crop anchor: where the PLATE sits in the photo, so
+    /// the scaledToFill crop keeps it visible above the result panel.
+    var bleedAlignment: Alignment = .center
     var id: String { key }
     static func == (a: DemoMeal, b: DemoMeal) -> Bool { a.key == b.key }
 }
@@ -44,7 +47,8 @@ struct OV5SnapDemoScreen: View {
     private static let meals: [DemoMeal] = [
         .init(key: "poke", asset: "onb-v5-demo-poke",
               title: "ahi poke bowl", kcal: 500, range: 75, protein: 41,
-              rows: [("ahi tuna", 165), ("sushi rice", 300), ("shoyu + limu", 35)]),
+              rows: [("ahi tuna", 165), ("sushi rice", 300), ("shoyu + limu", 35)],
+              bleedAlignment: .bottom),
         .init(key: "toast", asset: "onb-v5-demo-toast",
               title: "avocado toast, eggs + berries", kcal: 445, range: 65, protein: 19,
               rows: [("sourdough", 100), ("avocado", 120), ("scrambled eggs", 190), ("strawberries", 35)]),
@@ -78,7 +82,9 @@ struct OV5SnapDemoScreen: View {
                 sub: "pick one. they're ours, from real days."
             )
 
-            Spacer()
+            // Capped so the fan rides upper-middle instead of sinking
+            // into a dead center (round-2 rhythm pass).
+            Spacer(minLength: Space.lg).frame(maxHeight: 110)
 
             // Three prints, fanned — the ONE place photos tilt (they
             // read as physical prints, not UI).
@@ -157,7 +163,8 @@ struct OV5SnapDemoScreen: View {
                     Image(meal.asset)
                         .resizable()
                         .scaledToFill()
-                        .frame(width: geo.size.width, height: geo.size.height)
+                        .frame(width: geo.size.width, height: geo.size.height,
+                               alignment: meal.bleedAlignment)
                         .clipped()
                         .matchedGeometryEffect(id: meal.key, in: ns, isSource: phase != .pick)
                         .overlay(

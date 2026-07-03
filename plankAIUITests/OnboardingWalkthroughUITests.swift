@@ -613,8 +613,13 @@ final class OnboardingV5WalkerUITests: XCTestCase {
             return false
         }
 
-        // act i — her arrival
-        tapButton("continue", shotName: "welcome", settle: 1.6, retryIfPresent: true)
+        // act i — her arrival. The welcome runs two indefinite
+        // animations (device-demo cycle + sticker float), so element
+        // polls during the launch window can block on quiescence —
+        // settle flat first (the diag test's dodge), then a generous
+        // first timeout.
+        Thread.sleep(forTimeInterval: 5.5)
+        tapButton("continue", shotName: "welcome", timeout: 25, settle: 1.6, retryIfPresent: true)
         tapButton("okay", shotName: "antiShame")
         tapButton("quiet the food noise", shotName: "outcome")
         tapButton("tiktok", shotName: "attribution")
@@ -852,7 +857,7 @@ final class OV5DiagUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 5.0)
 
         let ready = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "i'm ready")
+            NSPredicate(format: "label CONTAINS[c] %@", "continue")
         ).firstMatch
         print("DIAG ready.exists=\(ready.exists) hittable=\(ready.exists ? ready.isHittable : false) frame=\(ready.exists ? "\(ready.frame)" : "-")")
         print("DIAG TREE-BEGIN")

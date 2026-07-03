@@ -84,7 +84,13 @@ struct PlankAIApp: App {
                         "onb_fear_quickResults", "onb_fear_anotherDiet",
                         "onb_fear_priorAttempt", "onb_fear_offramp",
                         "onb_fear_regain", "medicalDisclaimerAckAtISO",
-                        "onboardingPickedTier"] {
+                        "onboardingPickedTier",
+                        // Day-1 machinery: a stale promise/bucket from a
+                        // prior QA run must not leak into a fresh walk
+                        // (round-3 catch: promise 8am, nudge "afternoons").
+                        "plankTime", "notificationsEnabled",
+                        "day1PromiseAction", "day1PromiseAnchor",
+                        "day1PromiseTimeISO"] {
                 d.removeObject(forKey: key)
             }
         }
