@@ -78,6 +78,13 @@ enum AnalyticsEvent: String {
     case paywallTransactionAbandoned = "paywall_transaction_abandoned"
 
     // ── First activation ─────────────────────────────────────────
+    /// App v2 — the entitled shell mounted. Fires ONLY in the .main
+    /// phase (pre-v2 this existed as a DEBUG print while MainTabView
+    /// mounted behind the paywall cover for unpaid users too).
+    case mainTabAppeared            = "main_tab_appeared"
+    /// App v2 — the one-time existing-user migration moment.
+    case migrationMomentViewed      = "migration_moment_viewed"
+    case migrationMomentCompleted   = "migration_moment_completed"
     case firstWorkoutStart          = "first_workout_start"
     case firstWorkoutComplete       = "first_workout_complete"
 

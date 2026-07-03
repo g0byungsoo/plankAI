@@ -2710,311 +2710,58 @@ private struct RootView: View {
     @AppStorage("userGoal") private var userGoal = ""
     @AppStorage("userExperience") private var userExperience = ""
     @AppStorage("voicePreference") private var voicePreference = "encouraging"
-    // Task 10 (2026-06-28) - promise values from onboarding commitment ritual.
-    // Read here to pass into PostPurchaseFlowView so the confirmation phase
-    // can replay the user's own words without re-reading AppStorage inside
-    // the flow view (cleaner dependency direction).
-    @AppStorage("day1PromiseAction") private var day1PromiseAction: String = ""
-    @AppStorage("day1PromiseAnchor") private var day1PromiseAnchor: String = ""
-
     @Environment(\.modelContext) private var modelContext
     @State private var auth = AuthService.shared
     @State private var payment = PaymentService.shared
-    /// Sprint A (2026-06-15) — observed for Day-2 / Day-3 in-app trial
-    /// nudges. PaymentService pumps the coordinator on every customer
-    /// info emit; this @State drives the sheet presentation.
-    @State private var trialNudge = TrialNudgeCoordinator.shared
-
-    // Downsell paywall state. Hard-paywall model: the cover stays up
-    // until the user subscribes or restores. The downsell is presented
-    // as a .sheet over PaywallView on exit intent (X tap on main
-    // paywall or Apple purchase-sheet cancel). Shows once per install
-    // via AppStorage guard; subsequent exit intents fall through to
-    // CancellationWinbackSheet.
-    // Re-wired 2026-06-29 - founder reversed the May-31 premium-
-    // positioning hold; discounted annual is now the exit-intent offer.
-    @AppStorage("downsellShownOnce") private var downsellShownOnce = false
-    @State private var showingDownsell = false
-
-    // Celebration screen state. Set true by PaywallView/DownsellPaywallView
-    // `onSubscribed` callbacks — so it fires ONLY on a fresh-from-paywall
-    // purchase, not when a returning paid user's entitlement auto-restores
-    // on cold launch. PremiumWelcomeScreen calls onComplete after ~2.5s
-    // and we flip this back to false.
-
-    // The JeniFit Method post-purchase education flow (Phase 2 of
-    // docs/diet_education_plan.md). Set true from PremiumWelcomeScreen's
-    // onComplete iff the feature flag is on AND the user's goal is on
-    // the fat-loss allowlist AND Lesson 1 has not already started.
-    // Forward-only: restore-purchase and cold relaunch never re-fire
-    // because both go through onSubscribed-less code paths (restore) or
-    // never transition effectiveHasProAccess false→true (cold relaunch
-    // on an already-paid user). Default-off behind the flag.
-    @State private var showingCoachIntro = false
-    /// Sprint A (2026-06-15) - soft cancellation-intent winback.
-    /// After 2026-06-29 re-wire: fires as the SECONDARY beat after
-    /// the downsell has already shown (or as fallback once per session
-    /// when downsellShownOnce is already true). Voice-aligned identity
-    /// reflection - no price cut. Re-firing on repeat exits in the
-    /// same session would read as nagging.
-    @State private var showingWinback = false
-    @State private var winbackShownThisSession = false
 
     // Minimum dwell for the editorial launch splash (all launches).
     @State private var loaderMinHoldDone = false
 
+    // App v2 (docs/app_v2/07_GATING.md) — phase-machine inputs. The
+    // paywall/downsell/winback machinery moved to WallView; the
+    // post-purchase cover + trial-nudge machinery moved to MainShell.
+    /// ISO stamp of the first v2 shell mount; empty = never seen v2.
+    @AppStorage("appV2SeenAt") private var appV2SeenAt = ""
+    /// Legacy footprint signal for the migration phase: an enrolled
+    /// program predating v2.
+    @AppStorage("programEraEnabled") private var programEraEnabled = false
+    /// Last stable phase — held through auth transitions so identity
+    /// swaps never flash the wall (07_GATING suppression-hold).
+    @State private var lastStablePhase: AppPhase?
+
+    private var currentPhase: AppPhase {
+        AppPhaseMachine.derive(.init(
+            hasCompletedOnboarding: hasCompletedOnboarding,
+            authReady: auth.isReady,
+            entitlementReady: payment.isEntitlementReady,
+            loaderHoldDone: loaderMinHoldDone,
+            hasPro: payment.effectiveHasProAccess,
+            isInAuthTransition: payment.isInAuthTransition,
+            wasEverEntitled: payment.wasEverEntitled,
+            appV2Seen: !appV2SeenAt.isEmpty,
+            hasLegacyFootprint: programEraEnabled,
+            lastStablePhase: lastStablePhase
+        ))
+    }
+
     var body: some View {
-        // Phase 20a: route swaps now cross-fade through Motion.crossFade
-        // (0.45s easeInOut) so cold-launch / onboarding-complete / auth-
-        // resolved transitions stop snapping. Per-leaf `.transition(.opacity)`
-        // is required for SwiftUI to interpolate between sibling views;
-        // the watch-value `.animation(_:value:)` chain at the bottom of
-        // the Group fires on every state that drives a route change.
+        // App v2 (docs/app_v2/07_GATING.md): the route-level phase
+        // machine replaces the paywall-cover-over-content model.
+        // Exactly ONE phase is mounted — unpaid/expired users never
+        // have main-app content in the hierarchy at all. Derivation
+        // is pure (AppPhaseMachine.derive, table-tested in
+        // AppPhaseTests); this body renders its answer.
+        let phase = currentPhase
         Group {
-            // Every launch shows the same editorial splash
-            // (AffirmationLoaderScreen) for max(1.8s, bootstrap):
-            // brand-new users before onboarding, returning users
-            // before MainTabView. One doorbell for the whole app.
-            if hasCompletedOnboarding {
-                // Hold the splash until BOTH auth and the first
-                // entitlement check have resolved. Without the
-                // isEntitlementReady gate, returning paying users see a
-                // ~200-500ms paywall flash on cold launch because
-                // hasProAccess defaults to its cached value (or false on
-                // fresh install) before customerInfoStream has emitted
-                // RevenueCat's authoritative answer. The seeded cache +
-                // 3s safety timeout in PaymentService bound the wait.
-                //
-                // loaderMinHoldDone (founder QA 2026-06-11): fast
-                // bootstraps unmounted the editorial loader before the
-                // affirmation could land. 1.6s minimum hold so the
-                // moment reads; slow bootstraps are unaffected (the
-                // hold elapses while they're still waiting).
-                if auth.isReady && payment.isEntitlementReady && loaderMinHoldDone {
-                    MainTabView()
-                        .transition(.opacity)
-                        .fullScreenCover(isPresented: .constant(!payment.effectiveHasProAccess && !payment.isInAuthTransition)) {
-                            // Hard paywall - sits between onboarding completion
-                            // and MainTabView. Cover dismisses only when
-                            // PaymentService.hasProAccess flips true (purchase
-                            // or restore). Exit intent (X tap or Apple-sheet
-                            // cancel) routes to DownsellPaywallView once per
-                            // install, then CancellationWinbackSheet. Sheet
-                            // dismiss returns here without letting the user
-                            // out of the cover.
-                            PaywallView(
-                                // 2026-06-29: dismissable restored to true.
-                                // X tap now routes to the exit-intent downsell
-                                // (once per install) via triggerExitIntent().
-                                // Cover stays up regardless - the X does NOT
-                                // dismiss the hard-paywall cover.
-                                dismissable: true,
-                                onSubscribed: {
-                                    #if DEBUG
-                                    print("[Paywall.main] onSubscribed fired (debugForcePaywall was \(payment.debugForcePaywall))")
-                                    // Phase 9.31 — auto-clear the force-
-                                    // paywall debug flag on a successful
-                                    // purchase. Otherwise the paywall
-                                    // never dismisses (effectiveHasProAccess
-                                    // stays false) and the coach flow gets
-                                    // stuck queued forever. Dev re-enables
-                                    // in Debug menu to re-test.
-                                    payment.debugForcePaywall = false
-                                    #endif
-                                    // Phase A (2026-05-27): PremiumWelcomeScreen
-                                    // removed — it was redundant with Jeni's
-                                    // welcome (CoachIntroView). Purchase now
-                                    // goes straight to the post-purchase flow.
-                                    // The feature-flag + idempotency gate that
-                                    // lived in the welcome CTA moves here.
-                                    presentPostPurchaseFlowIfEligible()
-                                },
-                                onRestore: {
-                                    Task {
-                                        do {
-                                            _ = try await Purchases.shared.restorePurchases()
-                                        } catch {
-                                            #if DEBUG
-                                            print("[Paywall] restore FAILED: \(error)")
-                                            #endif
-                                        }
-                                    }
-                                },
-                                onDismiss: {
-                                    // 2026-06-29: exit-intent downsell wired.
-                                    // analytics fires inside PaywallView.topBar
-                                    // before this callback - no double-emit.
-                                    triggerExitIntent()
-                                },
-                                onPurchaseCancelled: {
-                                    // Transaction-abandon: user started StoreKit
-                                    // checkout, backed out of the Apple sheet.
-                                    // Funnel signal first, then exit-intent offer
-                                    // (downsell once per install, winback after).
-                                    Analytics.track(.paywallTransactionAbandoned)
-                                    triggerExitIntent()
-                                }
-                            )
-                            .onAppear {
-                                // Paywall view event. variant_id is fixed
-                                // until we run paywall experiments; the
-                                // property is here so future variants slot
-                                // in without changing the call site.
-                                //
-                                // 2026-06-15: default_plan now genuinely
-                                // matches the in-view default (annual for
-                                // every cohort, no goal-aware quarterly
-                                // override). If the default ever flips
-                                // again, keep these three properties
-                                // — default_plan, has_trial, trial_days —
-                                // in sync with PaywallView.selectedPlan's
-                                // initial value.
-                                Analytics.track(.paywallView, properties: [
-                                    "paywall_id": "main",
-                                    "placement": "onboarding_final",
-                                    "variant_id": "control",
-                                    "default_plan": "annual",
-                                    "has_trial": true,
-                                    "trial_days": 3
-                                ])
-                            }
-                            // Cancellation-intent winback. MUST be attached
-                            // INSIDE this fullScreenCover closure (i.e. on
-                            // PaywallView), not as a sibling on MainTabView
-                            // — SwiftUI doesn't let a `.sheet` present over
-                            // a `.fullScreenCover` from the same view, but
-                            // a `.sheet` ON the presented PaywallView
-                            // surfaces normally over it. Sprint A 2026-06-15.
-                            .sheet(isPresented: $showingWinback) {
-                                CancellationWinbackSheet(
-                                    onStayOpen: { showingWinback = false },
-                                    onLeave:    { showingWinback = false }
-                                )
-                                .presentationDetents([.large])
-                                .presentationDragIndicator(.hidden)
-                                .interactiveDismissDisabled(false)
-                            }
-                            // Exit-intent downsell - discounted annual offer.
-                            // Presented once per install (downsellShownOnce
-                            // AppStorage guard in triggerExitIntent). Must be
-                            // a separate .sheet from winback so SwiftUI can
-                            // chain them: downsell dismiss sets showingWinback
-                            // true before this sheet fully closes.
-                            // interactiveDismissDisabled so the fall-through
-                            // to CancellationWinbackSheet always fires via
-                            // onDismiss (no silent swipe-away).
-                            .sheet(isPresented: $showingDownsell) {
-                                DownsellPaywallView(
-                                    onSubscribed: {
-                                        showingDownsell = false
-                                        presentPostPurchaseFlowIfEligible()
-                                    },
-                                    onDismiss: {
-                                        showingDownsell = false
-                                        // Fall through to winback (once per session).
-                                        if !winbackShownThisSession {
-                                            winbackShownThisSession = true
-                                            showingWinback = true
-                                        }
-                                    }
-                                )
-                                .presentationDetents([.large])
-                                .presentationDragIndicator(.hidden)
-                                .interactiveDismissDisabled(true)
-                            }
-                        }
-                        .onChange(of: payment.effectiveHasProAccess) { oldValue, newValue in
-                            #if DEBUG
-                            print("[FUNNEL] paywall_cover_state_change | effectiveHasProAccess: \(oldValue) → \(newValue) | cover will \(newValue ? "DISMISS" : "PRESENT")")
-                            #endif
-                            // Purchase / trial start events fire from
-                            // PaymentService.startCustomerInfoStream where
-                            // product_id and trial-period info are
-                            // first-class — don't double-emit here.
-                        }
-                        .sheet(isPresented: Binding(
-                            // v1.1.3 pay-upfront: trial modals permanently
-                            // gated off. No intro offer ships; these sheets
-                            // are preserved for re-enable when a trial
-                            // is re-introduced in a future version.
-                            get: { false },
-                            set: { if !$0 { trialNudge.clearPending() } }
-                        )) {
-                            // Sprint A 2026-06-15 — in-app trial nudges.
-                            // PaymentService.reconcileTrialReminder pumps
-                            // the coordinator on every entitlement emit.
-                            // Day-2 fires in [24h, 48h] until renewal;
-                            // Day-3 fires in (0h, 18h]. One-shot per
-                            // trial via UserDefaults flag scoped to the
-                            // expiration date.
-                            switch trialNudge.pending {
-                            case .day2:
-                                TrialDay2Modal(
-                                    expirationDate: trialNudge.expirationDate,
-                                    onDismiss: {
-                                        trialNudge.dismiss(.day2,
-                                            expirationDate: trialNudge.expirationDate)
-                                    }
-                                )
-                                .presentationDetents([.large])
-                                .presentationDragIndicator(.hidden)
-                            case .day3:
-                                TrialDay3Modal(
-                                    expirationDate: trialNudge.expirationDate,
-                                    onDismiss: {
-                                        trialNudge.dismiss(.day3,
-                                            expirationDate: trialNudge.expirationDate)
-                                    }
-                                )
-                                .presentationDetents([.large])
-                                .presentationDragIndicator(.hidden)
-                            case .none:
-                                EmptyView()
-                            }
-                        }
-                        .fullScreenCover(isPresented: $showingCoachIntro) {
-                            // Phase A: the post-purchase sequence — forging
-                            // → Jeni welcome → breathwork primer → breath
-                            // session. All phases live inside
-                            // PostPurchaseFlowView (one cover, internal
-                            // cross-fades) so transitions read as smooth
-                            // fades, not iOS cover slides. The single exit
-                            // lands the user on the Today tab's program
-                            // onramp.
-                            PostPurchaseFlowView(
-                                onFinish: {
-                                    CoachIntroState.markShown()
-                                    var t = Transaction()
-                                    t.disablesAnimations = true
-                                    withTransaction(t) {
-                                        showingCoachIntro = false
-                                    }
-                                },
-                                promiseAction: day1PromiseAction.isEmpty ? nil : day1PromiseAction,
-                                promiseAnchor: day1PromiseAnchor.isEmpty ? nil : day1PromiseAnchor
-                            )
-                            .presentationBackground(Palette.bgPrimary)
-                        }
-                } else {
-                    AffirmationLoaderScreen(state: auth.bootstrapState) {
-                        Task { await auth.retryBootstrap() }
-                    }
-                    .transition(.opacity)
+            switch phase {
+            case .booting:
+                AffirmationLoaderScreen(state: auth.bootstrapState) {
+                    Task { await auth.retryBootstrap() }
                 }
-            } else {
-                if !auth.isReady || !loaderMinHoldDone {
-                    // Every pre-onboarding launch (first install,
-                    // re-onboards, recovered accounts) shows the SAME
-                    // editorial splash with the same 1.8s floor. Round 7
-                    // (founder QA): this replaces the old first-launch
-                    // AffirmationScreen, whose 5.5s triplet ceremony was
-                    // both off the new register and a forced wait on
-                    // every new user's first open.
-                    AffirmationLoaderScreen(state: auth.bootstrapState) {
-                        Task { await auth.retryBootstrap() }
-                    }
-                    .transition(.opacity)
-                } else if ProcessInfo.processInfo.arguments.contains("--onboarding-v4") {
+                .transition(.opacity)
+
+            case .onboarding:
+                if ProcessInfo.processInfo.arguments.contains("--onboarding-v4") {
                     // Debug escape to the legacy v4.5 flow while v5
                     // burns in. Remove with the v4.5 code sweep.
                     OnboardingView(onComplete: handleOnboardingComplete)
@@ -3026,16 +2773,34 @@ private struct RootView: View {
                     OnboardingV5Flow(onComplete: handleOnboardingComplete)
                         .transition(.opacity)
                 }
+
+            case .wall(let reason):
+                // The hard paywall as a DESTINATION (WallView owns the
+                // exit-intent downsell/winback chain + the expired
+                // welcome-back variant). Purchase/restore flips the
+                // entitlement stream -> the phase leaves on its own.
+                WallView(reason: reason)
+                    .transition(.opacity)
+
+            case .migration:
+                // Existing users (legacy program footprint) meet v2
+                // once. Stamps appV2SeenAt on completion.
+                MigrationMomentView()
+                    .transition(.opacity)
+
+            case .main:
+                MainShell()
+                    .transition(.opacity)
             }
         }
-        // Cross-fade between route states. Each watch-value triggers a
-        // re-evaluation of the Group; SwiftUI interpolates between the
-        // outgoing leaf and the incoming one because every leaf carries
-        // an explicit `.transition(.opacity)`. Without these, a route
-        // swap reads as a hard cut even with the .animation modifier.
-        .animation(Motion.crossFade, value: hasCompletedOnboarding)
-        .animation(Motion.crossFade, value: auth.isReady)
-        .animation(Motion.crossFade, value: payment.isEntitlementReady)
+        .onChange(of: phase) { _, newPhase in
+            if AppPhaseMachine.isStable(newPhase) {
+                lastStablePhase = newPhase
+            }
+        }
+        // Cross-fade between phases. Every leaf carries an explicit
+        // `.transition(.opacity)`; the phase value is the ONE watch.
+        .animation(Motion.crossFade, value: currentPhase)
         #if DEBUG
         // QA hook: auto-present the v2 CBT lesson reader on top of
         // whatever the root resolved to. The cover is keyed off
@@ -3067,7 +2832,6 @@ private struct RootView: View {
             JeniMethodQACoverHost()
         }
         #endif
-        .animation(Motion.crossFade, value: loaderMinHoldDone)
         .task {
             // Start the loader dwell clock at first frame, not at
             // bootstrap completion, so the hold overlaps the real wait.
@@ -3094,7 +2858,9 @@ private struct RootView: View {
             // is configured. FoodFlags.isEnabled gates every food UI render.
             // The provider closure reads hasProAccess reactively, so flag
             // state tracks customerInfoStream emits without re-configure.
-            FoodFlags.configure(entitlement: PaymentService.shared)
+            // App v2: the bridge reads effectiveHasProAccess so DEBUG
+            // QA overrides gate the food rail consistently.
+            FoodFlags.configure(entitlement: FoodFlagsEffectiveEntitlement.shared)
             // W2-T3 + W2-T4 — wire the food rail pipeline. Once configured,
             // FoodCaptureDispatcher.dispatch(.photo(...)) runs the full chain:
             // FoodVisionService -> NutritionLookupService (pantry > USDA > OFF
@@ -3188,91 +2954,9 @@ private struct RootView: View {
         }
     }
 
-    // MARK: - The JeniFit Method (Phase 2)
-
-    /// Phase A (2026-05-27): present the post-purchase flow (Jeni welcome
-    /// → breathwork primer → breath session → choice) if eligible.
-    /// Replaces the old PremiumWelcomeScreen + shouldTriggerJeniMethodPostPurchase
-    /// gate. The Jeni welcome is UNIVERSAL — every paying user meets their
-    /// coach, regardless of goal (the old growGlutes exclusion applied to
-    /// the fat-loss curriculum, which now gates separately on the home
-    /// lesson card). Only the feature flag + once-per-user idempotency
-    /// (CoachIntroState) gate this. Wrapped in a no-animation transaction
-    /// so the cover presents as the paywall dismisses, no double slide.
-    private func presentPostPurchaseFlowIfEligible() {
-        let flagEnabled = JeniMethodFeatureFlag.isEnabled
-        // 2026-06-07 (founder bug): a returning user re-purchasing on
-        // a fresh-install device was seeing "DAY 1 WITH JENI" even
-        // though their account already had several days of session
-        // history. The per-device UserDefaults stamp gets wiped on
-        // reinstall, so the device gate said "first time" while the
-        // account had real history. Now: query the model store for
-        // any qualifying session_log for the current user_id; if
-        // there are any, suppress the coach intro entirely. Skip
-        // the DB check if the user isn't authenticated yet (anon
-        // bootstrap path) — in that case the per-device gate is
-        // still the right signal.
-        let hasActivity = userHasExistingSessionActivity()
-        let idempotencyOK = CoachIntroState.shouldShowOnPurchase(hasExistingActivity: hasActivity)
-        #if DEBUG
-        print("[PostPurchase] onSubscribed. shouldShow=\(flagEnabled && idempotencyOK) (flag=\(flagEnabled), idempotency=\(idempotencyOK), hasActivity=\(hasActivity))")
-        #endif
-        guard flagEnabled && idempotencyOK else { return }
-        var t = Transaction()
-        t.disablesAnimations = true
-        withTransaction(t) {
-            showingCoachIntro = true
-        }
-    }
-
-    /// True iff the current signed-in user has any prior session_log
-    /// or day_progress records in the local store. Used to suppress
-    /// the post-purchase Jeni intro for returning accounts. Returns
-    /// false (treating as a new user) when the user isn't signed in
-    /// yet OR the fetch errors — both fall back to the existing
-    /// per-device idempotency gate.
-    private func userHasExistingSessionActivity() -> Bool {
-        guard let uid = auth.currentUser?.id.uuidString else { return false }
-        let sessionPredicate = #Predicate<SessionLogRecord> { $0.userId == uid }
-        var descriptor = FetchDescriptor<SessionLogRecord>(predicate: sessionPredicate)
-        descriptor.fetchLimit = 1
-        do {
-            let any = try modelContext.fetch(descriptor)
-            if !any.isEmpty { return true }
-        } catch {
-            #if DEBUG
-            print("[PostPurchase] activity check failed for session_logs: \(error)")
-            #endif
-        }
-        let dayPredicate = #Predicate<DayProgressRecord> { $0.userId == uid }
-        var dayDescriptor = FetchDescriptor<DayProgressRecord>(predicate: dayPredicate)
-        dayDescriptor.fetchLimit = 1
-        do {
-            let any = try modelContext.fetch(dayDescriptor)
-            return !any.isEmpty
-        } catch {
-            #if DEBUG
-            print("[PostPurchase] activity check failed for day_progress: \(error)")
-            #endif
-            return false
-        }
-    }
-
-    /// Exit-intent routing for the hard paywall. First exit ever
-    /// (per install) shows the discounted-annual DownsellPaywallView.
-    /// After downsellShownOnce is set, subsequent exits fall back to
-    /// CancellationWinbackSheet (once per session). Both sheets sit
-    /// over the hard-paywall cover which stays up until
-    /// effectiveHasProAccess flips true.
-    private func triggerExitIntent() {
-        if !downsellShownOnce {
-            downsellShownOnce = true
-            showingDownsell = true
-        } else if !winbackShownThisSession {
-            winbackShownThisSession = true
-            showingWinback = true
-        }
-    }
+    // App v2: post-purchase eligibility + the exit-intent chain moved
+    // to WallView; the post-purchase cover itself is MainShell's
+    // (docs/app_v2/07_GATING.md).
 
     private func handleOnboardingComplete(_ data: OnboardingData) {
         userName = data.name

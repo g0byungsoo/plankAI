@@ -3,13 +3,19 @@ import Observation
 import PlankFood
 import RevenueCat
 
-// MARK: - FoodFlagsEntitlementProvider conformance
+// MARK: - FoodFlagsEntitlementProvider bridge
 //
-// Lets `FoodFlags` (in PlankFood) read `hasProAccess` without PlankFood
-// importing the main app target (would cycle). PaymentService already
-// exposes the matching property; this is just the protocol bridge.
-// Wired up in PlankAIApp.swift via FoodFlags.configure(entitlement:).
-extension PaymentService: FoodFlagsEntitlementProvider {}
+// Lets `FoodFlags` (in PlankFood) read the entitlement without
+// PlankFood importing the main app target (would cycle). App v2: the
+// bridge reads `effectiveHasProAccess` (not raw `hasProAccess`) so
+// DEBUG QA overrides (`--uitest-pro-access`, force-paywall) gate the
+// food rail consistently with the shell — pre-v2 the walker had app
+// entry but no food rail (audit weakness #6).
+@MainActor
+final class FoodFlagsEffectiveEntitlement: FoodFlagsEntitlementProvider {
+    static let shared = FoodFlagsEffectiveEntitlement()
+    var hasProAccess: Bool { PaymentService.shared.effectiveHasProAccess }
+}
 
 // MARK: - PaymentService
 //
@@ -49,10 +55,54 @@ final class PaymentService {
     /// .trial) so the 3-day trial cancel rate is measurable in PostHog.
     private static let lastKnownWillRenewKey = "PaymentService.lastKnownWillRenew"
 
+    /// App v2 (07_GATING) — set true the first time an active
+    /// entitlement is ever observed, never unset. Drives the
+    /// wall(.expired) welcome-back variant for churned payers.
+    private static let wasEverEntitledKey = "PaymentService.wasEverEntitled"
+
+    /// App v2 (07_GATING) — when the entitlement state was last
+    /// confirmed by a RevenueCat emit or a successful forced refresh.
+    /// Bounds the offline fail-open window: the shell surfaces a
+    /// quiet re-verify state when this goes stale past 72h.
+    private static let entitlementVerifiedAtKey = "PaymentService.entitlementVerifiedAt"
+
     private init() {
         hasProAccess = UserDefaults.standard.bool(forKey: Self.lastKnownEntitlementKey)
         wasInTrial = UserDefaults.standard.bool(forKey: Self.lastKnownInTrialKey)
         wasWillRenew = UserDefaults.standard.bool(forKey: Self.lastKnownWillRenewKey)
+        // Backfill for installs predating the flag: a cached active
+        // entitlement proves prior entitlement.
+        if hasProAccess {
+            UserDefaults.standard.set(true, forKey: Self.wasEverEntitledKey)
+        }
+    }
+
+    /// True if this install has ever observed an active entitlement.
+    var wasEverEntitled: Bool {
+        UserDefaults.standard.bool(forKey: Self.wasEverEntitledKey)
+    }
+
+    /// Seconds since the entitlement was last confirmed against
+    /// RevenueCat. nil = never confirmed on this install.
+    var entitlementVerifiedAgo: TimeInterval? {
+        let t = UserDefaults.standard.double(forKey: Self.entitlementVerifiedAtKey)
+        guard t > 0 else { return nil }
+        return Date.now.timeIntervalSince1970 - t
+    }
+
+    /// Stale-verification signal for the shell's quiet re-verify
+    /// banner (72h bound per 07_GATING).
+    var entitlementVerificationIsStale: Bool {
+        guard hasProAccess else { return false }
+        guard let ago = entitlementVerifiedAgo else { return true }
+        return ago > 72 * 3600
+    }
+
+    private func stampEntitlementVerified() {
+        UserDefaults.standard.set(
+            Date.now.timeIntervalSince1970,
+            forKey: Self.entitlementVerifiedAtKey
+        )
     }
 
     /// Whether `configure(appUserID:)` has run. Idempotent — guarded so a
@@ -211,6 +261,11 @@ final class PaymentService {
                 UserDefaults.standard.set(isActive, forKey: Self.lastKnownEntitlementKey)
                 UserDefaults.standard.set(isInTrial, forKey: Self.lastKnownInTrialKey)
                 UserDefaults.standard.set(currentWillRenew, forKey: Self.lastKnownWillRenewKey)
+                // App v2 gating flags: every emit is a confirmation.
+                if isActive {
+                    UserDefaults.standard.set(true, forKey: Self.wasEverEntitledKey)
+                }
+                self.stampEntitlementVerified()
                 #if DEBUG
                 let activeKeys = customerInfo.entitlements.active.keys.sorted()
                 print("[PaymentService] customerInfo updated: hasProAccess=\(isActive) isInTrial=\(isInTrial) entitlements=\(activeKeys)")
@@ -298,6 +353,11 @@ final class PaymentService {
                     self?.wasInTrial = isInTrial
                     UserDefaults.standard.set(isActive, forKey: Self.lastKnownEntitlementKey)
                     UserDefaults.standard.set(isInTrial, forKey: Self.lastKnownInTrialKey)
+                    // App v2: a successful forced refresh confirms too.
+                    if isActive {
+                        UserDefaults.standard.set(true, forKey: Self.wasEverEntitledKey)
+                    }
+                    self?.stampEntitlementVerified()
                     #if DEBUG
                     print("[PaymentService] safety-timeout refresh: hasProAccess=\(isActive) isInTrial=\(isInTrial)")
                     #endif
