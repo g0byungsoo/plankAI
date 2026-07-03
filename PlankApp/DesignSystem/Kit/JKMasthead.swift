@@ -31,6 +31,7 @@ struct JKMasthead: View {
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
                 case let .title(text, italic):
                     ItalicAccentText(

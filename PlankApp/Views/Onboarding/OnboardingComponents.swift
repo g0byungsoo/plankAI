@@ -509,10 +509,12 @@ private struct DayTile: View {
                 .foregroundStyle(Palette.cocoaPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
+                .minimumScaleFactor(0.85)
             Text(day.detailLine)
                 .font(Typo.caption)
                 .foregroundStyle(Palette.cocoaSecondary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)
         }
         .padding(14)
         .frame(width: 150, height: 132, alignment: .topLeading)

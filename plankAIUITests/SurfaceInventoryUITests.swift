@@ -360,4 +360,45 @@ final class SurfaceInventoryUITests: XCTestCase {
         snap("2_lived_day_state")
     }
 
+    /// v2.7 — the interactive lesson close: pages to a rep-patched
+    /// lesson (seed-day 3 -> D03) and ledgers the rep chip in both
+    /// states.
+    func testLessonRepChip() throws {
+        let dir = ProcessInfo.processInfo.environment["INVENTORY_DIR"]
+            ?? "/tmp/jenifit_inventory"
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitest-inapp-qa", "--uitest-pro-access",
+            "--uitest-seed-program", "--uitest-seed-day", "3",
+        ]
+        app.launch()
+        sleep(7)
+
+        func snap(_ name: String) {
+            let png = XCUIScreen.main.screenshot().pngRepresentation
+            FileManager.default.createFile(atPath: "\(dir)/\(name).png", contents: png)
+        }
+
+        let methodRow = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'the method'")
+        ).firstMatch
+        guard methodRow.waitForExistence(timeout: 6) else { return }
+        methodRow.tap()
+        sleep(3)
+        for _ in 0..<3 {
+            let cont = app.buttons["continue"].firstMatch
+            if cont.exists && cont.isHittable { cont.tap(); sleep(2) }
+        }
+        snap("95_lesson_close_rep_chip")
+        let chip = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS 'keep this rep'")
+        ).firstMatch
+        if chip.exists && chip.isHittable {
+            chip.tap()
+            sleep(2)
+            snap("96_lesson_rep_kept")
+        }
+    }
+
 }

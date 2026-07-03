@@ -430,6 +430,28 @@ public enum FoodLogPersister {
     /// persisted entries. Drives the NutritionCarousel daily-totals
     /// card; every percentage on slide 2 now traces to a number
     /// here, not a heuristic.
+    /// v2.7 — user-scoped overload. The unscoped variant summed EVERY
+    /// account's plates on the device: after a sign-out -> new-anon
+    /// switch, the prior user's lunch kept feeding the new user's
+    /// kcal line (caught by the motion-QA frame where the plate strip
+    /// was empty while the kcal line read 860). Same case-insensitive
+    /// uuid compare as allEntries(userId:).
+    public static func todayMacros(userId: String) -> TodayMacros {
+        hydrateIfNeeded()
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        let uid = userId.lowercased()
+        let todays = inMemoryEntries.filter {
+            $0.loggedAt >= startOfDay && $0.userId.lowercased() == uid
+        }
+        return TodayMacros(
+            kcal:    todays.reduce(0.0) { $0 + $1.kcal },
+            protein: todays.reduce(0.0) { $0 + $1.protein },
+            carbs:   todays.reduce(0.0) { $0 + $1.carbs },
+            fat:     todays.reduce(0.0) { $0 + $1.fat },
+            fiber:   todays.reduce(0.0) { $0 + $1.fiber }
+        )
+    }
+
     public static func todayMacros() -> TodayMacros {
         hydrateIfNeeded()
         let startOfDay = Calendar.current.startOfDay(for: Date())
@@ -640,8 +662,9 @@ public enum FoodLogPersister {
     /// since the store is in-memory after hydrate.
     public static func allEntries(userId: String) -> [FoodLogEntry] {
         hydrateIfNeeded()
+        let uid = userId.lowercased()
         return inMemoryEntries
-            .filter { $0.userId == userId }
+            .filter { $0.userId.lowercased() == uid }
             .sorted { $0.loggedAt > $1.loggedAt }
             .map {
                 FoodLogEntry(

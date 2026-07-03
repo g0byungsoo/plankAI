@@ -57,9 +57,12 @@ struct JKBeatRow: View {
                 return
             }
             if reduceMotion { strike = 1; return }
-            withAnimation(.easeOut(duration: 0.18)) { strike = 1 }
+            // v2.7 — the strike is a MOMENT, not a state flip: it
+            // waits for the module cover to clear (0.28s), then draws
+            // at pen speed with the tick cascade riding the line.
+            withAnimation(.easeOut(duration: 0.34).delay(0.28)) { strike = 1 }
             for i in 1...3 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05 * Double(i)) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.28 + 0.09 * Double(i)) {
                     Haptics.tick()
                 }
             }
@@ -97,7 +100,7 @@ struct JKBeatRow: View {
                 .font(titleFont)
                 .foregroundStyle(Palette.textPrimary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.85)
+                .minimumScaleFactor(0.78)
                 .overlay(alignment: .leading) {
                     GeometryReader { geo in
                         Capsule()
@@ -112,6 +115,7 @@ struct JKBeatRow: View {
                     .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.82)
             }
         }
     }

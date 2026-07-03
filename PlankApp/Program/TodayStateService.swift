@@ -124,7 +124,7 @@ enum TodayStateService {
         }
 
         // — food (device-local store)
-        let macros = FoodLogPersister.todayMacros()
+        let macros = FoodLogPersister.todayMacros(userId: userId)
         let todayStart = Calendar.current.startOfDay(for: .now)
         let plates = FoodLogPersister.allEntries(userId: userId)
             .filter { $0.loggedAt >= todayStart }

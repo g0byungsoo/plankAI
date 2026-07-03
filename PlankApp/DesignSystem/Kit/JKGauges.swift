@@ -1,5 +1,21 @@
 import SwiftUI
 
+// v2.7 — visibility-triggered awakening with a pre-iOS-18 fallback
+// (mount-time awaken, the previous behavior).
+private struct JKAwakenOnVisible: ViewModifier {
+    var threshold: Double
+    var onVisible: () -> Void
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.onScrollVisibilityChange(threshold: threshold) { visible in
+                if visible { onVisible() }
+            }
+        } else {
+            content.onAppear { onVisible() }
+        }
+    }
+}
+
 // MARK: - JKProteinArc
 //
 // The protein hero — a 250° open arc (open at the bottom, where the
@@ -19,12 +35,19 @@ struct JKProteinArc: View {
     var diameter: CGFloat = 108
 
     @State private var celebrated = false
+    /// v2.7 — the band wakes up: the arc draws itself and the numeral
+    /// counts up on arrival instead of rendering pre-filled and dead.
+    @State private var awakened = false
+    /// One-shot tactile pulse on tap (discoverable, never required).
+    @State private var pulse = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var fraction: Double {
         guard targetG > 0 else { return 0 }
         return min(1, Double(grams) / Double(targetG))
     }
+    private var shownFraction: Double { awakened ? fraction : 0 }
+    private var shownGrams: Int { awakened ? grams : 0 }
     private var met: Bool { targetG > 0 && grams >= targetG }
 
     // 250° sweep, opening centered at the bottom.
@@ -36,13 +59,13 @@ struct JKProteinArc: View {
             ZStack {
                 arc(trim: 1, color: Palette.accentSubtle, width: 6)
                 if fraction > 0 {
-                    arc(trim: fraction, color: met ? Palette.cocoaPrimary : Palette.accent, width: 6)
+                    arc(trim: shownFraction, color: met ? Palette.cocoaPrimary : Palette.accent, width: 6)
                         .animation(Motion.easedFinal, value: fraction)
                         .transition(.opacity)
                 }
 
                 VStack(spacing: 1) {
-                    Text("\(grams)")
+                    Text("\(shownGrams)")
                         .font(.custom("JeniHeroSerif-Regular", size: 30))
                         .foregroundStyle(Palette.textPrimary)
                         .monospacedDigit()
@@ -52,9 +75,17 @@ struct JKProteinArc: View {
                         .kerning(0.1)
                         .foregroundStyle(Palette.textSecondary)
                 }
-                .animation(Motion.easedFinal.delay(Motion.perceptualLag), value: grams)
+                .animation(Motion.easedFinal.delay(Motion.perceptualLag), value: shownGrams)
             }
             .frame(width: diameter, height: diameter)
+            .scaleEffect(pulse ? 1.035 : 1)
+            .onTapGesture {
+                Haptics.soft()
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.55)) { pulse = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { pulse = false }
+                }
+            }
 
             if let note {
                 Text(note)
@@ -62,6 +93,17 @@ struct JKProteinArc: View {
                     .foregroundStyle(Palette.cocoaTertiary)
             }
         }
+        // v2.7 — awaken on VISIBILITY, not mount: the band lives
+        // below the fold, so an onAppear awakening plays unseen and
+        // the user only ever meets a dead, pre-filled gauge.
+        .modifier(JKAwakenOnVisible(threshold: 0.4) {
+            guard !awakened else { return }
+            if reduceMotion {
+                awakened = true
+            } else {
+                withAnimation(.easeOut(duration: 0.9).delay(0.1)) { awakened = true }
+            }
+        })
         .onChange(of: met) { _, isMet in
             guard isMet, !celebrated else { celebrated = isMet; return }
             celebrated = true
@@ -89,10 +131,14 @@ struct JKStepsRing: View {
     let goal: Int
     var diameter: CGFloat = 64
 
+    @State private var awakened = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private var fraction: Double {
         guard goal > 0 else { return 0 }
         return min(1, Double(steps) / Double(goal))
     }
+    private var shownFraction: Double { awakened ? fraction : 0 }
 
     var body: some View {
         VStack(spacing: 6) {
@@ -100,7 +146,7 @@ struct JKStepsRing: View {
                 Circle().stroke(Palette.accentSubtle, lineWidth: 5)
                 if fraction > 0 {
                     Circle()
-                        .trim(from: 0, to: max(0.02, fraction))
+                        .trim(from: 0, to: max(0.02, shownFraction))
                         .stroke(
                             fraction >= 1 ? Palette.cocoaPrimary : Palette.accent,
                             style: StrokeStyle(lineWidth: 5, lineCap: .round)
@@ -116,11 +162,12 @@ struct JKStepsRing: View {
             .frame(width: diameter, height: diameter)
 
             VStack(spacing: 0) {
-                Text(steps.formatted())
+                Text((awakened ? steps : 0).formatted())
                     .font(Typo.numeralMeta)
                     .monospacedDigit()
                     .foregroundStyle(Palette.textPrimary)
                     .contentTransition(.numericText())
+                    .animation(Motion.easedFinal, value: awakened)
                 Text("steps")
                     .font(Typo.statLabel)
                     .kerning(0.66)
@@ -128,6 +175,14 @@ struct JKStepsRing: View {
                     .foregroundStyle(Palette.cocoaTertiary)
             }
         }
+        .modifier(JKAwakenOnVisible(threshold: 0.4) {
+            guard !awakened else { return }
+            if reduceMotion {
+                awakened = true
+            } else {
+                withAnimation(.easeOut(duration: 0.9).delay(0.22)) { awakened = true }
+            }
+        })
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(steps.formatted()) of \(goal.formatted()) steps")
     }
