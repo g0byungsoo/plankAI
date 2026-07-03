@@ -112,70 +112,20 @@ public struct CohortFlags: Codable, Equatable, Sendable {
     /// cohort variant swaps applied.
     public static let universal = CohortFlags()
 
-    /// Build from the live `@AppStorage` mirrors. Bridge layer keeps the
-    /// scheduler decoupled from SwiftUI / SwiftData. Missing keys fall
-    /// to the universal defaults.
+    /// Build from the live onboarding answers.
+    ///
+    /// App v2 fix (docs/app_v2/01_AUDIT.md defect #2): this used to
+    /// read `onb_glp1_status` / `onb_stress_level` /
+    /// `onb_prior_attempts_count` / `onb_restrictive_food` /
+    /// `onb_food_noise` / `onb_perimenopausal` / `onb_pcos` — keys
+    /// with ZERO writers anywhere in the app (the canonical keys are
+    /// named differently), so every user's curriculum silently ran on
+    /// universal defaults. All cohort mapping now lives in
+    /// `CohortStore.curriculumFlags()`, the single canonical bridge.
+    /// The `UserDefaults` parameter is retained for source
+    /// compatibility; CohortStore reads `.standard` directly.
     public static func fromAppStorage(_ d: UserDefaults = .standard) -> CohortFlags {
-        let glp1Raw = (d.string(forKey: "onb_glp1_status")
-                      ?? d.string(forKey: "glp1Status")
-                      ?? "none").lowercased()
-        let glp1: GLP1Status = {
-            switch glp1Raw {
-            case "current", "yes": return .current
-            case "considering": return .considering
-            case "triedoff", "tried_off", "tried-off": return .triedOff
-            default: return .none
-            }
-        }()
-
-        let noiseRaw = (d.string(forKey: "onb_food_noise") ?? "moderate").lowercased()
-        let noise: FoodNoiseLoudness = {
-            switch noiseRaw {
-            case "quiet", "low": return .quiet
-            case "loud", "high": return .loud
-            default: return .moderate
-            }
-        }()
-
-        let stressRaw = (d.string(forKey: "onb_stress_level") ?? "moderate").lowercased()
-        let stress: StressLevel = {
-            switch stressRaw {
-            case "low": return .low
-            case "high": return .high
-            default: return .moderate
-            }
-        }()
-
-        let voiceRaw = (d.string(forKey: "voicePreference") ?? "encouraging").lowercased()
-        let voice: VoicePreference = {
-            switch voiceRaw {
-            case "balanced": return .balanced
-            case "roast": return .roast
-            default: return .encouraging
-            }
-        }()
-
-        let attempts = d.integer(forKey: "onb_prior_attempts_count")
-        let perimeno = d.bool(forKey: "onb_perimenopausal")
-        let pcos = d.bool(forKey: "onb_pcos")
-        let pp = d.bool(forKey: "onb_postpartum_recent")
-        let lbp = d.bool(forKey: "onb_lbp_recent")
-        let restrictive = d.bool(forKey: "onb_restrictive_food")
-        let lowSleep = d.bool(forKey: "onb_sleep_under_6h")
-
-        return CohortFlags(
-            glp1Status: glp1,
-            perimenopausal: perimeno,
-            pcos: pcos,
-            postpartumRecent: pp,
-            lowBackPainRecent: lbp,
-            priorAttemptsCount: attempts,
-            restrictiveFoodRelationship: restrictive,
-            foodNoiseLoudness: noise,
-            sleepUnder6h: lowSleep,
-            stressLevel: stress,
-            voicePreference: voice
-        )
+        CohortStore.curriculumFlags()
     }
 }
 

@@ -982,9 +982,16 @@ public struct SnapResultView: View {
     }
 
     private var proteinTargetG: Int {
+        // App v2: the app injects the canonical target (TargetsService,
+        // 1.2/1.6 g/kg by cohort) so this number matches Today +
+        // Becoming exactly. Package-local fallback only when the
+        // provider is absent (previews, package tests).
+        if let provided = FoodModule.proteinTargetProvider?() {
+            return provided
+        }
         let kg = currentWeightKg
-        let raw = kg > 30 ? 1.0 * kg : 0
-        return max(70, min(150, Int(raw.rounded())))
+        let raw = kg > 30 ? 1.2 * kg : 0
+        return max(70, min(130, Int(raw.rounded())))
     }
 
     /// Slide 2 — the note gets its own breathing room (founder call:

@@ -147,7 +147,8 @@ struct AnalyticsView: View {
     /// Medical-grade Phase 2.3 — flag-gated cohort-aware protein floor +
     /// lean-mass framing. Default OFF: existing customers keep the legacy
     /// 1.2 g/kg target until the founder enables it.
-    @AppStorage("protein_hero_enabled") private var proteinHeroEnabled = false
+    // App v2: `protein_hero_enabled` flag retired — the unified
+    // TargetsService target (with its cohort note) is always on.
     /// Medical-grade Phase 2.2 - rapid-loss safety guardrail. Default ON:
     /// the tripwire is a safety feature and should reach all users by default.
     @AppStorage("rapid_loss_guard_enabled") private var rapidLossGuardEnabled = true
@@ -324,9 +325,12 @@ struct AnalyticsView: View {
         todayWorkoutMinutes + todayBreathMinutes
     }
 
-    /// Protein target — Phillips IJSNEM 2016 + Conte JCEM 2024:
-    /// 1.2 g/kg for lean-mass protection. Floor 80g, ceiling 150g.
-    /// Returns nil when no body mass is on record yet.
+    /// Protein target — App v2: delegates to `TargetsService`, the
+    /// ONE formula every surface shares (1.6 g/kg GLP-1-current /
+    /// 1.2 g/kg default, SCIENCE.md §1). Pre-v2 this surface ran its
+    /// own 1.2 g/kg with different clamps than the snap result's
+    /// 1.0 g/kg and the reveal's 1.6 — three contradictory targets
+    /// (audit defect #1). Returns nil when no body mass is on record.
     private var proteinTargetG: Int? {
         let kg: Double = {
             if let latest = latestWeightKg { return latest }
@@ -334,25 +338,16 @@ struct AnalyticsView: View {
             return 0
         }()
         guard kg > 30 else { return nil }
-        // Medical-grade Phase 2.3 (flag-gated) — GLP-1 cohorts (on the med
-        // now, or in the first weeks off) carry the highest sarcopenia risk,
-        // so they get the protective top of the 1.2-1.6 g/kg band. Default
-        // path stays the legacy 1.2 g/kg until `protein_hero_enabled` flips.
-        if proteinHeroEnabled {
-            let cohort = ProgramGoalCalculator.isGLP1User(from: glp1Status) || glp1Status == "past"
-            return ClinicalTargets.proteinFloorGrams(weightKg: kg, isGLP1: cohort)
-        }
-        let raw = 1.2 * kg
-        return max(80, min(150, Int(raw.rounded())))
+        return TargetsService.proteinTargetG(weightKg: kg)
     }
 
-    /// Phase 2.3 (flag-gated) — explains WHY the GLP-1 cohort's protein
-    /// target is elevated. nil when the flag is off or the user is off-cohort,
-    /// so the tile renders exactly as it does today.
+    /// Explains WHY the cohort's protein target sits where it does.
+    /// App v2: reads TargetsService's note (always-on; the
+    /// `protein_hero_enabled` flag gate retired with the unified
+    /// target — the elevated GLP-1 number is now standard, so the
+    /// explanation ships with it).
     private var proteinHeroNote: String? {
-        guard proteinHeroEnabled else { return nil }
-        let cohort = ProgramGoalCalculator.isGLP1User(from: glp1Status) || glp1Status == "past"
-        return cohort ? "lean-mass first" : nil
+        TargetsService.proteinNote
     }
 
     /// Pace-aware kcal target for today's energy strip. Reads the

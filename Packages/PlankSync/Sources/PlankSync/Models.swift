@@ -294,22 +294,36 @@ public final class DayProgressRecord {
 @Model
 public final class SessionRatingRecord {
     @Attribute(.unique) public var id: String
+    /// App v2: owner scoping for cross-account isolation + sync.
+    /// Optional because pre-v2 rows were written without it (they
+    /// were never synced; the write path itself was disconnected —
+    /// docs/app_v2/01_AUDIT.md defect #3). Additive optional field:
+    /// lightweight-migrates in place.
+    public var userId: String?
     public var sessionLogId: String
     public var rating: Int             // 1-5 stars
     public var tags: [String]          // "too_easy", "too_hard", "loved_it", "boring"
     public var createdAt: Date
+    /// Cloud push flag, same discipline as every synced record.
+    /// Declaration default (false) is the lightweight-migration value
+    /// for pre-v2 rows — they carry no userId, so there is nothing to
+    /// push; fresh writes flip it true in init.
+    public var pendingUpsert: Bool = false
 
     public init(
         id: String = UUID().uuidString,
+        userId: String? = nil,
         sessionLogId: String,
         rating: Int,
         tags: [String] = []
     ) {
         self.id = id
+        self.userId = userId
         self.sessionLogId = sessionLogId
         self.rating = rating
         self.tags = tags
         self.createdAt = .now
+        self.pendingUpsert = true
     }
 }
 

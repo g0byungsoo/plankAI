@@ -34,14 +34,23 @@ public enum FoodModule {
     /// "couldn't ID this" per item (safe default).
     public static var nutritionLookup: NutritionLookupService?
 
+    /// App v2 — the canonical protein target, injected by the app so
+    /// the package renders the SAME number as Today/Becoming/chat
+    /// (pre-v2 the snap result computed its own 1.0 g/kg while the
+    /// app showed 1.2/1.6 — contradictory targets, audit defect #1).
+    /// nil provider or nil result → package-local fallback formula.
+    public static var proteinTargetProvider: (@MainActor () -> Int?)?
+
     /// One-shot setup at app launch. Idempotent — calling again
     /// replaces services (useful for DEBUG re-configure / hot reload).
     public static func configure(
         visionService: FoodVisionService? = nil,
-        nutritionLookup: NutritionLookupService? = nil
+        nutritionLookup: NutritionLookupService? = nil,
+        proteinTargetProvider: (@MainActor () -> Int?)? = nil
     ) {
         if let visionService { Self.visionService = visionService }
         if let nutritionLookup { Self.nutritionLookup = nutritionLookup }
+        if let proteinTargetProvider { Self.proteinTargetProvider = proteinTargetProvider }
     }
 
     /// Resets all configured services. Used by tests + by Settings

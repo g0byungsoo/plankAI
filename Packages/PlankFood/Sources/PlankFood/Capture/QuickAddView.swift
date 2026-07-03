@@ -379,11 +379,10 @@ public struct QuickAddView: View {
         UserDefaults.standard.string(forKey: "onboardingCuisinePreference")
     }
 
-    /// v1.1.3 (2026-06-29) — dietary pattern + restrictions + allergies
-    /// CSV from onboarding (case 170). Read straight into the food-vision
-    /// dietary_profile hint, same as cuisineProfile.
+    /// App v2 — merged dietary hint (onboarding + Food Settings) via
+    /// the one resolver, same value the photo path sends.
     private var dietaryProfile: String? {
-        UserDefaults.standard.string(forKey: "onboarding_dietary")
+        DietaryProfileResolver.current()
     }
 }
 

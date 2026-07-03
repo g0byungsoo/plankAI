@@ -488,7 +488,7 @@ struct PlanView: View {
                     )
                     .transition(.opacity)
                 } else {
-                    RoutineSessionView(workout: workout) { results, duration in
+                    RoutineSessionView(workout: workout) { results, duration, rating in
                         let didMeet = SessionCompletion.didMeetThreshold(results)
                         if didMeet {
                             if !hasCompletedFirstSession {
@@ -501,7 +501,10 @@ struct PlanView: View {
                                 "workout_name": workout.name,
                                 "duration_seconds": Int(duration)
                             ])
-                            saveRoutineSession(workout: workout, results: results, duration: duration)
+                            saveRoutineSession(
+                                workout: workout, results: results,
+                                duration: duration, rating: rating
+                            )
                             hasCompletedFirstSession = true
                             markAutoCompleted(.workout(tier: .medium, minutes: 0, bodyFocus: nil))
                         }
@@ -2089,7 +2092,12 @@ struct PlanView: View {
     /// Persists a completed routine session. Mirrors
     /// HomeView.saveRoutineSession — derived engagement day, same-day
     /// DayProgress merge, fire-and-forget Supabase upserts.
-    private func saveRoutineSession(workout: WorkoutPreset, results: [ExerciseResultEntry], duration: TimeInterval) {
+    private func saveRoutineSession(
+        workout: WorkoutPreset,
+        results: [ExerciseResultEntry],
+        duration: TimeInterval,
+        rating: (stars: Int, tags: [String])? = nil
+    ) {
         let uid = AppSync.shared.currentUserId ?? userId
         let resultsData = try? JSONEncoder().encode(results)
         let session = SessionLogRecord(
@@ -2099,6 +2107,18 @@ struct PlanView: View {
             totalDuration: duration
         )
         modelContext.insert(session)
+        // App v2 (audit defect #3): the star rating finally persists.
+        // Written next to its session log so cohort "too hard / too
+        // easy" analysis and the Becoming rating surface have data.
+        if let rating {
+            let record = SessionRatingRecord(
+                userId: uid,
+                sessionLogId: session.id,
+                rating: rating.stars,
+                tags: rating.tags
+            )
+            modelContext.insert(record)
+        }
         let derivedDay = EngagementDayCalculator.programDayForNewSession(
             existingLogs: scopedSessionLogs,
             newSessionCompletedAt: session.completedAt

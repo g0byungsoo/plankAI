@@ -3123,7 +3123,23 @@ private struct RootView: View {
                             }
                         )
                     )
-                )
+                ),
+                // App v2 — the snap result renders the SAME protein
+                // target as Today/Becoming/chat (TargetsService is the
+                // one formula; audit defect #1).
+                proteinTargetProvider: {
+                    guard
+                        let uid = AuthService.shared.currentUser?.id.uuidString,
+                        !uid.isEmpty
+                    else { return nil }
+                    let stored = UserDefaults.standard
+                        .double(forKey: "onboardingCurrentWeightKg")
+                    let kg = TargetsService.latestWeightKg(
+                        userId: uid, in: modelContext
+                    ) ?? (stored > 0 ? stored : nil)
+                    guard let kg else { return nil }
+                    return TargetsService.proteinTargetG(weightKg: kg)
+                }
             )
             await AppSync.shared.onLaunch(modelContext: modelContext)
             // Steps: silent permission probe at launch (never prompts).

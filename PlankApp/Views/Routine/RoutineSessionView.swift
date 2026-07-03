@@ -38,11 +38,17 @@ struct RoutineSessionView: View {
     /// resets daily, so the loop never fights a one-off override.)
     @AppStorage("workoutLevel") private var workoutLevel = 0
 
-    let onDismiss: ([ExerciseResultEntry], TimeInterval) -> Void
+    /// App v2 (audit defect #3): the post-session star rating used to
+    /// be discarded here (`onRate: { _, tags in … }`). It is now
+    /// captured and handed to the dismiss callback so the save path
+    /// can persist a `SessionRatingRecord` next to the session log.
+    @State private var pendingRating: (stars: Int, tags: [String])? = nil
+
+    let onDismiss: ([ExerciseResultEntry], TimeInterval, (stars: Int, tags: [String])?) -> Void
 
     init(
         workout: WorkoutPreset,
-        onDismiss: @escaping ([ExerciseResultEntry], TimeInterval) -> Void
+        onDismiss: @escaping ([ExerciseResultEntry], TimeInterval, (stars: Int, tags: [String])?) -> Void
     ) {
         self.onDismiss = onDismiss
         self._vm = State(initialValue: RoutineSessionViewModel(
@@ -68,7 +74,10 @@ struct RoutineSessionView: View {
                     streakCount: 0,  // HomeView recalculates on save
                     isFirstWorkoutToday: true,
                     didMeetThreshold: SessionCompletion.didMeetThreshold(vm.exerciseResults)
-                ) { _, tags in
+                ) { stars, tags in
+                    // Capture for persistence at save time (the session
+                    // log doesn't exist yet at this point in the flow).
+                    pendingRating = (stars, tags)
                     // Relative-effort feedback nudges next session's energy
                     // (clamped to the same -1…+1 range as the home knob).
                     if tags.contains("too_hard") {
@@ -81,7 +90,7 @@ struct RoutineSessionView: View {
                         Analytics.track(.sessionFeedbackGiven, properties: ["feel": "just_right"])
                     }
                 } onDone: {
-                    onDismiss(vm.exerciseResults, vm.totalElapsed)
+                    onDismiss(vm.exerciseResults, vm.totalElapsed, pendingRating)
                 }
                 .transition(.opacity)
             }
