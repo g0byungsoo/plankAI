@@ -481,7 +481,26 @@ struct PlankAIApp: App {
             ZStack {
                 Palette.bgPrimary.ignoresSafeArea()
                 #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("--debug-jenikit") {
+                if ProcessInfo.processInfo.arguments.contains("--debug-post-routine") {
+                    // App v2.3 — the workout completion state for the
+                    // surface ledger (a real 10-min session isn't
+                    // walkable; this is the deterministic route).
+                    PostRoutineView(
+                        exerciseResults: (0..<12).map {
+                            ExerciseResultEntry(
+                                exerciseId: "qa-\($0)", duration: 30,
+                                completedDuration: 30, skipped: false
+                            )
+                        },
+                        totalDuration: 8 * 60 + 24,
+                        workoutName: "total reset",
+                        streakCount: 3,
+                        isFirstWorkoutToday: true,
+                        didMeetThreshold: true,
+                        onRate: { _, _ in },
+                        onDone: {}
+                    )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-jenikit") {
                     // App v2 — the JeniKit component gallery
                     // (docs/app_v2/10_DESIGN_SYSTEM.md).
                     JKGalleryHarness()
@@ -3000,7 +3019,17 @@ private struct RootView: View {
             if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
                let uid = auth.currentUser?.id.uuidString,
                let plan = ProgramService.shared.activePlan(userId: uid, in: modelContext) {
-                let targetStart = Calendar.current.date(byAdding: .day, value: -11, to: .now) ?? .now
+                // --uitest-seed-day N picks the demo day (default 12):
+                // 12 = protein day, 14 = rest day (breath beat).
+                let args = ProcessInfo.processInfo.arguments
+                let seedDay: Int = {
+                    if let i = args.firstIndex(of: "--uitest-seed-day"),
+                       i + 1 < args.count, let n = Int(args[i + 1]), n >= 1 {
+                        return n
+                    }
+                    return 12
+                }()
+                let targetStart = Calendar.current.date(byAdding: .day, value: -(seedDay - 1), to: .now) ?? .now
                 if !Calendar.current.isDate(plan.startDate, inSameDayAs: targetStart) {
                     plan.startDate = targetStart
                     plan.pendingUpsert = true
@@ -3008,6 +3037,32 @@ private struct RootView: View {
                     try? modelContext.save()
                     Task { await AppSync.shared.upsertProgramPlan(plan) }
                 }
+            }
+            // Two plates today so the journal, plate strip, protein
+            // arc, kcal line, wins block, and insight cards all carry
+            // real state in the walker ledger. mergeRemote is the
+            // public insert-only seam (no photos; recipe-card minis).
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
+               let uid = auth.currentUser?.id.uuidString,
+               FoodLogPersister.allEntries(userId: uid).isEmpty {
+                let cal = Calendar.current
+                let today = cal.startOfDay(for: .now)
+                FoodLogPersister.mergeRemote([
+                    .init(id: "qa-plate-1", userId: uid,
+                          loggedAt: today.addingTimeInterval(8.2 * 3600),
+                          kcal: 340, protein: 24, carbs: 38, fat: 11, fiber: 6,
+                          title: "greek yogurt bowl", source: "quick_add"),
+                    .init(id: "qa-plate-2", userId: uid,
+                          loggedAt: today.addingTimeInterval(12.7 * 3600),
+                          kcal: 520, protein: 38, carbs: 52, fat: 17, fiber: 7,
+                          title: "chicken poke bowl", source: "quick_add"),
+                ])
+            }
+            // --uitest-force-expired: stamp prior entitlement WITHOUT
+            // granting pro so the wall(.expired) state is walkable.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-force-expired") {
+                UserDefaults.standard.set(true, forKey: "PaymentService.wasEverEntitled")
+                UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
             }
             // Weight history so the trend story + canvas render
             // (6 weigh-ins easing 75.4 → 74.2 over 11 days).

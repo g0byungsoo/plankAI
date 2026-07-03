@@ -237,18 +237,26 @@ public struct FoodLogTimelineView: View {
 
     // MARK: - Header
 
+    // App v2.3 — the masthead register (matches Today/Becoming/jeni):
+    // tracked eyebrow above a full-serif title with the italic punch;
+    // the close mark loses its ringed circle for the quiet thin mark.
     @ViewBuilder private var header: some View {
         HStack(alignment: .center, spacing: 10) {
-            // v1.1 journal — "plates" is the surface's name now
-            // (Becoming's teaser says "her plates"; in here it's hers
-            // in first person). Serif italic punch per voice lock.
-            (
-                Text("your ")
-                    .font(.custom("DMSans-Regular", size: 22))
-                + Text("plates")
-                    .font(.custom("JeniHeroSerif-Italic", size: 26))
-            )
-            .foregroundStyle(FoodTheme.textPrimary)
+            VStack(alignment: .leading, spacing: 5) {
+                Text("her food story")
+                    .font(.custom("DMSans-Medium", size: 11))
+                    .kerning(1.98)
+                    .textCase(.uppercase)
+                    .foregroundStyle(FoodTheme.textPrimary.opacity(0.48))
+                (
+                    Text("your ")
+                        .font(.custom("JeniHeroSerif-Regular", size: 26))
+                    + Text("plates")
+                        .font(.custom("JeniHeroSerif-Italic", size: 26))
+                )
+                .foregroundStyle(FoodTheme.textPrimary)
+                .kerning(-0.4)
+            }
 
             Spacer()
 
@@ -270,13 +278,10 @@ public struct FoodLogTimelineView: View {
 
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(FoodTheme.textPrimary)
-                    .frame(width: 36, height: 36)
-                    .background(Color.white.opacity(0.6), in: Circle())
-                    .overlay(
-                        Circle().stroke(FoodTheme.accent.opacity(0.35), lineWidth: 1)
-                    )
+                    .font(.system(size: 16, weight: .light))
+                    .foregroundStyle(FoodTheme.textPrimary.opacity(0.72))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("close")

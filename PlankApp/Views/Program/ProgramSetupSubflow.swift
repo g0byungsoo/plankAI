@@ -153,16 +153,16 @@ struct ProgramSetupSubflow: View {
                 Haptics.light()
                 back()
             } label: {
-                Image(systemName: "arrow.left")
-                    .font(.system(size: 18, weight: .medium))
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(Palette.cocoaPrimary)
                     .frame(width: 40, height: 40)
             }
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Palette.divider).frame(height: 4)
+                    Capsule().fill(Palette.hairlineCocoa).frame(height: 2)
                     Capsule().fill(Palette.cocoaPrimary)
-                        .frame(width: max(8, geo.size.width * CGFloat(page.progress)), height: 4)
+                        .frame(width: max(8, geo.size.width * CGFloat(page.progress)), height: 2)
                         .animation(Motion.entrance, value: page)
                 }
             }
@@ -319,9 +319,9 @@ struct ProgramSetupSubflow: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: Radius.programCard)
-                    .stroke(Palette.accent.opacity(0.5), lineWidth: 1.5)
+                    .stroke(Palette.hairlineCocoa, lineWidth: 0.66)
             )
-            .programPaperShadow()
+            .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
 
             // ACSM citation chip — credibility move.
             HStack(alignment: .top, spacing: 12) {
@@ -365,9 +365,9 @@ struct ProgramSetupSubflow: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: Radius.programCard)
-                        .stroke(Palette.accent.opacity(0.5), lineWidth: 1.5)
+                        .stroke(Palette.hairlineCocoa, lineWidth: 0.66)
                 )
-                .programPaperShadow()
+                .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
             }
         }
     }
@@ -520,7 +520,7 @@ struct ProgramSetupSubflow: View {
                         lineWidth: 1.5
                     )
             )
-            .programPaperShadow()
+            .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
             .opacity(isLocked ? 0.6 : 1.0)
         }
         .buttonStyle(.plain)
@@ -623,9 +623,9 @@ struct ProgramSetupSubflow: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: Radius.programCard)
-                    .stroke(Palette.accent.opacity(0.5), lineWidth: 1.5)
+                    .stroke(Palette.hairlineCocoa, lineWidth: 0.66)
             )
-            .programPaperShadow()
+            .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
         }
     }
 

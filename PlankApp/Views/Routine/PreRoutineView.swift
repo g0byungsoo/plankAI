@@ -36,22 +36,29 @@ struct PreRoutineView: View {
         return ordered
     }
 
+    // App v2.3 — the brief's one sentence, in her coach's voice.
+    // The old template ("Builds the muscles in your…") was legacy
+    // sentence-case content inside the redesigned frame. The line is
+    // now short, lowercase, cohort-aware, and ends in permission —
+    // the emotional unlock the 26%-completion data says this doorway
+    // needs (start small beats start strong).
     private var tip: String {
         let names = primaryAreas.map { $0.rawValue.camelCaseToWords.lowercased() }
-        if names.isEmpty {
-            return "A balanced routine that builds full-body strength with recovery built in, so you can keep showing up."
-        }
-        let joined: String = {
+        let areas: String = {
             switch names.count {
-            case 1: return names[0]
-            case 2: return "\(names[0]) and \(names[1])"
-            default: return names.dropLast().joined(separator: ", ") + ", and \(names.last!)"
+            case 0: return "your whole body"
+            case 1: return "your \(names[0])"
+            case 2: return "your \(names[0]) and \(names[1])"
+            default: return "your \(names.dropLast().joined(separator: ", ")), and \(names.last!)"
             }
         }()
-        // Plain-language description: WHAT the workout builds + WHY
-        // (designed-for-recovery copy preserved for consistency with
-        // the voice intro).
-        return "Builds the muscles in your \(joined). Designed for steady progress with recovery built in, so you can come back stronger tomorrow."
+        if CohortStore.isGLP1Current {
+            return "\(areas), kept strong while the weight moves. muscle is the part you keep \u{2665}\u{FE0E}"
+        }
+        if CohortStore.isPostGLP1 {
+            return "\(areas), steady. this is how the routine outlives the loss."
+        }
+        return "\(areas), built gently. showing up small still counts \u{2665}\u{FE0E}"
     }
 
     var body: some View {
@@ -133,14 +140,8 @@ struct PreRoutineView: View {
                     .font(Typo.titleItalic)
                     .foregroundStyle(Palette.textPrimary)
                     .multilineTextAlignment(.center)
-
-                if let desc = workout.description {
-                    Text(desc)
-                        .font(Typo.body)
-                        .foregroundStyle(Palette.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, Space.xs)
-                }
+                // App v2.3: the preset description retired from the
+                // header — jeni's line below carries the meaning.
             }
 
             // Two accents framing the header — gives the screen visual

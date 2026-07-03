@@ -43,6 +43,7 @@ Dependencies:
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import os
 import sys
@@ -100,7 +101,7 @@ PRICES = {
         # sets PPP-adjusted lower — also volume-maximizing for emerging):
         #   IND, ZAF, BRA, CHL, COL, EGY, IDN, MEX, MYS, PER, PHL, THA,
         #   VNM, ARG, TUR, CHE, ISL
-        "USA": 47.99,
+        "USA": 49.99,  # 2026-06-28 reprice $47.99->$49.99 (match Glow direct competitor)
         "GBR": 49.99,
         "SWE": 599, "DNK": 429,
         "KOR": 75000, "SGP": 79.99,
@@ -112,17 +113,28 @@ PRICES = {
         #   Apple commitment-threshold caps; auto-equivalent
         # ARG, TUR — USD-pegged inflation markets; auto-equivalent
     },
+    # ── Annual A/B test arm (B-arm = $59.99 US). International prices are
+    # IDENTICAL to jenifit_yearly_v2 so the RevenueCat experiment isolates
+    # the US price as the only variable. 2026-06-28.
+    "jenifit_yearly_v3": {
+        "USA": 59.99,
+        "GBR": 49.99,
+        "SWE": 599, "DNK": 429,
+        "KOR": 75000, "SGP": 79.99,
+        "ARE": 199, "SAU": 199,
+        "POL": 199, "CZE": 1190, "HUN": 17990, "ROU": 249,
+    },
     # ── Quarterly tier ──
     # v2 PROFIT-OPTIMIZED: lifted ~20% in Tier-1 English (ex-USA which
     # founder locked at $24.99). Keeps quarterly at ~50% of yearly per
     # quarter (healthy commitment-ladder anchor).
     "jenifit_quarterly": {
-        "USA": 24.99, "CAN": 39.99, "GBR": 24.99, "AUS": 44.99,
+        "USA": 29.99, "CAN": 39.99, "GBR": 24.99, "AUS": 44.99,  # USA 2026-06-28: $24.99->$29.99
         "NZL": 49.99, "IRL": 27.99, "ZAF": 279.99,
         "DEU": 27.99, "ITA": 27.99, "ESP": 27.99, "NLD": 27.99,
         "BEL": 27.99, "AUT": 27.99, "PRT": 27.99, "FIN": 27.99,
         "LUX": 27.99, "GRC": 27.99,
-        "CHE": 29.00, "SWE": 299, "NOR": 329, "DNK": 219, "ISL": 3990,
+        "CHE": 29.00, "SWE": 299, "NOR": 329, "DNK": 219, "ISL": 29.99,  # Iceland App Store bills in USD, not ISK
         "JPN": 4900, "KOR": 39000, "SGP": 39.99, "HKG": 248, "TWN": 990,
         "ARE": 109, "ISR": 109, "SAU": 109, "QAT": 109,
         "POL": 109, "CZE": 599, "HUN": 8990, "ROU": 119,
@@ -143,7 +155,7 @@ PRICES = {
         "DEU": 5.99, "ITA": 5.99, "ESP": 5.99, "NLD": 5.99,
         "BEL": 5.99, "AUT": 5.99, "PRT": 5.99, "FIN": 5.99,
         "LUX": 5.99, "GRC": 5.99,
-        "CHE": 5.90, "SWE": 59, "NOR": 65, "DNK": 39, "ISL": 790,
+        "CHE": 5.90, "SWE": 59, "NOR": 65, "DNK": 39, "ISL": 5.99,  # Iceland App Store bills in USD, not ISK
         "JPN": 900, "KOR": 7900, "SGP": 7.98, "HKG": 48, "TWN": 179,
         "ARE": 21.99, "ISR": 19.90, "SAU": 22.99, "QAT": 21.99,
         "POL": 21.99, "CZE": 119, "HUN": 1790, "ROU": 24.99,
@@ -153,9 +165,20 @@ PRICES = {
         "EGY": 59,
         # ARG / TUR dropped — see jenifit_yearly_v2 comment.
     },
-    # ── Annual discount tier (25% off main) ──
+    # ── Legacy annual discount — the APPROVED downsell RevenueCat uses ──
+    # 2026-06-29: founder repoints the exit-intent downsell at the already-
+    # APPROVED jenifit_yearly_discount (RevenueCat allows one yearly), not
+    # _v2. $34.99 = 30% off the $49.99 standard annual (pricing-expert rec:
+    # deep enough to recover the declined user, shallow enough to protect
+    # renewal LTV per Adapty churn data; clears the $29.99 quarterly
+    # collision). USA-only reprice via --skip-ppp; the product's existing
+    # ~40 PPP prices in ASC stay untouched.
+    "jenifit_yearly_discount": {
+        "USA": 34.99,
+    },
+    # ── Annual discount tier (25% off main) — DROPPED (unused in RevenueCat) ──
     "jenifit_yearly_discount_v2": {
-        "USA": 35.99, "CAN": 48.99, "GBR": 28.99, "AUS": 54.99,
+        "USA": 29.99, "CAN": 48.99, "GBR": 28.99, "AUS": 54.99,  # USA 2026-06-28: $35.99->$29.99 (Glow-style exit-intent annual downsell)
         "DEU": 33.99, "ITA": 33.99, "ESP": 33.99,
         "NLD": 33.99, "IRL": 33.99,
         "CHE": 36.00, "SWE": 379, "NOR": 419, "DNK": 269,
@@ -204,10 +227,21 @@ PRODUCTS = [
         "product_id": "jenifit_yearly_v2",
         "reference_name": "JeniFit Yearly v2",
         "duration": "ONE_YEAR",
-        "intro_offer_days": 3,
+        "intro_offer_days": 0,  # no trial on annual. 1.1.3 (no-trial build) is live as of 2026-07-01, so the restored trial is retired per the pay-upfront decision. Do NOT re-add.
         "level": 1,
         "loc_name": "JeniFit Annual",
         # Apple caps description at 55 chars. Trimmed accordingly.
+        "loc_description": "Full JeniFit access. Cancel anytime.",
+    },
+    {
+        # A/B test arm — $59.99 annual, NO trial. Same group level as
+        # jenifit_yearly_v2 (both annual). 2026-06-28.
+        "product_id": "jenifit_yearly_v3",
+        "reference_name": "JeniFit Yearly v3",
+        "duration": "ONE_YEAR",
+        "intro_offer_days": 0,
+        "level": 1,
+        "loc_name": "JeniFit Annual",
         "loc_description": "Full JeniFit access. Cancel anytime.",
     },
     {
@@ -231,6 +265,19 @@ PRODUCTS = [
         "level": 3,
         "loc_name": "JeniFit Weekly",
         "loc_description": "Try JeniFit one week at a time. No commitment.",
+    },
+    {
+        # The APPROVED legacy downsell the app + RevenueCat reference.
+        # Repriced 2026-06-29 to $34.99 USA (30% off $49.99). Run via
+        # `--only jenifit_yearly_discount --skip-ppp --prices-only`.
+        # _v2/_v3 below are dropped (unused in RevenueCat); not run.
+        "product_id": "jenifit_yearly_discount",
+        "reference_name": "JeniFit Yearly Discount",
+        "duration": "ONE_YEAR",
+        "intro_offer_days": 0,
+        "level": 4,
+        "loc_name": "JeniFit Annual (special offer)",
+        "loc_description": "First-year discount. Renews at standard rate.",
     },
     {
         "product_id": "jenifit_yearly_discount_v2",
@@ -351,6 +398,13 @@ class ASCClient:
             return {"data": {"id": "dryrun-" + label.replace(" ", "_"), "type": "dryrun"}}
         return self._request_with_backoff("POST", url, body=body)
 
+    def delete(self, path: str, label: str = "") -> dict:
+        url = f"{ASC_BASE}{path}"
+        if self.dry_run:
+            print(f"  [DRY-RUN] DELETE {path} :: {label}")
+            return {}
+        return self._request_with_backoff("DELETE", url)
+
     def _request_with_backoff(self, method: str, url: str,
                               params: Optional[dict] = None,
                               body: Optional[dict] = None,
@@ -364,6 +418,8 @@ class ASCClient:
         for attempt in range(max_retries):
             if method == "GET":
                 resp = self.session.get(url, params=params, timeout=HTTP_TIMEOUT)
+            elif method == "DELETE":
+                resp = self.session.delete(url, timeout=HTTP_TIMEOUT)
             else:
                 resp = self.session.post(url, data=json.dumps(body), timeout=HTTP_TIMEOUT)
             # 401: token expired or rejected. Refresh once + retry.
@@ -491,9 +547,14 @@ def find_price_point(api: ASCClient, sub_id: str, territory: str, target_local: 
     set of tiers across all subscriptions — so we cache per-territory
     on the ASCClient to avoid re-fetching 5/6 of the calls across the
     6 products."""
-    # Cache hit?
-    if territory in api._price_point_cache:
-        all_points = api._price_point_cache[territory]
+    # Cache hit? Key by (sub_id, territory): a price point ID embeds the
+    # subscription ID, so it is NOT reusable across subscriptions even when
+    # the tier value is identical. Caching per-territory alone hands one
+    # subscription's price-point IDs to another (409 RELATIONSHIP.INVALID on
+    # any multi-product run).
+    cache_key = (sub_id, territory)
+    if cache_key in api._price_point_cache:
+        all_points = api._price_point_cache[cache_key]
     else:
         all_points = []
         # First page
@@ -515,7 +576,7 @@ def find_price_point(api: ASCClient, sub_id: str, territory: str, target_local: 
             all_points.extend(result.get("data", []))
             next_url = result.get("links", {}).get("next")
             page_count += 1
-        api._price_point_cache[territory] = all_points
+        api._price_point_cache[cache_key] = all_points
     if not all_points:
         return None
     def local_price(pp):
@@ -527,19 +588,44 @@ def find_price_point(api: ASCClient, sub_id: str, territory: str, target_local: 
     return closest
 
 
-def set_price(api: ASCClient, sub_id: str, price_point_id: str, label: str):
-    """POST a new price entry. ASC stacks prices with effective dates; the
-    latest one wins on the storefront."""
-    body = {
-        "data": {
-            "type": "subscriptionPrices",
-            "relationships": {
-                "subscription": {"data": {"type": "subscriptions", "id": sub_id}},
-                "subscriptionPricePoint": {"data": {"type": "subscriptionPricePoints", "id": price_point_id}},
-            },
-        }
+def set_price(api: ASCClient, sub_id: str, price_point_id: str, label: str,
+              preserve_current_price: bool = False,
+              schedule_future_change: bool = False):
+    """POST a price entry.
+
+    Three modes, depending on the subscription's lifecycle state:
+      * schedule_future_change=True (APPROVED sub reprice): an approved sub
+        already has a startDate=None "initial" price, and Apple rejects
+        creating that again (STATE_ERROR "Initial price cannot be created
+        again after subscription is approved"). A reprice must instead be a
+        DATED price change. Apple requires startDate to be a FUTURE date
+        (on/after tomorrow in Apple's timezone), so we stamp tomorrow.
+        preserveCurrentPrice keeps existing subscribers at their old price
+        (new price applies to NEW subscribers only) — safe for a price hike.
+      * preserve_current_price=True only: legacy preserve-on-change.
+      * both False (DRAFT / never-approved sub): set the INITIAL price
+        (no startDate, no preserve). Used for MISSING_METADATA drafts whose
+        initial price is still editable."""
+    data = {
+        "type": "subscriptionPrices",
+        "relationships": {
+            "subscription": {"data": {"type": "subscriptions", "id": sub_id}},
+            "subscriptionPricePoint": {"data": {"type": "subscriptionPricePoints", "id": price_point_id}},
+        },
     }
-    api.post("/v1/subscriptionPrices", body, label=label)
+    if schedule_future_change:
+        # Apple requires startDate on/after "tomorrow in Apple's timezone",
+        # which runs ahead of local time. today+1 gets rejected (409
+        # RELATIONSHIP.INVALID) when Apple has already rolled over, so stamp
+        # today+2 as a timezone-safe floor.
+        start = (datetime.date.today() + datetime.timedelta(days=2)).isoformat()
+        data["attributes"] = {
+            "preserveCurrentPrice": True,
+            "startDate": start,
+        }
+    elif preserve_current_price:
+        data["attributes"] = {"preserveCurrentPrice": True}
+    api.post("/v1/subscriptionPrices", {"data": data}, label=label)
 
 
 def upsert_intro_offer(api: ASCClient, sub_id: str, p: dict):
@@ -568,9 +654,102 @@ def upsert_intro_offer(api: ASCClient, sub_id: str, p: dict):
     api.post("/v1/subscriptionIntroductoryOffers", body, label=f"intro offer {p['product_id']}")
 
 
+def delete_intro_offers(api: ASCClient, sub_id: str):
+    """Remove ALL introductory offers on a subscription. Strips the legacy
+    3-day free trial under the no-trial pay-upfront decision (2026-06-28)."""
+    existing = api.get(f"/v1/subscriptions/{sub_id}/introductoryOffers")
+    offers = existing.get("data", [])
+    if not offers:
+        print(f"  no intro offers to remove")
+        return
+    for off in offers:
+        oid = off.get("id")
+        if oid:
+            api.delete(f"/v1/subscriptionIntroductoryOffers/{oid}", label=f"delete intro {oid}")
+            print(f"  removed intro offer {oid}")
+
+
 # ---------------------------------------------------------------------------
 # Main flow
 # ---------------------------------------------------------------------------
+
+def audit_prices(api: ASCClient, sub_id: str, pid: str) -> dict:
+    """Read-only. Resolve the effective live price per territory and compare
+    to the PRICES config. Handles dated price changes: an approved-sub reprice
+    creates a future-dated entry, so the effective price for a territory is the
+    one whose startDate is not after today (a null startDate is the launch/
+    initial price). Returns {territory: {actual, expected, scheduled}}."""
+    today = datetime.date.today().isoformat()
+    data: list = []
+    included: list = []
+    r = api.get(f"/v1/subscriptions/{sub_id}/prices",
+                params={"include": "subscriptionPricePoint,territory", "limit": 200})
+    data.extend(r.get("data", []))
+    included.extend(r.get("included", []))
+    next_url = r.get("links", {}).get("next")
+    while next_url:
+        r2 = api.get_absolute(next_url)
+        data.extend(r2.get("data", []))
+        included.extend(r2.get("included", []))
+        next_url = r2.get("links", {}).get("next")
+
+    # Index included price points: id -> customerPrice, id -> territory.
+    pp_price: dict = {}
+    pp_terr: dict = {}
+    for inc in included:
+        if inc.get("type") == "subscriptionPricePoints":
+            cp = inc.get("attributes", {}).get("customerPrice")
+            if cp is not None:
+                try:
+                    pp_price[inc["id"]] = float(cp)
+                except (TypeError, ValueError):
+                    pass
+            t = inc.get("relationships", {}).get("territory", {}).get("data", {}).get("id")
+            if t:
+                pp_terr[inc["id"]] = t
+
+    # Collect (startDate, price) per territory. Apple returns two rows per
+    # territory: planType UPFRONT (the actual amount charged for the period)
+    # and planType MONTHLY (the per-month display equivalent, e.g. an annual
+    # price / 12). Only UPFRONT is the real price; skip MONTHLY or the audit
+    # compares config against the display breakdown.
+    per_terr: dict = {}
+    for d in data:
+        attrs = d.get("attributes", {})
+        if attrs.get("planType", "UPFRONT") != "UPFRONT":
+            continue
+        rel = d.get("relationships", {})
+        pp_id = rel.get("subscriptionPricePoint", {}).get("data", {}).get("id")
+        terr = rel.get("territory", {}).get("data", {}).get("id") or pp_terr.get(pp_id)
+        if not terr or pp_id not in pp_price:
+            continue
+        start = attrs.get("startDate") or ""
+        per_terr.setdefault(terr, []).append((start, pp_price[pp_id]))
+
+    cfg = PRICES.get(pid, {})
+    out: dict = {}
+    for terr, lst in per_terr.items():
+        effective = None
+        scheduled = None
+        for start, price in sorted(lst, key=lambda x: x[0]):
+            if start == "" or start <= today:
+                effective = price
+            elif scheduled is None:
+                scheduled = (start, price)
+        out[terr] = {"actual": effective, "expected": cfg.get(terr), "scheduled": scheduled}
+    return out
+
+
+def _price_matches(actual: float, expected) -> bool:
+    """Within 5% of the configured target counts as a match. The creation flow
+    snaps to Apple's nearest price tier, so exact equality would false-alarm on
+    non-USD tiers; 5% mirrors find_price_point's own tier-divergence warning."""
+    if expected is None or actual is None:
+        return False
+    if expected == 0:
+        return actual == 0
+    return abs(actual - expected) / expected <= 0.05
+
 
 def run_verify(api: ASCClient, products: list, existing: dict):
     """Read-only ASC submission-readiness report. Queries each product
@@ -644,37 +823,69 @@ def run_verify(api: ASCClient, products: list, existing: dict):
             else:
                 print(f"  Screenshot:           ⚠️  query failed: {msg.splitlines()[0][:100]}")
 
-        # 4. Intro offer (only relevant for products that want one)
-        if wants_trial:
-            try:
-                r = api.get(f"/v1/subscriptions/{sub_id}/introductoryOffers")
-                offers = r.get("data", [])
-                if offers:
-                    n = len(offers)
-                    print(f"  Intro Offer:          ✅ {n} configured")
-                else:
-                    print(f"  Intro Offer (trial):  ❌ MISSING — set up {p['intro_offer_days']}-day free trial in ASC")
-                    blockers.append(f"configure {p['intro_offer_days']}-day free trial intro offer")
-            except Exception as e:
-                print(f"  Intro Offer:          ⚠️  query failed: {str(e).splitlines()[0][:100]}")
-        else:
-            print(f"  Intro Offer:          n/a (no trial on this tier per founder lock)")
-
-        # 5. Explicit price count (vs configured)
-        configured = len(PRICES.get(pid, {}))
+        # 4. Intro offer — always query live and compare to config intent.
+        #    wants_trial False means we EXPECT zero offers; any present means a
+        #    trial we intended to remove is still live.
         try:
-            r = api.get(f"/v1/subscriptions/{sub_id}/prices", params={"limit": 200})
-            actual_prices = r.get("data", [])
-            # Pagination — keep paging if more
-            next_url = r.get("links", {}).get("next")
-            while next_url:
-                r = api.get_absolute(next_url)
-                actual_prices.extend(r.get("data", []))
-                next_url = r.get("links", {}).get("next")
-            n_actual = len(actual_prices)
-            print(f"  Explicit prices:      {n_actual} territories (script targets {configured})")
+            r = api.get(f"/v1/subscriptions/{sub_id}/introductoryOffers")
+            offers = r.get("data", [])
+            n = len(offers)
+            if wants_trial:
+                if n:
+                    print(f"  Intro Offer:          ✅ {n} configured ({p['intro_offer_days']}-day trial intended)")
+                else:
+                    print(f"  Intro Offer:          ❌ MISSING (expected a {p['intro_offer_days']}-day trial)")
+                    blockers.append(f"configure {p['intro_offer_days']}-day free trial intro offer")
+            else:
+                if n:
+                    print(f"  Intro Offer:          ❌ {n} STILL LIVE (expected NONE, trial should be gone)")
+                    blockers.append(f"remove {n} lingering intro offer(s); trial should be gone")
+                else:
+                    print(f"  Intro Offer:          ✅ none (trial-free, as intended)")
         except Exception as e:
-            print(f"  Explicit prices:      ⚠️  query failed: {str(e).splitlines()[0][:100]}")
+            print(f"  Intro Offer:          ⚠️  query failed: {str(e).splitlines()[0][:100]}")
+
+        # 5. Price audit — compare the EFFECTIVE live price per territory to the
+        #    config (not just a count). USA headline plus a full mismatch scan.
+        cfg = PRICES.get(pid, {})
+        try:
+            audit = audit_prices(api, sub_id, pid)
+            us = audit.get("USA")
+            if us and us["actual"] is not None:
+                exp = us["expected"]
+                match = _price_matches(us["actual"], exp)
+                mark = "✅" if match else "❌"
+                tail = "" if (match or exp is None) else f" (config wants {exp})"
+                print(f"  US price:             {mark} {us['actual']}{tail}")
+                if us["scheduled"]:
+                    print(f"     scheduled change: {us['scheduled'][1]} effective {us['scheduled'][0]}")
+                if not match:
+                    blockers.append(f"US price {us['actual']} != config {exp}")
+            else:
+                print(f"  US price:             ⚠️  no live USA price found")
+
+            mismatches = []
+            missing = []
+            for terr, want in cfg.items():
+                got = audit.get(terr)
+                if not got or got["actual"] is None:
+                    if terr != "USA":
+                        missing.append(terr)
+                elif not _price_matches(got["actual"], want):
+                    mismatches.append(f"{terr}: live {got['actual']} vs config {want}")
+            live_ok = len(cfg) - len(mismatches) - len(missing)
+            print(f"  Prices vs config:     {live_ok}/{len(cfg)} match | {len(mismatches)} mismatch | {len(missing)} not-explicitly-set")
+            for m in mismatches[:15]:
+                print(f"     mismatch: {m}")
+            if len(mismatches) > 15:
+                print(f"     ...and {len(mismatches) - 15} more mismatches")
+            if missing:
+                shown = ", ".join(missing[:15]) + (f" (+{len(missing) - 15} more)" if len(missing) > 15 else "")
+                print(f"     not explicitly set (Apple auto-converts): {shown}")
+            if mismatches:
+                blockers.append(f"{len(mismatches)} territory price mismatch(es)")
+        except Exception as e:
+            print(f"  Price audit:          ⚠️  query failed: {str(e).splitlines()[0][:120]}")
 
         # 6. Verdict
         if blockers:
@@ -709,6 +920,8 @@ def main():
                         help="Skip the 3 discount-variant products (jenifit_*_discount). Use when discount SKUs are intentionally dormant (v1.0.7 founder lock: premium-only positioning).")
     parser.add_argument("--verify", action="store_true",
                         help="VERIFY mode: query ASC and report submission readiness for each product (state, localization, screenshot, intro offer, price count). Read-only; no writes. Use to confirm products are submittable before attaching to an app version.")
+    parser.add_argument("--intro-only", action="store_true",
+                        help="INTRO-OFFER ONLY: skip create, localization, and ALL pricing. Only syncs the introductory offer for the targeted product(s). Use with --only to restore a single product's trial without touching prices.")
     args = parser.parse_args()
 
     key_id = os.environ.get("ASC_KEY_ID")
@@ -775,6 +988,30 @@ def main():
             sub_id = create_subscription(api, SUBSCRIPTION_GROUP_ID, p)
             print(f"  created (id={sub_id})")
 
+        # Lifecycle state decides how prices must be written: an APPROVED
+        # sub needs a future-dated price CHANGE (preserve + startDate);
+        # a draft (MISSING_METADATA / never approved) takes a plain INITIAL
+        # price. Default to not-approved for freshly created/dry-run subs.
+        sub_state = None
+        if pid in existing and not args.dry_run:
+            sub_state = api.get(f"/v1/subscriptions/{sub_id}").get("data", {}).get("attributes", {}).get("state")
+        is_approved = (sub_state == "APPROVED")
+        print(f"  state: {sub_state or 'NEW/UNKNOWN'} ({'dated price-change' if is_approved else 'initial price'} mode)")
+
+        # --intro-only: skip localization + all pricing; only sync the intro
+        # offer. Symmetric: restores the trial when intro_offer_days > 0,
+        # removes any existing trial when intro_offer_days == 0. Neither
+        # branch touches price schedules.
+        if args.intro_only:
+            if p["intro_offer_days"]:
+                print(f"  [intro-only] upserting {p['intro_offer_days']}-day free trial intro offer...")
+                upsert_intro_offer(api, sub_id, p)
+            else:
+                print(f"  [intro-only] intro_offer_days=0, removing any existing trial...")
+                delete_intro_offers(api, sub_id)
+            print()
+            continue
+
         if not args.prices_only:
             print(f"  upserting en-US localization…")
             upsert_localization(api, sub_id, p)
@@ -805,7 +1042,7 @@ def main():
             if territory not in territory_prices:
                 continue
             target = territory_prices[territory]
-            cache_hit = territory in api._price_point_cache
+            cache_hit = (sub_id, territory) in api._price_point_cache
             print(f"    [{i}/{len(territory_prices)}] {territory} target={target}" +
                   (" (cache)" if cache_hit else " (fetching tiers)"), flush=True)
             point = find_price_point(api, sub_id, territory, target)
@@ -815,7 +1052,9 @@ def main():
                 continue
             actual = point.get("attributes", {}).get("customerPrice", "?")
             try:
-                set_price(api, sub_id, point["id"], label=f"{territory} {actual}")
+                set_price(api, sub_id, point["id"], label=f"{territory} {actual}",
+                          preserve_current_price=False,
+                          schedule_future_change=is_approved)
                 success_count += 1
             except Exception as e:
                 # Per-territory failure tolerance. Extract Apple's error
@@ -841,12 +1080,16 @@ def main():
             for t, reason in failed_territories:
                 print(f"    - {t}: {reason}", flush=True)
 
-        # Intro offer — skip in --prices-only mode (intro offers must be
-        # set in the ASC web UI per current ASC API limitations on the
-        # introductory-offer endpoint when product is in MISSING_METADATA).
-        if p["intro_offer_days"] and not args.prices_only:
-            print(f"  upserting {p['intro_offer_days']}-day free trial intro offer…")
-            upsert_intro_offer(api, sub_id, p)
+        # Intro offer sync — skip in --prices-only mode. For products with
+        # intro_offer_days==0, actively REMOVE any existing trial (the
+        # no-trial pay-upfront decision, 2026-06-28).
+        if not args.prices_only:
+            if p["intro_offer_days"]:
+                print(f"  upserting {p['intro_offer_days']}-day free trial intro offer…")
+                upsert_intro_offer(api, sub_id, p)
+            else:
+                print(f"  ensuring no intro offer (removing any existing)…")
+                delete_intro_offers(api, sub_id)
 
         print()
 

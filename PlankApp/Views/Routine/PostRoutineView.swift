@@ -350,7 +350,7 @@ struct PostRoutineView: View {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(Palette.bgElevated)
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Palette.accent, lineWidth: 1.5)
+                    .stroke(Palette.hairlineCocoa, lineWidth: 0.66)
             }
         )
     }
@@ -389,14 +389,7 @@ struct PostRoutineView: View {
                 .fill(Palette.bgElevated)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(
-                            LinearGradient(
-                                colors: [Palette.accent, Palette.accentSubtle],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 2
-                        )
+                        .stroke(Palette.hairlineCocoa, lineWidth: 0.66)
                 )
         )
         .padding(.horizontal, Space.screenPadding)
@@ -454,7 +447,7 @@ struct PostRoutineView: View {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(Palette.bgElevated)
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Palette.accent, lineWidth: 1.5)
+                    .stroke(Palette.hairlineCocoa, lineWidth: 0.66)
             }
         )
     }
@@ -482,7 +475,7 @@ struct PostRoutineView: View {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(Palette.bgElevated)
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Palette.accent, lineWidth: 1.5)
+                    .stroke(Palette.hairlineCocoa, lineWidth: 0.66)
             }
         )
     }
@@ -536,7 +529,7 @@ struct PostRoutineView: View {
         .padding(Space.cardPadding)
         .background(Palette.bgElevated)
         .clipShape(RoundedRectangle(cornerRadius: Radius.md))
-        .plankShadow()
+        .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
     }
 
     private var availableTags: [String] {

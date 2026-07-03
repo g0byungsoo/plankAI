@@ -49,7 +49,7 @@ final class SurfaceInventoryUITests: XCTestCase {
             // rest of the walk.
             for _ in 0..<3 {
                 var closed = false
-                for label in ["got it", "not yet", "not today", "cancel", "close",
+                for label in ["got it", "not yet", "not now", "not today", "cancel", "close",
                               "done", "skip for now", "xmark", "Close"] {
                     let button = app.buttons[label].firstMatch
                     if button.exists && button.isHittable {
@@ -153,6 +153,16 @@ final class SurfaceInventoryUITests: XCTestCase {
         if tapWhenReady(snapRow) {
             sleep(3)
             snap("snap_entry")
+            // The camera's close affordance isn't exposed as a
+            // .button — query ANY element type for the label.
+            for label in ["cancel", "close", "xmark"] {
+                let any = app.descendants(matching: .any)[label].firstMatch
+                if any.exists && any.isHittable {
+                    any.tap()
+                    sleep(1)
+                    break
+                }
+            }
             closeSheet()
             sleep(1)
         }
@@ -213,7 +223,91 @@ final class SurfaceInventoryUITests: XCTestCase {
         sleep(1)
         snap("becoming_journey_wins")
 
+        // ── 11 · food journal (wins chain) ───────────────────────
+        let journalChain = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS 'journal'")
+        ).firstMatch
+        if tapWhenReady(journalChain, timeout: 3) {
+            sleep(2)
+            snap("food_journal")
+            // meal detail: tap the first plate row
+            let plateRow = app.buttons.matching(
+                NSPredicate(format: "label CONTAINS 'poke' OR label CONTAINS 'yogurt'")
+            ).firstMatch
+            if tapWhenReady(plateRow, timeout: 3) {
+                sleep(2)
+                snap("food_detail")
+                closeSheet()
+            }
+            closeSheet()
+        }
+
         // ── done ─────────────────────────────────────────────────
         XCTAssertGreaterThan(shot, 10, "inventory walked \(shot) surfaces")
     }
+
+    /// Gate states + deterministic harness surfaces, one launch each.
+    func testStatesLedger() throws {
+        let dir = ProcessInfo.processInfo.environment["INVENTORY_DIR"]
+            ?? "/tmp/jenifit_inventory"
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+
+        func launchAndSnap(_ args: [String], _ name: String, settle: UInt32 = 5) {
+            let app = XCUIApplication()
+            app.launchArguments = args
+            app.launch()
+            sleep(settle)
+            let png = XCUIScreen.main.screenshot().pngRepresentation
+            FileManager.default.createFile(atPath: "\(dir)/90_\(name).png", contents: png)
+            app.terminate()
+        }
+
+        launchAndSnap(["--uitest-inapp-qa"], "wall_fresh")
+        launchAndSnap(["--uitest-force-expired"], "wall_expired")
+        launchAndSnap(["--uitest-pro-access", "--uitest-force-migration"], "migration_moment")
+        launchAndSnap(["--debug-post-routine"], "workout_completion", settle: 6)
+        launchAndSnap(["--debug-program-setup"], "program_setup_p1")
+    }
+
+    /// Rest-day leg: the breath beat + intro + (waits out a 1-minute
+    /// session) the completion receipt.
+    func testRestDayBreath() throws {
+        let dir = ProcessInfo.processInfo.environment["INVENTORY_DIR"]
+            ?? "/tmp/jenifit_inventory"
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitest-inapp-qa", "--uitest-pro-access",
+            "--uitest-seed-program", "--uitest-seed-day", "14",
+        ]
+        app.launch()
+        sleep(7)
+
+        var shot = 0
+        func snap(_ name: String) {
+            let png = XCUIScreen.main.screenshot().pngRepresentation
+            FileManager.default.createFile(
+                atPath: "\(dir)/8\(shot)_\(name).png", contents: png
+            )
+            shot += 1
+        }
+
+        snap("today_rest_day")
+        let breathRow = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'breathe'")
+        ).firstMatch
+        guard breathRow.waitForExistence(timeout: 6) else { return }
+        breathRow.tap()
+        sleep(3)
+        snap("breath_intro")
+        for label in ["begin", "start", "i'm ready", "breathe with her", "let's breathe"] {
+            let b = app.buttons[label].firstMatch
+            if b.exists && b.isHittable { b.tap(); break }
+        }
+        sleep(8)
+        snap("breath_session")
+        sleep(75)   // ride out the 1-minute default session
+        snap("breath_receipt")
+    }
+
 }

@@ -1,4 +1,17 @@
-# 15 — Surface coverage inventory (v2.2)
+# 15 — Surface coverage inventory (v2.2 → v2.3)
+
+**v2.3 update:** the ledger below is superseded by the CURRENT-RUN
+ledger (16 → 18+ PNGs from one fresh run of all three walker legs;
+see 16_V23_NOTES for the leg map). Deltas vs v2.2: main walk now
+clears the capture cover (the blocker was the consent sheet — whose
+walk also caught two real defects: emoji-fallback hearts + dismiss
+vocabulary); NEW current-run coverage for wall fresh/expired,
+migration, program setup p1, workout completion (harness), rest-day
+today, breath intro/session/receipt, food journal + meal detail,
+day peek. The 12-file legacy sweep landed (16_V23_NOTES §sweep) —
+the ✕ rows below shrink to the two founder-comparison clusters +
+onboarding v4.5. The three "embarrass us" items are FIXED (workout
+voice, setup chrome, journal masthead).
 
 Date: 2026-07-03. The founder's ask: "if a screen exists, prove you
 looked at it." Evidence classes: **[W]** SurfaceInventoryUITests PNG
