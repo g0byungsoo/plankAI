@@ -27,6 +27,11 @@ struct TodayView: View {
 
     @State private var snapshot: TodaySnapshot?
     @State private var modules = TodayModuleState()
+    /// Day-complete silk sweep (jkSilk). Bumped once when the last
+    /// binary beat lands; -1 until the first snapshot so restoring an
+    /// already-complete day never replays it.
+    @State private var silkTrigger = 0
+    @State private var lastCompletedCount = -1
 
     private var userId: String {
         auth.currentUser?.id.uuidString ?? ""
@@ -92,6 +97,7 @@ struct TodayView: View {
                         beats(snapshot)
                             .padding(.horizontal, Space.lg)
                             .padding(.top, Space.section)
+                            .jkSilkSweep(trigger: silkTrigger)
 
                         JKCoachMark(
                             text: "tap a row to begin it. it strikes through when it's done.",
@@ -279,7 +285,22 @@ struct TodayView: View {
 
     private func refresh() {
         guard !userId.isEmpty else { return }
-        snapshot = TodayStateService.snapshot(userId: userId, in: modelContext)
+        let fresh = TodayStateService.snapshot(userId: userId, in: modelContext)
+        snapshot = fresh
+
+        // The day-complete moment: every binary beat landed. Fires
+        // once per crossing (never on restore — the first snapshot
+        // only records the baseline).
+        if let day = fresh.day {
+            let binaryTotal = day.beats.filter { $0.itemKey != "steps" }.count
+            let done = fresh.completedBeatCount
+            if lastCompletedCount >= 0,
+               done >= binaryTotal, binaryTotal > 0,
+               lastCompletedCount < binaryTotal {
+                silkTrigger += 1
+            }
+            lastCompletedCount = done
+        }
     }
 
     private func consume(_ route: AppRouter.Route?) {

@@ -11,6 +11,7 @@
 		00A3FB7A4B34C65336D1612F /* matson_prep_short_side_lying_hip_abduction.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 4ABE957BF5FF32F722587473 /* matson_prep_short_side_lying_hip_abduction.m4a */; };
 		00BD4708AFF743DEFC40274D /* jeni_prep_short_superman_pull_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 46CD8C0B1CF7D3C568AA4B95 /* jeni_prep_short_superman_pull_up.m4a */; };
 		00CB4F4A6C3E8AED2BF31A0C /* TargetsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 517A700A116797011FF73849 /* TargetsService.swift */; };
+		00DA6984F87AE215B850720B /* JKSilkSweep.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE39ADEAE1AFD258BEF839AA /* JKSilkSweep.swift */; };
 		010BE45CCD195BD0DE548D2F /* matson_prep_short_jumping_lunges.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D7AC6563AD4B75C13624B6CB /* matson_prep_short_jumping_lunges.m4a */; };
 		010C5266E0731C2FEB1D520D /* NotificationDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2109B5F3C3DA051CE6DED3A /* NotificationDelegate.swift */; };
 		015156287871F4A94FFF5CF3 /* jeni_prep_full_sit_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = A621AD98D5D509D898C5F754 /* jeni_prep_full_sit_up.m4a */; };
@@ -417,6 +418,7 @@
 		5DF81BD44BF5BF4465B65672 /* jeni_prep_full_single_knee_to_chest.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0448FE63AB3EFF955F412A3F /* jeni_prep_full_single_knee_to_chest.m4a */; };
 		5E34A103EF87D2C941813F88 /* matson_prep_short_tabletop_bridge_knee_lift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = CDF580CCDD7B3FCC44A6AB24 /* matson_prep_short_tabletop_bridge_knee_lift.m4a */; };
 		5E736C2C9159FEAA04DFB7C0 /* matson_prep_short_forward_fold_bind.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 11EE21E633875DDFF4D62551 /* matson_prep_short_forward_fold_bind.m4a */; };
+		5EA1F1F5EE9E94375446C47E /* JKShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 36DE5895B77E2DC7D629BCB9 /* JKShaders.metal */; };
 		5EA405A8F80CA87478F2A357 /* matson_prep_short_high_plank_leg_raise.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B2E9EBA6440DD6F42DBB5ACF /* matson_prep_short_high_plank_leg_raise.m4a */; };
 		5ECBDC2BF865B5591F87D42D /* jeni_prep_full_side_plank_hip_abduction.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E5ECD0A325AB4792A2C1D98A /* jeni_prep_full_side_plank_hip_abduction.m4a */; };
 		5EE4DE78B11186253AFA7482 /* prep_full_modified_jacks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B4423A7BE31BE211885F006B /* prep_full_modified_jacks.m4a */; };
@@ -1658,6 +1660,7 @@
 		365E838FB3591A2017A514A5 /* JKTabBar.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKTabBar.swift; sourceTree = "<group>"; };
 		36767C28B943D7D81B6CA9F3 /* JeniMethodRitualView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMethodRitualView.swift; sourceTree = "<group>"; };
 		36D16279A9B3FD770FD9ACDC /* matson_prep_short_burpee.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_burpee.m4a; sourceTree = "<group>"; };
+		36DE5895B77E2DC7D629BCB9 /* JKShaders.metal */ = {isa = PBXFileReference; includeInIndex = 1; path = JKShaders.metal; sourceTree = "<group>"; };
 		36DFB66DFA817C26B9926BDD /* prep_full_single_leg_glute_bridge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_single_leg_glute_bridge.m4a; sourceTree = "<group>"; };
 		36F060A0065AE5D6FEC6C988 /* PlanView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
 		3728CE31D0B15029FB648534 /* matson_prep_full_back_extension_lying.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_back_extension_lying.m4a; sourceTree = "<group>"; };
@@ -2601,6 +2604,7 @@
 		CDDDA71EF4FC8F5CB7139628 /* jeni_prep_short_hip_flexor_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_hip_flexor_stretch.m4a; sourceTree = "<group>"; };
 		CDF580CCDD7B3FCC44A6AB24 /* matson_prep_short_tabletop_bridge_knee_lift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_tabletop_bridge_knee_lift.m4a; sourceTree = "<group>"; };
 		CDFFB5FD71BB5C412B1E3986 /* CoachAsset.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CoachAsset.swift; sourceTree = "<group>"; };
+		CE39ADEAE1AFD258BEF839AA /* JKSilkSweep.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKSilkSweep.swift; sourceTree = "<group>"; };
 		CE3B553873E86F1399970856 /* matson_prep_full_superman_pull_up.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_superman_pull_up.m4a; sourceTree = "<group>"; };
 		CE8FD74C250504998FD498AB /* matson_prep_short_crab_toe_touches.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_crab_toe_touches.m4a; sourceTree = "<group>"; };
 		CEAE0FC7E1EE11A4D7F1F946 /* jeni_prep_short_seated_knee_tuck.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_seated_knee_tuck.m4a; sourceTree = "<group>"; };
@@ -4594,6 +4598,8 @@
 				8B84B5A889255BE0A024A2AF /* JKVoice.swift */,
 				365E838FB3591A2017A514A5 /* JKTabBar.swift */,
 				CDDBB8596E773DC018BB9C23 /* JKGallery.swift */,
+				CE39ADEAE1AFD258BEF839AA /* JKSilkSweep.swift */,
+				36DE5895B77E2DC7D629BCB9 /* JKShaders.metal */,
 			);
 			name = Kit;
 			path = Kit;
@@ -6232,6 +6238,8 @@
 				010C5266E0731C2FEB1D520D /* NotificationDelegate.swift in Sources */,
 				0D6730EFE353F8E3C7222552 /* InsightEngine.swift in Sources */,
 				8F3F736BFDC051A4578EEF02 /* BecomingView.swift in Sources */,
+				00DA6984F87AE215B850720B /* JKSilkSweep.swift in Sources */,
+				5EA1F1F5EE9E94375446C47E /* JKShaders.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

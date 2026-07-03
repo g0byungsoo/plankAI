@@ -263,25 +263,38 @@ struct PostRoutineView: View {
         }
     }
 
-    // MARK: - Fire Emoji
+    // MARK: - Hero word
+    //
+    // App v2.1: the emoji hero (🔥/💪/👏) violated the app-wide
+    // no-emoji kill-list and read as a different app than the one
+    // onboarding sold. The moment is typographic now — the serif
+    // word IS the firework (the Lottie confetti behind it carries
+    // the celebration) — and "you ate that." retired (food-idiom
+    // slang in a weight app).
 
     private var fireEmoji: some View {
         VStack(spacing: Space.sm) {
-            Text(completionRate >= 0.9 ? "🔥" : completionRate >= 0.6 ? "💪" : "👏")
-                .font(.system(size: 72))
-                .scaleEffect(fireScale)
-                .opacity(fireOpacity)
+            ItalicAccentText(
+                headline.word,
+                italic: [headline.word],
+                baseFont: Typo.heroHeadline,
+                italicFont: Typo.heroHeadlineItalic,
+                alignment: .center
+            )
+            .kerning(-0.4)
+            .scaleEffect(fireScale)
+            .opacity(fireOpacity)
 
-            Text(headline)
-                .font(Typo.titleItalic)   // italic Fraunces — JeniFit voice signal
-                .foregroundStyle(Palette.textPrimary)
+            Text(headline.sub)
+                .font(Typo.teachSub)
+                .foregroundStyle(Palette.textSecondary)
         }
     }
 
-    private var headline: String {
-        if completionRate >= 0.9 { return "you ate that." }
-        if completionRate >= 0.6 { return "good work." }
-        return "you showed up."
+    private var headline: (word: String, sub: String) {
+        if completionRate >= 0.9 { return ("kept.", "the whole thing, start to close") }
+        if completionRate >= 0.6 { return ("strong.", "most of it, honestly done") }
+        return ("showed up.", "that's the part that compounds")
     }
 
     // MARK: - Stats Block

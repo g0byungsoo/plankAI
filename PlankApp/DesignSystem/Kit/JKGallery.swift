@@ -12,6 +12,7 @@ struct JKGalleryHarness: View {
     @State private var tab: JKTab = .today
     @State private var beatDone = false
     @State private var protein = 61
+    @State private var silkTrigger = 0
 
     var body: some View {
         JKScreenChrome {
@@ -56,7 +57,7 @@ struct JKGalleryHarness: View {
                         .padding(.horizontal, Space.lg)
                     }
 
-                    section("beat rows — tap the first to toggle") {
+                    section("beat rows — tap first to toggle · long-press for silk") {
                         VStack(spacing: Space.optionGap) {
                             JKBeatRow(
                                 title: "snap a meal",
@@ -82,6 +83,18 @@ struct JKGalleryHarness: View {
                             )
                         }
                         .padding(.horizontal, Space.lg)
+                        .jkSilkSweep(trigger: silkTrigger)
+                        .onLongPressGesture { silkTrigger += 1 }
+                        .task {
+                            // --debug-silk-auto: replay the sweep on a
+                            // loop for video capture (simctl can't
+                            // synthesize a long-press).
+                            guard ProcessInfo.processInfo.arguments.contains("--debug-silk-auto") else { return }
+                            while !Task.isCancelled {
+                                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                                silkTrigger += 1
+                            }
+                        }
                     }
 
                     section("gauges — tap arc to add protein") {

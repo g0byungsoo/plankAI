@@ -116,50 +116,46 @@ struct ProgramOnrampView: View {
         .modernEntrance(appeared)
     }
 
+    // App v2.1 — the bordered scrapbook card retired; the onramp
+    // speaks the receipt grammar the rest of v2 speaks (hairline
+    // rows, quiet cause -> serif consequence). This is the first
+    // screen a new payer settles on: it must read as the same app
+    // the onboarding was.
     private var whatsInsideCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("what's inside")
-                .font(Typo.editorialEyebrow)
-                .foregroundStyle(Palette.cocoaTertiary)
+                .font(Typo.captionTracked)
+                .kerning(1.98)
                 .textCase(.uppercase)
-                .kerning(0.66)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .padding(.bottom, Space.sm)
 
-            // v1.1 design pass — emoji glyphs swapped for thin SF
-            // marks per the kill-list (no emoji) + clean-luxury
-            // composition. Accent tint keeps the rows warm.
-            teaserRow("checklist", "a daily ritual of 5 things")
-            teaserRow("fork.knife", "food, paced. not a strict diet.")
-            teaserRow("figure.run", "movement that matches your energy")
-            teaserRow("book.closed", "a short lesson every day")
+            JKReceiptRow(
+                lead: "each day",
+                punch: "a ritual of 3 to 5 beats",
+                punchItalic: ["ritual"],
+                showsRule: false
+            )
+            JKReceiptRow(
+                lead: "food",
+                punch: "paced, never a strict diet",
+                punchItalic: ["paced"]
+            )
+            JKReceiptRow(
+                lead: "movement",
+                punch: "matched to your energy",
+                punchItalic: ["your"]
+            )
+            JKReceiptRow(
+                lead: "the method",
+                punch: "a 2-minute read, most days",
+                punchItalic: ["read"]
+            )
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: Radius.programCard)
-                .fill(Palette.programCard)
-        )
-        // v8 P8.8: complete the scrapbook chrome — accent border
-        // matches PlanView + Subflow.
-        .overlay(
-            RoundedRectangle(cornerRadius: Radius.programCard)
-                .stroke(Palette.accent.opacity(0.5), lineWidth: 1.5)
-        )
-        .programPaperShadow()
+        .padding(.horizontal, Space.sm)
         .modernEntrance(appeared, delay: 0.10)
     }
 
-    private func teaserRow(_ icon: String, _ text: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(Palette.accent)
-                .frame(width: 28, alignment: .center)
-            Text(text)
-                .font(Typo.body)
-                .foregroundStyle(Palette.cocoaSecondary)
-            Spacer(minLength: 0)
-        }
-    }
 
     // MARK: - Footer (pinned)
 
