@@ -75,7 +75,10 @@ SCOFF scroll-answer, springboard ATT/notification handling,
 2. **Post-purchase bridge** ("first two things": breathe now + snap
    tonight) — lifecycle P1, post-paywall surface.
 3. **Decline plan-preservation terminal** ("still here. still yours.").
-4. **Day-1 push deep link** into the snap camera route.
+4. ~~Day-1 push deep link~~ — DONE 2026-07-03: scheduleDay1Promise
+   carries `deeplink: jenifit://snap` for snap/log/protein promises
+   (app v2's AppRouter + NotificationDelegate cash it; queued until
+   .main so unpaid users still hit the wall first).
 5. **Analytics events** (`ov5_*` — demo_completed, promise_set,
    gate_outcome, act receipts) — wire into Analytics enum.
 6. **Protein co-line on projection** (flip `protein_hero_enabled`,
