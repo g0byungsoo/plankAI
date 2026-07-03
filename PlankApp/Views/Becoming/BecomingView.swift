@@ -512,7 +512,7 @@ struct BecomingView: View {
                         )
                     }
                     if let delta = week.emaDelta7dKg, abs(delta) >= 0.1,
-                       !snapshot!.targets.numericsSuppressed {
+                       snapshot?.targets.numericsSuppressed == false {
                         JKReceiptRow(
                             lead: "the line",
                             punch: delta < 0
