@@ -1,6 +1,67 @@
 # JeniFit — Canonical State
 
-Last updated: 2026-06-25 (v1.1.2, build 22)
+Last updated: 2026-07-03 (v1.1.2, build 22 + app v2 rebuild on
+`feat/app-v2`)
+
+## 0. App v2 — the in-app rebuild (2026-07-03, feat/app-v2)
+
+The in-app experience was rebuilt to cash the onboarding v5 promise.
+Doc set: `docs/app_v2/` (00-11 + SCIENCE.md). What changed:
+
+- **Gating**: route-level `AppPhase` machine (`PlankApp/App/`) —
+  booting / onboarding / wall(.fresh|.expired) / migration / main.
+  Exactly one phase mounts; unpaid/expired users never have main
+  content in the hierarchy. Expired payers get `ExpiredWelcomeView`
+  ("still here. still yours."). Auth transitions hold the last
+  stable phase. Table-tested (`AppPhaseTests`, 10 cases).
+- **IA**: three tabs — today / jeni / becoming — over the custom
+  `JKTabBar` (serif-italic active label + matched-geometry dot).
+  Camera FAB retired; snap lives in Today's masthead + beats +
+  plate strips + a jeni tool. Settings reachable from BOTH tabs.
+- **Today** (`PlankApp/Views/Today/`): the daily ritual — Fraunces
+  day pill masthead, jeni's brief line (DailyBriefEngine cascade,
+  provenance-only), the day strip, 3-5 engine-composed beats
+  (PrescriptionEngineV2: workouts follow sessionsPerWeek, lessons
+  follow tier cadence arc-completely, weigh-in is a cohort cadence
+  with stale fallback, breath heroes rest days), today-so-far band
+  (protein arc hero + steps ring + kcal sentence + plates strip),
+  evening close after 18:00. Cross-off completion everywhere.
+  PlanView reachable via `--legacy-today` until founder sign-off.
+- **Jeni chat** (`PlankApp/Chat/` + `supabase/functions/jeni-chat`):
+  SSE-streamed coach over an OpenAI EF (JENI_CHAT_MODEL env, key
+  server-side, per-user + budget caps, telemetry ledger). Client
+  assembles a provenance-only CoachContext per turn; crisis/ED
+  language routes to fixed care responses locally; seven
+  client-executed tools with confirm cards for mutations. The
+  letter-register UI (no bubbles). Local-first transcript
+  (ChatMessageRecord). Deploy: `supabase functions deploy jeni-chat`
+  + run `supabase/migrations/20260703_app_v2_chat_and_cohort_columns.sql`.
+- **One source of truth for numbers**: `TargetsService` (protein
+  1.6 g/kg GLP-1-current / 1.2 default; calorie target recomputes on
+  latest weight via the plan's implied rate) — snap result, Becoming,
+  Today, chat all read it. `CohortStore` is the ONE reader of cohort
+  keys and fixes the dead CBT bridge (CohortFlags read six
+  zero-writer keys pre-v2). Session ratings finally persist
+  (userId + pendingUpsert added). Dietary settings edits finally
+  reach food-vision (`DietaryProfileResolver`).
+- **Becoming**: curated under six modules (macro bar cut, moved
+  strip + deeds into the depth sheet); journal rows are photo-forward
+  catalog cards (protein-only at rest; p·c·f lives in detail).
+- **Migration**: `MigrationMomentView` (one-time, provenance
+  receipts) for entitled legacy-footprint users; `appV2SeenAt`
+  stamps on first main mount.
+- **Notifications**: `NotificationDelegate` — taps deep-link through
+  AppRouter (`jenifit://` grammar), queued until .main so expired
+  users land on the wall. Full orchestrator consolidation is spec'd
+  (`docs/app_v2/09_NOTIFICATIONS.md`) but not yet built.
+- **QA args**: `--uitest-seed-program`, `--uitest-start-tab <tab>`,
+  `--uitest-mock-chat`, `--uitest-chat-demo`,
+  `--uitest-force-migration`, `--uitest-today-bottom`,
+  `--debug-jenikit` (component gallery).
+
+Founder actions pending: deploy jeni-chat EF + run the migration SQL
+(founder credential), device pass on Today/chat/becoming, then the
+PlanView + dead-code sweep (P8 list in `docs/app_v2/11`).
 
 This is the source-of-truth doc. Read it first. Anything earlier in
 `docs/archive/` documented a research pass or pivot that informed shipped

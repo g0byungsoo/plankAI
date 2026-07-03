@@ -65,6 +65,17 @@ struct PlankAIApp: App {
 
     init() {
         #if DEBUG
+        // App v2 QA — force the migration phase on next derive by
+        // clearing the v2 stamp IN-PROCESS (simctl spawn defaults
+        // can't reliably reach the app sandbox's plist — cfprefsd
+        // split-brain). Pair with --uitest-pro-access + an enrolled
+        // store: xcrun simctl launch booted com.bk.plankAI \
+        //   --uitest-pro-access --uitest-force-migration
+        if ProcessInfo.processInfo.arguments.contains("--uitest-force-migration") {
+            UserDefaults.standard.removeObject(forKey: "appV2SeenAt")
+            UserDefaults.standard.set(true, forKey: "programEraEnabled")
+            UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+        }
         // UI-test hook: one-shot reset instead of an NSArgumentDomain pin
         // ("-hasCompletedOnboarding NO"), which would override the app's
         // own write of `true` for the whole run and trap RootView in the

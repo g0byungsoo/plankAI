@@ -9,6 +9,18 @@ App Review. v1.2+ handles the project + Bundle + SKU rename together.
 in `/docs/archive/` documented a research pass or pivot that fed shipped
 work but is preserved for history, not for guidance.
 
+### App v2 (2026-07-03, branch feat/app-v2)
+The in-app experience was rebuilt: route-level AppPhase gating
+(`PlankApp/App/`), three tabs (today/jeni/becoming) over JKTabBar,
+TodayView daily ritual (`Views/Today/`, PrescriptionEngineV2 beats),
+JeniFit Chat (`PlankApp/Chat/` + `supabase/functions/jeni-chat`),
+JeniKit component dialect (`DesignSystem/Kit/`), TargetsService +
+CohortStore as single sources of truth, migration moment for legacy
+users. Read `docs/app_v2/00_README.md` first before touching any of
+it. PlanView survives behind `--legacy-today` until the founder
+sign-off sweep. Chat EF needs `supabase functions deploy jeni-chat`
++ the 20260703 migration SQL (founder credential).
+
 ### Auth + sync
 - Anonymous-first Supabase auth, Apple + email upgrade, sign-in
   recovery, delete-account + forgot-password (anti-enumeration).

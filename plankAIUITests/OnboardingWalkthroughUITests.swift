@@ -377,9 +377,10 @@ final class InAppQAUITests: XCTestCase {
             nudgeAlerts()
         }
 
-        // Open the hub via the eyebrow-row ellipsis (identifier is the
-        // SF symbol name; the runtime title-cases the a11y label).
-        let settings = app.buttons["ellipsis"]
+        // App v2 — the hub opens via the masthead's quiet mark
+        // (accessibility label "settings"); the old eyebrow ellipsis
+        // retired with PlanView.
+        let settings = app.buttons["settings"].firstMatch
         XCTAssertTrue(settings.waitForExistence(timeout: 6), "settings entry missing")
         settings.tap()
         Thread.sleep(forTimeInterval: 1.4)
@@ -456,7 +457,7 @@ final class InAppQAUITests: XCTestCase {
             nudgeAlerts()
         }
 
-        let settings = app.buttons["ellipsis"]
+        let settings = app.buttons["settings"].firstMatch
         XCTAssertTrue(settings.waitForExistence(timeout: 6), "settings entry missing")
 
         // Two open → X-close cycles so the close animation is captured on
