@@ -23,9 +23,12 @@ private struct DemoMeal: Identifiable, Equatable {
     let range: Int         // ± band
     let protein: Int
     let rows: [(String, Int)]
-    /// Full-bleed crop anchor: where the PLATE sits in the photo, so
-    /// the scaledToFill crop keeps it visible above the result panel.
-    var bleedAlignment: Alignment = .center
+    /// Vertical shift (fraction of screen height) for the full-bleed
+    /// stage. Portrait photos fill by HEIGHT, so alignment alone can't
+    /// re-crop — a negative shift lifts a low-sitting plate into the
+    /// visible band above the result panel; the vacated strip hides
+    /// behind the panel.
+    var bleedShift: CGFloat = 0
     var id: String { key }
     static func == (a: DemoMeal, b: DemoMeal) -> Bool { a.key == b.key }
 }
@@ -48,7 +51,7 @@ struct OV5SnapDemoScreen: View {
         .init(key: "poke", asset: "onb-v5-demo-poke",
               title: "ahi poke bowl", kcal: 500, range: 75, protein: 41,
               rows: [("ahi tuna", 165), ("sushi rice", 300), ("shoyu + limu", 35)],
-              bleedAlignment: .bottom),
+              bleedShift: -0.22),
         .init(key: "toast", asset: "onb-v5-demo-toast",
               title: "avocado toast, eggs + berries", kcal: 445, range: 65, protein: 19,
               rows: [("sourdough", 100), ("avocado", 120), ("scrambled eggs", 190), ("strawberries", 35)]),
@@ -160,11 +163,14 @@ struct OV5SnapDemoScreen: View {
                 // Full-bleed photo — the dark frame that makes every
                 // cream screen after feel airier.
                 GeometryReader { geo in
-                    Image(meal.asset)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: geo.size.width, height: geo.size.height,
-                               alignment: meal.bleedAlignment)
+                    Color.clear
+                        .overlay(
+                            Image(meal.asset)
+                                .resizable()
+                                .scaledToFill()
+                                .offset(y: geo.size.height * meal.bleedShift)
+                        )
+                        .frame(width: geo.size.width, height: geo.size.height)
                         .clipped()
                         .matchedGeometryEffect(id: meal.key, in: ns, isSource: phase != .pick)
                         .overlay(
