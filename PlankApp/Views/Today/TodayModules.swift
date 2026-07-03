@@ -300,27 +300,8 @@ final class TodayModuleState {
 
     func persistWeight(kg: Double) {
         guard let modelContext, !userId.isEmpty else { return }
-        let uid = userId
-        var descriptor = FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate { $0.userId == uid },
-            sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
-        )
-        descriptor.fetchLimit = 1
-        let latest = try? modelContext.fetch(descriptor).first
-        if let latest, Calendar.current.isDateInToday(latest.loggedAt) {
-            latest.weightKg = kg
-            latest.pendingUpsert = true
-            try? modelContext.save()
-            Task { await AppSync.shared.upsertWeightLog(latest) }
-        } else {
-            let record = WeightLogRecord(
-                userId: uid, weightKg: kg, loggedAt: .now, source: "manual"
-            )
-            modelContext.insert(record)
-            try? modelContext.save()
-            Task { await AppSync.shared.upsertWeightLog(record) }
-        }
-        NotificationCenter.default.post(name: .weightLogDidChange, object: nil)
+        // The one shared write path (chat's log_weight tool uses it too).
+        WeightLogWriter.persist(kg: kg, userId: userId, in: modelContext)
         onMutation()
     }
 }

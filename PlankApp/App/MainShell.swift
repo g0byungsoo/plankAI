@@ -50,6 +50,15 @@ struct MainShell: View {
             )
         }
         .onAppear {
+            #if DEBUG
+            // QA: land on a specific tab (simctl can't tap the bar).
+            let args = ProcessInfo.processInfo.arguments
+            if let idx = args.firstIndex(of: "--uitest-start-tab"),
+               idx + 1 < args.count,
+               let tab = JKTab(rawValue: args[idx + 1]) {
+                router.tab = tab
+            }
+            #endif
             Analytics.track(.mainTabAppeared)
             // Stamp v2 for everyone reaching main — post-purchase
             // fresh users must never hit the migration phase later
@@ -135,21 +144,7 @@ struct TodayHost: View {
 
 struct JeniChatHost: View {
     var body: some View {
-        JKScreenChrome {
-            VStack(spacing: 0) {
-                JKMasthead(
-                    lead: .title("jeni", italic: ["jeni"]),
-                    eyebrow: "your coach"
-                )
-                .padding(.top, Space.hero)
-                Spacer()
-                JKEmptyState(
-                    line: "she's setting up her desk \u{2665}\u{FE0E}",
-                    italic: ["her desk"]
-                )
-                Spacer()
-            }
-        }
+        JeniChatView()
     }
 }
 

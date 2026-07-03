@@ -85,6 +85,11 @@ enum AnalyticsEvent: String {
     /// App v2 — the one-time existing-user migration moment.
     case migrationMomentViewed      = "migration_moment_viewed"
     case migrationMomentCompleted   = "migration_moment_completed"
+    /// App v2 — jeni chat.
+    case jeniChatOpened             = "jeni_chat_opened"
+    case jeniChatMessageSent        = "jeni_chat_message_sent"
+    case jeniChatToolCalled         = "jeni_chat_tool_called"
+    case jeniChatCareRouted         = "jeni_chat_care_routed"
     case firstWorkoutStart          = "first_workout_start"
     case firstWorkoutComplete       = "first_workout_complete"
 

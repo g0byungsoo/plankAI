@@ -904,6 +904,10 @@ struct PlankAIApp: App {
             // §"Data model diff" — migration safety notes.
             ProgramPlanRecord.self,
             ProgramDayCheckRecord.self,
+            // App v2 — jeni chat transcript (local-first; app-target
+            // @Model, so the cross-package registration hang that
+            // exiled the food models does not apply).
+            ChatMessageRecord.self,
             // W3-T6 food rail SwiftData @Models removed from the
             // container 2026-06-04 — caused the app to hang on launch
             // (black/white screen, main thread blocked, persists across
