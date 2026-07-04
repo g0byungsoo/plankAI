@@ -3070,12 +3070,15 @@ private struct RootView: View {
             }
             // Weight history so the trend story + canvas render
             // (6 weigh-ins easing 75.4 → 74.2 over 11 days).
+            // --uitest-seed-oneweight seeds EXACTLY ONE weigh-in
+            // instead, to exercise the single-weight trend state.
             if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
                let uid = auth.currentUser?.id.uuidString,
                seededWeightCount(userId: uid, in: modelContext) < 3 {
-                let series: [(daysAgo: Int, kg: Double)] = [
-                    (11, 75.4), (9, 75.1), (7, 75.2), (5, 74.8), (2, 74.5), (0, 74.2),
-                ]
+                let series: [(daysAgo: Int, kg: Double)] =
+                    ProcessInfo.processInfo.arguments.contains("--uitest-seed-oneweight")
+                    ? [(0, 74.2)]
+                    : [(11, 75.4), (9, 75.1), (7, 75.2), (5, 74.8), (2, 74.5), (0, 74.2)]
                 for point in series {
                     let record = WeightLogRecord(
                         userId: uid,

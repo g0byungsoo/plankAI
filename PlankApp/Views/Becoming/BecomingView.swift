@@ -195,6 +195,14 @@ struct BecomingView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, Space.lg)
                 }
+            } else if let firstLog = week?.weightLogs.first {
+                // v2.9 — the single-weight state. A trend LINE needs
+                // two points, but she HAS started — the old code
+                // dropped her back into "log the first", which read as
+                // "nothing done" the moment after she logged her first
+                // morning. Acknowledge the weight, show it, and name
+                // the one thing left.
+                singleWeightStarted(firstLog)
             } else {
                 JKEmptyState(
                     line: "your trend line starts with two mornings",
@@ -204,6 +212,44 @@ struct BecomingView: View {
                 )
             }
         }
+    }
+
+    @ViewBuilder
+    private func singleWeightStarted(_ log: WeightLogRecord) -> some View {
+        VStack(spacing: 10) {
+            Text("first morning, logged \u{2665}\u{FE0E}")
+                .font(Typo.captionTracked)
+                .kerning(1.6)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text(String(format: "%.1f", weightUnit.display(fromKg: log.weightKg)))
+                    .font(.custom("JeniHeroSerif-Regular", size: 46))
+                    .foregroundStyle(Palette.cocoaPrimary)
+                    .monospacedDigit()
+                Text(weightUnit.label)
+                    .font(.custom("JeniHeroSerif-Italic", size: 20))
+                    .foregroundStyle(Palette.accent)
+                    .baselineOffset(5)
+            }
+
+            (Text("one more morning and your ")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary)
+             + Text("line begins")
+                .font(.custom("JeniHeroSerif-Italic", size: 16))
+                .foregroundStyle(Palette.cocoaSecondary)
+             + Text(".")
+                .font(Typo.body)
+                .foregroundStyle(Palette.textSecondary))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Space.lg)
+        .padding(.vertical, Space.xl)
     }
 
     private var hasLoggedToday: Bool {
