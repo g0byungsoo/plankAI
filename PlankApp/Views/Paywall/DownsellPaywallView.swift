@@ -578,9 +578,26 @@ struct DownsellPaywallView: View {
             defaultOffering = offerings.current
             #endif
             #if DEBUG
-            let allIDs = offerings.all.keys.sorted()
-            let pkgIDs = offering?.availablePackages.map { $0.storeProduct.productIdentifier } ?? []
-            print("[DownsellPaywall] offerings loaded — all=\(allIDs), discount-packages=\(pkgIDs)")
+            // Full price diagnostic — dumps every offering, every package,
+            // its product id + REAL localized price, so we can see exactly
+            // what ASC/RC returns vs the mock preview. Look for
+            // "[PriceDiag]" in the Xcode console.
+            print("[PriceDiag] ===== RevenueCat offerings dump =====")
+            print("[PriceDiag] current offering id = \(offerings.current?.identifier ?? "nil")")
+            for (offID, off) in offerings.all.sorted(by: { $0.key < $1.key }) {
+                for pkg in off.availablePackages {
+                    let pid = pkg.storeProduct.productIdentifier
+                    let price = pkg.storeProduct.localizedPriceString
+                    print("[PriceDiag]   offering '\(offID)' -> \(pid) = \(price)")
+                }
+            }
+            let hasQuarterly = offerings.all.values.contains { off in
+                off.availablePackages.contains { $0.storeProduct.productIdentifier == RevenueCatConfig.ProductID.quarterly }
+            }
+            print("[PriceDiag] app looks for yearly='\(RevenueCatConfig.ProductID.yearly)', discount='\(RevenueCatConfig.ProductID.yearlyDiscount)', quarterly='\(RevenueCatConfig.ProductID.quarterly)'")
+            print("[PriceDiag] quarterly resolves? \(hasQuarterly)  (false => paywall shows MOCK $49.99, not a real price)")
+            print("[PriceDiag] downsell standard yearly resolved = \(standardYearlyPackage?.storeProduct.localizedPriceString ?? "nil (would hide/mock)")")
+            print("[PriceDiag] =====================================")
             #endif
             if offering == nil || discountPackage == nil {
                 #if DEBUG
