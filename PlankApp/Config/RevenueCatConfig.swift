@@ -77,9 +77,14 @@ enum RevenueCatConfig {
     enum ProductID {
         /// $4.99/week, no introductory offer (v1.0.6 active).
         static let weekly = "absmaxxing_weekly"
-        /// $69.99/year with a 3-day free trial introductory offer
-        /// (v1.0.6 active).
-        static let yearly = "absmaxxing_yearly"
+        /// ACTIVE yearly product. 2026-07-04: switched from the legacy
+        /// absmaxxing_yearly ($69.99) to the approved v2 product
+        /// (JeniFit Yearly v2). The app now resolves THIS product for
+        /// the yearly card + the downsell strikethrough. Requires
+        /// jenifit_yearly_v2 to be in the RevenueCat 'default' (and
+        /// ideally 'discount') offering to resolve; otherwise the
+        /// price hides / falls to the DEBUG mock preview.
+        static let yearly = "jenifit_yearly_v2"
         /// $34.99/year — 50% off the standard yearly, no trial
         /// (v1.0.6 active; downsell offering).
         static let yearlyDiscount = "jenifit_yearly_discount"
