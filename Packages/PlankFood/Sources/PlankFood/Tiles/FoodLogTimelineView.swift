@@ -505,14 +505,29 @@ public struct FoodLogTimelineView: View {
                     .padding(.horizontal, FoodTheme.Space.lg)
                     .padding(.top, 22)
 
+                // App v3.0 — protein leads the plate (the same
+                // hierarchy as the band, the day receipts, and the
+                // evening close). Calories fold into the context line
+                // below: useful, never the headline. Protein-less
+                // entries keep the kcal hero as the honest fallback.
                 HStack(alignment: .lastTextBaseline, spacing: 5) {
-                    Text("\(Int(entry.kcal.rounded()))")
-                        .font(.custom("JeniHeroSerif-Regular", size: 40))
-                        .monospacedDigit()
-                        .foregroundStyle(FoodTheme.textPrimary)
-                    Text("cal")
-                        .font(.custom("DMSans-Regular", size: 15))
-                        .foregroundStyle(FoodTheme.textSecondary)
+                    if Int(entry.protein.rounded()) > 0 {
+                        Text("\(Int(entry.protein.rounded()))g")
+                            .font(.custom("JeniHeroSerif-Regular", size: 40))
+                            .monospacedDigit()
+                            .foregroundStyle(FoodTheme.textPrimary)
+                        Text("protein")
+                            .font(.custom("JeniHeroSerif-Italic", size: 17))
+                            .foregroundStyle(FoodTheme.accent)
+                    } else {
+                        Text("\(Int(entry.kcal.rounded()))")
+                            .font(.custom("JeniHeroSerif-Regular", size: 40))
+                            .monospacedDigit()
+                            .foregroundStyle(FoodTheme.textPrimary)
+                        Text("cal")
+                            .font(.custom("DMSans-Regular", size: 15))
+                            .foregroundStyle(FoodTheme.textSecondary)
+                    }
                 }
                 .padding(.top, 8)
 
@@ -628,9 +643,13 @@ public struct FoodLogTimelineView: View {
         let dayRows = entries.filter {
             Calendar.current.isDate($0.loggedAt, inSameDayAs: entry.loggedAt)
         }
-        guard dayRows.count > 1, dayTotal > 0 else { return time }
+        // v3.0 — with protein in the hero slot, calories live here:
+        // present, honest ("about"), never the headline.
+        let kcalPart = Int(entry.protein.rounded()) > 0
+            ? "about \(Int(entry.kcal.rounded())) cal · " : ""
+        guard dayRows.count > 1, dayTotal > 0 else { return kcalPart + time }
         let pct = Int((entry.kcal / dayTotal * 100).rounded())
-        return "\(pct)% of the day · \(time)"
+        return "\(kcalPart)\(pct)% of the day · \(time)"
     }
 
     private func dayKcalTotal(for entry: FoodLogPersister.FoodLogEntry) -> Double {

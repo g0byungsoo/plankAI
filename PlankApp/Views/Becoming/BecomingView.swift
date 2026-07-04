@@ -103,19 +103,20 @@ struct BecomingView: View {
         }
         .onReceive(FoodLogPersister.changeNotifier) { _ in refresh() }
         .sheet(isPresented: $showLogWeight) {
-            LogWeightSheet(
+            JKWeightRitual(
                 startingFromKg: week?.weightLogs.first?.weightKg ?? 65,
+                priorLoggedCount: week?.weightLogs.count ?? 0,
                 isUpdatingToday: hasLoggedToday,
                 onSave: { kg in
                     WeightLogWriter.persist(kg: kg, userId: userId, in: modelContext)
-                    showLogWeight = false
                     refresh()
                 },
+                onDone: { showLogWeight = false },
                 onCancel: { showLogWeight = false }
             )
-            .presentationDetents([.fraction(0.55)])
+            .presentationDetents([.fraction(0.7)])
             .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.bgElevated)
+            .presentationBackground(Palette.bgPrimary)
         }
         .sheet(isPresented: $showProfileHub) {
             ProfileHubView(onClose: { showProfileHub = false })

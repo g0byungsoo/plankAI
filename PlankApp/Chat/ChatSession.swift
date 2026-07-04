@@ -46,6 +46,9 @@ final class ChatSession {
 
     private(set) var entries: [Entry] = []
     private(set) var isStreaming = false
+    /// v3.0 — set when the last turn ended in the friendly error line;
+    /// drives the quiet "try again" affordance under the transcript.
+    private(set) var lastTurnFailed = false
     var composerText = ""
 
     // Injected by the host view.
@@ -136,6 +139,14 @@ final class ChatSession {
     func send() {
         let text = composerText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isStreaming else { return }
+        // v3.0 — double-send protection: an identical message inside
+        // 3s is a stutter (double-tap, submit+tap), not intent.
+        if let lastUser = entries.last(where: { $0.kind == .user }),
+           lastUser.text == text,
+           Date.now.timeIntervalSince(lastUser.createdAt) < 3 {
+            composerText = ""
+            return
+        }
         composerText = ""
         Haptics.soft()
 
@@ -149,6 +160,32 @@ final class ChatSession {
         }
 
         stream(toolResult: nil)
+    }
+
+    /// v3.0 — the failed turn's second chance: drop the error line
+    /// (screen + store) and re-ask the model. The wire window still
+    /// ends with her original message, so nothing needs retyping.
+    func retryLastTurn() {
+        guard lastTurnFailed, !isStreaming else { return }
+        if let last = entries.last, last.kind == .jeni {
+            let failedId = last.id
+            entries.removeLast()
+            deletePersisted(id: failedId)
+        }
+        lastTurnFailed = false
+        Haptics.soft()
+        stream(toolResult: nil)
+    }
+
+    private func deletePersisted(id: String) {
+        guard let modelContext else { return }
+        let d = FetchDescriptor<ChatMessageRecord>(
+            predicate: #Predicate { $0.id == id }
+        )
+        if let record = (try? modelContext.fetch(d))?.first {
+            modelContext.delete(record)
+            try? modelContext.save()
+        }
     }
 
     private func sendSystemSeed(_ seed: String) {
@@ -168,6 +205,7 @@ final class ChatSession {
     private func stream(toolResult: ChatToolResult?) {
         guard let modelContext, !userId.isEmpty else { return }
         isStreaming = true
+        lastTurnFailed = false
 
         let streamingId = UUID().uuidString
         entries.append(Entry(
@@ -190,19 +228,24 @@ final class ChatSession {
                     switch event {
                     case .token(let t):
                         collected += t
+                        self.lastTurnFailed = false
                         self.updateStreaming(id: streamingId, text: collected)
                     case .toolCall(let call):
                         toolCalls.append(call)
                     case .done:
                         break
                     case .error(let message):
-                        collected = collected.isEmpty ? message : collected
+                        if collected.isEmpty {
+                            collected = message
+                            self.lastTurnFailed = true
+                        }
                         self.updateStreaming(id: streamingId, text: collected)
                     }
                 }
             } catch {
                 if collected.isEmpty {
                     collected = "she couldn't answer just now. try again in a moment."
+                    self.lastTurnFailed = true
                     self.updateStreaming(id: streamingId, text: collected)
                 }
             }

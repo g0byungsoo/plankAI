@@ -30,9 +30,6 @@ struct JeniChatView: View {
                 .padding(.top, Space.hero)
                 .jkBeat1()
 
-                disclaimer
-                    .padding(.top, Space.sm)
-
                 transcript
             }
         }
@@ -80,17 +77,44 @@ struct JeniChatView: View {
     // MARK: - Transcript
 
     private var transcript: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             LazyVStack(alignment: .leading, spacing: Space.lg) {
                 ForEach(session.entries) { entry in
                     entryView(entry)
                         .id(entry.id)
                 }
+                if session.lastTurnFailed && !session.isStreaming {
+                    Button {
+                        session.retryLastTurn()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.system(size: 11, weight: .medium))
+                            Text("try again")
+                                .font(.custom("DMSans-Medium", size: 13))
+                        }
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .overlay(
+                            Capsule().strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
+                        )
+                    }
+                    .buttonStyle(JKPress())
+                    .transition(.opacity)
+                }
                 if session.entries.isEmpty {
-                    JKEmptyState(
-                        line: "ask her anything about your plan",
-                        italic: ["anything"]
-                    )
+                    VStack(spacing: 10) {
+                        JKEmptyState(
+                            line: emptyGreeting.line,
+                            italic: emptyGreeting.italic
+                        )
+                        Text("jeni supports your plan. she's not medical care.")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
                     .padding(.top, Space.xl)
                 }
                 Color.clear.frame(height: 8).id("chat.tail")
@@ -102,6 +126,47 @@ struct JeniChatView: View {
         .defaultScrollAnchor(.bottom)
         .scrollDismissesKeyboard(.interactively)
         .onTapGesture { composerFocused = false }
+        // v3.0 — the transcript stays pinned to the tail while jeni
+        // writes: a sentence being written, never content escaping
+        // under the composer (the audit frame caught a clipped
+        // bubble mid-keyboard).
+        .onChange(of: session.entries.last?.text) { _, _ in
+            guard session.isStreaming else { return }
+            proxy.scrollTo("chat.tail", anchor: .bottom)
+        }
+        .onChange(of: session.entries.count) { _, _ in
+            withAnimation(Motion.entranceSoft) {
+                proxy.scrollTo("chat.tail", anchor: .bottom)
+            }
+        }
+        .onChange(of: composerFocused) { _, focused in
+            guard focused else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                proxy.scrollTo("chat.tail", anchor: .bottom)
+            }
+        }
+        }
+    }
+
+    /// Time-aware greeting — the only inputs are the clock and her
+    /// name-free register (provenance rule: nothing invented).
+    private var emptyGreeting: (line: String, italic: [String]) {
+        switch Calendar.current.component(.hour, from: .now) {
+        case 5..<12: return ("good morning \u{2665}\u{FE0E} what's on your mind?", ["morning"])
+        case 12..<18: return ("what's on your mind this afternoon?", ["afternoon"])
+        default: return ("good evening \u{2665}\u{FE0E} what's on your mind?", ["evening"])
+        }
+    }
+
+    /// v3.0 — the "JENI" kicker marks the START of her turn, not
+    /// every paragraph: consecutive jeni entries group like a letter.
+    private func showsKicker(before entry: ChatSession.Entry) -> Bool {
+        guard let idx = session.entries.firstIndex(where: { $0.id == entry.id }),
+              idx > 0 else { return true }
+        switch session.entries[idx - 1].kind {
+        case .jeni, .careLine: return false
+        default: return true
+        }
     }
 
     @ViewBuilder
@@ -109,26 +174,28 @@ struct JeniChatView: View {
         switch entry.kind {
         case .user:
             HStack {
-                Spacer(minLength: 44)
+                Spacer(minLength: 56)
                 Text(entry.text)
                     .font(.custom("DMSans-Regular", size: 15))
                     .foregroundStyle(Palette.textPrimary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 11)
+                    .padding(.horizontal, 15)
+                    .padding(.vertical, 10)
                     .background(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(Palette.accentSubtle.opacity(0.55))
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Palette.accentSubtle.opacity(0.42))
                     )
             }
             .transition(.opacity.combined(with: .offset(y: 6)))
 
         case .jeni, .careLine:
             VStack(alignment: .leading, spacing: 6) {
-                Text("jeni")
-                    .font(Typo.captionTracked)
-                    .kerning(1.4)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
+                if showsKicker(before: entry) {
+                    Text("jeni")
+                        .font(Typo.captionTracked)
+                        .kerning(1.4)
+                        .textCase(.uppercase)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
                 if entry.text.isEmpty && entry.isStreaming {
                     JeniThinkingIndicator()
                 } else {
@@ -140,7 +207,11 @@ struct JeniChatView: View {
 
         case .toolCard(let card):
             toolCardView(entry: entry, card: card)
-                .transition(.opacity.combined(with: .offset(y: 6)))
+                .transition(
+                    .scale(scale: 0.97, anchor: .bottomLeading)
+                        .combined(with: .opacity)
+                        .combined(with: .offset(y: 8))
+                )
         }
     }
 
@@ -151,8 +222,10 @@ struct JeniChatView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: ChatToolRouter.glyph(for: card.call.name))
-                    .font(.system(size: 15, weight: .light))
-                    .foregroundStyle(Palette.cocoaSecondary)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Palette.cocoaPrimary)
+                    .frame(width: 28, height: 28)
+                    .background(Circle().fill(Palette.accentSubtle.opacity(0.5)))
                 Text(entry.text)
                     .font(.custom("DMSans-Medium", size: 15))
                     .foregroundStyle(Palette.textPrimary)
@@ -331,12 +404,24 @@ struct JeniProse: View {
         }
     }
 
+    /// v3.0 voice guard — the model occasionally emits emoji hearts;
+    /// the brand heart is the text glyph. Mapped at render time so
+    /// the transcript never code-switches.
+    private var normalizedText: String {
+        text
+            .replacingOccurrences(of: "\u{2764}\u{FE0F}", with: "\u{2665}\u{FE0E}")
+            .replacingOccurrences(of: "\u{2764}", with: "\u{2665}\u{FE0E}")
+            .replacingOccurrences(of: "\u{1F495}", with: "\u{2665}\u{FE0E}")
+            .replacingOccurrences(of: "\u{1F497}", with: "\u{2665}\u{FE0E}")
+            .replacingOccurrences(of: "\u{1F49E}", with: "\u{2665}\u{FE0E}")
+    }
+
     private var paragraphs: [String] {
-        let parts = text
+        let parts = normalizedText
             .components(separatedBy: "\n\n")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
-        return parts.isEmpty ? [text] : parts
+        return parts.isEmpty ? [normalizedText] : parts
     }
 
     private func liveTail(isLast: Bool) -> Text {

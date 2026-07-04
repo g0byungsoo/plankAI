@@ -20,6 +20,7 @@ struct MainShell: View {
 
     @State private var payment = PaymentService.shared
     @State private var router = AppRouter.shared
+    @State private var keyboardUp = false
     @State private var trialNudge = TrialNudgeCoordinator.shared
 
     @State private var showingPostPurchase = false
@@ -44,10 +45,24 @@ struct MainShell: View {
             tabTree(.becoming) { BecomingHost() }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            JKTabBar(
-                selection: $router.tab,
-                badge: router.jeniHasUnread ? .jeni : nil
-            )
+            // v3.0 — the bar yields to the keyboard: while she types
+            // (chat composer, weight type-in) the tabs step aside
+            // instead of floating awkwardly above the keys.
+            if !keyboardUp {
+                JKTabBar(
+                    selection: $router.tab,
+                    badge: router.jeniHasUnread ? .jeni : nil
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIResponder.keyboardWillShowNotification)) { _ in
+            withAnimation(.easeOut(duration: 0.22)) { keyboardUp = true }
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(.easeOut(duration: 0.22)) { keyboardUp = false }
         }
         .onAppear {
             #if DEBUG

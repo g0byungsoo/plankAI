@@ -2591,15 +2591,17 @@ private struct LogWeightSheetPreviewHarness: View {
             }
         }
         .sheet(isPresented: $showingSheet) {
-            LogWeightSheet(
+            JKWeightRitual(
                 startingFromKg: 65,
+                priorLoggedCount: 2,
                 isUpdatingToday: false,
-                onSave: { _ in showingSheet = false },
+                onSave: { _ in },
+                onDone: { showingSheet = false },
                 onCancel: { showingSheet = false }
             )
-            .presentationDetents([.fraction(0.55)])
+            .presentationDetents([.fraction(0.7)])
             .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.programCard)
+            .presentationBackground(Palette.bgPrimary)
         }
     }
 }

@@ -60,6 +60,9 @@ struct LiveChatTransport: ChatTransporting {
                         throw URLError(.badServerResponse)
                     }
                     guard http.statusCode == 200 else {
+                        #if DEBUG
+                        NSLog("[JeniChatWire] non-200: %d", http.statusCode)
+                        #endif
                         continuation.yield(.error(errorLine(for: http.statusCode)))
                         continuation.finish()
                         return
@@ -103,6 +106,9 @@ struct LiveChatTransport: ChatTransporting {
                     }
                     continuation.finish()
                 } catch {
+                    #if DEBUG
+                    NSLog("[JeniChatWire] threw: %@", String(describing: error))
+                    #endif
                     continuation.finish(throwing: error)
                 }
             }

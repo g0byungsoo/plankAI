@@ -1,4 +1,6 @@
 import SwiftUI
+import SwiftData
+import PlankSync
 import PlankFood
 
 // MARK: - TodayModuleHost
@@ -164,25 +166,39 @@ private struct TodayModuleHost: ViewModifier {
         }
     }
 
+    /// Weigh-ins already on file — the ritual's confirmation copy is
+    /// count-aware (first / second / steady-state).
+    private func priorWeighInCount() -> Int {
+        guard !userId.isEmpty else { return 0 }
+        let uid = userId
+        let d = FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate { $0.userId == uid }
+        )
+        return (try? modelContext.fetchCount(d)) ?? 0
+    }
+
     // MARK: - Sheets
 
     @ViewBuilder
     private func sheetContent(_ sheet: TodayModuleState.Sheet) -> some View {
         switch sheet {
         case .logWeight:
-            LogWeightSheet(
+            JKWeightRitual(
                 startingFromKg: snapshot?.latestWeightKg ?? 65,
+                priorLoggedCount: priorWeighInCount(),
                 isUpdatingToday: snapshot?.lastWeighInDaysAgo == 0,
                 onSave: { newKg in
+                    // Persist immediately; the sheet owns its exit via
+                    // onDone so the kept-beat is never cut short.
                     state.persistWeight(kg: newKg)
                     state.markAuto(.weighIn)
-                    state.dismissSheet()
                 },
+                onDone: { state.dismissSheet() },
                 onCancel: { state.dismissSheet() }
             )
-            .presentationDetents([.fraction(0.55)])
+            .presentationDetents([.fraction(0.7)])
             .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.bgElevated)
+            .presentationBackground(Palette.bgPrimary)
 
         case .markAsDone(let prescription):
             MarkAsDoneSheet(
@@ -204,7 +220,7 @@ private struct TodayModuleHost: ViewModifier {
 
         case .stepsDetail:
             TodayStepsSheet(goal: snapshot?.targets.steps ?? 7_500)
-                .presentationDetents([.fraction(0.62)])
+                .presentationDetents([.fraction(0.7)])
                 .presentationBackground(Palette.bgPrimary)
 
         case .dayPeek(let day):

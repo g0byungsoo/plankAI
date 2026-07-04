@@ -216,6 +216,13 @@ final class SurfaceInventoryUITests: XCTestCase {
             sleep(5)
             snap("jeni_tool_card")
         }
+        // v3.0 — the tab bar yields to the keyboard now (product
+        // behavior): dismiss the keyboard the way a user would
+        // before switching tabs.
+        if app.keyboards.count > 0 {
+            app.swipeDown(velocity: .fast)
+            sleep(1)
+        }
 
         // ── 10 · becoming ────────────────────────────────────────
         app.buttons["becoming"].firstMatch.tap()
