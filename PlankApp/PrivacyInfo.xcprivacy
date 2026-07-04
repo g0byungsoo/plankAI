@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	First-party privacy manifest for the JeniFit (plankAI) app target.
+	Scope: the APP's own required-reason API usage. Bundled SDKs
+	(PostHog, RevenueCat, Lottie, swift-crypto, supabase-swift) ship
+	their own PrivacyInfo.xcprivacy covering their usage.
+
+	Required-reason APIs used by first-party code:
+	  - UserDefaults (@AppStorage + UserDefaults.standard across 74
+	    files): stores this user's own app preferences and app state
+	    (onboarding answers, cohort flags, unit choice, per-day notes),
+	    readable only within the app/its container. Reason CA92.1 —
+	    "Access info from same app, per Apple's documentation." Not
+	    tracking, not shared with third parties.
+
+	No first-party use of file-timestamp, system-boot-time, disk-space,
+	or active-keyboard required-reason APIs (audited 2026-07-04).
+
+	NSPrivacyTracking / NSPrivacyTrackingDomains / NSPrivacyCollectedDataTypes
+	are intentionally omitted pending founder confirmation of the App
+	Store Connect privacy answers (see 32_PRIVACY_MANIFEST.md). They must
+	match the ASC nutrition label; this file declares only what is
+	objectively determinable from the code.
+	-->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>
