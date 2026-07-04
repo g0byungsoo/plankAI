@@ -72,7 +72,33 @@ struct DownsellPaywallView: View {
     /// Strikethrough comparison price. Pulled live from the default offering's
     /// yearly so the comparison stays accurate if pricing changes.
     private var standardPriceText: String {
-        standardYearlyPackage?.storeProduct.localizedPriceString ?? "$69.99"
+        // No hardcoded fallback: if the standard yearly can't be resolved
+        // we HIDE the strikethrough rather than show a fabricated price
+        // (this was the stale "$69.99" bug). Fully live from ASC.
+        standardYearlyPackage?.storeProduct.localizedPriceString ?? ""
+    }
+
+    /// Real discount magnitude from LIVE prices. nil until both packages
+    /// load. Drives the copy so it never claims a fraction the ASC
+    /// prices don't actually back.
+    private var discountPercent: Int? {
+        guard let discount = discountPackage, let standard = standardYearlyPackage else { return nil }
+        let d = (discount.storeProduct.price as NSDecimalNumber).doubleValue
+        let sPrice = (standard.storeProduct.price as NSDecimalNumber).doubleValue
+        guard sPrice > 0, d < sPrice else { return nil }
+        return Int(((sPrice - d) / sPrice * 100).rounded())
+    }
+    private var isHalfOff: Bool { (48...52).contains(discountPercent ?? -1) }
+    /// Headline magnitude — "half off" ONLY when the prices back it,
+    /// else the true percent, else neutral until loaded.
+    private var magnitudeLabel: String {
+        guard let pct = discountPercent else { return "your best price" }
+        return isHalfOff ? "half off" : "\(pct)% off"
+    }
+    /// Subcopy magnitude ("one year of jeni at ___").
+    private var magnitudePhrase: String {
+        guard let pct = discountPercent else { return "your best price" }
+        return isHalfOff ? "half price" : "\(pct)% off"
     }
 
     /// Per-week math + savings amount, both derived from live storeProduct
@@ -238,7 +264,7 @@ struct DownsellPaywallView: View {
                 .opacity(eyebrowVisible ? 1 : 0)
                 .offset(y: eyebrowVisible ? 0 : 8)
 
-            ItalicAccentText("half off, just for you.",
+            ItalicAccentText("\(magnitudeLabel), just for you.",
                              italic: ["just for you."],
                              alignment: .center)
                 .padding(.horizontal, Space.sm)
@@ -248,7 +274,7 @@ struct DownsellPaywallView: View {
             // v8 P8.10: lowercase + "session" replaces "workout"
             // (labor-coded) per the program-era language we use across
             // PlanView. "JeniFit" → "jeni" (peer register).
-            Text("one year of jeni at half price. your plan, your coach, every session.")
+            Text("one year of jeni at \(magnitudePhrase). your plan, your coach, every session.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
@@ -271,10 +297,12 @@ struct DownsellPaywallView: View {
 
                 if hasPricing {
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text(standardPriceText)
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundStyle(Palette.textSecondary)
-                            .strikethrough(true, color: Palette.textSecondary)
+                        if !standardPriceText.isEmpty {
+                            Text(standardPriceText)
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(Palette.textSecondary)
+                                .strikethrough(true, color: Palette.textSecondary)
+                        }
                         Text(discountPriceText)
                             .font(.system(size: 40, weight: .bold))
                             .foregroundStyle(Palette.accent)
@@ -355,7 +383,7 @@ struct DownsellPaywallView: View {
                 Task { await purchase() }
             } label: {
                 ZStack {
-                    Text("keep my half-off")
+                    Text("keep my offer")
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(Palette.textInverse)
                         .opacity(working ? 0 : 1)
@@ -494,7 +522,16 @@ struct DownsellPaywallView: View {
         do {
             let offerings = try await Purchases.shared.offerings()
             offering = offerings.offering(identifier: RevenueCatConfig.discountOfferingID)
+            // v3.0 bug fix: the strikethrough must read the SAME standard
+            // yearly the main paywall shows. PaywallView uses the DEBUG
+            // preview offering (v1_0_7) when present, else offerings.current
+            // — mirror that exactly here, or the two screens show
+            // different yearly prices (the "$69.99 vs $49.99" report).
+            #if DEBUG
+            defaultOffering = offerings.all[RevenueCatConfig.previewOfferingID] ?? offerings.current
+            #else
             defaultOffering = offerings.current
+            #endif
             #if DEBUG
             let allIDs = offerings.all.keys.sorted()
             let pkgIDs = offering?.availablePackages.map { $0.storeProduct.productIdentifier } ?? []
