@@ -319,7 +319,7 @@ Deno.serve(async (req) => {
     // Never forward provider error bodies to clients (deploy-audit
     // R8); the status code is enough for the app's friendly line.
     await upstream.text().catch(() => "");
-    logTelemetry(service, userId, 0, 0, "upstream_error", Date.now() - started);
+    await logTelemetry(service, userId, 0, 0, "upstream_error", Date.now() - started);
     return jsonResponse(502, { error: "upstream" });
   }
 
@@ -404,15 +404,21 @@ Deno.serve(async (req) => {
           encoder.encode(sse("error", { message: String(e).slice(0, 200) })),
         );
       } finally {
+        // Await the insert BEFORE closing the stream: the request isn't
+        // "done" until close(), so the isolate stays alive and the row
+        // reliably lands (post-close inserts were dropped). Wrapped so a
+        // telemetry hiccup can never leave the stream open.
+        try {
+          await logTelemetry(
+            service,
+            userId,
+            inputTokens,
+            outputTokens,
+            "ok",
+            Date.now() - started,
+          );
+        } catch (_) { /* telemetry must never hang the stream */ }
         controller.close();
-        logTelemetry(
-          service,
-          userId,
-          inputTokens,
-          outputTokens,
-          "ok",
-          Date.now() - started,
-        );
       }
     },
   });
@@ -427,7 +433,13 @@ Deno.serve(async (req) => {
   });
 });
 
-// 5 — telemetry (fire-and-forget)
+// 5 — telemetry. Returns a promise the caller AWAITS before the
+// response/stream completes, so the row lands while the isolate is
+// still alive. (EdgeRuntime.waitUntil registered from inside the stream
+// callback — i.e. after the Response was already returned — did not
+// persist in this streaming runtime; an awaited insert before close is
+// the robust path.) Errors are swallowed so telemetry can never fail a
+// chat turn or hang the stream.
 function logTelemetry(
   service: ReturnType<typeof createClient>,
   userId: string,
@@ -435,10 +447,10 @@ function logTelemetry(
   outputTokens: number,
   status: string,
   durationMs: number,
-) {
+): Promise<void> {
   const cost =
     (inputTokens * INPUT_PRICE + outputTokens * OUTPUT_PRICE) / 1_000_000;
-  service
+  return service
     .from("jeni_chat_telemetry")
     .insert({
       user_id: userId,

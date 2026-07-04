@@ -44,6 +44,13 @@ create policy coach_messages_update on public.coach_messages
   for update using (auth.uid() = user_id);
 create policy coach_messages_delete on public.coach_messages
   for delete using (auth.uid() = user_id);
+-- Table grants (v2.8 deploy fix): RLS gates ROWS, but table privileges
+-- gate ACCESS AT ALL. These tables were created without the default
+-- Supabase role grants that food_vision_telemetry has, so the client
+-- could not touch them regardless of RLS. Granted to authenticated to
+-- match the policies exactly (never anon; RLS still constrains to own
+-- rows).
+grant select, insert, update, delete on public.coach_messages to authenticated;
 
 -- 3 ─ jeni_chat_telemetry (RLS enabled, NO client policies —
 --     service-role only, mirrors food_vision_telemetry)
@@ -80,6 +87,10 @@ $$;
 revoke execute on function public.jeni_chat_spend_today() from public;
 revoke execute on function public.jeni_chat_spend_today() from anon;
 revoke execute on function public.jeni_chat_spend_today() from authenticated;
+-- Service-role only (matches the zero-policy RLS): the EF inserts
+-- telemetry + reads the per-user 'ok' count under service_role. Never
+-- anon or authenticated.
+grant select, insert on public.jeni_chat_telemetry to service_role;
 
 -- 4 ─ day_reflections
 create table if not exists public.day_reflections (
@@ -105,3 +116,5 @@ create policy day_reflections_insert on public.day_reflections
   for insert with check (auth.uid() = user_id);
 create policy day_reflections_update on public.day_reflections
   for update using (auth.uid() = user_id);
+-- No DELETE grant: day_reflections has no delete policy by design.
+grant select, insert, update on public.day_reflections to authenticated;
