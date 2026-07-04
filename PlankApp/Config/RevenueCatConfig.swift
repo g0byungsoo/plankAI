@@ -75,8 +75,10 @@ enum RevenueCatConfig {
     ///      `V2.*` values. The PaywallView 3-tier rendering + goal-aware
     ///      default selection logic activates simultaneously.
     enum ProductID {
-        /// $4.99/week, no introductory offer (v1.0.6 active).
-        static let weekly = "absmaxxing_weekly"
+        /// ACTIVE weekly product. 2026-07-04: switched from legacy
+        /// absmaxxing_weekly to the v2 product (JeniFit Weekly v2), which
+        /// is what the live v1_0_7 RevenueCat offering contains.
+        static let weekly = "jenifit_weekly_v2"
         /// ACTIVE yearly product. 2026-07-04: switched from the legacy
         /// absmaxxing_yearly ($69.99) to the approved v2 product
         /// (JeniFit Yearly v2). The app now resolves THIS product for
