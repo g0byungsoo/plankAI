@@ -17,6 +17,16 @@ enum RevenueCatConfig {
     /// → API keys → Public app-specific API key for the iOS app.
     static let apiKey = "appl_TEIuDMAvszcpVlmlJAvvXViohnJ"
 
+    /// v1.0.7 DEBUG design-preview prices. Shown by `debugMockPricing`
+    /// while the new products are still being set up in ASC/RC (so the
+    /// founder previews the design before real prices resolve). SINGLE
+    /// SOURCE so the main paywall and the downsell agree. Never used in
+    /// release builds.
+    enum MockPrice {
+        static let yearlyValue: Decimal = 49.99
+        static let yearlyText = "$49.99"
+    }
+
     /// The single entitlement gating Pro access across the app. Configured
     /// in RevenueCat dashboard → Entitlements.
     static let entitlementID = "pro"

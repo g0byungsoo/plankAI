@@ -390,7 +390,7 @@ struct PaywallView: View {
         if !debugMockPricing, let pkg = yearlyPackage {
             return "\(pkg.storeProduct.localizedPriceString)/year"
         }
-        return "$49.99/year"
+        return "\(RevenueCatConfig.MockPrice.yearlyText)/year"
     }
 
     /// 2026-05-30 (epic #1 child #3): quarterly tier display strings.

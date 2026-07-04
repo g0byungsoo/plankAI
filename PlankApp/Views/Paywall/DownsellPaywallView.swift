@@ -26,6 +26,10 @@ struct DownsellPaywallView: View {
     @State private var offering: Offering?
     @State private var defaultOffering: Offering?
     @State private var offeringsLoadFailed = false
+    /// All loaded offerings — lets the standard-yearly lookup search
+    /// broadly and lets the downsell mirror the paywall's mock-preview
+    /// state so the "original price" always shows + agrees.
+    @State private var allOfferings: [Offering] = []
     @State private var legalDoc: LegalDoc?
 
     // Entrance animation flags — stagger heart → sparkles → headline → card → CTA.
@@ -58,9 +62,42 @@ struct DownsellPaywallView: View {
     }
 
     private var standardYearlyPackage: Package? {
-        defaultOffering?.availablePackages.first {
-            $0.storeProduct.productIdentifier == RevenueCatConfig.ProductID.yearly
+        // Search every loaded offering so the ORIGINAL yearly price
+        // reliably resolves (default/preview first, then discount, then
+        // any other offering). First match wins. Fully live.
+        let ordered = [defaultOffering, offering].compactMap { $0 } + allOfferings
+        for off in ordered {
+            if let pkg = off.availablePackages.first(where: {
+                $0.storeProduct.productIdentifier == RevenueCatConfig.ProductID.yearly
+            }) { return pkg }
         }
+        return nil
+    }
+
+    /// Mirrors PaywallView.debugMockPricing: mock while the v1.0.7
+    /// quarterly product isn't resolving (ASC/RC setup incomplete), so
+    /// the downsell's original price MATCHES the paywall's yearly during
+    /// preview instead of diverging. Always false in release.
+    private var isMockPreview: Bool {
+        #if DEBUG
+        return !allOfferings.contains { off in
+            off.availablePackages.contains {
+                $0.storeProduct.productIdentifier == RevenueCatConfig.ProductID.quarterly
+            }
+        }
+        #else
+        return false
+        #endif
+    }
+
+    /// The standard yearly price as a number — real package, or the
+    /// shared mock value during the DEBUG preview. Drives the discount %.
+    private var standardYearlyPrice: Decimal? {
+        if let p = standardYearlyPackage?.storeProduct.price { return p }
+        #if DEBUG
+        if isMockPreview { return RevenueCatConfig.MockPrice.yearlyValue }
+        #endif
+        return nil
     }
 
     // MARK: Pricing text
@@ -72,19 +109,26 @@ struct DownsellPaywallView: View {
     /// Strikethrough comparison price. Pulled live from the default offering's
     /// yearly so the comparison stays accurate if pricing changes.
     private var standardPriceText: String {
-        // No hardcoded fallback: if the standard yearly can't be resolved
-        // we HIDE the strikethrough rather than show a fabricated price
-        // (this was the stale "$69.99" bug). Fully live from ASC.
-        standardYearlyPackage?.storeProduct.localizedPriceString ?? ""
+        // The ORIGINAL (pre-discount) price, struck through to emphasize
+        // the discount. Real ASC price when resolved; the shared mock
+        // during the DEBUG preview so it matches the paywall; hidden (not
+        // fabricated) only in a release where it genuinely can't resolve.
+        if let real = standardYearlyPackage?.storeProduct.localizedPriceString {
+            return real
+        }
+        #if DEBUG
+        if isMockPreview { return RevenueCatConfig.MockPrice.yearlyText }
+        #endif
+        return ""
     }
 
     /// Real discount magnitude from LIVE prices. nil until both packages
     /// load. Drives the copy so it never claims a fraction the ASC
     /// prices don't actually back.
     private var discountPercent: Int? {
-        guard let discount = discountPackage, let standard = standardYearlyPackage else { return nil }
+        guard let discount = discountPackage, let s = standardYearlyPrice else { return nil }
         let d = (discount.storeProduct.price as NSDecimalNumber).doubleValue
-        let sPrice = (standard.storeProduct.price as NSDecimalNumber).doubleValue
+        let sPrice = (s as NSDecimalNumber).doubleValue
         guard sPrice > 0, d < sPrice else { return nil }
         return Int(((sPrice - d) / sPrice * 100).rounded())
     }
@@ -521,6 +565,7 @@ struct DownsellPaywallView: View {
         offeringsLoadFailed = false
         do {
             let offerings = try await Purchases.shared.offerings()
+            allOfferings = Array(offerings.all.values)
             offering = offerings.offering(identifier: RevenueCatConfig.discountOfferingID)
             // v3.0 bug fix: the strikethrough must read the SAME standard
             // yearly the main paywall shows. PaywallView uses the DEBUG
