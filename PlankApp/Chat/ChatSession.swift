@@ -124,7 +124,13 @@ final class ChatSession {
         let snapshot = TodayStateService.snapshot(userId: userId, in: modelContext)
         guard snapshot.isEnrolled else { return }
         let brief = snapshot.brief
-        appendPersisted(role: "jeni", text: brief.line, dayKey: dayKey)
+        // v3: the letter opens with the WHOLE reading (line + the
+        // thread's second sentence) — same engine as Today, so the
+        // desk and the tab never disagree.
+        let text = [brief.line, brief.second]
+            .compactMap { $0 }
+            .joined(separator: " ")
+        appendPersisted(role: "jeni", text: text, dayKey: dayKey)
     }
 
     /// A coach-line tap arrives with a seed — jeni expands on it as

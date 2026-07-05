@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import Auth
+import PlankSync
 
 // MARK: - JeniChatView
 //
@@ -42,6 +43,9 @@ struct JeniChatView: View {
             session.loadHistory()
             router.jeniHasUnread = false
             Analytics.track(.jeniChatOpened)
+            // Her file greets a quiet desk open; folds once the
+            // conversation is the point.
+            fileExpanded = session.entries.count <= 1
             #if DEBUG
             // QA: exercise streaming + the tool-card flow without
             // typing (pairs with --uitest-mock-chat).
@@ -74,12 +78,99 @@ struct JeniChatView: View {
             .padding(.horizontal, Space.lg)
     }
 
+    // MARK: - Her file (the v5 dossier, alive)
+
+    @State private var fileExpanded = false
+
+    @ViewBuilder
+    private var herFileCard: some View {
+        let rows = fileRows()
+        if !rows.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                Button {
+                    Haptics.light()
+                    withAnimation(Motion.entranceSoft) { fileExpanded.toggle() }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text("her file")
+                            .font(Typo.captionTracked)
+                            .kerning(1.6)
+                            .textCase(.uppercase)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                            .rotationEffect(.degrees(fileExpanded ? 180 : 0))
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("her file, \(fileExpanded ? "expanded" : "collapsed")")
+
+                if fileExpanded {
+                    VStack(spacing: 0) {
+                        ForEach(Array(rows.enumerated()), id: \.offset) { idx, row in
+                            JKReceiptRow(
+                                lead: row.0,
+                                punch: row.1,
+                                punchItalic: [],
+                                showsRule: idx > 0
+                            )
+                        }
+                    }
+                    .padding(.top, 6)
+                    .transition(.opacity.combined(with: .offset(y: -4)))
+                }
+            }
+            .padding(.horizontal, Space.md)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+                    .fill(Palette.bgElevated)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+                    .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
+            )
+        }
+    }
+
+    /// Every row traces to a stored field; absent data = absent row
+    /// (the provenance rule — no dossier theater).
+    private func fileRows() -> [(String, String)] {
+        var rows: [(String, String)] = []
+        guard !userId.isEmpty else { return rows }
+        let plan = ProgramService.shared.activePlan(userId: userId, in: modelContext)
+        rows.append(("the chapter", CohortStore.chapter.fileWord))
+        if let plan {
+            let tier = IntensityTier(rawValue: plan.intensityTier) ?? .medium
+            let word = tier == .soft ? "gentle" : (tier == .medium ? "steady" : "strong")
+            rows.append(("the pace", "\(word), \(plan.totalDays) days"))
+        }
+        let targets = TargetsService.current(userId: userId, in: modelContext)
+        if let protein = targets.proteinG, !targets.numericsSuppressed {
+            let note = CohortStore.chapter == .onMedication ? "g, lean-mass first" : "g, most days"
+            rows.append(("protein floor", "\(protein)\(note)"))
+        }
+        if CohortStore.chapter == .keeping,
+           BandModel.settleWeightKg(plan: plan) != nil {
+            rows.append(("the band", "about 3 lb, watched for you"))
+        }
+        return rows
+    }
+
     // MARK: - Transcript
 
     private var transcript: some View {
         ScrollViewReader { proxy in
         ScrollView {
             LazyVStack(alignment: .leading, spacing: Space.lg) {
+                // v3 — HER FILE: the v5 dossier alive in the app. The
+                // desk never opens empty; every row traces to a stored
+                // field and taps into the right surface.
+                herFileCard
+
                 ForEach(session.entries) { entry in
                     entryView(entry)
                         .id(entry.id)
