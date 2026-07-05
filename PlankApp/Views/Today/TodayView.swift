@@ -103,10 +103,14 @@ struct TodayView: View {
                             .padding(.top, Space.section)
                             .jkBeat2(extraDelay: 0.1)
                         } else {
+                            // NOTE: the silk layer effect lives INSIDE
+                            // dayContent on the card+rows subtree only —
+                            // a layerEffect ancestor over EveningClose's
+                            // TextField renders SwiftUI's yellow
+                            // uncomposable-view placeholder.
                             dayContent(snapshot)
                                 .padding(.horizontal, Space.lg)
                                 .padding(.top, Space.section)
-                                .jkSilkSweep(trigger: silkTrigger)
 
                             // v2.4 — the read-becomes-a-rep chain
                             // (one-shot, set by lesson completion).
@@ -176,25 +180,29 @@ struct TodayView: View {
                 )
                 rhythmRows(snapshot, includeOneThing: true)
                     .padding(.top, Space.section)
+                    .jkSilkSweep(trigger: silkTrigger)
             } else {
-                if let one = snapshot.day?.oneThing {
-                    JKOneThingCard(
-                        title: oneThingTitle(one, snapshot: snapshot).text,
-                        italic: oneThingTitle(one, snapshot: snapshot).italic,
-                        subtitle: oneThingSubtitle(one, snapshot: snapshot),
-                        isDone: beatState(one, snapshot: snapshot).isDone,
-                        onTap: { modules.open(one, snapshot: snapshot) },
-                        onLongPress: { modules.longPress(one, snapshot: snapshot) }
-                    )
-                } else {
-                    JKOneThingCard(
-                        title: "nothing owed today. a walk if you want it \u{2665}\u{FE0E}",
-                        italic: ["nothing owed"],
-                        isPermission: true
-                    )
+                VStack(alignment: .leading, spacing: 0) {
+                    if let one = snapshot.day?.oneThing {
+                        JKOneThingCard(
+                            title: oneThingTitle(one, snapshot: snapshot).text,
+                            italic: oneThingTitle(one, snapshot: snapshot).italic,
+                            subtitle: oneThingSubtitle(one, snapshot: snapshot),
+                            isDone: beatState(one, snapshot: snapshot).isDone,
+                            onTap: { modules.open(one, snapshot: snapshot) },
+                            onLongPress: { modules.longPress(one, snapshot: snapshot) }
+                        )
+                    } else {
+                        JKOneThingCard(
+                            title: "nothing owed today. a walk if you want it \u{2665}\u{FE0E}",
+                            italic: ["nothing owed"],
+                            isPermission: true
+                        )
+                    }
+                    rhythmRows(snapshot, includeOneThing: false)
+                        .padding(.top, Space.md)
                 }
-                rhythmRows(snapshot, includeOneThing: false)
-                    .padding(.top, Space.md)
+                .jkSilkSweep(trigger: silkTrigger)
             }
         }
     }

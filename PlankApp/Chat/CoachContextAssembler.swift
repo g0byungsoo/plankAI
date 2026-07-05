@@ -24,6 +24,15 @@ enum CoachContextAssembler {
         }
         out["cohort"] = cohortWord
         if CohortStore.isMaintenanceMode { out["program_mode"] = "maintenance" }
+        // v3 — the chapter spine grounds jeni's register (losing /
+        // on_medication / keeping), the band zone grounds keeping
+        // conversations, kept-days grounds identity evidence, and the
+        // break state tells her to hold plan-talk entirely.
+        out["chapter"] = CohortStore.chapter.rawValue
+        if snapshot.isOnBreak { out["on_break"] = true }
+        if let zone = snapshot.bandZone { out["band_zone"] = zone }
+        let kept = PresenceLedger.keptDays
+        if kept > 0 { out["kept_days"] = kept }
 
         // — plan
         if let day = snapshot.day, snapshot.isEnrolled {

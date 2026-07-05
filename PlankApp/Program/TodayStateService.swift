@@ -50,6 +50,9 @@ struct TodaySnapshot {
     // v3 spine
     let chapter: Chapter
     let isOnBreak: Bool
+    /// Keeping chapter: today's band zone (BandZone.rawValue); nil
+    /// outside the chapter or before a settle weight exists.
+    let bandZone: String?
 
     var isEnrolled: Bool { plan != nil }
 
@@ -144,6 +147,16 @@ enum TodayStateService {
         // — return-gap tracking (the brief's comeback thread)
         let gap = consumeOpenGap()
 
+        // — band zone (keeping chapter; the same value feeds the
+        //   reading, the chat envelope, and — later — notifications)
+        let bandZone: String? = {
+            guard CohortStore.chapter == .keeping,
+                  let settle = BandModel.settleWeightKg(plan: plan),
+                  let emaLatest = ema.last?.emaKg
+            else { return nil }
+            return BandModel.zone(emaKg: emaLatest, settleKg: settle).rawValue
+        }()
+
         // — trailing-7 food days (the reading's mechanism provenance;
         //   same thresholds as InsightEngine.WeekState)
         var loggedDays7 = 0
@@ -191,15 +204,7 @@ enum TodayStateService {
             loggedDays7: loggedDays7,
             proteinDays7: proteinDays7,
             weekday: Calendar.current.component(.weekday, from: .now),
-            bandZone: {
-                // Keeping chapter only; zones read the EMA around her
-                // settle weight (BandModel). nil = no band yet.
-                guard CohortStore.chapter == .keeping,
-                      let settle = BandModel.settleWeightKg(plan: plan),
-                      let emaLatest = ema.last?.emaKg
-                else { return nil }
-                return BandModel.zone(emaKg: emaLatest, settleKg: settle).rawValue
-            }(),
+            bandZone: bandZone,
             yesterdaySat: {
                 guard let yesterday = Calendar.current.date(
                     byAdding: .day, value: -1, to: .now
@@ -226,7 +231,8 @@ enum TodayStateService {
             brief: brief,
             daysSinceLastOpen: gap,
             chapter: CohortStore.chapter,
-            isOnBreak: BreakState.isActive
+            isOnBreak: BreakState.isActive,
+            bandZone: bandZone
         )
     }
 
