@@ -1130,6 +1130,11 @@ struct BecomingTrendCanvas: View {
     let logs: [WeightLogRecord]
     let goalWeightKg: Double?
     var unit: WeightUnit = .lb
+    /// v3 keeping chapter: her settle weight (kg). When present the
+    /// canvas draws THE BAND — tinted home field (settle → +1.4kg)
+    /// and watch strip (+1.4 → +2.3kg) behind the line. Zones tint
+    /// the FIELD, never the number (02_DESIGN_LANGUAGE.md).
+    var bandSettleKg: Double? = nil
     // v1.3 (2026-06-18) — compressed per her75 typographer panel:
     // Apple Health charts ride at ~120pt on the Summary surface; her75
     // photo modules at ~100-120pt. 110pt lands the chart on register
@@ -1238,16 +1243,19 @@ struct BecomingTrendCanvas: View {
     @ViewBuilder private var headline: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
+                // v3: the LINE is the hero; the raw number is a quiet
+                // companion (trend > number is the app's own doctrine —
+                // a 40pt raw numeral was the loudest thing on Becoming).
                 Text(String(format: "%.1f", headlineWeightLb))
-                    .font(.custom("JeniHeroSerif-Regular", size: 40))
-                    .foregroundStyle(Palette.cocoaPrimary)
+                    .font(.custom("JeniHeroSerif-Regular", size: 22))
+                    .foregroundStyle(Palette.cocoaSecondary)
                     .monospacedDigit()
                     .contentTransition(.numericText())
                     .animation(.easeOut(duration: 0.2), value: headlineWeightLb)
                 Text(unit.label)
-                    .font(.custom("JeniHeroSerif-Italic", size: 18))
+                    .font(.custom("JeniHeroSerif-Italic", size: 13))
                     .foregroundStyle(Palette.accent)
-                    .baselineOffset(4)
+                    .baselineOffset(2)
             }
             Spacer()
             if let scrubDate = headlineDateLabel {
@@ -1299,6 +1307,50 @@ struct BecomingTrendCanvas: View {
         return (amount, tint)
     }
 
+    /// v3 keeping: the band field. Home (settle → +1.4kg) in a soft
+    /// accent wash; the watch strip (+1.4 → +2.3) fainter; a hairline
+    /// at settle. Clamped to the canvas; off-domain zones simply
+    /// don't render.
+    private func drawBandField(
+        ctx: GraphicsContext, size: CGSize,
+        yDom: ClosedRange<Double>, settleKg: Double
+    ) {
+        func y(_ kg: Double) -> CGFloat {
+            let v = toDisplay(kg)
+            let raw = size.height
+                - CGFloat((v - yDom.lowerBound) / max(0.0001, yDom.upperBound - yDom.lowerBound))
+                * size.height
+            return min(max(raw, 0), size.height)
+        }
+        let settleY = y(settleKg)
+        let driftY = y(settleKg + BandModel.driftingAtKg)
+        let resetY = y(settleKg + BandModel.resetAtKg)
+
+        // Home: between settle and the drift line (drift sits ABOVE
+        // settle in weight, so its y is smaller).
+        if settleY - driftY > 1 {
+            ctx.fill(
+                Path(CGRect(x: 0, y: driftY, width: size.width, height: settleY - driftY)),
+                with: .color(Palette.accentSubtle.opacity(0.30))
+            )
+        }
+        // Watch strip.
+        if driftY - resetY > 1 {
+            ctx.fill(
+                Path(CGRect(x: 0, y: resetY, width: size.width, height: driftY - resetY)),
+                with: .color(Palette.accentSubtle.opacity(0.14))
+            )
+        }
+        // Settle hairline.
+        if settleY > 0, settleY < size.height {
+            var line = Path()
+            line.move(to: CGPoint(x: 0, y: settleY))
+            line.addLine(to: CGPoint(x: size.width, y: settleY))
+            ctx.stroke(line, with: .color(Palette.cocoaPrimary.opacity(0.18)),
+                       style: StrokeStyle(lineWidth: 0.75, dash: [3, 3]))
+        }
+    }
+
     // MARK: - Canvas chart
 
     @ViewBuilder private var trendCanvas: some View {
@@ -1320,6 +1372,9 @@ struct BecomingTrendCanvas: View {
                 let phase = reduceMotion
                     ? 0.5
                     : (context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 6.0) / 6.0)
+                if let settle = bandSettleKg {
+                    drawBandField(ctx: ctx, size: canvasSize, yDom: yDom, settleKg: settle)
+                }
                 drawLine(ctx: ctx, points: mapped, size: canvasSize, phase: phase, progress: drawProgress)
                 drawScrubMarker(ctx: ctx, points: mapped, size: canvasSize)
             }

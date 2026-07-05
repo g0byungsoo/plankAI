@@ -184,9 +184,21 @@ struct BecomingView: View {
                 BecomingTrendCanvas(
                     logs: week.weightLogs,
                     goalWeightKg: snapshot?.plan?.goalWeightKg,
-                    unit: weightUnit
+                    unit: weightUnit,
+                    bandSettleKg: snapshot?.chapter == .keeping
+                        ? BandModel.settleWeightKg(plan: snapshot?.plan)
+                        : nil
                 )
                 .padding(.horizontal, Space.lg)
+
+                if snapshot?.chapter == .keeping,
+                   BandModel.settleWeightKg(plan: snapshot?.plan) != nil {
+                    Text("the tinted field is home. the line living there is the win.")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                        .padding(.horizontal, Space.lg)
+                        .padding(.top, 6)
+                }
 
                 if let detail = insights?.trendStory?.detail {
                     Text(detail)
