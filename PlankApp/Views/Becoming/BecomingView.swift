@@ -456,22 +456,14 @@ struct BecomingView: View {
     }
 
     private func resolvedLesson(_ snapshot: TodaySnapshot) -> ResolvedLessonRef? {
-        guard let plan = snapshot.plan else { return nil }
-        let tier = IntensityTier(rawValue: plan.intensityTier) ?? .medium
-        let cadence = IntensityProfile.from(tier: tier).lessonCadence
-        let ordinal = PrescriptionEngineV2.lessonOrdinal(
-            programDay: snapshot.programDay, cadence: cadence
-        ) ?? max(1, PrescriptionEngineV2.totalLessonDays(
-            totalDays: min(snapshot.programDay, plan.totalDays), cadence: cadence
-        ))
-        let total = PrescriptionEngineV2.totalLessonDays(
-            totalDays: plan.totalDays, cadence: cadence
-        )
-        return CBTCurriculumService.shared.lesson(
-            forProgramDay: ordinal,
-            totalDays: total,
-            cohort: CohortFlags.fromAppStorage()
-        )
+        // v3: ONE resolver (journey fallback keeps the card alive on
+        // non-lesson days); cohort variants finally resolve through
+        // CohortStore instead of the zero-writer fromAppStorage keys.
+        MethodResolver.resolve(
+            plan: snapshot.plan,
+            programDay: snapshot.programDay,
+            journeyFallback: true
+        )?.ref
     }
 
     private func journeyFraction(_ snapshot: TodaySnapshot) -> Double {

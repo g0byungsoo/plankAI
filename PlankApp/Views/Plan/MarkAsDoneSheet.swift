@@ -73,7 +73,9 @@ struct MarkAsDoneSheet: View {
                 .frame(maxWidth: .infinity)
 
             // Soft supporting line. Voice: trust the user, no proof asked.
-            Text("we trust you. tap below to mark today's \(prescription.rowTitle) as done.")
+            // (rowTitle can itself start with "today's" — strip it so the
+            // lesson row never reads "today's today's lesson".)
+            Text("we trust you. tap below to mark today's \(prescription.rowTitle.replacingOccurrences(of: "today's ", with: "")) as done.")
                 .font(Typo.body)
                 .foregroundStyle(Palette.cocoaSecondary)
                 .multilineTextAlignment(.center)

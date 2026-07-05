@@ -168,46 +168,24 @@ final class TodayModuleState {
     }
 
     func openLesson(snapshot: TodaySnapshot?) {
-        guard let snapshot, let plan = snapshot.plan else { return }
+        guard snapshot?.plan != nil else { return }
         JeniMethodState.markEnrolled()
-        let tier = IntensityTier(rawValue: plan.intensityTier) ?? .medium
-        let cadence = IntensityProfile.from(tier: tier).lessonCadence
-        // Cadence-aware ordinal (04_DAILY_PROGRAM): soft-tier users
-        // sweep the full curriculum across their lesson-days instead
-        // of skipping 5 of every 7 slots.
-        let ordinal = PrescriptionEngineV2.lessonOrdinal(
-            programDay: snapshot.programDay, cadence: cadence
-        ) ?? snapshot.programDay
-        let lessonTotal = PrescriptionEngineV2.totalLessonDays(
-            totalDays: plan.totalDays, cadence: cadence
-        )
-        present(cover: .lesson(programDay: ordinal, totalDays: lessonTotal))
+        // v3: the host resolves fresh via MethodResolver at present
+        // time; the cover payload is vestigial (kept for enum id
+        // stability until the next schema-touching pass).
+        present(cover: .lesson(programDay: 0, totalDays: 0))
     }
 
     /// Today's lesson title for the beat subtitle ("food noise, named").
     func lessonTitle(snapshot: TodaySnapshot?) -> String? {
-        guard let snapshot, let plan = snapshot.plan else { return nil }
+        guard let snapshot, snapshot.plan != nil else { return nil }
         if cachedLessonTitleDay == snapshot.programDay { return cachedLessonTitle }
-        let tier = IntensityTier(rawValue: plan.intensityTier) ?? .medium
-        let cadence = IntensityProfile.from(tier: tier).lessonCadence
-        guard let ordinal = PrescriptionEngineV2.lessonOrdinal(
-            programDay: snapshot.programDay, cadence: cadence
-        ) else { return nil }
-        let lessonTotal = PrescriptionEngineV2.totalLessonDays(
-            totalDays: plan.totalDays, cadence: cadence
-        )
-        let resolved = CBTCurriculumService.shared.lesson(
-            forProgramDay: ordinal,
-            totalDays: lessonTotal,
-            cohort: CohortFlags.fromAppStorage()
+        let resolution = MethodResolver.resolve(
+            plan: snapshot.plan, programDay: snapshot.programDay
         )
         cachedLessonTitleDay = snapshot.programDay
-        cachedLessonTitle = resolved.map {
-            $0.slot.workingTitle
-                .replacingOccurrences(of: "[", with: "")
-                .replacingOccurrences(of: "]", with: "")
-                .replacingOccurrences(of: "*", with: "")
-                .lowercased()
+        cachedLessonTitle = resolution.map {
+            MethodResolver.cleanTitle($0.ref.slot.workingTitle)
         }
         return cachedLessonTitle
     }

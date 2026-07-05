@@ -996,6 +996,8 @@
 		AF1CB1EACB03AC010207ABB9 /* ProgramDayArchetype.swift in Sources */ = {isa = PBXBuildFile; fileRef = D12A1C59118F7141E04FBAF1 /* ProgramDayArchetype.swift */; };
 		AF764922AFE04902FE793FC4 /* CohortStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 618BA14E46F6AFDCE5D17475 /* CohortStore.swift */; };
 		DA13000000000000000A0001 /* DayModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA13000000000000000A0002 /* DayModel.swift */; };
+		DA13000000000000000A0007 /* RepEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA13000000000000000A0008 /* RepEngine.swift */; };
+		DA13000000000000000A0009 /* RepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1300000000000000000A10 /* RepView.swift */; };
 		AFC17D70FF9EC3FBACA6A8BD /* prep_short_standing_side_bend.m4a in Resources */ = {isa = PBXBuildFile; fileRef = FBCED84360A525DBF8BFAC49 /* prep_short_standing_side_bend.m4a */; };
 		AFC2A5DB8A55DE3A6CBBF87D /* jeni_prep_short_high_knees.m4a in Resources */ = {isa = PBXBuildFile; fileRef = BD190CB62D170F351E750B0F /* jeni_prep_short_high_knees.m4a */; };
 		APO002APO002APO002APO002 /* ActivationPushPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = APO001APO001APO001APO001 /* ActivationPushPolicy.swift */; };
@@ -1824,6 +1826,8 @@
 		61588F2A4EAEBBFB01CBE1B8 /* prep_short_reverse_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_reverse_lunge.m4a; sourceTree = "<group>"; };
 		618BA14E46F6AFDCE5D17475 /* CohortStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CohortStore.swift; sourceTree = "<group>"; };
 		DA13000000000000000A0002 /* DayModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DayModel.swift; sourceTree = "<group>"; };
+		DA13000000000000000A0008 /* RepEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RepEngine.swift; sourceTree = "<group>"; };
+		DA1300000000000000000A10 /* RepView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RepView.swift; sourceTree = "<group>"; };
 		61B5D74322ADDFABB14EC01D /* prep_full_side_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_side_jacks.m4a; sourceTree = "<group>"; };
 		61D1DBC290255DF5FF086A71 /* matson_prep_full_run_punch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_run_punch.m4a; sourceTree = "<group>"; };
 		61EEC5BC1E8FE012073B42CB /* jeni_prep_full_boat_bicycle.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_boat_bicycle.m4a; sourceTree = "<group>"; };
@@ -2888,6 +2892,7 @@
 				CT0001CT0001CT0001CT0001 /* CalorieTargetCalculator.swift */,
 				618BA14E46F6AFDCE5D17475 /* CohortStore.swift */,
 				DA13000000000000000A0002 /* DayModel.swift */,
+				DA13000000000000000A0008 /* RepEngine.swift */,
 				517A700A116797011FF73849 /* TargetsService.swift */,
 				7DE68484624232C7D08B09EC /* PrescriptionEngineV2.swift */,
 				E682F4F6CAB7860F17C9FCDA /* DailyBriefEngine.swift */,
@@ -3001,6 +3006,7 @@
 				762134E428B1EE5079BBDF9C /* Shaders */,
 				71FE5B4BD1BD5CA83F894631 /* Components */,
 				9B5BEF8DA1B04C7F9D1A214C /* LessonReaderView.swift */,
+				DA1300000000000000000A10 /* RepView.swift */,
 				EE95645216AB0076B53CC20B /* LessonQuoteCard.swift */,
 				73A837A34C1A99CF0D77FE71 /* LessonQuoteRenderer.swift */,
 				5C85A83F5A6525FE96B14C0A /* HandwrittenLessonQuoteCard.swift */,
@@ -6181,6 +6187,8 @@
 				2121D02FA4EFC05AF3FFCB6F /* OV5DeviceDemo.swift in Sources */,
 				AF764922AFE04902FE793FC4 /* CohortStore.swift in Sources */,
 				DA13000000000000000A0001 /* DayModel.swift in Sources */,
+				DA13000000000000000A0007 /* RepEngine.swift in Sources */,
+				DA13000000000000000A0009 /* RepView.swift in Sources */,
 				00CB4F4A6C3E8AED2BF31A0C /* TargetsService.swift in Sources */,
 				6E1F9C5EBEAA66D1EF5E485A /* PrescriptionEngineV2.swift in Sources */,
 				6B59B57D670C3FC0A30C6A30 /* DailyBriefEngine.swift in Sources */,

@@ -51,32 +51,31 @@ private struct TodayModuleHost: ViewModifier {
     @ViewBuilder
     private func coverContent(_ cover: TodayModuleState.Cover) -> some View {
         switch cover {
-        case let .lesson(programDay, totalDays):
-            if let resolved = CBTCurriculumService.shared.lesson(
-                forProgramDay: programDay,
-                totalDays: totalDays,
-                cohort: CohortFlags.fromAppStorage()
+        case .lesson:
+            // v3: the method's daily moment is THE REP (practice, not
+            // reading); the reader survives as "the whole idea" inside
+            // it. ONE resolver (MethodResolver — fixes the two sites
+            // that still read the zero-writer CohortFlags.fromAppStorage,
+            // silently resolving cohort variants on defaults). The
+            // legacy JeniMethodRitualView fallback is gone: the rep
+            // runs even when no lesson resolves.
+            if let resolution = MethodResolver.resolve(
+                plan: snapshot?.plan,
+                programDay: snapshot?.programDay ?? 0
             ) {
-                LessonReaderView(
-                    scheduled: resolved.scheduled,
-                    slot: resolved.slot,
-                    variant: resolved.variant,
-                    onComplete: {
-                        state.markAuto(.lesson(lessonId: nil))
-                        state.dismissCover()
-                    },
-                    onSkip: { _ in state.dismissCover() }
+                RepView(
+                    rep: RepEngine.rep(for: resolution.ref),
+                    resolution: resolution,
+                    onKept: { state.markAuto(.lesson(lessonId: nil)) },
+                    onClose: { state.dismissCover() }
                 )
                 .presentationBackground(Palette.bgPrimary)
             } else {
-                JeniMethodRitualView(
-                    lesson: LessonID(rawValue: JeniMethodState.lessonId(forDay: programDay)) ?? .generic,
-                    user: JeniMethodUserContext.fromAppStorage(),
-                    onComplete: {
-                        state.markAuto(.lesson(lessonId: nil))
-                        state.dismissCover()
-                    },
-                    onSkip: { _ in state.dismissCover() }
+                RepView(
+                    rep: RepEngine.beginAgainRep,
+                    resolution: nil,
+                    onKept: { state.markAuto(.lesson(lessonId: nil)) },
+                    onClose: { state.dismissCover() }
                 )
                 .presentationBackground(Palette.bgPrimary)
             }
