@@ -47,6 +47,10 @@ struct TodaySnapshot {
     let brief: DailyBriefEngine.Brief
     let daysSinceLastOpen: Int
 
+    // v3 spine
+    let chapter: Chapter
+    let isOnBreak: Bool
+
     var isEnrolled: Bool { plan != nil }
 
     /// Completion fraction over binary beats (steps auto-tracks live
@@ -140,6 +144,21 @@ enum TodayStateService {
         // — return-gap tracking (the brief's comeback thread)
         let gap = consumeOpenGap()
 
+        // — trailing-7 food days (the reading's mechanism provenance;
+        //   same thresholds as InsightEngine.WeekState)
+        var loggedDays7 = 0
+        var proteinDays7 = 0
+        if let target = targets.proteinG {
+            var proteinByDay: [String: Double] = [:]
+            let weekStart = Calendar.current.date(byAdding: .day, value: -6, to: todayStart) ?? todayStart
+            for entry in FoodLogPersister.allEntries(userId: userId)
+            where entry.loggedAt >= weekStart {
+                proteinByDay[dayKey(for: entry.loggedAt), default: 0] += entry.protein
+            }
+            loggedDays7 = proteinByDay.count
+            proteinDays7 = proteinByDay.values.filter { $0 >= Double(target) }.count
+        }
+
         // — brief
         let d = UserDefaults.standard
         let promiseKept = programDay <= 2
@@ -166,7 +185,12 @@ enum TodayStateService {
             }(),
             maintenanceMode: CohortStore.isMaintenanceMode,
             glp1Cohort: CohortStore.glp1Cohort,
-            dayKey: dayKey()
+            dayKey: dayKey(),
+            chapter: CohortStore.chapter,
+            isOnBreak: BreakState.isActive,
+            loggedDays7: loggedDays7,
+            proteinDays7: proteinDays7,
+            weekday: Calendar.current.component(.weekday, from: .now)
         ))
 
         return TodaySnapshot(
@@ -185,7 +209,9 @@ enum TodayStateService {
             lastWeighInDaysAgo: lastWeighDaysAgo,
             targets: targets,
             brief: brief,
-            daysSinceLastOpen: gap
+            daysSinceLastOpen: gap,
+            chapter: CohortStore.chapter,
+            isOnBreak: BreakState.isActive
         )
     }
 

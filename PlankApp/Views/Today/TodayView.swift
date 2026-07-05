@@ -79,9 +79,9 @@ struct TodayView: View {
                         .jkBeat1()
 
                     if let snapshot {
-                        JKCoachLine(
-                            text: snapshot.brief.line,
-                            italic: snapshot.brief.italic,
+                        // THE READING — jeni's morning note, the hero.
+                        JKReadingBlock(
+                            brief: snapshot.brief,
                             onOpenChat: {
                                 router.openChat(seed: snapshot.brief.chatSeed)
                             }
@@ -94,57 +94,49 @@ struct TodayView: View {
                             .padding(.top, Space.section)
                             .jkBeat2(extraDelay: 0.05)
 
-                        beats(snapshot)
+                        if snapshot.isOnBreak {
+                            JKBreakCard(onReturn: {
+                                BreakState.end()
+                                refresh()
+                            })
                             .padding(.horizontal, Space.lg)
                             .padding(.top, Space.section)
-                            .jkSilkSweep(trigger: silkTrigger)
+                            .jkBeat2(extraDelay: 0.1)
+                        } else {
+                            dayContent(snapshot)
+                                .padding(.horizontal, Space.lg)
+                                .padding(.top, Space.section)
+                                .jkSilkSweep(trigger: silkTrigger)
 
-                        JKCoachMark(
-                            text: "tap a row to begin it. it strikes through when it's done.",
-                            seenKey: "jk.mark.beatRow"
-                        )
-                        .padding(.top, Space.md)
-
-                        // v2.4 — the read-becomes-a-rep chain (one-shot,
-                        // set by lesson completion).
-                        if let chain = modules.chainSuggestion {
-                            JKChainLine(
-                                lead: chain.lead,
-                                suggestion: chain.text,
-                                italic: chain.italic,
-                                action: {
-                                    modules.chainSuggestion = nil
-                                    if let seed = chain.chatSeed {
-                                        router.openChat(seed: seed)
-                                    } else if let route = chain.route {
-                                        router.open(route)
+                            // v2.4 — the read-becomes-a-rep chain
+                            // (one-shot, set by lesson completion).
+                            if let chain = modules.chainSuggestion {
+                                JKChainLine(
+                                    lead: chain.lead,
+                                    suggestion: chain.text,
+                                    italic: chain.italic,
+                                    action: {
+                                        modules.chainSuggestion = nil
+                                        if let seed = chain.chatSeed {
+                                            router.openChat(seed: seed)
+                                        } else if let route = chain.route {
+                                            router.open(route)
+                                        }
                                     }
-                                }
-                            )
-                            .padding(.horizontal, Space.lg)
-                            .padding(.top, Space.sm)
-                            .transition(.opacity.combined(with: .offset(y: 6)))
-                        }
+                                )
+                                .padding(.horizontal, Space.lg)
+                                .padding(.top, Space.sm)
+                                .transition(.opacity.combined(with: .offset(y: 6)))
+                            }
 
-                        TodayStateBand(
-                            snapshot: snapshot,
-                            liveSteps: steps.todayCount,
-                            onSnap: { modules.present(cover: .captureFlow) },
-                            onTapPlate: { _ in router.tab = .becoming }
-                        )
-                        .padding(.top, Space.section)
-                        .jkBeat2(extraDelay: 0.2)
-
-                        if isEvening {
-                            EveningClose(
+                            TodayStateBand(
                                 snapshot: snapshot,
-                                onReflect: { feeling in
-                                    storeReflection(feeling)
-                                }
+                                liveSteps: steps.todayCount,
+                                onSnap: { modules.present(cover: .captureFlow) },
+                                onTapPlate: { _ in router.tab = .becoming }
                             )
-                            .padding(.horizontal, Space.lg)
                             .padding(.top, Space.section)
-                            .jkBeat2(extraDelay: 0.25)
+                            .jkBeat2(extraDelay: 0.2)
                         }
                     }
 
@@ -154,6 +146,165 @@ struct TodayView: View {
             }
             .scrollIndicators(.hidden)
             .refreshable { refresh() }
+            // Scrolled content fades under the status bar instead of
+            // colliding with the clock (the v3 masthead scrim).
+            .overlay(alignment: .top) {
+                LinearGradient(
+                    colors: [Palette.bgPrimary, Palette.bgPrimary.opacity(0)],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .frame(height: 54)
+                .ignoresSafeArea(edges: .top)
+                .allowsHitTesting(false)
+            }
+    }
+
+    // MARK: - The day (one thing + rhythm / evening receipt)
+
+    /// Day shape: the one thing leads, the rhythm follows as hairline
+    /// rows. After 18:00 the receipt leads and every remaining beat
+    /// (the one thing included) softens into "still open" rows.
+    @ViewBuilder
+    private func dayContent(_ snapshot: TodaySnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if isEvening {
+                EveningClose(
+                    snapshot: snapshot,
+                    onReflect: { feeling in
+                        storeReflection(feeling)
+                    }
+                )
+                rhythmRows(snapshot, includeOneThing: true)
+                    .padding(.top, Space.section)
+            } else {
+                if let one = snapshot.day?.oneThing {
+                    JKOneThingCard(
+                        title: oneThingTitle(one, snapshot: snapshot).text,
+                        italic: oneThingTitle(one, snapshot: snapshot).italic,
+                        subtitle: oneThingSubtitle(one, snapshot: snapshot),
+                        isDone: beatState(one, snapshot: snapshot).isDone,
+                        onTap: { modules.open(one, snapshot: snapshot) },
+                        onLongPress: { modules.longPress(one, snapshot: snapshot) }
+                    )
+                } else {
+                    JKOneThingCard(
+                        title: "nothing owed today. a walk if you want it \u{2665}\u{FE0E}",
+                        italic: ["nothing owed"],
+                        isPermission: true
+                    )
+                }
+                rhythmRows(snapshot, includeOneThing: false)
+                    .padding(.top, Space.md)
+            }
+        }
+    }
+
+    /// The rhythm: every non-hero beat as a quiet hairline row.
+    @ViewBuilder
+    private func rhythmRows(_ snapshot: TodaySnapshot, includeOneThing: Bool) -> some View {
+        if let day = snapshot.day {
+            let rows = includeOneThing ? day.beats : day.rhythm
+            VStack(spacing: 0) {
+                ForEach(Array(rows.enumerated()), id: \.element.itemKey) { idx, beat in
+                    VStack(spacing: 0) {
+                        if idx > 0 {
+                            Rectangle()
+                                .fill(Palette.hairlineCocoa)
+                                .frame(height: 0.5)
+                        }
+                        JKRhythmRow(
+                            title: beatTitle(beat),
+                            note: rhythmNote(beat, snapshot: snapshot),
+                            glyph: beat.stickyGlyph,
+                            state: beatState(beat, snapshot: snapshot),
+                            liveTrailing: liveTrailing(beat),
+                            onTap: { modules.open(beat, snapshot: snapshot) },
+                            onLongPress: beat.isProgressRow
+                                ? nil
+                                : { modules.longPress(beat, snapshot: snapshot) }
+                        )
+                    }
+                    .jkBeat2(extraDelay: 0.08 + Double(idx) * Motion.revealStagger)
+                }
+            }
+        }
+    }
+
+    private func liveTrailing(_ beat: ProgramDayPrescription) -> String? {
+        if case .steps = beat {
+            return steps.todayCount.formatted()
+        }
+        return nil
+    }
+
+    /// Evening note for a still-open one thing; otherwise the beat's
+    /// standard note.
+    private func rhythmNote(_ beat: ProgramDayPrescription, snapshot: TodaySnapshot) -> String? {
+        if isEvening,
+           beat.itemKey == snapshot.day?.oneThing?.itemKey,
+           !beatState(beat, snapshot: snapshot).isDone {
+            return "still open, no pressure"
+        }
+        return beatSubtitle(beat, snapshot: snapshot)
+    }
+
+    // MARK: - One-thing copy (ask-shaped, provenance-backed)
+
+    private func oneThingTitle(
+        _ beat: ProgramDayPrescription, snapshot: TodaySnapshot
+    ) -> (text: String, italic: [String]) {
+        switch beat {
+        case .snapMeal:
+            if snapshot.chapter == .onMedication {
+                return ("one gentle plate, protein first", ["protein first"])
+            }
+            if snapshot.plates.isEmpty {
+                return ("snap your first plate", ["first"])
+            }
+            return ("snap the next plate", ["next"])
+        case .workout(_, let minutes, _):
+            return ("move for \(minutes) minutes", ["move"])
+        case .lesson:
+            return ("two minutes with the method", ["method"])
+        case .weighIn:
+            return ("the trend check", ["trend"])
+        case .breath:
+            return ("sixty seconds of breath", ["sixty seconds"])
+        case .steps, .plank, .water, .measurements:
+            return (beatTitle(beat), [])
+        }
+    }
+
+    private func oneThingSubtitle(
+        _ beat: ProgramDayPrescription, snapshot: TodaySnapshot
+    ) -> String? {
+        switch beat {
+        case .snapMeal:
+            if snapshot.chapter == .onMedication, let target = snapshot.targets.proteinG {
+                return "small plates count double · aim near \(target)g"
+            }
+            if snapshot.day?.archetype == .protein, let target = snapshot.targets.proteinG {
+                return "protein first · aim near \(target)g"
+            }
+            let n = snapshot.plates.count
+            return n == 0 ? "one photo · we read the plate"
+                          : (n == 1 ? "one plate so far" : "\(n) plates so far")
+        case .workout(let tier, _, _):
+            return "\(tierWord(tier)) · pause or end anytime"
+        case .lesson:
+            return modules.lessonTitle(snapshot: snapshot) ?? "a 2-minute read"
+        case .weighIn:
+            if snapshot.day?.weighInIsStaleFallback == true {
+                return "been a minute · zero verdicts"
+            }
+            return snapshot.chapter == .keeping
+                ? "the weekly trend check"
+                : "thirty seconds, then it's done"
+        case .breath:
+            return "that's the whole assignment \u{2665}\u{FE0E}"
+        case .steps, .plank, .water, .measurements:
+            return nil
+        }
     }
 
     // MARK: - Masthead
@@ -178,6 +329,9 @@ struct TodayView: View {
     }
 
     private var archetypeNote: String? {
+        if snapshot?.isOnBreak == true {
+            return "on a break \u{2665}\u{FE0E}"
+        }
         guard let archetype = snapshot?.day?.archetype else { return nil }
         let pill = archetype.pillCopy
         return pill.text
@@ -202,37 +356,18 @@ struct TodayView: View {
                 ) {
                     modules.present(sheet: sheet)
                 }
+            },
+            archetypeForDay: { day in
+                ProgramDayArchetype.archetype(
+                    forProgramDay: day,
+                    glp1Status: CohortStore.glp1StatusKey,
+                    restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
+                )
             }
         )
     }
 
-    // MARK: - Beats
-
-    private func beats(_ snapshot: TodaySnapshot) -> some View {
-        VStack(spacing: Space.optionGap) {
-            if let day = snapshot.day {
-                ForEach(Array(day.beats.enumerated()), id: \.element.itemKey) { idx, beat in
-                    JKBeatRow(
-                        title: beatTitle(beat),
-                        subtitle: beatSubtitle(beat, snapshot: snapshot),
-                        thumbAsset: beat.stickerAsset,
-                        glyph: beat.stickyGlyph,
-                        state: beatState(beat, snapshot: snapshot),
-                        isHero: idx == 0,
-                        onTap: { modules.open(beat, snapshot: snapshot) },
-                        // Progress rows (steps) have no manual override, so
-                        // no long-press. Passing nil keeps their tap clean:
-                        // JKBeatRow only arms the tap-swallow when a real
-                        // long-press handler exists.
-                        onLongPress: beat.isProgressRow
-                            ? nil
-                            : { modules.longPress(beat, snapshot: snapshot) }
-                    )
-                    .jkBeat2(extraDelay: 0.08 + Double(idx) * Motion.revealStagger)
-                }
-            }
-        }
-    }
+    // MARK: - Beat copy
 
     private func beatTitle(_ beat: ProgramDayPrescription) -> String {
         switch beat {

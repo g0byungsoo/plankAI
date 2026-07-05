@@ -302,8 +302,11 @@ final class SurfaceInventoryUITests: XCTestCase {
         }
 
         snap("today_rest_day")
+        // v3: on a rest day the breath IS the one-thing card ("the one
+        // thing, sixty seconds of breath"); older builds rendered a
+        // "breathe" row — match either so the leg stays bisectable.
         let breathRow = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'breathe'")
+            NSPredicate(format: "label CONTAINS 'sixty seconds of breath' OR label BEGINSWITH 'breathe'")
         ).firstMatch
         guard breathRow.waitForExistence(timeout: 6) else { return }
         breathRow.tap()
@@ -328,8 +331,10 @@ final class SurfaceInventoryUITests: XCTestCase {
     ///    tap AFTER a long-press still enters the module — proving the
     ///    longPressJustFired flag both suppresses the release-tap and
     ///    resets so it never eats a later real tap.
-    /// Seeded at day 14 (a rest day): the non-progress "breathe" beat is
-    /// present and days 1-13 are in the past.
+    /// Seeded at day 14 (a rest day): "the method" rhythm row is present
+    /// (medium tier = daily lesson cadence) and days 1-13 are in the past.
+    /// v3 note: the hero beat became the one-thing CARD, so the gesture
+    /// regression pins a rhythm ROW (the surface the fix shipped on).
     func testHomeRowGesturesAndPastDay() throws {
         let app = XCUIApplication()
         app.launchArguments = [
@@ -340,10 +345,10 @@ final class SurfaceInventoryUITests: XCTestCase {
         sleep(7)
 
         let breatheRow = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'breathe'")
+            NSPredicate(format: "label BEGINSWITH 'the method'")
         ).firstMatch
         XCTAssertTrue(breatheRow.waitForExistence(timeout: 8),
-                      "Today should render its beat rows")
+                      "Today should render its rhythm rows")
 
         // ── Bug 2 — a PAST day-strip cell opens the review sheet.
         // Seeded at day 14, so day 13 is yesterday (past, and on-screen

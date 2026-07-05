@@ -48,9 +48,9 @@ struct ProgramDayStrip: View {
     private static let cellGap: CGFloat = 8
     private static let cellStride: CGFloat = cellWidth + cellGap
 
-    /// Past-day completion threshold for ".completed" vs ".partial".
-    /// 3 of 5 = forgiving (half + 1).
-    private static let completedThreshold: Int = 3
+    /// v3: the shared standing vocabulary decides kept vs partial
+    /// (DayModel.swift) — one threshold across strip, review, receipts.
+    private static let completedThreshold: Int = DayStanding.keptThreshold
 
     @State private var dragOffset: CGFloat = 0
 
@@ -79,6 +79,7 @@ struct ProgramDayStrip: View {
                     day: day,
                     state: stateForCell(day: day),
                     archetype: archetypeForDay?(day),
+                    isFarAhead: day > programDay + 7,
                     onTap: {
                         Haptics.light()
                         onTap(routeFor(day: day))
@@ -178,10 +179,14 @@ struct ProgramDayCell: View {
     let day: Int                  // 1-indexed; 0 only for .newProgram
     let state: State
     /// v1.0.10 — optional archetype for this day. When non-nil and the
-    /// cell is in `.locked` state, the archetype's letter renders in
-    /// place of the lock glyph so users can mentally prep for upcoming
-    /// protein / movement / rest days.
+    /// cell is in `.locked` state, the archetype's letter renders under
+    /// the numeral so users can mentally prep for upcoming protein /
+    /// movement / rest days.
     var archetype: ProgramDayArchetype? = nil
+    /// v3 — beyond next week the numeral dims further ("not written
+    /// yet"). No padlock glyphs anywhere: locks are a dark-pattern
+    /// register this brand doesn't speak.
+    var isFarAhead: Bool = false
     let onTap: () -> Void
 
     enum State {
@@ -212,13 +217,12 @@ struct ProgramDayCell: View {
         case .today:
             RoundedRectangle(cornerRadius: 10)
                 .fill(Palette.cocoaPrimary)
-        case .completed:
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Palette.programCard)
         case .newProgram:
             RoundedRectangle(cornerRadius: 10)
                 .strokeBorder(Palette.cocoaTertiary, style: StrokeStyle(lineWidth: 1.2, dash: [3, 3]))
-        case .partial, .missed, .locked:
+        case .completed, .partial, .missed, .locked:
+            // v3: past days carry a standing DOT, not a filled card —
+            // the strip reads as a life, not a scoreboard.
             Color.clear
         }
     }
@@ -236,14 +240,14 @@ struct ProgramDayCell: View {
                     .frame(width: 4, height: 4)
             }
         case .completed:
-            VStack(spacing: 2) {
+            VStack(spacing: 4) {
                 Text("\(day)")
                     .font(.custom("DMSans-Regular", size: 15, relativeTo: .body))
                     .foregroundStyle(Palette.cocoaPrimary)
                     .monospacedDigit()
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 8, weight: .medium))
-                    .foregroundStyle(Palette.stateGood)
+                Circle()
+                    .fill(Palette.cocoaPrimary)
+                    .frame(width: 4.5, height: 4.5)
             }
         case .partial:
             VStack(spacing: 4) {
@@ -252,10 +256,12 @@ struct ProgramDayCell: View {
                     .foregroundStyle(Palette.cocoaPrimary)
                     .monospacedDigit()
                 Circle()
-                    .fill(Palette.cocoaTertiary)
+                    .strokeBorder(Palette.cocoaSecondary, lineWidth: 1)
                     .frame(width: 5, height: 5)
             }
         case .missed:
+            // v3: a quiet day is a fact, not a verdict — plain numeral,
+            // no dot, no debt glyph.
             Text("\(day)")
                 .font(.custom("DMSans-Regular", size: 15, relativeTo: .body))
                 .foregroundStyle(Palette.cocoaTertiary)
@@ -265,26 +271,20 @@ struct ProgramDayCell: View {
                 VStack(spacing: 3) {
                     Text("\(day)")
                         .font(.custom("DMSans-Regular", size: 15, relativeTo: .body))
-                        .foregroundStyle(Palette.cocoaTertiary)
+                        .foregroundStyle(Palette.cocoaTertiary.opacity(isFarAhead ? 0.45 : 1))
                         .monospacedDigit()
-                    // v1.0.10 — archetype letter replaces the lock glyph
-                    // when known. v1.0.36 (Phase 2) — opacity 0.85 → 0.90
-                    // per Panel 2 (her75); the letter was reading washed
-                    // against the cocoa-tertiary day number above.
-                    if let archetype {
+                    // Archetype letter when known (never a padlock —
+                    // v3 killed the lock glyph; far-ahead days simply
+                    // dim, "not written yet").
+                    if let archetype, !isFarAhead {
                         Text(letter(for: archetype))
                             .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11, relativeTo: .caption2))
                             .foregroundStyle(Palette.cocoaTertiary.opacity(0.90))
-                    } else {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(Palette.cocoaTertiary)
                     }
                 }
-                // v1.0.36 (Phase 2) — 3pt × 0.75pt hairline under rest-
-                // day future cells per Panel 2 her75 ("when's my next
-                // rest day"). Bookmark mark inset 6pt from each edge.
-                if archetype == .rest {
+                // v1.0.36 (Phase 2) — hairline under rest-day future
+                // cells per Panel 2 her75 ("when's my next rest day").
+                if archetype == .rest, !isFarAhead {
                     Rectangle()
                         .fill(Palette.cocoaPrimary.opacity(0.55))
                         .frame(height: 0.75)
@@ -303,10 +303,10 @@ struct ProgramDayCell: View {
         let archSuffix = archetype.map { ", \($0.rawValue) day" } ?? ""
         switch state {
         case .today:        return "Day \(day), today\(archSuffix)"
-        case .completed:    return "Day \(day), completed\(archSuffix)"
+        case .completed:    return "Day \(day), kept\(archSuffix)"
         case .partial:      return "Day \(day), partial\(archSuffix)"
-        case .missed:       return "Day \(day), missed\(archSuffix)"
-        case .locked:       return "Day \(day), locked\(archSuffix)"
+        case .missed:       return "Day \(day), quiet\(archSuffix)"
+        case .locked:       return "Day \(day), ahead\(archSuffix)"
         case .newProgram:   return "Start a new program"
         }
     }

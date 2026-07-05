@@ -45,6 +45,7 @@
 		075CD404CC0DF0E2BB0F3C01 /* matson_prep_full_mountain_climbers.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 42CCF83765C05724A49192C7 /* matson_prep_full_mountain_climbers.m4a */; };
 		0778CDF4F7607B2EDA69B987 /* jeni_prep_short_modified_jacks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 14BED72A23D676836FFA0F5B /* jeni_prep_short_modified_jacks.m4a */; };
 		07CDBC7DC73A5CDD87A1CA1E /* JKBeatRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EADB6FF0E62C0CBE7A2C7083 /* JKBeatRow.swift */; };
+		DA13000000000000000A0005 /* JKReadingDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA13000000000000000A0006 /* JKReadingDay.swift */; };
 		07FE193D1B4994DEE54B846F /* prep_full_boxing_punches.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F27644A1080A19B72F091283 /* prep_full_boxing_punches.m4a */; };
 		07FFF3B7C794D529E11E243F /* jeni_prep_short_reverse_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D1A050C992A2219F19BBB267 /* jeni_prep_short_reverse_lunge.m4a */; };
 		087D05BF6A843504BC219351 /* matson_prep_short_glute_bridge_march.m4a in Resources */ = {isa = PBXBuildFile; fileRef = EF03C73DE5A695766F240DCE /* matson_prep_short_glute_bridge_march.m4a */; };
@@ -2711,6 +2712,7 @@
 		EA19BBB0EC64A195EF320EE8 /* jeni_prep_short_alt_leg_raise.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_alt_leg_raise.m4a; sourceTree = "<group>"; };
 		EA5AD9C74D4065091FC7690F /* PostHogSink.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PostHogSink.swift; sourceTree = "<group>"; };
 		EADB6FF0E62C0CBE7A2C7083 /* JKBeatRow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKBeatRow.swift; sourceTree = "<group>"; };
+		DA13000000000000000A0006 /* JKReadingDay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKReadingDay.swift; sourceTree = "<group>"; };
 		EBD0C30E05FD044C4125CD76 /* jeni_prep_short_seated_forward_fold.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_seated_forward_fold.m4a; sourceTree = "<group>"; };
 		EBE656A4032CC40E33E4B6E5 /* jeni_prep_full_puppy_pose.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_puppy_pose.m4a; sourceTree = "<group>"; };
 		EBF6D980CD97B015BA86F685 /* matson_prep_short_boat_bicycle.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_boat_bicycle.m4a; sourceTree = "<group>"; };
@@ -4577,6 +4579,7 @@
 			children = (
 				2C96FE9BD5921F1C0A831D9D /* JKFoundation.swift */,
 				EADB6FF0E62C0CBE7A2C7083 /* JKBeatRow.swift */,
+				DA13000000000000000A0006 /* JKReadingDay.swift */,
 				827C27F3FA31C3A13C71E78A /* JKMasthead.swift */,
 				3FC12D63DE7E1E736B614E7F /* JKGauges.swift */,
 				EFF645D4EFAB4746AEF4794D /* JKPlateStrip.swift */,
@@ -6184,6 +6187,7 @@
 				1EA3CEECC61DA8797A66B7D4 /* TodayStateService.swift in Sources */,
 				5294ED387424DE38068D594F /* JKFoundation.swift in Sources */,
 				07CDBC7DC73A5CDD87A1CA1E /* JKBeatRow.swift in Sources */,
+				DA13000000000000000A0005 /* JKReadingDay.swift in Sources */,
 				6BB49D16A84E567783917128 /* JKMasthead.swift in Sources */,
 				7AD0F90A30E6867FA329402B /* JKGauges.swift in Sources */,
 				50738776C8481FB1A64B4CCF /* JKPlateStrip.swift in Sources */,

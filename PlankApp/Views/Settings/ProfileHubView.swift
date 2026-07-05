@@ -31,6 +31,10 @@ struct ProfileHubView: View {
     @State private var auth = AuthService.shared
     @State private var route: HubRoute?
     @State private var revealed = false
+    // v3 — the "on a break" pause state (DayModel.swift). Local mirror
+    // so the row re-renders on toggle.
+    @State private var breakActive = BreakState.isActive
+    @State private var showBreakConfirm = false
     @Query(sort: \DayProgressRecord.date, order: .reverse) private var allDayProgress: [DayProgressRecord]
     @Query(sort: \SessionLogRecord.completedAt, order: .forward) private var allSessionLogs: [SessionLogRecord]
 
@@ -128,6 +132,24 @@ struct ProfileHubView: View {
     // MARK: - Hub list (staggered reveal)
 
     private var hubList: some View {
+        scrollBody
+            .confirmationDialog(
+                "take a break?",
+                isPresented: $showBreakConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("take the break") {
+                    BreakState.begin()
+                    breakActive = true
+                    Haptics.soft()
+                }
+                Button("not now", role: .cancel) {}
+            } message: {
+                Text("the rhythm and the reminders pause. your place is kept, and coming back is one tap.")
+            }
+    }
+
+    private var scrollBody: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
                 identityHeader
@@ -150,6 +172,19 @@ struct ProfileHubView: View {
                     }
                     SettingsNavRow(icon: "bell", title: "reminders") {
                         go(.reminders)
+                    }
+                    // v3 — sick, travel, her period, a hard week: the
+                    // pause that keeps her place instead of losing her.
+                    SettingsNavRow(icon: "pause.circle",
+                                   title: "on a break",
+                                   value: breakActive ? "resting \u{2665}\u{FE0E}" : nil) {
+                        if breakActive {
+                            BreakState.end()
+                            breakActive = false
+                            Haptics.soft()
+                        } else {
+                            showBreakConfirm = true
+                        }
                     }
                     appleHealthRowIfNeeded
                     weightImportRowIfNeeded

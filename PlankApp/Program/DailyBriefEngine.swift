@@ -22,6 +22,15 @@ enum DailyBriefEngine {
         /// Optional seed forwarded to jeni when she taps the line —
         /// opens the chat with this as jeni's expanded opener.
         let chatSeed: String?
+        /// v3 reading: an optional second sentence that continues the
+        /// thread (never previews tasks — the one-thing card owns the
+        /// ask). Same determinism + provenance rules as `line`.
+        var second: String? = nil
+        var secondItalic: [String] = []
+        /// v3 reading: the quiet mechanism caption under the reading
+        /// ("protein landed 5 of 7 days. that's the mechanism.") —
+        /// rendered only when the data behind it is real.
+        var mechanism: String? = nil
     }
 
     /// Everything the cascade may cite. Assemble from live services;
@@ -48,17 +57,38 @@ enum DailyBriefEngine {
         var maintenanceMode: Bool
         var glp1Cohort: Glp1Cohort
         var dayKey: String            // "2026-07-03" — the seed
+        // v3 reading fields (all optional/defaulted so existing call
+        // sites and tests stay valid; absent = the clause is skipped)
+        var chapter: Chapter = .losing
+        var isOnBreak: Bool = false
+        /// Days in the trailing 7 with at least one logged plate.
+        var loggedDays7: Int = 0
+        /// Days in the trailing 7 where protein reached ~the target.
+        var proteinDays7: Int = 0
+        /// 1 = Sunday … 7 = Saturday (Calendar weekday numbering).
+        var weekday: Int = 0
     }
 
     // MARK: - The cascade
 
     static func brief(for ctx: Context) -> Brief {
+        // 0 — on a break: quiet is the plan; everything else yields.
+        if ctx.isOnBreak {
+            return Brief(
+                line: "you're on a break. your place is kept \u{2665}\u{FE0E}",
+                italic: ["kept"],
+                chatSeed: "she's on a deliberate break. no plan talk unless she asks; warmth only.",
+                second: "nothing owed today. come back when you're ready."
+            )
+        }
+
         // 1 — the kept promise (day 1-2 only; the loop's first win)
         if ctx.promiseJustKept {
             return Brief(
                 line: "you did the thing you said you'd do. that's the whole skill \u{2665}\u{FE0E}",
                 italic: ["skill"],
-                chatSeed: "she kept her day-one promise. acknowledge it and set up today lightly."
+                chatSeed: "she kept her day-one promise. acknowledge it and set up today lightly.",
+                second: "today asks for one small thing again. that's the whole pattern."
             )
         }
 
@@ -68,7 +98,8 @@ enum DailyBriefEngine {
             return Brief(
                 line: "back after \(ctx.daysSinceLastOpen) days. begin again is the strategy, not the failure \u{2665}\u{FE0E}",
                 italic: ["begin again"],
-                chatSeed: "she's back after \(ctx.daysSinceLastOpen) days away. no guilt. re-entry plan for today."
+                chatSeed: "she's back after \(ctx.daysSinceLastOpen) days away. no guilt. re-entry plan for today.",
+                second: "the plan kept your place. today is day \(ctx.programDay), not day zero."
             )
         }
 
@@ -78,7 +109,8 @@ enum DailyBriefEngine {
             return Brief(
                 line: "you're moving quickly. a protein-forward week keeps it lean \u{2665}\u{FE0E}",
                 italic: ["protein-forward"],
-                chatSeed: "her trend shows faster than 1% per week. explain the lean-mass case for protein without alarm."
+                chatSeed: "her trend shows faster than 1% per week. explain the lean-mass case for protein without alarm.",
+                mechanism: "fast weeks can spend muscle. protein first tells your body what to keep."
             )
         }
 
@@ -88,14 +120,32 @@ enum DailyBriefEngine {
                 return Brief(
                     line: "your trend line eased down this week. quiet, real movement.",
                     italic: ["real"],
-                    chatSeed: "her 7-day trend is gently down. name it and connect it to what she did."
+                    chatSeed: "her 7-day trend is gently down. name it and connect it to what she did.",
+                    mechanism: ctx.proteinDays7 >= 3
+                        ? "protein landed \(ctx.proteinDays7) of 7 days. that's the mechanism, not magic."
+                        : (ctx.loggedDays7 >= 3
+                            ? "\(ctx.loggedDays7) logged days this week did that. quiet math."
+                            : nil)
                 )
             }
             if delta >= 0.4 && !ctx.maintenanceMode {
                 return Brief(
                     line: "the line drifted up a little. water and rhythm do this. the week decides, not the day.",
                     italic: ["the week"],
-                    chatSeed: "her trend ticked up ~0.4kg over 7 days. explain fluctuation science calmly, then one anchor for today."
+                    chatSeed: "her trend ticked up ~0.4kg over 7 days. explain fluctuation science calmly, then one anchor for today.",
+                    mechanism: ctx.weekday == 2
+                        ? "monday numbers carry the weekend's salt. they clear on their own."
+                        : "day-to-day swings are chemistry, not verdicts. the line reads the week."
+                )
+            }
+            // keeping chapter: the band held — say so (satisfaction is
+            // the maintenance fuel; research/UX_PATTERNS §Q4).
+            if ctx.chapter == .keeping, abs(delta) <= 0.3 {
+                return Brief(
+                    line: "another week inside your band. holding is the win \u{2665}\u{FE0E}",
+                    italic: ["holding"],
+                    chatSeed: "maintenance week held steady. reinforce what holding proves about her, no new asks.",
+                    second: "nothing to fix today. rhythm over rescue."
                 )
             }
         }
