@@ -463,18 +463,38 @@ final class SurfaceInventoryUITests: XCTestCase {
         guard methodRow.waitForExistence(timeout: 6) else { return }
         methodRow.tap()
         sleep(3)
-        for _ in 0..<3 {
-            let cont = app.buttons["continue"].firstMatch
-            if cont.exists && cont.isHittable { cont.tap(); sleep(2) }
-        }
-        snap("95_lesson_close_rep_chip")
-        let chip = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS 'keep this rep'")
+
+        // v3: the method opens as THE REP — scenario + doors. Choose
+        // a door, ledger the response + kept chip, then walk into the
+        // reader via "the whole idea" and ledger the in-reader close.
+        snap("94_rep_scenario")
+        let door = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS 'the next bite' OR label CONTAINS 'ride the wave' OR label CONTAINS 'one small kept thing' OR label CONTAINS 'let the ledger'")
         ).firstMatch
-        if chip.exists && chip.isHittable {
-            chip.tap()
+        if door.waitForExistence(timeout: 4), door.isHittable {
+            door.tap()
             sleep(2)
-            snap("96_lesson_rep_kept")
+            snap("95_rep_door_response")
+        }
+        let wholeIdea = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS 'the whole idea'")
+        ).firstMatch
+        if wholeIdea.waitForExistence(timeout: 4), wholeIdea.isHittable {
+            wholeIdea.tap()
+            sleep(3)
+            for _ in 0..<3 {
+                let cont = app.buttons["continue"].firstMatch
+                if cont.exists && cont.isHittable { cont.tap(); sleep(2) }
+            }
+            snap("96_reader_close_via_rep")
+            let chip = app.buttons.matching(
+                NSPredicate(format: "label CONTAINS 'keep this rep'")
+            ).firstMatch
+            if chip.exists && chip.isHittable {
+                chip.tap()
+                sleep(2)
+                snap("97_lesson_rep_kept")
+            }
         }
     }
 

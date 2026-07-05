@@ -9,6 +9,16 @@ App Review. v1.2+ handles the project + Bundle + SKU rename together.
 in `/docs/archive/` documented a research pass or pivot that fed shipped
 work but is preserved for history, not for guidance.
 
+### App v3 (2026-07-05, branch feat/app-v2)
+Reading-first rebuild over v2: Today = jeni's reading + THE ONE
+THING + rhythm rows (no checklist grammar, no padlocks); three
+chapters (losing / on-medication / keeping) with real mechanics
+(protein-adequacy nets, sit-check, BandModel STOP-Regain zones);
+the method = THE REP (RepView/RepEngine); PresenceLedger (kept days,
+any action, never resets); BreakState; her-file card in chat.
+**Read `docs/app_v3/00_THESIS.md` first**; safety report + honest
+gaps live beside it. Verified research: `docs/app_v3/research/`.
+
 ### App v2 (2026-07-03, branch feat/app-v2)
 The in-app experience was rebuilt: route-level AppPhase gating
 (`PlankApp/App/`), three tabs (today/jeni/becoming) over JKTabBar,

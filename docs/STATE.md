@@ -1,7 +1,50 @@
 # JeniFit — Canonical State
 
-Last updated: 2026-07-03 (v1.1.2, build 22 + app v2 rebuild on
-`feat/app-v2`)
+Last updated: 2026-07-05 (v1.1.4, build 24 + app v3 reading-first
+rebuild on `feat/app-v2`)
+
+## -1. App v3 — the reading-first rebuild (2026-07-05)
+
+**Doc set: `docs/app_v3/` (thesis · verdicts · design language ·
+build plan · verified research · safety report · honest gaps). Read
+00_THESIS.md before touching the day model.** The founder's brief:
+lowest possible effort, highest possible feeling of being understood;
+GLP-1 + post-GLP-1 as first-class audiences.
+
+The core inversion: prescription-first → READING-FIRST. Today opens
+with jeni's reading (grown DailyBriefEngine: line + second sentence +
+mechanism, deterministic + provenance-only), THE ONE THING (single
+engine-chosen ask as the screen's only filled card), THE RHYTHM
+(hairline rows — no at-rest circles, no counts), the band, and an
+evening receipt that leads after 18:00. Padlocks died; the strip
+wears standing dots (DayStanding: kept/partial/quiet — ONE vocabulary
+across strip/review/receipts/wins).
+
+Three chapters (`Chapter` in DayModel.swift, derived in CohortStore):
+losing / on-medication / keeping. On-medication: protein floor as
+adequacy hero, evening "did you eat enough?" net, "how did today
+sit?" one-tap (HER pattern reflected back — never an asserted
+medication cycle; that claim was refuted in verification research).
+Keeping: BandModel (STOP Regain zones on the EMA: steady / drifting
+~1.4kg / reset ~2.3kg over settle), reading threads that OPEN actions
+(the null-trial law), ritual band whisper, canvas band field,
+kept-weeks scoring.
+
+The method became THE REP (RepView + RepEngine): scenario + doors +
+warm mechanism lines, reader one tap deeper; MethodResolver killed
+the three divergent lesson resolvers (two read zero-writer cohort
+keys). PresenceLedger redefined "shown up" (was workouts-only) to
+any meaningful action, lifetime count, never resets, self-healing.
+BreakState = "on a break" (pauses rhythm + all uninvited pushes;
+ProfileHub row). Jeni tab opens with HER FILE (the v5 dossier alive)
++ the full reading; CoachContext gains chapter/band_zone/kept_days/
+on_break. Becoming: band field + raw numeral de-heroed.
+
+Production: zero schema/EF/payment/gating changes (see
+docs/app_v3/PRODUCTION_SAFETY.md). 152 unit tests green. Remaining:
+docs/app_v3/HONEST_GAPS.md (notably: notification orchestrator
+phase 7 designed-not-built; rep content beyond the 16 authored;
+weekly consent check-in).
 
 ## 0. App v2 — the in-app rebuild (2026-07-03, feat/app-v2)
 
