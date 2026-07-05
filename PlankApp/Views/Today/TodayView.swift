@@ -192,15 +192,15 @@ struct TodayView: View {
             completionByDay: snapshot.completionWindow,
             centeredDay: snapshot.programDay,
             onTap: { day in
-                // Future days: warm peek within a week, lock beyond.
-                // Past days stay quiet by design in v2 (the strip is
-                // orientation, not time travel — v1's past-day browse
-                // is an intentional simplification, documented).
-                guard case .locked(let futureDay) = day else { return }
-                if futureDay <= snapshot.programDay + 7 {
-                    modules.present(sheet: .dayPeek(day: futureDay))
-                } else {
-                    modules.present(sheet: .dayLock(day: futureDay))
+                // v1.1.4 — past-day review restored. Past taps open a
+                // read-only recap of that day; future taps keep the warm
+                // peek (≤ +7) / lock (beyond) behavior unchanged. The
+                // strip never moves, so dismissing returns to today.
+                // Routing extracted to a pure helper for testability.
+                if let sheet = TodayModuleState.stripSheet(
+                    for: day, programDay: snapshot.programDay
+                ) {
+                    modules.present(sheet: sheet)
                 }
             }
         )
@@ -220,7 +220,13 @@ struct TodayView: View {
                         state: beatState(beat, snapshot: snapshot),
                         isHero: idx == 0,
                         onTap: { modules.open(beat, snapshot: snapshot) },
-                        onLongPress: { modules.longPress(beat, snapshot: snapshot) }
+                        // Progress rows (steps) have no manual override, so
+                        // no long-press. Passing nil keeps their tap clean:
+                        // JKBeatRow only arms the tap-swallow when a real
+                        // long-press handler exists.
+                        onLongPress: beat.isProgressRow
+                            ? nil
+                            : { modules.longPress(beat, snapshot: snapshot) }
                     )
                     .jkBeat2(extraDelay: 0.08 + Double(idx) * Motion.revealStagger)
                 }

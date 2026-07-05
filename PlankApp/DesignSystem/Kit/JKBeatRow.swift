@@ -37,8 +37,23 @@ struct JKBeatRow: View {
     @State private var strike: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    /// v1.1.4 — set the instant the LongPressGesture fires; checked in
+    /// the Button action to swallow the follow-up tap. SwiftUI's Button
+    /// fires its action on touch-RELEASE regardless of how long the
+    /// finger was held, so a long-press previously ran onLongPress AND
+    /// onTap (the override sheet AND the module cover, back to back).
+    /// Mirrors PlanRow's shipped v1.1.1 fix. Auto-resets after 0.7s so a
+    /// long-press that drags off the row (Button tap cancelled, flag
+    /// never cleared by a release) can't swallow a later real tap.
+    @State private var longPressJustFired = false
+
     var body: some View {
         Button(action: {
+            // Long-press already handled this touch: eat the release tap.
+            if longPressJustFired {
+                longPressJustFired = false
+                return
+            }
             Haptics.light()
             onTap()
         }) {
@@ -47,7 +62,14 @@ struct JKBeatRow: View {
         .buttonStyle(JKPress())
         .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.45).onEnded { _ in
-                onLongPress?()
+                // No handler (e.g. progress rows pass nil) → never arm the
+                // swallow, so the row's normal tap keeps working.
+                guard let onLongPress else { return }
+                longPressJustFired = true
+                onLongPress()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                    longPressJustFired = false
+                }
             }
         )
         .animation(Motion.entranceSoft, value: state.isDone)

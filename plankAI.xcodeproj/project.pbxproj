@@ -1351,6 +1351,7 @@
 		FA0001FA0001FA0001FA0001 /* GoalWeightFloorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0002FA0002FA0002FA0002 /* GoalWeightFloorTests.swift */; };
 		FA0003FA0003FA0003FA0003 /* GoalDirectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0004FA0004FA0004FA0004 /* GoalDirectionTests.swift */; };
 		FA3A037B6FAEDE7F2C8B27A8 /* prep_short_baby_cobra.m4a in Resources */ = {isa = PBXBuildFile; fileRef = F3BBB7441D3299ABD4199503 /* prep_short_baby_cobra.m4a */; };
+		FA481148B0FAF233065521C7 /* TodayStripRoutingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 577419F17C3F4F2F2CAD6C75 /* TodayStripRoutingTests.swift */; };
 		FA696E18EDE0792DB86D5F8C /* matson_prep_short_alt_knee_raise_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8FE41AA2A7825394DD8D9272 /* matson_prep_short_alt_knee_raise_crunch.m4a */; };
 		FAF33A107976A3AB39CCF631 /* prep_short_sit_up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 42C2210119D1FC44A3FABDDC /* prep_short_sit_up.m4a */; };
 		FAFA000000000000000B0003 /* AffirmationLoaderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFA000000000000000B0013 /* AffirmationLoaderScreen.swift */; };
@@ -1788,6 +1789,7 @@
 		5653725E5BB67AFF848E7A1E /* prep_full_good_morning.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_good_morning.m4a; sourceTree = "<group>"; };
 		56F6C00D18EF5F5EEF5024E8 /* jeni_prep_full_leg_raise_hold.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_leg_raise_hold.m4a; sourceTree = "<group>"; };
 		575D270B39E2374B46AEEEC9 /* prep_full_cobra.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_cobra.m4a; sourceTree = "<group>"; };
+		577419F17C3F4F2F2CAD6C75 /* TodayStripRoutingTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodayStripRoutingTests.swift; sourceTree = "<group>"; };
 		57BD2B5355C9A0E69752EAB3 /* prep_short_v_up.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_short_v_up.m4a; sourceTree = "<group>"; };
 		58028B84345A43A400577B5C /* jeni_prep_short_side_tilt.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_side_tilt.m4a; sourceTree = "<group>"; };
 		58510115C27EB92FF50A4316 /* jeni_prep_short_deep_hip_flexor.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_deep_hip_flexor.m4a; sourceTree = "<group>"; };
@@ -2980,6 +2982,7 @@
 				PGP001PGP001PGP001PGP001 /* ProgramGoalCalculatorPacingTests.swift */,
 				8CB8FD5BBBB5BF015A3AED5B /* AppPhaseTests.swift */,
 				F208BE15821CC85C2005B0EF /* CrossAccountScopingTests.swift */,
+				577419F17C3F4F2F2CAD6C75 /* TodayStripRoutingTests.swift */,
 			);
 			path = plankAITests;
 			sourceTree = "<group>";
@@ -6229,6 +6232,7 @@
 				PGP002PGP002PGP002PGP002 /* ProgramGoalCalculatorPacingTests.swift in Sources */,
 				D085837B4B1DAB21931AF49E /* AppPhaseTests.swift in Sources */,
 				2E517E967828660324882D1E /* CrossAccountScopingTests.swift in Sources */,
+				FA481148B0FAF233065521C7 /* TodayStripRoutingTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

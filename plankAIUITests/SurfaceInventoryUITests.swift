@@ -319,6 +319,69 @@ final class SurfaceInventoryUITests: XCTestCase {
         snap("breath_receipt")
     }
 
+    /// v1.1.4 — Home row gesture + past-day nav regression (device level).
+    /// Pins the two shipped fixes end to end:
+    ///  · Bug 2: tapping a PAST day-strip cell opens the read-only review
+    ///    (before the fix the tap was dropped and nothing happened).
+    ///  · Bug 1: a long-press opens the manual override foremost (a
+    ///    clashing tap would stack the module cover on top), and a normal
+    ///    tap AFTER a long-press still enters the module — proving the
+    ///    longPressJustFired flag both suppresses the release-tap and
+    ///    resets so it never eats a later real tap.
+    /// Seeded at day 14 (a rest day): the non-progress "breathe" beat is
+    /// present and days 1-13 are in the past.
+    func testHomeRowGesturesAndPastDay() throws {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitest-inapp-qa", "--uitest-pro-access",
+            "--uitest-seed-program", "--uitest-seed-day", "14",
+        ]
+        app.launch()
+        sleep(7)
+
+        let breatheRow = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'breathe'")
+        ).firstMatch
+        XCTAssertTrue(breatheRow.waitForExistence(timeout: 8),
+                      "Today should render its beat rows")
+
+        // ── Bug 2 — a PAST day-strip cell opens the review sheet.
+        // Seeded at day 14, so day 13 is yesterday (past, and on-screen
+        // next to today). Before the fix this tap did nothing.
+        let pastCell = app.buttons.matching(
+            NSPredicate(format: "label == '13' OR label BEGINSWITH 'Day 13'")
+        ).firstMatch
+        XCTAssertTrue(pastCell.waitForExistence(timeout: 5),
+                      "the strip should expose past-day cells")
+        pastCell.tap()
+        XCTAssertTrue(app.buttons["got it"].waitForExistence(timeout: 5),
+                      "tapping a past day should open the review sheet")
+        app.buttons["got it"].firstMatch.tap()
+        sleep(1)
+        XCTAssertTrue(app.buttons["settings"].firstMatch.waitForExistence(timeout: 5),
+                      "dismissing the review should return to Today")
+
+        // ── Bug 1a — long-press opens the manual override, foremost.
+        breatheRow.press(forDuration: 0.7)
+        XCTAssertTrue(app.buttons["mark as done"].waitForExistence(timeout: 5),
+                      "long-press should open the mark-as-done override")
+        XCTAssertTrue(app.buttons["mark as done"].isHittable,
+                      "the override must be foremost — a clashing tap would put a module cover on top of it")
+        app.buttons["not yet"].firstMatch.tap()
+        sleep(2)   // let the 0.7s longPressJustFired flag auto-reset
+        XCTAssertTrue(app.buttons["settings"].firstMatch.isHittable,
+                      "dismissing the override should return to Today")
+
+        // ── Bug 1b — a normal tap after the long-press still enters the
+        // module (flag reset; tap not swallowed) and is NOT the override.
+        breatheRow.tap()
+        sleep(3)
+        XCTAssertFalse(app.buttons["mark as done"].exists,
+                       "a normal tap must open the module, not the override")
+        XCTAssertFalse(app.buttons["settings"].firstMatch.isHittable,
+                       "a normal tap should have entered a full-screen module")
+    }
+
     /// v2.4 — live a day: real mutations, not visits. Marks the
     /// method beat done (sheet confirm -> strike-through), logs a
     /// weight through the sheet, and ledgers the struck states.

@@ -40,6 +40,8 @@ final class TodayModuleState {
         /// Future-day peek (≤ +7) / lock (beyond) from the strip.
         case dayPeek(day: Int)
         case dayLock(day: Int)
+        /// Past-day read-only review from the strip (v1.1.4).
+        case dayReview(day: Int)
 
         var id: String {
             switch self {
@@ -49,7 +51,25 @@ final class TodayModuleState {
             case .stepsDetail: return "stepsDetail"
             case .dayPeek: return "dayPeek"
             case .dayLock: return "dayLock"
+            case .dayReview: return "dayReview"
             }
+        }
+    }
+
+    /// Pure routing for a day-strip tap → the sheet it opens (nil = today
+    /// / new-program, which navigate nowhere). Extracted from TodayView
+    /// for testability (v1.1.4 past-day fix): past → review, near future
+    /// (≤ +7) → peek, far future → lock.
+    nonisolated static func stripSheet(
+        for day: ProgramDayStrip.Day, programDay: Int
+    ) -> Sheet? {
+        switch day {
+        case .past(let d):
+            return .dayReview(day: d)
+        case .locked(let d):
+            return d <= programDay + 7 ? .dayPeek(day: d) : .dayLock(day: d)
+        case .today, .newProgram:
+            return nil
         }
     }
 

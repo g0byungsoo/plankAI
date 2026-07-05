@@ -247,6 +247,21 @@ private struct TodayModuleHost: ViewModifier {
             .presentationDetents([.medium])
             .presentationDragIndicator(.hidden)
             .presentationBackground(Palette.bgElevated)
+
+        case .dayReview(let day):
+            ProgramDayReviewSheet(
+                day: day,
+                archetype: ProgramDayArchetype.archetype(
+                    forProgramDay: day,
+                    glp1Status: CohortStore.glp1StatusKey,
+                    restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
+                ),
+                completedCount: snapshot?.completionWindow[day],
+                onDismiss: { state.dismissSheet() }
+            )
+            .presentationDetents([.fraction(0.42)])
+            .presentationDragIndicator(.hidden)
+            .presentationBackground(Palette.bgElevated)
         }
     }
 }

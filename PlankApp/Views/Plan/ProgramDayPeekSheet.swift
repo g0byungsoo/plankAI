@@ -123,3 +123,133 @@ struct ProgramDayPeekSheet: View {
         }
     }
 }
+
+// MARK: - ProgramDayReviewSheet (past-day review, v1.1.4)
+//
+// The symmetric partner to ProgramDayPeekSheet. Tapping a PAST cell in
+// the day strip opens this read-only recap. Where the peek sheet is
+// deliberately vague about the future (no checklist = no visualized
+// debt), the review sheet is honest about the past: it reads back what
+// actually landed from the snapshot's completion window, in a warm,
+// non-shaming register (a missed day gets "begin again", never a
+// scolding). Same cocoa-card visual family + single "got it" close.
+
+struct ProgramDayReviewSheet: View {
+
+    let day: Int
+    let archetype: ProgramDayArchetype?
+    /// Completed-row count for this day from the snapshot's completion
+    /// window. nil when the day is outside the loaded window (±10) or
+    /// nothing was recorded — both render as the gentle "no record"
+    /// state. We never fabricate a count we don't hold.
+    let completedCount: Int?
+    let onDismiss: () -> Void
+
+    /// Mirrors ProgramDayStrip.completedThreshold (3 of ~5 = a kept day).
+    private static let keptThreshold = 3
+
+    private enum Standing { case kept, partial, quiet }
+    private var standing: Standing {
+        switch completedCount ?? 0 {
+        case Self.keptThreshold...: return .kept
+        case 1...:                  return .partial
+        default:                    return .quiet
+        }
+    }
+
+    private var archetypeWord: String? {
+        guard let archetype else { return nil }
+        switch archetype {
+        case .protein:  return "protein"
+        case .movement: return "movement"
+        case .balanced: return "balanced"
+        case .rest:     return "gentle"
+        }
+    }
+
+    /// Hero — italic-Fraunces punch on the standing word.
+    private var heroSentence: (prefix: String, italic: String, suffix: String) {
+        switch standing {
+        case .kept:    return ("you ", "showed up", ".")
+        case .partial: return ("some of it ", "landed", ".")
+        case .quiet:   return ("a ", "quiet", " day.")
+        }
+    }
+
+    private var footnoteCopy: String {
+        let dayWord = archetypeWord.map { "a \($0) day" } ?? "that day"
+        switch standing {
+        case .kept:
+            return "day \(day), \(dayWord). \(completedCount ?? 0) kept \u{2661}"
+        case .partial:
+            let n = completedCount ?? 0
+            let noun = n == 1 ? "thing" : "things"
+            return "day \(day), \(dayWord). \(n) \(noun) kept. that still counts."
+        case .quiet:
+            return "no record from day \(day). begin again, anytime."
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            // Tiny day eyebrow
+            (Text("day ")
+                .font(.custom("DMSans-Regular", size: 13))
+            + Text("\(day)")
+                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14))
+                .foregroundColor(Palette.cocoaSecondary))
+                .foregroundStyle(Palette.cocoaTertiary)
+                .kerning(0.4)
+
+            // Hero sentence — italic-Fraunces punch on the standing word
+            let s = heroSentence
+            (Text(s.prefix)
+                .font(.custom("JeniHeroSerif-Regular", size: 30, relativeTo: .title2))
+            + Text(s.italic)
+                .font(.custom("JeniHeroSerif-Italic", size: 32, relativeTo: .title2))
+            + Text(s.suffix)
+                .font(.custom("JeniHeroSerif-Regular", size: 30, relativeTo: .title2)))
+                .foregroundStyle(Palette.cocoaPrimary)
+                .kerning(-0.3)
+                .lineSpacing(-2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            // Footnote — the honest recap line
+            Text(footnoteCopy)
+                .font(.custom("DMSans-Regular", size: 13))
+                .foregroundStyle(Palette.cocoaTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+
+            // Hairline rule
+            Rectangle()
+                .fill(Palette.cocoaPrimary.opacity(0.10))
+                .frame(height: 0.75)
+
+            // CTA — single gentle close
+            HStack {
+                Spacer()
+                Button {
+                    Haptics.light()
+                    onDismiss()
+                } label: {
+                    (Text("got ")
+                        .font(.custom("DMSans-SemiBold", size: 14))
+                    + Text("it")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 15)))
+                        .foregroundStyle(Palette.textInverse)
+                        .padding(.horizontal, 26)
+                        .padding(.vertical, 12)
+                        .background(Capsule().fill(Palette.cocoaPrimary))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 28)
+        .padding(.top, 28)
+        .padding(.bottom, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Palette.programCard.ignoresSafeArea())
+    }
+}
