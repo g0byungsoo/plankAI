@@ -219,7 +219,7 @@ private struct TodayModuleHost: ViewModifier {
                 .presentationBackground(Palette.bgPrimary)
 
         case .stepsDetail:
-            TodayStepsSheet(goal: snapshot?.targets.steps ?? 7_500)
+            TodayStepsSheet(goal: snapshot?.targets.steps ?? TargetsService.stepsGoal(plan: nil))
                 .presentationDetents([.fraction(0.7)])
                 .presentationBackground(Palette.bgPrimary)
 
@@ -257,6 +257,18 @@ private struct TodayModuleHost: ViewModifier {
                     restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
                 ),
                 completedCount: snapshot?.completionWindow[day],
+                isPausedDay: {
+                    // Map program day → calendar dayKey via the plan
+                    // start; a day inside a break range reads "paused,
+                    // your place was kept" instead of "quiet".
+                    guard let start = snapshot?.plan?.startDate,
+                          let date = Calendar.current.date(
+                            byAdding: .day, value: day - 1,
+                            to: Calendar.current.startOfDay(for: start))
+                    else { return false }
+                    return BreakState.covers(
+                        dayKey: TodayStateService.dayKey(for: date))
+                }(),
                 onDismiss: { state.dismissSheet() }
             )
             .presentationDetents([.fraction(0.42)])

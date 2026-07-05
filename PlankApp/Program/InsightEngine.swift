@@ -100,7 +100,11 @@ struct WeekState {
             emaSeries: WeightTrendChart.computeEMA(logs: logs),
             weightLogs: logs,
             proteinTargetG: latestKg.map { TargetsService.proteinTargetG(weightKg: $0) },
-            stepsGoal: 7_500
+            // ONE goal source (v3 spine): a tier-9000 user used to see
+            // 9000 on Today's ring but 7500 in the week strip.
+            stepsGoal: TargetsService.stepsGoal(
+                plan: ProgramService.shared.activePlan(userId: userId, in: context)
+            )
         )
     }
 }

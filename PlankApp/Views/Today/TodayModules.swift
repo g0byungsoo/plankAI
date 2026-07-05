@@ -372,7 +372,10 @@ final class TodayModuleState {
             fresh.sessionLogIds = [session.id]
             modelContext.insert(fresh)
             progressRecord = fresh
-            RetentionNotifications.recordShownUpDay(count: derivedDay)
+            // v3: presence flows through markChecklistItem (markAuto
+            // fires .workout right after this save). The old direct
+            // recordShownUpDay(count:) here made workouts the ONLY
+            // action that counted as "showing up."
         }
         try? modelContext.save()
         RetentionNotifications.markSessionCompleted()

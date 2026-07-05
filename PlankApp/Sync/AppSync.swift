@@ -678,6 +678,9 @@ final class AppSync {
             "day.note.", "day.reflection.", "lesson.rep.kept.",
             "stats.shown_up_count", "day1Promise",
             "orchestrator.anchorRefreshDayKey",
+            // v3 spine: presence ledger (kept days + day marker +
+            // migration flag) and break state are per-identity.
+            "presence.", "break.",
         ]
         for key in defaults.dictionaryRepresentation().keys {
             if scopedPrefixes.contains(where: { key.hasPrefix($0) }) {

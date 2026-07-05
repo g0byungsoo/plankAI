@@ -32,6 +32,7 @@ enum NotificationOrchestrator {
         let todayKey = TodayStateService.dayKey()
         guard d.string(forKey: lastRefreshKey) != todayKey else { return }
         guard d.bool(forKey: "notificationsEnabled") else { return }
+        guard !BreakState.isActive else { return }   // breaks silence the ladder
         guard programDay > 0, programDay < totalDays else { return }
 
         UNUserNotificationCenter.current().getNotificationSettings { settings in

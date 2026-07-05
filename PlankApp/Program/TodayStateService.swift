@@ -72,6 +72,10 @@ enum TodayStateService {
 
     @MainActor
     static func snapshot(userId: String, in context: ModelContext) -> TodaySnapshot {
+        // v3 presence self-heal (one-time, flag-guarded): adopt the
+        // any-action definition of shown-up days for existing users.
+        PresenceLedger.migrateIfNeeded(userId: userId, in: context)
+
         let plan = ProgramService.shared.activePlan(userId: userId, in: context)
 
         // — program day + beats

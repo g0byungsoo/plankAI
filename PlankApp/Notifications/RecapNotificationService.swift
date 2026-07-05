@@ -26,6 +26,7 @@ final class RecapNotificationService {
     /// notifications aren't authorized or the week hasn't earned it.
     func scheduleIfEarned(engagedDaysThisWeek: Int, now: Date = .now) async {
         guard engagedDaysThisWeek >= 2 else { return }
+        guard !BreakState.isActive else { return }   // breaks silence everything
 
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()

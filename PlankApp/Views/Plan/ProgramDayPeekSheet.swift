@@ -143,18 +143,15 @@ struct ProgramDayReviewSheet: View {
     /// nothing was recorded — both render as the gentle "no record"
     /// state. We never fabricate a count we don't hold.
     let completedCount: Int?
+    /// True when this calendar day fell inside an "on a break" range —
+    /// a paused day is a kept promise, never a quiet verdict.
+    var isPausedDay: Bool = false
     let onDismiss: () -> Void
 
-    /// Mirrors ProgramDayStrip.completedThreshold (3 of ~5 = a kept day).
-    private static let keptThreshold = 3
-
-    private enum Standing { case kept, partial, quiet }
-    private var standing: Standing {
-        switch completedCount ?? 0 {
-        case Self.keptThreshold...: return .kept
-        case 1...:                  return .partial
-        default:                    return .quiet
-        }
+    /// v3: the shared standing vocabulary (DayModel.swift) — the same
+    /// kept / partial / quiet the strip dots and receipts read.
+    private var standing: DayStanding {
+        DayStanding.from(completedCount: completedCount)
     }
 
     private var archetypeWord: String? {
@@ -169,6 +166,7 @@ struct ProgramDayReviewSheet: View {
 
     /// Hero — italic-Fraunces punch on the standing word.
     private var heroSentence: (prefix: String, italic: String, suffix: String) {
+        if isPausedDay { return ("a ", "paused", " day.") }
         switch standing {
         case .kept:    return ("you ", "showed up", ".")
         case .partial: return ("some of it ", "landed", ".")
@@ -178,9 +176,12 @@ struct ProgramDayReviewSheet: View {
 
     private var footnoteCopy: String {
         let dayWord = archetypeWord.map { "a \($0) day" } ?? "that day"
+        if isPausedDay {
+            return "day \(day). you were on a break. your place was kept \u{2665}\u{FE0E}"
+        }
         switch standing {
         case .kept:
-            return "day \(day), \(dayWord). \(completedCount ?? 0) kept \u{2661}"
+            return "day \(day), \(dayWord). \(completedCount ?? 0) kept \u{2665}\u{FE0E}"
         case .partial:
             let n = completedCount ?? 0
             let noun = n == 1 ? "thing" : "things"

@@ -210,6 +210,14 @@ public final class ProgramService {
         }
 
         try? context.save()
+
+        // v3 presence: any completed beat marks the day as kept-with-us
+        // (once per day; the ledger's marker makes repeats free). This
+        // is THE definition of "showing up" — snap, lesson, breath,
+        // weigh-in, workout, steps all pass through here.
+        if state.isCompleted {
+            PresenceLedger.recordMeaningfulAction()
+        }
         return record
     }
 
