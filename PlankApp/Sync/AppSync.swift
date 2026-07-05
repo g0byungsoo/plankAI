@@ -681,6 +681,9 @@ final class AppSync {
             // v3 spine: presence ledger (kept days + day marker +
             // migration flag) and break state are per-identity.
             "presence.", "break.",
+            // v3 chapters: sit-notes feed jeni's reading; the band
+            // (settle weight + last zone) is her body's data.
+            "day.sit.", "band.",
         ]
         for key in defaults.dictionaryRepresentation().keys {
             if scopedPrefixes.contains(where: { key.hasPrefix($0) }) {

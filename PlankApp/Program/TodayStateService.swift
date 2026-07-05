@@ -190,7 +190,22 @@ enum TodayStateService {
             isOnBreak: BreakState.isActive,
             loggedDays7: loggedDays7,
             proteinDays7: proteinDays7,
-            weekday: Calendar.current.component(.weekday, from: .now)
+            weekday: Calendar.current.component(.weekday, from: .now),
+            bandZone: {
+                // Keeping chapter only; zones read the EMA around her
+                // settle weight (BandModel). nil = no band yet.
+                guard CohortStore.chapter == .keeping,
+                      let settle = BandModel.settleWeightKg(plan: plan),
+                      let emaLatest = ema.last?.emaKg
+                else { return nil }
+                return BandModel.zone(emaKg: emaLatest, settleKg: settle).rawValue
+            }(),
+            yesterdaySat: {
+                guard let yesterday = Calendar.current.date(
+                    byAdding: .day, value: -1, to: .now
+                ) else { return nil }
+                return d.string(forKey: "day.sit.\(dayKey(for: yesterday))")
+            }()
         ))
 
         return TodaySnapshot(

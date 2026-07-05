@@ -126,6 +126,50 @@ final class AppV3SpineTests: XCTestCase {
         XCTAssertEqual(suite.integer(forKey: PresenceLedger.countKey), 2)
     }
 
+    // MARK: - BandModel (keeping chapter)
+
+    func testBandZoneTable() {
+        let settle = 70.0
+        // (ema, expected) — thresholds at +1.4 / +2.3 kg over settle.
+        let table: [(Double, BandZone)] = [
+            (68.0, .steady),    // below settle = holding
+            (70.0, .steady),
+            (71.3, .steady),
+            (71.4, .drifting),  // ~3 lb — the watch window opens
+            (72.2, .drifting),
+            (72.3, .reset),     // ~5 lb — the supported reset arc
+            (75.0, .reset),
+        ]
+        for (ema, expected) in table {
+            XCTAssertEqual(
+                BandModel.zone(emaKg: ema, settleKg: settle), expected,
+                "ema \(ema) over settle \(settle)"
+            )
+        }
+    }
+
+    func testBandCrossingFiresOncePerTransition() {
+        // First read is the baseline — never a crossing.
+        XCTAssertNil(BandModel.consumeCrossing(newZone: .steady, suite))
+        // Same zone again: no crossing.
+        XCTAssertNil(BandModel.consumeCrossing(newZone: .steady, suite))
+        // Transition: fires once...
+        XCTAssertEqual(BandModel.consumeCrossing(newZone: .drifting, suite), .drifting)
+        // ...and not again while unchanged.
+        XCTAssertNil(BandModel.consumeCrossing(newZone: .drifting, suite))
+        // Recovery back is also a (good) crossing.
+        XCTAssertEqual(BandModel.consumeCrossing(newZone: .steady, suite), .steady)
+    }
+
+    func testKeptWeekRequiresPatternAndBand() {
+        XCTAssertTrue(BandModel.weekIsKept(weighDays: 1, presenceDays: 3, zone: .steady))
+        XCTAssertTrue(BandModel.weekIsKept(weighDays: 2, presenceDays: 6, zone: .steady))
+        XCTAssertFalse(BandModel.weekIsKept(weighDays: 0, presenceDays: 7, zone: .steady),
+                       "no weigh-in = the pattern broke (the earliest drift signal)")
+        XCTAssertFalse(BandModel.weekIsKept(weighDays: 1, presenceDays: 2, zone: .steady))
+        XCTAssertFalse(BandModel.weekIsKept(weighDays: 1, presenceDays: 5, zone: .drifting))
+    }
+
     // MARK: - BreakState
 
     func testBreakRangesCoverInclusiveDays() {

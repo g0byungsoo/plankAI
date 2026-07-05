@@ -67,6 +67,11 @@ enum DailyBriefEngine {
         var proteinDays7: Int = 0
         /// 1 = Sunday … 7 = Saturday (Calendar weekday numbering).
         var weekday: Int = 0
+        /// Keeping chapter only: today's band zone (BandZone.rawValue).
+        var bandZone: String? = nil
+        /// On-medication: yesterday's "how did today sit?" answer
+        /// (fine / heavy / queasy) when she gave one.
+        var yesterdaySat: String? = nil
     }
 
     // MARK: - The cascade
@@ -112,6 +117,29 @@ enum DailyBriefEngine {
                 chatSeed: "her trend shows faster than 1% per week. explain the lean-mass case for protein without alarm.",
                 mechanism: "fast weeks can spend muscle. protein first tells your body what to keep."
             )
+        }
+
+        // 3.5 — the keeping chapter's band (zones OPEN actions; an
+        //       alert alone is the null-trial mistake)
+        if ctx.chapter == .keeping, let zone = ctx.bandZone {
+            if zone == BandZone.reset.rawValue {
+                return Brief(
+                    line: "the line has drifted past your band. that's physiology asking for a plan, not a verdict \u{2665}\u{FE0E}",
+                    italic: ["a plan"],
+                    chatSeed: "her trend crossed the reset line (~5 lb over settle). open a supported multi-week reset: protein-first days, gentle logging, weekly trend checks. care register, zero alarm. regain pressure is biology.",
+                    second: "a reset is a few supported weeks, not a confession. jeni holds the plan.",
+                    mechanism: "catching drift early is the whole trick. most people wait twice as long."
+                )
+            }
+            if zone == BandZone.drifting.rawValue {
+                return Brief(
+                    line: "the line is drifting a little. this is the exact week to steady it, gently.",
+                    italic: ["steady"],
+                    chatSeed: "her trend entered the watch window (~3-5 lb over settle). offer ONE steadying move for this week: protein floor daily, three logged plates, one extra walk. warm, specific, no alarm.",
+                    second: "one steadying week usually settles the line. protein first, nothing dramatic.",
+                    mechanism: "drift caught at a few pounds is a week's work. that's why we watch the line."
+                )
+            }
         }
 
         // 4 — trend movement worth naming (EMA, never raw drama)
@@ -186,7 +214,16 @@ enum DailyBriefEngine {
                 return Brief(
                     line: "a protein day. small plates count double. aim near \(target)g \u{2665}\u{FE0E}",
                     italic: ["\(target)g"],
-                    chatSeed: "protein day on glp-1. she may have low appetite; suggest dense, gentle options."
+                    chatSeed: "protein day on glp-1. she may have low appetite; suggest dense, gentle options.",
+                    mechanism: {
+                        // Her own sit-note from last evening, reflected
+                        // back — HER pattern, never an asserted cycle.
+                        switch ctx.yesterdaySat {
+                        case "heavy": return "yesterday sat heavy. today's plates run smaller and gentler on purpose."
+                        case "queasy": return "yesterday sat queasy. slow bites, mild plates, fluids first today."
+                        default: return nil
+                        }
+                    }()
                 )
             }
             let lines = [

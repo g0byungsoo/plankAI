@@ -27,6 +27,9 @@ struct JKWeightRitual: View {
     /// confirmation copy (first / second / steady-state).
     let priorLoggedCount: Int
     let isUpdatingToday: Bool
+    /// v3 keeping chapter: the band whisper replaces the steady-state
+    /// sub when the host computes one ("inside your band. steady ♥").
+    var bandWhisper: String? = nil
     let onSave: (Double) -> Void
     /// Fired after the confirmation beat — the host dismisses here,
     /// NOT in onSave, so the beat is never cut short.
@@ -220,7 +223,7 @@ struct JKWeightRitual: View {
                     "from here we read the line, never one day.")
         default:
             return ("kept \u{2665}\u{FE0E}", [],
-                    "the line does the thinking, not today's number.")
+                    bandWhisper ?? "the line does the thinking, not today's number.")
         }
     }
 

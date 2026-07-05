@@ -186,6 +186,19 @@ private struct TodayModuleHost: ViewModifier {
                 startingFromKg: snapshot?.latestWeightKg ?? 65,
                 priorLoggedCount: priorWeighInCount(),
                 isUpdatingToday: snapshot?.lastWeighInDaysAgo == 0,
+                bandWhisper: {
+                    // Keeping chapter: the save moment speaks the band
+                    // (a zone is an action-opener, never an alarm).
+                    guard snapshot?.chapter == .keeping,
+                          let settle = BandModel.settleWeightKg(plan: snapshot?.plan),
+                          let ema = snapshot?.latestWeightKg  // whisper reads today's save context
+                    else { return nil }
+                    switch BandModel.zone(emaKg: ema, settleKg: settle) {
+                    case .steady: return "inside your band. steady \u{2665}\u{FE0E}"
+                    case .drifting: return "a touch above your band. this week steadies it, gently."
+                    case .reset: return "above your band. jeni has the plan — no alarm, just a plan."
+                    }
+                }(),
                 onSave: { newKg in
                     // Persist immediately; the sheet owns its exit via
                     // onDone so the kept-beat is never cut short.

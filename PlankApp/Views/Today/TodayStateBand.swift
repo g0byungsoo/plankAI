@@ -96,6 +96,24 @@ struct EveningClose: View {
         UserDefaults.standard.string(
             forKey: "day.reflection.\(TodayStateService.dayKey())"
         )
+    // v3 on-medication: "how did today sit?" — one optional tap,
+    // device-local; tomorrow's reading reflects HER answer back
+    // (never an asserted medication cycle).
+    @State private var pickedSit: String? =
+        UserDefaults.standard.string(
+            forKey: "day.sit.\(TodayStateService.dayKey())"
+        )
+
+    /// v3 adequacy net (on-medication / restriction-risk): a very
+    /// light day flips the receipt's posture from score to care —
+    /// under-eating is the documented risk on medication, and the
+    /// question no calorie app asks.
+    private var showsEnoughNet: Bool {
+        guard snapshot.chapter == .onMedication || CohortStore.isRestrictiveRisk
+        else { return false }
+        let floor = (snapshot.targets.proteinG ?? 80) / 2
+        return snapshot.proteinEatenG < floor && snapshot.plates.count <= 1
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.md) {
@@ -106,7 +124,14 @@ struct EveningClose: View {
                 .foregroundStyle(Palette.cocoaTertiary)
 
             VStack(spacing: 0) {
-                if snapshot.proteinEatenG > 0, let target = snapshot.targets.proteinG {
+                if showsEnoughNet {
+                    JKReceiptRow(
+                        lead: "tonight",
+                        punch: "did you eat enough? a gentle plate still counts",
+                        punchItalic: ["enough"],
+                        showsRule: false
+                    )
+                } else if snapshot.proteinEatenG > 0, let target = snapshot.targets.proteinG {
                     JKReceiptRow(
                         lead: "protein",
                         punch: proteinWord(target: target),
@@ -143,6 +168,30 @@ struct EveningClose: View {
                     .foregroundStyle(Palette.textSecondary)
                     .padding(.top, Space.xs)
                     .transition(.opacity)
+            }
+
+            // v3 on-medication: the optional sit-check. Skipped
+            // forever = fine; answered = tomorrow's plates speak to it.
+            if snapshot.chapter == .onMedication {
+                if pickedSit == nil {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("how did today sit?")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.textSecondary)
+                        HStack(spacing: 10) {
+                            sitChip("fine")
+                            sitChip("heavy")
+                            sitChip("queasy")
+                        }
+                    }
+                    .padding(.top, Space.xs)
+                } else if let pickedSit {
+                    Text(sitAck(pickedSit))
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .padding(.top, Space.xs)
+                        .transition(.opacity)
+                }
             }
 
             // v2.5 — one line for her file (Journal v1). A guided,
@@ -243,6 +292,34 @@ struct EveningClose: View {
                 )
         }
         .buttonStyle(JKPress())
+    }
+
+    private func sitChip(_ word: String) -> some View {
+        Button {
+            withAnimation(Motion.entranceSoft) { pickedSit = word }
+            UserDefaults.standard.set(
+                word, forKey: "day.sit.\(TodayStateService.dayKey())"
+            )
+            Haptics.soft()
+        } label: {
+            Text(word)
+                .font(.custom("DMSans-Medium", size: 14))
+                .foregroundStyle(Palette.textPrimary)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 9)
+                .overlay(
+                    Capsule().strokeBorder(Palette.cocoaPrimary.opacity(0.22), lineWidth: 1)
+                )
+        }
+        .buttonStyle(JKPress())
+    }
+
+    private func sitAck(_ word: String) -> String {
+        switch word {
+        case "heavy": return "noted. tomorrow's plates will run gentler \u{2665}\u{FE0E}"
+        case "queasy": return "noted. mild and slow tomorrow, fluids first \u{2665}\u{FE0E}"
+        default: return "good. noted \u{2665}\u{FE0E}"
+        }
     }
 
     private func proteinWord(target: Int) -> String {
