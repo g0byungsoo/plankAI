@@ -580,9 +580,36 @@ struct BecomingView: View {
     }
 
     private func journeyCaption(_ snapshot: TodaySnapshot) -> String {
-        lessonDoneToday(snapshot)
-            ? "today's read, kept \u{2665}\u{FE0E}"
-            : "a 2-minute read"
+        // v3 deep pass — the practice has a MEMORY: lifetime kept
+        // reps ride the caption (identity evidence, not a streak;
+        // the count never resets).
+        let kept = lifetimeRepsKept
+        let base = lessonDoneToday(snapshot)
+            ? "today's rep, kept \u{2665}\u{FE0E}"
+            : "half a minute of practice"
+        guard kept >= 3 else { return base }
+        return "\(base) · \(kept) kept so far"
+    }
+
+    /// Lifetime completed method moments (reps/reads) for the active
+    /// plan — fetched once per refresh alongside the week's checks.
+    @State private var lifetimeRepsKept = 0
+
+    private static func fetchLifetimeRepsKept(
+        userId: String, planId: String?, in context: ModelContext
+    ) -> Int {
+        guard let planId else { return 0 }
+        let descriptor = FetchDescriptor<ProgramDayCheckRecord>(
+            predicate: #Predicate {
+                $0.userId == userId
+                && $0.programPlanId == planId
+                && $0.itemKey == "lesson"
+            }
+        )
+        let checks = (try? context.fetch(descriptor)) ?? []
+        return checks.filter {
+            $0.state == "complete" || $0.state == "autoCompleted"
+        }.count
     }
 
     private func lessonDoneToday(_ snapshot: TodaySnapshot) -> Bool {
@@ -722,6 +749,9 @@ struct BecomingView: View {
             planId: snap.plan?.id,
             programDay: snap.programDay,
             in: modelContext
+        )
+        lifetimeRepsKept = Self.fetchLifetimeRepsKept(
+            userId: userId, planId: snap.plan?.id, in: modelContext
         )
     }
 

@@ -174,9 +174,11 @@ struct RoutineSessionView: View {
                     .transition(.opacity)
             }
         }
-        .alert("End Workout?", isPresented: $showEndConfirm) {
-            Button("End", role: .destructive) { vm.end() }
-            Button("Keep Going", role: .cancel) {}
+        .alert("end here?", isPresented: $showEndConfirm) {
+            Button("end. it still counts", role: .destructive) { vm.end() }
+            Button("keep going", role: .cancel) {}
+        } message: {
+            Text("pausing or ending early is allowed. the minutes you moved are already yours.")
         }
         .sheet(isPresented: $showVolumeSheet) {
             VolumeSheet(onChange: { vm.applyVolumeChanges() })
@@ -452,6 +454,10 @@ struct RoutineSessionView: View {
         }
     }
 
+    /// v3 deep pass — the session controls join the quiet-mark
+    /// family: hairline circles, thin glyphs, cocoa when live. The
+    /// scrapbook offset-shadow circles were the pre-v3 dialect's last
+    /// residents inside a module.
     private func stackButton(
         icon: String,
         accent: Bool = false,
@@ -460,22 +466,23 @@ struct RoutineSessionView: View {
     ) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 14, weight: .light))
                 .foregroundStyle(accent ? Palette.textInverse : Palette.textPrimary)
                 .frame(width: 40, height: 40)
                 .background(
                     ZStack {
                         Circle()
-                            .fill(Palette.accent.opacity(0.18))
-                            .offset(x: 2, y: 2)
+                            .fill(accent ? Palette.cocoaPrimary : Palette.bgElevated.opacity(0.94))
                         Circle()
-                            .fill(accent ? Palette.accent : Palette.bgElevated)
-                        Circle()
-                            .stroke(Palette.accent.opacity(accent ? 0.0 : 0.35), lineWidth: 1)
+                            .strokeBorder(
+                                accent ? Color.clear : Palette.hairlineCocoa,
+                                lineWidth: 0.66
+                            )
                     }
                 )
                 .tappableArea()
         }
+        .buttonStyle(JKPress())
         .accessibilityLabel(accessibilityLabel)
     }
 
@@ -489,12 +496,12 @@ struct RoutineSessionView: View {
         return ZStack(alignment: .topTrailing) {
             ZStack {
                 Circle()
-                    .fill(Palette.accent.opacity(0.18))
-                    .offset(x: 2, y: 2)
+                    .fill(mirroring ? Palette.cocoaPrimary : Palette.bgElevated.opacity(0.94))
                 Circle()
-                    .fill(mirroring ? Palette.accent : Palette.bgElevated)
-                Circle()
-                    .stroke(Palette.accent.opacity(mirroring ? 0.0 : 0.35), lineWidth: 1)
+                    .strokeBorder(
+                        mirroring ? Color.clear : Palette.hairlineCocoa,
+                        lineWidth: 0.66
+                    )
                 AirPlayPickerView(tint: UIColor(mirroring ? Palette.textInverse : Palette.textPrimary))
                     .frame(width: 28, height: 28)
             }
@@ -515,24 +522,36 @@ struct RoutineSessionView: View {
 
     // MARK: - Pause Overlay
 
+    /// v3 deep pass — the pause is a BREATH, not an interruption
+    /// dialog. The pre-brand overlay (SESSION PAUSED / RESUME /
+    /// END SESSION in shouting caps on a pink block) was the oldest
+    /// surviving copy in the app; it now speaks the register: warm
+    /// scrim, serif lowercase, one cocoa door, one kind exit.
     private var sessionPausedOverlay: some View {
         ZStack {
-            Color.black.opacity(0.5).ignoresSafeArea()
+            Palette.cocoaPrimary.opacity(0.32).ignoresSafeArea()
 
-            VStack(spacing: Space.lg) {
-                Text("SESSION PAUSED")
-                    .font(Typo.caption)
-                    .foregroundStyle(Palette.textSecondary)
-                    .tracking(3)
+            VStack(alignment: .leading, spacing: Space.md) {
+                Text("paused")
+                    .font(Typo.captionTracked)
+                    .kerning(1.98)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
 
                 if let exercise = vm.currentExercise {
-                    Text(exercise.name)
-                        .font(Typo.title)
-                        .foregroundStyle(Palette.textPrimary)
+                    ItalicAccentText(
+                        exercise.name.lowercased() + ".",
+                        italic: [exercise.name.lowercased()],
+                        baseFont: .custom("JeniHeroSerif-Regular", size: 26, relativeTo: .title2),
+                        italicFont: .custom("JeniHeroSerif-Italic", size: 26, relativeTo: .title2),
+                        color: Palette.textPrimary,
+                        alignment: .leading
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Text("\(vm.timeRemaining)s remaining")
-                    .font(Typo.body)
+                Text("\(vm.timeRemaining) seconds left, whenever you're ready.")
+                    .font(Typo.caption)
                     .foregroundStyle(Palette.textSecondary)
 
                 VStack(spacing: Space.sm) {
@@ -541,33 +560,39 @@ struct RoutineSessionView: View {
                         pausedByBackground = false
                         vm.resume()
                     } label: {
-                        Text("RESUME")
-                            .font(Typo.body).fontWeight(.bold)
+                        Text("resume")
+                            .font(.custom("DMSans-SemiBold", size: 16, relativeTo: .body))
                             .foregroundStyle(Palette.textInverse)
                             .frame(maxWidth: .infinity)
-                            .frame(height: Space.minTapTarget + 12)
-                            .background(Palette.accent)
-                            .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
+                            .padding(.vertical, 15)
+                            .background(Capsule().fill(Palette.cocoaPrimary))
                     }
+                    .buttonStyle(JKPress())
 
                     Button {
                         pausedByBackground = false
                         vm.end()
                     } label: {
-                        Text("END SESSION")
-                            .font(Typo.body).fontWeight(.medium)
-                            .foregroundStyle(Palette.textSecondary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: Space.minTapTarget + 4)
+                        Text("end here. it still counts \u{2665}\u{FE0E}")
+                            .font(.custom("DMSans-Medium", size: 14, relativeTo: .footnote))
+                            .foregroundStyle(Palette.cocoaSecondary)
+                            .padding(.vertical, 8)
                     }
+                    .buttonStyle(.plain)
                 }
-                .padding(.top, Space.md)
+                .padding(.top, Space.sm)
             }
             .padding(Space.lg)
-            .padding(.horizontal, Space.screenPadding)
-            .background(Palette.bgElevated)
-            .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
-            .plankShadow()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+                    .fill(Palette.bgElevated)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+                    .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
+            )
+            .shadow(color: .black.opacity(0.12), radius: 18, y: 6)
             .padding(.horizontal, Space.lg)
         }
     }
@@ -583,20 +608,18 @@ struct RoutineSessionView: View {
                 showEndConfirm = true
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 13, weight: .light))
                     .foregroundStyle(Palette.textPrimary)
                     .frame(width: 36, height: 36)
                     .background(
                         ZStack {
-                            Circle()
-                                .fill(Palette.accent.opacity(0.18))
-                                .offset(x: 2, y: 2)
-                            Circle().fill(Palette.bgElevated)
-                            Circle().stroke(Palette.accent.opacity(0.35), lineWidth: 1)
+                            Circle().fill(Palette.bgElevated.opacity(0.94))
+                            Circle().strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
                         }
                     )
                     .tappableArea()
             }
+            .buttonStyle(JKPress())
             .accessibilityLabel("End workout")
 
             progressSegments
