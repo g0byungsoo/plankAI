@@ -288,6 +288,7 @@ final class SurfaceInventoryUITests: XCTestCase {
         app.launchArguments = [
             "--uitest-inapp-qa", "--uitest-pro-access",
             "--uitest-seed-program", "--uitest-seed-day", "14",
+            "--uitest-force-day",
         ]
         app.launch()
         sleep(7)
@@ -340,6 +341,7 @@ final class SurfaceInventoryUITests: XCTestCase {
         app.launchArguments = [
             "--uitest-inapp-qa", "--uitest-pro-access",
             "--uitest-seed-program", "--uitest-seed-day", "14",
+            "--uitest-force-day",
         ]
         app.launch()
         sleep(7)
@@ -397,6 +399,7 @@ final class SurfaceInventoryUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = [
             "--uitest-inapp-qa", "--uitest-pro-access", "--uitest-seed-program",
+            "--uitest-force-day",
         ]
         app.launch()
         sleep(7)
@@ -448,6 +451,7 @@ final class SurfaceInventoryUITests: XCTestCase {
         app.launchArguments = [
             "--uitest-inapp-qa", "--uitest-pro-access",
             "--uitest-seed-program", "--uitest-seed-day", "3",
+            "--uitest-force-day",
         ]
         app.launch()
         sleep(7)

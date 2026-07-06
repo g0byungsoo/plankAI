@@ -26,7 +26,7 @@ struct JeniChatView: View {
             VStack(spacing: 0) {
                 JKMasthead(
                     lead: .title("jeni", italic: ["jeni"]),
-                    eyebrow: "your coach"
+                    eyebrow: "your coach · \(Date.now.formatted(.dateTime.weekday(.wide)).lowercased())"
                 )
                 .padding(.top, Space.hero)
                 .jkBeat1()

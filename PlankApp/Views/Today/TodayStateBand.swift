@@ -140,11 +140,15 @@ struct EveningClose: View {
                     )
                 }
                 if snapshot.completedBeatCount > 0 {
+                    // Standing grammar, not arithmetic — the same
+                    // vocabulary as the strip dots and the day review.
                     JKReceiptRow(
                         lead: "the plan",
-                        punch: "\(snapshot.completedBeatCount) of \(snapshot.day?.beats.count ?? 0) beats, kept",
-                        punchItalic: ["kept"],
-                        showsRule: snapshot.proteinEatenG > 0
+                        punch: DayStanding.from(completedCount: snapshot.completedBeatCount) == .kept
+                            ? "kept \u{2665}\u{FE0E}"
+                            : "some of it landed",
+                        punchItalic: [DayStanding.from(completedCount: snapshot.completedBeatCount) == .kept ? "kept" : "landed"],
+                        showsRule: snapshot.proteinEatenG > 0 || showsEnoughNet
                     )
                 }
                 JKReceiptRow(

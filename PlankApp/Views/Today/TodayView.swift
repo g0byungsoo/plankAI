@@ -79,9 +79,13 @@ struct TodayView: View {
                         .jkBeat1()
 
                     if let snapshot {
-                        // THE READING — jeni's morning note, the hero.
-                        JKReadingBlock(
+                        // THE NOTE FROM JENI — the morning letter,
+                        // the app's presence artifact.
+                        JKJeniNote(
                             brief: snapshot.brief,
+                            dateline: Date.now
+                                .formatted(.dateTime.weekday(.wide))
+                                .lowercased(),
                             onOpenChat: {
                                 router.openChat(seed: snapshot.brief.chatSeed)
                             }
@@ -240,7 +244,10 @@ struct TodayView: View {
 
     private func liveTrailing(_ beat: ProgramDayPrescription) -> String? {
         if case .steps = beat {
-            return steps.todayCount.formatted()
+            // A cold "0" reads like a grade; the note ("counted for
+            // you") carries the row until HealthKit has something.
+            let count = steps.todayCount
+            return count > 0 ? count.formatted() : nil
         }
         return nil
     }
@@ -339,6 +346,16 @@ struct TodayView: View {
     private var archetypeNote: String? {
         if snapshot?.isOnBreak == true {
             return "on a break \u{2665}\u{FE0E}"
+        }
+        // Keeping chapter: the masthead speaks the band (the week
+        // frame), not the day archetype.
+        if snapshot?.chapter == .keeping, let zone = snapshot?.bandZone {
+            switch zone {
+            case BandZone.steady.rawValue: return "inside your band \u{2665}\u{FE0E}"
+            case BandZone.drifting.rawValue: return "a steadying week"
+            case BandZone.reset.rawValue: return "a reset week, held"
+            default: break
+            }
         }
         guard let archetype = snapshot?.day?.archetype else { return nil }
         let pill = archetype.pillCopy
@@ -454,6 +471,11 @@ struct TodayView: View {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--uitest-force-evening") {
             return true
+        }
+        // Deterministic day-layout captures + walker runs after 18:00
+        // local (the evening flip is wall-clock; QA must not be).
+        if ProcessInfo.processInfo.arguments.contains("--uitest-force-day") {
+            return false
         }
         #endif
         return Calendar.current.component(.hour, from: .now) >= 18

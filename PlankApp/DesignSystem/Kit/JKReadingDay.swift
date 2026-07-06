@@ -11,14 +11,20 @@ import SwiftUI
 // No at-rest circles, no locks, no counts. Completion stays her75:
 // the strike IS the satisfaction.
 
-// MARK: - JKReadingBlock
+// MARK: - JKJeniNote
 
-/// Jeni's reading of the day: 1-2 serif sentences + an optional
-/// mechanism caption + the ask-jeni affordance. Entrance is the
-/// loader's two-beat signature (line settles, the rest rises 340ms
-/// later) — once per mount, reduce-motion gated.
-struct JKReadingBlock: View {
+/// THE NOTE FROM JENI — the morning letter, the app's presence
+/// artifact (04_PREMIUM_PASS move A). A paper-grade card: "JENI" +
+/// hairline + the weekday as a dateline, the reading in serif (line
+/// one leads; the second sentence follows in the secondary ink), the
+/// mechanism as a quiet caption, "reply ↗" and her signature
+/// ("jeni ♥") on the closing line. The whole note is the reply
+/// affordance. Entrance: the two-beat settle; idle: the breathing
+/// shadow — nothing else moves.
+struct JKJeniNote: View {
     let brief: DailyBriefEngine.Brief
+    /// Lowercase weekday for the dateline ("sunday").
+    var dateline: String = ""
     var onOpenChat: (() -> Void)? = nil
 
     @State private var settled = false
@@ -30,7 +36,24 @@ struct JKReadingBlock: View {
             Haptics.soft()
             onOpenChat()
         } label: {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
+                // Dateline — hers, from her coach, this morning.
+                HStack(spacing: 10) {
+                    Text("jeni")
+                        .font(Typo.captionTracked)
+                        .kerning(2.2)
+                        .textCase(.uppercase)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                    Rectangle()
+                        .fill(Palette.hairlineCocoa)
+                        .frame(height: 0.5)
+                    if !dateline.isEmpty {
+                        Text(dateline)
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11, relativeTo: .caption2))
+                            .foregroundStyle(Palette.cocoaTertiary)
+                    }
+                }
+
                 ItalicAccentText(
                     brief.line,
                     italic: brief.italic,
@@ -43,19 +66,18 @@ struct JKReadingBlock: View {
                 .kerning(-0.2)
                 .fixedSize(horizontal: false, vertical: true)
 
-                if brief.second != nil || brief.mechanism != nil || onOpenChat != nil {
+                if brief.second != nil || brief.mechanism != nil {
                     VStack(alignment: .leading, spacing: 8) {
                         if let second = brief.second {
                             ItalicAccentText(
                                 second,
                                 italic: brief.secondItalic,
-                                baseFont: Typo.reading,
-                                italicFont: Typo.readingItalic,
-                                color: Palette.textPrimary,
+                                baseFont: .custom("JeniHeroSerif-Regular", size: 18, relativeTo: .body),
+                                italicFont: .custom("JeniHeroSerif-Italic", size: 18, relativeTo: .body),
+                                color: Palette.textSecondary,
                                 alignment: .leading
                             )
-                            .lineSpacing(-3)
-                            .kerning(-0.2)
+                            .lineSpacing(-1)
                             .fixedSize(horizontal: false, vertical: true)
                         }
                         if let mechanism = brief.mechanism {
@@ -64,35 +86,58 @@ struct JKReadingBlock: View {
                                 .foregroundStyle(Palette.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        if onOpenChat != nil {
-                            HStack(spacing: 5) {
-                                Text("ask jeni")
-                                    .font(Typo.captionTracked)
-                                    .kerning(1.4)
-                                    .textCase(.uppercase)
-                                Image(systemName: "arrow.up.right")
-                                    .font(.system(size: 9, weight: .medium))
-                            }
-                            .foregroundStyle(Palette.cocoaTertiary)
-                        }
                     }
                     .opacity(settled ? 1 : 0)
                     .offset(y: settled ? 0 : 6)
                 }
+
+                // The closing line: reply on the left, her hand on
+                // the right. The signature IS jeni's presence mark.
+                HStack {
+                    if onOpenChat != nil {
+                        HStack(spacing: 5) {
+                            Text("reply")
+                                .font(Typo.captionTracked)
+                                .kerning(1.6)
+                                .textCase(.uppercase)
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 9, weight: .medium))
+                        }
+                        .foregroundStyle(Palette.cocoaTertiary)
+                    }
+                    Spacer()
+                    Text("jeni \u{2665}\u{FE0E}")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14, relativeTo: .footnote))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                }
+                .padding(.top, 2)
+                .opacity(settled ? 1 : 0)
             }
+            .padding(.horizontal, Space.lg)
+            .padding(.vertical, 18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            .background(
+                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+                    .fill(Palette.bgElevated)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+                    .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
+            )
+            .shadow(color: .black.opacity(0.05), radius: 9, y: 3)
+            .contentShape(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
         }
         .buttonStyle(JKPress())
         .disabled(onOpenChat == nil)
+        .breathingShadow()
         .onAppear {
             guard !settled else { return }
             if reduceMotion { settled = true; return }
             withAnimation(Motion.entranceSoft.delay(0.34)) { settled = true }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityText)
-        .accessibilityHint(onOpenChat != nil ? "opens jeni" : "")
+        .accessibilityLabel("a note from jeni. \(accessibilityText)")
+        .accessibilityHint(onOpenChat != nil ? "opens jeni to reply" : "")
     }
 
     private var accessibilityText: String {
@@ -141,15 +186,18 @@ private struct JKTapWithLongPress: ViewModifier {
 
 // MARK: - JKOneThingCard
 
-/// The single ask — the screen's only filled container. Done state
-/// exhales into a one-line receipt (crossfade + settle, 0.55s feel
-/// via Motion.easedFinal on the size change).
+/// The single ask — the screen's ONE dark object (04_PREMIUM_PASS
+/// move B). Cocoa field, cream serif, the italic punch word tinted
+/// accent-subtle; the strike draws in cream. Done: the card exhales
+/// into a cream kept-receipt row, so the dark anchor literally
+/// leaves the screen once the ask is met. Permission days stay
+/// cream — dark means an ask exists.
 struct JKOneThingCard: View {
     let title: String
     var italic: [String] = []
     var subtitle: String? = nil
     var isDone: Bool = false
-    /// Permission days (rest / break) render statement-only.
+    /// Permission days (rest-with-no-ask / break) render statement-only.
     var isPermission: Bool = false
     var onTap: (() -> Void)? = nil
     var onLongPress: (() -> Void)? = nil
@@ -169,13 +217,19 @@ struct JKOneThingCard: View {
         .animation(reduceMotion ? nil : Motion.easedFinal, value: isDone)
     }
 
+    private var isDark: Bool { !isDone && !isPermission }
+
     private var cardBody: some View {
-        VStack(alignment: .leading, spacing: isDone ? 4 : 8) {
+        VStack(alignment: .leading, spacing: isDone ? 4 : 10) {
             Text(isDone ? "kept" : "the one thing")
                 .font(Typo.captionTracked)
-                .kerning(1.6)
+                .kerning(2.0)
                 .textCase(.uppercase)
-                .foregroundStyle(isDone ? Palette.cocoaSecondary : Palette.cocoaTertiary)
+                .foregroundStyle(
+                    isDone ? Palette.cocoaSecondary
+                           : (isDark ? Palette.textInverse.opacity(0.55)
+                                     : Palette.cocoaTertiary)
+                )
 
             if isDone {
                 HStack(spacing: 8) {
@@ -195,9 +249,10 @@ struct JKOneThingCard: View {
                 ItalicAccentText(
                     title,
                     italic: italic,
-                    baseFont: .custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3),
-                    italicFont: .custom("JeniHeroSerif-Italic", size: 22, relativeTo: .title3),
-                    color: Palette.textPrimary,
+                    baseFont: .custom("JeniHeroSerif-Regular", size: 23, relativeTo: .title3),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 23, relativeTo: .title3),
+                    color: isDark ? Palette.textInverse : Palette.textPrimary,
+                    italicColor: isDark ? Palette.accentSubtle : nil,
                     alignment: .leading
                 )
                 .lineSpacing(-2)
@@ -207,23 +262,33 @@ struct JKOneThingCard: View {
                 if let subtitle {
                     Text(subtitle)
                         .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
+                        .foregroundStyle(
+                            isDark ? Palette.textInverse.opacity(0.62)
+                                   : Palette.textSecondary
+                        )
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
         .padding(.horizontal, Space.lg)
-        .padding(.vertical, isDone ? 14 : 20)
+        .padding(.vertical, isDone ? 14 : 22)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
-                .fill(Palette.bgElevated)
+                .fill(isDark ? Palette.cocoaPrimary : Palette.bgElevated)
         )
         .overlay(
             RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
-                .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
+                .strokeBorder(
+                    isDark ? Color.white.opacity(0.06) : Palette.hairlineCocoa,
+                    lineWidth: 0.66
+                )
         )
-        .shadow(color: .black.opacity(isDone ? 0.02 : 0.05), radius: 7, y: 2)
+        .shadow(
+            color: isDark ? Palette.cocoaPrimary.opacity(0.22) : .black.opacity(0.03),
+            radius: isDark ? 12 : 7,
+            y: isDark ? 5 : 2
+        )
         .contentShape(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(a11yLabel)
@@ -257,11 +322,9 @@ struct JKRhythmRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: glyph)
-                .font(.system(size: 14, weight: .light))
-                .foregroundStyle(Palette.cocoaTertiary)
-                .frame(width: 20)
-
+            // Premium pass move C: rows are text-set like a menu — no
+            // leading glyph (utility-app residue). `glyph` survives in
+            // the API for the gallery; it simply doesn't render here.
             HStack(spacing: 6) {
                 Text(title)
                     .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))

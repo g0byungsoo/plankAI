@@ -115,6 +115,10 @@ struct ItalicAccentText: View {
     var baseFont: Font = Typo.title
     var italicFont: Font = Typo.titleItalic
     var color: Color = Palette.textPrimary
+    /// v3 premium pass: optional distinct ink for the italic punch
+    /// (the cocoa one-thing card tints it accent-subtle). nil = the
+    /// punch shares `color` (every existing call site unchanged).
+    var italicColor: Color? = nil
     var alignment: TextAlignment = .leading
 
     init(_ base: String,
@@ -122,18 +126,19 @@ struct ItalicAccentText: View {
          baseFont: Font = Typo.title,
          italicFont: Font = Typo.titleItalic,
          color: Color = Palette.textPrimary,
+         italicColor: Color? = nil,
          alignment: TextAlignment = .leading) {
         self.base = base
         self.italic = italic
         self.baseFont = baseFont
         self.italicFont = italicFont
         self.color = color
+        self.italicColor = italicColor
         self.alignment = alignment
     }
 
     var body: some View {
         composed
-            .foregroundStyle(color)
             .multilineTextAlignment(alignment)
     }
 
@@ -154,12 +159,18 @@ struct ItalicAccentText: View {
             }
             if let match = nearest {
                 if match.lowerBound > cursor {
-                    output = output + Text(String(base[cursor..<match.lowerBound])).font(baseFont)
+                    output = output + Text(String(base[cursor..<match.lowerBound]))
+                        .font(baseFont)
+                        .foregroundColor(color)
                 }
-                output = output + Text(String(base[match])).font(italicFont)
+                output = output + Text(String(base[match]))
+                    .font(italicFont)
+                    .foregroundColor(italicColor ?? color)
                 cursor = match.upperBound
             } else {
-                output = output + Text(String(base[cursor..<end])).font(baseFont)
+                output = output + Text(String(base[cursor..<end]))
+                    .font(baseFont)
+                    .foregroundColor(color)
                 cursor = end
             }
         }
