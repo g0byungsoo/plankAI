@@ -310,7 +310,9 @@ struct BecomingView: View {
     /// their chrome retired).
     @ViewBuilder private var theWeekHeld: some View {
         let rows = weekHeldRows()
-        if !rows.isEmpty {
+        // Sundays the artifact block IS the week's receipt — the held
+        // rows yield rather than stack two receipt grammars.
+        if !rows.isEmpty, !isReceiptDay {
             VStack(alignment: .leading, spacing: Space.md) {
                 Text("the week, held")
                     .font(Typo.captionTracked)
