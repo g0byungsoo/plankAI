@@ -72,6 +72,9 @@ enum DailyBriefEngine {
         /// On-medication: yesterday's "how did today sit?" answer
         /// (fine / heavy / queasy) when she gave one.
         var yesterdaySat: String? = nil
+        /// The quiet hours — last night's plate-to-plate stretch
+        /// (nil when unnarratable or hard-gated; QuietHours).
+        var overnightQuietHours: Double? = nil
     }
 
     // MARK: - The cascade
@@ -244,7 +247,15 @@ enum DailyBriefEngine {
                 ("today asks for steady, not perfect.", ["steady"]),
             ]
             let pick = lines[seedIndex % lines.count]
-            return Brief(line: pick.0, italic: pick.1, chatSeed: "balanced day. keep it light.")
+            return Brief(
+                line: pick.0, italic: pick.1,
+                chatSeed: "balanced day. keep it light.",
+                mechanism: ctx.overnightQuietHours.flatMap { hours in
+                    hours >= 12
+                        ? "about \(Int(hours.rounded())) quiet hours overnight, without trying. that rhythm does real work."
+                        : nil
+                }
+            )
         case .rest:
             if ctx.glp1Cohort == .postGlp1 {
                 return Brief(

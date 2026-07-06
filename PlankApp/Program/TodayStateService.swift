@@ -210,7 +210,8 @@ enum TodayStateService {
                     byAdding: .day, value: -1, to: .now
                 ) else { return nil }
                 return d.string(forKey: "day.sit.\(dayKey(for: yesterday))")
-            }()
+            }(),
+            overnightQuietHours: QuietHours.liveOvernight(userId: userId)
         ))
 
         return TodaySnapshot(

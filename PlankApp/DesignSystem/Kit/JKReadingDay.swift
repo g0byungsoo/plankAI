@@ -318,6 +318,9 @@ struct JKOneThingCard: View {
     let title: String
     var italic: [String] = []
     var subtitle: String? = nil
+    /// The ritual's glossy sticker as a wax seal, floating top-right
+    /// on the cocoa field — the ask carries its object.
+    var sealAsset: String? = nil
     var isDone: Bool = false
     /// Permission days (rest-with-no-ask / break) render statement-only.
     var isPermission: Bool = false
@@ -343,15 +346,29 @@ struct JKOneThingCard: View {
 
     private var cardBody: some View {
         VStack(alignment: .leading, spacing: isDone ? 4 : 10) {
-            Text(isDone ? "kept" : "the one thing")
-                .font(Typo.captionTracked)
-                .kerning(2.0)
-                .textCase(.uppercase)
-                .foregroundStyle(
-                    isDone ? Palette.cocoaSecondary
-                           : (isDark ? Palette.textInverse.opacity(0.55)
-                                     : Palette.cocoaTertiary)
-                )
+            HStack(alignment: .top) {
+                Text(isDone ? "kept" : "the one thing")
+                    .font(Typo.captionTracked)
+                    .kerning(2.0)
+                    .textCase(.uppercase)
+                    .foregroundStyle(
+                        isDone ? Palette.cocoaSecondary
+                               : (isDark ? Palette.textInverse.opacity(0.55)
+                                         : Palette.cocoaTertiary)
+                    )
+                Spacer(minLength: 0)
+                if !isDone, let sealAsset {
+                    Image(sealAsset)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 40, height: 40)
+                        .shadow(color: .black.opacity(isDark ? 0.25 : 0.10),
+                                radius: 4, y: 2)
+                        .padding(.top, -6)
+                        .padding(.trailing, -4)
+                        .accessibilityHidden(true)
+                }
+            }
 
             if isDone {
                 HStack(spacing: 8) {
@@ -432,8 +449,12 @@ struct JKOneThingCard: View {
 struct JKRhythmRow: View {
     let title: String
     var note: String? = nil
-    /// The ritual mark (the JeniFit symbol system) — identity without
-    /// utility-glyph clutter. nil = pure text row.
+    /// The glossy ritual sticker on its pastel tile — THE app's own
+    /// icon language (founder direction 2026-07-06: the iridescent
+    /// peach / candy / balloon dog / mary-jane / heart-lock / bubble
+    /// ARE the identity). 34pt: present, never loud.
+    var sticker: (asset: String, tile: Color)? = nil
+    /// Fallback line mark when a row has no sticker.
     var mark: JKMarkKind? = nil
     var state: JKBeatState = .empty
     /// Live trailing text for auto rows (steps count).
@@ -446,7 +467,18 @@ struct JKRhythmRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            if let mark {
+            if let sticker {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(sticker.tile.opacity(state.isDone ? 0.45 : 0.85))
+                    Image(sticker.asset)
+                        .resizable()
+                        .scaledToFit()
+                        .padding(4)
+                }
+                .frame(width: 34, height: 34)
+                .saturation(state.isDone ? 0.4 : 1)
+            } else if let mark {
                 JKMark(
                     kind: mark,
                     size: 18,

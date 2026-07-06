@@ -413,6 +413,16 @@ struct BecomingView: View {
                 punchItalic: ["checked"]
             ))
         }
+        // The quiet hours — zero-input rhythm from her plate times
+        // (hard-gated inside QuietHours for restriction-risk).
+        let quietNights = QuietHours.liveQuietNights(userId: userId)
+        if held.count < 2, quietNights >= 3 {
+            held.append(HeldRow(
+                mark: .moon, lead: "quiet hours",
+                punch: "the kitchen slept well, \(quietNights) nights",
+                punchItalic: ["slept well"]
+            ))
+        }
 
         // — drifted (one, gentle, only when real)
         if snapshot?.chapter == .keeping,

@@ -189,6 +189,7 @@ struct TodayView: View {
                             title: oneThingTitle(one, snapshot: snapshot).text,
                             italic: oneThingTitle(one, snapshot: snapshot).italic,
                             subtitle: oneThingSubtitle(one, snapshot: snapshot),
+                            sealAsset: one.stickerAsset,
                             isDone: beatState(one, snapshot: snapshot).isDone,
                             onTap: { modules.open(one, snapshot: snapshot) },
                             onLongPress: { modules.longPress(one, snapshot: snapshot) }
@@ -224,6 +225,9 @@ struct TodayView: View {
                         JKRhythmRow(
                             title: beatTitle(beat),
                             note: rhythmNote(beat, snapshot: snapshot),
+                            sticker: beat.stickerAsset.map {
+                                (asset: $0, tile: stickyTile(beat.stickyColorKind))
+                            },
                             mark: JKMarkKind.mark(for: beat),
                             state: beatState(beat, snapshot: snapshot),
                             liveTrailing: liveTrailing(beat),
@@ -413,6 +417,15 @@ struct TodayView: View {
             return "\(minutes) min · \(styleWord)"
         case .plank, .water, .measurements:
             return nil
+        }
+    }
+
+    private func stickyTile(_ kind: ProgramDayPrescription.StickyColor) -> Color {
+        switch kind {
+        case .mint: return Palette.stickyMint
+        case .butter: return Palette.stickyButter
+        case .rose: return Palette.stickyRose
+        case .olive: return Palette.stickyOlive
         }
     }
 

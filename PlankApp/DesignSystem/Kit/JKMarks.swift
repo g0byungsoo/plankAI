@@ -22,7 +22,7 @@ import SwiftUI
 // per row, never inside prose, never decorative repetition.
 
 enum JKMarkKind {
-    case plate, path, line, breath, door, hop
+    case plate, path, line, breath, door, hop, moon
 }
 
 struct JKMark: View {
@@ -99,6 +99,20 @@ struct JKMark: View {
                 stroke.lineWidth = lineWidth * 0.85
                 ctx.stroke(swing, with: .color(color.opacity(0.65)), style: stroke)
                 dot(14.6, 12.6, r: 1.1)
+
+            case .moon:
+                // The quiet hours — a waning crescent, nothing else.
+                var outer = Path()
+                outer.addArc(center: pt(12, 12), radius: 8 * s,
+                             startAngle: .degrees(-70), endAngle: .degrees(110),
+                             clockwise: false)
+                ctx.stroke(outer, with: .color(color), style: stroke)
+                var innerC = Path()
+                innerC.addArc(center: pt(9.4, 10.8), radius: 6.2 * s,
+                              startAngle: .degrees(-58), endAngle: .degrees(96),
+                              clockwise: false)
+                stroke.lineWidth = lineWidth * 0.85
+                ctx.stroke(innerC, with: .color(color.opacity(0.65)), style: stroke)
 
             case .hop:
                 // A soft arch over its landing — movement without a

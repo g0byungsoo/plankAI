@@ -170,6 +170,70 @@ final class AppV3SpineTests: XCTestCase {
         XCTAssertFalse(BandModel.weekIsKept(weighDays: 1, presenceDays: 5, zone: .drifting))
     }
 
+    // MARK: - QuietHours (zero-input rhythm)
+
+    func testOvernightQuietHours() {
+        let f = ISO8601DateFormatter()
+        let now = f.date(from: "2026-07-06T12:00:00Z")!
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+
+        // dinner 19:30 yesterday → breakfast 08:30 today = 13h
+        let times = [
+            f.date(from: "2026-07-05T12:10:00Z")!,
+            f.date(from: "2026-07-05T19:30:00Z")!,
+            f.date(from: "2026-07-06T08:30:00Z")!,
+        ]
+        let hours = QuietHours.overnightQuietHours(
+            plateTimes: times, now: now, calendar: cal
+        )
+        XCTAssertEqual(hours ?? 0, 13.0, accuracy: 0.01)
+
+        // No plate today yet → nil (never narrate a stretch that
+        // hasn't ended).
+        XCTAssertNil(QuietHours.overnightQuietHours(
+            plateTimes: Array(times.prefix(2)), now: now, calendar: cal
+        ))
+
+        // A 26h gap (missed logging) is outside the sanity band.
+        let sparse = [
+            f.date(from: "2026-07-05T06:00:00Z")!,
+            f.date(from: "2026-07-06T08:30:00Z")!,
+        ]
+        XCTAssertNil(QuietHours.overnightQuietHours(
+            plateTimes: sparse, now: now, calendar: cal
+        ))
+    }
+
+    func testEatingWindowAndQuietNights() {
+        let f = ISO8601DateFormatter()
+        let now = f.date(from: "2026-07-06T21:00:00Z")!
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+
+        let today = [
+            f.date(from: "2026-07-06T09:00:00Z")!,
+            f.date(from: "2026-07-06T13:00:00Z")!,
+            f.date(from: "2026-07-06T19:00:00Z")!,
+        ]
+        XCTAssertEqual(
+            QuietHours.eatingWindowHours(plateTimes: today, now: now, calendar: cal) ?? 0,
+            10.0, accuracy: 0.01
+        )
+
+        // Three consecutive evenings 19:00 → mornings 09:00 = 14h
+        // nights ×3 (needs a plate on BOTH sides of each night).
+        var week: [Date] = []
+        for day in ["2026-07-03", "2026-07-04", "2026-07-05", "2026-07-06"] {
+            week.append(f.date(from: "\(day)T09:00:00Z")!)
+            week.append(f.date(from: "\(day)T19:00:00Z")!)
+        }
+        XCTAssertEqual(
+            QuietHours.quietNights(plateTimes: week, minHours: 11, now: now, calendar: cal),
+            3
+        )
+    }
+
     // MARK: - BreakState
 
     func testBreakRangesCoverInclusiveDays() {

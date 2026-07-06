@@ -1,4 +1,5 @@
 import SwiftUI
+import Auth
 import PlankFood
 import PlankSync
 
@@ -48,6 +49,24 @@ struct TodayStateBand: View {
                 JKKcalLine(kcal: snapshot.kcalEaten, target: snapshot.targets.kcal)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, Space.sm)
+            }
+
+            // THE QUIET HOURS — insight with zero input: her plates'
+            // timestamps already know the overnight rhythm. Purely
+            // observational; hard-gated off for restriction-risk +
+            // suppressed identities (QuietHours.mayNarrate).
+            if let hours = QuietHours.liveOvernight(
+                userId: AuthService.shared.currentUser?.id.uuidString ?? ""
+            ), hours >= 11 {
+                HStack(spacing: 8) {
+                    JKMark(kind: .moon, size: 13,
+                           color: Palette.cocoaSecondary.opacity(0.8))
+                    Text(QuietHours.overnightLine(hours: hours))
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 6)
             }
 
             if snapshot.plates.isEmpty {

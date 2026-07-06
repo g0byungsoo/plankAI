@@ -9,15 +9,23 @@ import PlankFood
 @MainActor
 final class CrossAccountScopingTests: XCTestCase {
 
-    private let userA = "AAAAAAAA-0000-0000-0000-00000000000A"
-    private let userB = "BBBBBBBB-0000-0000-0000-00000000000B"
+    // Fresh identities PER RUN. The persister's JSONL outlives the
+    // test process and mergeRemote dedupes by id — fixed ids meant a
+    // run after midnight re-read YESTERDAY's rows and todayMacros
+    // legitimately returned 0 (caught 2026-07-06, the midnight
+    // flake). Unique users + ids make every run self-contained.
+    private let runTag = UUID().uuidString
+    private var userA: String { "AAAAAAAA-0000-4000-8000-\(String(runTag.replacingOccurrences(of: "-", with: "").prefix(12)))".uppercased() }
+    private var userB: String { "BBBBBBBB-0000-4000-8000-\(String(runTag.replacingOccurrences(of: "-", with: "").suffix(12)))".uppercased() }
+    private var idA: String { "scope-a1-\(runTag)" }
+    private var idB: String { "scope-b1-\(runTag)" }
 
     override func setUp() async throws {
         FoodLogPersister.mergeRemote([
-            .init(id: "scope-a1", userId: userA, loggedAt: .now,
+            .init(id: idA, userId: userA, loggedAt: .now,
                   kcal: 400, protein: 30, carbs: 40, fat: 10, fiber: 5,
                   title: "user a plate", source: "test"),
-            .init(id: "scope-b1", userId: userB.lowercased(), loggedAt: .now,
+            .init(id: idB, userId: userB.lowercased(), loggedAt: .now,
                   kcal: 700, protein: 50, carbs: 60, fat: 20, fiber: 6,
                   title: "user b plate", source: "test"),
         ])
@@ -34,9 +42,9 @@ final class CrossAccountScopingTests: XCTestCase {
     func testAllEntriesIsCaseInsensitiveOnUUIDCase() {
         // B was stored lowercased; the read uses the uppercase form.
         let entries = FoodLogPersister.allEntries(userId: userB)
-        XCTAssertTrue(entries.contains { $0.id == "scope-b1" },
+        XCTAssertTrue(entries.contains { $0.id == idB },
                       "uuid case must not split one user into two")
-        XCTAssertFalse(entries.contains { $0.id == "scope-a1" })
+        XCTAssertFalse(entries.contains { $0.id == idA })
     }
 
     func testSignOutSweepClearsPerIdentityDayKeys() {
