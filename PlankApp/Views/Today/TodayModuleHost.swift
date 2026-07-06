@@ -51,6 +51,21 @@ private struct TodayModuleHost: ViewModifier {
     @ViewBuilder
     private func coverContent(_ cover: TodayModuleState.Cover) -> some View {
         switch cover {
+        case .jeniNote:
+            JeniNoteView(
+                brief: snapshot?.brief ?? DailyBriefEngine.Brief(
+                    line: "today is yours \u{2665}\u{FE0E}", italic: [], chatSeed: nil
+                ),
+                dateline: Date.now.formatted(.dateTime.weekday(.wide)).lowercased(),
+                onReply: {
+                    let seed = snapshot?.brief.chatSeed
+                    state.dismissCover()
+                    AppRouter.shared.openChat(seed: seed)
+                },
+                onClose: { state.dismissCover() }
+            )
+            .presentationBackground(Palette.bgPrimary)
+
         case .lesson:
             // v3: the method's daily moment is THE REP (practice, not
             // reading); the reader survives as "the whole idea" inside
@@ -259,6 +274,17 @@ private struct TodayModuleHost: ViewModifier {
             .presentationDetents([.medium])
             .presentationDragIndicator(.hidden)
             .presentationBackground(Palette.bgElevated)
+
+        case .herDays:
+            if let snapshot {
+                HerDaysSheet(
+                    snapshot: snapshot,
+                    onDismiss: { state.dismissSheet() }
+                )
+                .presentationDetents([.fraction(0.52)])
+                .presentationDragIndicator(.hidden)
+                .presentationBackground(Palette.bgElevated)
+            }
 
         case .dayReview(let day):
             ProgramDayReviewSheet(

@@ -146,6 +146,9 @@ struct ProgramDayReviewSheet: View {
     /// True when this calendar day fell inside an "on a break" range —
     /// a paused day is a kept promise, never a quiet verdict.
     var isPausedDay: Bool = false
+    /// v3 minimal correction: the day's plates memory ("2 plates ·
+    /// about 62g protein") — past days read as receipts, not verdicts.
+    var platesLine: String? = nil
     let onDismiss: () -> Void
 
     /// v3: the shared standing vocabulary (DayModel.swift) — the same
@@ -220,6 +223,17 @@ struct ProgramDayReviewSheet: View {
                 .font(.custom("DMSans-Regular", size: 13))
                 .foregroundStyle(Palette.cocoaTertiary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            // The day's plates, remembered (device journal).
+            if let platesLine {
+                (Text("the plates  ")
+                    .font(.custom("DMSans-Regular", size: 13))
+                    .foregroundColor(Palette.cocoaTertiary)
+                + Text(platesLine)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                    .foregroundColor(Palette.cocoaSecondary))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             Spacer(minLength: 0)
 

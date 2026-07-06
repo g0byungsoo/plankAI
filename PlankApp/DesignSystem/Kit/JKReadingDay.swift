@@ -1,4 +1,7 @@
 import SwiftUI
+import Auth
+import PlankFood
+import PlankSync
 
 // MARK: - JKReadingDay (app v3, docs/app_v3/02_DESIGN_LANGUAGE.md)
 //
@@ -11,33 +14,28 @@ import SwiftUI
 // No at-rest circles, no locks, no counts. Completion stays her75:
 // the strike IS the satisfaction.
 
-// MARK: - JKJeniNote
+// MARK: - JeniNoteView
 
-/// THE NOTE FROM JENI — the morning letter, the app's presence
-/// artifact (04_PREMIUM_PASS move A). A paper-grade card: "JENI" +
-/// hairline + the weekday as a dateline, the reading in serif (line
-/// one leads; the second sentence follows in the secondary ink), the
-/// mechanism as a quiet caption, "reply ↗" and her signature
-/// ("jeni ♥") on the closing line. The whole note is the reply
-/// affordance. Entrance: the two-beat settle; idle: the breathing
-/// shadow — nothing else moves.
-struct JKJeniNote: View {
+/// THE NOTE — jeni's full reading as a RECEIVED moment (the minimal
+/// correction, 06_MINIMAL_CORRECTION.md). Home carries only her
+/// line; tapping it opens this full-screen letter: the dateline, the
+/// sentences cascading in line by line with a soft haptic each (the
+/// her75 reveal — the app's one cinematic gesture), the mechanism as
+/// a caption, her signature, REPLY into the chat, and a quiet keep.
+struct JeniNoteView: View {
     let brief: DailyBriefEngine.Brief
     /// Lowercase weekday for the dateline ("sunday").
     var dateline: String = ""
-    var onOpenChat: (() -> Void)? = nil
+    let onReply: () -> Void
+    let onClose: () -> Void
 
-    @State private var settled = false
+    @State private var tailSettled = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        Button {
-            guard let onOpenChat else { return }
-            Haptics.soft()
-            onOpenChat()
-        } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                // Dateline — hers, from her coach, this morning.
+        JKScreenChrome {
+            VStack(alignment: .leading, spacing: 0) {
+                // Dateline
                 HStack(spacing: 10) {
                     Text("jeni")
                         .font(Typo.captionTracked)
@@ -53,97 +51,221 @@ struct JKJeniNote: View {
                             .foregroundStyle(Palette.cocoaTertiary)
                     }
                 }
+                .padding(.top, Space.hero + 24)
 
-                ItalicAccentText(
-                    brief.line,
-                    italic: brief.italic,
-                    baseFont: Typo.reading,
-                    italicFont: Typo.readingItalic,
-                    color: Palette.textPrimary,
-                    alignment: .leading
+                // The letter — line by line, a breath apart.
+                LineCascadeText(
+                    lines: cascadeLines,
+                    baseFont: .custom("JeniHeroSerif-Regular", size: 28, relativeTo: .title),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 28, relativeTo: .title),
+                    color: Palette.textPrimary
                 )
-                .lineSpacing(-3)
-                .kerning(-0.2)
-                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Space.xl)
 
-                if brief.second != nil || brief.mechanism != nil {
-                    VStack(alignment: .leading, spacing: 8) {
-                        if let second = brief.second {
-                            ItalicAccentText(
-                                second,
-                                italic: brief.secondItalic,
-                                baseFont: .custom("JeniHeroSerif-Regular", size: 18, relativeTo: .body),
-                                italicFont: .custom("JeniHeroSerif-Italic", size: 18, relativeTo: .body),
-                                color: Palette.textSecondary,
-                                alignment: .leading
-                            )
-                            .lineSpacing(-1)
-                            .fixedSize(horizontal: false, vertical: true)
-                        }
-                        if let mechanism = brief.mechanism {
-                            Text(mechanism)
-                                .font(Typo.caption)
-                                .foregroundStyle(Palette.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .opacity(settled ? 1 : 0)
-                    .offset(y: settled ? 0 : 6)
+                if let mechanism = brief.mechanism {
+                    Text(mechanism)
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, Space.lg)
+                        .opacity(tailSettled ? 1 : 0)
+                        .offset(y: tailSettled ? 0 : 6)
                 }
 
-                // The closing line: reply on the left, her hand on
-                // the right. The signature IS jeni's presence mark.
                 HStack {
-                    if onOpenChat != nil {
-                        HStack(spacing: 5) {
-                            Text("reply")
-                                .font(Typo.captionTracked)
-                                .kerning(1.6)
-                                .textCase(.uppercase)
-                            Image(systemName: "arrow.up.right")
-                                .font(.system(size: 9, weight: .medium))
-                        }
-                        .foregroundStyle(Palette.cocoaTertiary)
-                    }
                     Spacer()
                     Text("jeni \u{2665}\u{FE0E}")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14, relativeTo: .footnote))
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 16, relativeTo: .footnote))
                         .foregroundStyle(Palette.cocoaSecondary)
                 }
-                .padding(.top, 2)
-                .opacity(settled ? 1 : 0)
+                .padding(.top, Space.lg)
+                .opacity(tailSettled ? 1 : 0)
+
+                Spacer(minLength: 0)
+
+                // The doors: reply leads, keep excuses quietly.
+                VStack(spacing: Space.md) {
+                    Button {
+                        Haptics.soft()
+                        onReply()
+                    } label: {
+                        Text("reply")
+                            .font(.custom("DMSans-SemiBold", size: 16, relativeTo: .body))
+                            .foregroundStyle(Palette.textInverse)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Capsule().fill(Palette.cocoaPrimary))
+                    }
+                    .buttonStyle(JKPress())
+
+                    Button {
+                        Haptics.light()
+                        onClose()
+                    } label: {
+                        Text("keep it \u{2665}\u{FE0E}")
+                            .font(.custom("DMSans-Medium", size: 14, relativeTo: .footnote))
+                            .foregroundStyle(Palette.cocoaSecondary)
+                            .padding(.vertical, 6)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.bottom, Space.lg)
+                .opacity(tailSettled ? 1 : 0)
+                .offset(y: tailSettled ? 0 : 8)
             }
             .padding(.horizontal, Space.lg)
-            .padding(.vertical, 18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
-                    .fill(Palette.bgElevated)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
-                    .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
-            )
-            .shadow(color: .black.opacity(0.05), radius: 9, y: 3)
-            .contentShape(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
         }
-        .buttonStyle(JKPress())
-        .disabled(onOpenChat == nil)
-        .breathingShadow()
         .onAppear {
-            guard !settled else { return }
-            if reduceMotion { settled = true; return }
-            withAnimation(Motion.entranceSoft.delay(0.34)) { settled = true }
+            if reduceMotion { tailSettled = true; return }
+            // The tail (mechanism + signature + doors) follows the
+            // cascade: ~0.5s per line + a settling breath.
+            let delay = 0.4 + Double(cascadeLines.count) * 0.5
+            withAnimation(Motion.entranceSoft.delay(delay)) { tailSettled = true }
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("a note from jeni. \(accessibilityText)")
-        .accessibilityHint(onOpenChat != nil ? "opens jeni to reply" : "")
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("a note from jeni. \([brief.line, brief.second, brief.mechanism].compactMap { $0 }.joined(separator: " "))")
     }
 
-    private var accessibilityText: String {
-        [brief.line, brief.second, brief.mechanism]
-            .compactMap { $0 }
-            .joined(separator: " ")
+    private var cascadeLines: [LineCascadeText.Line] {
+        var lines: [LineCascadeText.Line] = [
+            .composite(base: brief.line, italic: brief.italic)
+        ]
+        if let second = brief.second {
+            lines.append(.composite(base: second, italic: brief.secondItalic))
+        }
+        return lines
+    }
+}
+
+// MARK: - HerDaysSheet
+
+/// HER DAYS — the strip's new home (Home lost 70pt of calendar
+/// chrome; time travel became one intentional tap on the day pill).
+/// Day taps swap content IN-SHEET (review / peek) — never a sheet
+/// over a sheet.
+struct HerDaysSheet: View {
+    let snapshot: TodaySnapshot
+    let onDismiss: () -> Void
+
+    private enum Page: Equatable {
+        case days
+        case review(day: Int)
+        case peek(day: Int)
+    }
+    @State private var page: Page = .days
+
+    var body: some View {
+        Group {
+            switch page {
+            case .days:
+                daysPage
+                    .transition(.opacity)
+            case .review(let day):
+                ProgramDayReviewSheet(
+                    day: day,
+                    archetype: archetype(day),
+                    completedCount: snapshot.completionWindow[day],
+                    isPausedDay: isPaused(day),
+                    platesLine: platesLine(day),
+                    onDismiss: { withAnimation(Motion.crossFade) { page = .days } }
+                )
+                .transition(.opacity)
+            case .peek(let day):
+                ProgramDayPeekSheet(
+                    day: day,
+                    archetype: archetype(day),
+                    onDismiss: { withAnimation(Motion.crossFade) { page = .days } }
+                )
+                .transition(.opacity)
+            }
+        }
+    }
+
+    private var daysPage: some View {
+        VStack(alignment: .leading, spacing: Space.lg) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("her days")
+                        .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title3))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("week \(PrescriptionEngineV2.programWeek(snapshot.programDay)) · day \(snapshot.programDay) of \(snapshot.totalDays)")
+                        .font(Typo.captionTracked)
+                        .kerning(1.4)
+                        .textCase(.uppercase)
+                        .foregroundStyle(Palette.cocoaTertiary)
+                }
+                Spacer()
+                JKQuietMark(systemName: "xmark", accessibilityLabel: "close") {
+                    onDismiss()
+                }
+            }
+
+            ProgramDayStrip(
+                programDay: snapshot.programDay,
+                totalDays: snapshot.totalDays,
+                completionByDay: snapshot.completionWindow,
+                centeredDay: snapshot.programDay,
+                onTap: { day in
+                    switch day {
+                    case .past(let d):
+                        withAnimation(Motion.crossFade) { page = .review(day: d) }
+                    case .locked(let d) where d <= snapshot.programDay + 7:
+                        withAnimation(Motion.crossFade) { page = .peek(day: d) }
+                    default:
+                        break
+                    }
+                },
+                archetypeForDay: { day in archetype(day) }
+            )
+
+            Text("tap a past day for its receipt. the near week shows its shape.")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.cocoaTertiary)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Space.lg)
+        .padding(.top, Space.lg)
+    }
+
+    private func archetype(_ day: Int) -> ProgramDayArchetype? {
+        ProgramDayArchetype.archetype(
+            forProgramDay: day,
+            glp1Status: CohortStore.glp1StatusKey,
+            restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
+        )
+    }
+
+    private func isPaused(_ day: Int) -> Bool {
+        guard let start = snapshot.plan?.startDate,
+              let date = Calendar.current.date(
+                byAdding: .day, value: day - 1,
+                to: Calendar.current.startOfDay(for: start))
+        else { return false }
+        return BreakState.covers(dayKey: TodayStateService.dayKey(for: date))
+    }
+
+    /// The day's plates memory ("2 plates · 62g protein") from the
+    /// device journal — a receipt, not a verdict. nil when no plates
+    /// or the day maps outside the plan.
+    private func platesLine(_ day: Int) -> String? {
+        guard let start = snapshot.plan?.startDate,
+              let date = Calendar.current.date(
+                byAdding: .day, value: day - 1,
+                to: Calendar.current.startOfDay(for: start)),
+              let userId = AuthService.shared.currentUser?.id.uuidString
+        else { return nil }
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: date)
+        guard let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) else { return nil }
+        let plates = FoodLogPersister.allEntries(userId: userId)
+            .filter { $0.loggedAt >= dayStart && $0.loggedAt < dayEnd }
+        guard !plates.isEmpty else { return nil }
+        let protein = Int(plates.map(\.protein).reduce(0, +).rounded())
+        let noun = plates.count == 1 ? "plate" : "plates"
+        return protein > 0
+            ? "\(plates.count) \(noun) · about \(protein)g protein"
+            : "\(plates.count) \(noun)"
     }
 }
 

@@ -91,6 +91,25 @@ final class SurfaceInventoryUITests: XCTestCase {
 
         // ── 1 · today ────────────────────────────────────────────
         snap("today_top")
+
+        // v3 minimal correction: jeni's line opens THE NOTE as a
+        // full-screen received moment (cascade + reply/keep doors).
+        let jeniLine = app.buttons["jeni.line"].firstMatch
+        if jeniLine.exists && jeniLine.isHittable {
+            jeniLine.tap()
+            sleep(3)
+            snap("jeni_note_fullscreen")
+            let keep = app.buttons.matching(
+                NSPredicate(format: "label BEGINSWITH 'keep it'")
+            ).firstMatch
+            if keep.waitForExistence(timeout: 4), keep.isHittable {
+                keep.tap()
+                sleep(1)
+            } else {
+                closeSheet()
+            }
+        }
+
         app.swipeUp()
         sleep(1)
         snap("today_state_band")
@@ -108,12 +127,23 @@ final class SurfaceInventoryUITests: XCTestCase {
             closeSheet()
         }
 
-        // ── 3 · future-day peek from the strip ───────────────────
-        let day13 = app.buttons["13"].firstMatch
-        if day13.exists && day13.isHittable {
-            day13.tap()
+        // ── 3 · her days sheet + future-day peek (v3: the strip
+        //        lives behind the masthead day pill now) ──────────
+        let dayPill = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'day '")
+        ).firstMatch
+        if dayPill.exists && dayPill.isHittable {
+            dayPill.tap()
             sleep(2)
-            snap("day_peek_sheet")
+            snap("her_days_sheet")
+            let day13 = app.buttons.matching(
+                NSPredicate(format: "label BEGINSWITH 'Day 13'")
+            ).firstMatch
+            if day13.exists && day13.isHittable {
+                day13.tap()
+                sleep(2)
+                snap("day_peek_in_sheet")
+            }
             closeSheet()
         }
 
@@ -352,21 +382,32 @@ final class SurfaceInventoryUITests: XCTestCase {
         XCTAssertTrue(breatheRow.waitForExistence(timeout: 8),
                       "Today should render its rhythm rows")
 
-        // ── Bug 2 — a PAST day-strip cell opens the review sheet.
-        // Seeded at day 14, so day 13 is yesterday (past, and on-screen
-        // next to today). Before the fix this tap did nothing.
+        // ── Bug 2 (v3 route) — past-day review lives in HER DAYS:
+        // masthead day pill → the days sheet → a past cell → the
+        // in-sheet review → "got it" returns to the days page →
+        // swipe closes the sheet back to Today.
+        let dayPill = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'day 14'")
+        ).firstMatch
+        XCTAssertTrue(dayPill.waitForExistence(timeout: 5),
+                      "the masthead day pill should be tappable")
+        dayPill.tap()
         let pastCell = app.buttons.matching(
-            NSPredicate(format: "label == '13' OR label BEGINSWITH 'Day 13'")
+            NSPredicate(format: "label BEGINSWITH 'Day 13'")
         ).firstMatch
         XCTAssertTrue(pastCell.waitForExistence(timeout: 5),
-                      "the strip should expose past-day cells")
+                      "her days should expose past-day cells")
         pastCell.tap()
         XCTAssertTrue(app.buttons["got it"].waitForExistence(timeout: 5),
-                      "tapping a past day should open the review sheet")
+                      "tapping a past day should open the in-sheet review")
         app.buttons["got it"].firstMatch.tap()
         sleep(1)
+        XCTAssertTrue(pastCell.waitForExistence(timeout: 5),
+                      "got it should return to the days page")
+        app.buttons["close"].firstMatch.tap()
+        sleep(1)
         XCTAssertTrue(app.buttons["settings"].firstMatch.waitForExistence(timeout: 5),
-                      "dismissing the review should return to Today")
+                      "closing her days should return to Today")
 
         // ── Bug 1a — long-press opens the manual override, foremost.
         breatheRow.press(forDuration: 0.7)

@@ -20,6 +20,8 @@ final class TodayModuleState {
         case captureFlow
         case preRoutine(WorkoutPreset)
         case breathSession
+        /// THE NOTE — jeni's full reading as a received moment.
+        case jeniNote
 
         var id: String {
             switch self {
@@ -27,6 +29,7 @@ final class TodayModuleState {
             case .captureFlow: return "capture"
             case .preRoutine: return "workout"
             case .breathSession: return "breath"
+            case .jeniNote: return "jeniNote"
             }
         }
         static func == (lhs: Cover, rhs: Cover) -> Bool { lhs.id == rhs.id }
@@ -42,6 +45,8 @@ final class TodayModuleState {
         case dayLock(day: Int)
         /// Past-day read-only review from the strip (v1.1.4).
         case dayReview(day: Int)
+        /// HER DAYS — the strip's sheet home (v3 minimal correction).
+        case herDays
 
         var id: String {
             switch self {
@@ -52,6 +57,7 @@ final class TodayModuleState {
             case .dayPeek: return "dayPeek"
             case .dayLock: return "dayLock"
             case .dayReview: return "dayReview"
+            case .herDays: return "herDays"
             }
         }
     }

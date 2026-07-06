@@ -43,19 +43,33 @@ struct TodayStepsSheet: View {
         VStack(spacing: Space.lg) {
             JKStepsRing(steps: steps.todayCount, goal: goal, diameter: 128)
 
-            // The week, as quiet bars (device-demo grammar).
-            VStack(spacing: 6) {
-                HStack(alignment: .bottom, spacing: 8) {
-                    ForEach(Array(steps.weeklyCounts.enumerated()), id: \.offset) { idx, count in
-                        let maxCount = max(steps.weeklyCounts.max() ?? 1, 1)
-                        Capsule()
-                            .fill(idx == steps.weeklyCounts.count - 1
-                                  ? Palette.accent
-                                  : Palette.accentSubtle)
-                            .frame(width: 10, height: 14 + 42 * CGFloat(count) / CGFloat(maxCount))
+            // v3 minimal correction: the week as a consistency
+            // dot-band — rhythm, never magnitude (bars invite
+            // comparing a 10k day against a 2k day; dots read as
+            // kept days). Filled = the anchor landed; ring = a real
+            // walk; dash = a quiet day (a fact, not a verdict).
+            VStack(spacing: 8) {
+                HStack(spacing: 12) {
+                    ForEach(Array(steps.weeklyCounts.enumerated()), id: \.offset) { _, count in
+                        Group {
+                            if count >= goal {
+                                Circle()
+                                    .fill(Palette.cocoaPrimary)
+                                    .frame(width: 6, height: 6)
+                            } else if count >= goal / 2 {
+                                Circle()
+                                    .strokeBorder(Palette.cocoaSecondary, lineWidth: 1)
+                                    .frame(width: 6, height: 6)
+                            } else {
+                                Capsule()
+                                    .fill(Palette.hairlineCocoa)
+                                    .frame(width: 6, height: 1.5)
+                            }
+                        }
+                        .frame(height: 6)
                     }
                 }
-                Text("your last seven days")
+                Text("the week's rhythm")
                     .font(Typo.statLabel)
                     .kerning(0.66)
                     .textCase(.uppercase)
@@ -101,6 +115,16 @@ struct TodayStepsSheet: View {
     }
 
     private var frameLine: String {
+        // One authored line from HER week when it has shape; the
+        // today-frame otherwise. Passive data earns interpretation.
+        let goalDays = steps.weeklyCounts.filter { $0 >= goal }.count
+        let walkedDays = steps.weeklyCounts.filter { $0 >= goal / 2 }.count
+        if goalDays >= 2 {
+            return "your legs covered the gap on \(goalDays) of 7 days. the easiest lever, working."
+        }
+        if walkedDays >= 3 {
+            return "real walks on \(walkedDays) days this week. quiet miles count."
+        }
         let f = Double(steps.todayCount) / Double(max(goal, 1))
         switch f {
         case ..<0.3: return "small walks move real numbers."

@@ -109,7 +109,15 @@ struct RepView: View {
             Button {
                 choose(idx)
             } label: {
-                HStack {
+                HStack(spacing: 10) {
+                    // The chosen door earns its mark — a drawn check
+                    // settling in ahead of the label.
+                    if chosen == idx {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Palette.cocoaPrimary)
+                            .transition(.scale(scale: 0.4).combined(with: .opacity))
+                    }
                     Text(door.label)
                         .font(.custom("DMSans-Medium", size: 16, relativeTo: .body))
                         .foregroundStyle(Palette.textPrimary)
@@ -121,7 +129,9 @@ struct RepView: View {
                 .padding(.vertical, 16)
                 .background(
                     RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
-                        .fill(Palette.bgElevated)
+                        .fill(chosen == idx
+                              ? Palette.accentSubtle.opacity(0.35)
+                              : Palette.bgElevated)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
@@ -134,7 +144,9 @@ struct RepView: View {
             }
             .buttonStyle(JKPress())
             .disabled(chosen != nil)
-            .opacity(chosen == nil || chosen == idx ? 1 : 0.4)
+            .opacity(chosen == nil || chosen == idx ? 1 : 0.38)
+            .offset(y: chosen != nil && chosen != idx ? 3 : 0)
+            .scaleEffect(chosen != nil && chosen != idx ? 0.99 : 1, anchor: .top)
 
             if chosen == idx, showResponse {
                 VStack(alignment: .leading, spacing: 10) {
@@ -177,7 +189,10 @@ struct RepView: View {
 
     private func choose(_ idx: Int) {
         guard chosen == nil else { return }
+        // Two-stage: the decision lands (medium), the mark settles
+        // (tick) — one gesture, one voice.
         Haptics.medium()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) { Haptics.tick() }
         chosen = idx
         if !keptFired {
             keptFired = true

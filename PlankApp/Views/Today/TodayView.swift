@@ -79,24 +79,21 @@ struct TodayView: View {
                         .jkBeat1()
 
                     if let snapshot {
-                        // THE NOTE FROM JENI — the morning letter,
-                        // the app's presence artifact.
-                        JKJeniNote(
-                            brief: snapshot.brief,
-                            dateline: Date.now
-                                .formatted(.dateTime.weekday(.wide))
-                                .lowercased(),
+                        // JENI'S LINE — one sentence, no card, no
+                        // chrome (the minimal correction). The full
+                        // note opens as a received full-screen moment.
+                        JKCoachLine(
+                            text: snapshot.brief.line,
+                            italic: snapshot.brief.italic,
+                            affordanceLabel: "from jeni",
                             onOpenChat: {
-                                router.openChat(seed: snapshot.brief.chatSeed)
+                                modules.present(cover: .jeniNote)
                             }
                         )
+                        .accessibilityIdentifier("jeni.line")
                         .padding(.horizontal, Space.lg)
                         .padding(.top, Space.lg)
                         .jkBeat2()
-
-                        dayStrip(snapshot)
-                            .padding(.top, Space.section)
-                            .jkBeat2(extraDelay: 0.05)
 
                         if snapshot.isOnBreak {
                             JKBreakCard(onReturn: {
@@ -339,7 +336,11 @@ struct TodayView: View {
                 JKMastheadMark(systemName: "line.3.horizontal", label: "settings") {
                     modules.present(sheet: .profileHub)
                 },
-            ]
+            ],
+            // The strip left Home — the pill is the door to her days.
+            onLeadTap: snapshot?.isEnrolled == true
+                ? { modules.present(sheet: .herDays) }
+                : nil
         )
     }
 
@@ -362,35 +363,10 @@ struct TodayView: View {
         return pill.text
     }
 
-    // MARK: - Strip
-
-    private func dayStrip(_ snapshot: TodaySnapshot) -> some View {
-        ProgramDayStrip(
-            programDay: snapshot.programDay,
-            totalDays: snapshot.totalDays,
-            completionByDay: snapshot.completionWindow,
-            centeredDay: snapshot.programDay,
-            onTap: { day in
-                // v1.1.4 — past-day review restored. Past taps open a
-                // read-only recap of that day; future taps keep the warm
-                // peek (≤ +7) / lock (beyond) behavior unchanged. The
-                // strip never moves, so dismissing returns to today.
-                // Routing extracted to a pure helper for testability.
-                if let sheet = TodayModuleState.stripSheet(
-                    for: day, programDay: snapshot.programDay
-                ) {
-                    modules.present(sheet: sheet)
-                }
-            },
-            archetypeForDay: { day in
-                ProgramDayArchetype.archetype(
-                    forProgramDay: day,
-                    glp1Status: CohortStore.glp1StatusKey,
-                    restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
-                )
-            }
-        )
-    }
+    // The strip lives in HerDaysSheet now (v3 minimal correction) —
+    // Home carries the day pill as its door. TodayModuleState.stripSheet
+    // stays as the tested pure routing (the sheet's pages use the same
+    // decisions).
 
     // MARK: - Beat copy
 

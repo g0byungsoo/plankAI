@@ -19,13 +19,28 @@ struct JKMasthead: View {
     let lead: Lead
     var eyebrow: String? = nil          // "thursday, july 3"
     var marks: [JKMastheadMark] = []
+    /// v3 minimal correction: the day pill becomes the door to HER
+    /// DAYS (the strip left Home). nil = pill renders inert.
+    var onLeadTap: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 10) {
                 switch lead {
                 case let .dayPill(day, note):
-                    dayPill(day)
+                    if let onLeadTap {
+                        Button {
+                            Haptics.light()
+                            onLeadTap()
+                        } label: {
+                            dayPill(day)
+                        }
+                        .buttonStyle(JKPress())
+                        .accessibilityLabel("day \(day), her days")
+                        .accessibilityHint("opens the days sheet")
+                    } else {
+                        dayPill(day)
+                    }
                     if let note {
                         Text(note)
                             .font(Typo.caption)

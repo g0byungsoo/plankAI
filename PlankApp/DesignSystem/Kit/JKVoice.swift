@@ -10,6 +10,9 @@ import SwiftUI
 struct JKCoachLine: View {
     let text: String
     var italic: [String] = []
+    /// The quiet affordance word ("ask jeni" on trend stories; "from
+    /// jeni" when the tap opens the full note).
+    var affordanceLabel: String = "ask jeni"
     var onOpenChat: (() -> Void)? = nil
 
     var body: some View {
@@ -34,7 +37,7 @@ struct JKCoachLine: View {
 
                 if onOpenChat != nil {
                     HStack(spacing: 5) {
-                        Text("ask jeni")
+                        Text(affordanceLabel)
                             .font(Typo.captionTracked)
                             .kerning(1.4)
                             .textCase(.uppercase)
