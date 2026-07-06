@@ -211,6 +211,7 @@ enum BreakState {
         UNUserNotificationCenter.current().removePendingNotificationRequests(
             withIdentifiers: NotificationOrchestrator.ladderIds
                 + NotificationOrchestrator.legacyIds
+                + NotificationOrchestrator.jitaiIds
                 + ["winback_lapse", "evening_plate_review", "becoming.sunday.recap"]
         )
     }

@@ -698,6 +698,7 @@ final class AppSync {
         UNUserNotificationCenter.current().removePendingNotificationRequests(
             withIdentifiers: NotificationOrchestrator.ladderIds
                 + NotificationOrchestrator.legacyIds
+                + NotificationOrchestrator.jitaiIds   // v3 phase-7 pings
         )
     }
 

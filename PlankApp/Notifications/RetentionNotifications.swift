@@ -555,6 +555,7 @@ enum RetentionNotifications {
                 // fire from a now-unknown user. Cancel it too.
                 firstLogNudgeIdentifier,
             ] + affirmationIdentifiers() + milestoneIdentifiers()
+              + NotificationOrchestrator.jitaiIds   // v3 phase-7 pings
         )
         let d = UserDefaults.standard
         milestones.forEach { d.removeObject(forKey: Key.milestoneDone($0)) }

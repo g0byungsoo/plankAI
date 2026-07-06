@@ -6,17 +6,21 @@ here is forgotten; everything has a reason.
 
 ## Designed, not built (docs carry the spec)
 
-1. **Notifications orchestrator upgrade (build-plan phase 7).** The
-   anchor ladder still speaks archetype lines (deterministic-safe),
-   not the full reading. The zone-crossing push, weigh-pattern-break
-   push, lapse-support ping (weeks 0-6 window), week-1 milestone
-   bloom, and the anchor-ask-at-first-kept-moment all remain design
-   (00_THESIS §5, 01_VERDICTS §Notifications). The IN-APP versions
-   of the zone mechanics ship (reading threads, ritual whisper,
-   canvas band); BandModel.consumeCrossing exists and is tested but
-   no surface consumes one-shot crossings until the push does.
-   Reason: notification ids carry a 4-site change protocol and the
-   founder-facing copy deserves its own reviewed pass.
+1. **Notifications orchestrator — SUBSTANTIALLY BUILT 2026-07-06.**
+   Shipped: the keeping-chapter ZONE-CROSSING push (weigh chokepoint
+   consumes BandModel crossings → next-morning care push, steady
+   recovery stays in-app), the WEIGH-PATTERN watcher (+8-day re-armed
+   one-shot, "the line misses you"), and the LAPSE-SUPPORT ping
+   (weeks 0–6 only, 20:30, cancelled the moment a plate lands,
+   mutually exclusive with the evening review, deep-links to the
+   breath brake). All three follow the 4-site id protocol (schedulers
+   / cancelAll / AppSync+BreakState sweeps / delegate map — the map
+   leg is unit-pinned) and sleep on a break. Week-1 milestone bloom
+   already ships via the presence ledger (day-3 milestone).
+   STILL DESIGN: the anchor-ask-at-first-kept-moment (founder copy +
+   post-purchase flow placement) and reading-bodied anchor rungs
+   (the ladder speaks archetype lines — deterministic-safe; the full
+   reading needs live state pushes can't precompute).
 2. **Weekly receipt → consent-based check-in.** The MacroFactor
    re-prescription mechanic ("this week taught your plan: protein
    eases 5g. keep it?") is specified in 01_VERDICTS; the Sunday

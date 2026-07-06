@@ -250,6 +250,11 @@ final class TodayModuleState {
 
     func markAuto(_ beat: ProgramDayPrescription) {
         mark(beat, state: .autoCompleted)
+        // v3 phase-7: a landed plate cancels tonight's lapse-support
+        // ping — the moment it exists, the ping's premise doesn't.
+        if case .snapMeal = beat {
+            NotificationOrchestrator.cancelLapseSupport()
+        }
         // v2.5: everything chains — the next right action, one-shot
         // and quiet. Lessons become reps; workouts hand to protein;
         // plates hand to jeni; weigh-ins hand to the trend.

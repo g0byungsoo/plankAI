@@ -170,6 +170,61 @@ final class AppV3SpineTests: XCTestCase {
         XCTAssertFalse(BandModel.weekIsKept(weighDays: 1, presenceDays: 5, zone: .drifting))
     }
 
+    // MARK: - Phase-7 JITAI gates
+
+    func testLapseSupportEligibility() {
+        // The early window only, never beside the evening review,
+        // never on a break.
+        XCTAssertTrue(NotificationOrchestrator.lapseSupportEligible(
+            programDay: 1, eveningReviewActive: false, onBreak: false))
+        XCTAssertTrue(NotificationOrchestrator.lapseSupportEligible(
+            programDay: 42, eveningReviewActive: false, onBreak: false))
+        XCTAssertFalse(NotificationOrchestrator.lapseSupportEligible(
+            programDay: 43, eveningReviewActive: false, onBreak: false),
+            "the JITAI window closes after week 6 (prompt half-life)")
+        XCTAssertFalse(NotificationOrchestrator.lapseSupportEligible(
+            programDay: 10, eveningReviewActive: true, onBreak: false),
+            "never two uninvited evening pushes")
+        XCTAssertFalse(NotificationOrchestrator.lapseSupportEligible(
+            programDay: 10, eveningReviewActive: false, onBreak: true))
+        XCTAssertFalse(NotificationOrchestrator.lapseSupportEligible(
+            programDay: 0, eveningReviewActive: false, onBreak: false))
+    }
+
+    func testJitaiDeepLinkDestinations() {
+        // The 4-site id protocol's delegate leg: every phase-7 ping
+        // must resolve to a route (a dead deep link is a silent
+        // gating hazard).
+        XCTAssertEqual(
+            NotificationDelegate.destination(forNotificationId: "lapse_support")?.absoluteString,
+            "jenifit://breath"
+        )
+        XCTAssertEqual(
+            NotificationDelegate.destination(forNotificationId: "keeping_zone")?.absoluteString,
+            "jenifit://today"
+        )
+        XCTAssertEqual(
+            NotificationDelegate.destination(forNotificationId: "keeping_line_quiet")?.absoluteString,
+            "jenifit://today"
+        )
+    }
+
+    func testZonePushCopy() {
+        XCTAssertNil(NotificationOrchestrator.zonePushCopy(.steady),
+                     "recovery celebrates in-app; no push")
+        let drifting = NotificationOrchestrator.zonePushCopy(.drifting)
+        let reset = NotificationOrchestrator.zonePushCopy(.reset)
+        XCTAssertNotNil(drifting)
+        XCTAssertNotNil(reset)
+        // Voice floors: lowercase, no alarm words.
+        for copy in [drifting!, reset!] {
+            XCTAssertEqual(copy.title, copy.title.lowercased())
+            XCTAssertFalse(copy.body.lowercased().contains("alarm"))
+            XCTAssertFalse(copy.body.lowercased().contains("warning"))
+            XCTAssertFalse(copy.body.lowercased().contains("fail"))
+        }
+    }
+
     // MARK: - QuietHours (zero-input rhythm)
 
     func testOvernightQuietHours() {

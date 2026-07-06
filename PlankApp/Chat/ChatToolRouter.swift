@@ -167,5 +167,12 @@ enum WeightLogWriter {
             Task { await AppSync.shared.upsertWeightLog(record) }
         }
         NotificationCenter.default.post(name: .weightLogDidChange, object: nil)
+
+        // v3 phase-7: the weigh chokepoint feeds the keeping
+        // chapter's JITAI pings (zone crossing + pattern watcher).
+        // No-ops outside the keeping chapter.
+        Task { @MainActor in
+            NotificationOrchestrator.onWeighSaved(userId: uid, in: context)
+        }
     }
 }

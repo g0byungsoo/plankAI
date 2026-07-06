@@ -61,10 +61,14 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             route = "jenifit://snap"
         case id == "becoming.sunday.recap":
             route = "jenifit://becoming"
+        case id == "lapse_support":
+            route = "jenifit://breath"   // the ping offers the brake
         case id == "daily_reminder",
              id == "winback_lapse",
              id == "day1_morning",
              id == "day5_anti_refund",
+             id == "keeping_zone",
+             id == "keeping_line_quiet",
              id.hasPrefix("milestone_"),
              id.hasPrefix("affirmation_drop_"):
             route = "jenifit://today"
