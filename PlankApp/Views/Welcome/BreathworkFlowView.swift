@@ -61,6 +61,7 @@ struct BreathworkFlowView: View {
                     onDismiss: onDismiss,
                     techProtocol: occasion.techProtocol,
                     sessionMinutes: minutes,
+                    occasion: occasion,
                     context: .daily
                 )
                 .transition(JFPageTransition.standard)

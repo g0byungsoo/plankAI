@@ -39,6 +39,11 @@ struct BreathworkSessionView: View {
     /// 1 / 2 / 5 and the session scales its cycle count.
     var sessionMinutes: Int = 1
 
+    /// v3 — the doorway she came through. The receipt hands the
+    /// MOMENT back ("the wave passed. the choice is yours now"),
+    /// not just the protocol's mechanism. nil = mechanism only.
+    var occasion: BreathOccasion? = nil
+
     /// Where the session was launched from. Day-1's post-purchase
     /// flow keeps the "ready to move" chained choice; daily program
     /// entries end on the receipt (PostSessionView's quieter sibling
@@ -306,6 +311,24 @@ struct BreathworkSessionView: View {
             }
             .padding(.top, Space.lg)
 
+            // v3 — the hand-back: the receipt returns her to the
+            // moment she came from, in her coach's hand.
+            if let handBack = occasion.map(handBackLine) {
+                ItalicAccentText(
+                    handBack.text,
+                    italic: handBack.italic,
+                    baseFont: .custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body),
+                    color: Palette.cocoaSecondary,
+                    alignment: .center
+                )
+                .padding(.horizontal, Space.xl)
+                .padding(.top, Space.lg)
+                .opacity(completeVisible ? 1 : 0)
+                .offset(y: completeVisible ? 0 : 6)
+                .animation(.easeOut(duration: 0.5).delay(1.25), value: completeVisible)
+            }
+
             Spacer()
 
             JFContinueButton(label: "done") {
@@ -316,6 +339,20 @@ struct BreathworkSessionView: View {
             }
             .opacity(completeVisible ? 1 : 0)
             .animation(.easeOut(duration: 0.5).delay(1.3), value: completeVisible)
+        }
+    }
+
+    /// The moment, handed back — occasion-true, never protocol-speak.
+    private func handBackLine(_ occasion: BreathOccasion) -> (text: String, italic: [String]) {
+        switch occasion {
+        case .settled:
+            return ("the wave passed. the choice is yours now, either way \u{2665}\u{FE0E}", ["yours"])
+        case .sleepy:
+            return ("the day is over now. tomorrow was always going to reset.", ["reset"])
+        case .steady:
+            return ("quieter. it stays background as long as you let it.", ["quieter"])
+        case .awake:
+            return ("that was the restart. one small thing next, whenever.", ["restart"])
         }
     }
 

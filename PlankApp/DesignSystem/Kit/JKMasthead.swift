@@ -23,6 +23,11 @@ struct JKMasthead: View {
     /// DAYS (the strip left Home). nil = pill renders inert.
     var onLeadTap: (() -> Void)? = nil
 
+    /// At accessibility sizes the chapter note yields entirely (a
+    /// designed absence beats an ellipsis — the pill + date carry
+    /// the day; the clipping contract allows no "…").
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 10) {
@@ -41,7 +46,7 @@ struct JKMasthead: View {
                     } else {
                         dayPill(day)
                     }
-                    if let note {
+                    if let note, !typeSize.isAccessibilitySize {
                         Text(note)
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
