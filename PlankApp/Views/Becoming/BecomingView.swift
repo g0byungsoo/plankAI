@@ -139,7 +139,13 @@ struct BecomingView: View {
                     showJournal = false
                     router.open(.snap)
                 },
-                onDismiss: { showJournal = false }
+                onDismiss: { showJournal = false },
+                // v3 — each day remembers the quiet stretch that
+                // preceded it (hard-gated inside QuietHours).
+                dayNote: { [userId] day in
+                    QuietHours.overnightForDay(userId: userId, day: day)
+                        .map { "began after about \(Int($0.rounded())) quiet hours \u{2665}\u{FE0E}" }
+                }
             )
         }
     }

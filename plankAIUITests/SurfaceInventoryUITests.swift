@@ -258,11 +258,10 @@ final class SurfaceInventoryUITests: XCTestCase {
         app.buttons["becoming"].firstMatch.tap()
         sleep(2)
         snap("becoming_top")
-        app.swipeUp()
-        sleep(1)
-        snap("becoming_journey_wins")
 
-        // ── 11 · food journal (wins chain) ───────────────────────
+        // ── 11 · food journal (the week-held chain — v3 field
+        //        report moved it near the TOP, so tap before the
+        //        journey scroll) ─────────────────────────────────
         let journalChain = app.buttons.matching(
             NSPredicate(format: "label CONTAINS 'journal'")
         ).firstMatch
@@ -280,6 +279,12 @@ final class SurfaceInventoryUITests: XCTestCase {
             }
             closeSheet()
         }
+
+        // ── 12 · the journey scroll (after the journal, so the
+        //        top-anchored chain stays reachable) ─────────────
+        app.swipeUp()
+        sleep(1)
+        snap("becoming_journey_wins")
 
         // ── done ─────────────────────────────────────────────────
         XCTAssertGreaterThan(shot, 10, "inventory walked \(shot) surfaces")

@@ -101,6 +101,21 @@ enum QuietHours {
         return quietNights(plateTimes: times)
     }
 
+    /// The overnight stretch that ended on a PAST day — the journal's
+    /// per-day memory line. Anchors "now" to that day's late evening
+    /// so the pure core evaluates that morning's gap.
+    static func overnightForDay(
+        userId: String, day: Date, calendar: Calendar = .current
+    ) -> Double? {
+        guard mayNarrate, !userId.isEmpty else { return nil }
+        let times = FoodLogPersister.allEntries(userId: userId).map(\.loggedAt)
+        let anchor = calendar.date(
+            byAdding: .hour, value: 23,
+            to: calendar.startOfDay(for: day)
+        ) ?? day
+        return overnightQuietHours(plateTimes: times, now: anchor, calendar: calendar)
+    }
+
     /// The band's one quiet line ("the kitchen was quiet about 13
     /// hours overnight"). Rounded to whole hours — approximate truth.
     static func overnightLine(hours: Double) -> String {

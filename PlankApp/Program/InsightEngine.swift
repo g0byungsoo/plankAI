@@ -129,6 +129,7 @@ struct Insight: Identifiable, Equatable {
         case stepPattern
         case glp1Rhythm
         case maintenanceBand
+        case weekendRhythm     // v3 zero-input: weekend vs weekday shape
         case showingUp
     }
     let kind: Kind
@@ -158,6 +159,7 @@ enum InsightEngine {
         if let glp1 = glp1Rhythm(week: week, snapshot: snapshot) { cards.append(glp1) }
         if let band = maintenanceBand(week: week, snapshot: snapshot) { cards.append(band) }
         if let steps = stepPattern(week: week) { cards.append(steps) }
+        if let weekend = weekendRhythm(week: week, snapshot: snapshot) { cards.append(weekend) }
         if cards.isEmpty, let fallback = showingUp(snapshot: snapshot) { cards.append(fallback) }
 
         return Output(trendStory: story, cards: Array(cards.prefix(2)))
@@ -295,6 +297,35 @@ enum InsightEngine {
             )
         }
         return nil
+    }
+
+    /// v3 zero-input pattern: the weekend runs warmer (or it doesn't)
+    /// — the shape of her week from plates she already logged. Kcal
+    /// register, so it's gated off suppressed + restriction-risk
+    /// identities; needs 3 logged weekend days + 5 logged weekdays
+    /// across the 14-day frame; speaks only at >=150 kcal of shape,
+    /// rounded to 50 (never false precision). A rhythm named, never
+    /// a problem assigned.
+    private static func weekendRhythm(week: WeekState, snapshot: TodaySnapshot) -> Insight? {
+        guard !snapshot.targets.numericsSuppressed,
+              !CohortStore.isRestrictiveRisk else { return nil }
+        let cal = Calendar.current
+        let logged = week.days.filter { $0.plates > 0 }
+        let weekend = logged.filter { cal.isDateInWeekend($0.date) }
+        let weekdays = logged.filter { !cal.isDateInWeekend($0.date) }
+        guard weekend.count >= 3, weekdays.count >= 5 else { return nil }
+        let wAvg = weekend.map(\.kcal).reduce(0, +) / Double(weekend.count)
+        let dAvg = weekdays.map(\.kcal).reduce(0, +) / Double(weekdays.count)
+        let delta = wAvg - dAvg
+        guard delta >= 150 else { return nil }
+        let rounded = Int((delta / 50).rounded() * 50)
+        return Insight(
+            kind: .weekendRhythm,
+            line: "your weekends run about \(rounded) warmer. that's a rhythm, not a problem.",
+            italic: ["rhythm"],
+            detail: "knowing the week's shape beats fighting it. the quiet days already absorb it.",
+            chatSeed: "her weekends average about \(rounded) kcal above weekdays across two weeks. normalize it as a plannable rhythm and offer one gentle weekend anchor if she wants one."
+        )
     }
 
     private static func showingUp(snapshot: TodaySnapshot) -> Insight? {

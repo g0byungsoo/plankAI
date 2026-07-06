@@ -44,6 +44,11 @@ public struct FoodLogTimelineView: View {
     /// fullScreenCovers here.
     public let onAddTapped: () -> Void
     public let onDismiss: () -> Void
+    /// v3 (2026-07-06) — an optional app-authored memory line for a
+    /// day's header ("the kitchen was quiet about 13 hours before
+    /// this day began"). The journal stays app-agnostic; the host
+    /// owns the provenance + its gates. nil line = no row.
+    public var dayNote: ((Date) -> String?)? = nil
 
     @State private var entries: [FoodLogPersister.FoodLogEntry] = []
     /// v1.0.9 D3.B — long-press on a row sets this id; the
@@ -73,13 +78,15 @@ public struct FoodLogTimelineView: View {
         dailyTarget: Double,
         archetypeHint: String? = nil,
         onAddTapped: @escaping () -> Void,
-        onDismiss: @escaping () -> Void
+        onDismiss: @escaping () -> Void,
+        dayNote: ((Date) -> String?)? = nil
     ) {
         self.userId = userId
         self.dailyTarget = dailyTarget
         self.archetypeHint = archetypeHint
         self.onAddTapped = onAddTapped
         self.onDismiss = onDismiss
+        self.dayNote = dayNote
     }
 
     public var body: some View {
@@ -340,6 +347,16 @@ public struct FoodLogTimelineView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("share \(dayLabel(for: dayStart))")
+            }
+
+            // v3 — the host's memory line for this day (the quiet
+            // hours that preceded it). Italic caption; a memory,
+            // never a metric.
+            if let note = dayNote?(dayStart) {
+                Text(note)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 12))
+                    .foregroundStyle(FoodTheme.textSecondary)
+                    .padding(.top, 3)
             }
         }
     }
