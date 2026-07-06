@@ -432,7 +432,9 @@ struct JKOneThingCard: View {
 struct JKRhythmRow: View {
     let title: String
     var note: String? = nil
-    var glyph: String = "circle"
+    /// The ritual mark (the JeniFit symbol system) — identity without
+    /// utility-glyph clutter. nil = pure text row.
+    var mark: JKMarkKind? = nil
     var state: JKBeatState = .empty
     /// Live trailing text for auto rows (steps count).
     var liveTrailing: String? = nil
@@ -444,9 +446,14 @@ struct JKRhythmRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Premium pass move C: rows are text-set like a menu — no
-            // leading glyph (utility-app residue). `glyph` survives in
-            // the API for the gallery; it simply doesn't render here.
+            if let mark {
+                JKMark(
+                    kind: mark,
+                    size: 18,
+                    color: Palette.cocoaSecondary.opacity(state.isDone ? 0.5 : 0.85)
+                )
+                .frame(width: 20)
+            }
             HStack(spacing: 6) {
                 Text(title)
                     .font(.custom("DMSans-Medium", size: 15, relativeTo: .body))

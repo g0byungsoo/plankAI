@@ -224,7 +224,7 @@ struct TodayView: View {
                         JKRhythmRow(
                             title: beatTitle(beat),
                             note: rhythmNote(beat, snapshot: snapshot),
-                            glyph: beat.stickyGlyph,
+                            mark: JKMarkKind.mark(for: beat),
                             state: beatState(beat, snapshot: snapshot),
                             liveTrailing: liveTrailing(beat),
                             onTap: { modules.open(beat, snapshot: snapshot) },

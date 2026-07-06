@@ -31,6 +31,9 @@ struct BecomingView: View {
     @State private var snapshot: TodaySnapshot?
     @State private var week: WeekState?
     @State private var insights: InsightEngine.Output?
+    /// Trailing-7 completed checks by itemKey (breath / lesson /
+    /// weigh_in …) — the week receipt's provenance for "what helped."
+    @State private var weekChecks: [String: Int] = [:]
     @State private var showLogWeight = false
     @State private var showProfileHub = false
     @State private var showJournal = false
@@ -66,27 +69,27 @@ struct BecomingView: View {
                         .padding(.top, Space.xl)
                     }
 
-                    trendStory
+                    // v3 field report (07_SOUL_PASS): interpretation
+                    // first — ONE authored note, then the week's
+                    // receipt, then the line itself, then the journey.
+                    fieldNote
                         .padding(.top, Space.lg)
                         .jkBeat2()
 
-                    weekStrip
+                    theWeekHeld
                         .padding(.top, Space.section)
                         .jkBeat2(extraDelay: 0.08)
 
                     sundayReceipt
                         .padding(.top, Space.section)
 
-                    insightCards
+                    theLine
                         .padding(.top, Space.section)
+                        .jkBeat2(extraDelay: 0.15)
 
                     methodJourney
                         .padding(.top, Space.section)
-                        .jkBeat2(extraDelay: 0.2)
-
-                    winsBlock
-                        .padding(.top, Space.section)
-                        .jkBeat2(extraDelay: 0.25)
+                        .jkBeat2(extraDelay: 0.22)
 
                     Spacer(minLength: 96)
                 }
@@ -167,20 +170,59 @@ struct BecomingView: View {
         return f.string(from: NSNumber(value: n)) ?? "\(n)"
     }
 
-    // MARK: - The trend story (hero)
+    // MARK: - The field note (ONE authored insight)
 
-    @ViewBuilder private var trendStory: some View {
-        VStack(alignment: .leading, spacing: Space.md) {
-            if let story = insights?.trendStory {
+    /// The week, interpreted: the trend story's line leads; the top
+    /// pattern's detail rides as its mechanism when the story has
+    /// none. One voice, one ask — the insight-card stack is gone.
+    @ViewBuilder private var fieldNote: some View {
+        if let story = insights?.trendStory {
+            VStack(alignment: .leading, spacing: 8) {
                 JKCoachLine(
                     text: story.line,
                     italic: story.italic,
                     onOpenChat: { router.openChat(seed: story.chatSeed) }
                 )
-                .padding(.horizontal, Space.lg)
+                if let mechanism = story.detail ?? insights?.cards.first?.detail {
+                    Text(mechanism)
+                        .font(Typo.caption)
+                        .lineSpacing(3)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
+            .padding(.horizontal, Space.lg)
+        } else if let top = insights?.cards.first {
+            VStack(alignment: .leading, spacing: 8) {
+                JKCoachLine(
+                    text: top.line,
+                    italic: top.italic,
+                    onOpenChat: { router.openChat(seed: top.chatSeed) }
+                )
+                if let detail = top.detail {
+                    Text(detail)
+                        .font(Typo.caption)
+                        .lineSpacing(3)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.horizontal, Space.lg)
+        }
+    }
 
+    // MARK: - The line (the data, one scroll deeper than the words)
+
+    @ViewBuilder private var theLine: some View {
+        VStack(alignment: .leading, spacing: Space.md) {
             if let week, week.weightLogs.count >= 2 {
+                Text("the line")
+                    .font(Typo.captionTracked)
+                    .kerning(1.98)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .padding(.horizontal, Space.lg)
+
                 BecomingTrendCanvas(
                     logs: week.weightLogs,
                     goalWeightKg: snapshot?.plan?.goalWeightKg,
@@ -196,16 +238,6 @@ struct BecomingView: View {
                     Text("the tinted field is home. the line living there is the win.")
                         .font(Typo.caption)
                         .foregroundStyle(Palette.cocoaTertiary)
-                        .padding(.horizontal, Space.lg)
-                        .padding(.top, 6)
-                }
-
-                if let detail = insights?.trendStory?.detail {
-                    Text(detail)
-                        .font(Typo.caption)
-                        .lineSpacing(3)
-                        .foregroundStyle(Palette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, Space.lg)
                 }
             } else if let firstLog = week?.weightLogs.first {
@@ -270,121 +302,167 @@ struct BecomingView: View {
         return Calendar.current.isDateInToday(last)
     }
 
-    // MARK: - This week (receipt strip)
+    // MARK: - The week, held (the receipt — marks, not metrics)
 
-    @ViewBuilder private var weekStrip: some View {
-        if let week {
+    /// What held, what drifted, what helped — provenance rows only,
+    /// each led by its ritual mark. Replaces the week dot-strip, the
+    /// insight-card stack, and the wins block (their truths merged;
+    /// their chrome retired).
+    @ViewBuilder private var theWeekHeld: some View {
+        let rows = weekHeldRows()
+        if !rows.isEmpty {
             VStack(alignment: .leading, spacing: Space.md) {
-                Text("this week")
+                Text("the week, held")
                     .font(Typo.captionTracked)
                     .kerning(1.98)
                     .textCase(.uppercase)
                     .foregroundStyle(Palette.cocoaTertiary)
 
-                HStack(spacing: 8) {
-                    ForEach(Array(week.last7.enumerated()), id: \.offset) { _, day in
-                        Circle()
-                            .fill(day.plates > 0 ? Palette.accent : Palette.accentSubtle.opacity(0.6))
-                            .frame(width: 7, height: 7)
+                VStack(spacing: 0) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { idx, row in
+                        VStack(spacing: 0) {
+                            if idx > 0 {
+                                Rectangle()
+                                    .fill(Palette.hairlineCocoa)
+                                    .frame(height: 0.5)
+                            }
+                            heldRow(row)
+                        }
                     }
-                    Spacer(minLength: 12)
-                    Text(weekReceiptLine(week))
-                        .font(Typo.numeralMeta)
-                        .kerning(0.1)
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.textSecondary)
                 }
+
+                JKChainLine(
+                    lead: "open",
+                    suggestion: "her food journal",
+                    italic: ["journal"],
+                    action: { showJournal = true }
+                )
             }
             .padding(.horizontal, Space.lg)
         }
     }
 
-    private func weekReceiptLine(_ week: WeekState) -> String {
-        var parts: [String] = []
-        let plates = week.last7.map(\.plates).reduce(0, +)
-        if plates > 0 { parts.append("\(plates) plates") }
-        if let target = week.proteinTargetG, target > 0, week.proteinDaysHit > 0 {
-            parts.append("\(week.proteinDaysHit) protein days")
-        }
-        let steps = week.last7.compactMap(\.steps).reduce(0, +)
-        if steps > 0 { parts.append("\(Int((Double(steps) / 1000).rounded()))k steps") }
-        return parts.isEmpty ? "the week is young" : parts.joined(separator: " · ")
+    private struct HeldRow {
+        let mark: JKMarkKind?
+        let lead: String
+        let punch: String
+        let punchItalic: [String]
     }
 
-    // MARK: - Insight cards (max 2, ranked)
-
-    @ViewBuilder private var insightCards: some View {
-        if let cards = insights?.cards, !cards.isEmpty {
-            VStack(alignment: .leading, spacing: Space.md) {
-                Text("what your week says")
-                    .font(Typo.captionTracked)
-                    .kerning(1.98)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .padding(.horizontal, Space.lg)
-
-                VStack(spacing: Space.optionGap) {
-                    ForEach(Array(cards.enumerated()), id: \.element.id) { idx, insight in
-                        insightCard(insight)
-                            .jkBeat2(extraDelay: 0.12 + Double(idx) * Motion.revealStagger)
-                    }
-                }
-                .padding(.horizontal, Space.lg)
+    private func heldRow(_ row: HeldRow) -> some View {
+        HStack(spacing: 12) {
+            if let mark = row.mark {
+                JKMark(kind: mark, size: 16,
+                       color: Palette.cocoaSecondary.opacity(0.85))
+                    .frame(width: 18)
+            } else {
+                Text("\u{2665}\u{FE0E}")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.accent)
+                    .frame(width: 18)
             }
+            Text(row.lead)
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+            Spacer(minLength: 8)
+            ItalicAccentText(
+                row.punch,
+                italic: row.punchItalic,
+                baseFont: .custom("DMSans-Medium", size: 14, relativeTo: .footnote),
+                italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15, relativeTo: .footnote),
+                color: Palette.textPrimary,
+                alignment: .trailing
+            )
         }
+        .padding(.vertical, 12)
     }
 
-    private func insightCard(_ insight: Insight) -> some View {
-        Button {
-            Haptics.soft()
-            router.openChat(seed: insight.chatSeed)
-        } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                ItalicAccentText(
-                    insight.line,
-                    italic: insight.italic,
-                    baseFont: .custom("JeniHeroSerif-Regular", size: 20),
-                    italicFont: .custom("JeniHeroSerif-Italic", size: 20),
-                    color: Palette.textPrimary,
-                    alignment: .leading
-                )
-                .lineSpacing(-2)
-                .kerning(-0.2)
-                .fixedSize(horizontal: false, vertical: true)
+    /// The week's rows, chapter-aware, provenance-gated: up to two
+    /// HELD, at most one DRIFTED (gentle, only when real), at most
+    /// one HELPED. Quiet weeks earn the presence row, never blanks.
+    private func weekHeldRows() -> [HeldRow] {
+        guard let week else { return [] }
+        var held: [HeldRow] = []
+        var drifted: [HeldRow] = []
+        var helped: [HeldRow] = []
 
-                if let detail = insight.detail {
-                    Text(detail)
-                        .font(Typo.caption)
-                        .lineSpacing(3)
-                        .foregroundStyle(Palette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                HStack(spacing: 5) {
-                    Text("ask jeni")
-                        .font(Typo.captionTracked)
-                        .kerning(1.4)
-                        .textCase(.uppercase)
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 9, weight: .medium))
-                }
-                .foregroundStyle(Palette.cocoaTertiary)
-                .padding(.top, 2)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Palette.bgElevated)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
-            )
-            .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
-            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        // — held
+        if week.proteinDaysHit >= 3 {
+            held.append(HeldRow(
+                mark: .plate, lead: "protein",
+                punch: "landed \(week.proteinDaysHit) of 7 days",
+                punchItalic: ["landed"]
+            ))
         }
-        .buttonStyle(JKPress())
+        let goal = week.stepsGoal
+        let goalDays = week.last7.compactMap(\.steps).filter { $0 >= goal }.count
+        if goalDays >= 2 {
+            held.append(HeldRow(
+                mark: .path, lead: "her legs",
+                punch: "covered the gap on \(goalDays) days",
+                punchItalic: ["covered"]
+            ))
+        }
+        let weighs = weekChecks["weigh_in", default: 0]
+        if held.count < 2, weighs >= 1 {
+            held.append(HeldRow(
+                mark: .line, lead: "the line",
+                punch: weighs == 1 ? "checked, zero verdicts" : "checked \(weighs) times, zero verdicts",
+                punchItalic: ["checked"]
+            ))
+        }
+
+        // — drifted (one, gentle, only when real)
+        if snapshot?.chapter == .keeping,
+           let zone = snapshot?.bandZone, zone != BandZone.steady.rawValue {
+            drifted.append(HeldRow(
+                mark: .line, lead: "the band",
+                punch: zone == BandZone.reset.rawValue
+                    ? "a reset week, held together"
+                    : "a steadying week",
+                punchItalic: [zone == BandZone.reset.rawValue ? "held" : "steadying"]
+            ))
+        } else if week.loggedDays7 >= 3, let target = week.proteinTargetG,
+                  target > 0, week.avgProtein7 < Int(Double(target) * 0.75),
+                  week.proteinDaysHit < 3 {
+            drifted.append(HeldRow(
+                mark: .plate, lead: "protein",
+                punch: "ran quiet. gently, more",
+                punchItalic: ["gently"]
+            ))
+        }
+
+        // — helped
+        let breaths = weekChecks["breath", default: 0]
+        let reps = weekChecks["lesson", default: 0]
+        if breaths >= 1 {
+            helped.append(HeldRow(
+                mark: .breath, lead: "resets",
+                punch: breaths == 1 ? "one this week" : "\(breaths) this week",
+                punchItalic: []
+            ))
+        } else if reps >= 2 {
+            helped.append(HeldRow(
+                mark: .door, lead: "the method",
+                punch: "\(reps) reps kept",
+                punchItalic: ["kept"]
+            ))
+        }
+
+        var rows = Array(held.prefix(2)) + Array(drifted.prefix(1)) + Array(helped.prefix(1))
+        if rows.isEmpty {
+            // The quiet-week floor: presence, never a blank.
+            let presentDays = week.last7.filter { $0.plates > 0 }.count
+                + weekChecks.values.reduce(0, +)
+            if presentDays > 0 {
+                rows.append(HeldRow(
+                    mark: nil, lead: "you showed up",
+                    punch: "the week is young",
+                    punchItalic: ["young"]
+                ))
+            }
+        }
+        return rows
     }
 
     // MARK: - The method journey
@@ -500,48 +578,6 @@ struct BecomingView: View {
             .replacingOccurrences(of: "]", with: "")
             .replacingOccurrences(of: "*", with: "")
             .lowercased()
-    }
-
-    // MARK: - Wins
-
-    @ViewBuilder private var winsBlock: some View {
-        let showedUp = UserDefaults.standard.integer(forKey: "stats.shown_up_count")
-        let plates = FoodLogPersister.allEntries(userId: userId).count
-        if showedUp > 0 || plates > 0 {
-            VStack(alignment: .leading, spacing: Space.md) {
-                Text("kept so far")
-                    .font(Typo.captionTracked)
-                    .kerning(1.98)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-
-                VStack(spacing: 0) {
-                    if showedUp > 0 {
-                        JKReceiptRow(
-                            lead: "you showed up",
-                            punch: "\(showedUp) times \u{2665}\u{FE0E}",
-                            punchItalic: [],
-                            showsRule: false
-                        )
-                    }
-                    if plates > 0 {
-                        JKReceiptRow(
-                            lead: "plates seen",
-                            punch: "\(plates)",
-                            punchItalic: [],
-                            showsRule: showedUp > 0
-                        )
-                    }
-                    JKChainLine(
-                        lead: "open",
-                        suggestion: "her food journal",
-                        italic: ["journal"],
-                        action: { showJournal = true }
-                    )
-                }
-            }
-            .padding(.horizontal, Space.lg)
-        }
     }
 
     // MARK: - Sunday receipt (v2.5 — the week, kept)
@@ -663,5 +699,37 @@ struct BecomingView: View {
         snapshot = snap
         week = wk
         insights = InsightEngine.insights(week: wk, snapshot: snap)
+        weekChecks = Self.fetchWeekChecks(
+            userId: userId,
+            planId: snap.plan?.id,
+            programDay: snap.programDay,
+            in: modelContext
+        )
+    }
+
+    /// Completed checks in the trailing week, grouped by itemKey —
+    /// the same 7-day frame WeekState reads.
+    private static func fetchWeekChecks(
+        userId: String, planId: String?, programDay: Int,
+        in context: ModelContext
+    ) -> [String: Int] {
+        guard let planId, programDay > 0 else { return [:] }
+        let lo = max(1, programDay - 6)
+        let hi = programDay
+        let descriptor = FetchDescriptor<ProgramDayCheckRecord>(
+            predicate: #Predicate {
+                $0.userId == userId
+                && $0.programPlanId == planId
+                && $0.programDay >= lo
+                && $0.programDay <= hi
+            }
+        )
+        let checks = (try? context.fetch(descriptor)) ?? []
+        var counts: [String: Int] = [:]
+        for check in checks
+        where check.state == "complete" || check.state == "autoCompleted" {
+            counts[check.itemKey, default: 0] += 1
+        }
+        return counts
     }
 }
