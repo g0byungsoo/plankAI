@@ -23,9 +23,17 @@ THE DAY RAIL** (seven tappable day cells, today as a filled date
 pill, past days open receipts), her-weeks timeline one level in,
 rebuilt protein arc + under-glow trend figure, calories lead Home's
 food sentence + carbs/fat/fiber surfaced (vitamins/minerals need
-the fenced EF). **Read `docs/app_v5/00_DIRECTION.md` first (§6 =
-re-steer); 01_REPORT.md §8 = part-2 evidence + gaps.** Supersedes
-v4's language layer and becoming's ledger layout; v4 engines stand.
+the fenced EF). Part 3 — v5.1 founder-feedback build: native
+Liquid Glass TabView (custom JKTabBar deleted), first-use teaching
+block (Today days 1-2), PlateDetailSheet (tap any plate →
+chemistry + in-today shares in words), snap-result day line w/
+provenance (`FoodModule.dayContextProvider`), THE GENTLE FIVE
+(gentle generator mode: low-impact pool, 2 moves x 2 rounds, 50%
+kept bar, GentleWorkoutTests), JeniProse streaming shimmer.
+**Read `docs/app_v5/00_DIRECTION.md` first (§6 = re-steer);
+01_REPORT.md §8 = part-2 evidence + gaps; 02_NEXT.md = v5.1
+shipped record.** Supersedes v4's language layer and becoming's
+ledger layout; v4 engines stand.
 
 ### App v4 (2026-07-07, branch feat/app-v2)
 The program became an object: ProgramArc phases + WeekIntent named
