@@ -259,9 +259,39 @@ struct DownsellPaywallView: View {
             SafariView(url: doc.url).ignoresSafeArea()
         }
         .task {
+            Analytics.captureScreen("DownsellPaywall")
             await loadOfferings()
+            // Fire AFTER load so price_resolved reflects the real
+            // StoreKit resolution — this is the signal that reveals a
+            // silent discount-offering failure without a debug build.
+            trackDownsellViewed()
             runEntrance()
         }
+    }
+
+    /// Emits `downsell_viewed` with the resolved pricing snapshot. The
+    /// load-state properties (price_resolved / load_failed) make a silent
+    /// discount-offering resolution failure visible in PostHog — the case
+    /// where the user reaches the downsell but sees the dead "—" card and
+    /// a disabled CTA, which reads in the funnel as "shown but nobody buys."
+    private func trackDownsellViewed() {
+        var props: [String: Any] = [
+            "offering_id": RevenueCatConfig.discountOfferingID,
+            "product_id": discountPackage?.storeProduct.productIdentifier
+                ?? RevenueCatConfig.ProductID.yearlyDiscount,
+            "price_resolved": discountPackage != nil,
+            "load_failed": offeringsLoadFailed
+        ]
+        if let discount = discountPackage?.storeProduct.localizedPriceString {
+            props["discount_price"] = discount
+        }
+        if let standard = standardYearlyPackage?.storeProduct.localizedPriceString {
+            props["standard_price"] = standard
+        }
+        if let pct = discountPercent {
+            props["discount_percent"] = pct
+        }
+        Analytics.track(.downsellViewed, properties: props)
     }
 
     // MARK: - Hero (heart sticker + halo + sparkle burst)
@@ -424,6 +454,11 @@ struct DownsellPaywallView: View {
         VStack(spacing: 12) {
             Button {
                 Haptics.medium()
+                Analytics.track(.downsellCtaTapped, properties: [
+                    "product_id": discountPackage?.storeProduct.productIdentifier
+                        ?? RevenueCatConfig.ProductID.yearlyDiscount,
+                    "price_resolved": discountPackage != nil
+                ])
                 Task { await purchase() }
             } label: {
                 ZStack {
@@ -446,6 +481,7 @@ struct DownsellPaywallView: View {
 
             Button {
                 Haptics.light()
+                Analytics.track(.downsellDismissed, properties: ["via": "maybe_later"])
                 onDismiss()
             } label: {
                 Text("maybe later")
@@ -464,6 +500,7 @@ struct DownsellPaywallView: View {
         HStack {
             Button {
                 Haptics.light()
+                Analytics.track(.downsellDismissed, properties: ["via": "x"])
                 onDismiss()
             } label: {
                 Image(systemName: "xmark")
@@ -600,12 +637,24 @@ struct DownsellPaywallView: View {
             print("[PriceDiag] =====================================")
             #endif
             if offering == nil || discountPackage == nil {
+                Analytics.trackException(
+                    NSError(domain: "DownsellPaywall", code: 1, userInfo: [
+                        NSLocalizedDescriptionKey: "discount offering or product missing"
+                    ]),
+                    context: "downsell.offerings_missing",
+                    properties: [
+                        "expected_offering_id": RevenueCatConfig.discountOfferingID,
+                        "expected_product_id": RevenueCatConfig.ProductID.yearlyDiscount,
+                        "offering_resolved": offering != nil
+                    ]
+                )
                 #if DEBUG
                 print("[DownsellPaywall] discount offering or product missing — expected offering '\(RevenueCatConfig.discountOfferingID)' with product '\(RevenueCatConfig.ProductID.yearlyDiscount)'")
                 #endif
                 offeringsLoadFailed = true
             }
         } catch {
+            Analytics.trackException(error, context: "downsell.offerings_load")
             #if DEBUG
             print("[DownsellPaywall] offerings load FAILED: \(error)")
             #endif
@@ -632,6 +681,13 @@ struct DownsellPaywallView: View {
         defer { working = false }
 
         do {
+            // Handoff marker — mirrors PaywallView's purchase_sheet_shown
+            // so the downsell funnel (viewed → cta → sheet → completed)
+            // is diffable at a glance. purchase_completed still fires off
+            // the customerInfoStream with product_id == yearlyDiscount.
+            Analytics.track(.downsellPurchaseSheetShown, properties: [
+                "product_id": package.storeProduct.productIdentifier
+            ])
             let result = try await Purchases.shared.purchase(package: package)
             if result.userCancelled { return }
             let isActive = result.customerInfo
@@ -643,6 +699,8 @@ struct DownsellPaywallView: View {
                 errorMessage = "Purchase didn't activate Pro. Try again or contact support@jenifit.app."
             }
         } catch {
+            Analytics.trackException(error, context: "downsell.purchase",
+                                     properties: ["product_id": package.storeProduct.productIdentifier])
             #if DEBUG
             print("[DownsellPaywall] purchase FAILED: \(error)")
             #endif
@@ -659,6 +717,7 @@ struct DownsellPaywallView: View {
                 onSubscribed()
             }
         } catch {
+            Analytics.trackException(error, context: "downsell.restore")
             #if DEBUG
             print("[DownsellPaywall] restore FAILED: \(error)")
             #endif

@@ -77,6 +77,27 @@ enum AnalyticsEvent: String {
     /// install). Property: `plan` (yearly/quarterly/weekly).
     case paywallTransactionAbandoned = "paywall_transaction_abandoned"
 
+    // ── Downsell diagnostic events (2026-07-07) ──────────────────
+    // The exit-intent downsell (DownsellPaywallView) shipped with zero
+    // telemetry: no screen event, no CTA, no sheet handoff. It's the
+    // app's strongest yearly-conversion path (the discount product has
+    // more real completions than full-price yearly) yet it was dark in
+    // PostHog, so "is the discount working?" was unanswerable from data
+    // alone. These close the gap and mirror the main paywall's
+    // intent → handoff split.
+    //
+    // `downsell_viewed` carries the load state so a silent pricing
+    // failure is visible without a debug build:
+    //   price_resolved (Bool)  — did the discount package resolve to a
+    //                            real StoreKit product? false ⇒ the user
+    //                            saw the dead "—" card + disabled CTA.
+    //   product_id, discount_price, standard_price, discount_percent,
+    //   offering_id, load_failed — the resolved pricing snapshot.
+    case downsellViewed             = "downsell_viewed"
+    case downsellCtaTapped          = "downsell_cta_tapped"
+    case downsellPurchaseSheetShown = "downsell_purchase_sheet_shown"
+    case downsellDismissed          = "downsell_dismissed"
+
     // ── First activation ─────────────────────────────────────────
     /// App v2 — the entitled shell mounted. Fires ONLY in the .main
     /// phase (pre-v2 this existed as a DEBUG print while MainTabView
