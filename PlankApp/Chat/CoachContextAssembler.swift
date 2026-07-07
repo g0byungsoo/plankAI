@@ -47,6 +47,24 @@ enum CoachContextAssembler {
                 },
             ]
             if let tier = snapshot.plan?.intensityTier { plan["tier"] = tier }
+            // v4 — the arc: jeni can answer "why is this week like
+            // this?" from the same spine the app renders.
+            if let phase = snapshot.arcPhase {
+                plan["phase"] = phase.name
+                plan["week"] = snapshot.programWeek
+                plan["week_of"] = snapshot.totalWeeks
+            }
+            if let intent = snapshot.weekIntent {
+                plan["week_intent"] = intent.name
+                plan["week_line"] = intent.line
+            }
+            if let signed = WeeklyReview.records(userId: userId).last {
+                plan["last_resigning"] = [
+                    "week": signed.weekIndex,
+                    "decision": signed.decision,
+                    "stamp": signed.stampLine,
+                ]
+            }
             out["plan"] = plan
         }
 

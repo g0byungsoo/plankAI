@@ -77,7 +77,10 @@ enum NotificationOrchestrator {
 
             let content = UNMutableNotificationContent()
             content.title = "day \(targetProgramDay) is ready"
-            content.body = anchorLine(archetype, who: who, offset: offset)
+            content.body = anchorLine(
+                archetype, who: who, offset: offset,
+                targetProgramDay: targetProgramDay, totalDays: totalDays
+            )
             content.sound = .default
             content.userInfo = ["deeplink": "jenifit://today"]
 
@@ -87,14 +90,89 @@ enum NotificationOrchestrator {
                 trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
             ))
         }
+
+        scheduleReSigningKnock(programDay: programDay, hour: 19)
+    }
+
+    // MARK: - v4 — the re-signing knock (docs/app_v4/01_PROGRAM.md §0)
+    //
+    // One quiet evening knock on HER week's closing day: "the week's
+    // receipt is ready." Follows the 4-site id protocol
+    // (scheduler here · BreakState sweep · sign-time cancel · the
+    // delegate's generic deeplink map). Cancelled the moment she
+    // signs; never fires on a break (BreakState removes it).
+
+    static let reSigningKnockId = "resigning_knock"
+
+    private static func scheduleReSigningKnock(programDay: Int, hour: Int) {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [reSigningKnockId])
+        guard programDay >= 1 else { return }
+
+        // Days until this program week's closing day (slot 6).
+        let slot = PrescriptionEngineV2.dayInWeek(programDay)
+        var daysAhead = 6 - slot
+        // Today IS the closing day but the evening already passed —
+        // knock at next week's close instead.
+        if daysAhead == 0, Calendar.current.component(.hour, from: .now) >= hour {
+            daysAhead = 7
+        }
+        guard let fireDay = Calendar.current.date(
+            byAdding: .day, value: daysAhead, to: .now
+        ) else { return }
+
+        var comps = Calendar.current.dateComponents([.year, .month, .day], from: fireDay)
+        comps.hour = hour
+        comps.minute = 0
+
+        let content = UNMutableNotificationContent()
+        content.title = "your week, read back"
+        content.body = "the week's receipt is ready. read it, sign the next step \u{2665}"
+        content.sound = .default
+        content.userInfo = ["deeplink": "jenifit://becoming"]
+
+        center.add(UNNotificationRequest(
+            identifier: reSigningKnockId,
+            content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+        ))
+    }
+
+    /// Sign-time cancel — the knock never nags a signed week.
+    static func cancelReSigningKnock() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [reSigningKnockId])
     }
 
     /// The day's line — archetype voice, with the later rungs easing
     /// into begin-again register (day 3+ of silence is a comeback
-    /// moment, not a reminder moment).
-    private static func anchorLine(_ archetype: ProgramDayArchetype, who: String, offset: Int) -> String {
+    /// moment, not a reminder moment). v4: a rung that lands on a
+    /// program-week's first day announces the NAMED week instead —
+    /// intents are deterministic, so the ladder can speak them safely
+    /// where full readings (live-state) never could.
+    private static func anchorLine(
+        _ archetype: ProgramDayArchetype, who: String, offset: Int,
+        targetProgramDay: Int, totalDays: Int
+    ) -> String {
         if offset >= 3 {
             return "\(who)the plan kept your place. begin again, anytime \u{2665}"
+        }
+        if PrescriptionEngineV2.dayInWeek(targetProgramDay) == 0, targetProgramDay > 1 {
+            let week = PrescriptionEngineV2.programWeek(targetProgramDay)
+            let chapter = CohortStore.chapter
+            let intent = WeekIntent.intent(
+                week: week,
+                chapter: chapter,
+                phase: ProgramArc.phase(
+                    week: week,
+                    totalWeeks: ProgramArc.totalWeeks(totalDays: totalDays),
+                    chapter: chapter
+                ),
+                flags: .live,
+                pickedKey: UserDefaults.standard.string(
+                    forKey: WeeklyReview.intentPickKey(week: week))
+            )
+            return "\(who)week \(week) begins: \(intent.name). a clean page \u{2665}"
         }
         switch archetype {
         case .protein:  return "\(who)today is a protein day. one strong plate at a time \u{2665}"

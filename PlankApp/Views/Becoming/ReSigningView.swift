@@ -253,7 +253,7 @@ struct ReSigningView: View {
     private func sign(decision: String) {
         let stamp: String
         if decision == "declined" {
-            stamp = "the plan holds — your call"
+            stamp = "the plan holds. your call \u{2665}\u{FE0E}"
         } else {
             stamp = WeeklyReview.apply(
                 due.proposal,
@@ -272,6 +272,8 @@ struct ReSigningView: View {
             reasonLine: due.proposal.reason,
             weekName: due.weekName
         ))
+        // The knock never nags a signed week (4-site id protocol).
+        NotificationOrchestrator.cancelReSigningKnock()
         Analytics.track(.weeklyReviewSigned, properties: [
             "week": due.weekIndex,
             "proposal": due.proposal.key,

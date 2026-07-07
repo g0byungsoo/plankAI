@@ -704,6 +704,7 @@ final class AppSync {
             withIdentifiers: NotificationOrchestrator.ladderIds
                 + NotificationOrchestrator.legacyIds
                 + NotificationOrchestrator.jitaiIds   // v3 phase-7 pings
+                + [NotificationOrchestrator.reSigningKnockId]   // v4 knock
         )
     }
 

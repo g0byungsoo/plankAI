@@ -80,6 +80,11 @@ enum DailyBriefEngine {
         /// 15-second plan gets its receipt (the loop closes without
         /// grading whether it held).
         var lastNightPlan: String? = nil
+        /// v4 — the named week, on its opening day only (nil on days
+        /// 2-7): the reading announces the fresh page.
+        var weekOpensName: String? = nil
+        var weekOpensLine: String? = nil
+        var weekOrdinal: Int = 0
     }
 
     // MARK: - The cascade
@@ -210,12 +215,23 @@ enum DailyBriefEngine {
             )
         }
 
+        // 5.6 — a new program week opens (Monday-of-her-week mints
+        //       the fresh start; the name pre-interprets the days)
+        if let name = ctx.weekOpensName, ctx.weekOrdinal > 1 {
+            return Brief(
+                line: "week \(ctx.weekOrdinal) opens: \(name).",
+                italic: [name],
+                chatSeed: "her program week \(ctx.weekOrdinal) ('\(name)') begins today. set the week's intent in one warm line; one small first move.",
+                second: ctx.weekOpensLine
+            )
+        }
+
         // 5.7 — the tonight plan, named back (every plan earns its
         //       morning receipt; alternate days so nightly planners
         //       don't hear the same opener forever)
         if let plan = ctx.lastNightPlan, stableSeed(ctx.dayKey) % 2 == 0 {
             return Brief(
-                line: "last night had a plan — \(plan). making the plan is the practice \u{2665}\u{FE0E}",
+                line: "last night had a plan: \(plan). making the plan is the practice \u{2665}\u{FE0E}",
                 italic: [plan],
                 chatSeed: "she set an if-then plan for last night ('\(plan)'). acknowledge the planning habit itself; don't grade whether it held.",
                 second: "tonight can have one too. the close will ask."

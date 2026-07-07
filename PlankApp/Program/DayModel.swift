@@ -212,6 +212,7 @@ enum BreakState {
             withIdentifiers: NotificationOrchestrator.ladderIds
                 + NotificationOrchestrator.legacyIds
                 + NotificationOrchestrator.jitaiIds
+                + [NotificationOrchestrator.reSigningKnockId]
                 + ["winback_lapse", "evening_plate_review", "becoming.sunday.recap"]
         )
     }

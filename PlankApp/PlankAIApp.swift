@@ -582,83 +582,6 @@ struct PlankAIApp: App {
                     // Add --debug-hold-auto-seal to auto-run the hold + capture
                     // the sealed "promised ♥" state.
                     HoldPromiseDebugHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-protein-hero") {
-                    // v1.2 (2026-06-26) — medical-grade Phase 2.3: cohort-aware
-                    // protein floor + lean-mass framing (flag-gated). Left =
-                    // legacy 1.2 g/kg baseline (70kg → 84g); right = GLP-1
-                    // elevated 1.6 g/kg (→ 112g) + the "lean-mass first"
-                    // note that explains the higher floor.
-                    ZStack {
-                        Palette.bgPrimary.ignoresSafeArea()
-                        VStack(spacing: 28) {
-                            Text("protein tile — baseline vs GLP-1 cohort")
-                                .font(.custom("DMSans-Regular", size: 13))
-                                .foregroundStyle(Palette.textSecondary)
-                            HStack(spacing: 16) {
-                                BecomingProteinTile(proteinG: 78, targetG: 84)
-                                    .padding(16)
-                                    .frame(width: 160, height: 168, alignment: .topLeading)
-                                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .stroke(Palette.divider, lineWidth: 1))
-                                BecomingProteinTile(proteinG: 78, targetG: 112,
-                                                    note: "lean-mass first")
-                                    .padding(16)
-                                    .frame(width: 160, height: 168, alignment: .topLeading)
-                                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .stroke(Palette.divider, lineWidth: 1))
-                            }
-                        }
-                    }
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-rapid-loss") {
-                    // v1.2 (2026-06-26) — medical-grade Phase 2.2: rapid-loss
-                    // safety guardrail insight. >1%/wk sustained loss → reframe
-                    // toward protein (anti-shame, never "slow down / too fast").
-                    ZStack {
-                        Palette.bgPrimary.ignoresSafeArea()
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("rapid-loss guardrail (Phase 2.2)")
-                                .font(.custom("DMSans-Regular", size: 13))
-                                .foregroundStyle(Palette.textSecondary)
-                            BecomingInsightLine(
-                                text: "you're losing quickly. a protein-forward week helps you keep the muscle \u{2665}\u{FE0E}",
-                                italic: ["protein-forward"]
-                            )
-                            .padding(20)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(Palette.divider, lineWidth: 1))
-                        }
-                        .padding(24)
-                    }
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-adaptive-pace") {
-                    // v1.2 (2026-06-26) — medical-grade Phase 2.2: adaptive pace
-                    // projection insights. Only the encouraging statuses surface
-                    // a reprojected date (anti-shame); slow + stalled don't.
-                    ZStack {
-                        Palette.bgPrimary.ignoresSafeArea()
-                        VStack(alignment: .leading, spacing: 22) {
-                            Text("adaptive pace projection (Phase 2.2)")
-                                .font(.custom("DMSans-Regular", size: 13))
-                                .foregroundStyle(Palette.textSecondary)
-                            BecomingInsightLine(
-                                text: "you're ahead of your plan. on track for ~september 24 \u{2665}\u{FE0E}",
-                                italic: ["ahead"]
-                            )
-                            .padding(20)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(Palette.divider, lineWidth: 1))
-                            BecomingInsightLine(
-                                text: "right on pace. ~october 12 is in reach \u{2665}\u{FE0E}",
-                                italic: ["pace"]
-                            )
-                            .padding(20)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(Palette.divider, lineWidth: 1))
-                        }
-                        .padding(24)
-                    }
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-glp1-nutrition") {
                     // v1.2 (2026-06-26) — medical-grade Phase 3.3: GLP-1 nutrition
                     // education nudges (hydration / fiber / nutrient density). The
@@ -688,8 +611,6 @@ struct PlankAIApp: App {
                     )
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-winback") {
                     CancellationWinbackSheet(onStayOpen: {}, onLeave: {})
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-stickers") {
-                    StickyNotePreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-log-weight-sheet") {
                     LogWeightSheetPreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-handwritten-share") {
@@ -720,15 +641,6 @@ struct PlankAIApp: App {
                         onDismiss: {},
                         userId: "debug-journal-user"
                     )
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-food-journal") {
-                    // v1.2 snap rebuild — seeded journal + detail overlay
-                    // (pair with --debug-journal-detail to auto-open the
-                    // first entry's detail).
-                    FoodJournalPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-becoming") {
-                    BecomingPreviewHarness()
-                } else if ProcessInfo.processInfo.arguments.contains("--debug-home") {
-                    HomePhase1PreviewHarness()
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-arrival") {
                     // Phase 1a (Task 9, 2026-06-28) - arrival horizon hero.
                     // Renders the hero with seeded data (goalDate ~84 days out,
@@ -1867,13 +1779,13 @@ private struct SnapCameraDebugHarness: View {
             onQuickAddTapped: {},
             onImOutTapped: {},
             onAgainTapped: {
-                FoodJournalPreviewHarness.seedIfNeeded()
+                FoodJournalDebugSeeder.seedIfNeeded()
                 showRecents = true
             }
         )
         .sheet(isPresented: $showRecents) {
             RecentMealsSheet(
-                userId: FoodJournalPreviewHarness.debugUserId,
+                userId: FoodJournalDebugSeeder.debugUserId,
                 onLogged: { showRecents = false },
                 onClose: { showRecents = false }
             )
@@ -1885,25 +1797,24 @@ private struct SnapCameraDebugHarness: View {
             // seeded recents for screenshot capture.
             if ProcessInfo.processInfo.arguments.contains("--debug-again-sheet") {
                 try? await Task.sleep(nanoseconds: 1_200_000_000)
-                FoodJournalPreviewHarness.seedIfNeeded()
+                FoodJournalDebugSeeder.seedIfNeeded()
                 showRecents = true
             }
         }
     }
 }
 
-// MARK: - FoodJournalPreviewHarness — seeded journal + detail
+// MARK: - FoodJournalDebugSeeder — seeded debug journal entries
 //
-// v1.2 snap rebuild (2026-07-01) — mounts the real FoodLogTimelineView
-// against a seeded debug user so journal rows, the meal-detail morph,
-// the per-item ledger, and the relog action can be verified in the
-// simulator. Seeds go through FoodLogPersister.relog (persist() wants
-// a ModelContext; relog builds entries directly).
+// v4 sweep (2026-07-06): the FoodJournalPreviewHarness view died with
+// the legacy FoodLogTimelineView (`--debug-food-journal`), but its
+// seeding statics survive here — SnapCameraDebugHarness feeds them to
+// RecentMealsSheet for the relog ("again") path. Seeds go through
+// FoodLogPersister.relog (persist() wants a ModelContext; relog builds
+// entries directly).
 
-private struct FoodJournalPreviewHarness: View {
+private enum FoodJournalDebugSeeder {
     static let debugUserId = "debug-journal-user"
-
-    init() { Self.seedIfNeeded() }
 
     static func seedIfNeeded() {
         guard FoodLogPersister.allEntries(userId: debugUserId).isEmpty else { return }
@@ -1947,543 +1858,10 @@ private struct FoodJournalPreviewHarness: View {
             FoodLogPersister.relog(seed, userId: debugUserId)
         }
     }
-
-    var body: some View {
-        FoodLogTimelineView(
-            userId: Self.debugUserId,
-            dailyTarget: 1950,
-            onAddTapped: {},
-            onDismiss: {}
-        )
-    }
 }
 
 // v4: DayPeekPreviewHarness + DayStripPreviewHarness died with the
 // strip family — past days live in becoming's journey ledger now.
-
-// MARK: - Home Phase 1 preview harness
-//
-// Mounts the new Home archetype atoms (HomeArchetypeHeader,
-// HomeProteinTracker, PlanRow with isAnchor/isPastDay flags) with
-// mock data so the redesign can be iterated on without fighting the
-// "your program is ready" intercept. Launch with `--debug-home`.
-// Toggle the archetype + past-day mode via launch args:
-//   `--archetype protein|movement|balanced|rest`
-//   `--past` for the past-day disabled treatment
-
-private struct HomePhase1PreviewHarness: View {
-    @State private var archetype: ProgramDayArchetype = {
-        let args = ProcessInfo.processInfo.arguments
-        if let i = args.firstIndex(of: "--archetype"), i + 1 < args.count {
-            switch args[i + 1].lowercased() {
-            case "protein":  return .protein
-            case "movement": return .movement
-            case "balanced": return .balanced
-            case "rest":     return .rest
-            default:         return .protein
-            }
-        }
-        return .protein
-    }()
-    @State private var isPastDay: Bool = ProcessInfo.processInfo.arguments.contains("--past")
-    @State private var glp1IsCurrent: Bool = ProcessInfo.processInfo.arguments.contains("--glp1")
-    @State private var simulateAfter9pm: Bool = ProcessInfo.processInfo.arguments.contains("--after-9pm")
-    @State private var simulateKind: Bool = ProcessInfo.processInfo.arguments.contains("--kind")
-    /// Phase 4 Home interactivity peek flags — computed each render
-    /// so the launch arg is always fresh (no stale @State init).
-    private var debugPeekHomeShowsUp: Bool {
-        ProcessInfo.processInfo.arguments.contains("--peek-home-showsup")
-    }
-    private var debugPeekHomeProtein: Bool {
-        ProcessInfo.processInfo.arguments.contains("--peek-home-protein")
-    }
-    private var debugPeekHomeWhy: Bool {
-        ProcessInfo.processInfo.arguments.contains("--peek-home-why")
-    }
-    @State private var simulateRecap: YesterdayRecapKind? = {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--recap"), i + 1 < args.count else {
-            return nil
-        }
-        let v = args[i + 1].lowercased()
-        if v.hasPrefix("plates:") {
-            return .plates(Int(v.dropFirst("plates:".count)) ?? 1)
-        }
-        if v.hasPrefix("rituals:") {
-            return .rituals(Int(v.dropFirst("rituals:".count)) ?? 1)
-        }
-        if v.hasPrefix("mixed:") {
-            let nums = v.dropFirst("mixed:".count).split(separator: ",")
-            let p = Int(nums.first ?? "") ?? 1
-            let r = Int(nums.dropFirst().first ?? "") ?? 1
-            return .mixed(plates: p, rituals: r)
-        }
-        if v == "engaged" { return .engaged }
-        return nil
-    }()
-    @State private var showsUpCount: Int = {
-        let args = ProcessInfo.processInfo.arguments
-        if let i = args.firstIndex(of: "--shows-up"), i + 1 < args.count,
-           let n = Int(args[i + 1]) { return n }
-        return 7
-    }()
-
-    /// Mock prescription set used by the harness. PlanView's real
-    /// composer reorders these by archetype; we replicate that here
-    /// so the harness shows the correct anchor at row 0.
-    private var orderedRows: [ProgramDayPrescription] {
-        var rows: [ProgramDayPrescription] = [
-            .lesson(lessonId: nil),
-            .snapMeal,
-            .workout(tier: .medium, minutes: 18, bodyFocus: nil),
-            .steps(goal: 7500),
-            .weighIn,
-            .breath(minutes: 1, style: .calming),
-        ]
-        guard let tag = archetype.anchorTag else { return rows }
-        let idx = rows.firstIndex { row in
-            switch (row, tag) {
-            case (.snapMeal, .snapMeal): return true
-            case (.workout, .workout):   return true
-            case (.breath, .breath):     return true
-            default:                     return false
-            }
-        }
-        if let idx { rows.insert(rows.remove(at: idx), at: 0) }
-        return rows
-    }
-
-    private var anchorColor: Color? {
-        switch archetype.anchorAccentColorName {
-        case "stickyButter": return Palette.stickyButter
-        case "stickyOlive":  return Palette.stickyOlive
-        case "stickyMint":   return Palette.stickyMint
-        default:             return nil
-        }
-    }
-
-    var body: some View {
-        ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(isPastDay ? "viewing past" : "today")
-                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                        .foregroundStyle(Palette.cocoaTertiary)
-                        .padding(.horizontal, 20)
-
-                    VStack(alignment: .leading, spacing: 14) {
-                        if !isPastDay {
-                            let args = ProcessInfo.processInfo.arguments
-                            if let i = args.firstIndex(of: "--away"),
-                               i + 1 < args.count,
-                               let days = Int(args[i + 1]), days >= 3 {
-                                HomeWelcomeBackLine(daysAway: days)
-                                    .padding(.horizontal, 20)
-                                    .padding(.top, 14)
-                            } else if let recap = simulateRecap {
-                                let cohort: YesterdayRecapCohort = {
-                                    if glp1IsCurrent { return .glp1Current }
-                                    if args.contains("--restrictive") { return .restrictiveRisk }
-                                    return .default
-                                }()
-                                HomeYesterdayRecapLine(kind: recap, cohort: cohort)
-                                    .padding(.horizontal, 20)
-                                    .padding(.top, 14)
-                            }
-                        }
-
-                        HomeArchetypeHeader(
-                            archetype: archetype,
-                            pastDay: isPastDay,
-                            kindToday: simulateKind && !isPastDay,
-                            onLongPressKind: nil,
-                            debugInitialWhy: debugPeekHomeWhy
-                        )
-                            .padding(.horizontal, 20)
-                            .padding(.top, simulateRecap == nil ? 14 : 0)
-
-                        if !isPastDay && showsUpCount >= 2 {
-                            HomeShowsUpLine(
-                                count: showsUpCount,
-                                week: [true, true, false, true, true, false, true],
-                                debugInitialExpanded: debugPeekHomeShowsUp
-                            )
-                                .padding(.horizontal, 20)
-                        }
-
-                        if archetype == .protein && !isPastDay {
-                            HomeProteinTracker(
-                                proteinG: 32,
-                                targetG: 80,
-                                isGLP1Current: glp1IsCurrent,
-                                sources: debugPeekHomeProtein ? [
-                                    (entryId: "mock-1", proteinG: 18),
-                                    (entryId: "mock-2", proteinG: 9),
-                                    (entryId: "mock-3", proteinG: 5),
-                                ] : nil,
-                                debugInitialPeeking: debugPeekHomeProtein
-                            )
-                            .padding(.horizontal, 20)
-                        }
-
-                        if isPastDay {
-                            Text("yesterday's page. it counted as it was.")
-                                .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
-                                .foregroundStyle(Palette.cocoaTertiary)
-                                .padding(.horizontal, 20)
-                        }
-
-                        VStack(spacing: 0) {
-                            ForEach(Array(orderedRows.enumerated()), id: \.offset) { idx, prescription in
-                                PlanRow(
-                                    prescription: prescription,
-                                    state: mockState(for: prescription, idx: idx),
-                                    onTap: {},
-                                    onLongPress: {},
-                                    isAnchor: !isPastDay && idx == 0 && archetype.anchorTag != nil,
-                                    anchorAccentColor: idx == 0 ? anchorColor : nil,
-                                    isPastDay: isPastDay,
-                                    overrideSubtitle: idx == 0 ? archetype.glp1ProteinNudge(glp1Status: glp1IsCurrent ? "current" : "") : nil
-                                )
-                                if idx < orderedRows.count - 1 {
-                                    Divider()
-                                        .background(Palette.hairlineCocoa)
-                                        .padding(.leading, 72)
-                                        .padding(.trailing, 20)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 4)
-
-                        if !isPastDay && (simulateAfter9pm || simulateKind) {
-                            HomeTomorrowResetsLine()
-                                .padding(.horizontal, 20)
-                        }
-                    }
-                    .padding(.bottom, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: Radius.programCard)
-                            .fill(Palette.programCard)
-                    )
-                    .programPaperShadow()
-                    .padding(.horizontal, Space.lg)
-
-                    Spacer(minLength: 80)
-                }
-                .padding(.top, 24)
-            }
-        }
-    }
-
-    private func mockState(
-        for prescription: ProgramDayPrescription,
-        idx: Int
-    ) -> PlanRow.RowState {
-        if case .steps = prescription {
-            return .progress(current: 4200, target: 7500, unit: "")
-        }
-        // For past-day mode: mark the first 3 rows as completed (so the
-        // "kept" stamp + the lesson "re-read ♥" stamp surface), leave
-        // the rest empty.
-        if isPastDay {
-            return idx < 3
-                ? .binaryComplete(isAuto: idx == 1)
-                : .binaryEmpty
-        }
-        if idx == 1 { return .binaryComplete(isAuto: true) }
-        return .binaryEmpty
-    }
-}
-
-// MARK: - Becoming preview harness
-//
-// Mounts the v1.2 Becoming atoms (BecomingDiaryHero +
-// BecomingDeedsCounter + BecomingTrendCanvas) with mock data so the
-// premium register can be iterated on without fighting the program-
-// intercept fullScreenCover. Launch with `--debug-becoming`.
-
-private struct BecomingPreviewHarness: View {
-    /// T9 (2026-06-29) - reads the NSV priorities so the harness shows
-    /// the real echo when the key is seeded via simctl defaults write.
-    @AppStorage("onboardingNsvPriority") private var nsvPriorityCSV: String = ""
-
-    /// Phase 4 demo flags — set via launch args so each interaction
-    /// can be captured in a screenshot without needing simctl tap
-    /// support. Production callers never touch these.
-    private var debugPeekDay: Int? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--peek-day"), i + 1 < args.count,
-              let n = Int(args[i + 1]), (0...6).contains(n) else { return nil }
-        return n
-    }
-    private var debugPeekMacro: BecomingMacroSegment? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--peek-macro"), i + 1 < args.count else { return nil }
-        switch args[i + 1].lowercased() {
-        case "protein": return .protein
-        case "carbs":   return .carbs
-        case "fat":     return .fat
-        case "fiber":   return .fiber
-        default:        return nil
-        }
-    }
-    private var debugPeekProtein: Bool {
-        ProcessInfo.processInfo.arguments.contains("--peek-protein")
-    }
-    /// Phase 4 Day-2 flags
-    private var debugPeekMoved: BecomingMovedStat? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--peek-moved"), i + 1 < args.count else { return nil }
-        switch args[i + 1].lowercased() {
-        case "steps":  return .steps
-        case "plank":  return .plank
-        case "breath": return .breath
-        default:       return nil
-        }
-    }
-    private var debugPeekDeed: BecomingDeedCell? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--peek-deed"), i + 1 < args.count else { return nil }
-        switch args[i + 1].lowercased() {
-        case "plates":    return .plates
-        case "lessons":   return .lessons
-        case "breath":    return .breath
-        case "foodnoise": return .foodNoise
-        default:          return nil
-        }
-    }
-    private var debugPeekPlateDelete: String? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--peek-plate-delete"), i + 1 < args.count else { return nil }
-        return args[i + 1]
-    }
-    private var debugPeekInsightIdx: Int? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--peek-insight"), i + 1 < args.count,
-              let n = Int(args[i + 1]) else { return nil }
-        return n
-    }
-    private var debugPeekWindow: Int?? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "--peek-window"), i + 1 < args.count else { return nil }
-        switch args[i + 1].lowercased() {
-        case "60":  return .some(60)
-        case "90":  return .some(90)
-        case "all": return .some(nil)
-        default:    return nil
-        }
-    }
-
-    @State private var mockLogs: [WeightLogRecord] = {
-        // Synthesize 30 days of fake weights — gentle downward EMA
-        // with daily noise so the trend canvas has shape to play with.
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: .now)
-        return (0..<30).reversed().compactMap { offset -> WeightLogRecord? in
-            guard let date = cal.date(byAdding: .day, value: -offset, to: today) else { return nil }
-            let baseline = 72.0
-            let drift = -Double(29 - offset) * 0.12
-            let noise = Double.random(in: -0.4...0.5)
-            let kg = baseline + drift + noise
-            let log = WeightLogRecord(
-                userId: "preview",
-                weightKg: kg,
-                loggedAt: date,
-                source: "preview"
-            )
-            return log
-        }.reversed()
-    }()
-
-    var body: some View {
-        ZStack {
-            Palette.bgPrimary.ignoresSafeArea()
-            PaperGrainBackground().ignoresSafeArea()
-            scrollContent
-        }
-    }
-
-    // T9 NSV echo for the harness - mirrors the nsvEchoRow logic in
-    // AnalyticsView. Uses @AppStorage; also falls back to mock picks
-    // when the stored value is empty so the preview always renders.
-    @ViewBuilder
-    private var nsvEchoPreview: some View {
-        let storedPicks = nsvPriorityCSV
-            .split(separator: ",")
-            .map(String.init)
-            .filter { !$0.isEmpty }
-        // Fall back to demo picks when not seeded, so the harness
-        // always illustrates the row. Real AnalyticsView only renders
-        // when the user has genuine picks (provenance rule).
-        let picks = storedPicks.isEmpty ? ["energy", "clothes", "sleep"] : storedPicks
-        VStack(alignment: .leading, spacing: 6) {
-            Text("watching for")
-                .font(.system(size: 10, weight: .medium))
-                .tracking(1.4)
-                .foregroundStyle(Palette.textSecondary)
-            HStack(spacing: 6) {
-                ForEach(picks, id: \.self) { key in
-                    Text(nsvPickLabelPreview(key))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Palette.textSecondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Capsule().stroke(Palette.divider, lineWidth: 1))
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 6)
-    }
-
-    private func nsvPickLabelPreview(_ key: String) -> String {
-        switch key {
-        case "core":    return "core that holds"
-        case "energy":  return "energy that lasts"
-        case "clothes": return "clothes that fit right"
-        case "sleep":   return "sleep that resets"
-        default:        return key
-        }
-    }
-
-    private var scrollContent: some View {
-        let focusBelow = debugPeekMoved != nil || debugPeekDeed != nil || debugPeekInsightIdx != nil || debugPeekPlateDelete != nil
-        let focusPlate = debugPeekPlateDelete != nil
-        return ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                if !focusPlate {
-                    BecomingDiaryHero(
-                        dayNumber: 33,
-                        totalDays: 84,
-                        dateRange: "apr 2 → jun 25",
-                        showedUpCount: 28,
-                        identityLine: "becoming steady.",
-                        identityItalic: ["steady"]
-                    )
-                    .padding(.bottom, 4)
-                }
-
-                if !focusPlate {
-                    // Phase 4 demo wiring (2026-06-19) — week row + recaps
-                    // so the dot-tap interaction has data to surface.
-                    BecomingWeekRow(
-                        states: [.done, .done, .done, .open, .done, .done, .todayDone],
-                        doneCount: 6,
-                        archetypes: [.protein, .balanced, .movement, .protein, .balanced, .rest, .protein],
-                        recaps: [
-                            .init(weekdayName: "thursday", plates: 2, rituals: 1, weightLogged: false),
-                            .init(weekdayName: "friday", plates: 3, rituals: 1, weightLogged: true),
-                            .init(weekdayName: "saturday", plates: 1, rituals: 0, weightLogged: false),
-                            .init(weekdayName: "sunday", plates: 0, rituals: 0, weightLogged: false),
-                            .init(weekdayName: "monday", plates: 2, rituals: 1, weightLogged: false),
-                            .init(weekdayName: "yesterday", plates: 0, rituals: 1, weightLogged: false),
-                            .init(weekdayName: "today", plates: 2, rituals: 1, weightLogged: true),
-                        ],
-                        debugInitialSelectedIdx: debugPeekDay
-                    )
-
-                    // Bento pair: today's energy + today's protein
-                    HStack(alignment: .top, spacing: 10) {
-                        BecomingTodayEnergyTile(
-                            eatenKcal: 1247,
-                            movedMinutes: 23,
-                            paceKcalTarget: 1580
-                        )
-                        BecomingProteinTile(
-                            proteinG: 67,
-                            targetG: 95,
-                            sources: debugPeekProtein ? [
-                                .init(entryId: "mock-1", proteinG: 32),
-                                .init(entryId: "mock-2", proteinG: 21),
-                                .init(entryId: "mock-3", proteinG: 14),
-                            ] : nil,
-                            debugInitialPeeking: debugPeekProtein
-                        )
-                    }
-
-                    BecomingMacroRow(
-                        protein: 67,
-                        carbs: 142,
-                        fat: 38,
-                        fiber: 18,
-                        debugInitialSelected: debugPeekMacro
-                    )
-
-                    BecomingTrendCanvas(
-                        logs: mockLogs,
-                        goalWeightKg: 66.0,
-                        unit: .lb,
-                        debugInitialWindowDays: debugPeekWindow
-                    )
-                }
-
-                BecomingPlateTimelineToday(
-                    plates: debugPeekPlateDelete == "empty" ? [] : [
-                        (id: "mock-1", loggedAt: Date().addingTimeInterval(-7 * 3600), kcal: 380),
-                        (id: "mock-2", loggedAt: Date().addingTimeInterval(-3 * 3600), kcal: 520),
-                        (id: "mock-3", loggedAt: Date().addingTimeInterval(-1 * 3600), kcal: 347),
-                    ],
-                    onTapPlate: { _ in },
-                    onLogTapped: {},
-                    onDeletePlate: { _ in },
-                    onOpenJournal: {},
-                    debugInitialRevealedId: debugPeekPlateDelete == "empty" ? nil : debugPeekPlateDelete
-                )
-
-                BecomingMovedStrip(
-                    steps: 7432,
-                    workoutMinutes: 8,
-                    breathMinutes: 12,
-                    stepsWeek: [6200, 5800, 4100, 9300, 7400, 6900, 7432],
-                    plankWeek: [0, 6, 0, 8, 5, 0, 8],
-                    breathWeek: [0, 4, 8, 0, 2, 0, 12],
-                    debugInitialRevealed: debugPeekMoved
-                )
-
-                BecomingDeedsCounter(
-                    plates: 87,
-                    lessons: 34,
-                    breathMinutes: 47,
-                    platesSince: Calendar.current.date(byAdding: .day, value: -45, to: .now),
-                    lessonsSince: Calendar.current.date(byAdding: .day, value: -30, to: .now),
-                    breathSince: Calendar.current.date(byAdding: .day, value: -22, to: .now),
-                    foodNoiseSince: Calendar.current.date(byAdding: .day, value: -30, to: .now),
-                    debugInitialRevealed: debugPeekDeed
-                )
-
-                // T9 (2026-06-29) - NSV echo: shows real picks from
-                // nsvPriorityCSV (onboardingNsvPriority). Seed via:
-                //   xcrun simctl spawn booted defaults write com.bk.plankAI
-                //     onboardingNsvPriority "energy,clothes,sleep"
-                nsvEchoPreview
-
-                // Phase 4 Day-3 (2026-06-19) — multi-insight swipe
-                // cycle. Three mock insights so the gesture has
-                // something to walk through.
-                BecomingInsightLine(
-                    insights: [
-                        .init(id: "demo-1",
-                              text: "your trend is moving. gently is the point \u{2665}\u{FE0E}",
-                              italic: ["gently"]),
-                        .init(id: "demo-2",
-                              text: "protein led 4 of 6 this week. that's how lean mass stays \u{2661}",
-                              italic: ["lean mass"]),
-                        .init(id: "demo-3",
-                              text: "two weeks of showing up. that's the pattern that bends the line.",
-                              italic: ["pattern"]),
-                    ],
-                    debugInitialIdx: debugPeekInsightIdx
-                )
-
-                Spacer(minLength: 80)
-            }
-            .padding(.horizontal, Space.lg)
-            .padding(.top, 24)
-        }
-        .defaultScrollAnchor(focusBelow ? .bottom : .top)
-    }
-}
 
 private struct LogWeightSheetPreviewHarness: View {
     @State private var showingSheet: Bool = true
@@ -2512,73 +1890,6 @@ private struct LogWeightSheetPreviewHarness: View {
             .presentationDragIndicator(.visible)
             .presentationBackground(Palette.bgPrimary)
         }
-    }
-}
-
-private struct StickyNotePreviewHarness: View {
-    // Mirrors the locked row order in PlanView.composeTodaysChecklist
-    // so the lineup reads as the user's actual day. Includes weigh-in
-    // with the new heart-lock sticker (2026-06-15 founder direction).
-    private let prescriptions: [ProgramDayPrescription] = [
-        .lesson(lessonId: nil),
-        .snapMeal,
-        .workout(tier: .medium, minutes: 12, bodyFocus: nil),
-        .steps(goal: 7500),
-        .weighIn,
-        .breath(minutes: 1, style: .calming),
-        .water(ml: 2000),
-        .plank(targetSeconds: 60),
-        .measurements
-    ]
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("sticky notes")
-                        .font(.custom("Fraunces72pt-SemiBold", size: 28))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("--debug-stickers · weigh-in = sticker_heart_lock")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(Palette.textSecondary)
-                }
-
-                // 3-up grid so each row marker is visible at full size.
-                LazyVGrid(columns: [
-                    GridItem(.flexible(), spacing: 28),
-                    GridItem(.flexible(), spacing: 28),
-                    GridItem(.flexible(), spacing: 28)
-                ], spacing: 28) {
-                    ForEach(prescriptions.indices, id: \.self) { i in
-                        VStack(spacing: 6) {
-                            ProgramStickyNote(prescription: prescriptions[i])
-                            Text(prescriptions[i].itemKey)
-                                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                .foregroundStyle(Palette.textSecondary)
-                                .lineLimit(1)
-                        }
-                    }
-                }
-                .padding(.horizontal, 12)
-
-                // Solo weigh-in inspection at 2× scale so the heart-lock
-                // sticker is large enough to read every iridescent edge.
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("weigh-in inspection · 2×")
-                        .font(.system(size: 10, weight: .medium, design: .monospaced))
-                        .foregroundStyle(Palette.textSecondary)
-                    ProgramStickyNote(prescription: .weighIn)
-                        .scaleEffect(2.0)
-                        .frame(width: 80, height: 80)
-                        .padding(40)
-                }
-
-                Spacer(minLength: 48)
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 64)
-        }
-        .background(Palette.bgPrimary.ignoresSafeArea())
     }
 }
 

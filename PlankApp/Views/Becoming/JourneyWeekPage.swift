@@ -432,7 +432,7 @@ struct JourneyWeekPage: View {
                         italic: ["this day"],
                         action: {
                             onAskJeni(
-                                "tell me about day \(detail.fact.programDay) — "
+                                "tell me about day \(detail.fact.programDay), "
                                 + "\(dayTitle(detail.fact.date))"
                             )
                         }

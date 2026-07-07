@@ -158,6 +158,14 @@ struct ProfileHubView: View {
                 Spacer().frame(height: 40)
 
                 SettingsSection(title: "program") {
+                    // v4 — the journey door: settings answers "where
+                    // am I in the plan?" by opening the place time
+                    // is visible (docs/app_v4/03_FEATURES.md §11).
+                    SettingsNavRow(icon: "point.bottomleft.forward.to.point.topright.scurvepath",
+                                   title: "your plan") {
+                        onClose()
+                        AppRouter.shared.tab = .becoming
+                    }
                     SettingsNavRow(icon: "slider.horizontal.3", title: "my pace") {
                         go(.myPace)
                     }

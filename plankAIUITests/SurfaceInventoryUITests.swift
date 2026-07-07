@@ -253,32 +253,25 @@ final class SurfaceInventoryUITests: XCTestCase {
         sleep(2)
         snap("becoming_top")
 
-        // ── 11 · food journal (the week-held chain — v3 field
-        //        report moved it near the TOP, so tap before the
-        //        journey scroll) ─────────────────────────────────
-        let journalChain = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS 'journal'")
+        // ── 11 · her plates (v4: the archive door lives at the
+        //        journey's foot — scroll there, then open) ────────
+        for _ in 0..<3 {
+            let door = app.buttons.matching(
+                NSPredicate(format: "label CONTAINS 'her plates'")
+            ).firstMatch
+            if door.exists && door.isHittable { break }
+            app.swipeUp()
+            sleep(1)
+        }
+        snap("becoming_journey_wins")
+        let platesDoor = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS 'her plates'")
         ).firstMatch
-        if tapWhenReady(journalChain, timeout: 3) {
+        if tapWhenReady(platesDoor, timeout: 3) {
             sleep(2)
             snap("food_journal")
-            // meal detail: tap the first plate row
-            let plateRow = app.buttons.matching(
-                NSPredicate(format: "label CONTAINS 'poke' OR label CONTAINS 'yogurt'")
-            ).firstMatch
-            if tapWhenReady(plateRow, timeout: 3) {
-                sleep(2)
-                snap("food_detail")
-                closeSheet()
-            }
             closeSheet()
         }
-
-        // ── 12 · the journey scroll (after the journal, so the
-        //        top-anchored chain stays reachable) ─────────────
-        app.swipeUp()
-        sleep(1)
-        snap("becoming_journey_wins")
 
         // ── done ─────────────────────────────────────────────────
         XCTAssertGreaterThan(shot, 10, "inventory walked \(shot) surfaces")

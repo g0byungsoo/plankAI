@@ -183,6 +183,28 @@ enum TodayStateService {
 
         // — brief
         let d = UserDefaults.standard
+        // v4 — the named week reaches the reading ONLY on its opening
+        // day (the fresh-page moment); other days the ribbon carries it.
+        let briefWeekIntent: WeekIntentSpec? = {
+            guard plan != nil, programDay >= 1,
+                  PrescriptionEngineV2.dayInWeek(programDay) == 0
+            else { return nil }
+            let week = PrescriptionEngineV2.programWeek(programDay)
+            let chapter = CohortStore.chapter
+            return WeekIntent.intent(
+                week: week,
+                chapter: chapter,
+                phase: ProgramArc.phase(
+                    week: week,
+                    totalWeeks: ProgramArc.totalWeeks(totalDays: totalDays),
+                    chapter: chapter,
+                    emaFlatWeeks: emaFlatWeeks(ema)
+                ),
+                flags: .live,
+                zone: bandZone.flatMap(BandZone.init(rawValue:)),
+                pickedKey: d.string(forKey: WeeklyReview.intentPickKey(week: week))
+            )
+        }()
         let promiseKept = programDay <= 2
             && !(d.string(forKey: "day1PromiseAction") ?? "").isEmpty
             && !plates.isEmpty
@@ -226,7 +248,10 @@ enum TodayStateService {
                     byAdding: .day, value: -1, to: .now
                 ) else { return nil }
                 return TonightPlan.planned(dayKey: dayKey(for: yesterday))?.label
-            }()
+            }(),
+            weekOpensName: briefWeekIntent?.name,
+            weekOpensLine: briefWeekIntent?.line,
+            weekOrdinal: programDay >= 1 ? PrescriptionEngineV2.programWeek(programDay) : 0
         ))
 
         // — the arc (v4): phase + week intent, derived, provenance-only
