@@ -36,6 +36,10 @@ struct TodayView: View {
     /// already-complete day never replays it.
     @State private var silkTrigger = 0
     @State private var lastCompletedCount = -1
+    /// First-use teaching (v5.1): the three-row map under the day-one
+    /// reading. Days 1–2 only; one tap retires it forever. Swept on
+    /// sign-out with the other user-scoped keys.
+    @AppStorage("howItWorks.dismissed") private var howItWorksDismissed = false
 
     private var userId: String {
         auth.currentUser?.id.uuidString ?? ""
@@ -148,6 +152,24 @@ struct TodayView: View {
                             .padding(.top, Space.section)
                             .jkBeat2(extraDelay: 0.1)
                         } else {
+                            // FIRST-USE TEACHING — the map, once. The
+                            // day-one reading teaches the contract in
+                            // one line; this names the three doors in
+                            // receipt grammar. Days 1–2, then gone.
+                            if snapshot.isEnrolled,
+                               snapshot.programDay <= 2,
+                               !howItWorksDismissed {
+                                HowItWorksBlock(onDismiss: {
+                                    withAnimation(Motion.entranceSoft) {
+                                        howItWorksDismissed = true
+                                    }
+                                })
+                                .padding(.horizontal, Space.lg)
+                                .padding(.top, Space.section)
+                                .jkBeat2(extraDelay: 0.06)
+                                .transition(.opacity.combined(with: .offset(y: 6)))
+                            }
+
                             // NOTE: the silk layer effect lives INSIDE
                             // dayContent on the card+rows subtree only —
                             // a layerEffect ancestor over EveningClose's
@@ -597,5 +619,62 @@ struct TodayView: View {
             in: modelContext
         )
         refresh()
+    }
+}
+
+// MARK: - HowItWorksBlock (first-use teaching)
+//
+// The ritual named once, in the app's own receipt grammar — not a
+// tour, not cards. Three rows answer the only day-one questions:
+// how food gets counted, what today asks of her, where progress
+// lives. "got it" retires it forever (howItWorks.dismissed).
+
+private struct HowItWorksBlock: View {
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("how this works")
+                .font(Typo.captionTracked)
+                .kerning(1.4)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+                .padding(.bottom, 6)
+
+            JKReceiptRow(
+                lead: "snap a plate",
+                punch: "i read the calories for you",
+                punchItalic: ["calories"],
+                showsRule: false
+            )
+            JKReceiptRow(
+                lead: "the one thing",
+                punch: "one card a day. do just that",
+                punchItalic: ["just that"]
+            )
+            JKReceiptRow(
+                lead: "becoming",
+                punch: "your story, one swipe at a time",
+                punchItalic: ["story"]
+            )
+
+            HStack {
+                Spacer()
+                Button(action: onDismiss) {
+                    Text("got it")
+                        .font(.custom("DMSans-Medium", size: 13))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .overlay(
+                            Capsule().strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
+                        )
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(JKPress())
+                .accessibilityHint("hides this guide")
+            }
+            .padding(.top, 2)
+        }
     }
 }

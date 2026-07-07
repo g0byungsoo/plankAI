@@ -641,6 +641,9 @@ final class AppSync {
             // Plan retention layer (Home Phase 3).
             "identityFeeling", "bodyFocus", "workoutLevel",
             "todaysEnergy", "hideWeightStats", "hasEnrolledInProgram",
+            // v5.1 first-use teaching — a new account on this device
+            // should meet the map again.
+            "howItWorks.dismissed",
             // Plan-tab user-scoped session state. kindTodayDateKey
             // gates the kind-today identity nudge, lastRecapShownDateKey
             // gates yesterday recap, lastPlanAppearAt drives the
