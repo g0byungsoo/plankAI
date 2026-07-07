@@ -1974,6 +1974,28 @@ private struct SatietyPillPreviewHarness: View {
 // No view writes to data before bootstrap is ready, so the user_id is always
 // available when SessionLog/DayProgress writes happen.
 
+#if DEBUG
+/// QA-launch tracer: appends timestamped markers to a file in the app
+/// container (tmp/qaseed.trace) so `simctl get_app_container … data`
+/// + cat gives ground truth about how far the launch task ran, even
+/// when console/os_log capture is flaky. QA-only; never ships.
+enum QASeedTrace {
+    static func mark(_ label: String) {
+        guard ProcessInfo.processInfo.arguments.contains("--uitest-seed-program") else { return }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("qaseed.trace")
+        let stamp = ISO8601DateFormatter().string(from: .now)
+        let line = "\(stamp) \(label)\n"
+        if let handle = try? FileHandle(forWritingTo: url) {
+            handle.seekToEndOfFile()
+            handle.write(Data(line.utf8))
+            try? handle.close()
+        } else {
+            try? Data(line.utf8).write(to: url)
+        }
+    }
+}
+#endif
+
 private struct RootView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("userName") private var userName = ""
@@ -2133,7 +2155,29 @@ private struct RootView: View {
             // also depends on the authenticated user_id (RevenueCat scopes
             // purchases by appUserID), so it's configured here too.
             AppSync.shared.configure(modelContainer: modelContext.container)
+            #if DEBUG
+            QASeedTrace.mark("task-start")
+            #endif
             await auth.bootstrap()
+            #if DEBUG
+            QASeedTrace.mark("bootstrap-done user=\(auth.currentUser?.id.uuidString.prefix(8) ?? "nil") state=\(String(describing: auth.bootstrapState))")
+            // QA seed needs a user id. Bootstrap can legitimately land
+            // .failed on a cold sim (first anonymous sign-in racing the
+            // network stack) while a retry succeeds seconds later — the
+            // "seed hydration race" from the v5 report. Poll briefly so
+            // one launch is enough instead of silently no-oping.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
+               auth.currentUser == nil {
+                for _ in 0..<24 {   // ≤12s
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    if auth.currentUser != nil { break }
+                    if case .failed = auth.bootstrapState {
+                        await auth.retryBootstrap()
+                    }
+                }
+                QASeedTrace.mark("seed-auth-wait user=\(auth.currentUser?.id.uuidString.prefix(8) ?? "nil")")
+            }
+            #endif
             PaymentService.shared.configure(appUserID: auth.currentUser?.id.uuidString)
             // W1-T4 — wire the food rail flag stack now that PaymentService
             // is configured. FoodFlags.isEnabled gates every food UI render.
@@ -2198,6 +2242,7 @@ private struct RootView: View {
             // the setup subflow. Pair with --uitest-pro-access.
             //   xcrun simctl launch booted com.bk.plankAI \
             //     --uitest-inapp-qa --uitest-pro-access --uitest-seed-program
+            QASeedTrace.mark("seed-blocks user=\(auth.currentUser?.id.uuidString.prefix(8) ?? "nil")")
             if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
                auth.currentUser != nil {
                 let d = UserDefaults.standard
@@ -2338,6 +2383,7 @@ private struct RootView: View {
                       plan?.id.prefix(8).description ?? "nil",
                       day.map(String.init) ?? "nil",
                       kg.map { String($0) } ?? "nil")
+                QASeedTrace.mark("seed-done uid=\(uid.prefix(8)) plan=\(plan?.id.prefix(8).description ?? "nil") day=\(day.map(String.init) ?? "nil")")
             }
             #endif
             await AppSync.shared.onLaunch(modelContext: modelContext)
