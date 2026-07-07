@@ -27,18 +27,23 @@ struct ReSigningView: View {
             VStack(alignment: .leading, spacing: 0) {
                 // Dateline — with a quiet exit (a received moment
                 // never traps; the journey's due card re-offers).
+                // fixedSize on the words: the hairline is the only
+                // element allowed to compress (SE wrapped the label).
                 HStack(spacing: 10) {
                     Text("the re-signing")
                         .font(Typo.captionTracked)
                         .kerning(2.2)
                         .textCase(.uppercase)
                         .foregroundStyle(Palette.cocoaTertiary)
+                        .fixedSize()
                     Rectangle()
                         .fill(Palette.hairlineCocoa)
                         .frame(height: 0.5)
+                        .frame(minWidth: 12)
                     Text("week \(due.weekIndex)")
                         .font(.custom("Fraunces72pt-SemiBoldItalic", size: 11, relativeTo: .caption2))
                         .foregroundStyle(Palette.cocoaTertiary)
+                        .fixedSize()
                     JKQuietMark(systemName: "xmark", accessibilityLabel: "later") {
                         onClose()
                     }
