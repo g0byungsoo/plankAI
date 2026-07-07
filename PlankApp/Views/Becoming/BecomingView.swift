@@ -163,19 +163,15 @@ struct BecomingView: View {
             )
         }
         .fullScreenCover(isPresented: $showJournal) {
-            FoodLogTimelineView(
+            // v4: the archive page in the journey's grammar — the v1
+            // journal interior (FoodLogTimelineView) is retired here.
+            JourneyPlatesPage(
                 userId: userId,
-                dailyTarget: Double(snapshot?.targets.kcal ?? 0),
-                archetypeHint: snapshot?.day?.archetype.rawValue,
-                onAddTapped: {
+                onSnap: {
                     showJournal = false
                     router.open(.snap)
                 },
-                onDismiss: { showJournal = false },
-                dayNote: { [userId] day in
-                    QuietHours.overnightForDay(userId: userId, day: day)
-                        .map { "began after about \(Int($0.rounded())) quiet hours \u{2665}\u{FE0E}" }
-                }
+                onDismiss: { showJournal = false }
             )
         }
     }

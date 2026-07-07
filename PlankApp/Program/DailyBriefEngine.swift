@@ -75,6 +75,11 @@ enum DailyBriefEngine {
         /// The quiet hours — last night's plate-to-plate stretch
         /// (nil when unnarratable or hard-gated; QuietHours).
         var overnightQuietHours: Double? = nil
+        /// v4 — yesterday evening's tonight-plan label ("ride the
+        /// wave") when she set one; the morning names it back so the
+        /// 15-second plan gets its receipt (the loop closes without
+        /// grading whether it held).
+        var lastNightPlan: String? = nil
     }
 
     // MARK: - The cascade
@@ -202,6 +207,18 @@ enum DailyBriefEngine {
                 line: "your legs hit the goal yesterday. the easiest lever is already moving \u{2665}\u{FE0E}",
                 italic: ["easiest lever"],
                 chatSeed: "she hit her step goal yesterday. connect walking to the plan without turning it into a fitness thing."
+            )
+        }
+
+        // 5.7 — the tonight plan, named back (every plan earns its
+        //       morning receipt; alternate days so nightly planners
+        //       don't hear the same opener forever)
+        if let plan = ctx.lastNightPlan, stableSeed(ctx.dayKey) % 2 == 0 {
+            return Brief(
+                line: "last night had a plan — \(plan). making the plan is the practice \u{2665}\u{FE0E}",
+                italic: [plan],
+                chatSeed: "she set an if-then plan for last night ('\(plan)'). acknowledge the planning habit itself; don't grade whether it held.",
+                second: "tonight can have one too. the close will ask."
             )
         }
 

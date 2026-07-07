@@ -1352,6 +1352,7 @@
 		F5C42B22471945EEE0B6D931 /* matson_prep_full_tabletop_hold_knee_lift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 86C4D34855601A033BA2D46A /* matson_prep_full_tabletop_hold_knee_lift.m4a */; };
 		F5FFB51867014C54DAB82003 /* prep_full_side_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 5B1E0B84CC7776D40177FD2C /* prep_full_side_crunch.m4a */; };
 		F60AC7100B007D6988548D06 /* DebugAuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A5839CBCA9EBEB79038667 /* DebugAuthView.swift */; };
+		F6539D6AABB452EFA7D30E07 /* JourneyPlatesPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 209F49A6CB9637D606F41D33 /* JourneyPlatesPage.swift */; };
 		F751392F33380F2FCB5A2439 /* matson_prep_short_leg_raise_hip_lift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 58B4B0F777ED5146AD19A59D /* matson_prep_short_leg_raise_hip_lift.m4a */; };
 		F77BF81F94D413B7A216305B /* matson_prep_short_high_knees.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9C9CC02D71F88B758EA801E3 /* matson_prep_short_high_knees.m4a */; };
 		F78E7F0D66F2591154C9860E /* jeni_prep_full_dead_bug_leg_lower.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 14174B4372A740C3CFFF9993 /* jeni_prep_full_dead_bug_leg_lower.m4a */; };
@@ -1360,6 +1361,7 @@
 		F7E9E2EF9E6EC3AD40A32E77 /* jeni_prep_short_donkey_kick.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 5ED08A6EAA6FCE9BBF0F63FD /* jeni_prep_short_donkey_kick.m4a */; };
 		F7F8119B1D0CB4CDEFBB4CEB /* RetentionNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7DF9470140D8FCA0DA3FC5 /* RetentionNotifications.swift */; };
 		F82C770D392656633BAFB1E3 /* matson_prep_short_kneeling_quad_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6352B9E7E90E965052E1DE65 /* matson_prep_short_kneeling_quad_stretch.m4a */; };
+		F83EE3373F71E9167F0D8CD6 /* TonightPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64A7B241BBB4B7A1BE9374DE /* TonightPlan.swift */; };
 		F892CB960C158493775E7092 /* prep_full_diagonal_plank.m4a in Resources */ = {isa = PBXBuildFile; fileRef = EF430A96EC574648CADAE63E /* prep_full_diagonal_plank.m4a */; };
 		F8FE32AE9E8440589FA5BDC9 /* matson_prep_short_cat_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7EC57765715A19CEDE7609DE /* matson_prep_short_cat_stretch.m4a */; };
 		F94B1BABF952E46F608E3136 /* matson_prep_full_bird_dog.m4a in Resources */ = {isa = PBXBuildFile; fileRef = EED5672CF8FBFB8EAB5C42FD /* matson_prep_full_bird_dog.m4a */; };
@@ -1582,6 +1584,7 @@
 		1FAAB21C170A63EDDEB3FAFF /* matson_prep_short_butt_kicks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_butt_kicks.m4a; sourceTree = "<group>"; };
 		203D7A0C20BC2BD9A3276CE2 /* jeni_prep_full_standing_side_bend.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_standing_side_bend.m4a; sourceTree = "<group>"; };
 		207F4C37539BBF539665036A /* WrappingTextView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WrappingTextView.swift; sourceTree = "<group>"; };
+		209F49A6CB9637D606F41D33 /* JourneyPlatesPage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JourneyPlatesPage.swift; sourceTree = "<group>"; };
 		212198987E2401C8D001D46D /* matson_prep_full_downward_dog.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_downward_dog.m4a; sourceTree = "<group>"; };
 		2192930438715A9913F886E6 /* jeni_prep_short_dead_bug.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_dead_bug.m4a; sourceTree = "<group>"; };
 		21F5348771E9702D0F7342D4 /* ProgramIntroFullScreenCover.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProgramIntroFullScreenCover.swift; sourceTree = "<group>"; };
@@ -1852,6 +1855,7 @@
 		6352B9E7E90E965052E1DE65 /* matson_prep_short_kneeling_quad_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_kneeling_quad_stretch.m4a; sourceTree = "<group>"; };
 		63CE6C15CEDE1501939EFA3E /* jeni_prep_short_backbend.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_backbend.m4a; sourceTree = "<group>"; };
 		63FE0DB0E9637C72C35D0C3E /* matson_prep_full_tabletop_bridge_knee_lift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_tabletop_bridge_knee_lift.m4a; sourceTree = "<group>"; };
+		64A7B241BBB4B7A1BE9374DE /* TonightPlan.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TonightPlan.swift; sourceTree = "<group>"; };
 		650286D1036C2308EE7F7E6F /* matson_prep_short_squat_front_kick.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_squat_front_kick.m4a; sourceTree = "<group>"; };
 		65332912A26E316479444D12 /* matson_prep_short_plank_run.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_plank_run.m4a; sourceTree = "<group>"; };
 		653C716167BFBC4E9A6BB5A5 /* matson_prep_short_diagonal_plank.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_diagonal_plank.m4a; sourceTree = "<group>"; };
@@ -2927,6 +2931,7 @@
 				4921F146BBB51C2947B29960 /* ProgramArc.swift */,
 				2C646B5B06EAFD0256BC473A /* WeekIntent.swift */,
 				871044C86D408F7E906151F7 /* WeeklyReview.swift */,
+				64A7B241BBB4B7A1BE9374DE /* TonightPlan.swift */,
 			);
 			name = Program;
 			path = Program;
@@ -2978,6 +2983,7 @@
 				24BB966BF0A1925A1D3164FE /* JourneyModel.swift */,
 				E7250C42E06CF7FA00D6FD41 /* JourneyWeekPage.swift */,
 				B5F93EA5025D55C5A7E7243A /* ReSigningView.swift */,
+				209F49A6CB9637D606F41D33 /* JourneyPlatesPage.swift */,
 			);
 			name = Becoming;
 			path = Becoming;
@@ -6273,6 +6279,8 @@
 				16C70040F6872134A6437049 /* ReSigningView.swift in Sources */,
 				CBA05C45A2B35C7B39B0318A /* BreathHaptics.swift in Sources */,
 				7611F51974A8A5B6A2108CA6 /* JKBreathField.swift in Sources */,
+				F83EE3373F71E9167F0D8CD6 /* TonightPlan.swift in Sources */,
+				F6539D6AABB452EFA7D30E07 /* JourneyPlatesPage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

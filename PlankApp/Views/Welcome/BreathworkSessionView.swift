@@ -57,6 +57,9 @@ struct BreathworkSessionView: View {
     private enum Phase { case intro, breathing, complete }
     @State private var phase: Phase = .intro
     @State private var introLineVisible = false
+    /// v4 wave dial (craving occasion): her before/after, 1-5.
+    @State private var pullBefore: Int? = nil
+    @State private var pullAfter: Int? = nil
     @State private var completeVisible = false
     @State private var showQuitConfirmation = false
     @State private var audioPlayer: AVAudioPlayer?
@@ -186,10 +189,58 @@ struct BreathworkSessionView: View {
                     .multilineTextAlignment(.center)
                     .opacity(introLineVisible ? 1 : 0)
                     .padding(.horizontal, Space.lg)
+
+                // v4 — the wave dial (craving occasion only): two taps
+                // total, before + after, and the receipt speaks HER
+                // numbers ("the wave: 4 → 2"). Her own data, never a
+                // claim (docs/app_v4/03_FEATURES.md §5).
+                if occasion == .settled {
+                    pullDial(
+                        prompt: "where's the pull right now?",
+                        selected: pullBefore,
+                        onPick: { pullBefore = $0 }
+                    )
+                    .opacity(introLineVisible ? 1 : 0)
+                    .padding(.top, Space.md)
+                }
             }
 
             Spacer()
         }
+    }
+
+    // MARK: - The wave dial
+
+    @ViewBuilder
+    private func pullDial(prompt: String, selected: Int?, onPick: @escaping (Int) -> Void) -> some View {
+        VStack(spacing: 10) {
+            Text(prompt)
+                .font(.custom("JeniHeroSerif-Italic", size: 15, relativeTo: .footnote))
+                .foregroundStyle(Palette.cocoaSecondary)
+            HStack(spacing: 14) {
+                Text("a little")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                ForEach(1...5, id: \.self) { level in
+                    Button {
+                        Haptics.soft()
+                        withAnimation(Motion.entranceSoft) { onPick(level) }
+                    } label: {
+                        Circle()
+                            .fill(selected != nil && level <= selected!
+                                  ? Palette.cocoaSecondary
+                                  : Palette.cocoaTertiary.opacity(0.25))
+                            .frame(width: 13, height: 13)
+                    }
+                    .buttonStyle(JKPress())
+                    .accessibilityLabel("pull level \(level) of 5")
+                }
+                Text("a lot")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+        }
+        .animation(Motion.entranceSoft, value: selected)
     }
 
     // MARK: - Complete content
@@ -321,6 +372,34 @@ struct BreathworkSessionView: View {
                     .animation(.easeOut(duration: 0.5).delay(1.15), value: completeVisible)
             }
             .padding(.top, Space.lg)
+
+            // v4 — the wave, measured by HER (two taps total). The
+            // after-dial only appears when she gave a before; the
+            // receipt line is her own data, not a claim.
+            if occasion == .settled, let before = pullBefore {
+                if let after = pullAfter {
+                    ItalicAccentText(
+                        "the wave: \(before) \u{2192} \(after)",
+                        italic: ["wave"],
+                        baseFont: .custom("JeniHeroSerif-Regular", size: 17, relativeTo: .body),
+                        italicFont: .custom("JeniHeroSerif-Italic", size: 17, relativeTo: .body),
+                        color: Palette.textPrimary,
+                        alignment: .center
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, Space.lg)
+                    .transition(.opacity)
+                } else {
+                    pullDial(
+                        prompt: "and where is it now?",
+                        selected: pullAfter,
+                        onPick: { pullAfter = $0 }
+                    )
+                    .padding(.top, Space.lg)
+                    .opacity(completeVisible ? 1 : 0)
+                    .animation(.easeOut(duration: 0.5).delay(1.2), value: completeVisible)
+                }
+            }
 
             // v3 — the hand-back: the receipt returns her to the
             // moment she came from, in her coach's hand.

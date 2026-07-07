@@ -243,7 +243,59 @@ struct EveningClose: View {
                 }
             }
 
+            // v4 — THE TONIGHT PLAN (docs/app_v4/03_FEATURES.md §5):
+            // a 15-second if-then for the evening's one predictable
+            // moment. Menu-picked plans carry the evidence; tomorrow's
+            // reading names it back. Skipped forever = fine.
+            if let plannedKey {
+                if let plan = TonightPlan.option(for: plannedKey) {
+                    Text("\(plan.plan) \u{2665}\u{FE0E}")
+                        .font(.custom("Fraunces72pt-SemiBoldItalic", size: 14, relativeTo: .footnote))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, Space.sm)
+                        .transition(.opacity)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("tonight, if the kitchen calls…")
+                        .font(.custom("JeniHeroSerif-Italic", size: 16, relativeTo: .body))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                    HStack(spacing: 8) {
+                        planChip(TonightPlan.options[0])
+                        planChip(TonightPlan.options[1])
+                    }
+                    HStack(spacing: 8) {
+                        planChip(TonightPlan.options[2])
+                        planChip(TonightPlan.options[3])
+                    }
+                }
+                .padding(.top, Space.md)
+            }
+
         }
+    }
+
+    @State private var plannedKey: String? =
+        TonightPlan.planned(dayKey: TodayStateService.dayKey())?.key
+
+    private func planChip(_ option: TonightPlan.Option) -> some View {
+        Button {
+            Haptics.soft()
+            TonightPlan.set(option.key, dayKey: TodayStateService.dayKey())
+            withAnimation(Motion.entranceSoft) { plannedKey = option.key }
+        } label: {
+            Text(option.label)
+                .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
+                .foregroundStyle(Palette.textPrimary)
+                .lineLimit(1)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .overlay(
+                    Capsule().strokeBorder(Palette.cocoaPrimary.opacity(0.22), lineWidth: 1)
+                )
+        }
+        .buttonStyle(JKPress())
     }
 
     private func feelingChip(_ word: String) -> some View {

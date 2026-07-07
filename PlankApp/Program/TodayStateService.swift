@@ -220,7 +220,13 @@ enum TodayStateService {
                 ) else { return nil }
                 return d.string(forKey: "day.sit.\(dayKey(for: yesterday))")
             }(),
-            overnightQuietHours: QuietHours.liveOvernight(userId: userId)
+            overnightQuietHours: QuietHours.liveOvernight(userId: userId),
+            lastNightPlan: {
+                guard let yesterday = Calendar.current.date(
+                    byAdding: .day, value: -1, to: .now
+                ) else { return nil }
+                return TonightPlan.planned(dayKey: dayKey(for: yesterday))?.label
+            }()
         ))
 
         // — the arc (v4): phase + week intent, derived, provenance-only
