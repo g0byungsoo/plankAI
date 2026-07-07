@@ -56,6 +56,11 @@ struct JeniChatView: View {
                     session.send()
                 }
             }
+            // QA: pinned mid-stream entry — the shimmer holds still
+            // for the camera.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-chat-shimmer") {
+                session.seedShimmerDemo()
+            }
             #endif
         }
         .onChange(of: router.tab) { _, tab in
@@ -535,6 +540,7 @@ struct JeniProse: View {
                     .multilineTextAlignment(.leading)
             }
         }
+        .modifier(JeniStreamShimmer(active: isLive))
     }
 
     /// v3.0 voice guard — the model occasionally emits emoji hearts;
@@ -596,6 +602,50 @@ struct JeniProse: View {
         }
         flush()
         return output
+    }
+}
+
+// MARK: - JeniStreamShimmer
+//
+// v5.1 — while jeni writes, a slow sheen travels through the glyphs
+// themselves (the text masks the highlight): no box, no skeleton,
+// just the letters catching light. Wall-clock phase via TimelineView
+// so streaming re-renders never restart it; the band parks off-frame
+// at both ends of the loop so the wrap is invisible. Gone the frame
+// the stream ends; gone entirely under reduce-motion.
+
+private struct JeniStreamShimmer: ViewModifier {
+    let active: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private static let period: TimeInterval = 2.4
+
+    func body(content: Content) -> some View {
+        content.overlay(
+            Group {
+                if active && !reduceMotion {
+                    TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+                        GeometryReader { geo in
+                            let phase = timeline.date.timeIntervalSinceReferenceDate
+                                .truncatingRemainder(dividingBy: Self.period) / Self.period
+                            let band = geo.size.width * 0.45
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .clear, location: 0),
+                                    .init(color: Palette.accent.opacity(0.4), location: 0.5),
+                                    .init(color: .clear, location: 1)
+                                ],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                            .frame(width: band)
+                            .offset(x: -band + (geo.size.width + band * 2) * phase)
+                        }
+                    }
+                    .mask(content)
+                }
+            }
+            .allowsHitTesting(false)
+        )
     }
 }
 

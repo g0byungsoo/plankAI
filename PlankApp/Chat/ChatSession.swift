@@ -96,6 +96,20 @@ final class ChatSession {
         seedDailyBriefIfNeeded()
     }
 
+    #if DEBUG
+    /// QA: pin a long jeni entry mid-stream so the live shimmer can
+    /// be photographed (pairs with --uitest-chat-shimmer).
+    func seedShimmerDemo() {
+        entries.append(Entry(
+            id: "qa-shimmer",
+            kind: .jeni,
+            text: "okay. first, nothing is broken. one loud day doesn't move a trend line, it just feels like it does.\n\ntonight: water, an early night if you can get it. tomorrow's plan is already set, and it's a *gentle* one",
+            isStreaming: true,
+            createdAt: .now
+        ))
+    }
+    #endif
+
     private func kind(for record: ChatMessageRecord) -> Entry.Kind {
         switch record.role {
         case "user": return .user
