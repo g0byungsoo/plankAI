@@ -73,7 +73,9 @@ struct RoutineSessionView: View {
                     workoutName: vm.workout.name,
                     streakCount: 0,  // HomeView recalculates on save
                     isFirstWorkoutToday: true,
-                    didMeetThreshold: SessionCompletion.didMeetThreshold(vm.exerciseResults)
+                    didMeetThreshold: SessionCompletion.didMeetThreshold(
+                        vm.exerciseResults, isGentle: vm.workout.isGentle
+                    )
                 ) { stars, tags in
                     // Capture for persistence at save time (the session
                     // log doesn't exist yet at this point in the flow).

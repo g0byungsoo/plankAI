@@ -146,7 +146,9 @@ private struct TodayModuleHost: ViewModifier {
                     .transition(.opacity)
                 } else {
                     RoutineSessionView(workout: workout) { results, duration, rating in
-                        let didMeet = SessionCompletion.didMeetThreshold(results)
+                        let didMeet = SessionCompletion.didMeetThreshold(
+                            results, isGentle: workout.isGentle
+                        )
                         if didMeet {
                             if !hasCompletedFirstSession {
                                 Analytics.track(.firstWorkoutComplete, properties: [

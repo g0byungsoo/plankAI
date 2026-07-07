@@ -174,15 +174,23 @@ final class TodayModuleState {
 
     // MARK: - Workout generation (mirrors PlanView.openWorkout)
 
-    /// The floor: regenerate today's session at 5 minutes. No guilt
-    /// gradient — the smallest session she'll finish beats the
-    /// optimal one she'll skip (26% completion is the evidence).
+    /// The floor: regenerate today's session as THE GENTLE FIVE. No
+    /// guilt gradient — the smallest session she'll finish beats the
+    /// optimal one she'll skip (26% completion is the evidence). v5.1:
+    /// the floor is gentle now, not just short — a tired user asking
+    /// for less shouldn't get the same intensity, compressed.
     func shrinkWorkoutToFloor() {
         Haptics.soft()
-        openWorkout(tier: lastWorkoutTier, minutes: 5, bodyFocus: lastWorkoutBodyFocus)
+        openWorkout(
+            tier: lastWorkoutTier, minutes: 5,
+            bodyFocus: lastWorkoutBodyFocus, gentle: true
+        )
     }
 
-    private func openWorkout(tier: IntensityTier, minutes: Int, bodyFocus: String?) {
+    private func openWorkout(
+        tier: IntensityTier, minutes: Int, bodyFocus: String?,
+        gentle: Bool = false
+    ) {
         lastWorkoutTier = tier
         lastWorkoutBodyFocus = bodyFocus
         let d = UserDefaults.standard
@@ -205,7 +213,8 @@ final class TodayModuleState {
             recentSessionExerciseIds: recentIds,
             recentRatings: [],
             startingTier: startingTierInt,
-            intensityOffset: d.integer(forKey: "workoutLevel") + d.integer(forKey: "todaysEnergy")
+            intensityOffset: d.integer(forKey: "workoutLevel") + d.integer(forKey: "todaysEnergy"),
+            gentle: gentle
         )
         let workout = WorkoutGenerator.generate(from: input)
         present(cover: .preRoutine(workout))

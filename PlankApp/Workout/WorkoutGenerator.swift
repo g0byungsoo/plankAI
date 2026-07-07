@@ -26,13 +26,24 @@ struct WorkoutGenerator {
         /// and stays consistent with the DEBUG validators, which key off the
         /// same effective tier.
         var intensityOffset: Int = 0
+        /// v5.1 — THE GENTLE MODE. A session a tired beginner looks at
+        /// and thinks "okay, i can do that": low-impact only (no jumps,
+        /// MET ≤ 5), difficulty ≤ 2, two familiar moves repeated instead
+        /// of a nine-move parade, rests never under 10s, and the
+        /// completion bar drops to half (SessionCompletion). Not fake
+        /// intensity — the smallest session she'll actually start.
+        var gentle: Bool = false
     }
 
     static func generate(from input: Input) -> WorkoutPreset {
-        let structure = SessionStructure.forLength(input.lengthMinutes)
-        let tier = effectiveTier(input: input)
+        let structure = input.gentle
+            ? SessionStructure.gentle(for: input.lengthMinutes)
+            : SessionStructure.forLength(input.lengthMinutes)
+        // Gentle pins tier 1 regardless of history: the mode exists for
+        // the day her capacity is low, not the day her level is.
+        let tier = input.gentle ? 1 : effectiveTier(input: input)
         let cap = maxDifficulty(tier: tier)
-        let floor = minDifficulty(tier: tier)
+        let floor = input.gentle ? 1 : minDifficulty(tier: tier)
 
         let focus = input.bodyFocus.isEmpty ? [BodyFocus.fullBody] : input.bodyFocus
         let primaryAreas = focus.combinedPrimaryAreas
@@ -59,7 +70,8 @@ struct WorkoutGenerator {
             tier: tier,
             goal: goal,
             lengthMinutes: input.lengthMinutes,
-            recent: recentFlat
+            recent: recentFlat,
+            gentle: input.gentle
         ))
 
         // 3. Cooldown — type=mobility, pace=hold (static stretches)
@@ -71,15 +83,34 @@ struct WorkoutGenerator {
             preferAreas: primaryAreas.union(secondaryAreas)
         ))
 
+        if input.gentle {
+            // A tired body needs the pause more than the pace: main
+            // rests never drop under 10s, whatever the grids said.
+            slots = slots.map { slot in
+                guard slot.category == .main, slot.restAfter < 10 else { return slot }
+                return ExerciseSlot(
+                    exerciseId: slot.exerciseId,
+                    duration: slot.duration,
+                    restAfter: 10,
+                    side: slot.side,
+                    category: slot.category,
+                    round: slot.round
+                )
+            }
+        }
+
         let workout = WorkoutPreset(
             id: "gen_\(UUID().uuidString.prefix(8))",
-            name: generatedName(for: focus),
-            description: nil,
+            name: input.gentle ? gentleName(minutes: input.lengthMinutes) : generatedName(for: focus),
+            description: input.gentle
+                ? "no jumps, nothing loud, floor friendly. starting is the whole win."
+                : nil,
             goal: legacyGoal(for: focus),
             difficulty: difficulty(from: tier),
             exercises: slots,
             estimatedDuration: input.lengthMinutes,
-            isGenerated: true
+            isGenerated: true,
+            isGentle: input.gentle
         )
 
         // Sanity checks per docs/workout_session_rules.md §9. All
@@ -331,7 +362,8 @@ struct WorkoutGenerator {
         tier: Int,
         goal: WorkoutGoal,
         lengthMinutes: Int,
-        recent: Set<String>
+        recent: Set<String>,
+        gentle: Bool = false
     ) -> [ExerciseSlot] {
         guard count > 0 else { return [] }
 
@@ -339,11 +371,17 @@ struct WorkoutGenerator {
         // unique block rather than picking 30+ distinct exercises. We
         // pick `uniqueCount` moves and emit them N rounds, totaling ≈
         // `count`. See docs/workout_session_rules.md §4.
-        let roundCount = roundsForSession(lengthMinutes: lengthMinutes, totalSlots: count)
+        // Gentle flips the logic for SHORT sessions too: two familiar
+        // moves twice beats four novel ones once — context-switching is
+        // its own fatigue when she's already tired.
+        let roundCount = gentle && count >= 4
+            ? 2
+            : roundsForSession(lengthMinutes: lengthMinutes, totalSlots: count)
         // Picker target = unique slots per round. Emitting N rounds
         // multiplies it back up to ≈ count. Min of 4 unique so a
-        // misconfigured threshold can't produce a 1-move round.
-        let uniqueTarget = max(4, count / roundCount)
+        // misconfigured threshold can't produce a 1-move round —
+        // except gentle, where the small round IS the design.
+        let uniqueTarget = max(gentle ? 2 : 4, count / roundCount)
 
         // Pool eligibility = non-mobility AND difficulty inside the
         // tier window (floor + cap). Floor prevents advanced users from
@@ -358,6 +396,11 @@ struct WorkoutGenerator {
                 ex.type != .mobility &&
                 ex.difficulty <= difficultyCap &&
                 ex.difficulty >= difficultyFloor &&
+                // Gentle = apartment-quiet: no impact, no high-MET
+                // cardio (mountain climbers are difficulty 2 but MET 8
+                // — exactly the move that makes a tired beginner quit
+                // at the preview).
+                (!gentle || (ex.impact == .low && ex.met <= 5)) &&
                 !Set(ex.targetAreas).isDisjoint(with: areas) &&
                 (withinPrimary || Set(ex.targetAreas).isDisjoint(with: primaryAreas))
             }
@@ -365,9 +408,12 @@ struct WorkoutGenerator {
         var primaryPool = filtered(targeting: primaryAreas, withinPrimary: true)
         if primaryPool.isEmpty {
             // Floor too restrictive — relax to cap only for primary.
+            // The gentle guard survives the relax: a degraded gentle
+            // session may repeat areas, but it never gains a jump.
             primaryPool = ExerciseBank.all.filter {
                 $0.type != .mobility &&
                 $0.difficulty <= difficultyCap &&
+                (!gentle || ($0.impact == .low && $0.met <= 5)) &&
                 !Set($0.targetAreas).isDisjoint(with: primaryAreas)
             }
         }
@@ -948,6 +994,16 @@ struct WorkoutGenerator {
         case .roundButt: return ["Round & Strong", "The Curve", "Glute Foundations"].randomElement()!
         case .slimLegs:  return ["Lean Legs", "Long & Strong", "Light Legs"].randomElement()!
         case .fullBody:  return ["Move Everything", "Total Reset", "All of You"].randomElement()!
+        }
+    }
+
+    /// The gentle session names itself by its honest size — "the
+    /// gentle five" is a promise a tired person can believe.
+    private static func gentleName(minutes: Int) -> String {
+        switch minutes {
+        case ...5: return "The Gentle Five"
+        case 6...8: return "The Gentle Seven"
+        default: return "The Gentle Ten"
         }
     }
 

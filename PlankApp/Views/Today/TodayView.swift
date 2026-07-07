@@ -66,6 +66,12 @@ struct TodayView: View {
                                 detailPlate = snapshot?.plates.first
                             }
                         }
+                        // v5.1 — the gentle five's preview, no taps.
+                        if ProcessInfo.processInfo.arguments.contains("--uitest-gentle-preview") {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                                modules.shrinkWorkoutToFloor()
+                            }
+                        }
                         #endif
                     }
             }

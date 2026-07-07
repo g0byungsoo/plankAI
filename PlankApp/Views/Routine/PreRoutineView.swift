@@ -47,6 +47,12 @@ struct PreRoutineView: View {
     // the emotional unlock the 26%-completion data says this doorway
     // needs (start small beats start strong).
     private var tip: String {
+        // v5.1 — the gentle session speaks its own contract: what it
+        // is, what it isn't, and where the bar sits. The area-tip
+        // reads as a training promise; this one reads as permission.
+        if workout.isGentle {
+            return "two moves, twice through, no jumps. halfway already counts \u{2665}\u{FE0E}"
+        }
         let names = primaryAreas.map { $0.rawValue.camelCaseToWords.lowercased() }
         let areas: String = {
             switch names.count {
@@ -184,6 +190,12 @@ struct PreRoutineView: View {
 
     private var statsRow: some View {
         let rounds = workout.exercises.map { $0.round }.max() ?? 1
+        // Gentle sessions promise "two moves, twice through" — the
+        // receipt must count what she has to learn (unique mains),
+        // not every slot, or the same screen contradicts itself.
+        let mainUnique = Set(
+            workout.exercises.filter { $0.category == .main }.map(\.exerciseId)
+        ).count
         return VStack(spacing: 0) {
             JKReceiptRow(
                 lead: "time",
@@ -193,9 +205,11 @@ struct PreRoutineView: View {
             )
             JKReceiptRow(
                 lead: "moves",
-                punch: rounds == 1
-                    ? "\(workout.exercises.count), one round"
-                    : "\(workout.exercises.count), in \(rounds) rounds",
+                punch: workout.isGentle && rounds > 1
+                    ? "\(mainUnique), twice through"
+                    : rounds == 1
+                        ? "\(workout.exercises.count), one round"
+                        : "\(workout.exercises.count), in \(rounds) rounds",
                 punchItalic: []
             )
             JKReceiptRow(
@@ -378,8 +392,14 @@ struct PreRoutineView: View {
         JFContinueButton(
             label: "start workout",
             action: { onStart() },
-            secondaryLabel: (onShrink != nil && workout.estimatedDuration > 5)
-                ? "make it 5 minutes" : nil,
+            // v5.1 — the downshift at the drop-off moment. Any
+            // non-gentle session offers the gentle five: the smallest
+            // real session beats the optimal one she closes the app
+            // on. (The old door said "make it 5 minutes" and rebuilt
+            // the same intensity, smaller — a five-minute version of
+            // the problem.)
+            secondaryLabel: (onShrink != nil && !workout.isGentle)
+                ? "running on empty? the gentle five" : nil,
             secondaryAction: onShrink
         )
     }
