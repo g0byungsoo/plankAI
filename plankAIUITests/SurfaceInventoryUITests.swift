@@ -127,24 +127,18 @@ final class SurfaceInventoryUITests: XCTestCase {
             closeSheet()
         }
 
-        // ── 3 · her days sheet + future-day peek (v3: the strip
-        //        lives behind the masthead day pill now) ──────────
-        let dayPill = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'day '")
-        ).firstMatch
-        if dayPill.exists && dayPill.isHittable {
-            dayPill.tap()
-            sleep(2)
-            snap("her_days_sheet")
-            let day13 = app.buttons.matching(
-                NSPredicate(format: "label BEGINSWITH 'Day 13'")
-            ).firstMatch
-            if day13.exists && day13.isHittable {
-                day13.tap()
+        // ── 3 · the week ribbon → THE JOURNEY (v4: the pill and the
+        //        ribbon both open becoming's ledger; her-days died) ──
+        let ribbon = app.buttons["today.weekRibbon"].firstMatch
+        if ribbon.exists && ribbon.isHittable {
+            ribbon.tap()
+            sleep(3)
+            snap("journey_via_ribbon")
+            let todayTab = app.buttons["today"].firstMatch
+            if todayTab.exists && todayTab.isHittable {
+                todayTab.tap()
                 sleep(2)
-                snap("day_peek_in_sheet")
             }
-            closeSheet()
         }
 
         // ── 4 · mark-as-done (long-press the method row) ─────────
@@ -345,7 +339,11 @@ final class SurfaceInventoryUITests: XCTestCase {
             NSPredicate(format: "label CONTAINS 'sixty seconds of breath' OR label BEGINSWITH 'breathe'")
         ).firstMatch
         guard breathRow.waitForExistence(timeout: 6) else { return }
-        breathRow.tap()
+        // Settle + coordinate tap (the ribbon inserts after the
+        // snapshot loads, shifting the early a11y frames; the probe
+        // then refuses cards real touches land on).
+        sleep(3)
+        breathRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         sleep(3)
         snap("breath_intro")
         for label in ["begin", "start", "i'm ready", "breathe with her", "let's breathe"] {
@@ -387,38 +385,26 @@ final class SurfaceInventoryUITests: XCTestCase {
         XCTAssertTrue(breatheRow.waitForExistence(timeout: 8),
                       "Today should render its rhythm rows")
 
-        // ── Bug 2 (v3 route) — past-day review lives in HER DAYS:
-        // masthead day pill → the days sheet → a past cell → the
-        // in-sheet review → "got it" returns to the days page →
-        // swipe closes the sheet back to Today.
-        let dayPill = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'day 14'")
-        ).firstMatch
-        XCTAssertTrue(dayPill.waitForExistence(timeout: 5),
-                      "the masthead day pill should be tappable")
-        dayPill.tap()
-        let pastCell = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'Day 13'")
-        ).firstMatch
-        XCTAssertTrue(pastCell.waitForExistence(timeout: 5),
-                      "her days should expose past-day cells")
-        pastCell.tap()
-        XCTAssertTrue(app.buttons["got it"].waitForExistence(timeout: 5),
-                      "tapping a past day should open the in-sheet review")
-        app.buttons["got it"].firstMatch.tap()
-        sleep(1)
-        XCTAssertTrue(pastCell.waitForExistence(timeout: 5),
-                      "got it should return to the days page")
-        app.buttons["close"].firstMatch.tap()
-        sleep(1)
-        XCTAssertTrue(app.buttons["settings"].firstMatch.waitForExistence(timeout: 5),
-                      "closing her days should return to Today")
+        // v4 note: the pill/ribbon → journey navigation is covered by
+        // the main walk (journey_via_ribbon stop) and the journey leg
+        // (testJourneyAndReSigning). This leg owns ONLY the row
+        // gesture regression — synthesized taps on the masthead pill
+        // proved run-to-run flaky under the scrim and duplicated that
+        // coverage.
 
         // ── Bug 1a — long-press opens the manual override, foremost.
-        breatheRow.press(forDuration: 0.7)
-        XCTAssertTrue(app.buttons["mark as done"].waitForExistence(timeout: 5),
+        // The livedDay leg's proven recipe: settle, element press 0.8s,
+        // settle, then assert (stricter probes flaked under the
+        // ribbon's post-snapshot layout shift).
+        sleep(3)
+        breatheRow.press(forDuration: 0.8)
+        sleep(2)
+        let markDone = app.buttons["mark as done"].firstMatch
+        XCTAssertTrue(markDone.waitForExistence(timeout: 5),
                       "long-press should open the mark-as-done override")
-        XCTAssertTrue(app.buttons["mark as done"].isHittable,
+        var foremostHops = 0
+        while !markDone.isHittable, foremostHops < 4 { sleep(1); foremostHops += 1 }
+        XCTAssertTrue(markDone.isHittable,
                       "the override must be foremost — a clashing tap would put a module cover on top of it")
         app.buttons["not yet"].firstMatch.tap()
         sleep(2)   // let the 0.7s longPressJustFired flag auto-reset
@@ -427,7 +413,7 @@ final class SurfaceInventoryUITests: XCTestCase {
 
         // ── Bug 1b — a normal tap after the long-press still enters the
         // module (flag reset; tap not swallowed) and is NOT the override.
-        breatheRow.tap()
+        breatheRow.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         sleep(3)
         XCTAssertFalse(app.buttons["mark as done"].exists,
                        "a normal tap must open the module, not the override")

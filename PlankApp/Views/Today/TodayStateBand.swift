@@ -3,13 +3,14 @@ import Auth
 import PlankFood
 import PlankSync
 
-// MARK: - TodayStateBand
+// MARK: - TodayStateBand — THE PLATE STORY
 //
-// "today so far" — the living state module: protein arc (the hero),
-// steps ring, the kcal sentence, and the plates filmstrip. One
-// module, not three tiles reading the same value (the Becoming
-// density lesson). Numeric-suppressed cohorts get protein + steps
-// only — protein is care, calories are the thing being suppressed.
+// App v4 (docs/app_v4/03_FEATURES.md §1). One food module, one
+// grammar: the plates lead (the photos ARE the story), the protein
+// arc is the single gauge (the twin steps ring died — steps already
+// live on their rhythm row), and the kcal sentence answers the
+// founder's question out loud: "room for about 600." Suppressed
+// cohorts keep protein-as-care and lose every calorie numeral.
 
 struct TodayStateBand: View {
     let snapshot: TodaySnapshot
@@ -19,72 +20,97 @@ struct TodayStateBand: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.md) {
-            Text("today so far")
+            Text("the plate story")
                 .font(Typo.captionTracked)
                 .kerning(1.98)
                 .textCase(.uppercase)
                 .foregroundStyle(Palette.cocoaTertiary)
                 .padding(.horizontal, Space.lg)
 
-            HStack(alignment: .top, spacing: 0) {
-                Spacer(minLength: 0)
-                if let proteinTarget = snapshot.targets.proteinG {
-                    JKProteinArc(
-                        grams: snapshot.proteinEatenG,
-                        targetG: proteinTarget,
-                        note: snapshot.targets.proteinNote
-                    )
-                }
-                Spacer(minLength: 0)
-                JKStepsRing(
-                    steps: liveSteps,
-                    goal: snapshot.targets.steps,
-                    diameter: 84
-                )
-                Spacer(minLength: 0)
-            }
-            .padding(.top, Space.xs)
-
-            if !snapshot.targets.numericsSuppressed, snapshot.kcalEaten > 0 {
-                JKKcalLine(kcal: snapshot.kcalEaten, target: snapshot.targets.kcal)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, Space.sm)
-            }
-
-            // THE QUIET HOURS — insight with zero input: her plates'
-            // timestamps already know the overnight rhythm. Purely
-            // observational; hard-gated off for restriction-risk +
-            // suppressed identities (QuietHours.mayNarrate).
-            if let hours = QuietHours.liveOvernight(
-                userId: AuthService.shared.currentUser?.id.uuidString ?? ""
-            ), hours >= 11 {
-                HStack(spacing: 8) {
-                    JKMark(kind: .moon, size: 13,
-                           color: Palette.cocoaSecondary.opacity(0.8))
-                    Text(QuietHours.overnightLine(hours: hours))
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.top, 6)
-            }
-
+            // The plates lead — or one quiet invitation (never a
+            // hero-sized empty state under a kept day's rows).
             if snapshot.plates.isEmpty {
-                JKEmptyState(
-                    line: "your first plate starts the day's story",
-                    italic: ["story"],
-                    actionLabel: "snap it",
-                    action: onSnap
-                )
-                .padding(.vertical, -Space.md)
+                Button {
+                    Haptics.light()
+                    onSnap()
+                } label: {
+                    HStack(spacing: 10) {
+                        JKMark(kind: .plate, size: 15,
+                               color: Palette.cocoaSecondary)
+                        ItalicAccentText(
+                            "the first plate starts the story",
+                            italic: ["story"],
+                            baseFont: Typo.body,
+                            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16, relativeTo: .body),
+                            color: Palette.textPrimary,
+                            alignment: .leading
+                        )
+                        Spacer(minLength: 8)
+                        Text("snap it")
+                            .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .footnote))
+                            .foregroundStyle(Palette.cocoaPrimary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 7)
+                            .overlay(
+                                Capsule().strokeBorder(
+                                    Palette.cocoaPrimary.opacity(0.35), lineWidth: 1)
+                            )
+                    }
+                    .padding(.horizontal, Space.lg)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(JKPress())
+                .accessibilityLabel("the first plate starts the story. snap it")
             } else {
                 JKPlateStrip(
                     items: plateItems,
                     onAdd: onSnap,
                     onTapItem: onTapPlate
                 )
-                .padding(.top, Space.sm)
             }
+
+            // The single gauge + the day answer beside it.
+            HStack(alignment: .center, spacing: Space.lg) {
+                if let proteinTarget = snapshot.targets.proteinG {
+                    JKProteinArc(
+                        grams: snapshot.proteinEatenG,
+                        targetG: proteinTarget,
+                        note: snapshot.targets.proteinNote,
+                        diameter: 92
+                    )
+                }
+                VStack(alignment: .leading, spacing: 7) {
+                    if !snapshot.targets.numericsSuppressed, snapshot.kcalEaten > 0 {
+                        JKKcalLine(kcal: snapshot.kcalEaten, target: snapshot.targets.kcal)
+                    } else if snapshot.targets.numericsSuppressed {
+                        Text("protein is the whole scoreboard today \u{2665}\u{FE0E}")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        Text("the numbers begin with a plate")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+
+                    // THE QUIET HOURS — zero-input insight, kept.
+                    if let hours = QuietHours.liveOvernight(
+                        userId: AuthService.shared.currentUser?.id.uuidString ?? ""
+                    ), hours >= 11 {
+                        HStack(spacing: 7) {
+                            JKMark(kind: .moon, size: 12,
+                                   color: Palette.cocoaSecondary.opacity(0.8))
+                            Text(QuietHours.overnightLine(hours: hours))
+                                .font(Typo.caption)
+                                .foregroundStyle(Palette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, Space.lg)
+            .padding(.top, Space.xs)
         }
     }
 
@@ -217,86 +243,6 @@ struct EveningClose: View {
                 }
             }
 
-            // v2.5 — one line for her file (Journal v1). A guided,
-            // archetype-aware prompt; one optional line, never an
-            // essay. Device-local by dayKey; joins the cloud
-            // day_reflections table with the sync batch.
-            VStack(alignment: .leading, spacing: 8) {
-                Text(reflectionPrompt)
-                    .font(.custom("JeniHeroSerif-Italic", size: 16))
-                    .foregroundStyle(Palette.cocoaSecondary)
-                if savedNote.isEmpty {
-                    HStack(spacing: 10) {
-                        TextField("one line, if you want", text: $noteDraft)
-                            .font(.custom("DMSans-Regular", size: 14))
-                            .foregroundStyle(Palette.textPrimary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(Palette.bgElevated)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
-                            )
-                            .onSubmit { saveNote() }
-                        if !noteDraft.trimmingCharacters(in: .whitespaces).isEmpty {
-                            Button {
-                                saveNote()
-                            } label: {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(Palette.textInverse)
-                                    .frame(width: 32, height: 32)
-                                    .background(Circle().fill(Palette.cocoaPrimary))
-                            }
-                            .buttonStyle(JKPress())
-                        }
-                    }
-                } else {
-                    Text("\u{201C}\(savedNote)\u{201D} · kept in her file")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                        .transition(.opacity)
-                }
-            }
-            .padding(.top, Space.md)
-        }
-    }
-
-    @State private var noteDraft: String = ""
-    @State private var savedNote: String =
-        UserDefaults.standard.string(
-            forKey: "day.note.\(TodayStateService.dayKey())"
-        ) ?? ""
-
-    private func saveNote() {
-        let text = noteDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        let dayKey = TodayStateService.dayKey()
-        UserDefaults.standard.set(text, forKey: "day.note.\(dayKey)")
-        withAnimation(Motion.entranceSoft) { savedNote = text }
-        Haptics.soft()
-        // v2.6 — jeni's memory seam: local-first, cloud when the
-        // migration lands (fire-and-forget, silent until then).
-        let feeling = UserDefaults.standard.string(forKey: "day.reflection.\(dayKey)") ?? "noted"
-        Task {
-            await AppSync.shared.upsertDayReflection(
-                userId: snapshot.plan?.userId ?? "",
-                dayKey: dayKey, feeling: feeling, note: text
-            )
-        }
-    }
-
-    /// Archetype-aware guided prompt — reflection with a direction,
-    /// never homework.
-    private var reflectionPrompt: String {
-        switch snapshot.day?.archetype {
-        case .protein: return "what did a strong plate look like today?"
-        case .movement: return "what felt possible once you started?"
-        case .rest: return "what did the rest give back?"
-        default: return "what should tomorrow-you remember about today?"
         }
     }
 
@@ -382,6 +328,95 @@ struct EveningClose: View {
         case .movement: return "movement"
         case .balanced: return "balanced"
         case .rest: return "rest"
+        }
+    }
+}
+
+// MARK: - EveningJournalLine
+//
+// v4 order fix (docs/app_v4/03_FEATURES.md §9): the one-line journal
+// closes the evening AFTER the still-open rows — the receipt reads,
+// the rows stay reachable, the page ends on her words. Extracted
+// from EveningClose so TodayView owns the order.
+
+struct EveningJournalLine: View {
+    let snapshot: TodaySnapshot
+
+    @State private var noteDraft: String = ""
+    @State private var savedNote: String =
+        UserDefaults.standard.string(
+            forKey: "day.note.\(TodayStateService.dayKey())"
+        ) ?? ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(reflectionPrompt)
+                .font(.custom("JeniHeroSerif-Italic", size: 16))
+                .foregroundStyle(Palette.cocoaSecondary)
+            if savedNote.isEmpty {
+                HStack(spacing: 10) {
+                    TextField("one line, if you want", text: $noteDraft)
+                        .font(.custom("DMSans-Regular", size: 14))
+                        .foregroundStyle(Palette.textPrimary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 9)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Palette.bgElevated)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(Palette.hairlineCocoa, lineWidth: 0.66)
+                        )
+                        .onSubmit { saveNote() }
+                    if !noteDraft.trimmingCharacters(in: .whitespaces).isEmpty {
+                        Button {
+                            saveNote()
+                        } label: {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Palette.textInverse)
+                                .frame(width: 32, height: 32)
+                                .background(Circle().fill(Palette.cocoaPrimary))
+                        }
+                        .buttonStyle(JKPress())
+                    }
+                }
+            } else {
+                Text("\u{201C}\(savedNote)\u{201D} · kept in her file")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                    .transition(.opacity)
+            }
+        }
+    }
+
+    private func saveNote() {
+        let text = noteDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        let dayKey = TodayStateService.dayKey()
+        UserDefaults.standard.set(text, forKey: "day.note.\(dayKey)")
+        withAnimation(Motion.entranceSoft) { savedNote = text }
+        Haptics.soft()
+        // v2.6 — jeni's memory seam: local-first, cloud when the
+        // migration lands (fire-and-forget, silent until then).
+        let feeling = UserDefaults.standard.string(forKey: "day.reflection.\(dayKey)") ?? "noted"
+        Task {
+            await AppSync.shared.upsertDayReflection(
+                userId: snapshot.plan?.userId ?? "",
+                dayKey: dayKey, feeling: feeling, note: text
+            )
+        }
+    }
+
+    /// Archetype-aware guided prompt — reflection with a direction,
+    /// never homework.
+    private var reflectionPrompt: String {
+        switch snapshot.day?.archetype {
+        case .protein: return "what did a strong plate look like today?"
+        case .movement: return "what felt possible once you started?"
+        case .rest: return "what did the rest give back?"
+        default: return "what should tomorrow-you remember about today?"
         }
     }
 }

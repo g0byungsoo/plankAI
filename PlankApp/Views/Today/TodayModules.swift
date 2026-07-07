@@ -40,13 +40,6 @@ final class TodayModuleState {
         case markAsDone(ProgramDayPrescription)
         case profileHub
         case stepsDetail
-        /// Future-day peek (≤ +7) / lock (beyond) from the strip.
-        case dayPeek(day: Int)
-        case dayLock(day: Int)
-        /// Past-day read-only review from the strip (v1.1.4).
-        case dayReview(day: Int)
-        /// HER DAYS — the strip's sheet home (v3 minimal correction).
-        case herDays
 
         var id: String {
             switch self {
@@ -54,30 +47,13 @@ final class TodayModuleState {
             case .markAsDone: return "markAsDone"
             case .profileHub: return "profileHub"
             case .stepsDetail: return "stepsDetail"
-            case .dayPeek: return "dayPeek"
-            case .dayLock: return "dayLock"
-            case .dayReview: return "dayReview"
-            case .herDays: return "herDays"
             }
         }
     }
 
-    /// Pure routing for a day-strip tap → the sheet it opens (nil = today
-    /// / new-program, which navigate nowhere). Extracted from TodayView
-    /// for testability (v1.1.4 past-day fix): past → review, near future
-    /// (≤ +7) → peek, far future → lock.
-    nonisolated static func stripSheet(
-        for day: ProgramDayStrip.Day, programDay: Int
-    ) -> Sheet? {
-        switch day {
-        case .past(let d):
-            return .dayReview(day: d)
-        case .locked(let d):
-            return d <= programDay + 7 ? .dayPeek(day: d) : .dayLock(day: d)
-        case .today, .newProgram:
-            return nil
-        }
-    }
+    // v4: the her-days sheet family (dayPeek / dayLock / dayReview /
+    // herDays + the stripSheet router) died with the journey rebuild —
+    // past days live in becoming's ledger now (docs/app_v4/02_JOURNEY).
 
     enum RoutineStep { case pre, session }
 

@@ -108,6 +108,13 @@ struct BecomingView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { refresh() }
         }
+        .onChange(of: router.tab) { _, tab in
+            // Arriving at the journey re-evaluates the re-signing
+            // offer (the auto-present is gated to THIS tab being
+            // visible — all trees stay mounted, and an offer fired
+            // from the hidden tree covers whatever tab she's on).
+            if tab == .becoming { refresh() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .weightLogDidChange)) { _ in
             refresh()
         }
@@ -641,12 +648,18 @@ struct BecomingView: View {
         let model = JourneyModel.load(userId: userId, snapshot: snap, in: modelContext)
         journey = model
 
-        // The re-signing offers itself ONCE per due week per screen
-        // visit; the due card carries every later offer.
-        if let due = model.dueReview, autoOfferedReviewWeek != due.weekIndex {
+        // The re-signing offers itself ONCE per due week per visit —
+        // and ONLY while the journey is the visible tab. All three
+        // trees stay mounted; an offer fired from the hidden tree
+        // would cover Today mid-scroll (walker-caught).
+        if let due = model.dueReview,
+           router.tab == .becoming,
+           autoOfferedReviewWeek != due.weekIndex {
             autoOfferedReviewWeek = due.weekIndex
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                if let stillDue = journey?.dueReview, presentedReview == nil {
+                if let stillDue = journey?.dueReview,
+                   presentedReview == nil,
+                   router.tab == .becoming {
                     presentedReview = stillDue
                 }
             }

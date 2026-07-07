@@ -240,13 +240,20 @@ struct JKKcalLine: View {
 
     /// The whole vocabulary is anti-shame: nothing red, nothing
     /// "over budget," evenings acknowledge room honestly.
+    /// The day answer (docs/app_v4/03_FEATURES.md §1) — the founder's
+    /// "am I on track?" answered in permission grammar: concrete room
+    /// left, never a red bar, never shame for a full day.
     private func stateWord(kcal: Int, target: Int) -> String {
+        let remaining = target - kcal
         let f = Double(kcal) / Double(max(target, 1))
-        switch f {
-        case ..<0.35: return "early still"
-        case ..<0.85: return "fits"
-        case ..<1.05: return "landed"
-        default: return "a full day"
+        if f < 0.35, Calendar.current.component(.hour, from: .now) < 11 {
+            return "the day is open"
         }
+        if remaining >= 150 {
+            let rounded = max(50, Int((Double(remaining) / 50).rounded()) * 50)
+            return "room for about \(rounded.formatted())"
+        }
+        if remaining >= -150 { return "right at the day's shape" }
+        return "a fuller day. tomorrow resets"
     }
 }

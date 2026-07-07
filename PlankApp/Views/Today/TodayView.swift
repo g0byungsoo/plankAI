@@ -79,6 +79,18 @@ struct TodayView: View {
                         .jkBeat1()
 
                     if let snapshot {
+                        // THE WEEK RIBBON — how today connects to the
+                        // plan, one whisper-weight line (v4). Tap →
+                        // the journey.
+                        if snapshot.isEnrolled, snapshot.weekIntent != nil {
+                            JKWeekRibbon(snapshot: snapshot) {
+                                router.tab = .becoming
+                            }
+                            .padding(.horizontal, Space.lg)
+                            .padding(.top, Space.sm)
+                            .jkBeat2(extraDelay: 0.04)
+                        }
+
                         // JENI'S LINE — one sentence, no card, no
                         // chrome (the minimal correction). The full
                         // note opens as a received full-screen moment.
@@ -142,6 +154,13 @@ struct TodayView: View {
                             )
                             .padding(.top, Space.section)
                             .jkBeat2(extraDelay: 0.2)
+
+                            // The evening ends on her words.
+                            if isEvening {
+                                EveningJournalLine(snapshot: snapshot)
+                                    .padding(.horizontal, Space.lg)
+                                    .padding(.top, Space.section)
+                            }
                         }
                     }
 
@@ -173,6 +192,9 @@ struct TodayView: View {
     private func dayContent(_ snapshot: TodaySnapshot) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             if isEvening {
+                // v4 order (03_FEATURES §9): the receipt reads, the
+                // rows stay reachable; the journal closes the page
+                // after the plate story (mounted by the parent).
                 EveningClose(
                     snapshot: snapshot,
                     onReflect: { feeling in
@@ -341,9 +363,10 @@ struct TodayView: View {
                     modules.present(sheet: .profileHub)
                 },
             ],
-            // The strip left Home — the pill is the door to her days.
+            // v4: the pill opens THE JOURNEY (the her-days dead-end
+            // sheet died with the plan-over-time rebuild).
             onLeadTap: snapshot?.isEnrolled == true
-                ? { modules.present(sheet: .herDays) }
+                ? { router.tab = .becoming }
                 : nil
         )
     }
@@ -367,10 +390,8 @@ struct TodayView: View {
         return pill.text
     }
 
-    // The strip lives in HerDaysSheet now (v3 minimal correction) —
-    // Home carries the day pill as its door. TodayModuleState.stripSheet
-    // stays as the tested pure routing (the sheet's pages use the same
-    // decisions).
+    // v4: the week ribbon above is Home's thread to the plan; the
+    // pill and the ribbon both open THE JOURNEY (becoming's ledger).
 
     // MARK: - Beat copy
 

@@ -41,7 +41,7 @@ struct JKMasthead: View {
                             dayPill(day)
                         }
                         .buttonStyle(JKPress())
-                        .accessibilityLabel("day \(day), her days")
+                        .accessibilityLabel("day \(day), the journey")
                         .accessibilityHint("opens the days sheet")
                     } else {
                         dayPill(day)

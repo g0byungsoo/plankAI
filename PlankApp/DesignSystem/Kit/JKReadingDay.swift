@@ -137,135 +137,74 @@ struct JeniNoteView: View {
     }
 }
 
-// MARK: - HerDaysSheet
+// MARK: - JKWeekRibbon
 
-/// HER DAYS — the strip's new home (Home lost 70pt of calendar
-/// chrome; time travel became one intentional tap on the day pill).
-/// Day taps swap content IN-SHEET (review / peek) — never a sheet
-/// over a sheet.
-struct HerDaysSheet: View {
+/// THE WEEK RIBBON (app v4, docs/app_v4/02_JOURNEY.md) — how today
+/// connects to the plan, in one line of typography: seven standing
+/// dots in tense ink + the week's name. Tap → THE JOURNEY (becoming).
+/// This replaced the her-days sheet: time gets a real surface, Home
+/// keeps one whisper-weight thread instead of calendar furniture.
+struct JKWeekRibbon: View {
     let snapshot: TodaySnapshot
-    let onDismiss: () -> Void
-
-    private enum Page: Equatable {
-        case days
-        case review(day: Int)
-        case peek(day: Int)
-    }
-    @State private var page: Page = .days
+    let onOpen: () -> Void
 
     var body: some View {
-        Group {
-            switch page {
-            case .days:
-                daysPage
-                    .transition(.opacity)
-            case .review(let day):
-                ProgramDayReviewSheet(
-                    day: day,
-                    archetype: archetype(day),
-                    completedCount: snapshot.completionWindow[day],
-                    isPausedDay: isPaused(day),
-                    platesLine: platesLine(day),
-                    onDismiss: { withAnimation(Motion.crossFade) { page = .days } }
-                )
-                .transition(.opacity)
-            case .peek(let day):
-                ProgramDayPeekSheet(
-                    day: day,
-                    archetype: archetype(day),
-                    onDismiss: { withAnimation(Motion.crossFade) { page = .days } }
-                )
-                .transition(.opacity)
-            }
-        }
-    }
-
-    private var daysPage: some View {
-        VStack(alignment: .leading, spacing: Space.lg) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("her days")
-                        .font(.custom("JeniHeroSerif-Regular", size: 24, relativeTo: .title3))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("week \(PrescriptionEngineV2.programWeek(snapshot.programDay)) · day \(snapshot.programDay) of \(snapshot.totalDays)")
-                        .font(Typo.captionTracked)
-                        .kerning(1.4)
-                        .textCase(.uppercase)
-                        .foregroundStyle(Palette.cocoaTertiary)
+        Button {
+            Haptics.light()
+            onOpen()
+        } label: {
+            HStack(spacing: 10) {
+                JKStandingDots(days: dotDays, spacing: 5)
+                if let intent = snapshot.weekIntent {
+                    ItalicAccentText(
+                        "\(intent.name) · week \(snapshot.programWeek)",
+                        italic: [intent.name],
+                        baseFont: .custom("DMSans-Regular", size: 13, relativeTo: .footnote),
+                        italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 13.5, relativeTo: .footnote),
+                        color: Palette.textSecondary,
+                        alignment: .leading
+                    )
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
                 }
-                Spacer()
-                JKQuietMark(systemName: "xmark", accessibilityLabel: "close") {
-                    onDismiss()
-                }
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(Palette.cocoaTertiary)
             }
-
-            ProgramDayStrip(
-                programDay: snapshot.programDay,
-                totalDays: snapshot.totalDays,
-                completionByDay: snapshot.completionWindow,
-                centeredDay: snapshot.programDay,
-                onTap: { day in
-                    switch day {
-                    case .past(let d):
-                        withAnimation(Motion.crossFade) { page = .review(day: d) }
-                    case .locked(let d) where d <= snapshot.programDay + 7:
-                        withAnimation(Motion.crossFade) { page = .peek(day: d) }
-                    default:
-                        break
-                    }
-                },
-                archetypeForDay: { day in archetype(day) }
-            )
-
-            Text("tap a past day for its receipt. the near week shows its shape.")
-                .font(Typo.caption)
-                .foregroundStyle(Palette.cocoaTertiary)
-
-            Spacer(minLength: 0)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, Space.lg)
-        .padding(.top, Space.lg)
+        .buttonStyle(JKPress())
+        .accessibilityIdentifier("today.weekRibbon")
+        .accessibilityLabel(a11y)
+        .accessibilityHint("opens the journey")
     }
 
-    private func archetype(_ day: Int) -> ProgramDayArchetype? {
-        ProgramDayArchetype.archetype(
-            forProgramDay: day,
-            glp1Status: CohortStore.glp1StatusKey,
-            restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
-        )
-    }
-
-    private func isPaused(_ day: Int) -> Bool {
-        guard let start = snapshot.plan?.startDate,
-              let date = Calendar.current.date(
-                byAdding: .day, value: day - 1,
-                to: Calendar.current.startOfDay(for: start))
-        else { return false }
-        return BreakState.covers(dayKey: TodayStateService.dayKey(for: date))
-    }
-
-    /// The day's plates memory ("2 plates · 62g protein") from the
-    /// device journal — a receipt, not a verdict. nil when no plates
-    /// or the day maps outside the plan.
-    private func platesLine(_ day: Int) -> String? {
-        guard let start = snapshot.plan?.startDate,
-              let date = Calendar.current.date(
-                byAdding: .day, value: day - 1,
-                to: Calendar.current.startOfDay(for: start)),
-              let userId = AuthService.shared.currentUser?.id.uuidString
-        else { return nil }
+    private var dotDays: [JKStandingDots.Day] {
+        let week = max(snapshot.programWeek, 1)
+        let firstDay = (week - 1) * 7 + 1
+        guard let start = snapshot.plan?.startDate else { return [] }
         let cal = Calendar.current
-        let dayStart = cal.startOfDay(for: date)
-        guard let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) else { return nil }
-        let plates = FoodLogPersister.allEntries(userId: userId)
-            .filter { $0.loggedAt >= dayStart && $0.loggedAt < dayEnd }
-        guard !plates.isEmpty else { return nil }
-        let protein = Int(plates.map(\.protein).reduce(0, +).rounded())
-        let noun = plates.count == 1 ? "plate" : "plates"
-        return protein > 0
-            ? "\(plates.count) \(noun) · about \(protein)g protein"
-            : "\(plates.count) \(noun)"
+        let startOfPlan = cal.startOfDay(for: start)
+        return (firstDay...(firstDay + 6)).map { programDay in
+            let date = cal.date(byAdding: .day, value: programDay - 1, to: startOfPlan) ?? .now
+            let isToday = programDay == snapshot.programDay
+            let standing: DayStanding = isToday
+                ? DayStanding.from(completedCount: snapshot.completedBeatCount)
+                : DayStanding.from(completedCount: snapshot.completionWindow[programDay])
+            return JKStandingDots.Day(
+                id: programDay,
+                standing: standing,
+                isToday: isToday,
+                isFuture: programDay > snapshot.programDay,
+                isPaused: BreakState.covers(dayKey: TodayStateService.dayKey(for: date))
+            )
+        }
+    }
+
+    private var a11y: String {
+        let name = snapshot.weekIntent?.name ?? "this week"
+        return "\(name), week \(snapshot.programWeek)"
     }
 }
 

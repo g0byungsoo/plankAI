@@ -255,70 +255,9 @@ private struct TodayModuleHost: ViewModifier {
             TodayStepsSheet(goal: snapshot?.targets.steps ?? TargetsService.stepsGoal(plan: nil))
                 .presentationDetents([.fraction(0.7)])
                 .presentationBackground(Palette.bgPrimary)
-
-        case .dayPeek(let day):
-            ProgramDayPeekSheet(
-                day: day,
-                archetype: ProgramDayArchetype.archetype(
-                    forProgramDay: day,
-                    glp1Status: CohortStore.glp1StatusKey,
-                    restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
-                ),
-                onDismiss: { state.dismissSheet() }
-            )
-            .presentationDetents([.fraction(0.42)])
-            .presentationDragIndicator(.hidden)
-            .presentationBackground(Palette.bgElevated)
-
-        case .dayLock(let day):
-            ProgramLockSheet(
-                lockedDay: day,
-                currentDay: snapshot?.programDay ?? 1,
-                totalDays: snapshot?.totalDays ?? 84,
-                onDismiss: { state.dismissSheet() }
-            )
-            .presentationDetents([.medium])
-            .presentationDragIndicator(.hidden)
-            .presentationBackground(Palette.bgElevated)
-
-        case .herDays:
-            if let snapshot {
-                HerDaysSheet(
-                    snapshot: snapshot,
-                    onDismiss: { state.dismissSheet() }
-                )
-                .presentationDetents([.fraction(0.52)])
-                .presentationDragIndicator(.hidden)
-                .presentationBackground(Palette.bgElevated)
-            }
-
-        case .dayReview(let day):
-            ProgramDayReviewSheet(
-                day: day,
-                archetype: ProgramDayArchetype.archetype(
-                    forProgramDay: day,
-                    glp1Status: CohortStore.glp1StatusKey,
-                    restrictiveFoodRelationship: CohortStore.isRestrictiveRisk
-                ),
-                completedCount: snapshot?.completionWindow[day],
-                isPausedDay: {
-                    // Map program day → calendar dayKey via the plan
-                    // start; a day inside a break range reads "paused,
-                    // your place was kept" instead of "quiet".
-                    guard let start = snapshot?.plan?.startDate,
-                          let date = Calendar.current.date(
-                            byAdding: .day, value: day - 1,
-                            to: Calendar.current.startOfDay(for: start))
-                    else { return false }
-                    return BreakState.covers(
-                        dayKey: TodayStateService.dayKey(for: date))
-                }(),
-                onDismiss: { state.dismissSheet() }
-            )
-            .presentationDetents([.fraction(0.42)])
-            .presentationDragIndicator(.hidden)
-            .presentationBackground(Palette.bgElevated)
         }
+        // v4: dayPeek / dayLock / herDays / dayReview mounts died with
+        // the journey rebuild — past days are becoming's ledger now.
     }
 }
 
