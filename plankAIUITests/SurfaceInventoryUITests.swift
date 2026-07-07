@@ -548,4 +548,73 @@ final class SurfaceInventoryUITests: XCTestCase {
         }
     }
 
+    // MARK: - App v4 — the journey + the re-signing
+    //
+    // Seed-day 15 (slot 0 of week 3) puts week 2's re-signing inside
+    // its due window, so one launch walks: the received re-signing →
+    // keep it → the journey (arc ribbon + this week + ledger) → the
+    // week page → a day receipt.
+    func testJourneyAndReSigning() throws {
+        let dir = ProcessInfo.processInfo.environment["INVENTORY_DIR"]
+            ?? "/tmp/jenifit_inventory"
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitest-inapp-qa", "--uitest-pro-access",
+            "--uitest-seed-program", "--uitest-seed-day", "15",
+            "--uitest-start-tab", "becoming",
+        ]
+        app.launch()
+        sleep(9)   // seed + journey load + the 0.7s auto-offer
+
+        func snap(_ name: String) {
+            let png = XCUIScreen.main.screenshot().pngRepresentation
+            FileManager.default.createFile(atPath: "\(dir)/\(name).png", contents: png)
+        }
+
+        // 1 · the re-signing (auto-offered when due).
+        let keepIt = app.buttons["keep it"].firstMatch
+        if keepIt.waitForExistence(timeout: 6), keepIt.isHittable {
+            snap("40_resigning_received")
+            keepIt.tap()
+            sleep(2)
+            snap("41_resigning_signed")
+            let back = app.buttons["back to the story"].firstMatch
+            if back.exists, back.isHittable { back.tap(); sleep(2) }
+        }
+
+        // 2 · the journey.
+        snap("42_journey_arc")
+
+        // 3 + 4 · the week page + a day receipt, via the direct-open
+        // hooks (gesture-hunting cards inside a scroll of tappables
+        // proved walker-hostile — a drag's start point fired the
+        // coach line and switched tabs; frame-verified).
+        app.terminate()
+        app.launchArguments = [
+            "--uitest-inapp-qa", "--uitest-pro-access",
+            "--uitest-seed-program", "--uitest-seed-day", "15",
+            "--uitest-start-tab", "becoming",
+            "--uitest-keep-reviews",
+            "--uitest-open-week", "3",
+            "--uitest-open-day", "15",
+        ]
+        app.launch()
+        sleep(8)
+        let dayBack = app.buttons["back to the week"].firstMatch
+        if dayBack.waitForExistence(timeout: 6) {
+            snap("44_day_receipt")
+            dayBack.tap()
+            sleep(1)
+            snap("43_week_page")
+            let close = app.buttons["close"].firstMatch
+            if close.exists, close.isHittable { close.tap(); sleep(1) }
+        } else {
+            snap("43_week_page")
+        }
+
+        // 5 · the signed stamp rides the ledger (week 2's card).
+        snap("45_journey_after_pages")
+    }
+
 }

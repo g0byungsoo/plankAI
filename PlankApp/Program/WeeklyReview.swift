@@ -47,8 +47,18 @@ struct ProgramWeekSlice: Equatable {
         let weighKg: Double?
         let repKept: Bool
 
+        /// Standing over EVERYTHING that happened — beats checked OR
+        /// raw actions recorded (a weigh-in without its check still
+        /// counts; "any meaningful action" is the spine's law). max()
+        /// avoids double-counting a checked snap against its plates.
         var standing: DayStanding {
-            DayStanding.from(completedCount: completedCount, oneThingDone: oneThingDone)
+            let actions = (plateCount > 0 ? 1 : 0)
+                + (weighKg != nil ? 1 : 0)
+                + (repKept ? 1 : 0)
+            return DayStanding.from(
+                completedCount: max(completedCount, actions),
+                oneThingDone: oneThingDone
+            )
         }
     }
 
@@ -131,6 +141,9 @@ struct ReviewRecord: Codable, Equatable, Identifiable {
     let stampLine: String
     /// The because-you clause, kept verbatim for the journey.
     let reasonLine: String
+    /// The week's name, frozen at signing — a steadying week stays
+    /// "the steadying week" in memory even after the zone recovers.
+    let weekName: String
 }
 
 // MARK: - WeeklyReview
@@ -189,6 +202,10 @@ enum WeeklyReview {
         var weighCount: Int
         var priorWeekWeighCount: Int?
         var proteinDaysMet: Int
+        /// Days with at least one plate logged — the protein rules'
+        /// provenance floor: an unreached floor means nothing when
+        /// the plates simply weren't logged.
+        var plateLoggedDays: Int
         var keptCount: Int
         var elapsedDays: Int
     }
@@ -203,8 +220,11 @@ enum WeeklyReview {
 
         // Protein floor reachability — on-med this is the hero rule.
         // Easing meets her where the week actually was; the formula's
-        // advisory band still clamps the floor downstream.
-        if !p.numericsSuppressed, let target = p.proteinTargetG {
+        // advisory band still clamps the floor downstream. Provenance
+        // floor: the rules only speak when ≥4 days actually logged
+        // plates (an unreached floor means nothing on absent data).
+        if !p.numericsSuppressed, let target = p.proteinTargetG,
+           p.plateLoggedDays >= 4 {
             if p.proteinDaysMet <= 1, p.elapsedDays >= 5, p.proteinAdjustG > -10 {
                 return .proteinEase(
                     newG: target - 5,
@@ -373,6 +393,22 @@ enum WeeklyReview {
 
     /// Test seam — drops the in-memory cache so a fresh read hits disk.
     static func _resetCacheForTesting() { cache = nil }
+
+    #if DEBUG
+    /// QA seam — wipes records + consent knobs so seeded walker runs
+    /// are deterministic (a prior run's signature must not silence
+    /// the next run's re-signing).
+    static func _wipeForQA(_ d: UserDefaults = .standard) {
+        cache = []
+        if let url = storeURL {
+            try? FileManager.default.removeItem(at: url)
+        }
+        for key in d.dictionaryRepresentation().keys
+        where key.hasPrefix("plan.") || key.hasPrefix("review.") {
+            d.removeObject(forKey: key)
+        }
+    }
+    #endif
 
     // MARK: - Week slice loader (the live assembler)
 

@@ -125,6 +125,13 @@ struct PlankAIApp: App {
             UserDefaults.standard.removeObject(forKey: "programEraEnabled")
             UserDefaults.standard.removeObject(forKey: "planFirstRunHintSeen")
             UserDefaults.standard.removeObject(forKey: "planChecksMigratedV1")
+            // v4: a prior run's re-signing must not silence this
+            // run's (records + consent knobs are QA state too).
+            // --uitest-keep-reviews opts out for multi-launch legs
+            // that sign in launch 1 and read the signature in 2.
+            if !ProcessInfo.processInfo.arguments.contains("--uitest-keep-reviews") {
+                WeeklyReview._wipeForQA()
+            }
         }
         // DEBUG QA hook: auto-presents the v2 CBT lesson reader at a
         // given (totalDays, programDay) so screenshots can capture the

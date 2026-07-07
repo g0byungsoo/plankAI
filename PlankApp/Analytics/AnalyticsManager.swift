@@ -258,6 +258,14 @@ enum AnalyticsEvent: String {
     case breathworkSessionCompleted   = "breathwork_session_completed"
     case breathworkSessionDismissed   = "breathwork_session_dismissed"
 
+    // ── App v4 — the program spine (docs/app_v4/01_PROGRAM.md) ──
+    // The re-signing is the weekly consent moment; decision ∈
+    // kept / adjusted / declined. Journey opens measure whether the
+    // plan-over-time surface earns visits.
+    case weeklyReviewSigned           = "weekly_review_signed"
+    case journeyWeekOpened            = "journey_week_opened"
+    case journeyDayOpened             = "journey_day_opened"
+
     // ── Food rail funnel + per-scan (W5-T3) ──
     // Fires from inside PlankFood via the FoodAnalytics closure-sink
     // pattern (PlankAIApp registers a closure at launch that wraps

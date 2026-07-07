@@ -54,6 +54,15 @@ struct TodaySnapshot {
     /// outside the chapter or before a settle weight exists.
     let bandZone: String?
 
+    // v4 arc (docs/app_v4/01_PROGRAM.md) — the program as an object.
+    let programWeek: Int
+    let totalWeeks: Int
+    let arcPhase: ArcPhase?
+    let weekIntent: WeekIntentSpec?
+    /// Masthead lead ("12 kept" / "44 to go") — presence early,
+    /// distance past the midpoint.
+    let arcLead: String?
+
     var isEnrolled: Bool { plan != nil }
 
     /// Completion fraction over binary beats (steps auto-tracks live
@@ -214,6 +223,40 @@ enum TodayStateService {
             overnightQuietHours: QuietHours.liveOvernight(userId: userId)
         ))
 
+        // — the arc (v4): phase + week intent, derived, provenance-only
+        let chapter = CohortStore.chapter
+        var programWeek = 0
+        var totalWeeks = 0
+        var arcPhase: ArcPhase?
+        var weekIntent: WeekIntentSpec?
+        var arcLead: String?
+        if plan != nil, programDay >= 1 {
+            programWeek = PrescriptionEngineV2.programWeek(programDay)
+            totalWeeks = ProgramArc.totalWeeks(totalDays: totalDays)
+            let phase = ProgramArc.phase(
+                week: programWeek,
+                totalWeeks: totalWeeks,
+                chapter: chapter,
+                emaFlatWeeks: emaFlatWeeks(ema)
+            )
+            arcPhase = phase
+            weekIntent = WeekIntent.intent(
+                week: programWeek,
+                chapter: chapter,
+                phase: phase,
+                flags: .live,
+                zone: bandZone.flatMap(BandZone.init(rawValue:)),
+                pickedKey: d.string(
+                    forKey: WeeklyReview.intentPickKey(week: programWeek))
+            )
+            arcLead = ProgramArc.leadLine(
+                programDay: programDay,
+                totalDays: totalDays,
+                chapter: chapter,
+                keptDays: PresenceLedger.keptDays
+            )
+        }
+
         return TodaySnapshot(
             plan: plan,
             programDay: programDay,
@@ -231,9 +274,14 @@ enum TodayStateService {
             targets: targets,
             brief: brief,
             daysSinceLastOpen: gap,
-            chapter: CohortStore.chapter,
+            chapter: chapter,
             isOnBreak: BreakState.isActive,
-            bandZone: bandZone
+            bandZone: bandZone,
+            programWeek: programWeek,
+            totalWeeks: totalWeeks,
+            arcPhase: arcPhase,
+            weekIntent: weekIntent,
+            arcLead: arcLead
         )
     }
 
@@ -294,6 +342,22 @@ enum TodayStateService {
         let latest = ema[ema.count - 1].emaKg
         let prior = ema[ema.count - 8].emaKg
         return latest - prior
+    }
+
+    /// Weeks the EMA has run flat (≥3 triggers the arc's data-bend —
+    /// the plateau named early, as support). "Flat" = the EMA moved
+    /// less than 0.15 kg over each trailing 7-point span; counts up
+    /// to 3 (the overlay's threshold; more adds nothing).
+    static func emaFlatWeeks(_ ema: [WeightTrendChart.EMAPoint]) -> Int {
+        var weeks = 0
+        var end = ema.count - 1
+        while weeks < 3, end - 7 >= 0 {
+            let delta = abs(ema[end].emaKg - ema[end - 7].emaKg)
+            guard delta < 0.15 else { break }
+            weeks += 1
+            end -= 7
+        }
+        return weeks
     }
 
     /// Sustained loss rate as %/wk from the EMA (14-point span so a

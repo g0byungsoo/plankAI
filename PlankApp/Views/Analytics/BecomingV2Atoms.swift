@@ -1263,48 +1263,25 @@ struct BecomingTrendCanvas: View {
                     .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
                     .foregroundStyle(Palette.accent)
                     .transition(.opacity)
-            } else if let delta = weeklyDeltaDisplay {
-                (Text(delta.amount)
-                    .font(.custom("DMSans-Medium", size: 13))
-                + Text(" this week")
-                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13)))
-                    .foregroundStyle(delta.tint)
+            } else if let word = trendDirectionWord {
+                Text(word.text)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13))
+                    .foregroundStyle(word.tint)
             }
         }
     }
 
-    /// 7-day delta — compares the most-recent RAW weigh-in to the
-    /// most-recent raw weigh-in from ≥7 days ago. Soft sage when
-    /// trending down, soft cocoa otherwise. Hidden when there's no
-    /// prior log to compare against.
-    ///
-    /// Previously this compared EMA values at points[count-1] vs
-    /// points[count-7], which drifted: on a sparse-log window the
-    /// EMA stays anchored to the seed value (most recent pre-window
-    /// log) and walks across all 60 days, so "this week" was
-    /// really "since the seed point." Now it aligns with the
-    /// headline (raw input) and the user's mental model of weekly
-    /// progress.
-    private var weeklyDeltaDisplay: (amount: String, tint: Color)? {
-        let now = Date.now
-        let weekAgoCutoff = now.addingTimeInterval(-7 * 86400)
-        // filteredLogs is sorted desc by loggedAt — `first` is the
-        // latest log, `first(where:)` walks newest-first and stops
-        // at the first prior log older than the cutoff.
-        guard let latestLog = filteredLogs.first else { return nil }
-        guard let priorLog = filteredLogs.first(where: { $0.loggedAt <= weekAgoCutoff }) else {
-            return nil
-        }
-        let displayLatest = unit.display(fromKg: latestLog.weightKg)
-        let displayPrior = unit.display(fromKg: priorLog.weightKg)
-        let display = displayLatest - displayPrior
-        let amount: String = {
-            if abs(display) < 0.05 { return "steady" }
-            if display < 0 { return "−\(String(format: "%.1f", abs(display))) \(unit.label)" }
-            return "+\(String(format: "%.1f", display)) \(unit.label)"
-        }()
-        let tint: Color = display <= 0 ? Palette.stateGood : Palette.cocoaSecondary
-        return (amount, tint)
+    /// The ONE-STORY law (docs/app_v4/03_FEATURES.md §2): the canvas
+    /// used to badge a raw 7-day delta ("−2.2 lb this week") while
+    /// the field note above spoke the EMA's story ("eased down about
+    /// 500g") — two numbers, two windows, one screen. The badge is
+    /// now a DIRECTION word derived from the same EMA-7 source the
+    /// story reads; numbers appear once, in the story.
+    private var trendDirectionWord: (text: String, tint: Color)? {
+        guard let delta = TodayStateService.emaDelta7d(points) else { return nil }
+        if delta <= -0.1 { return ("easing", Palette.stateGood) }
+        if delta >= 0.1 { return ("drifting up, gently", Palette.cocoaSecondary) }
+        return ("steady", Palette.cocoaSecondary)
     }
 
     /// v3 keeping: the band field. Home (settle → +1.4kg) in a soft
@@ -1624,6 +1601,13 @@ struct BecomingTrendCanvas: View {
         if let goal = goalWeightKg, goal > 0 {
             lo = min(lo, goal)
             hi = max(hi, goal)
+        }
+        // v4 (HONEST_GAPS #8): the keeping chapter's band always fits
+        // the frame — a line living far from settle used to push the
+        // band partially offscreen, unmooring the zones it narrates.
+        if let settle = bandSettleKg {
+            lo = min(lo, settle)
+            hi = max(hi, settle + BandModel.resetAtKg)
         }
         let dLo = toDisplay(lo)
         let dHi = toDisplay(hi)

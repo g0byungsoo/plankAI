@@ -95,6 +95,7 @@ final class WeeklyReviewTests: XCTestCase {
         weighs: Int = 1,
         priorWeighs: Int? = 1,
         proteinDaysMet: Int = 3,
+        plateLoggedDays: Int = 5,
         kept: Int = 4,
         elapsed: Int = 7
     ) -> WeeklyReview.ProposalInputs {
@@ -105,7 +106,9 @@ final class WeeklyReviewTests: XCTestCase {
             sessionsPlanned: sessionsPlanned, sessionsAdjust: sessionsAdjust,
             movedDays: movedDays, weighCount: weighs,
             priorWeekWeighCount: priorWeighs,
-            proteinDaysMet: proteinDaysMet, keptCount: kept,
+            proteinDaysMet: proteinDaysMet,
+            plateLoggedDays: plateLoggedDays,
+            keptCount: kept,
             elapsedDays: elapsed
         )
     }
@@ -126,6 +129,16 @@ final class WeeklyReviewTests: XCTestCase {
             return XCTFail("expected proteinEase, got \(proposal.key)")
         }
         XCTAssertEqual(g, 85)
+    }
+
+    func testThinPlateDataNeverSpeaksProtein() {
+        // One logged day: "the floor was out of reach" would be a
+        // claim about absent data. The rules stay quiet.
+        let proposal = WeeklyReview.propose(
+            inputs(proteinDaysMet: 0, plateLoggedDays: 1)
+        )
+        XCTAssertFalse(["protein_ease", "protein_firm"].contains(proposal.key),
+                       "thin data got \(proposal.key)")
     }
 
     func testClearedFloorFirmsGently() {
