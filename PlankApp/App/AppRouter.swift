@@ -12,6 +12,27 @@ import SwiftUI
 //   jenifit://today · ://snap · ://jeni?seed=… · ://becoming
 //   ://weigh-in · ://lesson · ://breath · ://trend
 
+/// The three places. Lowercase proper nouns she learns once; the
+/// native tab bar (Liquid Glass on iOS 26) renders them with their
+/// marks — sparkles for the ritual, the heart bubble for jeni, the
+/// closed book for her story.
+enum JKTab: String, CaseIterable, Identifiable {
+    case today
+    case jeni
+    case becoming
+
+    var id: String { rawValue }
+    var label: String { rawValue }
+
+    var systemImage: String {
+        switch self {
+        case .today: "sparkles"
+        case .jeni: "bubble"
+        case .becoming: "book.closed"
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class AppRouter {

@@ -119,7 +119,11 @@ struct BecomingView: View {
                     }
 
                     JKPageDots(count: storyPages.count, index: pageIndex)
-                        .padding(.bottom, 92)
+                        // The native tab bar (Liquid Glass) supplies the
+                        // bottom safe area now — the old 92pt was tuned
+                        // for the retired 50pt custom bar and starved
+                        // the pager of a full row's height.
+                        .padding(.bottom, Space.sm)
                         .jkBeat2(extraDelay: 0.1)
                 }
             }

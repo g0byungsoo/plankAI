@@ -9,7 +9,6 @@ import SwiftUI
 //   xcrun simctl launch booted com.bk.plankAI --debug-jenikit
 
 struct JKGalleryHarness: View {
-    @State private var tab: JKTab = .today
     @State private var beatDone = false
     @State private var protein = 61
     @State private var silkTrigger = 0
@@ -28,9 +27,6 @@ struct JKGalleryHarness: View {
                         }
                     }
             }
-        }
-        .safeAreaInset(edge: .bottom) {
-            JKTabBar(selection: $tab, badge: .jeni)
         }
         .statusBarHidden(false)
     }

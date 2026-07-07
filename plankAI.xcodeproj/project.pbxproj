@@ -1294,7 +1294,6 @@
 		E5B69569C7BB9C2692BAC1BB /* prep_short_crunch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 288CD70946584068C3AA252A /* prep_short_crunch.m4a */; };
 		E647CEAD042C8A1EA3326FB8 /* TodayModules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505CC0E024D4552A6257F26E /* TodayModules.swift */; };
 		E6874ADAF77064801B16C0F9 /* matson_prep_full_good_morning.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9F75B02554E00B12592930FD /* matson_prep_full_good_morning.m4a */; };
-		E6C08DECDDFC0255FFE7096F /* JKTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 365E838FB3591A2017A514A5 /* JKTabBar.swift */; };
 		E6F539D49713F65FF00DC1A8 /* matson_prep_full_standing_knee_hug.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 80D6D632E313700F3CEA044F /* matson_prep_full_standing_knee_hug.m4a */; };
 		E715F2925A5C71BBBBB2117F /* prep_short_plank_frog_jump.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8030F9F69DBA19F6A601DB63 /* prep_short_plank_frog_jump.m4a */; };
 		E716B73BF69CAEE61D942E49 /* prep_full_burpee.m4a in Resources */ = {isa = PBXBuildFile; fileRef = E2CF19AC09697ADB9E811885 /* prep_full_burpee.m4a */; };
@@ -1667,7 +1666,6 @@
 		3633473FC95033CBB793ED64 /* BodyMassImportService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyMassImportService.swift; sourceTree = "<group>"; };
 		36496577CBDE7E8F77F79240 /* matson_prep_full_front_kicks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_front_kicks.m4a; sourceTree = "<group>"; };
 		365D9C7E8A10A10AE5C9E8FE /* jeni_prep_short_side_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_side_jacks.m4a; sourceTree = "<group>"; };
-		365E838FB3591A2017A514A5 /* JKTabBar.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKTabBar.swift; sourceTree = "<group>"; };
 		36767C28B943D7D81B6CA9F3 /* JeniMethodRitualView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JeniMethodRitualView.swift; sourceTree = "<group>"; };
 		36D16279A9B3FD770FD9ACDC /* matson_prep_short_burpee.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_burpee.m4a; sourceTree = "<group>"; };
 		36DE5895B77E2DC7D629BCB9 /* JKShaders.metal */ = {isa = PBXFileReference; includeInIndex = 1; path = JKShaders.metal; sourceTree = "<group>"; };
@@ -4615,7 +4613,6 @@
 				3FC12D63DE7E1E736B614E7F /* JKGauges.swift */,
 				EFF645D4EFAB4746AEF4794D /* JKPlateStrip.swift */,
 				8B84B5A889255BE0A024A2AF /* JKVoice.swift */,
-				365E838FB3591A2017A514A5 /* JKTabBar.swift */,
 				CDDBB8596E773DC018BB9C23 /* JKGallery.swift */,
 				CE39ADEAE1AFD258BEF839AA /* JKSilkSweep.swift */,
 				36DE5895B77E2DC7D629BCB9 /* JKShaders.metal */,
@@ -6218,7 +6215,6 @@
 				7AD0F90A30E6867FA329402B /* JKGauges.swift in Sources */,
 				50738776C8481FB1A64B4CCF /* JKPlateStrip.swift in Sources */,
 				2ACEBD91CA972C27F52364B3 /* JKVoice.swift in Sources */,
-				E6C08DECDDFC0255FFE7096F /* JKTabBar.swift in Sources */,
 				555F6700BAD41727BB9E163F /* JKGallery.swift in Sources */,
 				0CBCEA27EEA092A6A2A33588 /* AppPhase.swift in Sources */,
 				639112C04956AB197B425D04 /* AppRouter.swift in Sources */,
