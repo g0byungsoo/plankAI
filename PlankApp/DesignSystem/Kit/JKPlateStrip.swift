@@ -3,10 +3,11 @@ import UIKit
 
 // MARK: - JKPlateStrip
 //
-// Today's plates as a filmstrip — 56×70 photo thumbs (4:5, the
+// Today's plates as a filmstrip — 64×80 photo thumbs (4:5, the
 // magazine crop) with the time beneath, plus the [+] tile. Photos
-// first, always; text-only entries render as cream recipe-card
-// minis (serif initial) so the strip never shows a dead grey icon.
+// first, always; text-only entries render as blush recipe-card
+// minis (serif initial on accentSubtle) so the strip never shows
+// a dead grey icon.
 
 struct JKPlateStripItem: Identifiable, Equatable {
     let id: String
@@ -61,14 +62,14 @@ struct JKPlateStrip: View {
                     .scaledToFill()
             } else {
                 ZStack {
-                    Palette.bgElevated
+                    Palette.accentSubtle.opacity(0.45)
                     Text(String(item.title.prefix(1)))
-                        .font(.custom("JeniHeroSerif-Italic", size: 22))
-                        .foregroundStyle(Palette.accent)
+                        .font(.custom("JeniHeroSerif-Italic", size: 24))
+                        .foregroundStyle(Palette.jeweledRose)
                 }
             }
         }
-        .frame(width: 56, height: 70)
+        .frame(width: 64, height: 80)
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -92,7 +93,7 @@ struct JKPlateStrip: View {
                         .font(.system(size: 15, weight: .light))
                         .foregroundStyle(Palette.cocoaSecondary)
                 }
-                .frame(width: 56, height: 70)
+                .frame(width: 64, height: 80)
                 Text("snap")
                     .font(Typo.statLabel)
                     .kerning(0.66)

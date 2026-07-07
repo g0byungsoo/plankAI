@@ -3,14 +3,14 @@ import Auth
 import PlankFood
 import PlankSync
 
-// MARK: - TodayStateBand — THE PLATE STORY
+// MARK: - TodayStateBand — TODAY'S PLATES
 //
-// App v4 (docs/app_v4/03_FEATURES.md §1). One food module, one
-// grammar: the plates lead (the photos ARE the story), the protein
-// arc is the single gauge (the twin steps ring died — steps already
-// live on their rhythm row), and the kcal sentence answers the
-// founder's question out loud: "room for about 600." Suppressed
-// cohorts keep protein-as-care and lose every calorie numeral.
+// App v4 (docs/app_v4/03_FEATURES.md §1), v5 language pass: the
+// module speaks plainly. One food module, one grammar: the plates
+// lead (the photos ARE the story), the protein arc is the single
+// gauge, and the kcal sentence answers the founder's question out
+// loud: "room for about 600." Suppressed cohorts keep
+// protein-as-care and lose every calorie numeral.
 
 struct TodayStateBand: View {
     let snapshot: TodaySnapshot
@@ -20,7 +20,7 @@ struct TodayStateBand: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.md) {
-            Text("the plate story")
+            Text("today's plates")
                 .font(Typo.captionTracked)
                 .kerning(1.98)
                 .textCase(.uppercase)
@@ -38,8 +38,8 @@ struct TodayStateBand: View {
                         JKMark(kind: .plate, size: 15,
                                color: Palette.cocoaSecondary)
                         ItalicAccentText(
-                            "the first plate starts the story",
-                            italic: ["story"],
+                            "your first plate sets up the day",
+                            italic: ["first"],
                             baseFont: Typo.body,
                             italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16, relativeTo: .body),
                             color: Palette.textPrimary,
@@ -60,7 +60,7 @@ struct TodayStateBand: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(JKPress())
-                .accessibilityLabel("the first plate starts the story. snap it")
+                .accessibilityLabel("your first plate sets up the day. snap it")
             } else {
                 JKPlateStrip(
                     items: plateItems,
@@ -83,12 +83,12 @@ struct TodayStateBand: View {
                     if !snapshot.targets.numericsSuppressed, snapshot.kcalEaten > 0 {
                         JKKcalLine(kcal: snapshot.kcalEaten, target: snapshot.targets.kcal)
                     } else if snapshot.targets.numericsSuppressed {
-                        Text("protein is the whole scoreboard today \u{2665}\u{FE0E}")
+                        Text("protein is what matters today \u{2665}\u{FE0E}")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
-                        Text("the numbers begin with a plate")
+                        Text("the count starts with your first plate")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                     }
@@ -205,10 +205,17 @@ struct EveningClose: View {
             }
 
             if pickedFeeling == nil {
-                HStack(spacing: 10) {
-                    feelingChip("proud")
-                    feelingChip("okay")
-                    feelingChip("tender")
+                VStack(alignment: .leading, spacing: 8) {
+                    // v5: the chips answer a visible question — three
+                    // bare words floated context-free before.
+                    Text("how did today feel?")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                    HStack(spacing: 10) {
+                        feelingChip("proud")
+                        feelingChip("okay")
+                        feelingChip("tender")
+                    }
                 }
                 .padding(.top, Space.xs)
             } else if let pickedFeeling {

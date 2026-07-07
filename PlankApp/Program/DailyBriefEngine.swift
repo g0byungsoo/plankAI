@@ -44,6 +44,11 @@ enum DailyBriefEngine {
         var weighInIsStaleFallback: Bool
         /// 7-day EMA delta in kg (negative = down). nil under 2 logs.
         var emaDelta7dKg: Double?
+        /// v5 trust floor: trend language is earned at 3+ weigh-ins
+        /// spanning 5+ days — two points a day apart must never claim
+        /// "this week." Assembled by TodayStateService; defaults false
+        /// so a missing wire fails quiet, not loud.
+        var trendIsEstablished: Bool = false
         /// Sustained loss rate as %/wk when computable. nil otherwise.
         var lossRatePctPerWeek: Double?
         var showedUpCount: Int
@@ -110,6 +115,18 @@ enum DailyBriefEngine {
             )
         }
 
+        // 1.5 — day one: the reading teaches the page itself. The
+        //       one-thing card owns the ask; this line owns "how this
+        //       works" — the only tutorial the app gets.
+        if ctx.programDay == 1 {
+            return Brief(
+                line: "welcome to day one. one small thing a day, i read the rest \u{2665}\u{FE0E}",
+                italic: ["one small thing"],
+                chatSeed: "it's her first day. welcome her warmly, explain the one-thing ritual in one line, ask nothing.",
+                second: "no streaks, no catching up. today's is on the card below."
+            )
+        }
+
         // 2 — comeback (2+ days away beats everything else; the
         //     return moment is where retention is won or lost)
         if ctx.daysSinceLastOpen >= 2 {
@@ -123,7 +140,7 @@ enum DailyBriefEngine {
 
         // 3 — rapid-loss care (wires RapidLossTripwire's intent:
         //     >1%/wk sustained → protein reframe, never "slow down")
-        if let rate = ctx.lossRatePctPerWeek, rate > 0.01 {
+        if let rate = ctx.lossRatePctPerWeek, rate > 0.01, ctx.trendIsEstablished {
             return Brief(
                 line: "you're moving quickly. a protein-forward week keeps it lean \u{2665}\u{FE0E}",
                 italic: ["protein-forward"],
@@ -155,8 +172,9 @@ enum DailyBriefEngine {
             }
         }
 
-        // 4 — trend movement worth naming (EMA, never raw drama)
-        if let delta = ctx.emaDelta7dKg {
+        // 4 — trend movement worth naming (EMA, never raw drama;
+        //     v5: only once the trend has earned a voice)
+        if let delta = ctx.emaDelta7dKg, ctx.trendIsEstablished {
             if delta <= -0.2 {
                 return Brief(
                     line: "your trend line eased down this week. quiet, real movement.",

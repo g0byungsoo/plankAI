@@ -217,6 +217,19 @@ enum TodayStateService {
             }) ?? false,
             weighInIsStaleFallback: day?.weighInIsStaleFallback ?? false,
             emaDelta7dKg: emaDelta,
+            trendIsEstablished: {
+                // 3+ weigh-ins spanning 5+ days before the reading may
+                // speak about "this week" (v5 trust floor).
+                guard weightLogs.count >= 3,
+                      let newest = weightLogs.first?.loggedAt,
+                      let oldest = weightLogs.last?.loggedAt else { return false }
+                let span = Calendar.current.dateComponents(
+                    [.day],
+                    from: Calendar.current.startOfDay(for: oldest),
+                    to: Calendar.current.startOfDay(for: newest)
+                ).day ?? 0
+                return span >= 5
+            }(),
             lossRatePctPerWeek: sustainedLossRate(ema: ema, weightKg: latestKg),
             showedUpCount: d.integer(forKey: "stats.shown_up_count"),
             daysSinceLastOpen: gap,

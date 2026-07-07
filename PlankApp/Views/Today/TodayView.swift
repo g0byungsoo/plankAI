@@ -423,7 +423,11 @@ struct TodayView: View {
         case .workout(let tier, let minutes, _):
             return "\(minutes) min · \(tierWord(tier))"
         case .lesson:
-            return modules.lessonTitle(snapshot: snapshot) ?? "a 2-minute read"
+            // v5: a lesson title alone ("your inner critic has a
+            // script") reads as a context-free claim on the row —
+            // the time frame makes it legible as today's topic.
+            return modules.lessonTitle(snapshot: snapshot).map { "2 min · \($0)" }
+                ?? "a 2-minute practice"
         case .steps:
             return "counted for you"
         case .weighIn:
