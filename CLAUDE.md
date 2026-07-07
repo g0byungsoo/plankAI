@@ -9,6 +9,17 @@ App Review. v1.2+ handles the project + Bundle + SKU rename together.
 in `/docs/archive/` documented a research pass or pivot that fed shipped
 work but is preserved for history, not for guidance.
 
+### App v4 (2026-07-07, branch feat/app-v2)
+The program became an object: ProgramArc phases + WeekIntent named
+weeks + THE RE-SIGNING (weekly consented adaptation, WeeklyReview);
+becoming rebuilt as THE JOURNEY (arc ribbon, week-chaptered ledger,
+day receipts, signed stamps, her-plates archive); Today gains the
+week ribbon + plate story + tonight plan; breath rebuilt
+(JKBreathField bloom + BreathHaptics continuous curves); workout
+completion = kept receipt (stars dead app-wide); jenifit://
+registered. **Read `docs/app_v4/00_THESIS.md` first; 05_REPORT.md =
+evidence + honest gaps.** Supersedes app_v3 where they disagree.
+
 ### App v3 (2026-07-05, branch feat/app-v2)
 Reading-first rebuild over v2: Today = jeni's reading + THE ONE
 THING + rhythm rows (no checklist grammar, no padlocks); three

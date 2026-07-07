@@ -1,7 +1,61 @@
 # JeniFit — Canonical State
 
-Last updated: 2026-07-05 (v1.1.4, build 24 + app v3 reading-first
-rebuild on `feat/app-v2`)
+Last updated: 2026-07-07 (v1.1.4, build 24 + app v4 program rebuild
+on `feat/app-v2`)
+
+## -2. App v4 — the program rebuild (2026-07-06/07)
+
+**Doc set: `docs/app_v4/` (00_THESIS · 01_PROGRAM · 02_JOURNEY ·
+03_FEATURES · 04_BUILD_PLAN · 05_REPORT · research/). Read
+00_THESIS.md first; 05_REPORT.md carries the evidence map + honest
+gaps. Supersedes docs/app_v3 where they disagree (the v3 day model
+survives; the journey dimension is new).**
+
+The root fix: the program now exists as an object. `ProgramArc`
+(named phases per chapter: losing = finding steady → the early read
+→ the build → the bend → the last stretch → the hold; on-medication
+= arriving → rolling practice blocks; keeping = the settle → kept),
+`WeekIntent` (named weeks, deterministic, zone-aware, pick-aware),
+and **THE RE-SIGNING** (`WeeklyReview`): at her week's boundary jeni
+reads the week back and proposes ≤1 consented change from a closed
+safe set, applied through knobs the engines already read (protein
+adjust inside the advisory clamp, sessions bend, weigh softening,
+intent picks). Records are device-local JSONL; "plan."/"review."
+prefixes ride the sign-out sweep.
+
+**THE JOURNEY**: becoming rebuilt as the plan-over-time surface —
+arc ribbon + phase header, one-story trend (EMA direction word;
+raw-vs-EMA badge contradiction dead; band always fits the domain),
+THIS WEEK card, week-chaptered ledger (standing dots in tense ink,
+week stories, signed adaptation stamps, quiet seams — absence never
+renders), week pages → read-only day receipts, dotted future shape,
+her-plates archive (v1 journal interior deleted). Today gains the
+WEEK RIBBON (7 dots + week name → journey; the her-days sheet
+family is deleted), THE PLATE STORY (filmstrip + one protein gauge
++ "room for about 600" day answer; steps ring dead), evening
+ends on her journal line, and THE TONIGHT PLAN (if-then chips whose
+plan the next morning's reading names back).
+
+Interiors: breath rebuilt (JKBreathField generative bloom on a
+zero-velocity sinusoidal BreathClock + BreathHaptics continuous
+CoreHaptics envelopes + no numerals; BreathCircle deleted); workout
+completion = the kept receipt (stars died app-wide; effort-feel
+signal kept); the wave dial (craving-occasion before/after). Chat
+context carries phase/week/intent/last-re-signing. Anchor rungs
+announce named weeks; the re-signing knock (id `resigning_knock`,
+4-site protocol) lands at week close. `jenifit://` finally
+registered (CFBundleURLTypes). Legacy sweep: −6.4k lines (Becoming
+dashboard family, Plan atoms, FoodLogTimelineView).
+
+Bugs killed: unscoped `todayKcalTotal` cross-account seam (snap
+beat vs band contradiction); the re-signing auto-offering from the
+HIDDEN becoming tree over Today (all tabs stay mounted — offers now
+gate on the visible tab); cover-identity blanking; the SE dateline
+wrap. Production fences held: zero schema/EF/payment/gating
+changes. 195/195 units; 7/7 walker legs (new journey/re-signing leg
++ direct-open QA hooks: `--uitest-open-week N --uitest-open-day D`,
+`--uitest-keep-reviews`, `--uitest-becoming-bottom`). Evidence:
+`docs/app_v4/evidence/` (gitignored, on disk).
 
 ## -1. App v3 — the reading-first rebuild (2026-07-05)
 
