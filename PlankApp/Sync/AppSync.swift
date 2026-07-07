@@ -317,42 +317,90 @@ final class AppSync {
     /// the next push. Marks SessionLog + WeightLog rows pendingUpsert so
     /// retry sends them; DayProgress is upserted again next session.
     private func reattributeLocalRows(from oldId: String, to newId: String, modelContext: ModelContext) {
+        Self.reattributeModelRows(from: oldId, to: newId, in: modelContext)
+        // Food journal entries collected during the anonymous period
+        // re-key the same way (views filter by current userId). The
+        // persister mints fresh ids too + carries the local thumbnail
+        // across; the post-sign-in hydrateFoodLogs reconcile pushes them.
+        FoodLogPersister.reattributeEntries(from: oldId, to: newId)
+    }
+
+    /// Re-key the SwiftData rows an anonymous user created so they belong
+    /// to the account just signed into. `static` + split out from
+    /// `reattributeLocalRows` so the fresh-id invariant is unit-testable
+    /// without touching the food JSONL store.
+    ///
+    /// THE FRESH-ID INVARIANT (the fix for "my weigh-ins reset on
+    /// reinstall"): weight_logs + session_logs share a global primary-key
+    /// `id`, and their rows already exist in the cloud under the OLD uid.
+    /// A naive re-key (change `user_id`, keep `id`) makes the next push an
+    /// upsert-on-`id` that resolves to an UPDATE of the old-owned row —
+    /// and RLS's `USING (auth.uid() = user_id)` evaluates that EXISTING
+    /// row, still owned by the old uid, so Postgres returns 42501 and the
+    /// fire-and-forget push swallows it. The row then lives only on this
+    /// device and vanishes on the next reinstall (the new account's cloud
+    /// never received it). A brand-new `id` makes the push a clean INSERT
+    /// the new account owns; the orphaned old-uid rows stay put, invisible
+    /// to the new account under RLS. day_progress conflicts on
+    /// (user_id, program_day) not id, so it re-keys cleanly — but it
+    /// points at session ids, so those pointers follow the remap.
+    static func reattributeModelRows(from oldId: String, to newId: String, in modelContext: ModelContext) {
         let sessions = (try? modelContext.fetch(FetchDescriptor<SessionLogRecord>(
             predicate: #Predicate { $0.userId == oldId }
         ))) ?? []
+        let progress = (try? modelContext.fetch(FetchDescriptor<DayProgressRecord>(
+            predicate: #Predicate { $0.userId == oldId }
+        ))) ?? []
+        let weightLogs = (try? modelContext.fetch(FetchDescriptor<WeightLogRecord>(
+            predicate: #Predicate { $0.userId == oldId }
+        ))) ?? []
+        applyReattribution(to: newId, sessions: sessions, progress: progress, weightLogs: weightLogs)
+        try? modelContext.save()
+    }
+
+    /// The pure re-key mutation, split from the fetch so the fresh-id
+    /// invariant is unit-testable on standalone model instances (no
+    /// ModelContainer). Mutates the rows in place; the caller saves.
+    static func applyReattribution(
+        to newId: String,
+        sessions: [SessionLogRecord],
+        progress: [DayProgressRecord],
+        weightLogs: [WeightLogRecord]
+    ) {
+        // session_logs — fresh id; remember old→new so day_progress follows.
+        var sessionIdRemap: [String: String] = [:]
         for s in sessions {
+            let freshId = UUID().uuidString
+            sessionIdRemap[s.id] = freshId
+            s.id = freshId
             s.userId = newId
             s.pendingUpsert = true
         }
 
-        let progress = (try? modelContext.fetch(FetchDescriptor<DayProgressRecord>(
-            predicate: #Predicate { $0.userId == oldId }
-        ))) ?? []
         for p in progress {
             p.userId = newId
             p.compositeKey = "\(newId):\(p.programDay)"
+            // Follow the re-keyed session ids so the day still links to its
+            // session (primary + the v2 multi-session list).
+            if let remapped = sessionIdRemap[p.primarySessionId] {
+                p.primarySessionId = remapped
+            }
+            if let ids = p.sessionLogIds {
+                p.sessionLogIds = ids.map { sessionIdRemap[$0] ?? $0 }
+            }
             p.updatedAt = .now
         }
 
-        // Weight logs are the load-bearing source for the analytics weight
-        // trend; without this, an onboarding-seeded log (or any manual log
-        // collected during the anonymous period) stays attached to the
-        // anon user_id and goes invisible after sign-in because the views
-        // filter by the current user_id.
-        let weightLogs = (try? modelContext.fetch(FetchDescriptor<WeightLogRecord>(
-            predicate: #Predicate { $0.userId == oldId }
-        ))) ?? []
+        // weight_logs — the load-bearing source for the analytics weight
+        // trend; without a fresh id an onboarding-seeded log (or any manual
+        // log from the anonymous period) never reaches the signed-in
+        // account and the trend reads empty after a reinstall. No incoming
+        // references, so the id swap is self-contained.
         for w in weightLogs {
+            w.id = UUID().uuidString
             w.userId = newId
             w.pendingUpsert = true
         }
-
-        // Food journal entries collected during the anonymous period
-        // re-key the same way (views filter by current userId). The
-        // post-sign-in hydrateFoodLogs reconcile pushes them.
-        FoodLogPersister.reattributeEntries(from: oldId, to: newId)
-
-        try? modelContext.save()
     }
 
     // MARK: Upsert pass-throughs

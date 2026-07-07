@@ -72,6 +72,21 @@ public enum FoodPhotoStore {
         try? FileManager.default.removeItem(at: url)
     }
 
+    /// Move a thumbnail from one entry id to another. The sign-in merge
+    /// re-keys anonymous entries to fresh ids (so the cloud push is a
+    /// clean INSERT the new account owns instead of an RLS-rejected
+    /// UPDATE); the photo is keyed by entry id, so it has to follow. A
+    /// file move, not a decode/re-encode — lossless and cheap. No-op when
+    /// the source has no photo (forward-only store).
+    public static func rekey(from oldId: String, to newId: String) {
+        guard oldId != newId,
+              let src = url(for: oldId),
+              let dst = url(for: newId),
+              FileManager.default.fileExists(atPath: src.path) else { return }
+        try? FileManager.default.removeItem(at: dst)   // defensive; dst is a fresh id
+        try? FileManager.default.moveItem(at: src, to: dst)
+    }
+
     /// v1.1.1 — wipe the whole photo directory. Wired into
     /// `FoodLogPersister.deleteAllEntries` so the delete-account
     /// path actually wipes plate photos too. Recreates an empty

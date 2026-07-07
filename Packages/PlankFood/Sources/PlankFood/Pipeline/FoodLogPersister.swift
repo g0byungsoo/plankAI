@@ -762,8 +762,17 @@ public enum FoodLogPersister {
         guard oldId != newId, inMemoryEntries.contains(where: { $0.userId == oldId }) else { return }
         inMemoryEntries = inMemoryEntries.map { e in
             guard e.userId == oldId else { return e }
+            // Fresh id, not just a new userId: the cloud row already exists
+            // under the old uid, so a same-id upsert is an UPDATE that RLS
+            // rejects (auth.uid() != the row's old user_id → 42501, silently
+            // dropped). A new id makes the launch reconcile push a clean
+            // INSERT the signed-in account owns, so the entry survives the
+            // next reinstall. The local thumbnail is keyed by entry id, so
+            // it moves with the re-key.
+            let freshId = UUID().uuidString
+            FoodPhotoStore.rekey(from: e.id, to: freshId)
             return Entry(
-                id: e.id, userId: newId, loggedAt: e.loggedAt, kcal: e.kcal,
+                id: freshId, userId: newId, loggedAt: e.loggedAt, kcal: e.kcal,
                 protein: e.protein, carbs: e.carbs, fat: e.fat,
                 fiber: e.fiber, title: e.title, items: e.items,
                 source: e.source
