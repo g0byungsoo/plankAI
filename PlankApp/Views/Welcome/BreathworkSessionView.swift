@@ -56,7 +56,6 @@ struct BreathworkSessionView: View {
 
     private enum Phase { case intro, breathing, complete }
     @State private var phase: Phase = .intro
-    @State private var breathState: BreathCircle.State = .holding(scale: 0.6)
     @State private var introLineVisible = false
     @State private var completeVisible = false
     @State private var showQuitConfirmation = false
@@ -153,25 +152,33 @@ struct BreathworkSessionView: View {
         VStack(spacing: Space.lg) {
             Spacer()
 
-            BreathCircle(
-                state: breathState,
-                onCycleComplete: {
-                    guard !didFinishCycles else { return }
-                    didFinishCycles = true
-                    finishBreathing()
-                },
-                // Mindful cues instead of clinical inhale/exhale. The long
-                // exhale is the parasympathetic lever (the cortisol-lowering
-                // mechanism), so "let it go" both reads mindful AND points
-                // at the active ingredient.
-                inhaleWord: "breathe in",
-                exhaleWord: "let it go"
-            )
+            // v4: the generative bloom (JKBreathField) + the scene's
+            // continuous-haptic clock replace the scaled PNG, the
+            // countdown numeral, and the Timer tick-train
+            // (docs/app_v4/03_FEATURES.md §6).
+            if phase == .breathing {
+                JKBreathScene(
+                    techProtocol: techProtocol,
+                    totalReps: totalReps,
+                    onComplete: {
+                        guard !didFinishCycles else { return }
+                        didFinishCycles = true
+                        finishBreathing()
+                    }
+                )
+            } else {
+                // The settling state: ambient bloom, no counting yet.
+                JKBreathField(
+                    startDate: nil,
+                    inhale: Double(inhaleSec), hold: Double(techProtocol.holdSec),
+                    exhale: Double(exhaleSec), reps: totalReps
+                )
+            }
 
             // During intro, a single settling line under the bloom that
             // names the diaphragmatic (belly) breath — the technique the
-            // research ties to cortisol reduction. During cycling,
-            // BreathCircle renders its own phase words, so we hide this.
+            // research ties to cortisol reduction. During cycling the
+            // scene renders its own phase words, so we hide this.
             if phase == .intro {
                 Text("breathe into your belly. soften your jaw. drop your shoulders.")
                     .font(Typo.body)
@@ -214,7 +221,11 @@ struct BreathworkSessionView: View {
                                  color: Palette.textPrimary,
                                  alignment: .center)
 
-                Text("that's your nervous system settling. less stress, fewer cravings that aren't really hunger.")
+                // Honesty pass (docs/app_v4/research/BREATHWORK_BAR):
+                // brief paced breathing is a state nudge, not proven
+                // craving suppression — the urge-surfing frame is the
+                // evidence-true one.
+                Text("that's your nervous system settling. urges pass easier when the body is quiet.")
                     .font(Typo.body)
                     .foregroundStyle(Palette.textSecondary)
                     .multilineTextAlignment(.center)
@@ -362,7 +373,6 @@ struct BreathworkSessionView: View {
         Analytics.track(.breathworkSessionStarted, properties: [
             "protocol_id": techProtocol.rawValue
         ])
-        breathState = .holding(scale: 0.6)
         withAnimation(.easeInOut(duration: 0.6).delay(0.2)) { introLineVisible = true }
 
         // Play intro audio if available; start cycling when it ends.
@@ -386,15 +396,10 @@ struct BreathworkSessionView: View {
             introLineVisible = false
             phase = .breathing
         }
-        // Kick the BreathCircle into its cycling state. It drives the
-        // visual, haptics, countdown, and fires onCycleComplete when all
-        // reps finish.
-        breathState = .cycling(
-            inhale: inhaleSec,
-            hold: techProtocol.holdSec,
-            exhale: exhaleSec,
-            repeats: totalReps
-        )
+        // JKBreathScene starts its clock on appear — visuals, the
+        // continuous haptic envelopes, and the phase words all read
+        // the same BreathClock, and onComplete fires when every
+        // breath lands.
     }
 
     private func finishBreathing() {
@@ -402,7 +407,6 @@ struct BreathworkSessionView: View {
         if let url = resolveAudioURL(base: "breath_close"), !reduceMotion {
             playAudio(url: url, onComplete: nil)
         }
-        breathState = .idle
         withAnimation(.easeInOut(duration: 0.5)) {
             phase = .complete
         }
