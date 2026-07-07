@@ -3,8 +3,16 @@
 Date: 2026-07-07. Branch `feat/app-v2`, commits 492c9c2…HEAD.
 Evidence: `docs/app_v5/evidence/` (gitignored per screenshot policy —
 on disk, not in history; SE set in `evidence/se/`, Dynamic Type XXL
-in `evidence/xl/`, motion in `motion_tour.mp4` + the v4 archive's
-breath/re-signing recordings which still bind). 194/194 unit tests.
+in `evidence/xl/`, motion in `motion_tour.mp4`/`story_swipe3.mp4` +
+the v4 archive's breath/re-signing recordings which still bind).
+194/194 unit tests; full SurfaceInventory walk green.
+
+**Part 2 (the founder's re-steer, same day) is §8 below — becoming
+rebuilt as a swipeable insight story, Home's day rail, the chart
+craft pass, and the nutrition-visibility pass. §§1–7 describe part
+1 (the language/trust pass) and remain accurate for what they
+cover; where they describe becoming's vertical layout, §8
+supersedes.**
 
 ## 1. The diagnosis (what was actually wrong)
 
@@ -176,3 +184,80 @@ insides now speak plainly).
    PostHog dashboards for journey events.
 6. **Post-purchase → first Today transition** not redesigned this
    pass (onboarding fence).
+
+---
+
+## 8. Part 2 — the re-steer (same day)
+
+Founder verdict on part 1: still old-structure-improved. Accepted.
+Direction: `00_DIRECTION.md` §6. What shipped:
+
+**Becoming = a swipeable insight story.** `BecomingView` is a
+horizontal pager (custom dots, soft haptic per turn) of
+`JKStoryPage` pages — eyebrow → serif insight headline → one large
+visual → caption → quiet doors:
+
+1. *weight* — the trend canvas as an editorial figure (chromeless,
+   170pt, finer 2.5pt stroke over a blurred under-glow layer);
+   headline from the unit-aware trend story; "log a weigh-in" door
+   when today has none.
+2. *food* — the rebuilt protein arc (hairline track, blush→rose
+   angular sweep, glowing tip head, target notch, count-up on
+   arrival) + the 7-day protein band + **the chemistry row (kcal ·
+   carbs · fat · fiber)** + the kcal-room caption; "her plates"
+   door. Headline ladder ends in a today-fallback ("62g of protein
+   so far today") so the arc never contradicts the words.
+3. *movement* — today's steps as the serif numeral + the week's
+   rhythm marks with weekday letters; connect-health door when
+   unauthorized; the gentle-floor fact.
+4. *this week* — the week's name, stage-size day dots + EMA delta
+   (tap → week page), the arc ribbon, signed stamp + due-review
+   card + "her weeks" door.
+5. *the band* (keeping chapter only) — zone headline + kept-days
+   numeral.
+6. *from jeni* — pattern insight or the reading as a letter, the
+   practice card, talk-it-through door.
+
+Every page visual re-arms on arrival (TabView pre-renders
+neighbors; mount-time animations played unseen) and resets
+silently on exit — each swipe gets its draw-in.
+
+**Home = the day rail.** The whisper ribbon became `JKDayRail`:
+seven readable cells (weekday letters, standing marks, today as a
+filled date pill, dotted future), past cells open day receipts
+(`JourneyWeekPage` gains `initialProgramDay`), the caption opens
+the journey. Calories stay Home's lead food sentence; the big
+gauge moved to the food page.
+
+**Plan history one level in.** `JourneyTimelineView` ("her weeks")
+behind the plan page: this week + past week receipt cards + quiet
+seams + the future's shape. The top-level vertical ledger is gone.
+
+**Nutrition visibility (founder ask, mid-pass):** calories kept
+prominent on Home; carbs/fat/fiber surfaced from fields the
+pipeline has stored since Phase T (snapshot + food page + day
+receipts now carry kcal per plate, suppressed cohorts excepted).
+Vitamins/minerals are NOT in the vision contract — surfacing them
+needs a food-vision EF change (production-fenced this pass);
+honest follow-up, nothing invented.
+
+**Frame-audit catches (recorded in `story_swipe*.mp4`):** the
+canvas's zero-distance scrub gesture ate horizontal swipes — the
+page never turned over the chart (hold-to-scrub still lost to the
+pager; scrub is retired on story pages, double-tap window cycling
+stays); the unauthorized movement page showed a ghost "0 today";
+the plan page carried two intent-toned sentences; the QA plate
+seed starved after midnight (any-entries guard → per-day guard +
+dayKey-scoped ids).
+
+**Verified:** 194/194 unit tests; full SurfaceInventory walk
+(walker updated for the story: her-plates leg swipes to the food
+page; motion tour swipes all five pages); SE (line page, plan
+page, home rail) and Dynamic Type XXL (food page) hold; fed +
+zero states both captured.
+
+**Part-2 gaps:** the her-weeks timeline cover is assembled from
+verified components (JKWeekCard/seams/future card) but hasn't its
+own walker leg; scrubbing the trend line awaits a dedicated detail
+surface; the earlier-weeks seam still doesn't expand; SE plan page
+runs airy in its mid-zone (acceptable, watched).

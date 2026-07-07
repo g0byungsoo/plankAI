@@ -51,6 +51,12 @@ struct BecomingView: View {
         return pages
     }
 
+    /// Whether a page is the one on stage — its visual draws in on
+    /// arrival and re-arms when she swipes back.
+    private func isArmed(_ page: StoryPage) -> Bool {
+        storyPages.firstIndex(of: page).map { $0 == pageIndex } ?? true
+    }
+
     @AppStorage("weightUnit") private var weightUnitRaw: String = "lb"
     private var weightUnit: WeightUnit { WeightUnit(rawValue: weightUnitRaw) ?? .lb }
 
@@ -274,7 +280,10 @@ struct BecomingView: View {
                     unit: weightUnit,
                     bandSettleKg: snapshot?.chapter == .keeping
                         ? BandModel.settleWeightKg(plan: snapshot?.plan)
-                        : nil
+                        : nil,
+                    height: 170,
+                    chromeless: true,
+                    armed: isArmed(.line)
                 )
             } else if let firstLog = week?.weightLogs.first {
                 singleWeightStarted(firstLog)
@@ -335,7 +344,8 @@ struct BecomingView: View {
                         grams: snapshot?.proteinEatenG ?? 0,
                         targetG: target,
                         note: snapshot?.targets.proteinNote,
-                        diameter: 148
+                        diameter: 148,
+                        armed: isArmed(.food)
                     )
                     if let week {
                         JKProteinWeekBand(
@@ -404,6 +414,11 @@ struct BecomingView: View {
         }
         if week.loggedDays7 >= 3 {
             return "plates logged on \(week.loggedDays7) of 7 days."
+        }
+        // A thin week but a live day: speak today (the arc beside a
+        // "starts with plates" line read as a contradiction).
+        if let g = snapshot?.proteinEatenG, g > 0 {
+            return "\(g)g of protein so far today."
         }
         return "the food story starts with plates."
     }
@@ -500,7 +515,9 @@ struct BecomingView: View {
                 JKStepsRhythmVisual(
                     todayCount: StepsService.shared.todayCount,
                     weeklyCounts: counts,
-                    goal: goal
+                    goal: goal,
+                    letters: trailingWeekLetters(count: counts.count),
+                    armed: isArmed(.movement)
                 )
             } else {
                 // Not connected: seven quiet dashes, no ghost zero.
@@ -545,7 +562,8 @@ struct BecomingView: View {
                         VStack(spacing: Space.md) {
                             JKWeekDotsVisual(
                                 days: current.dotDays,
-                                letters: weekLetters(current)
+                                letters: weekLetters(current),
+                                armed: isArmed(.plan)
                             )
                             if let delta = current.weightDeltaLine {
                                 Text(delta)
@@ -607,6 +625,19 @@ struct BecomingView: View {
         let fmt = DateFormatter()
         fmt.dateFormat = "EEEEE"
         return entry.slice.days.map { fmt.string(from: $0.date).lowercased() }
+    }
+
+    /// Weekday letters for a trailing window ending today (the steps
+    /// rhythm's axis).
+    private func trailingWeekLetters(count: Int) -> [String] {
+        guard count > 0 else { return [] }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "EEEEE"
+        let cal = Calendar.current
+        return (0..<count).map { i in
+            let date = cal.date(byAdding: .day, value: i - (count - 1), to: .now) ?? .now
+            return fmt.string(from: date).lowercased()
+        }
     }
 
     /// Page 5 (keeping only) — the band. Maintenance as its own page.

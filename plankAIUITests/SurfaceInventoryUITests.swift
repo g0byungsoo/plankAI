@@ -253,17 +253,11 @@ final class SurfaceInventoryUITests: XCTestCase {
         sleep(2)
         snap("becoming_top")
 
-        // ── 11 · her plates (v4: the archive door lives at the
-        //        journey's foot — scroll there, then open) ────────
-        for _ in 0..<3 {
-            let door = app.buttons.matching(
-                NSPredicate(format: "label CONTAINS 'her plates'")
-            ).firstMatch
-            if door.exists && door.isHittable { break }
-            app.swipeUp()
-            sleep(1)
-        }
-        snap("becoming_journey_wins")
+        // ── 11 · her plates (v5: the door lives on the story's food
+        //        page — one swipe left from the line) ─────────────
+        app.swipeLeft()
+        sleep(2)
+        snap("becoming_food_page")
         let platesDoor = app.buttons.matching(
             NSPredicate(format: "label CONTAINS 'her plates'")
         ).firstMatch

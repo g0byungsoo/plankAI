@@ -100,6 +100,11 @@ struct JKWeekDotsVisual: View {
     let days: [JKStandingDots.Day]
     /// Weekday letter per day, same order ("f", "s", "s", "m"…).
     let letters: [String]
+    /// v5 pager choreography: cells cascade in on page arrival.
+    var armed: Bool = true
+
+    @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 0) {
@@ -114,10 +119,27 @@ struct JKWeekDotsVisual: View {
                         .frame(height: 18)
                 }
                 .frame(maxWidth: .infinity)
+                .opacity(shown ? 1 : 0)
+                .offset(y: shown ? 0 : 4)
+                .animation(Motion.entranceSoft.delay(Double(idx) * 0.04), value: shown)
             }
+        }
+        .onAppear { if armed { arm() } }
+        .onChange(of: armed) { _, isArmed in
+            if isArmed { arm() } else { disarm() }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(a11y)
+    }
+
+    private func arm() {
+        if reduceMotion { shown = true; return }
+        withAnimation { shown = true }
+    }
+
+    private func disarm() {
+        var t = Transaction(); t.disablesAnimations = true
+        withTransaction(t) { shown = false }
     }
 
     @ViewBuilder
@@ -165,6 +187,14 @@ struct JKStepsRhythmVisual: View {
     let todayCount: Int
     let weeklyCounts: [Int]
     let goal: Int
+    /// Weekday letters under the marks (oldest → today). Optional so
+    /// legacy callers stay letter-free.
+    var letters: [String] = []
+    /// v5 pager choreography: dots cascade in on page arrival.
+    var armed: Bool = true
+
+    @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: Space.lg) {
@@ -179,30 +209,60 @@ struct JKStepsRhythmVisual: View {
                     .foregroundStyle(Palette.accent)
                     .baselineOffset(4)
             }
+            .opacity(shown ? 1 : 0)
+            .offset(y: shown ? 0 : 5)
+            .animation(Motion.entranceSoft, value: shown)
 
             HStack(spacing: 16) {
-                ForEach(Array(weeklyCounts.enumerated()), id: \.offset) { _, count in
-                    Group {
-                        if count >= goal {
-                            Circle()
-                                .fill(Palette.cocoaPrimary)
-                                .frame(width: 12, height: 12)
-                        } else if count >= goal / 2 {
-                            Circle()
-                                .strokeBorder(Palette.cocoaSecondary, lineWidth: 1.6)
-                                .frame(width: 12, height: 12)
-                        } else {
-                            Capsule()
-                                .fill(Palette.hairlineCocoa)
-                                .frame(width: 12, height: 2.5)
+                ForEach(Array(weeklyCounts.enumerated()), id: \.offset) { idx, count in
+                    VStack(spacing: 8) {
+                        Group {
+                            if count >= goal {
+                                Circle()
+                                    .fill(Palette.cocoaPrimary)
+                                    .frame(width: 12, height: 12)
+                            } else if count >= goal / 2 {
+                                Circle()
+                                    .strokeBorder(Palette.cocoaSecondary, lineWidth: 1.6)
+                                    .frame(width: 12, height: 12)
+                            } else {
+                                Capsule()
+                                    .fill(Palette.hairlineCocoa)
+                                    .frame(width: 12, height: 2.5)
+                            }
+                        }
+                        .frame(height: 12)
+                        if idx < letters.count {
+                            Text(letters[idx])
+                                .font(.custom("DMSans-Medium", size: 10, relativeTo: .caption2))
+                                .kerning(0.66)
+                                .foregroundStyle(idx == weeklyCounts.count - 1
+                                                 ? Palette.cocoaPrimary
+                                                 : Palette.cocoaTertiary)
                         }
                     }
-                    .frame(height: 12)
+                    .opacity(shown ? 1 : 0)
+                    .offset(y: shown ? 0 : 4)
+                    .animation(Motion.entranceSoft.delay(0.08 + Double(idx) * 0.04), value: shown)
                 }
             }
         }
+        .onAppear { if armed { arm() } }
+        .onChange(of: armed) { _, isArmed in
+            if isArmed { arm() } else { disarm() }
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(todayCount) steps today")
+    }
+
+    private func arm() {
+        if reduceMotion { shown = true; return }
+        withAnimation { shown = true }
+    }
+
+    private func disarm() {
+        var t = Transaction(); t.disablesAnimations = true
+        withTransaction(t) { shown = false }
     }
 }
 

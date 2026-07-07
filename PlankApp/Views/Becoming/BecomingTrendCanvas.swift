@@ -40,6 +40,12 @@ struct BecomingTrendCanvas: View {
     // photo modules at ~100-120pt. 110pt lands the chart on register
     // and frees ~60pt below for an insight line or stat row.
     var height: CGFloat = 110
+    /// v5 story pages: no card chrome (editorial figure on cream).
+    var chromeless: Bool = false
+    /// v5 pager choreography: the draw-in fires when the page
+    /// actually arrives (TabView pre-renders neighbors, so a mount-
+    /// time animation plays unseen); re-arms on every arrival.
+    var armed: Bool = true
 
     @State private var drawProgress: Double = 0     // 0...1 — line trace-in
     @State private var shimmerPhase: Double = 0     // 0...1 — idle gradient flow
@@ -107,6 +113,16 @@ struct BecomingTrendCanvas: View {
     var body: some View {
         if points.count < 2 {
             placeholder
+        } else if chromeless {
+            // v5 story pages: the chart lives naked on the cream —
+            // an editorial figure, not a dashboard widget.
+            VStack(alignment: .leading, spacing: 8) {
+                eyebrow
+                headline
+                trendCanvas
+                xAxisLabel
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 eyebrow
@@ -277,7 +293,12 @@ struct BecomingTrendCanvas: View {
                 }
             }
         }
-        .gesture(scrubGesture)
+        // v5: no drag gesture inside the story pager — ANY child drag
+        // (even hold-sequenced) claims the touch before TabView can
+        // page (frame-audit catch: swipes died over the chart). The
+        // figure keeps double-tap window cycling; scrubbing returns
+        // with a dedicated detail surface if it earns one.
+        .gesture(chromeless ? nil : scrubGesture)
         .onAppear {
             if let override = debugInitialWindowDays {
                 windowDays = override
@@ -289,6 +310,7 @@ struct BecomingTrendCanvas: View {
             // was firing before SwiftUI's animation transaction was
             // ready in the TimelineView wrapper, leaving drawProgress
             // stuck at 0.
+            guard armed else { return }
             try? await Task.sleep(nanoseconds: UInt64(Motion.perceptualLag * 1_000_000_000))
             if reduceMotion {
                 drawProgress = 1
@@ -296,6 +318,20 @@ struct BecomingTrendCanvas: View {
                 withAnimation(Motion.trendDrawIn) {
                     drawProgress = 1
                 }
+            }
+        }
+        .onChange(of: armed) { _, isArmed in
+            if isArmed {
+                guard drawProgress < 1 else { return }
+                if reduceMotion {
+                    drawProgress = 1
+                } else {
+                    withAnimation(Motion.trendDrawIn.delay(0.15)) { drawProgress = 1 }
+                }
+            } else {
+                // Reset silently off-screen so the next arrival draws.
+                var t = Transaction(); t.disablesAnimations = true
+                withTransaction(t) { drawProgress = 0 }
             }
         }
     }
@@ -312,18 +348,29 @@ struct BecomingTrendCanvas: View {
         }
     }
 
+    /// v5: hold-to-scrub. A zero-distance drag ate the story pager's
+    /// horizontal swipes (frame-audit catch: the page never turned
+    /// over the chart). Press ~0.18s to arm the lens (soft haptic),
+    /// then drag; a plain swipe stays a page turn.
     private var scrubGesture: some Gesture {
-        DragGesture(minimumDistance: 0)
+        LongPressGesture(minimumDuration: 0.18)
+            .sequenced(before: DragGesture(minimumDistance: 0))
             .onChanged { value in
-                // Map x to fraction.
-                let width = max(1.0, UIScreen.main.bounds.width - 48) // outer padding aware fallback
-                let frac = min(1.0, max(0.0, value.location.x / width))
-                scrubFraction = frac
-                let idx = min(points.count - 1, max(0, Int(Double(points.count - 1) * frac)))
-                if idx != lastHapticIndex {
-                    lastHapticIndex = idx
-                    let gen = UIImpactFeedbackGenerator(style: .soft)
-                    gen.impactOccurred(intensity: 0.4)
+                switch value {
+                case .first(true):
+                    Haptics.soft()
+                case .second(true, let drag?):
+                    let width = max(1.0, UIScreen.main.bounds.width - 48)
+                    let frac = min(1.0, max(0.0, drag.location.x / width))
+                    scrubFraction = frac
+                    let idx = min(points.count - 1, max(0, Int(Double(points.count - 1) * frac)))
+                    if idx != lastHapticIndex {
+                        lastHapticIndex = idx
+                        let gen = UIImpactFeedbackGenerator(style: .soft)
+                        gen.impactOccurred(intensity: 0.4)
+                    }
+                default:
+                    break
                 }
             }
             .onEnded { _ in
@@ -438,6 +485,21 @@ struct BecomingTrendCanvas: View {
             ),
             .init(color: Palette.cocoaPrimary.opacity(0.85), location: 1.0),
         ])
+        // v5 craft pass: a blurred under-glow beneath a finer stroke —
+        // the line reads lit, not drawn. One extra path, GPU-cheap.
+        ctx.drawLayer { layer in
+            layer.opacity = 0.3
+            layer.addFilter(.blur(radius: 4))
+            layer.stroke(
+                path,
+                with: .linearGradient(
+                    gradient,
+                    startPoint: .zero,
+                    endPoint: CGPoint(x: size.width, y: 0)
+                ),
+                style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round)
+            )
+        }
         ctx.stroke(
             path,
             with: .linearGradient(
@@ -445,7 +507,7 @@ struct BecomingTrendCanvas: View {
                 startPoint: .zero,
                 endPoint: CGPoint(x: size.width, y: 0)
             ),
-            style: StrokeStyle(lineWidth: 3.0, lineCap: .round, lineJoin: .round)
+            style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
         )
 
         // Accent rose tip dot — Robinhood-coded "latest point" marker.

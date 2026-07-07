@@ -10,17 +10,22 @@ in `/docs/archive/` documented a research pass or pivot that fed shipped
 work but is preserved for history, not for guidance.
 
 ### App v5 (2026-07-07, branch feat/app-v2)
-The experience pass over v4's structure: private language retired
-app-wide (today's plates / your weekly review / weighed in N times
-/ the plateau week), day-one teaching reading + trend-language data
-floor (3+ weigh-ins over 5+ days), unit-aware trend story, ONE
-becoming header (ordinal + phase + ribbon; leadLine retired), week
-cards with today's dot + EMA delta, jeni transcript as dated
-letters + persistent starter chips, breath bloom at 360pt presence,
-labeled evening questions, plain day receipts (today "still being
-written"), 4pt tab settle. **Read `docs/app_v5/00_DIRECTION.md`
-first; 01_REPORT.md = evidence + honest gaps.** Supersedes v4's
-language layer; v4 structure stands.
+Part 1 — the language/trust pass: private language retired app-wide
+(today's plates / your weekly review / weighed in N times / the
+plateau week), day-one teaching reading + trend-language data floor
+(3+ weigh-ins over 5+ days), unit-aware trend story, jeni
+transcript as dated letters + persistent starter chips, breath
+bloom at 360pt presence, labeled evening questions, plain day
+receipts. Part 2 — the re-steer: **becoming = a horizontal insight
+story** (JKStoryPage pager: weight / food+chemistry / movement /
+this-week / band / from-jeni; visuals re-arm per swipe), **Home =
+THE DAY RAIL** (seven tappable day cells, today as a filled date
+pill, past days open receipts), her-weeks timeline one level in,
+rebuilt protein arc + under-glow trend figure, calories lead Home's
+food sentence + carbs/fat/fiber surfaced (vitamins/minerals need
+the fenced EF). **Read `docs/app_v5/00_DIRECTION.md` first (§6 =
+re-steer); 01_REPORT.md §8 = part-2 evidence + gaps.** Supersedes
+v4's language layer and becoming's ledger layout; v4 engines stand.
 
 ### App v4 (2026-07-07, branch feat/app-v2)
 The program became an object: ProgramArc phases + WeekIntent named

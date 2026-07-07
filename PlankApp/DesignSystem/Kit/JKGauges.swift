@@ -33,6 +33,10 @@ struct JKProteinArc: View {
     let targetG: Int
     var note: String? = nil          // "lean-mass first"
     var diameter: CGFloat = 108
+    /// v5 pager choreography: when driven (the food story page), the
+    /// sweep re-arms on every arrival; true-by-default keeps mount
+    /// behavior for any future inline use.
+    var armed: Bool = true
 
     @State private var celebrated = false
     /// v2.7 — the band wakes up: the arc draws itself and the numeral
@@ -54,19 +58,50 @@ struct JKProteinArc: View {
     private let sweep: Double = 250
     private var startAngle: Double { 90 + (360 - sweep) / 2 }   // 145°
 
+    // v5 craft pass: the fill sweeps blush → rose (cocoa once met),
+    // over a hairline track — gradient carries the life, the track
+    // recedes, the tip wears a solid head with a soft halo, and the
+    // target sits as a visible notch at the sweep's end.
+    private var sweepGradient: AngularGradient {
+        AngularGradient(
+            gradient: Gradient(colors: met
+                ? [Palette.cocoaSecondary, Palette.cocoaPrimary]
+                : [Palette.accentSubtle, Palette.accent]),
+            center: .center,
+            startAngle: .degrees(startAngle),
+            endAngle: .degrees(startAngle + sweep)
+        )
+    }
+
     var body: some View {
         VStack(spacing: 8) {
             ZStack {
-                arc(trim: 1, color: Palette.accentSubtle, width: 6)
+                // The track — a hairline, not a second gauge.
+                arcShape(trim: 1)
+                    .stroke(Palette.hairlineCocoa,
+                            style: StrokeStyle(lineWidth: 2, lineCap: .round))
+
+                // The target notch at the sweep's end.
+                targetNotch
+
                 if fraction > 0 {
-                    arc(trim: shownFraction, color: met ? Palette.cocoaPrimary : Palette.accent, width: 6)
-                        .animation(Motion.easedFinal, value: fraction)
-                        .transition(.opacity)
+                    // Soft glow under the sweep.
+                    arcShape(trim: shownFraction)
+                        .stroke(sweepGradient,
+                                style: StrokeStyle(lineWidth: 9, lineCap: .round))
+                        .blur(radius: 5)
+                        .opacity(0.3)
+                    // The sweep itself.
+                    arcShape(trim: shownFraction)
+                        .stroke(sweepGradient,
+                                style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    // The tip head.
+                    tipDot
                 }
 
                 VStack(spacing: 1) {
                     Text("\(shownGrams)")
-                        .font(.custom("JeniHeroSerif-Regular", size: 30))
+                        .font(.custom("JeniHeroSerif-Regular", size: diameter > 120 ? 34 : 30))
                         .foregroundStyle(Palette.textPrimary)
                         .monospacedDigit()
                         .contentTransition(.numericText())
@@ -78,6 +113,7 @@ struct JKProteinArc: View {
                 .animation(Motion.easedFinal.delay(Motion.perceptualLag), value: shownGrams)
             }
             .frame(width: diameter, height: diameter)
+            .animation(Motion.easedFinal, value: shownFraction)
             .scaleEffect(pulse ? 1.035 : 1)
             .onTapGesture {
                 Haptics.soft()
@@ -97,13 +133,26 @@ struct JKProteinArc: View {
         // below the fold, so an onAppear awakening plays unseen and
         // the user only ever meets a dead, pre-filled gauge.
         .modifier(JKAwakenOnVisible(threshold: 0.4) {
-            guard !awakened else { return }
+            guard armed, !awakened else { return }
             if reduceMotion {
                 awakened = true
             } else {
                 withAnimation(.easeOut(duration: 0.9).delay(0.1)) { awakened = true }
             }
         })
+        .onChange(of: armed) { _, isArmed in
+            if isArmed {
+                guard !awakened else { return }
+                if reduceMotion {
+                    awakened = true
+                } else {
+                    withAnimation(.easeOut(duration: 0.9).delay(0.2)) { awakened = true }
+                }
+            } else {
+                var t = Transaction(); t.disablesAnimations = true
+                withTransaction(t) { awakened = false }
+            }
+        }
         .onChange(of: met) { _, isMet in
             guard isMet, !celebrated else { celebrated = isMet; return }
             celebrated = true
@@ -113,11 +162,35 @@ struct JKProteinArc: View {
         .accessibilityLabel("protein: \(grams) of \(targetG) grams")
     }
 
-    private func arc(trim: Double, color: Color, width: CGFloat) -> some View {
+    private func arcShape(trim: Double) -> some Shape {
         Circle()
             .trim(from: 0, to: (sweep / 360) * min(1, max(0.02, trim)))
-            .stroke(color, style: StrokeStyle(lineWidth: width, lineCap: .round))
-            .rotationEffect(.degrees(startAngle))
+            .rotation(.degrees(startAngle))
+    }
+
+    /// The solid head riding the sweep's tip.
+    @ViewBuilder private var tipDot: some View {
+        let angle = Angle.degrees(startAngle + sweep * min(1, max(0.02, shownFraction)))
+        let r = diameter / 2
+        Circle()
+            .fill(met ? Palette.cocoaPrimary : Palette.accent)
+            .frame(width: 9, height: 9)
+            .offset(x: CGFloat(cos(angle.radians)) * r,
+                    y: CGFloat(sin(angle.radians)) * r)
+            .shadow(color: (met ? Palette.cocoaPrimary : Palette.accent).opacity(0.35),
+                    radius: 3)
+    }
+
+    /// The goal, visible: a quiet notch where the sweep completes.
+    @ViewBuilder private var targetNotch: some View {
+        let angle = Angle.degrees(startAngle + sweep)
+        let r = diameter / 2
+        Capsule()
+            .fill(Palette.cocoaTertiary.opacity(met ? 0.9 : 0.45))
+            .frame(width: 2, height: 8)
+            .rotationEffect(angle + .degrees(90))
+            .offset(x: CGFloat(cos(angle.radians)) * r,
+                    y: CGFloat(sin(angle.radians)) * r)
     }
 }
 

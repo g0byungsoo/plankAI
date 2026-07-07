@@ -6,9 +6,23 @@ on `feat/app-v2`)
 ## -3. App v5 — the experience pass (2026-07-07)
 
 **Doc set: `docs/app_v5/` (00_DIRECTION · 01_REPORT). Read
-00_DIRECTION.md first. Supersedes v4's LANGUAGE layer; v4's
-structure (arc / weeks / weekly review mechanics / receipts law)
-stands.**
+00_DIRECTION.md first (§6 = the re-steer). Supersedes v4's LANGUAGE
+layer AND becoming's vertical-ledger layout; v4's engines (arc /
+weeks / weekly review mechanics / receipts law) stand.**
+
+Part 2 (the re-steer, same day): **becoming is a horizontal insight
+story** (JKStoryPage pager: weight figure → food arc + chemistry
+row → movement rhythm → this-week + her-weeks timeline → band
+(keeping) → from-jeni letter; visuals re-arm per arrival), **Home
+carries THE DAY RAIL** (seven tappable day cells, today as a filled
+date pill, past days open receipts — the calendar-strip answer),
+plan history lives one level in (JourneyTimelineView), calories
+stay Home's lead food sentence, and carbs/fat/fiber surfaced from
+long-stored fields (vitamins/minerals need an EF change — fenced).
+Chart craft: rebuilt protein arc (gradient sweep, tip head, target
+notch), under-glow trend stroke, chromeless story figures; the
+canvas scrub retired on story pages (it ate the pager's swipes —
+frame-audited).
 
 The organizing principle: **one program, spoken plainly, shown
 beautifully.** v4's private language retired across every surface

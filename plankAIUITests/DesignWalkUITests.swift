@@ -188,16 +188,14 @@ final class DesignWalkUITests: XCTestCase {
         app.buttons["jeni"].firstMatch.tap()
         sleep(1)
         app.buttons["becoming"].firstMatch.tap()
-        sleep(2)
-        app.swipeUp()
-        sleep(1)
-        snap(app, "becoming_mid")
-        app.swipeUp()
-        sleep(1)
-        snap(app, "becoming_deep")
-        app.swipeUp()
-        sleep(1)
-        snap(app, "becoming_foot")
+        sleep(3)
+        // v5: becoming is a horizontal story — swipe the pages.
+        snap(app, "story_line")
+        for name in ["story_food", "story_movement", "story_plan", "story_reflection"] {
+            app.swipeLeft()
+            sleep(2)
+            snap(app, name)
+        }
         app.buttons["today"].firstMatch.tap()
         sleep(1)
         // steps sheet
