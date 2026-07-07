@@ -1645,6 +1645,14 @@ private struct ResultCarouselPreviewHarness: View {
         // carousel) so the slides can be iterated in isolation with a
         // 4-item mock plate.
         ZStack {
+            Color.clear.onAppear {
+                // Harness roots skip RootView's task, so the day-line
+                // provider is mocked here (Home's QA-seed morning:
+                // 860 eaten of ~1,470) for deterministic captures.
+                FoodModule.dayContextProvider = {
+                    FoodModule.SnapDayContext(kcalEatenToday: 860, kcalTarget: 1470)
+                }
+            }
             Image(uiImage: Self.mockPhoto)
                 .resizable()
                 .scaledToFill()
@@ -1661,6 +1669,10 @@ private struct ResultCarouselPreviewHarness: View {
                     }
                 }
             SnapResultView(
+                // A throwaway id keeps slide 2's "protein today" sane:
+                // the empty-id branch sums the device-wide legacy
+                // store (years of QA seeds → absurd totals).
+                userId: "qa-carousel-harness",
                 food: Self.mockFood,
                 mealLabel: "breakfast",
                 dishName: "scrambled eggs + avocado toast +2",
@@ -2234,6 +2246,22 @@ private struct RootView: View {
                     ) ?? (stored > 0 ? stored : nil)
                     guard let kg else { return nil }
                     return TargetsService.proteinTargetG(weightKg: kg)
+                },
+                // v5.1 — the result card's day line: today-so-far +
+                // the kcal target, same sources as Home's kcal bar
+                // (TargetsService owns suppression: kcal comes back
+                // nil for suppressed cohorts and the line stays off).
+                dayContextProvider: {
+                    guard
+                        let uid = AuthService.shared.currentUser?.id.uuidString,
+                        !uid.isEmpty
+                    else { return nil }
+                    let targets = TargetsService.current(userId: uid, in: modelContext)
+                    let macros = FoodLogPersister.todayMacros(userId: uid)
+                    return FoodModule.SnapDayContext(
+                        kcalEatenToday: Int(macros.kcal.rounded()),
+                        kcalTarget: targets.kcal
+                    )
                 }
             )
             #if DEBUG

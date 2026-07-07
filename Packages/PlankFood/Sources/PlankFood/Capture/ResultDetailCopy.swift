@@ -260,19 +260,19 @@ struct ResultDetailCopy {
         if food.items.count >= 3 {
             return pick([
                 PunchLine(prefix: "look at this plate. \(firstItem) plus everything else is ", punch: "exactly", suffix: " it."),
-                PunchLine(prefix: "real food, real care. this is what looking after yourself ", punch: "looks", suffix: " like \u{2661}"),
+                PunchLine(prefix: "\(food.items.count) things on one plate. that's ", punch: "built", suffix: ", not grabbed \u{2661}"),
             ])
         }
         if fat >= 15 {
             return pick([
-                PunchLine(prefix: "the fats in here are so ", punch: "underrated", suffix: ". steady energy, no crash."),
+                PunchLine(prefix: "\(fat)g of fat here, doing the ", punch: "steady", suffix: "-energy work. no crash coming."),
                 PunchLine(prefix: "this'll feel really good. healthy fats slow it all down in the ", punch: "best", suffix: " way \u{2661}"),
             ])
         }
         return pick([
             PunchLine(prefix: "you ate, and you ", punch: "noticed", suffix: ". that's the whole thing today \u{2661}"),
-            PunchLine(prefix: "not every plate needs to be ", punch: "optimized", suffix: ". this is just fine."),
-            PunchLine(prefix: "\(firstItem) counts. soft week, soft choices, soft ", punch: "you", suffix: "."),
+            PunchLine(prefix: "counted, not ", punch: "judged", suffix: ". \(kcal) calories your plan can actually use."),
+            PunchLine(prefix: "\(firstItem), on the record. your weekly review gets ", punch: "sharper", suffix: " with every plate."),
         ])
     }
 

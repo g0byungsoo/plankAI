@@ -41,16 +41,33 @@ public enum FoodModule {
     /// nil provider or nil result → package-local fallback formula.
     public static var proteinTargetProvider: (@MainActor () -> Int?)?
 
+    /// v5.1 — today's food state at scan time, injected by the app so
+    /// the result card can answer "how does this land in my day?"
+    /// with the SAME provenance as Home's kcal bar (TargetsService +
+    /// todayMacros). kcalTarget nil = suppressed cohort or no plan:
+    /// the day line simply doesn't render. nil provider = same.
+    public struct SnapDayContext: Equatable, Sendable {
+        public let kcalEatenToday: Int
+        public let kcalTarget: Int?
+        public init(kcalEatenToday: Int, kcalTarget: Int?) {
+            self.kcalEatenToday = kcalEatenToday
+            self.kcalTarget = kcalTarget
+        }
+    }
+    public static var dayContextProvider: (@MainActor () -> SnapDayContext?)?
+
     /// One-shot setup at app launch. Idempotent — calling again
     /// replaces services (useful for DEBUG re-configure / hot reload).
     public static func configure(
         visionService: FoodVisionService? = nil,
         nutritionLookup: NutritionLookupService? = nil,
-        proteinTargetProvider: (@MainActor () -> Int?)? = nil
+        proteinTargetProvider: (@MainActor () -> Int?)? = nil,
+        dayContextProvider: (@MainActor () -> SnapDayContext?)? = nil
     ) {
         if let visionService { Self.visionService = visionService }
         if let nutritionLookup { Self.nutritionLookup = nutritionLookup }
         if let proteinTargetProvider { Self.proteinTargetProvider = proteinTargetProvider }
+        if let dayContextProvider { Self.dayContextProvider = dayContextProvider }
     }
 
     /// Resets all configured services. Used by tests + by Settings

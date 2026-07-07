@@ -552,7 +552,70 @@ public struct SnapResultView: View {
                 Spacer(minLength: 8)
                 adequacyStamp(protein: Int(totals.protein.rounded()))
             }
+
+            // The rest of the chemistry, one quiet line (carbs/fat/
+            // fiber ride the pipeline since Phase T; only protein had
+            // a face). Zeros stay silent; an all-zero plate says
+            // nothing.
+            if let chemistry = chemistryLine(totals) {
+                Text(chemistry)
+                    .font(.custom("DMSans-Regular", size: 12.5))
+                    .foregroundStyle(FoodTheme.textSecondary.opacity(0.9))
+                    .monospacedDigit()
+                    .padding(.top, 1)
+            }
+
+            // THE DAY LINE — what this plate does to today. Same
+            // provenance as Home's kcal bar (app-injected target +
+            // eaten-so-far); suppressed cohorts and target-less users
+            // never see it. Over is words, never red.
+            if let day = dayLine(totals) {
+                (Text(day.prefix)
+                    .font(.custom("DMSans-Regular", size: 13))
+                    .foregroundColor(FoodTheme.textSecondary)
+                + Text(day.punch)
+                    .font(.custom("JeniHeroSerif-Italic", size: 15))
+                    .foregroundColor(FoodTheme.textPrimary)
+                + Text(day.suffix)
+                    .font(.custom("DMSans-Regular", size: 13))
+                    .foregroundColor(FoodTheme.textSecondary))
+                    .padding(.top, 3)
+                    .accessibilityLabel("\(day.prefix)\(day.punch)\(day.suffix)")
+            }
         }
+    }
+
+    /// "carbs 45 · fat 17 · fiber 7" — grams, nonzero components only.
+    private func chemistryLine(_ totals: PlateTotals) -> String? {
+        var parts: [String] = []
+        if totals.carbs >= 1 { parts.append("carbs \(Int(totals.carbs.rounded()))g") }
+        if totals.fat >= 1 { parts.append("fat \(Int(totals.fat.rounded()))g") }
+        if totals.fiber >= 1 { parts.append("fiber \(Int(totals.fiber.rounded()))g") }
+        guard !parts.isEmpty else { return nil }
+        return parts.joined(separator: "  \u{00B7}  ")
+    }
+
+    /// One sentence answering "and my day?" — room left after this
+    /// plate, in Home's own voice. nil when there is no honest number
+    /// to speak (no target, suppressed cohort, no provider).
+    private func dayLine(_ totals: PlateTotals) -> (prefix: String, punch: String, suffix: String)? {
+        guard
+            let ctx = FoodModule.dayContextProvider?(),
+            let target = ctx.kcalTarget, target > 0
+        else { return nil }
+        let after = ctx.kcalEatenToday + displayKcal(totals)
+        let room = target - after
+        if room >= 150 {
+            // Nearest 50 — "about 600", never "612".
+            let rounded = (room / 50) * 50
+            return ("room for ", "about \(rounded)", " in your day after this")
+        }
+        if room >= -60 {
+            // Under ~150 the honest read isn't a number, it's "you've
+            // arrived" — a 50-kcal remainder is not an invitation.
+            return ("this lands today ", "right around", " your target")
+        }
+        return ("a little ", "over", " today \u{00B7} tomorrow resets")
     }
 
     private func displayKcal(_ totals: PlateTotals) -> Int {
@@ -982,7 +1045,13 @@ public struct SnapResultView: View {
                         : FoodLogPersister.todayMacros(userId: userId)
                     ).protein.rounded()
                 ),
-                kcalTarget: Int(foodDailyTarget),
+                // v5.1 — the canonical target (TargetsService via the
+                // day-context provider) so the note's day-fit speaks
+                // the same number as Home's kcal bar; the legacy
+                // AppStorage value only backstops provider-less runs
+                // (previews, package tests).
+                kcalTarget: FoodModule.dayContextProvider?()?.kcalTarget
+                    ?? Int(foodDailyTarget),
                 isGlp1: isGlp1Cohort,
                 hour: Calendar.current.component(.hour, from: loggedAt)
             )
