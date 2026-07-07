@@ -75,7 +75,15 @@ struct TodayStateBand: View {
             // becoming's food page now).
             VStack(alignment: .leading, spacing: 7) {
                 if !snapshot.targets.numericsSuppressed, snapshot.kcalEaten > 0 {
-                    JKKcalLine(kcal: snapshot.kcalEaten, target: snapshot.targets.kcal)
+                    // v5: fulfillment at a GLANCE — the bar answers
+                    // "how much of my day have I used?" before the
+                    // words do.
+                    if let kcalTarget = snapshot.targets.kcal {
+                        JKKcalBar(kcal: snapshot.kcalEaten, target: kcalTarget)
+                            .padding(.top, 2)
+                    } else {
+                        JKKcalLine(kcal: snapshot.kcalEaten, target: snapshot.targets.kcal)
+                    }
                     if let target = snapshot.targets.proteinG {
                         Text("protein \(snapshot.proteinEatenG) of \(target)g")
                             .font(Typo.caption)

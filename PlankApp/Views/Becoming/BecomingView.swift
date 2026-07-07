@@ -40,15 +40,41 @@ struct BecomingView: View {
     /// The story's page order — cohort pages join when their data is
     /// real (the band page needs a keeping chapter).
     private enum StoryPage: Int, Identifiable {
-        case line, food, movement, plan, band, reflection
+        case line, food, window, movement, plan, band, reflection
         var id: Int { rawValue }
     }
 
     private var storyPages: [StoryPage] {
-        var pages: [StoryPage] = [.line, .food, .movement, .plan]
+        var pages: [StoryPage] = [.line, .food]
+        // THE OVERNIGHT WINDOW — a rhythm insight, cohort-gated: the
+        // on-medication chapter runs adequacy-first (under-eating is
+        // the documented risk) and restrictive-risk identities never
+        // see a fasting frame. Renders only when QuietHours can
+        // narrate honestly (its own 8–20h gates).
+        if overnightHours != nil,
+           snapshot?.chapter != .onMedication,
+           !CohortStore.isRestrictiveRisk {
+            pages.append(.window)
+        }
+        pages.append(.movement)
+        pages.append(.plan)
         if snapshot?.chapter == .keeping { pages.append(.band) }
         pages.append(.reflection)
         return pages
+    }
+
+    private var overnightHours: Double? {
+        #if DEBUG
+        // QA determinism: the live read depends on wall-clock vs
+        // plate times (a 2am run has no "morning" yet).
+        //   --uitest-force-window 13
+        let args = ProcessInfo.processInfo.arguments
+        if let idx = args.firstIndex(of: "--uitest-force-window"),
+           idx + 1 < args.count, let h = Double(args[idx + 1]) {
+            return h
+        }
+        #endif
+        return QuietHours.liveOvernight(userId: userId)
     }
 
     /// Whether a page is the one on stage — its visual draws in on
@@ -247,10 +273,31 @@ struct BecomingView: View {
         switch page {
         case .line: linePage
         case .food: foodPage
+        case .window: windowPage
         case .movement: movementPage
         case .plan: planPage
         case .band: bandPage
         case .reflection: reflectionPage
+        }
+    }
+
+    /// The overnight window — meal-timing rhythm as an insight.
+    /// Evidence-honest: overnight stretch consistency supports
+    /// adherence; framed as her own pattern, never a fasting rule or
+    /// a fat-burn claim (the same honesty stance as breathwork).
+    @ViewBuilder private var windowPage: some View {
+        let hours = overnightHours ?? 0
+        JKStoryPage(
+            eyebrow: "the overnight window",
+            headline: hours >= 12
+                ? "about \(Int(hours.rounded())) quiet hours overnight, without trying."
+                : "your kitchen went quiet for \(Int(hours.rounded())) hours.",
+            headlineItalic: ["quiet"],
+            caption: "a steady overnight stretch is rhythm your plan can lean on. it's a pattern, not a rule \u{2665}\u{FE0E}"
+        ) {
+            JKNightWindowRing(hours: hours, armed: isArmed(.window))
+        } doors: {
+            EmptyView()
         }
     }
 
@@ -274,17 +321,30 @@ struct BecomingView: View {
             caption: lineCaption
         ) {
             if let week, week.weightLogs.count >= 2 {
-                BecomingTrendCanvas(
-                    logs: week.weightLogs,
-                    goalWeightKg: snapshot?.plan?.goalWeightKg,
-                    unit: weightUnit,
-                    bandSettleKg: snapshot?.chapter == .keeping
-                        ? BandModel.settleWeightKg(plan: snapshot?.plan)
-                        : nil,
-                    height: 170,
-                    chromeless: true,
-                    armed: isArmed(.line)
-                )
+                VStack(spacing: Space.lg) {
+                    BecomingTrendCanvas(
+                        logs: week.weightLogs,
+                        goalWeightKg: snapshot?.plan?.goalWeightKg,
+                        unit: weightUnit,
+                        bandSettleKg: snapshot?.chapter == .keeping
+                            ? BandModel.settleWeightKg(plan: snapshot?.plan)
+                            : nil,
+                        height: 190,
+                        chromeless: true,
+                        armed: isArmed(.line)
+                    )
+                    // The journey in three numbers — started, now,
+                    // and where the plan points.
+                    if let startKg = snapshot?.plan?.currentWeightKg,
+                       let nowKg = week.weightLogs.first?.weightKg,
+                       let goalKg = snapshot?.plan?.goalWeightKg {
+                        HStack(spacing: 0) {
+                            chemistryColumn(weightWord(startKg), "started")
+                            chemistryColumn(weightWord(nowKg), "now")
+                            chemistryColumn(weightWord(goalKg), "goal")
+                        }
+                    }
+                }
             } else if let firstLog = week?.weightLogs.first {
                 singleWeightStarted(firstLog)
             } else {
@@ -344,7 +404,7 @@ struct BecomingView: View {
                         grams: snapshot?.proteinEatenG ?? 0,
                         targetG: target,
                         note: snapshot?.targets.proteinNote,
-                        diameter: 148,
+                        diameter: 164,
                         armed: isArmed(.food)
                     )
                     if let week {
@@ -353,13 +413,21 @@ struct BecomingView: View {
                             targetG: target
                         )
                     }
-                    // v5 nutrition visibility: the rest of today's
-                    // plate chemistry the pipeline already reads —
-                    // carbs, fat, fiber (vitamins/minerals aren't in
-                    // the vision contract yet; nothing invented).
+                    // v5 nutrition visibility: calorie fulfillment as
+                    // a bar, then the rest of today's plate chemistry
+                    // the pipeline already reads — carbs, fat, fiber
+                    // (vitamins/minerals aren't in the vision
+                    // contract yet; nothing invented).
                     if let snapshot, snapshot.kcalEaten > 0 {
+                        if let kcalTarget = snapshot.targets.kcal {
+                            JKKcalBar(
+                                kcal: snapshot.kcalEaten,
+                                target: kcalTarget,
+                                armed: isArmed(.food)
+                            )
+                            .padding(.top, Space.xs)
+                        }
                         HStack(spacing: 0) {
-                            chemistryColumn("\(snapshot.kcalEaten)", "kcal")
                             chemistryColumn("\(snapshot.carbsEatenG)g", "carbs")
                             chemistryColumn("\(snapshot.fatEatenG)g", "fat")
                             chemistryColumn("\(snapshot.fiberEatenG)g", "fiber")
@@ -383,6 +451,10 @@ struct BecomingView: View {
                 action: { showJournal = true }
             )
         }
+    }
+
+    private func weightWord(_ kg: Double) -> String {
+        String(format: "%.1f %@", weightUnit.display(fromKg: kg), weightUnit.label)
     }
 
     private func chemistryColumn(_ value: String, _ label: String) -> some View {
@@ -433,9 +505,10 @@ struct BecomingView: View {
         if snapshot.targets.numericsSuppressed {
             return "protein is what matters today \u{2665}\u{FE0E}"
         }
-        if snapshot.kcalEaten > 0, let target = snapshot.targets.kcal {
-            let room = Int((Double(max(0, target - snapshot.kcalEaten)) / 50).rounded() * 50)
-            return "today: \(snapshot.kcalEaten) of ~\(target.formatted()) · room for about \(room)"
+        // The kcal bar above owns today's calorie sentence — the
+        // caption only speaks when the bar can't render.
+        if snapshot.kcalEaten > 0, snapshot.targets.kcal != nil {
+            return nil
         }
         if snapshot.chapter == .onMedication, let g = snapshot.targets.proteinG {
             return "the floor is \(g)g. small plates count double."

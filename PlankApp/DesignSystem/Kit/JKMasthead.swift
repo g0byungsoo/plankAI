@@ -67,11 +67,19 @@ struct JKMasthead: View {
                 Spacer(minLength: 0)
 
                 ForEach(marks) { mark in
-                    JKQuietMark(
-                        systemName: mark.systemName,
-                        accessibilityLabel: mark.label,
-                        action: mark.action
-                    )
+                    if mark.prominent {
+                        JKProminentMark(
+                            systemName: mark.systemName,
+                            label: mark.label,
+                            action: mark.action
+                        )
+                    } else {
+                        JKQuietMark(
+                            systemName: mark.systemName,
+                            accessibilityLabel: mark.label,
+                            action: mark.action
+                        )
+                    }
                 }
             }
 
@@ -102,5 +110,31 @@ struct JKMastheadMark: Identifiable {
     let id = UUID()
     let systemName: String
     let label: String
+    /// v5: the app's hero action (snap) wears a filled pill instead
+    /// of a quiet mark — one per masthead, never more.
+    var prominent: Bool = false
     let action: () -> Void
+}
+
+/// The filled masthead pill for the one hero action.
+struct JKProminentMark: View {
+    let systemName: String
+    let label: String
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            Haptics.medium()
+            action()
+        } label: {
+            Image(systemName: systemName)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Palette.textInverse)
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Palette.cocoaPrimary))
+                .shadow(color: .black.opacity(0.10), radius: 5, y: 2)
+        }
+        .buttonStyle(JKPress())
+        .accessibilityLabel(label)
+    }
 }

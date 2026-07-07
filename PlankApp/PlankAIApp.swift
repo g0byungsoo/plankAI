@@ -2268,14 +2268,13 @@ private struct RootView: View {
             // arc, kcal line, wins block, and insight cards all carry
             // real state in the walker ledger. mergeRemote is the
             // public insert-only seam (no photos; recipe-card minis).
-            // Seed guards on TODAY having no plates (an any-entries
-            // guard starved every run after the first midnight
-            // crossing), and the ids carry the dayKey so the
-            // insert-only merge can't skip a fresh day.
+            // No presence guard: the ids carry the dayKey and
+            // mergeRemote is insert-only by id, so re-seeding is
+            // idempotent per day (an any-entries guard starved every
+            // run after the first midnight crossing; a today-guard
+            // then blocked the prev-dinner plate).
             if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
-               let uid = auth.currentUser?.id.uuidString,
-               !FoodLogPersister.allEntries(userId: uid)
-                   .contains(where: { Calendar.current.isDateInToday($0.loggedAt) }) {
+               let uid = auth.currentUser?.id.uuidString {
                 let cal = Calendar.current
                 let today = cal.startOfDay(for: .now)
                 let dayKey = TodayStateService.dayKey()
@@ -2288,6 +2287,12 @@ private struct RootView: View {
                           loggedAt: today.addingTimeInterval(12.7 * 3600),
                           kcal: 520, protein: 38, carbs: 52, fat: 17, fiber: 7,
                           title: "chicken poke bowl", source: "quick_add"),
+                    // Last night's dinner so the overnight window
+                    // (dinner → first plate) narrates in QA.
+                    .init(id: "qa-plate-\(dayKey)-prev", userId: uid,
+                          loggedAt: today.addingTimeInterval(-5 * 3600),
+                          kcal: 610, protein: 34, carbs: 58, fat: 22, fiber: 8,
+                          title: "salmon and rice", source: "quick_add"),
                 ])
             }
             // --uitest-force-expired: stamp prior entitlement WITHOUT

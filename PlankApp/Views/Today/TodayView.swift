@@ -388,7 +388,9 @@ struct TodayView: View {
             eyebrow: Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day())
                 .lowercased(),
             marks: [
-                JKMastheadMark(systemName: "camera", label: "snap a meal") {
+                // v5: snap is the hero action — it wears the filled
+                // pill (the quiet mark undersold the app's signature).
+                JKMastheadMark(systemName: "camera", label: "snap a meal", prominent: true) {
                     modules.present(cover: .captureFlow)
                 },
                 JKMastheadMark(systemName: "line.3.horizontal", label: "settings") {

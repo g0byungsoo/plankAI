@@ -195,6 +195,91 @@ struct JKProteinArc: View {
 }
 
 // MARK: - JKStepsRing
+// MARK: - JKKcalBar
+//
+// v5: the day's calorie fulfillment as ONE readable object — a
+// hairline track, a neutral-ink fill, the target as a notch. Over
+// target is NEVER red and never overflows: the fill rests at the
+// notch and the words carry it ("a little over · tomorrow resets").
+
+struct JKKcalBar: View {
+    let kcal: Int
+    let target: Int
+    /// v5 pager choreography (see JKProteinArc).
+    var armed: Bool = true
+
+    @State private var awakened = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var fraction: Double {
+        guard target > 0 else { return 0 }
+        return min(1, Double(kcal) / Double(target))
+    }
+    private var shownFraction: Double { awakened ? fraction : 0 }
+    private var over: Bool { target > 0 && kcal > target }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Palette.hairlineCocoa)
+                        .frame(height: 3)
+                    Capsule()
+                        .fill(LinearGradient(
+                            colors: [Palette.cocoaSecondary, Palette.cocoaPrimary],
+                            startPoint: .leading, endPoint: .trailing))
+                        .frame(width: max(6, geo.size.width * shownFraction), height: 3)
+                        .animation(Motion.easedFinal, value: shownFraction)
+                    // The target notch.
+                    Capsule()
+                        .fill(Palette.cocoaTertiary.opacity(over ? 0.9 : 0.5))
+                        .frame(width: 2, height: 9)
+                        .offset(x: geo.size.width - 1)
+                }
+                .frame(height: 9)
+            }
+            .frame(height: 9)
+
+            HStack(spacing: 4) {
+                Text("\(kcal)")
+                    .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .footnote))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.textPrimary)
+                    .contentTransition(.numericText())
+                Text("of ~\(target.formatted()) kcal")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                Spacer(minLength: 4)
+                Text(roomWord)
+                    .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13, relativeTo: .footnote))
+                    .foregroundStyle(Palette.cocoaSecondary)
+            }
+        }
+        .onAppear { if armed { arm() } }
+        .onChange(of: armed) { _, isArmed in
+            if isArmed { arm() } else {
+                var t = Transaction(); t.disablesAnimations = true
+                withTransaction(t) { awakened = false }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(kcal) of about \(target) calories today")
+    }
+
+    private var roomWord: String {
+        guard target > 0 else { return "" }
+        if over { return "a little over · tomorrow resets" }
+        let room = Int((Double(target - kcal) / 50).rounded() * 50)
+        return room > 0 ? "room for about \(room)" : "right at the line"
+    }
+
+    private func arm() {
+        if reduceMotion { awakened = true; return }
+        withAnimation(.easeOut(duration: 0.9).delay(0.15)) { awakened = true }
+    }
+}
+
 //
 // The everyday anchor at band scale — the device-demo steps ring.
 // Auto-completes; never a chore.

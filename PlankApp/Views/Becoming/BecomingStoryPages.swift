@@ -300,6 +300,72 @@ struct JKProteinWeekBand: View {
     }
 }
 
+// MARK: - JKNightWindowRing
+
+/// The overnight window as a 24-hour ring: the quiet stretch drawn
+/// as a cocoa arc, a moon at its heart, the hours as the numeral.
+/// Rhythm made visible — never a rule, never a timer.
+struct JKNightWindowRing: View {
+    let hours: Double
+    var diameter: CGFloat = 150
+    var armed: Bool = true
+
+    @State private var awakened = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var fraction: Double { min(1, max(0, hours / 24)) }
+    private var shownFraction: Double { awakened ? fraction : 0 }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Palette.hairlineCocoa,
+                        style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            Circle()
+                .trim(from: 0, to: max(0.02, shownFraction))
+                .stroke(
+                    AngularGradient(
+                        gradient: Gradient(colors: [Palette.accentSubtle, Palette.cocoaSecondary]),
+                        center: .center,
+                        startAngle: .degrees(-90),
+                        endAngle: .degrees(-90 + 360 * fraction)
+                    ),
+                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .animation(Motion.easedFinal, value: shownFraction)
+
+            VStack(spacing: 2) {
+                JKMark(kind: .moon, size: 15, color: Palette.cocoaSecondary)
+                Text("\(Int(hours.rounded()))")
+                    .font(.custom("JeniHeroSerif-Regular", size: 34, relativeTo: .title))
+                    .foregroundStyle(Palette.textPrimary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                Text("quiet hours")
+                    .font(Typo.numeralMeta)
+                    .kerning(0.1)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+        }
+        .frame(width: diameter, height: diameter)
+        .onAppear { if armed { arm() } }
+        .onChange(of: armed) { _, isArmed in
+            if isArmed { arm() } else {
+                var t = Transaction(); t.disablesAnimations = true
+                withTransaction(t) { awakened = false }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("about \(Int(hours.rounded())) quiet hours overnight")
+    }
+
+    private func arm() {
+        if reduceMotion { awakened = true; return }
+        withAnimation(.easeOut(duration: 0.9).delay(0.2)) { awakened = true }
+    }
+}
+
 // MARK: - JourneyTimelineView (her weeks)
 
 /// Plan history, one level in: this week's receipt, past weeks as
