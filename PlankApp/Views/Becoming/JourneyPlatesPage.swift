@@ -18,6 +18,8 @@ struct JourneyPlatesPage: View {
 
     @State private var entries: [FoodLogPersister.FoodLogEntry] = []
     @State private var confirmDelete: FoodLogPersister.FoodLogEntry? = nil
+    /// v5.1 — tap opens the plate's own page (long-press still removes).
+    @State private var detailPlate: FoodLogPersister.FoodLogEntry? = nil
 
     private var days: [(dayKey: String, date: Date, plates: [FoodLogPersister.FoodLogEntry])] {
         let cal = Calendar.current
@@ -63,6 +65,15 @@ struct JourneyPlatesPage: View {
         }
         .onAppear { reload() }
         .onReceive(FoodLogPersister.changeNotifier) { _ in reload() }
+        .sheet(item: $detailPlate) { plate in
+            PlateDetailSheet(
+                entry: plate,
+                userId: userId,
+                onDismiss: { detailPlate = nil }
+            )
+            .presentationDetents([.large])
+            .presentationBackground(Palette.bgPrimary)
+        }
         .confirmationDialog(
             "let this plate go?",
             isPresented: Binding(
@@ -188,13 +199,17 @@ struct JourneyPlatesPage: View {
         }
         .padding(.vertical, 9)
         .contentShape(Rectangle())
+        .onTapGesture {
+            Haptics.light()
+            detailPlate = plate
+        }
         .onLongPressGesture(minimumDuration: 0.45) {
             Haptics.light()
             confirmDelete = plate
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(plate.title.isEmpty ? "a plate" : plate.title), \(plateFacts(plate))")
-        .accessibilityHint("hold to remove")
+        .accessibilityHint("opens the plate. hold to remove")
     }
 
     private func dayTitle(_ date: Date) -> String {

@@ -1120,6 +1120,7 @@
 		BCBBBDE69C708E0D69A05FE0 /* prep_full_plank_run.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7358302C457BE00D6E3EA6FB /* prep_full_plank_run.m4a */; };
 		BD0D1A2B3C4D5E6F70819293 /* BodoniModa.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BD0D1A2B3C4D5E6F70819294 /* BodoniModa.ttf */; };
 		BD0DDE824CF5FFDAC2945E19 /* TodayStateBand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 340D0B5CDD94C08B774C92F7 /* TodayStateBand.swift */; };
+		A690030250C788E59EB372F8 /* PlateDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F833C1ED074874EA85B5F7D2 /* PlateDetailSheet.swift */; };
 		BD28B50D2265BF52896AC2CF /* prep_short_burpee_pushup.m4a in Resources */ = {isa = PBXBuildFile; fileRef = D329B2856C0175D539A24F61 /* prep_short_burpee_pushup.m4a */; };
 		BD3608DD7ED76903E86473CD /* matson_prep_short_single_leg_rdl.m4a in Resources */ = {isa = PBXBuildFile; fileRef = DF1F2BB9A45B80762AC56C61 /* matson_prep_short_single_leg_rdl.m4a */; };
 		BD608D8852E8463EF579D6FF /* prep_short_mountain_climbers.m4a in Resources */ = {isa = PBXBuildFile; fileRef = C3E161D688F73F3462921E18 /* prep_short_mountain_climbers.m4a */; };
@@ -1656,6 +1657,7 @@
 		336E3ECD4FD95A76244EC1F2 /* matson_prep_short_flutter_kicks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_flutter_kicks.m4a; sourceTree = "<group>"; };
 		337F0A2C4E2E866AD9FC697B /* matson_prep_short_good_morning.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_good_morning.m4a; sourceTree = "<group>"; };
 		340D0B5CDD94C08B774C92F7 /* TodayStateBand.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodayStateBand.swift; sourceTree = "<group>"; };
+		F833C1ED074874EA85B5F7D2 /* PlateDetailSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlateDetailSheet.swift; sourceTree = "<group>"; };
 		342B48B1CFA8B38AB629BC59 /* prep_full_sumo_jump_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_sumo_jump_squat.m4a; sourceTree = "<group>"; };
 		349047A96D98AF6D1F85F268 /* matson_prep_full_simple_jacks.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_simple_jacks.m4a; sourceTree = "<group>"; };
 		34B5A5D187C5B44C258910BA /* jeni_prep_full_reverse_crunch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_reverse_crunch.m4a; sourceTree = "<group>"; };
@@ -4638,6 +4640,7 @@
 				505CC0E024D4552A6257F26E /* TodayModules.swift */,
 				0451B8BEB9443709ED51F689 /* TodayModuleHost.swift */,
 				340D0B5CDD94C08B774C92F7 /* TodayStateBand.swift */,
+				F833C1ED074874EA85B5F7D2 /* PlateDetailSheet.swift */,
 				D7094A20DD198B663E9C240F /* TodayStepsSheet.swift */,
 				A5ABFE571D5EEBB4329D9E95 /* JKWeightRitual.swift */,
 			);
@@ -6225,6 +6228,7 @@
 				E647CEAD042C8A1EA3326FB8 /* TodayModules.swift in Sources */,
 				9458FDB3FE30DEE1F6641C52 /* TodayModuleHost.swift in Sources */,
 				BD0DDE824CF5FFDAC2945E19 /* TodayStateBand.swift in Sources */,
+				A690030250C788E59EB372F8 /* PlateDetailSheet.swift in Sources */,
 				A9D40C642BF6B114E27E37A8 /* ChatModels.swift in Sources */,
 				7B0D09B3BF9FDBC0328752E3 /* ChatTransport.swift in Sources */,
 				E98F5FF32F05C855AF9F0A73 /* CoachContextAssembler.swift in Sources */,

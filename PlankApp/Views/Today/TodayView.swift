@@ -40,6 +40,9 @@ struct TodayView: View {
     /// reading. Days 1–2 only; one tap retires it forever. Swept on
     /// sign-out with the other user-scoped keys.
     @AppStorage("howItWorks.dismissed") private var howItWorksDismissed = false
+    /// v5.1 — a tapped plate opens its own page (the strip used to
+    /// dump her on the becoming tab; now the meal explains itself).
+    @State private var detailPlate: FoodLogPersister.FoodLogEntry?
 
     private var userId: String {
         auth.currentUser?.id.uuidString ?? ""
@@ -54,6 +57,13 @@ struct TodayView: View {
                         if ProcessInfo.processInfo.arguments.contains("--uitest-today-bottom") {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                                 proxy.scrollTo("today.bottom", anchor: .bottom)
+                            }
+                        }
+                        // v5.1 — screenshot the plate detail without a
+                        // tap (first plate of the day).
+                        if ProcessInfo.processInfo.arguments.contains("--uitest-plate-detail") {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                                detailPlate = snapshot?.plates.first
                             }
                         }
                         #endif
@@ -76,6 +86,15 @@ struct TodayView: View {
         }
         .onChange(of: steps.todayCount) { _, count in
             autoCompleteStepsIfCrossed(count)
+        }
+        .sheet(item: $detailPlate) { plate in
+            PlateDetailSheet(
+                entry: plate,
+                userId: userId,
+                onDismiss: { detailPlate = nil }
+            )
+            .presentationDetents([.large])
+            .presentationBackground(Palette.bgPrimary)
         }
         .sheet(item: $railWeek) { entry in
             JourneyWeekPage(
@@ -204,7 +223,9 @@ struct TodayView: View {
                                 snapshot: snapshot,
                                 liveSteps: steps.todayCount,
                                 onSnap: { modules.present(cover: .captureFlow) },
-                                onTapPlate: { _ in router.tab = .becoming }
+                                onTapPlate: { item in
+                                    detailPlate = snapshot.plates.first { $0.id == item.id }
+                                }
                             )
                             .padding(.top, Space.section)
                             .jkBeat2(extraDelay: 0.2)
