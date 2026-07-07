@@ -120,11 +120,13 @@ struct BecomingTrendCanvas: View {
     }
 
     @ViewBuilder private var eyebrow: some View {
+        // v5: the window speaks plainly — "trend · sixty" made her
+        // decode which sixty (days? pounds?).
         let windowWord: String = {
             switch windowDays {
-            case 60?: return "sixty"
-            case 90?: return "ninety"
-            case nil: return "all"
+            case 60?: return "last 60 days"
+            case 90?: return "last 90 days"
+            case nil: return "the whole line"
             default:  return "trend"
             }
         }()

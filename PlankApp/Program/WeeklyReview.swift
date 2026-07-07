@@ -114,7 +114,7 @@ enum ReviewProposal: Equatable {
         case .weighSoften:
             return "one gentle weigh-in a week"
         case .intentPick:
-            return "you pick next week's lane"
+            return "you pick next week's focus"
         }
     }
 
@@ -228,13 +228,13 @@ enum WeeklyReview {
             if p.proteinDaysMet <= 1, p.elapsedDays >= 5, p.proteinAdjustG > -10 {
                 return .proteinEase(
                     newG: target - 5,
-                    reason: "the floor was out of reach most days this week. a reachable floor beats a noble one."
+                    reason: "\(target)g landed \(p.proteinDaysMet) of \(p.elapsedDays) days. a floor you can reach beats a noble one."
                 )
             }
             if p.proteinDaysMet >= 5, p.proteinAdjustG < 10, !p.restrictiveRisk {
                 return .proteinFirm(
                     newG: target + 5,
-                    reason: "you cleared \(target)g five days this week. the floor can rise gently."
+                    reason: "you cleared \(target)g on \(p.proteinDaysMet) of \(p.elapsedDays) days. the floor can rise gently."
                 )
             }
         }
@@ -243,7 +243,7 @@ enum WeeklyReview {
         if p.movedDays == 0, p.sessionsPlanned >= 3, p.sessionsAdjust > -1 {
             return .movesEase(
                 newCount: p.sessionsPlanned - 1,
-                reason: "\(p.sessionsPlanned) moves was the plan; life said otherwise. a plan you keep beats a plan you dodge."
+                reason: "the plan asked for \(p.sessionsPlanned) and the week said no. a smaller plan you keep beats a bigger one you dodge."
             )
         }
 
@@ -261,7 +261,7 @@ enum WeeklyReview {
                 .compactMap { WeekIntent.spec(for: $0) }
             return .intentPick(
                 options: options,
-                reason: "the bend is where plans go stale. you pick the angle; the plan follows."
+                reason: "this is the stretch where plans go stale. you pick next week's focus; the plan follows."
             )
         }
 
@@ -323,20 +323,20 @@ enum WeeklyReview {
             return "a held week. your place was kept."
         }
         if kept == 0 && plates == 0 && weighs == 0 {
-            return "a quiet week. it still belongs to the story."
+            return "a quiet week. it still counts."
         }
         var clauses: [String] = []
         if kept > 0 {
             clauses.append(kept == 1 ? "one day kept" : "\(kept) days kept")
         }
         if plates > 0 {
-            clauses.append(plates == 1 ? "a plate seen" : "\(plates) plates seen")
+            clauses.append(plates == 1 ? "one plate logged" : "\(plates) plates logged")
         }
         if weighs > 0, chapter != .onMedication {
-            clauses.append(weighs == 1 ? "the trend fed once" : "the trend fed \(weighs) times")
+            clauses.append(weighs == 1 ? "weighed in once" : "weighed in \(weighs) times")
         }
         if slice.repsKept > 0, clauses.count < 3 {
-            clauses.append(slice.repsKept == 1 ? "one rep held" : "\(slice.repsKept) reps held")
+            clauses.append(slice.repsKept == 1 ? "one rep done" : "\(slice.repsKept) reps done")
         }
         return clauses.prefix(3).joined(separator: " · ") + "."
     }

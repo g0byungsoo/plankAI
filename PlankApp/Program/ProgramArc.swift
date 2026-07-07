@@ -218,24 +218,9 @@ enum ProgramArc {
 
     // MARK: - Position language
 
-    /// The lead fragment for mastheads: presence-count early, distance
-    /// -to-go past the program midpoint (Koo & Fishbach — the framing
-    /// switch keeps the middle from sagging). Open-ended chapters
-    /// always lead with presence.
-    static func leadLine(
-        programDay: Int,
-        totalDays: Int,
-        chapter: Chapter,
-        keptDays: Int
-    ) -> String {
-        let keptWord = keptDays == 1 ? "1 kept" : "\(keptDays) kept"
-        guard chapter == .losing, totalDays > 0 else { return keptWord }
-        if programDay * 2 > totalDays {
-            let togo = max(totalDays - programDay, 0)
-            return togo == 1 ? "1 to go" : "\(togo) to go"
-        }
-        return keptWord
-    }
+    // v5: leadLine ("6 kept" / "44 to go") retired — the becoming
+    // eyebrow renders position + phase directly, with the midpoint
+    // countdown (Koo & Fishbach) computed at the render site.
 
     /// The quiet ordinal ("week 2 of 15" / open-ended "week 7").
     static func ordinalLine(week: Int, totalWeeks: Int, chapter: Chapter) -> String {

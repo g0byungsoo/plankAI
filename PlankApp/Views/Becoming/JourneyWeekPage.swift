@@ -287,11 +287,15 @@ struct JourneyWeekPage: View {
                         .resizable()
                         .scaledToFill()
                 } else {
+                    // v5: the recipe-card mini (same grammar as the
+                    // Today strip) — a dead grey plate icon read as
+                    // a broken thumbnail.
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Palette.bgElevated)
+                        .fill(Palette.accentSubtle.opacity(0.45))
                         .overlay(
-                            JKMark(kind: .plate, size: size * 0.25,
-                                   color: Palette.cocoaTertiary)
+                            Text(String((plate.title.isEmpty ? "a plate" : plate.title).prefix(1)))
+                                .font(.custom("JeniHeroSerif-Italic", size: size * 0.34))
+                                .foregroundStyle(Palette.jeweledRose)
                         )
                 }
             }
@@ -332,7 +336,7 @@ struct JourneyWeekPage: View {
         ))) ?? []
         let kept = checks
             .filter { $0.state == "complete" || $0.state == "autoCompleted" }
-            .compactMap { beatMemoryLine($0.itemKey) }
+            .compactMap { beatMemoryLine($0.itemKey, hasWeighValue: day.weighKg != nil) }
 
         let cal = Calendar.current
         let dayStart = cal.startOfDay(for: day.date)
@@ -346,14 +350,17 @@ struct JourneyWeekPage: View {
         Analytics.track(.journeyDayOpened, properties: ["program_day": day.programDay])
     }
 
-    private func beatMemoryLine(_ itemKey: String) -> String? {
+    // v5: receipts speak her words, not the system's metaphors.
+    // The weigh-in line yields to the dedicated weight row (which
+    // carries the number) whenever the day has one.
+    private func beatMemoryLine(_ itemKey: String, hasWeighValue: Bool) -> String? {
         switch itemKey {
-        case "snap_meal": return "the plates were seen"
-        case "move": return "she moved"
-        case "lesson": return "the practice held"
-        case "breath": return "a breath taken"
-        case "weigh_in": return "the trend fed"
-        case "steps": return "her legs covered the day"
+        case "snap_meal": return "plates logged"
+        case "move": return "moved"
+        case "lesson": return "the method, done"
+        case "breath": return "one breath session"
+        case "weigh_in": return hasWeighValue ? nil : "weighed in"
+        case "steps": return "steps goal reached"
         default: return nil
         }
     }
@@ -387,7 +394,7 @@ struct JourneyWeekPage: View {
                         && detail.fact.weighKg == nil {
                         Text(detail.fact.isPaused
                              ? "a held day. your place was kept."
-                             : "a quiet day. it still belongs to the story.")
+                             : "a quiet day. it still counts.")
                             .font(Typo.body)
                             .foregroundStyle(Palette.textSecondary)
                             .padding(.top, Space.lg)

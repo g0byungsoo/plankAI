@@ -263,14 +263,14 @@ final class WeeklyReviewTests: XCTestCase {
         let story = WeeklyReview.weekStory(
             slice: slice(kept: 3, plates: 5, weighs: 2), chapter: .losing
         )
-        XCTAssertEqual(story, "3 days kept · 5 plates seen · the trend fed 2 times.")
+        XCTAssertEqual(story, "3 days kept · 5 plates logged · weighed in 2 times.")
     }
 
     func testQuietWeekIsAFactNotAVerdict() {
         let story = WeeklyReview.weekStory(
             slice: slice(kept: 0, plates: 0, weighs: 0), chapter: .losing
         )
-        XCTAssertEqual(story, "a quiet week. it still belongs to the story.")
+        XCTAssertEqual(story, "a quiet week. it still counts.")
     }
 
     func testHeldWeekNamesTheKeptPlace() {

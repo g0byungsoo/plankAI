@@ -99,24 +99,8 @@ final class ProgramArcTests: XCTestCase {
     }
 
     // MARK: - Position language
-
-    func testLeadLineFlipsAtMidpoint() {
-        // Day 12 of 140 — pre-midpoint leads with presence.
-        XCTAssertEqual(
-            ProgramArc.leadLine(programDay: 12, totalDays: 140, chapter: .losing, keptDays: 9),
-            "9 kept"
-        )
-        // Day 71 of 140 — past midpoint leads with distance.
-        XCTAssertEqual(
-            ProgramArc.leadLine(programDay: 71, totalDays: 140, chapter: .losing, keptDays: 60),
-            "69 to go"
-        )
-        // Open-ended chapters always lead with presence.
-        XCTAssertEqual(
-            ProgramArc.leadLine(programDay: 200, totalDays: 140, chapter: .keeping, keptDays: 150),
-            "150 kept"
-        )
-    }
+    // v5: leadLine retired — the becoming eyebrow computes the
+    // midpoint countdown at the render site.
 
     func testOrdinalLinePerChapter() {
         XCTAssertEqual(

@@ -20,6 +20,10 @@ struct JourneyModel {
         let intentLine: String?
         let story: String
         let record: ReviewRecord?
+        /// v5 — the week's trend movement as a quiet receipt total
+        /// ("−0.9 lb" / "steady"), EMA-sourced, nil under 3 in-week
+        /// points (same trust floor as the reading).
+        var weightDeltaLine: String? = nil
 
         var id: Int { weekIndex }
 
@@ -28,7 +32,9 @@ struct JourneyModel {
                 JKStandingDots.Day(
                     id: $0.programDay,
                     standing: $0.standing,
-                    isToday: false,
+                    // v5: today reads distinct in the current week's
+                    // card (the passthrough never marked it).
+                    isToday: Calendar.current.isDateInToday($0.date),
                     isFuture: $0.isFuture,
                     isPaused: $0.isPaused
                 )
@@ -89,6 +95,35 @@ struct JourneyModel {
         let zone = snapshot.bandZone.flatMap(BandZone.init(rawValue:))
         let d = UserDefaults.standard
 
+        // One EMA pass feeds every card's delta line (same source as
+        // the trend canvas — the one-story law).
+        let emaPoints: [WeightTrendChart.EMAPoint] = {
+            let descriptor = FetchDescriptor<WeightLogRecord>(
+                predicate: #Predicate { $0.userId == userId },
+                sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]
+            )
+            let logs = (try? context.fetch(descriptor)) ?? []
+            return WeightTrendChart.computeEMA(logs: logs)
+        }()
+        let unitRaw = d.string(forKey: "weightUnit") ?? "lb"
+        let unit = WeightUnit(rawValue: unitRaw) ?? .lb
+
+        func deltaLine(for slice: ProgramWeekSlice) -> String? {
+            guard let first = slice.days.first?.date,
+                  let last = slice.days.last?.date else { return nil }
+            let cal = Calendar.current
+            let start = cal.startOfDay(for: first)
+            let end = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: last)) ?? last
+            let inWeek = emaPoints.filter { $0.date >= start && $0.date < end }
+            guard inWeek.count >= 3,
+                  let a = inWeek.first?.emaKg, let b = inWeek.last?.emaKg
+            else { return nil }
+            let deltaKg = b - a
+            guard abs(deltaKg) >= 0.1 else { return "steady" }
+            let display = abs(unit.display(fromKg: abs(deltaKg)))
+            return String(format: "%@%.1f %@", deltaKg < 0 ? "−" : "+", display, unit.label)
+        }
+
         func entry(for weekIndex: Int, isCurrent: Bool) -> WeekEntry {
             let slice = WeeklyReview.weekSlice(
                 weekIndex: weekIndex, userId: userId, plan: plan,
@@ -118,7 +153,8 @@ struct JourneyModel {
                 name: name,
                 intentLine: isCurrent ? intent.line : nil,
                 story: WeeklyReview.weekStory(slice: slice, chapter: snapshot.chapter),
-                record: record
+                record: record,
+                weightDeltaLine: deltaLine(for: slice)
             )
         }
 

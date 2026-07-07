@@ -188,26 +188,28 @@ enum InsightEngine {
             )
         }
 
-        let gramsAbs = Int((abs(delta) * 1000).rounded(toNearest: 50))
+        // v5: the story speaks HER unit — "500g" read as a foreign
+        // measure to a lb user one line above a lb headline.
+        let phrase = deltaPhrase(delta)
         if delta <= -0.15 {
             let mechanism: String? = week.proteinDaysHit >= 4
                 ? "protein landed \(week.proteinDaysHit) of 7 days. that's the mechanism, not magic."
                 : (week.loggedDays7 >= 5 ? "you saw \(week.loggedDays7) of 7 days of plates. seeing is steering." : nil)
             return Insight(
                 kind: .trendStory,
-                line: "the line eased down about \(gramsAbs)g this week.",
+                line: "the line eased down \(phrase) this week.",
                 italic: ["eased down"],
                 detail: mechanism,
-                chatSeed: "her 7-day trend is down ~\(gramsAbs)g. name what she did that drove it and one thing to keep."
+                chatSeed: "her 7-day trend is down \(phrase). name what she did that drove it and one thing to keep."
             )
         }
         if delta >= 0.25 {
             return Insight(
                 kind: .trendStory,
-                line: "the line drifted up about \(gramsAbs)g. water and rhythm do this.",
+                line: "the line drifted up \(phrase). water and rhythm do this.",
                 italic: ["water and rhythm"],
                 detail: "sodium, cycle timing, and sleep move the scale days before fat does. the week decides.",
-                chatSeed: "her trend ticked up ~\(gramsAbs)g over 7 days. explain fluctuation mechanisms calmly and give one anchor."
+                chatSeed: "her trend ticked up \(phrase) over 7 days. explain fluctuation mechanisms calmly and give one anchor."
             )
         }
         return Insight(
@@ -217,6 +219,23 @@ enum InsightEngine {
             detail: nil,
             chatSeed: "her trend is flat this week. reframe steady as capacity, then one gentle lever if she wants movement."
         )
+    }
+
+    /// The trend delta in her display unit, rounded to honest steps
+    /// ("about half a pound" / "about 1.5 lb" / "about 500g").
+    private static func deltaPhrase(_ deltaKg: Double) -> String {
+        let unitRaw = UserDefaults.standard.string(forKey: "weightUnit") ?? "lb"
+        if unitRaw == "kg" {
+            let grams = Int((abs(deltaKg) * 1000).rounded(toNearest: 50))
+            return grams >= 950
+                ? String(format: "about %.1f kg", abs(deltaKg))
+                : "about \(grams)g"
+        }
+        let lb = (abs(deltaKg) * 2.20462 * 2).rounded() / 2
+        if lb < 0.5 { return "about half a pound" }
+        return lb == lb.rounded(.down)
+            ? "about \(Int(lb)) lb"
+            : String(format: "about %.1f lb", lb)
     }
 
     // MARK: - Pattern cards
@@ -335,7 +354,7 @@ enum InsightEngine {
             kind: .showingUp,
             line: "you've shown up \(count) times.",
             italic: ["shown up"],
-            detail: "the pattern is the product. everything else compounds from it.",
+            detail: "that's the number that predicts the rest.",
             chatSeed: "she has \(count) shown-up days. connect consistency to identity, briefly."
         )
     }

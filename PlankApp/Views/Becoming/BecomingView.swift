@@ -196,27 +196,30 @@ struct BecomingView: View {
         )
     }
 
+    // v5: ONE header object. The eyebrow carries position + phase
+    // name ("week 2 of 20 · finding steady"); the big repeated phase
+    // title below it died (the phase name showed three times on one
+    // screen). Past the midpoint the eyebrow counts down instead —
+    // the Koo & Fishbach framing flip, now in the position line.
     private var arcEyebrow: String? {
         guard let snapshot, snapshot.isEnrolled else { return nil }
-        var parts: [String] = []
-        if let lead = snapshot.arcLead { parts.append(lead) }
-        parts.append(ProgramArc.ordinalLine(
+        var parts: [String] = [ProgramArc.ordinalLine(
             week: snapshot.programWeek,
             totalWeeks: snapshot.totalWeeks,
             chapter: snapshot.chapter
-        ))
+        )]
+        if let phase = snapshot.arcPhase { parts.append(phase.name) }
+        if snapshot.chapter == .losing, snapshot.totalDays > 0,
+           snapshot.programDay * 2 > snapshot.totalDays {
+            let togo = max(snapshot.totalDays - snapshot.programDay, 0)
+            parts.append("\(togo) \(togo == 1 ? "day" : "days") to go")
+        }
         return parts.joined(separator: " · ")
     }
 
     @ViewBuilder private var arcHeader: some View {
         if let snapshot, let phase = snapshot.arcPhase {
             VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(phase.name)
-                        .font(.custom("JeniHeroSerif-Regular", size: 22, relativeTo: .title3))
-                        .foregroundStyle(Palette.textPrimary)
-                    Spacer(minLength: 8)
-                }
                 JKArcRibbon(
                     phases: ProgramArc.phases(
                         totalWeeks: snapshot.totalWeeks,
@@ -246,7 +249,10 @@ struct BecomingView: View {
                         italic: story.italic,
                         onOpenChat: { router.openChat(seed: story.chatSeed) }
                     )
-                    if let mechanism = story.detail ?? insights?.cards.first?.detail {
+                    // v5: only the story's OWN detail rides under it —
+                    // the cards-fallback stitched an unrelated
+                    // insight's caption onto the trend line.
+                    if let mechanism = story.detail {
                         Text(mechanism)
                             .font(Typo.caption)
                             .lineSpacing(3)
@@ -352,7 +358,7 @@ struct BecomingView: View {
                     .foregroundStyle(Palette.cocoaTertiary)
 
                 JKWeekCard(
-                    entry: currentWithToday(current),
+                    entry: current,
                     isCurrent: true,
                     onOpen: { openedWeek = current }
                 )
@@ -363,11 +369,6 @@ struct BecomingView: View {
             }
             .padding(.horizontal, Space.lg)
         }
-    }
-
-    /// Marks today's dot inside the current week's card.
-    private func currentWithToday(_ entry: JourneyModel.WeekEntry) -> JourneyModel.WeekEntry {
-        entry
     }
 
     private func dueCard(_ due: JourneyModel.DueReview) -> some View {
@@ -381,7 +382,7 @@ struct BecomingView: View {
                     Text("the week's receipt is ready")
                         .font(.custom("JeniHeroSerif-Regular", size: 16, relativeTo: .body))
                         .foregroundStyle(Palette.textPrimary)
-                    Text("read it back, sign the next step")
+                    Text("read it back, sign next week")
                         .font(Typo.caption)
                         .foregroundStyle(Palette.textSecondary)
                 }
@@ -403,7 +404,7 @@ struct BecomingView: View {
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(JKPress())
-        .accessibilityLabel("the week's receipt is ready. opens the re-signing")
+        .accessibilityLabel("the week's receipt is ready. opens your weekly review")
     }
 
     // MARK: - The weeks (the ledger)
@@ -411,7 +412,7 @@ struct BecomingView: View {
     @ViewBuilder private var theWeeks: some View {
         if let journey, !journey.pastWeeks.isEmpty {
             VStack(alignment: .leading, spacing: Space.md) {
-                Text("the weeks")
+                Text("past weeks")
                     .font(Typo.captionTracked)
                     .kerning(1.98)
                     .textCase(.uppercase)

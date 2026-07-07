@@ -30,7 +30,7 @@ struct ReSigningView: View {
                 // fixedSize on the words: the hairline is the only
                 // element allowed to compress (SE wrapped the label).
                 HStack(spacing: 10) {
-                    Text("the re-signing")
+                    Text("your weekly review")
                         .font(Typo.captionTracked)
                         .kerning(2.2)
                         .textCase(.uppercase)

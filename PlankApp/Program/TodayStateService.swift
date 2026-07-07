@@ -61,7 +61,6 @@ struct TodaySnapshot {
     let weekIntent: WeekIntentSpec?
     /// Masthead lead ("12 kept" / "44 to go") — presence early,
     /// distance past the midpoint.
-    let arcLead: String?
 
     var isEnrolled: Bool { plan != nil }
 
@@ -273,7 +272,6 @@ enum TodayStateService {
         var totalWeeks = 0
         var arcPhase: ArcPhase?
         var weekIntent: WeekIntentSpec?
-        var arcLead: String?
         if plan != nil, programDay >= 1 {
             programWeek = PrescriptionEngineV2.programWeek(programDay)
             totalWeeks = ProgramArc.totalWeeks(totalDays: totalDays)
@@ -292,12 +290,6 @@ enum TodayStateService {
                 zone: bandZone.flatMap(BandZone.init(rawValue:)),
                 pickedKey: d.string(
                     forKey: WeeklyReview.intentPickKey(week: programWeek))
-            )
-            arcLead = ProgramArc.leadLine(
-                programDay: programDay,
-                totalDays: totalDays,
-                chapter: chapter,
-                keptDays: PresenceLedger.keptDays
             )
         }
 
@@ -324,8 +316,7 @@ enum TodayStateService {
             programWeek: programWeek,
             totalWeeks: totalWeeks,
             arcPhase: arcPhase,
-            weekIntent: weekIntent,
-            arcLead: arcLead
+            weekIntent: weekIntent
         )
     }
 

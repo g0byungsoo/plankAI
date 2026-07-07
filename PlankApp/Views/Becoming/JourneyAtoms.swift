@@ -110,8 +110,19 @@ struct JKWeekCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                JKStandingDots(days: entry.dotDays)
-                    .padding(.top, 2)
+                HStack(alignment: .center) {
+                    JKStandingDots(days: entry.dotDays)
+                    Spacer(minLength: 8)
+                    // v5: the week's trend movement as the receipt's
+                    // quiet total — neutral ink, a fact not a grade.
+                    if let delta = entry.weightDeltaLine {
+                        Text(delta)
+                            .font(.custom("DMSans-Medium", size: 12, relativeTo: .caption))
+                            .monospacedDigit()
+                            .foregroundStyle(Palette.cocoaSecondary)
+                    }
+                }
+                .padding(.top, 2)
 
                 Text(entry.story)
                     .font(Typo.caption)
