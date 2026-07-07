@@ -6,15 +6,16 @@ import Auth
 
 // MARK: - BecomingView
 //
-// App v4 (docs/app_v4/02_JOURNEY.md). Becoming IS the journey — the
-// place where time is visible. Top to bottom: the arc (named phase +
-// ribbon), THE LINE (one-story trend + band), THIS WEEK (the open
-// chapter), THE WEEKS (the ledger: receipt cards, signed adaptation
-// stamps, quiet seams — absence never renders), THE FUTURE (shape,
-// dotted, never locked), the practice, and the archive doors.
+// App v5 re-steer (docs/app_v5/00_DIRECTION.md §6). Becoming is a
+// swipeable insight story — a horizontal pager of near-full-screen
+// pages, one idea each, jeni walking her through her own body and
+// plan: the line → food → movement → this week → (the band, keeping
+// only) → from jeni. Plan history lives one level in ("her weeks"
+// timeline behind the plan page); the vertical ledger is gone from
+// the top surface.
 //
-// The re-signing (WeeklyReview) presents here as a received full-
-// screen moment when due; a due card in the ledger re-offers it.
+// The re-signing (WeeklyReview) still presents here as a received
+// full-screen moment when due; the plan page's due card re-offers.
 
 struct BecomingView: View {
     @Environment(\.modelContext) private var modelContext
@@ -26,14 +27,29 @@ struct BecomingView: View {
     @State private var week: WeekState?
     @State private var insights: InsightEngine.Output?
     @State private var journey: JourneyModel?
-    @State private var showEarlierWeeks = false
+    @State private var pageIndex = 0
 
     @State private var showLogWeight = false
     @State private var showProfileHub = false
     @State private var showJournal = false
+    @State private var showTimeline = false
     @State private var openedWeek: JourneyModel.WeekEntry?
     @State private var presentedReview: JourneyModel.DueReview?
     @State private var autoOfferedReviewWeek: Int? = nil
+
+    /// The story's page order — cohort pages join when their data is
+    /// real (the band page needs a keeping chapter).
+    private enum StoryPage: Int, Identifiable {
+        case line, food, movement, plan, band, reflection
+        var id: Int { rawValue }
+    }
+
+    private var storyPages: [StoryPage] {
+        var pages: [StoryPage] = [.line, .food, .movement, .plan]
+        if snapshot?.chapter == .keeping { pages.append(.band) }
+        pages.append(.reflection)
+        return pages
+    }
 
     @AppStorage("weightUnit") private var weightUnitRaw: String = "lb"
     private var weightUnit: WeightUnit { WeightUnit(rawValue: weightUnitRaw) ?? .lb }
@@ -42,69 +58,54 @@ struct BecomingView: View {
 
     var body: some View {
         JKScreenChrome {
-            ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    masthead
-                        .padding(.top, Space.hero)
-                        .jkBeat1()
-                        .onAppear {
-                            #if DEBUG
-                            if ProcessInfo.processInfo.arguments.contains("--uitest-becoming-bottom") {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
-                                    withAnimation(nil) {
-                                        proxy.scrollTo("becoming.bottom", anchor: .bottom)
-                                    }
-                                }
-                            }
-                            #endif
+            VStack(alignment: .leading, spacing: 0) {
+                masthead
+                    .padding(.top, Space.hero)
+                    .jkBeat1()
+
+                if snapshot?.isEnrolled == false {
+                    JKEmptyState(
+                        line: "your story starts on day one",
+                        italic: ["day one"],
+                        actionLabel: "open today",
+                        action: { router.tab = .today }
+                    )
+                    .padding(.top, Space.xl)
+                    Spacer(minLength: 0)
+                } else {
+                    // The story: one insight per page, swiped.
+                    TabView(selection: $pageIndex) {
+                        ForEach(Array(storyPages.enumerated()), id: \.element.id) { idx, page in
+                            storyPage(page)
+                                .tag(idx)
                         }
-
-                    if snapshot?.isEnrolled == false {
-                        JKEmptyState(
-                            line: "your story starts on day one",
-                            italic: ["day one"],
-                            actionLabel: "open today",
-                            action: { router.tab = .today }
-                        )
-                        .padding(.top, Space.xl)
-                    } else {
-                        arcHeader
-                            .padding(.top, Space.lg)
-                            .jkBeat2()
-
-                        theLine
-                            .padding(.top, Space.section)
-                            .jkBeat2(extraDelay: 0.08)
-
-                        thisWeek
-                            .padding(.top, Space.section)
-                            .jkBeat2(extraDelay: 0.15)
-
-                        theWeeks
-                            .padding(.top, Space.section)
-                            .jkBeat2(extraDelay: 0.22)
-
-                        theFuture
-                            .padding(.top, Space.section)
-
-                        thePractice
-                            .padding(.top, Space.section)
-
-                        doors
-                            .padding(.top, Space.section)
-                            .padding(.horizontal, Space.lg)
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .jkBeat2()
+                    .onChange(of: pageIndex) { _, _ in
+                        Haptics.soft()
                     }
 
-                    Spacer(minLength: 96)
-                        .id("becoming.bottom")
+                    JKPageDots(count: storyPages.count, index: pageIndex)
+                        .padding(.bottom, 92)
+                        .jkBeat2(extraDelay: 0.1)
                 }
             }
-            .scrollIndicators(.hidden)
-            .refreshable { refresh() }
-            }
         }
-        .onAppear { refresh() }
+        .onAppear {
+            refresh()
+            #if DEBUG
+            // QA: land on a specific story page.
+            //   --uitest-becoming-page 3
+            let args = ProcessInfo.processInfo.arguments
+            if let idx = args.firstIndex(of: "--uitest-becoming-page"),
+               idx + 1 < args.count, let page = Int(args[idx + 1]) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    withAnimation(nil) { pageIndex = min(max(0, page), storyPages.count - 1) }
+                }
+            }
+            #endif
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { refresh() }
         }
@@ -174,6 +175,22 @@ struct BecomingView: View {
                 onDismiss: { showJournal = false }
             )
         }
+        .fullScreenCover(isPresented: $showTimeline) {
+            // v5 re-steer: plan history one level in — the story
+            // stays up front, the record is here when she wants it.
+            if let journey {
+                JourneyTimelineView(
+                    journey: journey,
+                    onOpenWeek: { entry in
+                        showTimeline = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                            openedWeek = entry
+                        }
+                    },
+                    onDismiss: { showTimeline = false }
+                )
+            }
+        }
     }
 
     /// Sheet-content fallback only (the sheet can't present without a
@@ -217,61 +234,39 @@ struct BecomingView: View {
         return parts.joined(separator: " · ")
     }
 
-    @ViewBuilder private var arcHeader: some View {
-        if let snapshot, let phase = snapshot.arcPhase {
-            VStack(alignment: .leading, spacing: 8) {
-                JKArcRibbon(
-                    phases: ProgramArc.phases(
-                        totalWeeks: snapshot.totalWeeks,
-                        chapter: snapshot.chapter
-                    ),
-                    currentWeek: snapshot.programWeek,
-                    totalWeeks: snapshot.totalWeeks
-                )
-                Text(phase.line)
-                    .font(Typo.caption)
-                    .lineSpacing(2)
-                    .foregroundStyle(Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.horizontal, Space.lg)
+    // MARK: - The story pages
+
+    @ViewBuilder
+    private func storyPage(_ page: StoryPage) -> some View {
+        switch page {
+        case .line: linePage
+        case .food: foodPage
+        case .movement: movementPage
+        case .plan: planPage
+        case .band: bandPage
+        case .reflection: reflectionPage
         }
     }
 
-    // MARK: - The line (interpretation above the data, ONE story)
+    /// Page 1 — the line. The trend canvas as hero; the insight
+    /// sentence as the headline.
+    private var lineCaption: String? {
+        if let detail = insights?.trendStory?.detail { return detail }
+        if snapshot?.chapter == .keeping,
+           BandModel.settleWeightKg(plan: snapshot?.plan) != nil {
+            return "the tinted field is home. the line living there is the win."
+        }
+        return nil
+    }
 
-    @ViewBuilder private var theLine: some View {
-        VStack(alignment: .leading, spacing: Space.md) {
-            if let story = insights?.trendStory {
-                VStack(alignment: .leading, spacing: 8) {
-                    JKCoachLine(
-                        text: story.line,
-                        italic: story.italic,
-                        onOpenChat: { router.openChat(seed: story.chatSeed) }
-                    )
-                    // v5: only the story's OWN detail rides under it —
-                    // the cards-fallback stitched an unrelated
-                    // insight's caption onto the trend line.
-                    if let mechanism = story.detail {
-                        Text(mechanism)
-                            .font(Typo.caption)
-                            .lineSpacing(3)
-                            .foregroundStyle(Palette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .padding(.horizontal, Space.lg)
-            } else if let top = insights?.cards.first {
-                VStack(alignment: .leading, spacing: 8) {
-                    JKCoachLine(
-                        text: top.line,
-                        italic: top.italic,
-                        onOpenChat: { router.openChat(seed: top.chatSeed) }
-                    )
-                }
-                .padding(.horizontal, Space.lg)
-            }
-
+    @ViewBuilder private var linePage: some View {
+        let story = insights?.trendStory
+        JKStoryPage(
+            eyebrow: "weight",
+            headline: story?.line ?? "your trend line starts with two mornings",
+            headlineItalic: story?.italic ?? ["two mornings"],
+            caption: lineCaption
+        ) {
             if let week, week.weightLogs.count >= 2 {
                 BecomingTrendCanvas(
                     logs: week.weightLogs,
@@ -281,26 +276,156 @@ struct BecomingView: View {
                         ? BandModel.settleWeightKg(plan: snapshot?.plan)
                         : nil
                 )
-                .padding(.horizontal, Space.lg)
-
-                if snapshot?.chapter == .keeping,
-                   BandModel.settleWeightKg(plan: snapshot?.plan) != nil {
-                    Text("the tinted field is home. the line living there is the win.")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.cocoaTertiary)
-                        .padding(.horizontal, Space.lg)
-                }
             } else if let firstLog = week?.weightLogs.first {
                 singleWeightStarted(firstLog)
             } else {
-                JKEmptyState(
-                    line: "your trend line starts with two mornings",
-                    italic: ["two mornings"],
-                    actionLabel: "log the first",
+                emptyLineVisual
+            }
+        } doors: {
+            if hasLoggedToday {
+                EmptyView()
+            } else {
+                JKJourneyDoor(
+                    lead: "thirty seconds",
+                    punch: "log a weigh-in",
+                    italic: ["weigh-in"],
                     action: { showLogWeight = true }
                 )
             }
         }
+    }
+
+    /// The zero-state visual: a dotted ghost of the line to come.
+    private var emptyLineVisual: some View {
+        VStack(spacing: Space.md) {
+            Canvas { ctx, size in
+                var path = Path()
+                path.move(to: CGPoint(x: 0, y: size.height * 0.55))
+                path.addCurve(
+                    to: CGPoint(x: size.width, y: size.height * 0.4),
+                    control1: CGPoint(x: size.width * 0.35, y: size.height * 0.7),
+                    control2: CGPoint(x: size.width * 0.7, y: size.height * 0.28)
+                )
+                ctx.stroke(
+                    path,
+                    with: .color(Palette.cocoaTertiary.opacity(0.35)),
+                    style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [1, 7])
+                )
+            }
+            .frame(height: 90)
+            Text("two mornings on the scale and it draws itself")
+                .font(Typo.caption)
+                .foregroundStyle(Palette.textSecondary)
+        }
+    }
+
+    /// Page 2 — food. One big protein arc; the week's protein fact.
+    @ViewBuilder private var foodPage: some View {
+        let suppressed = snapshot?.targets.numericsSuppressed ?? false
+        let target = snapshot?.targets.proteinG
+        JKStoryPage(
+            eyebrow: "food",
+            headline: foodHeadline,
+            headlineItalic: foodHeadlineItalic,
+            caption: foodCaption
+        ) {
+            VStack(spacing: Space.lg) {
+                if !suppressed, let target {
+                    JKProteinArc(
+                        grams: snapshot?.proteinEatenG ?? 0,
+                        targetG: target,
+                        note: snapshot?.targets.proteinNote,
+                        diameter: 148
+                    )
+                    if let week {
+                        JKProteinWeekBand(
+                            days: week.last7.map { ($0.proteinG, $0.plates > 0) },
+                            targetG: target
+                        )
+                    }
+                    // v5 nutrition visibility: the rest of today's
+                    // plate chemistry the pipeline already reads —
+                    // carbs, fat, fiber (vitamins/minerals aren't in
+                    // the vision contract yet; nothing invented).
+                    if let snapshot, snapshot.kcalEaten > 0 {
+                        HStack(spacing: 0) {
+                            chemistryColumn("\(snapshot.kcalEaten)", "kcal")
+                            chemistryColumn("\(snapshot.carbsEatenG)g", "carbs")
+                            chemistryColumn("\(snapshot.fatEatenG)g", "fat")
+                            chemistryColumn("\(snapshot.fiberEatenG)g", "fiber")
+                        }
+                        .padding(.top, Space.xs)
+                    }
+                } else if let week {
+                    // Suppressed cohorts: presence, zero numerals.
+                    JKProteinWeekBand(
+                        days: week.last7.map { ($0.proteinG, $0.plates > 0) },
+                        targetG: nil
+                    )
+                    .scaleEffect(1.4)
+                }
+            }
+        } doors: {
+            JKJourneyDoor(
+                lead: "open",
+                punch: "her plates",
+                italic: ["plates"],
+                action: { showJournal = true }
+            )
+        }
+    }
+
+    private func chemistryColumn(_ value: String, _ label: String) -> some View {
+        VStack(spacing: 3) {
+            Text(value)
+                .font(.custom("DMSans-Medium", size: 15, relativeTo: .footnote))
+                .monospacedDigit()
+                .foregroundStyle(Palette.textPrimary)
+            Text(label)
+                .font(Typo.statLabel)
+                .kerning(0.66)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.cocoaTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var foodHeadline: String {
+        let suppressed = snapshot?.targets.numericsSuppressed ?? false
+        guard let week else { return "the food story starts with plates." }
+        if suppressed {
+            return week.loggedDays7 >= 3
+                ? "the plates were there \(week.loggedDays7) of 7 days."
+                : "the plates tell the story, gently."
+        }
+        if week.proteinDaysHit >= 1, snapshot?.targets.proteinG != nil {
+            return "protein landed \(week.proteinDaysHit) of 7 days."
+        }
+        if week.loggedDays7 >= 3 {
+            return "plates logged on \(week.loggedDays7) of 7 days."
+        }
+        return "the food story starts with plates."
+    }
+
+    private var foodHeadlineItalic: [String] {
+        foodHeadline.contains("protein") ? ["protein"]
+            : (foodHeadline.contains("starts") ? ["starts"] : ["plates"])
+    }
+
+    private var foodCaption: String? {
+        guard let snapshot else { return nil }
+        if snapshot.targets.numericsSuppressed {
+            return "protein is what matters today \u{2665}\u{FE0E}"
+        }
+        if snapshot.kcalEaten > 0, let target = snapshot.targets.kcal {
+            let room = Int((Double(max(0, target - snapshot.kcalEaten)) / 50).rounded() * 50)
+            return "today: \(snapshot.kcalEaten) of ~\(target.formatted()) · room for about \(room)"
+        }
+        if snapshot.chapter == .onMedication, let g = snapshot.targets.proteinG {
+            return "the floor is \(g)g. small plates count double."
+        }
+        return "the count starts with your first plate."
     }
 
     @ViewBuilder
@@ -346,28 +471,202 @@ struct BecomingView: View {
         return Calendar.current.isDateInToday(last)
     }
 
-    // MARK: - This week (the open chapter)
-
-    @ViewBuilder private var thisWeek: some View {
-        if let journey, let current = journey.currentWeek {
-            VStack(alignment: .leading, spacing: Space.md) {
-                Text("this week")
-                    .font(Typo.captionTracked)
-                    .kerning(1.98)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-
-                JKWeekCard(
-                    entry: current,
-                    isCurrent: true,
-                    onOpen: { openedWeek = current }
+    /// Page 3 — movement. The week's step rhythm, large.
+    @ViewBuilder private var movementPage: some View {
+        let goal = snapshot?.targets.steps ?? 7500
+        let counts = StepsService.shared.weeklyCounts
+        let goalDays = counts.filter { $0 >= goal }.count
+        let walkedDays = counts.filter { $0 >= goal / 2 }.count
+        JKStoryPage(
+            eyebrow: "movement",
+            headline: {
+                if StepsService.shared.authStatus != .authorized {
+                    return "your steps can count themselves."
+                }
+                if goalDays >= 2 { return "\(goalDays) of 7 days reached \(goal.formatted())." }
+                if walkedDays >= 3 { return "real walks on \(walkedDays) days this week." }
+                return "the easiest lever is just walking."
+            }(),
+            headlineItalic: goalDays >= 2 ? ["\(goal.formatted())"]
+                : (walkedDays >= 3 ? ["real"] : ["walking"]),
+            caption: {
+                if StepsService.shared.authStatus != .authorized { return nil }
+                return goalDays < 2 && walkedDays < 3
+                    ? "the benefit starts far below 10k. that number was marketing."
+                    : "counted for you, no logging."
+            }()
+        ) {
+            if StepsService.shared.authStatus == .authorized {
+                JKStepsRhythmVisual(
+                    todayCount: StepsService.shared.todayCount,
+                    weeklyCounts: counts,
+                    goal: goal
                 )
+            } else {
+                // Not connected: seven quiet dashes, no ghost zero.
+                HStack(spacing: 16) {
+                    ForEach(0..<7, id: \.self) { _ in
+                        Capsule()
+                            .fill(Palette.hairlineCocoa)
+                            .frame(width: 12, height: 2.5)
+                    }
+                }
+                .accessibilityHidden(true)
+            }
+        } doors: {
+            if StepsService.shared.authStatus == .notDetermined {
+                JKJourneyDoor(
+                    lead: "connect",
+                    punch: "apple health",
+                    italic: ["health"],
+                    action: { Task { await StepsService.shared.requestAccess() } }
+                )
+            } else {
+                EmptyView()
+            }
+        }
+    }
 
-                if let due = journey.dueReview {
-                    dueCard(due)
+    /// Page 4 — this week (the plan). The week's name, the days at
+    /// stage size, the arc's position, the signed record, the doors.
+    @ViewBuilder private var planPage: some View {
+        JKStoryPage(
+            eyebrow: "this week",
+            headline: "\(journey?.currentWeek?.name ?? snapshot?.weekIntent?.name ?? "your week").",
+            headlineItalic: [],
+            caption: journey?.currentWeek?.intentLine ?? snapshot?.weekIntent?.line
+        ) {
+            VStack(spacing: Space.lg) {
+                if let current = journey?.currentWeek {
+                    Button {
+                        Haptics.light()
+                        openedWeek = current
+                    } label: {
+                        VStack(spacing: Space.md) {
+                            JKWeekDotsVisual(
+                                days: current.dotDays,
+                                letters: weekLetters(current)
+                            )
+                            if let delta = current.weightDeltaLine {
+                                Text(delta)
+                                    .font(.custom("DMSans-Medium", size: 13, relativeTo: .caption))
+                                    .monospacedDigit()
+                                    .foregroundStyle(Palette.cocoaSecondary)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(JKPress())
+                    .accessibilityLabel("this week, day by day. opens the week")
+                }
+
+                // The ribbon speaks position; the week's intent line
+                // is the page caption (two intent-toned sentences on
+                // one page read as filler).
+                if let snapshot, snapshot.arcPhase != nil {
+                    JKArcRibbon(
+                        phases: ProgramArc.phases(
+                            totalWeeks: snapshot.totalWeeks,
+                            chapter: snapshot.chapter
+                        ),
+                        currentWeek: snapshot.programWeek,
+                        totalWeeks: snapshot.totalWeeks
+                    )
                 }
             }
-            .padding(.horizontal, Space.lg)
+        } doors: {
+            VStack(spacing: 0) {
+                if let record = journey?.currentWeek?.record {
+                    HStack(spacing: 7) {
+                        JKMark(kind: .door, size: 11, color: Palette.accent)
+                        (Text("signed · ")
+                            .font(Typo.caption)
+                            .foregroundStyle(Palette.cocoaTertiary)
+                        + Text(record.stampLine)
+                            .font(.custom("Fraunces72pt-SemiBoldItalic", size: 13, relativeTo: .caption))
+                            .foregroundStyle(Palette.cocoaSecondary))
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.bottom, Space.sm)
+                }
+                if let due = journey?.dueReview {
+                    dueCard(due)
+                        .padding(.bottom, Space.sm)
+                }
+                JKJourneyDoor(
+                    lead: "open",
+                    punch: "her weeks",
+                    italic: ["weeks"],
+                    action: { showTimeline = true }
+                )
+            }
+        }
+    }
+
+    private func weekLetters(_ entry: JourneyModel.WeekEntry) -> [String] {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "EEEEE"
+        return entry.slice.days.map { fmt.string(from: $0.date).lowercased() }
+    }
+
+    /// Page 5 (keeping only) — the band. Maintenance as its own page.
+    @ViewBuilder private var bandPage: some View {
+        let zone = snapshot?.bandZone.flatMap(BandZone.init(rawValue:)) ?? .steady
+        JKStoryPage(
+            eyebrow: "the band",
+            headline: {
+                switch zone {
+                case .steady: return "the band holds. so do you."
+                case .drifting: return "a steadying week. the line comes home."
+                case .reset: return "a reset arc, held with you."
+                }
+            }(),
+            headlineItalic: [zone == .steady ? "holds" : (zone == .drifting ? "steadying" : "held")],
+            caption: "keeping is quieter than losing. it counts more."
+        ) {
+            VStack(spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("\(min(PresenceLedger.keptDays, max(snapshot?.programDay ?? 0, 0)))")
+                        .font(.custom("JeniHeroSerif-Regular", size: 56, relativeTo: .largeTitle))
+                        .foregroundStyle(Palette.cocoaPrimary)
+                        .monospacedDigit()
+                    Text("kept days")
+                        .font(.custom("JeniHeroSerif-Italic", size: 20, relativeTo: .title3))
+                        .foregroundStyle(Palette.accent)
+                        .baselineOffset(4)
+                }
+                Text("presence, counted. never a streak.")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+        } doors: {
+            EmptyView()
+        }
+    }
+
+    /// Page 6 — from jeni. The reflection letter + the practice.
+    @ViewBuilder private var reflectionPage: some View {
+        let card = insights?.cards.first
+        let line = card?.line ?? snapshot?.brief.line ?? "the day writes; i read."
+        let italic = card?.italic ?? snapshot?.brief.italic ?? []
+        JKStoryPage(
+            eyebrow: "from jeni",
+            headline: line,
+            headlineItalic: italic,
+            caption: card?.detail ?? snapshot?.brief.mechanism
+        ) {
+            if let snapshot, snapshot.isEnrolled, let ref = resolvedLesson(snapshot) {
+                practiceCard(ref, snapshot: snapshot)
+            }
+        } doors: {
+            JKJourneyDoor(
+                lead: "talk it",
+                punch: "through with jeni",
+                italic: ["jeni"],
+                action: {
+                    router.openChat(seed: card?.chatSeed ?? snapshot?.brief.chatSeed)
+                }
+            )
         }
     }
 
@@ -407,71 +706,7 @@ struct BecomingView: View {
         .accessibilityLabel("the week's receipt is ready. opens your weekly review")
     }
 
-    // MARK: - The weeks (the ledger)
-
-    @ViewBuilder private var theWeeks: some View {
-        if let journey, !journey.pastWeeks.isEmpty {
-            VStack(alignment: .leading, spacing: Space.md) {
-                Text("past weeks")
-                    .font(Typo.captionTracked)
-                    .kerning(1.98)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-
-                VStack(spacing: Space.md) {
-                    ForEach(journey.pastWeeks) { entry in
-                        if entry.slice.elapsedDays.isEmpty
-                            || (entry.slice.keptCount == 0
-                                && entry.slice.plateCount == 0
-                                && entry.slice.weighCount == 0
-                                && entry.record == nil) {
-                            // Quiet weeks compress to a seam.
-                            JKQuietSeam(line: "week \(entry.weekIndex) passed quietly")
-                                .padding(.vertical, 2)
-                        } else {
-                            JKWeekCard(
-                                entry: entry,
-                                isCurrent: false,
-                                onOpen: { openedWeek = entry }
-                            )
-                        }
-                    }
-                }
-
-                if journey.earlierWeekCount > 0 {
-                    JKQuietSeam(line: showEarlierWeeks
-                        ? "the beginning"
-                        : "\(journey.earlierWeekCount) earlier \(journey.earlierWeekCount == 1 ? "week" : "weeks")")
-                        .padding(.vertical, 2)
-                        .onTapGesture {
-                            // Earlier weeks load on demand (v4.1) —
-                            // the seam names them so the past is never
-                            // silently truncated.
-                        }
-                }
-            }
-            .padding(.horizontal, Space.lg)
-        }
-    }
-
-    // MARK: - The future (shape, never a list)
-
-    @ViewBuilder private var theFuture: some View {
-        if let journey, let name = journey.nextWeekName,
-           let shape = journey.nextWeekShape {
-            VStack(alignment: .leading, spacing: Space.md) {
-                Text("ahead")
-                    .font(Typo.captionTracked)
-                    .kerning(1.98)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                JKFutureShapeCard(name: name, shapeLine: shape)
-            }
-            .padding(.horizontal, Space.lg)
-        }
-    }
-
-    // MARK: - The practice (the method's journey memory)
+    // MARK: - The practice card (rides the reflection page)
 
     private static let actTitles = [
         1: "deconstruct the diet brain",
@@ -480,16 +715,8 @@ struct BecomingView: View {
         4: "maintain for life",
     ]
 
-    @ViewBuilder private var thePractice: some View {
-        if let snapshot, snapshot.isEnrolled, let ref = resolvedLesson(snapshot) {
-            VStack(alignment: .leading, spacing: Space.md) {
-                Text("the practice")
-                    .font(Typo.captionTracked)
-                    .kerning(1.98)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .padding(.horizontal, Space.lg)
-
+    @ViewBuilder
+    private func practiceCard(_ ref: ResolvedLessonRef, snapshot: TodaySnapshot) -> some View {
                 Button {
                     Haptics.light()
                     router.open(.lesson)
@@ -545,9 +772,6 @@ struct BecomingView: View {
                     .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
                 .buttonStyle(JKPress())
-                .padding(.horizontal, Space.lg)
-            }
-        }
     }
 
     private func resolvedLesson(_ snapshot: TodaySnapshot) -> ResolvedLessonRef? {
@@ -608,26 +832,6 @@ struct BecomingView: View {
         let f = NumberFormatter()
         f.numberStyle = .spellOut
         return f.string(from: NSNumber(value: n)) ?? "\(n)"
-    }
-
-    // MARK: - Doors (the archive)
-
-    private var doors: some View {
-        VStack(spacing: 0) {
-            JKJourneyDoor(
-                lead: "open",
-                punch: "her plates",
-                italic: ["plates"],
-                showsRule: true,
-                action: { showJournal = true }
-            )
-            JKJourneyDoor(
-                lead: "open",
-                punch: "her file",
-                italic: ["file"],
-                action: { router.tab = .jeni }
-            )
-        }
     }
 
     // MARK: - Refresh

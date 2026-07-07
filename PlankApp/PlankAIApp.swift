@@ -2268,17 +2268,23 @@ private struct RootView: View {
             // arc, kcal line, wins block, and insight cards all carry
             // real state in the walker ledger. mergeRemote is the
             // public insert-only seam (no photos; recipe-card minis).
+            // Seed guards on TODAY having no plates (an any-entries
+            // guard starved every run after the first midnight
+            // crossing), and the ids carry the dayKey so the
+            // insert-only merge can't skip a fresh day.
             if ProcessInfo.processInfo.arguments.contains("--uitest-seed-program"),
                let uid = auth.currentUser?.id.uuidString,
-               FoodLogPersister.allEntries(userId: uid).isEmpty {
+               !FoodLogPersister.allEntries(userId: uid)
+                   .contains(where: { Calendar.current.isDateInToday($0.loggedAt) }) {
                 let cal = Calendar.current
                 let today = cal.startOfDay(for: .now)
+                let dayKey = TodayStateService.dayKey()
                 FoodLogPersister.mergeRemote([
-                    .init(id: "qa-plate-1", userId: uid,
+                    .init(id: "qa-plate-\(dayKey)-1", userId: uid,
                           loggedAt: today.addingTimeInterval(8.2 * 3600),
                           kcal: 340, protein: 24, carbs: 38, fat: 11, fiber: 6,
                           title: "greek yogurt bowl", source: "quick_add"),
-                    .init(id: "qa-plate-2", userId: uid,
+                    .init(id: "qa-plate-\(dayKey)-2", userId: uid,
                           loggedAt: today.addingTimeInterval(12.7 * 3600),
                           kcal: 520, protein: 38, carbs: 52, fat: 17, fiber: 7,
                           title: "chicken poke bowl", source: "quick_add"),

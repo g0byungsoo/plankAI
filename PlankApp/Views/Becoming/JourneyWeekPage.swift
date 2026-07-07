@@ -18,6 +18,9 @@ struct JourneyWeekPage: View {
     let userId: String
     let onAskJeni: (String) -> Void
     let onDismiss: () -> Void
+    /// v5 day rail: open straight onto a day's receipt (the week
+    /// page stays one back-tap away).
+    var initialProgramDay: Int? = nil
 
     @Environment(\.modelContext) private var modelContext
 
@@ -43,6 +46,11 @@ struct JourneyWeekPage: View {
             Analytics.track(.journeyWeekOpened, properties: [
                 "week": entry.weekIndex,
             ])
+            if let initialProgramDay,
+               let fact = entry.slice.days.first(where: { $0.programDay == initialProgramDay }),
+               !fact.isFuture {
+                loadDay(fact)
+            }
             #if DEBUG
             // QA: land on a day receipt directly (pairs with
             // --uitest-open-week). --uitest-open-day 15
@@ -529,7 +537,14 @@ struct JourneyWeekPage: View {
 
     private func plateFacts(_ plate: FoodLogPersister.FoodLogEntry) -> String {
         let time = plate.loggedAt.formatted(date: .omitted, time: .shortened).lowercased()
+        var parts = [time]
+        // v5 nutrition visibility: the receipt shows the calories the
+        // pipeline read — unless her cohort suppresses numerals.
+        if !snapshot.targets.numericsSuppressed, plate.kcal > 0 {
+            parts.append("about \(Int(plate.kcal.rounded())) kcal")
+        }
         let protein = Int(plate.protein.rounded())
-        return protein > 0 ? "\(time) · about \(protein)g protein" : time
+        if protein > 0 { parts.append("\(protein)g protein") }
+        return parts.joined(separator: " · ")
     }
 }

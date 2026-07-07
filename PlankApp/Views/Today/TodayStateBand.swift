@@ -69,45 +69,46 @@ struct TodayStateBand: View {
                 )
             }
 
-            // The single gauge + the day answer beside it.
-            HStack(alignment: .center, spacing: Space.lg) {
-                if let proteinTarget = snapshot.targets.proteinG {
-                    JKProteinArc(
-                        grams: snapshot.proteinEatenG,
-                        targetG: proteinTarget,
-                        note: snapshot.targets.proteinNote,
-                        diameter: 92
-                    )
+            // The day answer in words (v5 re-steer: Home stays calm —
+            // calories stay visible as the lead sentence, protein
+            // rides beneath as text; the big gauge lives on
+            // becoming's food page now).
+            VStack(alignment: .leading, spacing: 7) {
+                if !snapshot.targets.numericsSuppressed, snapshot.kcalEaten > 0 {
+                    JKKcalLine(kcal: snapshot.kcalEaten, target: snapshot.targets.kcal)
+                    if let target = snapshot.targets.proteinG {
+                        Text("protein \(snapshot.proteinEatenG) of \(target)g")
+                            .font(Typo.caption)
+                            .monospacedDigit()
+                            .foregroundStyle(Palette.textSecondary)
+                    }
+                } else if snapshot.targets.numericsSuppressed {
+                    Text("protein is what matters today \u{2665}\u{FE0E}")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if !snapshot.plates.isEmpty {
+                    // Plates without readable kcal yet (still scanning
+                    // / text-only) — say so, once. The empty strip's
+                    // invite already covers the zero-plate morning.
+                    Text("the count starts with your first plate")
+                        .font(Typo.caption)
+                        .foregroundStyle(Palette.textSecondary)
                 }
-                VStack(alignment: .leading, spacing: 7) {
-                    if !snapshot.targets.numericsSuppressed, snapshot.kcalEaten > 0 {
-                        JKKcalLine(kcal: snapshot.kcalEaten, target: snapshot.targets.kcal)
-                    } else if snapshot.targets.numericsSuppressed {
-                        Text("protein is what matters today \u{2665}\u{FE0E}")
+
+                // THE QUIET HOURS — zero-input insight, kept.
+                if let hours = QuietHours.liveOvernight(
+                    userId: AuthService.shared.currentUser?.id.uuidString ?? ""
+                ), hours >= 11 {
+                    HStack(spacing: 7) {
+                        JKMark(kind: .moon, size: 12,
+                               color: Palette.cocoaSecondary.opacity(0.8))
+                        Text(QuietHours.overnightLine(hours: hours))
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
-                    } else {
-                        Text("the count starts with your first plate")
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-
-                    // THE QUIET HOURS — zero-input insight, kept.
-                    if let hours = QuietHours.liveOvernight(
-                        userId: AuthService.shared.currentUser?.id.uuidString ?? ""
-                    ), hours >= 11 {
-                        HStack(spacing: 7) {
-                            JKMark(kind: .moon, size: 12,
-                                   color: Palette.cocoaSecondary.opacity(0.8))
-                            Text(QuietHours.overnightLine(hours: hours))
-                                .font(Typo.caption)
-                                .foregroundStyle(Palette.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
                     }
                 }
-                Spacer(minLength: 0)
             }
             .padding(.horizontal, Space.lg)
             .padding(.top, Space.xs)

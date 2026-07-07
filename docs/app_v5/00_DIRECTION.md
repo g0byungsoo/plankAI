@@ -139,3 +139,51 @@ E. Motion/haptic cohesion + SE/Dynamic Type + evidence sweep.
 
 Each pass: build once, screenshot, commit. Evidence in
 `docs/app_v5/evidence/` (gitignored), decisions logged here.
+
+---
+
+## 6. THE RE-STEER (founder, 2026-07-07): the story rebuild
+
+Passes A–E improved the old structure; the founder wants the
+structure itself rethought. Verdict accepted: becoming still reads
+as a dashboard/ledger; Home still reads as old-Home-improved. The
+onboarding demo surfaces are the bar: one idea per screen, one
+large visual that speaks instantly.
+
+**Becoming = a swipeable insight story.** A horizontal pager of
+near-full-screen pages, one insight each, jeni walking her through
+her own body and plan:
+
+1. weight — the trend canvas as hero, the insight sentence as the
+   headline ("the line eased down about 1 lb this week.")
+2. food — one big protein arc + the week's protein fact; her-plates
+   door lives here now
+3. movement — the week's step rhythm, large; the gentle-floor fact
+4. this week (plan) — the week's name + large day dots + arc ribbon
+   + signed stamp + the review re-offer; "her weeks" door
+5. the band (keeping chapter only) — maintenance as its own page
+6. from jeni — the reflection letter (pattern insight or the
+   reading), talk-it-through door, the practice door
+
+Page grammar (JKStoryPage): eyebrow → serif headline (the insight,
+plain words) → large visual → caption → quiet doors. Custom page
+dots; soft haptic per turn; the canvas draw-in fires on arrival.
+No grids, no stacked cards, no vertical ledger at the top level.
+
+**Home = a calm command center.** Masthead → THE DAY RAIL (new: the
+program week as seven tappable day cells — weekday letters, state
+dots, today as a filled numbered pill, dotted future; caption
+"finding steady · week 2 of 20 →" opens becoming; past cells open
+day receipts) → jeni's note → THE ONE THING → quiet rhythm rows →
+plates memory strip with a one-line day answer (the big ring moves
+to becoming's food page). The rail is the calendar-strip answer,
+returned to the top of Home as a designed object.
+
+**Plan history = her weeks**, one level in: a full-screen timeline
+behind the plan page (this week + past week receipt cards + quiet
+seams + the future shape at the foot). The ledger relocated and
+demoted, not deleted — history on demand, story up front.
+
+Failure standards adopted verbatim: becoming must not feel like a
+dashboard; Home must not feel like old Home; the plan over time
+must be visible; one insight per screen; onboarding-parity premium.

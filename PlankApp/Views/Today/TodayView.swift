@@ -27,6 +27,10 @@ struct TodayView: View {
 
     @State private var snapshot: TodaySnapshot?
     @State private var modules = TodayModuleState()
+    /// A rail day tap → that day's receipt (the week entry loads on
+    /// demand; the sheet opens straight onto the day page).
+    @State private var railWeek: JourneyModel.WeekEntry?
+    @State private var railDay: Int?
     /// Day-complete silk sweep (jkSilk). Bumped once when the last
     /// binary beat lands; -1 until the first snapshot so restoring an
     /// already-complete day never replays it.
@@ -69,6 +73,31 @@ struct TodayView: View {
         .onChange(of: steps.todayCount) { _, count in
             autoCompleteStepsIfCrossed(count)
         }
+        .sheet(item: $railWeek) { entry in
+            JourneyWeekPage(
+                entry: entry,
+                snapshot: snapshot ?? TodayStateService.snapshot(userId: userId, in: modelContext),
+                userId: userId,
+                onAskJeni: { seed in
+                    railWeek = nil
+                    router.openChat(seed: seed)
+                },
+                onDismiss: { railWeek = nil },
+                initialProgramDay: railDay
+            )
+            .presentationDetents([.large])
+            .presentationBackground(Palette.bgPrimary)
+        }
+    }
+
+    /// The rail's day tap: load this week's entry once, open the
+    /// sheet directly on that day's receipt.
+    private func openRailDay(_ programDay: Int) {
+        guard let snapshot else { return }
+        let model = JourneyModel.load(userId: userId, snapshot: snapshot, in: modelContext)
+        guard let current = model.currentWeek else { return }
+        railDay = programDay
+        railWeek = current
     }
 
     private var scrollBody: some View {
@@ -79,15 +108,18 @@ struct TodayView: View {
                         .jkBeat1()
 
                     if let snapshot {
-                        // THE WEEK RIBBON — how today connects to the
-                        // plan, one whisper-weight line (v4). Tap →
-                        // the journey.
+                        // THE DAY RAIL (v5 re-steer) — the program
+                        // week she can read and touch: past days open
+                        // their receipts, the caption opens the
+                        // journey. The calendar-strip answer.
                         if snapshot.isEnrolled, snapshot.weekIntent != nil {
-                            JKWeekRibbon(snapshot: snapshot) {
-                                router.tab = .becoming
-                            }
+                            JKDayRail(
+                                snapshot: snapshot,
+                                onOpen: { router.tab = .becoming },
+                                onOpenDay: { day in openRailDay(day) }
+                            )
                             .padding(.horizontal, Space.lg)
-                            .padding(.top, Space.sm)
+                            .padding(.top, Space.md)
                             .jkBeat2(extraDelay: 0.04)
                         }
 

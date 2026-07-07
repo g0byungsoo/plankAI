@@ -30,6 +30,12 @@ struct TodaySnapshot {
     // food
     let kcalEaten: Int
     let proteinEatenG: Int
+    /// v5 nutrition visibility: the rest of the plate chemistry the
+    /// pipeline already stores (vision + edits persist these; only
+    /// protein/kcal ever surfaced before).
+    var carbsEatenG: Int = 0
+    var fatEatenG: Int = 0
+    var fiberEatenG: Int = 0
     let plates: [FoodLogPersister.FoodLogEntry]
 
     // movement
@@ -302,6 +308,9 @@ enum TodayStateService {
             completionWindow: completionWindow,
             kcalEaten: Int(macros.kcal.rounded()),
             proteinEatenG: Int(macros.protein.rounded()),
+            carbsEatenG: Int(macros.carbs.rounded()),
+            fatEatenG: Int(macros.fat.rounded()),
+            fiberEatenG: Int(macros.fiber.rounded()),
             plates: plates,
             steps: StepsService.shared.todayCount,
             latestWeightKg: latestKg,

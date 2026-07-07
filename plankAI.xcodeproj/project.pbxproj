@@ -312,6 +312,7 @@
 		47056FF999BCE124BCCB672C /* matson_prep_short_alternating_superman.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 13153FE51DDF04B35AC400BD /* matson_prep_short_alternating_superman.m4a */; };
 		4750BF34E9F3D5EA6FD41B00 /* prep_short_plank_run.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 27DEF2FEFCE5FBF48B7E2C98 /* prep_short_plank_run.m4a */; };
 		488BD562F528B5B0D2A6AD1E /* prep_full_seated_forward_fold.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8EC82DAB108B006D21819949 /* prep_full_seated_forward_fold.m4a */; };
+		489A1C19C9C7420226E46858 /* BecomingStoryPages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AE020D414DCC028B7AD7EB5 /* BecomingStoryPages.swift */; };
 		48F73930A7E167BF03D9A0B7 /* matson_prep_full_superman_hold.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 6338361D7D0D034C914F4D52 /* matson_prep_full_superman_hold.m4a */; };
 		49923CF5ED43DC8A4190FFFD /* prep_short_stiff_leg_deadlift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = A6FC839B816BEF2BA82C58CF /* prep_short_stiff_leg_deadlift.m4a */; };
 		49C128EB0C093C9CC875C638 /* jeni_prep_full_tabletop_hold_knee_lift.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 98AF180956A7F3CA93431730 /* jeni_prep_full_tabletop_hold_knee_lift.m4a */; };
@@ -2089,6 +2090,7 @@
 		89A66D239472135F2C51F93F /* matson_prep_short_seated_forward_fold.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_seated_forward_fold.m4a; sourceTree = "<group>"; };
 		89F7F3AAFBCFD245EF9A823F /* matson_prep_short_stiff_leg_deadlift.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_stiff_leg_deadlift.m4a; sourceTree = "<group>"; };
 		8A9F6BD6C02DC63681EED90A /* matson_prep_short_neck_stretch.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_short_neck_stretch.m4a; sourceTree = "<group>"; };
+		8AE020D414DCC028B7AD7EB5 /* BecomingStoryPages.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BecomingStoryPages.swift; sourceTree = "<group>"; };
 		8B15F3F0940F5BF8814F32B4 /* OV5ScreensFood.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OV5ScreensFood.swift; sourceTree = "<group>"; };
 		8B84B5A889255BE0A024A2AF /* JKVoice.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = JKVoice.swift; sourceTree = "<group>"; };
 		8B9B8CC74D053FA36589E99F /* jeni_prep_short_back_extension_lying.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_back_extension_lying.m4a; sourceTree = "<group>"; };
@@ -2973,6 +2975,7 @@
 				B5F93EA5025D55C5A7E7243A /* ReSigningView.swift */,
 				209F49A6CB9637D606F41D33 /* JourneyPlatesPage.swift */,
 				2C8FCD94484AD4CA2B7B5957 /* BecomingTrendCanvas.swift */,
+				8AE020D414DCC028B7AD7EB5 /* BecomingStoryPages.swift */,
 			);
 			name = Becoming;
 			path = Becoming;
@@ -6256,6 +6259,7 @@
 				F83EE3373F71E9167F0D8CD6 /* TonightPlan.swift in Sources */,
 				F6539D6AABB452EFA7D30E07 /* JourneyPlatesPage.swift in Sources */,
 				DE2B074B20F460DF78A0645B /* BecomingTrendCanvas.swift in Sources */,
+				489A1C19C9C7420226E46858 /* BecomingStoryPages.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
