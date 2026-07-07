@@ -130,6 +130,12 @@ final class ChatSession {
         let text = [brief.line, brief.second]
             .compactMap { $0 }
             .joined(separator: " ")
+        // v5: letters don't repeat themselves — when the engine's
+        // deterministic reading matches yesterday's seeded line
+        // verbatim (a held trend does this), the desk stays quiet
+        // rather than stuttering the same sentence twice in a row.
+        let lastJeniText = entries.last(where: { $0.kind == .jeni })?.text
+        guard text != lastJeniText else { return }
         appendPersisted(role: "jeni", text: text, dayKey: dayKey)
     }
 

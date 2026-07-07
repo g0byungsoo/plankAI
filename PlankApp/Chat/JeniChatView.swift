@@ -171,7 +171,14 @@ struct JeniChatView: View {
                 // field and taps into the right surface.
                 herFileCard
 
-                ForEach(session.entries) { entry in
+                // v5: the transcript reads as dated letters — a quiet
+                // seam opens each prior day's group (the undated echo
+                // of a deterministic reading looked like a stutter).
+                ForEach(Array(session.entries.enumerated()), id: \.element.id) { idx, entry in
+                    if let mark = dayMark(at: idx) {
+                        JKQuietSeam(line: mark)
+                            .padding(.vertical, 2)
+                    }
                     entryView(entry)
                         .id(entry.id)
                 }
@@ -239,6 +246,25 @@ struct JeniChatView: View {
         }
     }
 
+    /// The seam label above a day's letter group: nothing for today's
+    /// (the open page), "yesterday", then the weekday date.
+    private func dayMark(at idx: Int) -> String? {
+        let entry = session.entries[idx]
+        let cal = Calendar.current
+        if idx > 0,
+           cal.isDate(session.entries[idx - 1].createdAt,
+                      inSameDayAs: entry.createdAt) {
+            return nil
+        }
+        if cal.isDateInToday(entry.createdAt) {
+            return idx == 0 ? nil : "today"
+        }
+        if cal.isDateInYesterday(entry.createdAt) { return "yesterday" }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "EEEE, MMMM d"
+        return fmt.string(from: entry.createdAt).lowercased()
+    }
+
     /// Time-aware greeting — the only inputs are the clock and her
     /// name-free register (provenance rule: nothing invented).
     private var emptyGreeting: (line: String, italic: [String]) {
@@ -254,7 +280,13 @@ struct JeniChatView: View {
     private func showsKicker(before entry: ChatSession.Entry) -> Bool {
         guard let idx = session.entries.firstIndex(where: { $0.id == entry.id }),
               idx > 0 else { return true }
-        switch session.entries[idx - 1].kind {
+        let prev = session.entries[idx - 1]
+        // v5: a new day's letter signs itself again (a date seam
+        // between two unsigned jeni groups read as one run-on).
+        if !Calendar.current.isDate(prev.createdAt, inSameDayAs: entry.createdAt) {
+            return true
+        }
+        switch prev.kind {
         case .jeni, .careLine: return false
         default: return true
         }
@@ -356,7 +388,10 @@ struct JeniChatView: View {
 
     private var composer: some View {
         VStack(spacing: 10) {
-            if session.entries.count <= 1 && !session.isStreaming {
+            // v5: starters show whenever she hasn't spoken TODAY —
+            // the old count<=1 gate meant one day of history buried
+            // them forever.
+            if showsStarterChips {
                 suggestionChips
             }
             HStack(spacing: 10) {
@@ -403,6 +438,13 @@ struct JeniChatView: View {
 
     private var sendEnabled: Bool {
         !session.composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var showsStarterChips: Bool {
+        guard !session.isStreaming else { return false }
+        return !session.entries.contains {
+            $0.kind == .user && Calendar.current.isDateInToday($0.createdAt)
+        }
     }
 
     private func sendTapped() {

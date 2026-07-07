@@ -120,14 +120,16 @@ struct TodayStepsSheet: View {
         let goalDays = steps.weeklyCounts.filter { $0 >= goal }.count
         let walkedDays = steps.weeklyCounts.filter { $0 >= goal / 2 }.count
         if goalDays >= 2 {
-            return "your legs covered the gap on \(goalDays) of 7 days. the easiest lever, working."
+            return "\(goalDays) of 7 days reached \(goal.formatted()). the easiest lever, working."
         }
         if walkedDays >= 3 {
             return "real walks on \(walkedDays) days this week. quiet miles count."
         }
         let f = Double(steps.todayCount) / Double(max(goal, 1))
         switch f {
-        case ..<0.3: return "small walks move real numbers."
+        // The gentle-floor fact (STEPS_VALUE research): low days get
+        // the honest curve, not a bigger ask.
+        case ..<0.3: return "the benefit starts far below 10k. that number was marketing."
         case ..<1: return "the day is carrying you there."
         default: return "the anchor landed today \u{2665}\u{FE0E}"
         }

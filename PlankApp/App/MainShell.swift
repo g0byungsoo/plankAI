@@ -26,6 +26,7 @@ struct MainShell: View {
     @State private var showingPostPurchase = false
     @AppStorage("day1PromiseAction") private var day1PromiseAction: String = ""
     @AppStorage("day1PromiseAnchor") private var day1PromiseAnchor: String = ""
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         // Defense-in-depth: never render entitled content unentitled.
@@ -110,14 +111,16 @@ struct MainShell: View {
         }
     }
 
-    /// One tab's tree — mounted always, visible when active. The
-    /// bloom (2pt blur + 4pt rise settle) marks arrivals the way the
-    /// old TabBloom did, at lower cost.
+    /// One tab's tree — mounted always, visible when active. Arrivals
+    /// settle with a 4pt rise over the crossfade (v5: the comment
+    /// promised this bloom; the code had gone flat) — offset+opacity
+    /// only, cheap on mounted trees, skipped under reduce-motion.
     @ViewBuilder
     private func tabTree(_ tab: JKTab, @ViewBuilder content: () -> some View) -> some View {
         let isActive = router.tab == tab
         content()
             .opacity(isActive ? 1 : 0)
+            .offset(y: reduceMotion ? 0 : (isActive ? 0 : 4))
             .allowsHitTesting(isActive)
             .accessibilityHidden(!isActive)
             .animation(Motion.crossFade, value: router.tab)

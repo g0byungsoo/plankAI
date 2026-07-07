@@ -118,7 +118,9 @@ struct JKBreathField: View {
     let hold: Double
     let exhale: Double
     let reps: Int
-    var size: CGFloat = 330
+    // v5 presence pass: the bloom commands the stage (it read as a
+    // small washed blob against the full-bleed cream).
+    var size: CGFloat = 360
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -133,8 +135,8 @@ struct JKBreathField: View {
     private static let petals: [Petal] = (0..<7).map { (k: Int) -> Petal in
         let angle: Double = Double(k) * 2.0 * Double.pi / 7.0
         let lag: Double = Double(k % 4) * 0.09
-        let radius: CGFloat = 44.0 + CGFloat((k * 7) % 16)
-        let reach: CGFloat = 30.0 + CGFloat((k * 11) % 14)
+        let radius: CGFloat = 50.0 + CGFloat((k * 7) % 16)
+        let reach: CGFloat = 34.0 + CGFloat((k * 11) % 14)
         return Petal(angle: angle, lag: lag, radius: radius,
                      reach: reach, rose: k % 2 == 0)
     }
@@ -188,7 +190,7 @@ struct JKBreathField: View {
 
         // The outer atmosphere — one wide, faint wash that swells
         // with the breath (reads as warmth, not a ring).
-        let atmosphereR = (size * 0.32) * (0.72 + 0.33 * p)
+        let atmosphereR = (size * 0.38) * (0.72 + 0.33 * p)
         ctx.fill(
             Path(ellipseIn: CGRect(
                 x: center.x - atmosphereR, y: center.y - atmosphereR,
@@ -196,7 +198,7 @@ struct JKBreathField: View {
             )),
             with: .radialGradient(
                 Gradient(colors: [
-                    Palette.accent.opacity(0.16 + 0.05 * glow),
+                    Palette.accent.opacity(0.19 + 0.05 * glow),
                     Palette.accent.opacity(0),
                 ]),
                 center: center, startRadius: 0, endRadius: atmosphereR
@@ -224,7 +226,7 @@ struct JKBreathField: View {
             )
             let r = petal.radius * (0.62 + 0.5 * CGFloat(lagged))
             let tint = petal.rose ? Palette.accent : Palette.accentSubtle
-            let alpha = (petal.rose ? 0.20 : 0.26) + 0.07 * glow
+            let alpha = (petal.rose ? 0.25 : 0.31) + 0.07 * glow
 
             ctx.fill(
                 Path(ellipseIn: CGRect(
@@ -256,13 +258,13 @@ struct JKBreathField: View {
         )
 
         // The still point — one cocoa mark, the eye's anchor.
-        let dotR: CGFloat = 2.6
+        let dotR: CGFloat = 3.0
         ctx.fill(
             Path(ellipseIn: CGRect(
                 x: center.x - dotR, y: center.y - dotR,
                 width: dotR * 2, height: dotR * 2
             )),
-            with: .color(Palette.cocoaPrimary.opacity(0.55))
+            with: .color(Palette.cocoaPrimary.opacity(0.6))
         )
     }
 }

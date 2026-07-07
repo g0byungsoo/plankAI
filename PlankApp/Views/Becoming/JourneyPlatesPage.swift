@@ -42,8 +42,8 @@ struct JourneyPlatesPage: View {
 
                     if days.isEmpty {
                         JKEmptyState(
-                            line: "the first plate starts the story",
-                            italic: ["story"],
+                            line: "your first plate sets up the day",
+                            italic: ["first"],
                             actionLabel: "snap it",
                             action: onSnap
                         )
