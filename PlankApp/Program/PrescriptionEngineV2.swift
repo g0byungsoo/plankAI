@@ -32,6 +32,12 @@ enum PrescriptionEngineV2 {
         /// Days since the last snap; drives nothing today (snap is
         /// always present) but reserved for copy selection.
         var lastSnapDaysAgo: Int?
+        /// v4 re-signing knobs (docs/app_v4/01_PROGRAM.md §0): a
+        /// consented workout-count adjustment (−1...+1) and the
+        /// softened weigh cadence. Both default off so every
+        /// pre-v4 call site composes identically.
+        var sessionsAdjust: Int = 0
+        var weighSoftened: Bool = false
 
         static func live(lastWeighInDaysAgo: Int?, lastSnapDaysAgo: Int?) -> Context {
             Context(
@@ -40,7 +46,11 @@ enum PrescriptionEngineV2 {
                 maintenanceMode: CohortStore.isMaintenanceMode,
                 highStress: CohortStore.isHighStress,
                 lastWeighInDaysAgo: lastWeighInDaysAgo,
-                lastSnapDaysAgo: lastSnapDaysAgo
+                lastSnapDaysAgo: lastSnapDaysAgo,
+                sessionsAdjust: max(-1, min(1, UserDefaults.standard.integer(
+                    forKey: WeeklyReview.sessionsAdjustKey))),
+                weighSoftened: UserDefaults.standard.bool(
+                    forKey: WeeklyReview.weighSoftenedKey)
             )
         }
     }
@@ -78,9 +88,12 @@ enum PrescriptionEngineV2 {
         // Snap — the food anchor, present every day.
         beats.append(.snapMeal)
 
-        // Workout — placement by sessionsPerWeek.
+        // Workout — placement by sessionsPerWeek, bent by the
+        // re-signing's consented adjustment (a plan you keep beats
+        // a plan you dodge).
         let week = programWeek(programDay)
-        if workoutSlots(sessionsPerWeek: profile.sessionsPerWeek,
+        let sessions = max(1, min(6, profile.sessionsPerWeek + context.sessionsAdjust))
+        if workoutSlots(sessionsPerWeek: sessions,
                         programDay: programDay,
                         context: context).contains(slot) {
             beats.append(.workout(
@@ -162,6 +175,8 @@ enum PrescriptionEngineV2 {
         if context.maintenanceMode { return [6] }
         if context.glp1Status == "current" { return [0] }
         if context.restrictiveRisk { return [0] }
+        // The re-signing's softened cadence: one gentle check-in.
+        if context.weighSoftened { return [0] }
         return [0, 3]
     }
 

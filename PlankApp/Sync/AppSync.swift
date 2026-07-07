@@ -684,6 +684,11 @@ final class AppSync {
             // v3 chapters: sit-notes feed jeni's reading; the band
             // (settle weight + last zone) is her body's data.
             "day.sit.", "band.",
+            // v4 spine: the re-signing's consented knobs (protein
+            // adjust, sessions adjust, weigh cadence, intent picks)
+            // are per-identity plan state — leaking them would bend
+            // the next account's program with her consents.
+            "plan.", "review.",
         ]
         for key in defaults.dictionaryRepresentation().keys {
             if scopedPrefixes.contains(where: { key.hasPrefix($0) }) {

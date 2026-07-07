@@ -103,7 +103,13 @@ private struct TodayModuleHost: ViewModifier {
                     archetypeHint: snapshot?.day?.archetype.rawValue,
                     onDismiss: {
                         state.dismissCover()
-                        if FoodLogPersister.todayKcalTotal() > 0 {
+                        // userId-SCOPED check (v4 fix): the unscoped
+                        // todayKcalTotal() summed every identity on
+                        // the device, so a stale account's plates
+                        // could mark THIS user's snap beat kept while
+                        // her band read empty — the same viewport
+                        // contradicting itself.
+                        if FoodLogPersister.todayAndWeekly(userId: userId).today > 0 {
                             state.markAuto(.snapMeal)
                         }
                     },

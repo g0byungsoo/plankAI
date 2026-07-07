@@ -121,11 +121,17 @@ enum TargetsService {
     /// pharmacotherapy — 4-society advisory band 1.2-1.6), 1.2 g/kg
     /// default. Rounded to 5g so the number reads as guidance, not
     /// false precision.
-    static func proteinTargetG(weightKg: Double) -> Int {
+    ///
+    /// v4: the re-signing's consented adjustment (±10g max) applies
+    /// BEFORE the advisory clamp, so an eased floor can never leave
+    /// the safe band (docs/app_v4/01_PROGRAM.md §0).
+    static func proteinTargetG(weightKg: Double, adjustG: Int? = nil) -> Int {
+        let adj = Double(adjustG
+            ?? UserDefaults.standard.integer(forKey: WeeklyReview.proteinAdjustKey))
         let perKg = CohortStore.isGLP1Current ? 1.6 : 1.2
         let lo = CohortStore.isGLP1Current ? 90.0 : 70.0
         let hi = CohortStore.isGLP1Current ? 140.0 : 130.0
-        let raw = min(hi, max(lo, weightKg * perKg))
+        let raw = min(hi, max(lo, weightKg * perKg + adj))
         return Int((raw / 5.0).rounded() * 5)
     }
 
