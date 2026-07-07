@@ -1,7 +1,33 @@
 # JeniFit — Canonical State
 
-Last updated: 2026-07-07 (v1.1.4, build 24 + app v4 program rebuild
+Last updated: 2026-07-07 (v1.1.4, build 24 + app v5 experience pass
 on `feat/app-v2`)
+
+## -3. App v5 — the experience pass (2026-07-07)
+
+**Doc set: `docs/app_v5/` (00_DIRECTION · 01_REPORT). Read
+00_DIRECTION.md first. Supersedes v4's LANGUAGE layer; v4's
+structure (arc / weeks / weekly review mechanics / receipts law)
+stands.**
+
+The organizing principle: **one program, spoken plainly, shown
+beautifully.** v4's private language retired across every surface
+("the plate story" → "today's plates"; "the re-signing" → "your
+weekly review"; "the trend fed 3 times" → "weighed in 3 times";
+"the bend, named" → "the plateau week"). Trust floors added: the
+reading teaches the ritual on day one and may not speak trend
+language until 3+ weigh-ins span 5+ days; the trend story speaks
+her display unit; the trend line no longer wears an unrelated
+insight's caption. Becoming's header is ONE object (ordinal + phase
++ ribbon + intent; midpoint countdown in the eyebrow; leadLine
+retired). Week cards mark today's dot and close with the week's
+EMA delta in neutral ink. Jeni's transcript groups as dated letters
+with no-repeat seeding and always-relevant starter chips. The
+breath bloom holds the stage (360pt field, deeper rose). Evening
+chips answer a visible question; day receipts speak plain lines and
+today "is still being written." Tab arrivals settle with a 4pt
+rise. 194/194 tests; SE + Dynamic Type XXL verified; evidence in
+`docs/app_v5/evidence/` (gitignored).
 
 ## -2. App v4 — the program rebuild (2026-07-06/07)
 

@@ -394,7 +394,9 @@ struct JourneyWeekPage: View {
                         && detail.fact.weighKg == nil {
                         Text(detail.fact.isPaused
                              ? "a held day. your place was kept."
-                             : "a quiet day. it still counts.")
+                             : (Calendar.current.isDateInToday(detail.fact.date)
+                                ? "today is still being written."
+                                : "a quiet day. it still counts."))
                             .font(Typo.body)
                             .foregroundStyle(Palette.textSecondary)
                             .padding(.top, Space.lg)

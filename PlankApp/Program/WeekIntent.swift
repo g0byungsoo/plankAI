@@ -201,8 +201,10 @@ enum WeekIntent {
             line: "everyone drifts. this week practices the return, on purpose.",
             biasArchetype: nil, repLane: "mindset")
         // losing · the bend
+        // v5: "the bend, named" was the private-language apex — the
+        // week she meets a plateau is the last place to be cryptic.
         case "bend_named": return WeekIntentSpec(
-            key: key, name: "the bend, named",
+            key: key, name: "the plateau week",
             line: "the line flattens for everyone around now. we planned for this part.",
             biasArchetype: nil, repLane: "mindset")
         case "steady_week": return WeekIntentSpec(

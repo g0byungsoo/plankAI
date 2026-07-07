@@ -9,6 +9,19 @@ App Review. v1.2+ handles the project + Bundle + SKU rename together.
 in `/docs/archive/` documented a research pass or pivot that fed shipped
 work but is preserved for history, not for guidance.
 
+### App v5 (2026-07-07, branch feat/app-v2)
+The experience pass over v4's structure: private language retired
+app-wide (today's plates / your weekly review / weighed in N times
+/ the plateau week), day-one teaching reading + trend-language data
+floor (3+ weigh-ins over 5+ days), unit-aware trend story, ONE
+becoming header (ordinal + phase + ribbon; leadLine retired), week
+cards with today's dot + EMA delta, jeni transcript as dated
+letters + persistent starter chips, breath bloom at 360pt presence,
+labeled evening questions, plain day receipts (today "still being
+written"), 4pt tab settle. **Read `docs/app_v5/00_DIRECTION.md`
+first; 01_REPORT.md = evidence + honest gaps.** Supersedes v4's
+language layer; v4 structure stands.
+
 ### App v4 (2026-07-07, branch feat/app-v2)
 The program became an object: ProgramArc phases + WeekIntent named
 weeks + THE RE-SIGNING (weekly consented adaptation, WeeklyReview);
