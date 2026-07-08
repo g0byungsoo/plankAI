@@ -3,21 +3,30 @@ import RevenueCat
 
 // MARK: - DownsellPaywallView
 //
-// Last-chance discount, presented as a .sheet over PaywallView. Auto-triggers
-// after the user dwells on the paywall for ~8s, or immediately on X tap.
-// Sheet dismiss returns the user to the paywall (cover stays up; hard
-// paywall model). Pricing comes from the RC offering identified by
+// The quieter-price recovery (2026-07-07 redesign), presented as a
+// .sheet after a yearly Apple-sheet cancel or an X-dismiss. Pricing
+// comes from the RC offering identified by
 // `RevenueCatConfig.discountOfferingID`; if that lookup fails the view
-// surfaces "Pricing didn't load" and disables the CTA so the user can't
-// be charged the wrong product.
+// surfaces the failure row and disables the CTA so the user can't be
+// charged the wrong product.
 //
-// Visual model: heart hero + sparkle burst on appear (mirrors plan reveal),
-// strikethrough comparison card with scrapbook chrome (24pt corner, 1.5pt
-// accent border, hard offset shadow per CLAUDE.md design notes), italic
-// Fraunces on the punch word in the headline (JeniFit voice signal),
-// single accent CTA + tiny "maybe later" dismiss.
+// Visual model — the keep-wall's receipt grammar, third appearance:
+// defusal eyebrow ("nothing was charged") → serif headline carrying
+// the live magnitude ("the year, 30% off.") → ONE receipt card
+// (today with the struck standard price · covers · renews-at-this-
+// price) with a single save-% marker → cocoa CTA restating the
+// billed-today number → quiet decline. No stickers, no sparkle burst
+// (a recovery moment is not an earned moment — scatter rule), no
+// competing badges. The luxury is restraint; the honesty is the
+// lever: this SKU renews at the discounted price every year, and the
+// offer genuinely shows once per install — both said plainly.
 
 struct DownsellPaywallView: View {
+    /// "exit_intent" (once-per-install auto-show) or "reclaim" (the
+    /// wall's saved-offer row). Analytics only.
+    var trigger: String = "exit_intent"
+    /// The tier whose abandon opened this recovery, when known.
+    var abandonedPlan: String? = nil
     let onSubscribed: () -> Void
     let onDismiss: () -> Void
 
@@ -32,14 +41,15 @@ struct DownsellPaywallView: View {
     @State private var allOfferings: [Offering] = []
     @State private var legalDoc: LegalDoc?
 
-    // Entrance animation flags — stagger heart → sparkles → headline → card → CTA.
-    @State private var heartVisible = false
-    @State private var sparkleBurstActive = false
-    @State private var sparkleBurstVisible = false
+    // Entrance animation flags — quiet stagger: eyebrow → headline →
+    // receipt card → CTA. (The heart/halo/sparkle-burst hero died in
+    // the 2026-07-07 redesign — celebration chrome on a defusal beat.)
     @State private var eyebrowVisible = false
     @State private var headlineVisible = false
     @State private var cardVisible = false
     @State private var ctaVisible = false
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private enum LegalDoc: String, Identifiable {
         case terms, privacy
@@ -139,47 +149,17 @@ struct DownsellPaywallView: View {
         guard let pct = discountPercent else { return "your best price" }
         return isHalfOff ? "half off" : "\(pct)% off"
     }
-    /// Subcopy magnitude ("one year of jeni at ___").
-    private var magnitudePhrase: String {
-        guard let pct = discountPercent else { return "your best price" }
-        return isHalfOff ? "half price" : "\(pct)% off"
-    }
 
-    /// Per-week math + savings amount, both derived from live storeProduct
-    /// prices. Returns "" if discount package hasn't loaded so the UI shows
-    /// nothing rather than a fabricated number.
+    /// "≈ $0.67/wk" — the discounted year in the funnel's common
+    /// currency, derived live. Subordinate size per 3.1.2c. "" until
+    /// the package resolves so nothing is ever invented.
     private var perWeekText: String {
         guard let pkg = discountPackage else { return "" }
         let yearly = pkg.storeProduct.price as NSDecimalNumber
         let perWeek = yearly.dividing(by: NSDecimalNumber(value: 52))
         let formatter = pkg.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
         let perWeekStr = formatter.string(from: perWeek) ?? "\(perWeek)"
-        return "Just \(perWeekStr)/week"
-    }
-
-    private var savingsAmountText: String? {
-        guard let discount = discountPackage,
-              let standard = standardYearlyPackage else { return nil }
-        let discountPrice = discount.storeProduct.price as NSDecimalNumber
-        let standardPrice = standard.storeProduct.price as NSDecimalNumber
-        let saved = standardPrice.subtracting(discountPrice)
-        guard saved.doubleValue > 0 else { return nil }
-        let formatter = standard.storeProduct.priceFormatter ?? Self.defaultCurrencyFormatter
-        let savedStr = formatter.string(from: saved) ?? "\(saved)"
-        return "you save \(savedStr)"
-    }
-
-    /// Live-computed percentage off. Returns nil unless both packages have loaded
-    /// and the math yields a positive result. Never hardcodes a percentage.
-    private var percentOffText: String? {
-        guard let discount = discountPackage,
-              let standard = standardYearlyPackage else { return nil }
-        let discountPrice = (discount.storeProduct.price as NSDecimalNumber).doubleValue
-        let standardPrice = (standard.storeProduct.price as NSDecimalNumber).doubleValue
-        guard standardPrice > 0 else { return nil }
-        let pct = ((standardPrice - discountPrice) / standardPrice * 100).rounded()
-        guard pct > 0 else { return nil }
-        return "\(Int(pct))% off"
+        return "≈ \(perWeekStr)/wk"
     }
 
     private static let defaultCurrencyFormatter: NumberFormatter = {
@@ -190,19 +170,8 @@ struct DownsellPaywallView: View {
 
     private var renewalDisclosure: String {
         guard discountPackage != nil else { return "" }
-        return "\(discountPriceText)/year. Auto-renews. Cancel anytime in Settings."
+        return "\(discountPriceText)/year. auto-renews at this same price. cancel anytime in settings."
     }
-
-    // MARK: Sparkle burst placements (mirrors the plan-reveal pattern)
-
-    private static let sparkleBurst: [(CGSize, CGFloat)] = [
-        (CGSize(width: -64, height: -38), 22),
-        (CGSize(width:  62, height: -42), 18),
-        (CGSize(width: -70, height:  28), 16),
-        (CGSize(width:  70, height:  34), 20),
-        (CGSize(width:   0, height: -68), 14),
-        (CGSize(width: -22, height:  60), 12),
-    ]
 
     // MARK: Body
 
@@ -211,41 +180,53 @@ struct DownsellPaywallView: View {
             Palette.bgPrimary.ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: Space.lg) {
-                    Spacer().frame(height: 56)
-
-                    heroBlock
-                        .padding(.top, Space.sm)
+                VStack(spacing: 0) {
+                    Spacer().frame(height: 96)
 
                     headlineBlock
 
-                    priceCard
-                        .padding(.horizontal, Space.sm)
+                    receiptCard
+                        .padding(.top, Space.xl)
+
+                    if !perWeekText.isEmpty {
+                        Text("\(perWeekText) \u{00B7} this offer shows once")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Palette.textSecondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 10)
+                            .opacity(cardVisible ? 1 : 0)
+                    }
 
                     if offeringsLoadFailed {
                         offeringsLoadFailedRow
+                            .padding(.top, Space.md)
                     }
 
                     ctaBlock
+                        .padding(.top, Space.xl)
 
                     if let errorMessage {
                         Text(errorMessage)
                             .font(Typo.caption)
                             .foregroundStyle(Palette.stateBad)
                             .multilineTextAlignment(.center)
+                            .padding(.top, Space.sm)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
                     if !renewalDisclosure.isEmpty {
                         Text(renewalDisclosure)
-                            .font(Typo.caption)
-                            .foregroundStyle(Palette.textSecondary)
+                            .font(.system(size: 10))
+                            .foregroundStyle(Palette.textSecondary.opacity(0.8))
                             .multilineTextAlignment(.center)
+                            .padding(.top, Space.md)
                             .fixedSize(horizontal: false, vertical: true)
+                            .opacity(ctaVisible ? 1 : 0)
                     }
 
                     legalFooter
-                        .padding(.top, Space.xs)
+                        .padding(.top, Space.sm)
+                        .opacity(ctaVisible ? 1 : 0)
                 }
                 .padding(.horizontal, Space.lg)
                 .padding(.bottom, Space.xl)
@@ -280,7 +261,9 @@ struct DownsellPaywallView: View {
             "product_id": discountPackage?.storeProduct.productIdentifier
                 ?? RevenueCatConfig.ProductID.yearlyDiscount,
             "price_resolved": discountPackage != nil,
-            "load_failed": offeringsLoadFailed
+            "load_failed": offeringsLoadFailed,
+            "trigger": trigger,
+            "abandoned_plan": abandonedPlan ?? "none"
         ]
         if let discount = discountPackage?.storeProduct.localizedPriceString {
             props["discount_price"] = discount
@@ -294,62 +277,45 @@ struct DownsellPaywallView: View {
         Analytics.track(.downsellViewed, properties: props)
     }
 
-    // MARK: - Hero (heart sticker + halo + sparkle burst)
+    // MARK: - Headline (defusal eyebrow + serif magnitude + one-line sub)
 
-    private var heroBlock: some View {
-        ZStack {
-            ForEach(Self.sparkleBurst.indices, id: \.self) { i in
-                let entry = Self.sparkleBurst[i]
-                Image(StickerName.sparkleGlossy.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: entry.1, height: entry.1)
-                    .opacity(sparkleBurstVisible ? 0.85 : 0)
-                    .scaleEffect(sparkleBurstActive ? 1 : 0.4)
-                    .offset(sparkleBurstActive ? entry.0 : .zero)
-            }
-            Circle()
-                .fill(Palette.accent.opacity(0.10))
-                .frame(width: 124, height: 124)
-                .scaleEffect(heartVisible ? 1 : 0.5)
-                .opacity(heartVisible ? 1 : 0)
-            Image(StickerName.heartGlossy.assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 86, height: 86)
-                .scaleEffect(heartVisible ? 1 : 0.6)
-                .opacity(heartVisible ? StickerName.heartGlossy.style.opacity : 0)
+    /// "the year, 30% off." — the magnitude is live math, never a
+    /// claim the ASC prices don't back. Quiet fallback pre-resolve.
+    private var headlineParts: (base: String, italic: [String]) {
+        guard discountPercent != nil else {
+            return ("the year, quieter.", ["quieter."])
         }
-        .animation(.spring(response: 0.55, dampingFraction: 0.65), value: heartVisible)
+        let label = isHalfOff ? "half off" : magnitudeLabel
+        return ("the year, \(label).", ["\(label)."])
     }
-
-    // MARK: - Headline (eyebrow + italic-accent title + subhead)
 
     private var headlineBlock: some View {
         VStack(spacing: Space.sm) {
-            // v8 P8.10 voice pass: lowercase + softer eyebrow.
-            // "LIMITED-TIME OFFER" reads cold-call; the brand register
-            // is quieter than that.
-            Text("a quieter offer")
-                .font(Typo.eyebrow)
-                .tracking(1.5)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.accent)
+            // She just fled a payment sheet — answer "did that charge
+            // me?" before selling anything.
+            Text("nothing was charged")
+                .font(Typo.captionTracked)
+                .kerning(1.6)
+                .foregroundStyle(Palette.cocoaTertiary)
                 .opacity(eyebrowVisible ? 1 : 0)
                 .offset(y: eyebrowVisible ? 0 : 8)
 
-            ItalicAccentText("\(magnitudeLabel), just for you.",
-                             italic: ["just for you."],
-                             alignment: .center)
-                .padding(.horizontal, Space.sm)
-                .opacity(headlineVisible ? 1 : 0)
-                .offset(y: headlineVisible ? 0 : 12)
+            ItalicAccentText(
+                headlineParts.base,
+                italic: headlineParts.italic,
+                baseFont: Typo.heroHeadline,
+                italicFont: Typo.heroHeadlineItalic,
+                alignment: .center
+            )
+            .lineSpacing(Typo.heroHeadlineLineGap)
+            .kerning(-0.4)
+            .padding(.horizontal, Space.sm)
+            .opacity(headlineVisible ? 1 : 0)
+            .offset(y: headlineVisible ? 0 : 12)
 
-            // v8 P8.10: lowercase + "session" replaces "workout"
-            // (labor-coded) per the program-era language we use across
-            // PlanView. "JeniFit" → "jeni" (peer register).
-            Text("one year of jeni at \(magnitudePhrase). your plan, your coach, every session.")
-                .font(Typo.body)
+            Text("same plan. same jeni. a price that stays.")
+                .font(Typo.teachSub)
+                .lineSpacing(Typo.teachSubLineSpacing)
                 .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Space.md)
@@ -358,94 +324,80 @@ struct DownsellPaywallView: View {
         }
     }
 
-    // MARK: - Price card (scrapbook chrome + strikethrough + big discount price)
+    // MARK: - Receipt card (the wall's money grammar, third appearance)
 
-    private var priceCard: some View {
-        let hasPricing = discountPackage != nil
-        return ZStack(alignment: .topTrailing) {
-            VStack(spacing: 8) {
-                Text("YEARLY · MOST PICKED")
-                    .font(Typo.eyebrow)
-                    .tracking(1.5)
-                    .foregroundStyle(Palette.textSecondary)
+    /// today (struck standard beside the discount) · covers · renews-
+    /// at-this-price. One save-% marker on the masthead. Identical
+    /// chrome to the wall's day cards + SmallerStepSheet, so the whole
+    /// recovery chain reads as one system.
+    private var receiptCard: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("one year")
+                    .font(Typo.captionTracked)
+                    .kerning(1.6)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 12)
+                if let pct = discountPercent {
+                    Text("save \(pct)%")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Palette.textPrimary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Palette.accentSubtle))
+                }
+            }
+            .padding(.bottom, 8)
+            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.66)
 
-                if hasPricing {
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+            // today — the struck standard price sits quietly beside
+            // the discounted number (Fraunces, the brand's price face).
+            HStack(alignment: .firstTextBaseline) {
+                Text("today")
+                    .font(Typo.caption)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 16)
+                if discountPackage != nil {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
                         if !standardPriceText.isEmpty {
                             Text(standardPriceText)
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundStyle(Palette.textSecondary)
-                                .strikethrough(true, color: Palette.textSecondary)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Palette.cocoaTertiary)
+                                .strikethrough(true, color: Palette.cocoaTertiary)
                         }
                         Text(discountPriceText)
-                            .font(.system(size: 40, weight: .bold))
-                            .foregroundStyle(Palette.accent)
-                    }
-                    .padding(.top, 2)
-
-                    Text("per year")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-
-                    if !perWeekText.isEmpty {
-                        Text(perWeekText)
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.custom("Fraunces72pt-SemiBold", size: 24))
                             .foregroundStyle(Palette.textPrimary)
-                            .padding(.top, Space.xs)
-                    }
-
-                    if let savings = savingsAmountText {
-                        Text(savings)
-                            .font(Typo.eyebrow)
-                            .tracking(1.5)
-                            .foregroundStyle(Palette.accent)
-                            .padding(.horizontal, Space.md)
-                            .padding(.vertical, 6)
-                            .background(Palette.accent.opacity(0.12), in: Capsule())
-                            .padding(.top, Space.xs)
                     }
                 } else {
                     Text("—")  // voice-lint:allow — visual placeholder for missing price, not prose
-                        .font(.system(size: 40, weight: .bold))
-                        .foregroundStyle(Palette.textSecondary)
-                    Text("pricing unavailable")
-                        .font(Typo.caption)
+                        .font(.custom("Fraunces72pt-SemiBold", size: 24))
                         .foregroundStyle(Palette.textSecondary)
                 }
             }
-            .padding(.vertical, Space.lg)
-            .padding(.horizontal, Space.lg)
-            .frame(maxWidth: .infinity)
-            .background(scrapbookChrome(tint: Palette.accent))
+            .padding(.vertical, 13)
 
-            if let pct = percentOffText {
-                Text(pct)
-                    .font(Typo.eyebrow)
-                    .tracking(1.5)
-                    .foregroundStyle(Palette.textInverse)
-                    .padding(.horizontal, Space.sm)
-                    .padding(.vertical, 6)
-                    .background(Palette.accent, in: Capsule())
-                    .offset(x: -Space.md, y: -10)
-            }
+            JKReceiptRow(
+                lead: "covers",
+                punch: "a full year of the plan"
+            )
+            JKReceiptRow(
+                lead: "renews",
+                punch: "yearly · at this price",
+                punchItalic: ["this"]
+            )
         }
-        .scaleEffect(cardVisible ? 1 : 0.92)
-        .opacity(cardVisible ? 1 : 0)
-        .animation(.spring(response: 0.55, dampingFraction: 0.78), value: cardVisible)
-    }
-
-    // MARK: - Scrapbook chrome (24pt, 1.5pt accent border, hard offset shadow)
-
-    private func scrapbookChrome(tint: Color) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(tint.opacity(0.15))
-                .offset(x: 4, y: 4)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
+        .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Palette.bgElevated)
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(tint, lineWidth: 1.5)
-        }
+        )
+        .shadow(color: Palette.cocoaPrimary.opacity(0.08), radius: 24, x: 0, y: 8)
+        .scaleEffect(cardVisible ? 1 : 0.96)
+        .opacity(cardVisible ? 1 : 0)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - CTA + maybe later
@@ -462,8 +414,13 @@ struct DownsellPaywallView: View {
                 Task { await purchase() }
             } label: {
                 ZStack {
-                    Text("keep my offer")
-                        .font(.system(size: 17, weight: .bold))
+                    // Billed-today transparency, same grammar as the
+                    // wall CTA — the sheet must never know more than
+                    // the button did.
+                    Text(discountPackage != nil
+                         ? "keep the year \u{00B7} \(discountPriceText) today"
+                         : "keep the year")
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(Palette.textInverse)
                         .opacity(working ? 0 : 1)
                     if working {
@@ -472,8 +429,23 @@ struct DownsellPaywallView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
-                .background(Palette.accent)
-                .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Palette.textPrimary)
+                )
+                // The wall CTA's single specular highlight — the cocoa
+                // mass reads as a pressed, premium surface.
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.10), Color.white.opacity(0.0)],
+                                startPoint: .top,
+                                endPoint: .center
+                            )
+                        )
+                        .allowsHitTesting(false)
+                )
             }
             .buttonStyle(PressFeedbackStyle())
             .disabled(working || discountPackage == nil)
@@ -531,9 +503,10 @@ struct DownsellPaywallView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 12))
                 .foregroundStyle(Palette.stateWarn)
-            Text("Pricing didn't load. Tap to retry.")
+            Text("pricing didn't load. tap to try again. nothing is charged without it.")
                 .font(Typo.caption)
                 .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
@@ -563,35 +536,30 @@ struct DownsellPaywallView: View {
 
     // MARK: - Entrance choreography
 
+    /// Quiet stagger — a soft haptic (she just fled a payment sheet;
+    /// a success buzz here read tone-deaf), then eyebrow → headline →
+    /// receipt → CTA fade-rises. Reduce Motion lands everything at
+    /// once.
     private func runEntrance() {
-        Haptics.success()
+        Haptics.soft()
 
-        withAnimation(.spring(response: 0.55, dampingFraction: 0.7).delay(0.05)) {
-            heartVisible = true
+        guard !reduceMotion else {
+            eyebrowVisible = true
+            headlineVisible = true
+            cardVisible = true
+            ctaVisible = true
+            return
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.55)) {
-                sparkleBurstActive = true
-            }
-            withAnimation(.easeOut(duration: 0.35)) {
-                sparkleBurstVisible = true
-            }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.55) {
-            withAnimation(.easeOut(duration: 0.6)) {
-                sparkleBurstVisible = false
-            }
-        }
-        withAnimation(.easeOut(duration: 0.4).delay(0.40)) {
+        withAnimation(.easeOut(duration: 0.4).delay(0.10)) {
             eyebrowVisible = true
         }
-        withAnimation(.easeOut(duration: 0.45).delay(0.55)) {
+        withAnimation(.easeOut(duration: 0.45).delay(0.28)) {
             headlineVisible = true
         }
-        withAnimation(.spring(response: 0.55, dampingFraction: 0.78).delay(0.85)) {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.55)) {
             cardVisible = true
         }
-        withAnimation(.easeOut(duration: 0.35).delay(1.10)) {
+        withAnimation(.easeOut(duration: 0.35).delay(0.80)) {
             ctaVisible = true
         }
     }

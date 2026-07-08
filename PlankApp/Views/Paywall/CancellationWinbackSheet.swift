@@ -131,7 +131,9 @@ struct CancellationWinbackSheet: View {
                 .font(Typo.heroHeadline)
                 .foregroundStyle(Palette.textPrimary)
 
-            // Line 3: "is still here ♥"
+            // Line 3: "is still here ♥" — U+FE0E forces the text glyph
+            // (the bare char rendered the RED EMOJI heart, caught in the
+            // 2026-07-07 recovery-chain walk); dusty-rose per the lock.
             (
                 Text("is still ")
                     .font(Typo.heroHeadline)
@@ -141,9 +143,9 @@ struct CancellationWinbackSheet: View {
                     .font(Typo.heroHeadlineItalic)
                     .foregroundStyle(Palette.textPrimary)
                 +
-                Text(" ♥")
+                Text(" \u{2665}\u{FE0E}")
                     .font(Typo.heroHeadline)
-                    .foregroundStyle(Palette.textPrimary)
+                    .foregroundStyle(Palette.accent)
             )
         }
         .kerning(-0.4)
@@ -187,24 +189,43 @@ struct CancellationWinbackSheet: View {
     /// register: shorter lines, italic punch on the active verb so
     /// the body reads as editorial pull-quote, not paragraph.
     private var reflectiveParts: (base: String, italic: [String]) {
-        let p = priorWin.trimmingCharacters(in: .whitespacesAndNewlines)
-        let b = bodyFocus.trimmingCharacters(in: .whitespacesAndNewlines)
+        // priorWin / bodyFocus are STORED KEYS ("cutting_sugar",
+        // "flatBelly") — humanize before they touch copy. The raw key
+        // leaked verbatim into this line ("because cutting_sugar worked
+        // once"), caught in the 2026-07-07 recovery-chain walk.
+        let p = humanized(priorWin)
+        let b = humanized(bodyFocus)
         if !p.isEmpty {
             return (
-                "you came back because \(p.lowercased()) worked once. it can again ♥",
+                "you came back because \(p) worked once. it can again \u{2665}\u{FE0E}",
                 ["worked"]
             )
         }
         if !b.isEmpty {
             return (
-                "we built your plan for your \(b.lowercased()) horizon. it's still here ♥",
+                "we built your plan for your \(b) horizon. it's still here \u{2665}\u{FE0E}",
                 ["here"]
             )
         }
         return (
-            "no pressure either way. the plan is here when you are ♥",
+            "no pressure either way. the plan is here when you are \u{2665}\u{FE0E}",
             ["here"]
         )
+    }
+
+    /// Key → speech: "cutting_sugar" → "cutting sugar", "flatBelly" →
+    /// "flat belly". Generic on purpose — survives keys this sheet has
+    /// never met.
+    private func humanized(_ key: String) -> String {
+        var s = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        s = s.replacingOccurrences(of: "_", with: " ")
+        // split camelCase: insert a space before interior uppercase runs
+        var out = ""
+        for (i, ch) in s.enumerated() {
+            if ch.isUppercase, i > 0 { out.append(" ") }
+            out.append(ch)
+        }
+        return out.lowercased()
     }
 
     // MARK: - CTAs
@@ -218,9 +239,12 @@ struct CancellationWinbackSheet: View {
             ])
             onStayOpen()
         } label: {
-            Text("stay open ♥")
+            (Text("stay open ")
                 .font(.custom("DMSans-SemiBold", size: 15))
                 .foregroundStyle(Palette.bgPrimary)
+             + Text("\u{2665}\u{FE0E}")
+                .font(.custom("DMSans-SemiBold", size: 15))
+                .foregroundStyle(Palette.accent))
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
                 .background(Capsule().fill(Palette.textPrimary))

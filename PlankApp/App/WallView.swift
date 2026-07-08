@@ -28,9 +28,23 @@ struct WallView: View {
     @State private var auth = AuthService.shared
 
     @AppStorage("downsellShownOnce") private var downsellShownOnce = false
+    /// The quarterly-abandon smaller-step offer mirrors the downsell's
+    /// once-per-install rule so the recovery never nags.
+    @AppStorage("smallerStepShownOnce") private var smallerStepShownOnce = false
     @State private var showingDownsell = false
+    @State private var showingSmallerStep = false
     @State private var showingWinback = false
     @State private var winbackShownThisSession = false
+    /// A recovery sheet's "not today" queues the winback; it PRESENTS
+    /// from the sheet's onDismiss (after the swap animation completes).
+    /// Presenting directly from the callback raced the dismissal and
+    /// silently dropped the winback (round-3 walker evidence).
+    @State private var winbackQueuedAfterSheet = false
+    /// Which tier's abandon opened the current recovery (analytics).
+    @State private var lastAbandonedPlan: String?
+    /// How the downsell was opened this time: "exit_intent" (the
+    /// once-per-install auto-show) or "reclaim" (the wall row).
+    @State private var downsellTrigger = "exit_intent"
     /// Expired users land on the welcome-back beat first; "see plans"
     /// swaps to the standard paywall.
     @State private var showingPlansFromExpired = false
@@ -66,18 +80,33 @@ struct WallView: View {
             dismissable: true,
             onSubscribed: { stampPostPurchasePendingIfEligible() },
             onRestore: { Task { await restore() } },
-            onDismiss: { triggerExitIntent() },
-            onPurchaseCancelled: {
-                Analytics.track(.paywallTransactionAbandoned)
-                triggerExitIntent()
+            onDismiss: { triggerExitIntent(abandonedPlan: nil) },
+            onPurchaseCancelled: { plan, productId in
+                // Tier-attributed at last — the 48h outage of this
+                // property is why "which price shocks?" needed a funnel
+                // reconstruction instead of one breakdown.
+                Analytics.track(.paywallTransactionAbandoned, properties: [
+                    "plan": plan,
+                    "product_id": productId ?? "unknown"
+                ])
+                triggerExitIntent(abandonedPlan: plan)
+            },
+            onReclaimDownsell: {
+                // The wall's reclaim row — the offer is a STATE once
+                // unlocked, not a one-shot popup. Reopens regardless
+                // of the once-per-install auto-show flags.
+                Analytics.track(.downsellReclaimTapped)
+                downsellTrigger = "reclaim"
+                showingDownsell = true
             }
         )
         .onAppear {
             Analytics.track(.paywallView, properties: [
                 "paywall_id": "main",
                 "placement": placement,
-                "variant_id": "control",
-                "default_plan": "annual",
+                "variant_id": "keep_wall_v1",
+                "default_plan": "quarterly",
+                "price_preframe": true,
                 "has_trial": false,
                 "trial_days": 0
             ])
@@ -91,18 +120,37 @@ struct WallView: View {
             .presentationDragIndicator(.hidden)
             .interactiveDismissDisabled(false)
         }
-        .sheet(isPresented: $showingDownsell) {
+        .sheet(isPresented: $showingDownsell, onDismiss: { presentQueuedWinbackIfNeeded() }) {
             DownsellPaywallView(
+                trigger: downsellTrigger,
+                abandonedPlan: lastAbandonedPlan,
                 onSubscribed: {
                     showingDownsell = false
                     stampPostPurchasePendingIfEligible()
                 },
                 onDismiss: {
-                    showingDownsell = false
-                    if !winbackShownThisSession {
-                        winbackShownThisSession = true
-                        showingWinback = true
+                    // Reclaim visits don't re-queue the winback — she
+                    // opened the sheet herself; a goodbye beat after a
+                    // voluntary look reads as pressure.
+                    if downsellTrigger == "exit_intent" {
+                        winbackQueuedAfterSheet = true
                     }
+                    showingDownsell = false
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.hidden)
+            .interactiveDismissDisabled(true)
+        }
+        .sheet(isPresented: $showingSmallerStep, onDismiss: { presentQueuedWinbackIfNeeded() }) {
+            SmallerStepSheet(
+                onSubscribed: {
+                    showingSmallerStep = false
+                    stampPostPurchasePendingIfEligible()
+                },
+                onDismiss: {
+                    winbackQueuedAfterSheet = true
+                    showingSmallerStep = false
                 }
             )
             .presentationDetents([.large])
@@ -111,11 +159,43 @@ struct WallView: View {
         }
     }
 
-    private func triggerExitIntent() {
+    /// Fires from a recovery sheet's onDismiss — the safe moment to
+    /// present the next sheet (the swap animation has finished).
+    private func presentQueuedWinbackIfNeeded() {
+        guard winbackQueuedAfterSheet else { return }
+        winbackQueuedAfterSheet = false
+        guard !winbackShownThisSession else { return }
+        winbackShownThisSession = true
+        showingWinback = true
+    }
+
+    /// Recovery ladder (2026-07-07 v2, founder call): tier-agnostic,
+    /// monotonic de-escalation — the pattern the winning subscription
+    /// apps run.
+    ///   exit intent #1 → the discounted year (LTV-max first: for a
+    ///                    quarterly flincher "$5 more for the whole
+    ///                    year" is the strongest frame; for weekly,
+    ///                    the per-week math story)
+    ///   exit intent #2 → the smaller step (weekly at $5.99)
+    ///   after that     → warm winback, once per session
+    /// Each sheet auto-shows once per install; the discount stays
+    /// reachable forever via the wall's reclaim row once unlocked, so
+    /// nobody is ever stranded between the anchor she saw and a
+    /// full price she'll no longer pay.
+    private func triggerExitIntent(abandonedPlan: String?) {
+        lastAbandonedPlan = abandonedPlan
         if !downsellShownOnce {
             downsellShownOnce = true
+            downsellTrigger = "exit_intent"
             showingDownsell = true
-        } else if !winbackShownThisSession {
+            return
+        }
+        if !smallerStepShownOnce {
+            smallerStepShownOnce = true
+            showingSmallerStep = true
+            return
+        }
+        if !winbackShownThisSession {
             winbackShownThisSession = true
             showingWinback = true
         }
