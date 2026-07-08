@@ -843,6 +843,28 @@ struct PlankAIApp: App {
                         onDismiss: {},
                         onPurchaseCancelled: { _, _ in }
                     )
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-winback") {
+                    // 2026-07-08 - final-exit winback preview. Seeds a
+                    // loss goal + discount-unlocked so the plan card
+                    // renders its rich state (goal · date · saved price).
+                    // Add `--debug-winback-bare` to preview the
+                    // no-goal/no-discount fallback row. Launch:
+                    // `xcrun simctl launch booted com.bk.plankAI --debug-winback`
+                    CancellationWinbackSheet(onStayOpen: {}, onLeave: {})
+                        .onAppear {
+                            let d = UserDefaults.standard
+                            let bare = ProcessInfo.processInfo.arguments.contains("--debug-winback-bare")
+                            // Clear BOTH the v5 + legacy weight keys (the
+                            // card prefers v5), so bare truly shows the
+                            // no-goal fallback row.
+                            d.set(bare ? "" : "jen", forKey: "userName")
+                            d.set(bare ? "" : "jen", forKey: "onb_v5_name")
+                            d.set(bare ? 0 : 90.7, forKey: "onboardingCurrentWeightKg")
+                            d.set(bare ? 0 : 81.2, forKey: "onboardingGoalWeightKg")
+                            d.set(bare ? 0 : 90.7, forKey: "onb_v5_weight_kg")
+                            d.set(bare ? 0 : 81.2, forKey: "onb_v5_goal_kg")
+                            d.set(bare ? false : true, forKey: "downsellShownOnce")
+                        }
                 } else {
                     RootView()
                         .modifier(ResumeBloom())

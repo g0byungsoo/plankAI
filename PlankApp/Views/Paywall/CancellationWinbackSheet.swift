@@ -2,88 +2,80 @@ import SwiftUI
 
 // MARK: - CancellationWinbackSheet
 //
-// Sprint A (2026-06-15) — soft cancellation-intent recovery.
+// The final exit beat (2026-07-08 rebuild). Fires LAST in the recovery
+// ladder — after she has already declined the discounted year AND the
+// $5.99 smaller step. The old version was an abstract identity line
+// ("the next you is still here") on an empty canvas whose message was
+// "no pressure, we're here" — a polite surrender, not a reason to
+// reconsider, and barren in the (common) no-personalization fallback.
 //
-// Triggers when the user dismisses the paywall via the close X (the
-// `paywall_dismiss_attempted` signal). This is NOT the May-31-retired
-// discount downsell — premium positioning stays intact, no price cut,
-// no separate SKU. Instead, a single voice-aligned identity beat that
-// asks her to sit with the decision for one more screen.
+// The rebuild is a LOSS frame around a concrete object: her plan,
+// built and SAVED. She spent minutes building it; leaving means
+// walking away from her goal, her date, and (once unlocked) her held
+// discount — but re-entry is frictionless, which is exactly what makes
+// coming back easy. The plan card is the same bgElevated receipt
+// grammar as the wall + downsell, so the whole recovery chain reads as
+// one premium system instead of a bare modal.
 //
-// Why not the discount downsell:
-//   - May-31 founder decision (per [[project-trial-downsell-locked]]
-//     + [[feedback-clean-luxury-aesthetic]]): "discount-free premium
-//     positioning. Premium positioning IS the lever — Calm/Headspace/
-//     Mejuri pattern." That decision stands.
-//   - Apple 5.6 risk: post-Cal-AI-pull, any "decline → second
-//     discounted SKU" pattern is reviewer-flagged. Stay clear.
-//   - Brand register: discounting the cohort she just spent 50 screens
-//     of onboarding earning trust with reads as panic. The brand voice
-//     IS the moat (per the PMF expert report).
+// Every value is her own data (entered weights → goal + ProjectionMath
+// date; downsellShownOnce → the saved-discount row). Rows omit
+// themselves when the data isn't there; the card always carries at
+// least the "built + waiting" row so it's never empty.
 //
-// What this sheet does instead:
-//   - Reflects ONE sentence of identity-language back at her, derived
-//     from her own onboarding answer (priorWin if she gave one,
-//     bodyFocus/identityFeeling otherwise, generic permission fallback).
-//   - Names the *thing she came here for* — not the product, the
-//     becoming. "you came for the *quiet* you said you wanted."
-//   - Two CTAs: primary "stay open ♥" (returns to the paywall, fires
-//     a winback-confirmed signal) + secondary "not today" (dismisses
-//     both sheets, fires the actual leave signal).
-//
-// Voice locked: lowercase, italic-Fraunces on punch word, no labor
-// verbs, permission-frame, no urgency, no scarcity, no ✨/🌸/✨ scatter
-// (this is a re-engagement moment, not an earned beat per
-// [[feedback-scatter-milestone-rule]]).
+// Voice locked: lowercase, italic-Fraunces punch, dusty-rose text
+// hearts (U+FE0E), no scarcity, no scatter (recovery ≠ earned beat).
 
 struct CancellationWinbackSheet: View {
 
     var onStayOpen: () -> Void
     var onLeave: () -> Void
 
-    @AppStorage("onboardingPriorWin")     private var priorWin: String = ""
-    @AppStorage("identityFeeling")        private var identityFeeling: String = ""
-    @AppStorage("onboardingBodyFocusKey") private var bodyFocus: String = ""
+    @AppStorage("userName")                  private var userName: String = ""
+    @AppStorage("onb_v5_name")               private var v5Name: String = ""
+    @AppStorage("onboardingCurrentWeightKg") private var storedCurrentKg: Double = 0
+    @AppStorage("onboardingGoalWeightKg")    private var storedGoalKg: Double = 0
+    @AppStorage("onb_v5_weight_kg")          private var v5CurrentKg: Double = 0
+    @AppStorage("onb_v5_goal_kg")            private var v5GoalKg: Double = 0
+    @AppStorage(ProjectionMath.paceDefaultsKey) private var paceChoice: String = ""
+    /// Whether the discounted year has been unlocked this install — if
+    /// so, "your best price · saved" becomes the sharpest re-entry row.
+    @AppStorage("downsellShownOnce")         private var discountUnlocked: Bool = false
 
     @State private var hasAppeared = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
-            // her75 register: hero on flat bgPrimary. NO scrapbook
-            // chrome on the modal (that was casting the text-shadow
-            // effect on the heroes). Layout matches
-            // ProgramIntroFullScreenCover — content scroll + docked
-            // footer painting bgPrimary so the bg is consistent.
             Palette.bgPrimary.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        eyebrow
-                        heroLine
-                        reflectiveLine
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 24)
-                    .padding(.top, Space.hero)
-                    .padding(.bottom, 24)
-                    .opacity(hasAppeared ? 1 : 0)
-                    .offset(y: hasAppeared ? 0 : 12)
+                // Centered composition — the plan card is the object; it
+                // sits in the optical middle, not pinned to a barren top.
+                Spacer(minLength: 0)
+
+                VStack(spacing: 20) {
+                    eyebrow
+                    heroLine
+                    planCard
+                    subline
                 }
+                .padding(.horizontal, 24)
+                .opacity(hasAppeared ? 1 : 0)
+                .offset(y: hasAppeared ? 0 : 12)
+
+                Spacer(minLength: 0)
 
                 VStack(spacing: 8) {
                     stayCTA
                     leaveCTA
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 16)
                 .padding(.bottom, 20)
-                .background(Palette.bgPrimary)
                 .opacity(hasAppeared ? 1 : 0)
             }
         }
         .onAppear {
+            Haptics.soft()
             if reduceMotion {
                 hasAppeared = true
             } else {
@@ -92,6 +84,36 @@ struct CancellationWinbackSheet: View {
                 }
             }
         }
+    }
+
+    // MARK: - Data
+
+    private var firstName: String {
+        let raw = userName.isEmpty ? v5Name : userName
+        return raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(separator: " ").first.map { String($0).lowercased() } ?? ""
+    }
+    private var currentKg: Double { v5CurrentKg > 0 ? v5CurrentKg : storedCurrentKg }
+    private var goalKg: Double { v5GoalKg > 0 ? v5GoalKg : storedGoalKg }
+    private var hasLossGoal: Bool { goalKg > 0 && currentKg > goalKg }
+
+    /// "151 lb" — her entered goal, in her display unit. nil unless a
+    /// real loss goal is set.
+    private var goalPunch: String? {
+        guard hasLossGoal else { return nil }
+        let unit = WeightUnit.current
+        let v = unit.display(fromKg: goalKg)
+        let s = (v == v.rounded()) ? String(format: "%.0f", v) : String(format: "%.1f", v)
+        return "\(s) \(unit.label)"
+    }
+
+    /// "oct 13" — projected arrival via the canonical ProjectionMath, so
+    /// it matches every other surface. nil when no loss goal.
+    private var arrivalDate: String? {
+        guard hasLossGoal else { return nil }
+        return ProjectionMath.formattedShortDate(
+            currentKg: currentKg, goalKg: goalKg, paceKey: paceChoice
+        )
     }
 
     // MARK: - Eyebrow
@@ -107,125 +129,98 @@ struct CancellationWinbackSheet: View {
         }
     }
 
-    // MARK: - Hero line — punch word reflects identity feeling
+    // MARK: - Hero — concrete, loss-framed ("it's all saved")
 
     private var heroLine: some View {
-        // her75 hero — JeniHeroSerif at heroHeadline (38pt) with
-        // heroHeadlineLineGap (-19). 3-line cascade with italic
-        // punches on the feeling word (line 1) + "here" (line 3).
-        // `.kerning(-0.4)` per the her75 spec.
-        VStack(alignment: .leading, spacing: Typo.heroHeadlineLineGap) {
-            // Line 1: "the [feeling]"
-            (
-                Text("the ")
-                    .font(Typo.heroHeadline)
-                    .foregroundStyle(Palette.textPrimary)
-                +
-                Text(heroParts.feeling)
-                    .font(Typo.heroHeadlineItalic)
-                    .foregroundStyle(Palette.textPrimary)
-            )
-
-            // Line 2: "you"
-            Text("you")
-                .font(Typo.heroHeadline)
-                .foregroundStyle(Palette.textPrimary)
-
-            // Line 3: "is still here ♥" — U+FE0E forces the text glyph
-            // (the bare char rendered the RED EMOJI heart, caught in the
-            // 2026-07-07 recovery-chain walk); dusty-rose per the lock.
-            (
-                Text("is still ")
-                    .font(Typo.heroHeadline)
-                    .foregroundStyle(Palette.textPrimary)
-                +
-                Text("here")
-                    .font(Typo.heroHeadlineItalic)
-                    .foregroundStyle(Palette.textPrimary)
-                +
-                Text(" \u{2665}\u{FE0E}")
-                    .font(Typo.heroHeadline)
-                    .foregroundStyle(Palette.accent)
-            )
-        }
+        ItalicAccentText(
+            firstName.isEmpty ? "your plan is saved." : "\(firstName), it's all saved.",
+            italic: ["saved."],
+            baseFont: Typo.heroHeadline,
+            italicFont: Typo.heroHeadlineItalic,
+            color: Palette.textPrimary,
+            alignment: .center
+        )
+        .lineSpacing(Typo.heroHeadlineLineGap)
         .kerning(-0.4)
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// Punch word is derived from her identityFeeling answer (case 1
-    /// in onboarding). Five paths covered explicitly so every cohort
-    /// gets a line that lands. Default for missing/legacy users.
-    private var heroParts: (feeling: String, italic: [String]) {
-        switch identityFeeling {
-        case "powerful":  return ("strong",  ["strong"])
-        case "calm":      return ("calm",    ["calm"])
-        case "light":     return ("light",   ["light"])
-        case "strong":    return ("strong",  ["strong"])
-        case "radiant":   return ("radiant", ["radiant"])
-        default:          return ("next",    ["next"])
+    // MARK: - The plan card (the object she'd be leaving behind)
+
+    private var planCard: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(firstName.isEmpty ? "your plan" : "\(firstName)'s plan")
+                    .font(Typo.captionTracked)
+                    .kerning(1.6)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
+                Spacer(minLength: 12)
+                ItalicAccentText(
+                    "waiting \u{2665}\u{FE0E}",
+                    italic: ["waiting"],
+                    baseFont: .custom("JeniHeroSerif-Regular", size: 15),
+                    italicFont: .custom("JeniHeroSerif-Italic", size: 15),
+                    color: Palette.accent,
+                    alignment: .trailing
+                )
+            }
+            .padding(.bottom, 8)
+            Rectangle().fill(Palette.hairlineCocoa).frame(height: 0.66)
+
+            planRows
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Palette.bgElevated)
+        )
+        .shadow(color: Palette.cocoaPrimary.opacity(0.08), radius: 24, x: 0, y: 8)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// Most-concrete-available rows: goal + date when she set a loss
+    /// goal, the saved discount when unlocked, and always at least the
+    /// "built + waiting" line so the card is never thin.
+    @ViewBuilder
+    private var planRows: some View {
+        let showGoal = goalPunch != nil
+        let showDate = arrivalDate != nil
+        let showDiscount = discountUnlocked
+
+        if let goal = goalPunch {
+            JKReceiptRow(lead: "your goal", punch: goal, showsRule: false)
+        }
+        if let date = arrivalDate {
+            JKReceiptRow(lead: "on track for", punch: date,
+                         punchItalic: [date], showsRule: showGoal)
+        }
+        if showDiscount {
+            JKReceiptRow(lead: "your best price", punch: "saved \u{2665}\u{FE0E}",
+                         punchItalic: ["saved"], showsRule: showGoal || showDate)
+        }
+        if !showGoal && !showDate && !showDiscount {
+            // No goal + no discount (uncommon — goal weight is a core
+            // onboarding step). "everything" avoids echoing the
+            // "your plan" masthead while still filling the card.
+            JKReceiptRow(lead: "everything", punch: "built + waiting",
+                         punchItalic: ["waiting"], showsRule: false)
         }
     }
 
-    // MARK: - Reflective line — references her priorWin or barrier
+    // MARK: - Subline — gentle loss frame
 
-    @ViewBuilder
-    private var reflectiveLine: some View {
-        let parts = reflectiveParts
-        ItalicAccentText(
-            parts.base,
-            italic: parts.italic,
-            baseFont: .custom("Fraunces72pt-Regular", size: 15),
-            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 15),
-            color: Palette.textSecondary,
-            alignment: .leading
-        )
+    private var subline: some View {
+        (Text("nothing's gone. it's exactly where you left it, whenever you're ready ")
+            .font(.custom("Fraunces72pt-Regular", size: 14))
+            .foregroundStyle(Palette.textSecondary)
+         + Text("\u{2665}\u{FE0E}")
+            .font(.custom("Fraunces72pt-Regular", size: 14))
+            .foregroundStyle(Palette.accent))
+        .multilineTextAlignment(.center)
         .lineSpacing(2)
         .fixedSize(horizontal: false, vertical: true)
-    }
-
-    /// Three-tier fallback. If she shared a priorWin we mirror it
-    /// back gently. Otherwise we lean on bodyFocus (less personal,
-    /// still in-cohort). Otherwise pure permission frame. her75
-    /// register: shorter lines, italic punch on the active verb so
-    /// the body reads as editorial pull-quote, not paragraph.
-    private var reflectiveParts: (base: String, italic: [String]) {
-        // priorWin / bodyFocus are STORED KEYS ("cutting_sugar",
-        // "flatBelly") — humanize before they touch copy. The raw key
-        // leaked verbatim into this line ("because cutting_sugar worked
-        // once"), caught in the 2026-07-07 recovery-chain walk.
-        let p = humanized(priorWin)
-        let b = humanized(bodyFocus)
-        if !p.isEmpty {
-            return (
-                "you came back because \(p) worked once. it can again \u{2665}\u{FE0E}",
-                ["worked"]
-            )
-        }
-        if !b.isEmpty {
-            return (
-                "we built your plan for your \(b) horizon. it's still here \u{2665}\u{FE0E}",
-                ["here"]
-            )
-        }
-        return (
-            "no pressure either way. the plan is here when you are \u{2665}\u{FE0E}",
-            ["here"]
-        )
-    }
-
-    /// Key → speech: "cutting_sugar" → "cutting sugar", "flatBelly" →
-    /// "flat belly". Generic on purpose — survives keys this sheet has
-    /// never met.
-    private func humanized(_ key: String) -> String {
-        var s = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        s = s.replacingOccurrences(of: "_", with: " ")
-        // split camelCase: insert a space before interior uppercase runs
-        var out = ""
-        for (i, ch) in s.enumerated() {
-            if ch.isUppercase, i > 0 { out.append(" ") }
-            out.append(ch)
-        }
-        return out.lowercased()
     }
 
     // MARK: - CTAs
@@ -239,14 +234,14 @@ struct CancellationWinbackSheet: View {
             ])
             onStayOpen()
         } label: {
-            (Text("stay open ")
+            (Text("keep going ")
                 .font(.custom("DMSans-SemiBold", size: 15))
                 .foregroundStyle(Palette.bgPrimary)
              + Text("\u{2665}\u{FE0E}")
                 .font(.custom("DMSans-SemiBold", size: 15))
                 .foregroundStyle(Palette.accent))
                 .frame(maxWidth: .infinity)
-                .frame(height: 52)
+                .frame(height: 56)
                 .background(Capsule().fill(Palette.textPrimary))
         }
         .buttonStyle(.plain)
