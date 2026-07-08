@@ -149,6 +149,7 @@ private struct TodayModuleHost: ViewModifier {
                         let didMeet = SessionCompletion.didMeetThreshold(
                             results, isGentle: workout.isGentle
                         )
+                        var earnedReviewGate = false
                         if didMeet {
                             if !hasCompletedFirstSession {
                                 Analytics.track(.firstWorkoutComplete, properties: [
@@ -166,8 +167,24 @@ private struct TodayModuleHost: ViewModifier {
                             )
                             hasCompletedFirstSession = true
                             state.markAuto(.workout(tier: .medium, minutes: 0, bodyFocus: nil))
+                            // A genuine win (met threshold) is the moment
+                            // to ask — but only once per install, and only
+                            // if the rate-limit / cooldown gate allows.
+                            earnedReviewGate = RatingPromptService.shared
+                                .isEligible(for: .firstWorkoutWin)
                         }
                         state.dismissCover()
+                        // Let the cover dismiss + the kept-receipt haptic
+                        // land before the sentiment sheet rises, so it
+                        // reads as "nice work → quick question," not a
+                        // modal stacked on a modal.
+                        if earnedReviewGate {
+                            RatingPromptService.shared.markShown(.firstWorkoutWin)
+                            RatingPromptService.shared.trackGateShown(.firstWorkoutWin)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                                state.present(cover: .ratingSentiment)
+                            }
+                        }
                     }
                     .transition(.opacity)
                 }
@@ -183,6 +200,30 @@ private struct TodayModuleHost: ViewModifier {
                     state.dismissCover()
                 },
                 onDismiss: { state.dismissCover() }
+            )
+            .presentationBackground(Palette.bgPrimary)
+
+        case .ratingSentiment:
+            // The full-screen gate after a genuine first win. yes →
+            // native review (the earned reward); "not really" → dismiss,
+            // then open the feedback path (never a suppressed review).
+            RatingSentimentScreen(
+                onYes: {
+                    RatingPromptService.shared.trackSentimentResult(
+                        trigger: .firstWorkoutWin, sentimentYes: true
+                    )
+                    RatingPromptService.shared.presentSystemReviewSheet()
+                    state.dismissCover()
+                },
+                onNotReally: {
+                    RatingPromptService.shared.trackSentimentResult(
+                        trigger: .firstWorkoutWin, sentimentYes: false
+                    )
+                    state.dismissCover()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        state.present(sheet: .ratingFeedback)
+                    }
+                }
             )
             .presentationBackground(Palette.bgPrimary)
         }
@@ -257,6 +298,11 @@ private struct TodayModuleHost: ViewModifier {
             TodayStepsSheet(goal: snapshot?.targets.steps ?? TargetsService.stepsGoal(plan: nil))
                 .presentationDetents([.fraction(0.7)])
                 .presentationBackground(Palette.bgPrimary)
+
+        case .ratingFeedback:
+            FeedbackView(source: "rating_gate_negative")
+                .presentationDetents([.large])
+                .presentationBackground(Palette.programEraBg)
         }
         // v4: dayPeek / dayLock / herDays / dayReview mounts died with
         // the journey rebuild — past days are becoming's ledger now.

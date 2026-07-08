@@ -1160,3 +1160,77 @@ final class DownsellSheetUITests: XCTestCase {
                       "reclaimed sheet should render the discount CTA")
     }
 }
+
+// MARK: - RatingGateUITests (2026-07-08 first-win sentiment gate)
+//
+// Drives the re-wired sentiment gate via --debug-rating-gate: the
+// "enjoying jenifit?" sheet, the "yes" (native review) affordance, and
+// the "not really" → FeedbackView path.
+//
+//   xcodebuild test -project plankAI.xcodeproj -scheme plankAI \
+//     -destination 'platform=iOS Simulator,name=iPhone 16e' \
+//     -only-testing:plankAIUITests/RatingGateUITests
+final class RatingGateUITests: XCTestCase {
+
+    private var shot = 0
+    private func snap(_ name: String, in test: XCTestCase) {
+        let a = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        a.name = String(format: "%02d_%@", shot, name); a.lifetime = .keepAlways
+        test.add(a); shot += 1
+    }
+
+    func testSentimentGateAndFeedbackPath() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--debug-rating-gate"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 2.0)
+
+        // Screen 1 — the sentiment question, both buttons present.
+        let question = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "enjoying")
+        ).firstMatch
+        XCTAssertTrue(question.waitForExistence(timeout: 8), "sentiment gate should render")
+        let yes = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "loving it")
+        ).firstMatch
+        XCTAssertTrue(yes.exists, "yes path should be present")
+        snap("sentiment_gate", in: self)
+
+        // "not really" → the feedback path (never the App Store).
+        let no = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "not really")
+        ).firstMatch
+        XCTAssertTrue(no.waitForExistence(timeout: 5))
+        no.tap()
+        Thread.sleep(forTimeInterval: 2.0)
+
+        let feedback = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "what's working")
+        ).firstMatch
+        XCTAssertTrue(feedback.waitForExistence(timeout: 8),
+                      "no path should open the feedback form, not the store")
+        snap("feedback_path", in: self)
+    }
+
+    /// The "yes" celebration: tapping fires the swell + haptic, then the
+    /// native review (iOS suppresses in sim). Assert the tap is handled
+    /// and the app survives the celebration envelope.
+    func testYesCelebration() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["--debug-rating-gate"]
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 30)
+        Thread.sleep(forTimeInterval: 2.0)
+        let yes = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "loving it")
+        ).firstMatch
+        XCTAssertTrue(yes.waitForExistence(timeout: 8))
+        snap("before_yes", in: self)
+        yes.tap()
+        Thread.sleep(forTimeInterval: 0.35)   // mid-swell
+        snap("yes_celebration", in: self)
+        Thread.sleep(forTimeInterval: 1.0)
+        XCTAssertEqual(app.state, .runningForeground, "app survives the yes celebration")
+    }
+}

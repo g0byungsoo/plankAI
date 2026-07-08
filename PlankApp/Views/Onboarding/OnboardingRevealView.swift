@@ -195,11 +195,14 @@ struct OnboardingRevealView: View {
                 .transition(.opacity)
             case .ratingAsk:
                 // v5 (2026-07-02): the pre-wall rating ask was intent
-                // bleed at the exact moment impulse must compound — the
-                // rating surface lives post-purchase
-                // (PostPurchaseRatingView). This slot now answers the
-                // fear she named in Act IV with a shipping plan
-                // mechanic; it self-skips when no fear was kept.
+                // bleed at the exact moment impulse must compound, so
+                // this slot now answers the fear she named in Act IV
+                // with a shipping plan mechanic (self-skips when no fear
+                // was kept). The review ask itself moved to the first
+                // genuine in-app win — the sentiment gate in
+                // TodayModuleHost (RatingPromptService .firstWorkoutWin),
+                // 2026-07-08. (The old `RatingAskPresentation` struct
+                // below is dead; safe to delete in a dedicated cleanup.)
                 OV5FearResolutionPresentation(
                     onContinue: { withAnimation(Motion.crossFade) { step = .commitment } }
                 )

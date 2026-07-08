@@ -345,7 +345,7 @@
 		507983A75FB199B0F9EC9553 /* BuildingPlanLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFFB4F5BB6118464980272F9 /* BuildingPlanLoadingView.swift */; };
 		508BC37808C588C5F1FDBB5E /* prep_full_jumping_jacks.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 67EE93C7788B7D49146FC8DC /* prep_full_jumping_jacks.m4a */; };
 		50A6B25553ECFE334780E6E2 /* jeni_prep_full_reverse_lunge.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 7B555F0F6B0C0A9EF4892608 /* jeni_prep_full_reverse_lunge.m4a */; };
-		50FE61B9785FAAC60C22666B /* PreReviewSentimentSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921DA0BF8536793ED1705801 /* PreReviewSentimentSheet.swift */; };
+		50FE61B9785FAAC60C22666B /* RatingSentimentScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 921DA0BF8536793ED1705801 /* RatingSentimentScreen.swift */; };
 		510C7C73814B22DA2491F381 /* jeni_prep_short_kneeling_quad_stretch.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 1B60F25A0400C8ABDBEDD112 /* jeni_prep_short_kneeling_quad_stretch.m4a */; };
 		51628A4D22859367F443F582 /* ArtifactPinnedOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75586B4043343E49CCAEA035 /* ArtifactPinnedOverlay.swift */; };
 		518AE072F2E93DD3FB099FF2 /* prep_full_run_in_place.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 9B015E79353A1BD81122D996 /* prep_full_run_in_place.m4a */; };
@@ -2129,7 +2129,7 @@
 		913577B4B401D8B6EC44E7BD /* jeni_prep_full_overhead_forward_lunge.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_overhead_forward_lunge.m4a; sourceTree = "<group>"; };
 		91A1D46CA0F7C20AE65D38AD /* TikTokAppConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TikTokAppConfig.swift; sourceTree = "<group>"; };
 		91E84E4D46E63C0BD85336B2 /* prep_full_wall_sit.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = prep_full_wall_sit.m4a; sourceTree = "<group>"; };
-		921DA0BF8536793ED1705801 /* PreReviewSentimentSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PreReviewSentimentSheet.swift; sourceTree = "<group>"; };
+		921DA0BF8536793ED1705801 /* RatingSentimentScreen.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RatingSentimentScreen.swift; sourceTree = "<group>"; };
 		929F1C6F5163AAB74A041814 /* jeni_prep_short_good_morning.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_short_good_morning.m4a; sourceTree = "<group>"; };
 		92FAFD0A2EC88018DB1B0644 /* matson_prep_full_standing_side_bend.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = matson_prep_full_standing_side_bend.m4a; sourceTree = "<group>"; };
 		93B173DB9D00F658077AF5C1 /* jeni_prep_full_squat.m4a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = jeni_prep_full_squat.m4a; sourceTree = "<group>"; };
@@ -4666,7 +4666,7 @@
 				62EEBFE118AC5B25C577C6B3 /* AnalyticsManager.swift */,
 				EA5AD9C74D4065091FC7690F /* PostHogSink.swift */,
 				F31FC3A43F393DE696DF55E7 /* RatingPromptService.swift */,
-				921DA0BF8536793ED1705801 /* PreReviewSentimentSheet.swift */,
+				921DA0BF8536793ED1705801 /* RatingSentimentScreen.swift */,
 			);
 			path = Analytics;
 			sourceTree = "<group>";
@@ -6119,7 +6119,7 @@
 				8A3DD69F20C1E9D8E79CEC7D /* StepsService.swift in Sources */,
 				C70D6D78491B302B1B950D2F /* StepsBentoTile.swift in Sources */,
 				627F59E107663B82AC0E8812 /* RatingPromptService.swift in Sources */,
-				50FE61B9785FAAC60C22666B /* PreReviewSentimentSheet.swift in Sources */,
+				50FE61B9785FAAC60C22666B /* RatingSentimentScreen.swift in Sources */,
 				EAE85CF08B1CCB3F215D19A7 /* BreathworkState.swift in Sources */,
 				9A55685D420EB4771F04B82A /* BreathworkBentoTile.swift in Sources */,
 				B413D96454C59F9EA53E1707 /* BreathworkProtocols.swift in Sources */,

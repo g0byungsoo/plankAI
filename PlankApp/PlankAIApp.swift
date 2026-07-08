@@ -865,6 +865,13 @@ struct PlankAIApp: App {
                             d.set(bare ? 0 : 81.2, forKey: "onb_v5_goal_kg")
                             d.set(bare ? false : true, forKey: "downsellShownOnce")
                         }
+                } else if ProcessInfo.processInfo.arguments.contains("--debug-rating-gate") {
+                    // 2026-07-08 - the first-win sentiment gate preview.
+                    // Renders RatingSentimentScreen exactly as it fires
+                    // after a first workout completion; "not really" opens
+                    // the feedback path. Launch:
+                    // `xcrun simctl launch booted com.bk.plankAI --debug-rating-gate`
+                    RatingGateDebugHost()
                 } else {
                     RootView()
                         .modifier(ResumeBloom())
@@ -3115,6 +3122,27 @@ private struct ActivationGalleryHarness: View {
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - RatingGateDebugHost (--debug-rating-gate)
+//
+// Presents the first-win sentiment gate over a cream backdrop exactly
+// as it fires from TodayModuleHost after a workout completion. "yes"
+// fires the native review sheet (iOS suppresses in sim); "not really"
+// opens the feedback path.
+private struct RatingGateDebugHost: View {
+    @State private var showFeedback = false
+    var body: some View {
+        RatingSentimentScreen(
+            onYes: { RatingPromptService.shared.presentSystemReviewSheet() },
+            onNotReally: { showFeedback = true }
+        )
+        .sheet(isPresented: $showFeedback) {
+            FeedbackView(source: "rating_gate_negative")
+                .presentationDetents([.large])
+                .presentationBackground(Palette.programEraBg)
+        }
     }
 }
 #endif

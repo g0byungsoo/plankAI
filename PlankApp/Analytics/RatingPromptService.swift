@@ -32,8 +32,8 @@ import Observation
 //     users who already onboarded are past it.
 //
 // The sentiment pre-prompt (Headspace pattern, lifts star avg ~0.5)
-// lives in PreReviewSentimentSheet — "yes" fires the system sheet,
-// "not yet" routes to feedback without burning a quota slot.
+// lives in RatingSentimentScreen — "yes" fires the system sheet,
+// "not really" routes to feedback without burning a quota slot.
 
 @MainActor
 @Observable
@@ -59,15 +59,18 @@ final class RatingPromptService {
     private init() {}
 
     enum Trigger: String, CaseIterable {
-        case postPlanReveal  // case 215 onboarding sentiment gate
-        case sessionThreePR  // first PR session of ≥45s
-        case dayStreakSeven  // first time current streak == 7
+        case postPlanReveal   // legacy: onboarding sentiment gate (unwired)
+        case sessionThreePR   // legacy: first PR session (consumer never built)
+        case dayStreakSeven   // legacy: streak == 7 (no streak event in v5)
+        case firstWorkoutWin  // 2026-07-08: first genuine workout completion —
+                              // the earliest real win, before the W1 cliff
 
         var flagKey: String {
             switch self {
-            case .postPlanReveal: return "ratingPrompt.postPlanReveal.shown"
-            case .sessionThreePR: return "ratingPrompt.sessionThreePR.shown"
-            case .dayStreakSeven: return "ratingPrompt.dayStreakSeven.shown"
+            case .postPlanReveal:  return "ratingPrompt.postPlanReveal.shown"
+            case .sessionThreePR:  return "ratingPrompt.sessionThreePR.shown"
+            case .dayStreakSeven:  return "ratingPrompt.dayStreakSeven.shown"
+            case .firstWorkoutWin: return "ratingPrompt.firstWorkoutWin.shown"
             }
         }
     }
@@ -126,11 +129,18 @@ final class RatingPromptService {
         }
     }
 
-    /// Convenience: track that the sentiment gate fired + the user's
-    /// answer. Used by all 3 trigger sites for consistency. Property
-    /// matches the v1.0.7 spec schema exactly.
-    func trackSentimentResult(trigger: Trigger, sentimentYes: Bool) {
+    /// The gate appeared — fired once when the sentiment sheet presents,
+    /// so the funnel reads shown → result → (native prompt | feedback).
+    func trackGateShown(_ trigger: Trigger) {
         Analytics.track(.ratingPromptShown, properties: [
+            "trigger": trigger.rawValue
+        ])
+    }
+
+    /// The user's answer on the gate. `sentimentYes` true → native review
+    /// sheet; false → feedback path.
+    func trackSentimentResult(trigger: Trigger, sentimentYes: Bool) {
+        Analytics.track(.ratingPromptResult, properties: [
             "trigger": trigger.rawValue,
             "sentiment_yes": sentimentYes
         ])

@@ -22,6 +22,10 @@ final class TodayModuleState {
         case breathSession
         /// THE NOTE — jeni's full reading as a received moment.
         case jeniNote
+        /// The full-screen sentiment gate after a genuine first win —
+        /// "enjoying jenifit?" → yes fires the native review, no opens
+        /// feedback. A cover (not a sheet) so the bloom owns the screen.
+        case ratingSentiment
 
         var id: String {
             switch self {
@@ -30,6 +34,7 @@ final class TodayModuleState {
             case .preRoutine: return "workout"
             case .breathSession: return "breath"
             case .jeniNote: return "jeniNote"
+            case .ratingSentiment: return "ratingSentiment"
             }
         }
         static func == (lhs: Cover, rhs: Cover) -> Bool { lhs.id == rhs.id }
@@ -40,6 +45,8 @@ final class TodayModuleState {
         case markAsDone(ProgramDayPrescription)
         case profileHub
         case stepsDetail
+        /// The feedback destination for the sentiment gate's no path.
+        case ratingFeedback
 
         var id: String {
             switch self {
@@ -47,6 +54,7 @@ final class TodayModuleState {
             case .markAsDone: return "markAsDone"
             case .profileHub: return "profileHub"
             case .stepsDetail: return "stepsDetail"
+            case .ratingFeedback: return "ratingFeedback"
             }
         }
     }
