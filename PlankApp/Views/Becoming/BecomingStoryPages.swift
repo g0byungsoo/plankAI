@@ -545,3 +545,141 @@ struct JourneyTimelineView: View {
         }
     }
 }
+
+// MARK: - JKPlatesGallery
+//
+// Today's plates, moved off Home into their own becoming page (founder
+// 1.1.5): the day's photos as a gentle fan of polaroids on the table,
+// each rotated a touch so it reads as a scrapbook, not a grid. Tap one
+// to open its detail. Deliberately NON-scrolling — a horizontal scroll
+// here would fight the story pager's page swipes (mounted-tabs lesson) —
+// so it fans up to three of the day's plates and lets the door carry the
+// rest. Cards fan in staggered on page arrival.
+struct JKPlatesGallery: View {
+    struct Plate: Identifiable, Equatable {
+        let id: String
+        let time: String
+        let title: String
+        let kcal: Int
+        let image: UIImage?
+    }
+
+    let plates: [Plate]
+    var armed: Bool = true
+    let onTap: (String) -> Void
+    let onSnap: () -> Void
+
+    @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Fan the three most recent; the door speaks the full count.
+    private var shownPlates: [Plate] { Array(plates.prefix(3)) }
+    /// Gentle, deterministic tilt per slot — a scatter, never chaos.
+    private func tilt(_ index: Int, of count: Int) -> Double {
+        guard count > 1 else { return 0 }
+        let spread = [-5.0, 2.5, -2.0, 4.0]
+        return spread[index % spread.count]
+    }
+
+    var body: some View {
+        Group {
+            if shownPlates.isEmpty {
+                emptyState
+            } else {
+                HStack(spacing: shownPlates.count > 2 ? 2 : 12) {
+                    ForEach(Array(shownPlates.enumerated()), id: \.element.id) { idx, plate in
+                        polaroid(plate)
+                            .rotationEffect(.degrees(shown ? tilt(idx, of: shownPlates.count) : 0))
+                            .scaleEffect(shown ? 1 : 0.86)
+                            .opacity(shown ? 1 : 0)
+                            .offset(y: shown ? 0 : 14)
+                            .zIndex(idx == 1 ? 1 : 0)   // center card sits over its neighbors
+                            .animation(
+                                reduceMotion ? nil
+                                    : .spring(response: 0.5, dampingFraction: 0.76)
+                                        .delay(0.1 + Double(idx) * 0.08),
+                                value: shown
+                            )
+                            .onTapGesture {
+                                Haptics.light()
+                                onTap(plate.id)
+                            }
+                    }
+                }
+            }
+        }
+        .onAppear { if armed { shown = true } }
+        .onChange(of: armed) { _, isArmed in
+            if isArmed { shown = true }
+            else {
+                var t = Transaction(); t.disablesAnimations = true
+                withTransaction(t) { shown = false }
+            }
+        }
+    }
+
+    private func polaroid(_ plate: Plate) -> some View {
+        VStack(spacing: 7) {
+            Group {
+                if let image = plate.image {
+                    Image(uiImage: image).resizable().scaledToFill()
+                } else {
+                    ZStack {
+                        Palette.accentSubtle.opacity(0.5)
+                        Text(String(plate.title.prefix(1)).lowercased())
+                            .font(.custom("JeniHeroSerif-Italic", size: 30))
+                            .foregroundStyle(Palette.jeweledRose)
+                    }
+                }
+            }
+            .frame(width: 96, height: 96)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+            VStack(spacing: 1) {
+                Text(plate.time)
+                    .font(.custom("DMSans-Medium", size: 11, relativeTo: .caption2))
+                    .foregroundStyle(Palette.textPrimary)
+                Text("\(plate.kcal) kcal")
+                    .font(.custom("DMSans-Regular", size: 10, relativeTo: .caption2))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.cocoaTertiary)
+            }
+        }
+        .padding(7)
+        .padding(.bottom, 3)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(Color.white)
+                .shadow(color: Palette.cocoaPrimary.opacity(0.14), radius: 9, x: 0, y: 5)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(plate.title), \(plate.kcal) calories, \(plate.time)")
+        .accessibilityAddTraits(.isButton)
+    }
+
+    private var emptyState: some View {
+        Button {
+            Haptics.light()
+            onSnap()
+        } label: {
+            VStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(
+                            Palette.cocoaPrimary.opacity(0.22),
+                            style: StrokeStyle(lineWidth: 1.2, dash: [5, 4])
+                        )
+                    Image(systemName: "camera")
+                        .font(.system(size: 20, weight: .light))
+                        .foregroundStyle(Palette.cocoaSecondary)
+                }
+                .frame(width: 96, height: 96)
+                Text("snap your first plate")
+                    .font(.custom("DMSans-Medium", size: 13, relativeTo: .footnote))
+                    .foregroundStyle(Palette.cocoaSecondary)
+            }
+        }
+        .buttonStyle(JKPress())
+    }
+}

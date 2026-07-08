@@ -14,124 +14,65 @@ import PlankSync
 
 struct TodayStateBand: View {
     let snapshot: TodaySnapshot
-    let liveSteps: Int
-    let onSnap: () -> Void
-    var onTapPlate: (JKPlateStripItem) -> Void = { _ in }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.md) {
-            Text("today's plates")
-                .font(Typo.captionTracked)
-                .kerning(1.98)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.cocoaTertiary)
-                .padding(.horizontal, Space.lg)
+        // v1.1.5 — the plate thumbnails moved to becoming's plates page;
+        // Home keeps the calorie glance (the v5 "calories stay on Home"
+        // steer) plus the zero-input overnight line. Collapses to nothing
+        // on a foodless morning so the rhythm rows aren't trailed by an
+        // orphaned header.
+        let showKcal = !snapshot.targets.numericsSuppressed && snapshot.kcalEaten > 0
+        let quietHours = QuietHours.liveOvernight(
+            userId: AuthService.shared.currentUser?.id.uuidString ?? ""
+        )
+        let hasQuiet = (quietHours ?? 0) >= 11
 
-            // The plates lead — or one quiet invitation (never a
-            // hero-sized empty state under a kept day's rows).
-            if snapshot.plates.isEmpty {
-                Button {
-                    Haptics.light()
-                    onSnap()
-                } label: {
-                    HStack(spacing: 10) {
-                        JKMark(kind: .plate, size: 15,
-                               color: Palette.cocoaSecondary)
-                        ItalicAccentText(
-                            "your first plate sets up the day",
-                            italic: ["first"],
-                            baseFont: Typo.body,
-                            italicFont: .custom("Fraunces72pt-SemiBoldItalic", size: 16, relativeTo: .body),
-                            color: Palette.textPrimary,
-                            alignment: .leading
-                        )
-                        Spacer(minLength: 8)
-                        Text("snap it")
-                            .font(.custom("DMSans-SemiBold", size: 13, relativeTo: .footnote))
-                            .foregroundStyle(Palette.cocoaPrimary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 7)
-                            .overlay(
-                                Capsule().strokeBorder(
-                                    Palette.cocoaPrimary.opacity(0.35), lineWidth: 1)
-                            )
-                    }
+        if showKcal || snapshot.targets.numericsSuppressed || hasQuiet {
+            VStack(alignment: .leading, spacing: Space.md) {
+                Text("today's food")
+                    .font(Typo.captionTracked)
+                    .kerning(1.98)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.cocoaTertiary)
                     .padding(.horizontal, Space.lg)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(JKPress())
-                .accessibilityLabel("your first plate sets up the day. snap it")
-            } else {
-                JKPlateStrip(
-                    items: plateItems,
-                    onAdd: onSnap,
-                    onTapItem: onTapPlate
-                )
-            }
 
-            // The day answer in words (v5 re-steer: Home stays calm —
-            // calories stay visible as the lead sentence, protein
-            // rides beneath as text; the big gauge lives on
-            // becoming's food page now).
-            VStack(alignment: .leading, spacing: 7) {
-                if !snapshot.targets.numericsSuppressed, snapshot.kcalEaten > 0 {
-                    // v5: fulfillment at a GLANCE — the bar answers
-                    // "how much of my day have I used?" before the
-                    // words do.
-                    if let kcalTarget = snapshot.targets.kcal {
-                        JKKcalBar(kcal: snapshot.kcalEaten, target: kcalTarget)
-                            .padding(.top, 2)
-                    } else {
-                        JKKcalLine(kcal: snapshot.kcalEaten, target: snapshot.targets.kcal)
-                    }
-                    if let target = snapshot.targets.proteinG {
-                        Text("protein \(snapshot.proteinEatenG) of \(target)g")
-                            .font(Typo.caption)
-                            .monospacedDigit()
-                            .foregroundStyle(Palette.textSecondary)
-                    }
-                } else if snapshot.targets.numericsSuppressed {
-                    Text("protein is what matters today \u{2665}\u{FE0E}")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else if !snapshot.plates.isEmpty {
-                    // Plates without readable kcal yet (still scanning
-                    // / text-only) — say so, once. The empty strip's
-                    // invite already covers the zero-plate morning.
-                    Text("the count starts with your first plate")
-                        .font(Typo.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                }
-
-                // THE QUIET HOURS — zero-input insight, kept.
-                if let hours = QuietHours.liveOvernight(
-                    userId: AuthService.shared.currentUser?.id.uuidString ?? ""
-                ), hours >= 11 {
-                    HStack(spacing: 7) {
-                        JKMark(kind: .moon, size: 12,
-                               color: Palette.cocoaSecondary.opacity(0.8))
-                        Text(QuietHours.overnightLine(hours: hours))
+                VStack(alignment: .leading, spacing: 7) {
+                    if showKcal {
+                        // Fulfillment at a GLANCE — the bar answers "how
+                        // much of my day have I used?" before the words do.
+                        if let kcalTarget = snapshot.targets.kcal {
+                            JKKcalBar(kcal: snapshot.kcalEaten, target: kcalTarget)
+                                .padding(.top, 2)
+                        } else {
+                            JKKcalLine(kcal: snapshot.kcalEaten, target: snapshot.targets.kcal)
+                        }
+                        if let target = snapshot.targets.proteinG {
+                            Text("protein \(snapshot.proteinEatenG) of \(target)g")
+                                .font(Typo.caption)
+                                .monospacedDigit()
+                                .foregroundStyle(Palette.textSecondary)
+                        }
+                    } else if snapshot.targets.numericsSuppressed {
+                        Text("protein is what matters today \u{2665}\u{FE0E}")
                             .font(Typo.caption)
                             .foregroundStyle(Palette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                }
-            }
-            .padding(.horizontal, Space.lg)
-            .padding(.top, Space.xs)
-        }
-    }
 
-    private var plateItems: [JKPlateStripItem] {
-        snapshot.plates.map { entry in
-            JKPlateStripItem(
-                id: entry.id,
-                time: entry.loggedAt.formatted(date: .omitted, time: .shortened).lowercased(),
-                title: entry.title.isEmpty ? "a plate" : entry.title,
-                image: FoodPhotoStore.photo(entryId: entry.id),
-                kcal: Int(entry.kcal.rounded())
-            )
+                    // THE QUIET HOURS — zero-input insight, kept.
+                    if let hours = quietHours, hours >= 11 {
+                        HStack(spacing: 7) {
+                            JKMark(kind: .moon, size: 12,
+                                   color: Palette.cocoaSecondary.opacity(0.8))
+                            Text(QuietHours.overnightLine(hours: hours))
+                                .font(Typo.caption)
+                                .foregroundStyle(Palette.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                .padding(.horizontal, Space.lg)
+            }
         }
     }
 }

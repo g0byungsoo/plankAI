@@ -231,16 +231,9 @@ struct TodayView: View {
                                 .transition(.opacity.combined(with: .offset(y: 6)))
                             }
 
-                            TodayStateBand(
-                                snapshot: snapshot,
-                                liveSteps: steps.todayCount,
-                                onSnap: { modules.present(cover: .captureFlow) },
-                                onTapPlate: { item in
-                                    detailPlate = snapshot.plates.first { $0.id == item.id }
-                                }
-                            )
-                            .padding(.top, Space.section)
-                            .jkBeat2(extraDelay: 0.2)
+                            TodayStateBand(snapshot: snapshot)
+                                .padding(.top, Space.section)
+                                .jkBeat2(extraDelay: 0.2)
 
                             // The evening ends on her words.
                             if isEvening {

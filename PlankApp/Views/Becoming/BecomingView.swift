@@ -32,6 +32,8 @@ struct BecomingView: View {
     @State private var showLogWeight = false
     @State private var showProfileHub = false
     @State private var showJournal = false
+    /// The plate whose detail sheet is open (from the plates page).
+    @State private var detailPlate: FoodLogPersister.FoodLogEntry?
     @State private var showTimeline = false
     @State private var openedWeek: JourneyModel.WeekEntry?
     @State private var presentedReview: JourneyModel.DueReview?
@@ -40,12 +42,19 @@ struct BecomingView: View {
     /// The story's page order — cohort pages join when their data is
     /// real (the band page needs a keeping chapter).
     private enum StoryPage: Int, Identifiable {
-        case line, food, window, movement, plan, band, reflection
+        case line, food, plates, window, movement, plan, band, reflection
         var id: Int { rawValue }
     }
 
     private var storyPages: [StoryPage] {
         var pages: [StoryPage] = [.line, .food]
+        // Today's plates, relocated off Home (founder 1.1.5): the photo
+        // log becomes its own page right after the food read — but only
+        // once there's a plate to show, so it's never an empty filler
+        // page. Restrictive-risk cohorts skip the plate-count surface.
+        if !CohortStore.isRestrictiveRisk, !todaysPlates.isEmpty {
+            pages.append(.plates)
+        }
         // THE OVERNIGHT WINDOW — a rhythm insight, cohort-gated: the
         // on-medication chapter runs adequacy-first (under-eating is
         // the documented risk) and restrictive-risk identities never
@@ -177,6 +186,15 @@ struct BecomingView: View {
                 .presentationDetents([.large])
                 .presentationBackground(Palette.bgPrimary)
         }
+        .sheet(item: $detailPlate) { plate in
+            PlateDetailSheet(
+                entry: plate,
+                userId: userId,
+                onDismiss: { detailPlate = nil }
+            )
+            .presentationDetents([.large])
+            .presentationBackground(Palette.bgPrimary)
+        }
         .sheet(item: $openedWeek) { entry in
             JourneyWeekPage(
                 entry: entry,
@@ -277,6 +295,7 @@ struct BecomingView: View {
         switch page {
         case .line: linePage
         case .food: foodPage
+        case .plates: platesPage
         case .window: windowPage
         case .movement: movementPage
         case .plan: planPage
@@ -453,6 +472,52 @@ struct BecomingView: View {
                     .scaleEffect(1.4)
                 }
             }
+        } doors: {
+            JKJourneyDoor(
+                lead: "open",
+                punch: "her plates",
+                italic: ["plates"],
+                action: { showJournal = true }
+            )
+        }
+    }
+
+    /// Today's logged plates, newest first (snapshot.plates carries the
+    /// retained window; the plates page + its count are today-only).
+    private var todaysPlates: [FoodLogPersister.FoodLogEntry] {
+        (snapshot?.plates ?? [])
+            .filter { Calendar.current.isDateInToday($0.loggedAt) }
+            .sorted { $0.loggedAt > $1.loggedAt }
+    }
+
+    /// Page — today's plates, moved off Home. The day's photos as a fan
+    /// of polaroids; tapping one opens its detail, the door opens the
+    /// full archive.
+    @ViewBuilder private var platesPage: some View {
+        let plates = todaysPlates
+        let cards = plates.map { entry in
+            JKPlatesGallery.Plate(
+                id: entry.id,
+                time: entry.loggedAt.formatted(date: .omitted, time: .shortened).lowercased(),
+                title: entry.title.isEmpty ? "a plate" : entry.title,
+                kcal: Int(entry.kcal.rounded()),
+                image: FoodPhotoStore.photo(entryId: entry.id)
+            )
+        }
+        JKStoryPage(
+            eyebrow: "today's plates",
+            headline: cards.count == 1 ? "one plate, kept." : "\(cards.count) plates, kept.",
+            headlineItalic: ["kept."],
+            caption: cards.count > 3
+                ? "the newest three · open her plates for all \(cards.count)"
+                : "tap a plate to read it."
+        ) {
+            JKPlatesGallery(
+                plates: cards,
+                armed: isArmed(.plates),
+                onTap: { id in detailPlate = plates.first { $0.id == id } },
+                onSnap: { router.open(.snap) }
+            )
         } doors: {
             JKJourneyDoor(
                 lead: "open",
