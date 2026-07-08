@@ -207,13 +207,17 @@ public enum FoodLogPersister {
         public let carbs: Double
         public let fat: Double
         public let fiber: Double
+        /// v1.1.5 — sugar now rides the cloud row too (food_logs.sugar_g).
+        /// Defaulted so any caller predating the field still compiles;
+        /// cloud rows written before the column existed hydrate as 0.
+        public var sugar: Double = 0
         public let title: String
         public let source: String?
 
         public init(
             id: String, userId: String, loggedAt: Date, kcal: Double,
             protein: Double, carbs: Double, fat: Double, fiber: Double,
-            title: String, source: String?
+            sugar: Double = 0, title: String, source: String?
         ) {
             self.id = id
             self.userId = userId
@@ -223,6 +227,7 @@ public enum FoodLogPersister {
             self.carbs = carbs
             self.fat = fat
             self.fiber = fiber
+            self.sugar = sugar
             self.title = title
             self.source = source
         }
@@ -244,8 +249,8 @@ public enum FoodLogPersister {
                 SyncableEntry(
                     id: $0.id, userId: $0.userId, loggedAt: $0.loggedAt,
                     kcal: $0.kcal, protein: $0.protein, carbs: $0.carbs,
-                    fat: $0.fat, fiber: $0.fiber, title: $0.title,
-                    source: $0.source
+                    fat: $0.fat, fiber: $0.fiber, sugar: $0.sugar,
+                    title: $0.title, source: $0.source
                 )
             }
     }
@@ -262,7 +267,8 @@ public enum FoodLogPersister {
             let entry = Entry(
                 id: r.id, userId: r.userId, loggedAt: r.loggedAt,
                 kcal: r.kcal, protein: r.protein, carbs: r.carbs,
-                fat: r.fat, fiber: r.fiber, title: r.title, source: r.source
+                fat: r.fat, fiber: r.fiber, sugar: r.sugar,
+                title: r.title, source: r.source
             )
             inMemoryEntries.append(entry)
             appendToStore(entry)
@@ -623,8 +629,8 @@ public enum FoodLogPersister {
         onEntryPersisted?(SyncableEntry(
             id: entry.id, userId: entry.userId, loggedAt: entry.loggedAt,
             kcal: entry.kcal, protein: entry.protein, carbs: entry.carbs,
-            fat: entry.fat, fiber: entry.fiber, title: entry.title,
-            source: entry.source
+            fat: entry.fat, fiber: entry.fiber, sugar: entry.sugar,
+            title: entry.title, source: entry.source
         ))
 
         // Apple Health write hook. The main app registers a closure at
@@ -781,8 +787,8 @@ public enum FoodLogPersister {
         onEntryPersisted?(SyncableEntry(
             id: entry.id, userId: entry.userId, loggedAt: entry.loggedAt,
             kcal: entry.kcal, protein: entry.protein, carbs: entry.carbs,
-            fat: entry.fat, fiber: entry.fiber, title: entry.title,
-            source: entry.source
+            fat: entry.fat, fiber: entry.fiber, sugar: entry.sugar,
+            title: entry.title, source: entry.source
         ))
         FoodHealthKitWriter.writeIfRegistered(kcal: entry.kcal, at: entry.loggedAt)
     }

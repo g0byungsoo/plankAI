@@ -445,6 +445,10 @@ final class AppSync {
             carbs_g: entry.carbs,
             fat_g: entry.fat,
             fiber_g: entry.fiber,
+            // v1.1.5 — nil when the plate carried no sugar, so a nil is
+            // omitted from the upsert (encodeIfPresent) rather than
+            // written as a fabricated 0.
+            sugar_g: entry.sugar > 0 ? entry.sugar : nil,
             // food_logs.source CHECK list mirrors FoodCapture raw
             // values; old pre-D3.B entries carry nil → 'photo'.
             source: entry.source ?? "photo",
@@ -483,6 +487,7 @@ final class AppSync {
                 carbs: row.carbs_g ?? 0,
                 fat: row.fat_g ?? 0,
                 fiber: row.fiber_g ?? 0,
+                sugar: row.sugar_g ?? 0,
                 title: row.payload?.title ?? "",
                 source: row.source
             )

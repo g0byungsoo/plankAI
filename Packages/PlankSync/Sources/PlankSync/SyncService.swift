@@ -881,6 +881,10 @@ public actor SyncService {
         public let carbs_g: Double?
         public let fat_g: Double?
         public let fiber_g: Double?
+        /// v1.1.5 — sugar joins the synced macros (food_logs.sugar_g).
+        /// Optional + decode-tolerant: rows written before the column
+        /// existed decode nil, so a hydrate never breaks on old data.
+        public let sugar_g: Double?
         public let source: String
         public let payload: Payload?
 
@@ -892,7 +896,7 @@ public actor SyncService {
         public init(
             id: String, user_id: String, logged_at: String,
             kcal_total: Double, protein_g: Double?, carbs_g: Double?,
-            fat_g: Double?, fiber_g: Double?, source: String,
+            fat_g: Double?, fiber_g: Double?, sugar_g: Double?, source: String,
             payload: Payload?
         ) {
             self.id = id
@@ -903,8 +907,26 @@ public actor SyncService {
             self.carbs_g = carbs_g
             self.fat_g = fat_g
             self.fiber_g = fiber_g
+            self.sugar_g = sugar_g
             self.source = source
             self.payload = payload
+        }
+
+        // Decode-tolerant: sugar_g is absent from rows written before the
+        // column shipped; treat a missing key as nil rather than failing.
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(String.self, forKey: .id)
+            user_id = try c.decode(String.self, forKey: .user_id)
+            logged_at = try c.decode(String.self, forKey: .logged_at)
+            kcal_total = try c.decode(Double.self, forKey: .kcal_total)
+            protein_g = try? c.decode(Double.self, forKey: .protein_g)
+            carbs_g = try? c.decode(Double.self, forKey: .carbs_g)
+            fat_g = try? c.decode(Double.self, forKey: .fat_g)
+            fiber_g = try? c.decode(Double.self, forKey: .fiber_g)
+            sugar_g = try? c.decode(Double.self, forKey: .sugar_g)
+            source = (try? c.decode(String.self, forKey: .source)) ?? "photo"
+            payload = try? c.decode(Payload.self, forKey: .payload)
         }
     }
 
@@ -939,8 +961,11 @@ public actor SyncService {
 
     public func fetchFoodLogs(userId: String) async -> [FoodLogSyncRow] {
         do {
+            // `.select()` (all columns) rather than an explicit list so a
+            // freshly-added column like sugar_g never has to be present
+            // for the read to work — the decoder tolerates its absence.
             let rows: [FoodLogSyncRow] = try await supabase.from("food_logs")
-                .select("id, user_id, logged_at, kcal_total, protein_g, carbs_g, fat_g, fiber_g, source, payload")
+                .select()
                 .eq("user_id", value: userId)
                 .order("logged_at", ascending: true)
                 .execute()
