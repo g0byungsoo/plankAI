@@ -59,19 +59,16 @@ final class RatingPromptService {
     private init() {}
 
     enum Trigger: String, CaseIterable {
-        case postPlanReveal     // legacy: onboarding sentiment gate (unwired)
-        case sessionThreePR     // legacy: first PR session (consumer never built)
-        case dayStreakSeven     // legacy: streak == 7 (no streak event in v5)
-        case postPurchaseWelcome // 2026-07-08: the post-purchase welcome flow —
-                                // every payer, in the onboarding arc, no
-                                // paywall-conversion cost
+        case postPlanReveal   // 2026-07-08: the pre-paywall review gate,
+                              // after firstWeek in the reveal (peak-positive)
+        case sessionThreePR   // legacy: first PR session (consumer never built)
+        case dayStreakSeven   // legacy: streak == 7 (no streak event in v5)
 
         var flagKey: String {
             switch self {
-            case .postPlanReveal:      return "ratingPrompt.postPlanReveal.shown"
-            case .sessionThreePR:      return "ratingPrompt.sessionThreePR.shown"
-            case .dayStreakSeven:      return "ratingPrompt.dayStreakSeven.shown"
-            case .postPurchaseWelcome: return "ratingPrompt.postPurchaseWelcome.shown"
+            case .postPlanReveal: return "ratingPrompt.postPlanReveal.shown"
+            case .sessionThreePR: return "ratingPrompt.sessionThreePR.shown"
+            case .dayStreakSeven: return "ratingPrompt.dayStreakSeven.shown"
             }
         }
     }

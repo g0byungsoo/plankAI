@@ -784,12 +784,11 @@ struct PlankAIApp: App {
                         debugStartAtFirstWeek: true
                     )
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-rating-ask") {
-                    // Jumps straight to the in-onboarding rating ask beat
-                    // (RatingAskPresentation) so it can be screenshot without
-                    // running the full reveal sequence. The eligibility gate
-                    // self-skips when onboardingReviewPromptShown=true - clear
-                    // it first: `xcrun simctl spawn booted defaults delete
-                    // com.bk.plankAI onboardingReviewPromptShown`
+                    // Jumps to the `.ratingAsk` reveal step (which now
+                    // renders the FEAR-RESOLUTION beat) for screenshotting.
+                    // The pre-paywall review gate itself is the `.reviewGate`
+                    // step just before this — preview it standalone with
+                    // `--debug-rating-gate`.
                     // Launch: `xcrun simctl launch booted com.bk.plankAI --debug-rating-ask`
                     OnboardingRevealView(
                         bodyFocus: ["flatBelly"],

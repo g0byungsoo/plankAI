@@ -66,6 +66,9 @@ final class OnboardingWalkthroughUITests: XCTestCase {
             // Run-2 failure mode: tapping "loving it" fired the sheet and
             // its star buttons went stale mid-enumeration (race).
             "Not Now",
+            // the pre-paywall review gate — "yes" advances (native sheet
+            // is suppressed in the sim).
+            "yes, loving it",
             "skip for now", "Maybe later", "not right now", "not yet",
             "yeah, that's me",
             "i agree", "i'm in", "i want this version",
@@ -821,6 +824,11 @@ final class OnboardingV5WalkerUITests: XCTestCase {
         if !tapButton("continue", timeout: 4, settle: 1.4) {
             _ = tapButton("let's go", timeout: 3, settle: 1.4)
         }
+        // review gate (pre-paywall, after firstWeek — eligible on a
+        // fresh walk since --uitest-fresh-onboarding clears the flag).
+        // "yes" fires the native sheet (suppressed in sim) and advances.
+        Thread.sleep(forTimeInterval: 1.0)
+        _ = tapButton("loving it", shotName: "reviewGate", timeout: 6, settle: 1.6)
         // fear resolution (fires because fear1/fear3 = yes)
         Thread.sleep(forTimeInterval: 1.0)
         snap("fearResolution")
