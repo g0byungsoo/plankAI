@@ -85,6 +85,17 @@ final class StepsService {
     /// Week total (sum of `weeklyCounts`). Convenience for the bento tile.
     var weekTotal: Int { weeklyCounts.reduce(0, +) }
 
+    #if DEBUG
+    /// QA-only: stand in a realistic week so the bar chart can be audited
+    /// without a HealthKit-backed device (the sim reports ~0 steps).
+    func seedForQA(weekly: [Int], today: Int) {
+        authStatus = .authorized
+        weeklyCounts = weekly
+        todayCount = today
+        lastSyncedAt = Date()
+    }
+    #endif
+
     /// Today's progress against `dailyGoal`, clamped 0…1. Drives the ring.
     var todayProgress: Double {
         guard Self.dailyGoal > 0 else { return 0 }

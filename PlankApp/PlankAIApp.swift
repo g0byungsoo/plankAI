@@ -2396,6 +2396,13 @@ private struct RootView: View {
                           kcal: 610, protein: 34, carbs: 58, fat: 22, fiber: 8,
                           title: "salmon and rice", source: "quick_add"),
                 ])
+                // A realistic step week so the movement bar chart renders
+                // with data (the sim reports ~0). Mixed above/below the
+                // 7,500 goal; today mid-afternoon.
+                StepsService.shared.seedForQA(
+                    weekly: [6200, 8100, 5400, 9300, 7600, 4800, 6420],
+                    today: 6420
+                )
             }
             // --uitest-force-expired: stamp prior entitlement WITHOUT
             // granting pro so the wall(.expired) state is walkable.

@@ -178,81 +178,176 @@ struct JKWeekDotsVisual: View {
     }
 }
 
-// MARK: - JKStepsRhythmVisual
+// MARK: - JKStepsBarChart
 
-/// The movement page's hero: today's count as the numeral, the week
-/// as seven rhythm marks (goal solid, real-walk ring, quiet dash) —
-/// rhythm, never magnitude bars.
-struct JKStepsRhythmVisual: View {
+/// The movement page's hero: today's count as the numeral, and the week
+/// as height-proportional bars so the *amount* each day reads at a
+/// glance (the rhythm-dots version only said hit / half / missed). A
+/// dashed goal line anchors the scale; tapping a bar lifts its exact
+/// count into a pill above it — a TAP, never a drag, because a drag
+/// would fight the Becoming pager's page swipes (mounted-tabs lesson).
+/// Today's bar is the brightest; goal-reached days sit at half weight,
+/// quiet days faint — magnitude and status in one read.
+struct JKStepsBarChart: View {
     let todayCount: Int
     let weeklyCounts: [Int]
     let goal: Int
-    /// Weekday letters under the marks (oldest → today). Optional so
-    /// legacy callers stay letter-free.
+    /// Weekday letters under the bars (oldest → today).
     var letters: [String] = []
-    /// v5 pager choreography: dots cascade in on page arrival.
+    /// Pager choreography: bars grow in on page arrival.
     var armed: Bool = true
 
     @State private var shown = false
+    @State private var tapped: Int? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private let chartHeight: CGFloat = 128
+    private let barSpacing: CGFloat = 10
+
+    private var todayIndex: Int { max(0, weeklyCounts.count - 1) }
+    /// Bars normalize against the taller of the goal or the week's peak,
+    /// so the goal line keeps a stable position and over-goal days rise
+    /// above it instead of everything flattening to the max.
+    private var ceiling: Double { Double(max(goal, weeklyCounts.max() ?? goal, 1)) }
+    private var goalFraction: CGFloat { CGFloat(min(1, Double(goal) / ceiling)) }
 
     var body: some View {
         VStack(spacing: Space.lg) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(todayCount.formatted())
-                    .font(.custom("JeniHeroSerif-Regular", size: 56, relativeTo: .largeTitle))
-                    .foregroundStyle(Palette.cocoaPrimary)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                Text("today")
-                    .font(.custom("JeniHeroSerif-Italic", size: 20, relativeTo: .title3))
-                    .foregroundStyle(Palette.accent)
-                    .baselineOffset(4)
-            }
-            .opacity(shown ? 1 : 0)
-            .offset(y: shown ? 0 : 5)
-            .animation(Motion.entranceSoft, value: shown)
-
-            HStack(spacing: 16) {
-                ForEach(Array(weeklyCounts.enumerated()), id: \.offset) { idx, count in
-                    VStack(spacing: 8) {
-                        Group {
-                            if count >= goal {
-                                Circle()
-                                    .fill(Palette.cocoaPrimary)
-                                    .frame(width: 12, height: 12)
-                            } else if count >= goal / 2 {
-                                Circle()
-                                    .strokeBorder(Palette.cocoaSecondary, lineWidth: 1.6)
-                                    .frame(width: 12, height: 12)
-                            } else {
-                                Capsule()
-                                    .fill(Palette.hairlineCocoa)
-                                    .frame(width: 12, height: 2.5)
-                            }
-                        }
-                        .frame(height: 12)
-                        if idx < letters.count {
-                            Text(letters[idx])
-                                .font(.custom("DMSans-Medium", size: 10, relativeTo: .caption2))
-                                .kerning(0.66)
-                                .foregroundStyle(idx == weeklyCounts.count - 1
-                                                 ? Palette.cocoaPrimary
-                                                 : Palette.cocoaTertiary)
-                        }
-                    }
-                    .opacity(shown ? 1 : 0)
-                    .offset(y: shown ? 0 : 4)
-                    .animation(Motion.entranceSoft.delay(0.08 + Double(idx) * 0.04), value: shown)
+            headline
+            chart
+        }
+        .onAppear {
+            if armed { arm() }
+            #if DEBUG
+            // Audit the tap-a-bar callout without a tap.
+            if ProcessInfo.processInfo.arguments.contains("--uitest-steps-tap-demo") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+                    withAnimation(.spring(response: 0.34, dampingFraction: 0.7)) { tapped = 3 }
                 }
             }
+            #endif
         }
-        .onAppear { if armed { arm() } }
         .onChange(of: armed) { _, isArmed in
             if isArmed { arm() } else { disarm() }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(todayCount) steps today")
+        .accessibilityLabel("\(todayCount) steps today, seven-day rhythm")
+    }
+
+    private var headline: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(todayCount.formatted())
+                .font(.custom("JeniHeroSerif-Regular", size: 56, relativeTo: .largeTitle))
+                .foregroundStyle(Palette.cocoaPrimary)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+            Text("today")
+                .font(.custom("JeniHeroSerif-Italic", size: 20, relativeTo: .title3))
+                .foregroundStyle(Palette.accent)
+                .baselineOffset(4)
+        }
+        .opacity(shown ? 1 : 0)
+        .offset(y: shown ? 0 : 5)
+        .animation(Motion.entranceSoft, value: shown)
+    }
+
+    private var chart: some View {
+        VStack(spacing: 12) {
+            ZStack(alignment: .bottom) {
+                goalLine
+                HStack(alignment: .bottom, spacing: barSpacing) {
+                    ForEach(Array(weeklyCounts.enumerated()), id: \.offset) { idx, count in
+                        barColumn(idx: idx, count: count)
+                    }
+                }
+            }
+            .frame(height: chartHeight)
+
+            HStack(spacing: barSpacing) {
+                ForEach(Array(weeklyCounts.enumerated()), id: \.offset) { idx, _ in
+                    Text(idx < letters.count ? letters[idx] : "")
+                        .font(.custom("DMSans-Medium", size: 10, relativeTo: .caption2))
+                        .kerning(0.66)
+                        .foregroundStyle(idx == todayIndex ? Palette.cocoaPrimary : Palette.cocoaTertiary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        }
+    }
+
+    private var goalLine: some View {
+        GeometryReader { geo in
+            let y = geo.size.height * (1 - goalFraction)
+            Path { p in
+                p.move(to: CGPoint(x: 0, y: y))
+                p.addLine(to: CGPoint(x: geo.size.width, y: y))
+            }
+            .stroke(style: StrokeStyle(lineWidth: 1, dash: [3, 4]))
+            .foregroundStyle(Palette.cocoaTertiary.opacity(0.55))
+            .overlay(alignment: .topTrailing) {
+                Text(goal.formatted())
+                    .font(.custom("DMSans-Medium", size: 10, relativeTo: .caption2))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.cocoaTertiary)
+                    .offset(y: y - 15)
+            }
+        }
+        .frame(height: chartHeight)
+        .opacity(shown ? 1 : 0)
+        .animation(Motion.entranceSoft.delay(0.1), value: shown)
+    }
+
+    private func barColumn(idx: Int, count: Int) -> some View {
+        let frac = ceiling > 0 ? CGFloat(min(1, Double(count) / ceiling)) : 0
+        let isToday = idx == todayIndex
+        let reached = count >= goal
+        let isTapped = tapped == idx
+        // A non-zero day always shows at least a sliver; zero stays flat.
+        let target = count > 0 ? max(5, frac * chartHeight) : 0
+        return RoundedRectangle(cornerRadius: 5, style: .continuous)
+            .fill(barFill(isToday: isToday, reached: reached))
+            .frame(maxWidth: .infinity)
+            .frame(height: shown ? target : 0, alignment: .bottom)
+            .scaleEffect(x: isTapped ? 1.14 : 1, anchor: .bottom)
+            .overlay(alignment: .top) {
+                if isTapped {
+                    Text(count.formatted())
+                        .font(.custom("DMSans-SemiBold", size: 10, relativeTo: .caption2))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.textInverse)
+                        .fixedSize()
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Palette.cocoaPrimary))
+                        .offset(y: -22)
+                        .transition(.scale(scale: 0.5).combined(with: .opacity))
+                }
+            }
+            .animation(
+                reduceMotion ? nil
+                    : .spring(response: 0.52, dampingFraction: 0.82)
+                        .delay(0.1 + Double(idx) * 0.05),
+                value: shown
+            )
+            .contentShape(Rectangle())
+            .onTapGesture {
+                Haptics.light()
+                withAnimation(.spring(response: 0.34, dampingFraction: 0.7)) {
+                    tapped = isTapped ? nil : idx
+                }
+            }
+    }
+
+    private func barFill(isToday: Bool, reached: Bool) -> AnyShapeStyle {
+        if isToday {
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [Palette.cocoaPrimary, Palette.cocoaPrimary.opacity(0.76)],
+                    startPoint: .top, endPoint: .bottom
+                )
+            )
+        }
+        return AnyShapeStyle(Palette.cocoaPrimary.opacity(reached ? 0.55 : 0.22))
     }
 
     private func arm() {
@@ -262,7 +357,7 @@ struct JKStepsRhythmVisual: View {
 
     private func disarm() {
         var t = Transaction(); t.disablesAnimations = true
-        withTransaction(t) { shown = false }
+        withTransaction(t) { shown = false; tapped = nil }
     }
 }
 

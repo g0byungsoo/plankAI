@@ -589,7 +589,7 @@ struct BecomingView: View {
             }()
         ) {
             if StepsService.shared.authStatus == .authorized {
-                JKStepsRhythmVisual(
+                JKStepsBarChart(
                     todayCount: StepsService.shared.todayCount,
                     weeklyCounts: counts,
                     goal: goal,
