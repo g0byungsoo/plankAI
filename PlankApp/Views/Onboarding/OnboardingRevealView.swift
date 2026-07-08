@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import RevenueCat
 
 // MARK: - OnboardingRevealView
 //
@@ -224,6 +225,16 @@ struct OnboardingRevealView: View {
                 )
                 .transition(.opacity)
             }
+        }
+        .task {
+            // 2026-07-07 keep-wall: prefetch RevenueCat offerings while
+            // she's still inside the reveal (~90s before the wall). The
+            // SDK caches the response, so the wall's tier prices render
+            // on FIRST paint instead of skeleton-pulsing through the
+            // decisive seconds. Fire-and-forget; failures surface (and
+            // retry) on the wall itself.
+            guard Purchases.isConfigured else { return }
+            _ = try? await Purchases.shared.offerings()
         }
     }
 
@@ -1678,33 +1689,15 @@ private struct NudgePermissionAsk: View {
 
                     Spacer().frame(height: Space.md)
 
-                    // v5 trial-safety promise (the recovered case-287
-                    // mechanic, folded in instead of a new screen): the
-                    // #1 objection one beat before the wall is "i'll
-                    // forget and get charged." TrialEndNotificationService
-                    // schedules the real T-24h push, so the promise is
-                    // cashable; conditional phrasing keeps it structurally
-                    // true under every SKU config.
-                    HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: "bell.badge")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(Palette.accent)
-                            .padding(.top, 1)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("if you start a trial, this is also how we remind you before it ends")
-                                .font(.custom("DMSans-Medium", size: 13))
-                                .foregroundStyle(Palette.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text("nothing renews without a heads-up ♥\u{FE0E}")
-                                .font(Typo.caption)
-                                .foregroundStyle(Palette.textSecondary)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.horizontal, Space.screenPadding + Space.sm)
-                    .opacity(bannerVisible ? 1 : 0)
-
-                    Spacer().frame(height: Space.lg)
+                    // 2026-07-07: the trial-safety promise row is DEAD.
+                    // It promised "if you start a trial, we remind you
+                    // before it ends" in an app that sells no trial and
+                    // schedules no renewal push (TrialEndNotification-
+                    // Service is disabled) — a stale promise one beat
+                    // before the wall is a trust leak, not reassurance.
+                    // The banner above + the arrives-line below carry
+                    // this beat's whole cashable story: one nudge a day,
+                    // at her hour, changeable in settings.
 
                     // Round 2 (2026-07-02): the time rows are GONE. Her
                     // promise already chose tomorrow's hour — the banner
