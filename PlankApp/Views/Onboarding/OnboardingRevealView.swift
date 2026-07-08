@@ -198,11 +198,12 @@ struct OnboardingRevealView: View {
                 // bleed at the exact moment impulse must compound, so
                 // this slot now answers the fear she named in Act IV
                 // with a shipping plan mechanic (self-skips when no fear
-                // was kept). The review ask itself moved to the first
-                // genuine in-app win — the sentiment gate in
-                // TodayModuleHost (RatingPromptService .firstWorkoutWin),
-                // 2026-07-08. (The old `RatingAskPresentation` struct
-                // below is dead; safe to delete in a dedicated cleanup.)
+                // was kept). The review ask itself moved to the
+                // post-purchase welcome flow — the sentiment gate in
+                // PostPurchaseFlowView (RatingPromptService
+                // .postPurchaseWelcome), 2026-07-08. (The old
+                // `RatingAskPresentation` struct below is dead; safe to
+                // delete in a dedicated cleanup.)
                 OV5FearResolutionPresentation(
                     onContinue: { withAnimation(Motion.crossFade) { step = .commitment } }
                 )

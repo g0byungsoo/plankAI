@@ -36,10 +36,15 @@ struct PostPurchaseFlowView: View {
     private enum Phase: Equatable {
         case forging               // v3 P11.4 - 8s post-paywall keystone
         case coachIntro
+        case reviewAsk             // 2026-07-08 - sentiment gate (every payer)
         case breathworkPrimer
         case breathworkSession
         case promiseConfirmation   // Task 10 (2026-06-28)
     }
+
+    /// The "not really" path opens feedback over the flow; on dismiss we
+    /// continue to the breath primer either way.
+    @State private var showReviewFeedback = false
 
     // v3 P11.4 (2026-06-10) - forging phase lands FIRST so the user
     // sees the program activating before Jeni introduces herself.
@@ -76,8 +81,30 @@ struct PostPurchaseFlowView: View {
 
             case .coachIntro:
                 CoachIntroView(onContinue: {
-                    transition(to: .breathworkPrimer)
+                    advanceAfterCoachIntro()
                 })
+                .transition(.opacity)
+
+            case .reviewAsk:
+                // The full-screen sentiment gate — the guaranteed-reach
+                // review ask, in the welcome arc, no paywall cost. yes →
+                // native prompt; "not really" → feedback. Either way the
+                // flow continues to the breath primer.
+                RatingSentimentScreen(
+                    onYes: {
+                        RatingPromptService.shared.trackSentimentResult(
+                            trigger: .postPurchaseWelcome, sentimentYes: true
+                        )
+                        RatingPromptService.shared.presentSystemReviewSheet()
+                        transition(to: .breathworkPrimer)
+                    },
+                    onNotReally: {
+                        RatingPromptService.shared.trackSentimentResult(
+                            trigger: .postPurchaseWelcome, sentimentYes: false
+                        )
+                        showReviewFeedback = true
+                    }
+                )
                 .transition(.opacity)
 
             case .breathworkPrimer:
@@ -140,6 +167,26 @@ struct PostPurchaseFlowView: View {
             }
         }
         .animation(.easeInOut(duration: 0.5), value: phase)
+        .sheet(isPresented: $showReviewFeedback, onDismiss: {
+            transition(to: .breathworkPrimer)
+        }) {
+            FeedbackView(source: "rating_gate_negative")
+                .presentationDetents([.large])
+                .presentationBackground(Palette.programEraBg)
+        }
+    }
+
+    /// After meeting the coach, gate the review ask: eligible payers see
+    /// it once (per install + 30-day cooldown), everyone else continues
+    /// straight to the breath primer.
+    private func advanceAfterCoachIntro() {
+        if RatingPromptService.shared.isEligible(for: .postPurchaseWelcome) {
+            RatingPromptService.shared.markShown(.postPurchaseWelcome)
+            RatingPromptService.shared.trackGateShown(.postPurchaseWelcome)
+            transition(to: .reviewAsk)
+        } else {
+            transition(to: .breathworkPrimer)
+        }
     }
 
     private func transition(to next: Phase) {
