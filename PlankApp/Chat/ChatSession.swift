@@ -101,11 +101,28 @@ final class ChatSession {
     /// be photographed (pairs with --uitest-chat-shimmer).
     func seedShimmerDemo() {
         entries.append(Entry(
+            id: "qa-user-ctx", kind: .user,
+            text: "i had a rough day", createdAt: .now.addingTimeInterval(-2)
+        ))
+        entries.append(Entry(
             id: "qa-shimmer",
             kind: .jeni,
             text: "okay. first, nothing is broken. one loud day doesn't move a trend line, it just feels like it does.\n\ntonight: water, an early night if you can get it. tomorrow's plan is already set, and it's a *gentle* one",
             isStreaming: true,
             createdAt: .now
+        ))
+    }
+
+    /// QA: pin an empty streaming jeni entry so the typing bubble holds
+    /// still for the camera (pairs with --uitest-chat-typing).
+    func seedTypingDemo() {
+        entries.append(Entry(
+            id: "qa-user-typing", kind: .user,
+            text: "what should i eat tonight?", createdAt: .now.addingTimeInterval(-2)
+        ))
+        entries.append(Entry(
+            id: "qa-typing", kind: .jeni, text: "",
+            isStreaming: true, createdAt: .now
         ))
     }
     #endif

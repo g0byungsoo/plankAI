@@ -61,6 +61,9 @@ struct JeniChatView: View {
             if ProcessInfo.processInfo.arguments.contains("--uitest-chat-shimmer") {
                 session.seedShimmerDemo()
             }
+            if ProcessInfo.processInfo.arguments.contains("--uitest-chat-typing") {
+                session.seedTypingDemo()
+            }
             #endif
         }
         .onChange(of: router.tab) { _, tab in
@@ -70,6 +73,11 @@ struct JeniChatView: View {
                 router.pendingChatSeed = nil
                 session.openWithSeed(seed)
             }
+        }
+        // The received buzz — a soft tap the moment her reply lands
+        // (stream true → false), the receiving half of the iMessage feel.
+        .onChange(of: session.isStreaming) { wasStreaming, nowStreaming in
+            if wasStreaming && !nowStreaming { Haptics.soft() }
         }
     }
 
@@ -170,7 +178,7 @@ struct JeniChatView: View {
     private var transcript: some View {
         ScrollViewReader { proxy in
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: Space.lg) {
+            LazyVStack(alignment: .leading, spacing: 4) {
                 // v3 — HER FILE: the v5 dossier alive in the app. The
                 // desk never opens empty; every row traces to a stored
                 // field and taps into the right surface.
@@ -184,7 +192,7 @@ struct JeniChatView: View {
                         JKQuietSeam(line: mark)
                             .padding(.vertical, 2)
                     }
-                    entryView(entry)
+                    entryView(entry, at: idx)
                         .id(entry.id)
                 }
                 if session.lastTurnFailed && !session.isStreaming {
@@ -224,6 +232,10 @@ struct JeniChatView: View {
             }
             .padding(.horizontal, Space.lg)
             .padding(.top, Space.lg)
+            // Bubbles pop in on a bounce when a message lands; the tail
+            // group re-tails without a jump (count-scoped so per-token
+            // stream text never re-animates the whole run).
+            .animation(.spring(response: 0.36, dampingFraction: 0.74), value: session.entries.count)
         }
         .scrollIndicators(.hidden)
         .defaultScrollAnchor(.bottom)
@@ -280,67 +292,82 @@ struct JeniChatView: View {
         }
     }
 
-    /// v3.0 — the "JENI" kicker marks the START of her turn, not
-    /// every paragraph: consecutive jeni entries group like a letter.
-    private func showsKicker(before entry: ChatSession.Entry) -> Bool {
-        guard let idx = session.entries.firstIndex(where: { $0.id == entry.id }),
-              idx > 0 else { return true }
-        let prev = session.entries[idx - 1]
-        // v5: a new day's letter signs itself again (a date seam
-        // between two unsigned jeni groups read as one run-on).
-        if !Calendar.current.isDate(prev.createdAt, inSameDayAs: entry.createdAt) {
-            return true
-        }
-        switch prev.kind {
-        case .jeni, .careLine: return false
-        default: return true
+    // MARK: - Bubble grouping
+    //
+    // iMessage groups a run of same-sender messages: tight spacing, one
+    // tail on the last of the run. `sender` collapses the kinds into a
+    // group key; a day boundary always breaks a run so a new day's first
+    // message re-tails.
+
+    private func groupKey(_ e: ChatSession.Entry) -> Int {
+        switch e.kind {
+        case .user: return 0
+        case .toolCard: return 2
+        default: return 1   // jeni + careLine read as one voice
         }
     }
 
+    private func isFirstInGroup(at idx: Int) -> Bool {
+        guard idx > 0 else { return true }
+        let prev = session.entries[idx - 1], cur = session.entries[idx]
+        if !Calendar.current.isDate(prev.createdAt, inSameDayAs: cur.createdAt) { return true }
+        return groupKey(prev) != groupKey(cur)
+    }
+
+    private func isLastInGroup(at idx: Int) -> Bool {
+        let entries = session.entries
+        guard idx < entries.count - 1 else { return true }
+        let next = entries[idx + 1], cur = entries[idx]
+        if !Calendar.current.isDate(next.createdAt, inSameDayAs: cur.createdAt) { return true }
+        return groupKey(next) != groupKey(cur)
+    }
+
     @ViewBuilder
-    private func entryView(_ entry: ChatSession.Entry) -> some View {
-        switch entry.kind {
-        case .user:
-            HStack {
-                Spacer(minLength: 56)
-                Text(entry.text)
-                    .font(.custom("DMSans-Regular", size: 15))
-                    .foregroundStyle(Palette.textPrimary)
-                    .padding(.horizontal, 15)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Palette.accentSubtle.opacity(0.42))
-                    )
-            }
-            .transition(.opacity.combined(with: .offset(y: 6)))
+    private func entryView(_ entry: ChatSession.Entry, at idx: Int) -> some View {
+        let tail = isLastInGroup(at: idx)
+        let fromUser = groupKey(entry) == 0
+        // A run of same-sender bubbles sits tight; a change of voice (or a
+        // new day) opens a breath above the first bubble.
+        let topGap: CGFloat = isFirstInGroup(at: idx) ? Space.sm : 3
 
-        case .jeni, .careLine:
-            VStack(alignment: .leading, spacing: 6) {
-                if showsKicker(before: entry) {
-                    Text("jeni")
-                        .font(Typo.captionTracked)
-                        .kerning(1.4)
-                        .textCase(.uppercase)
-                        .foregroundStyle(Palette.cocoaTertiary)
+        Group {
+            switch entry.kind {
+            case .user:
+                HStack(spacing: 0) {
+                    Spacer(minLength: 52)
+                    Text(entry.text)
+                        .font(.custom("DMSans-Regular", size: 15))
+                        .foregroundStyle(Palette.textPrimary)
+                        .userBubble(hasTail: tail)
                 }
-                if entry.text.isEmpty && entry.isStreaming {
-                    JeniThinkingIndicator()
-                } else {
-                    JeniProse(text: entry.text, isLive: entry.isStreaming)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .transition(.opacity)
 
-        case .toolCard(let card):
-            toolCardView(entry: entry, card: card)
-                .transition(
-                    .scale(scale: 0.97, anchor: .bottomLeading)
-                        .combined(with: .opacity)
-                        .combined(with: .offset(y: 8))
-                )
+            case .jeni, .careLine:
+                HStack(spacing: 0) {
+                    Group {
+                        if entry.text.isEmpty && entry.isStreaming {
+                            ChatTypingDots()
+                        } else {
+                            JeniProse(text: entry.text, isLive: entry.isStreaming)
+                        }
+                    }
+                    .jeniBubble(hasTail: tail)
+                    Spacer(minLength: 52)
+                }
+
+            case .toolCard(let card):
+                toolCardView(entry: entry, card: card)
+            }
         }
+        .padding(.top, topGap)
+        .transition(
+            {
+                if case .toolCard = entry.kind {
+                    return .scale(scale: 0.97, anchor: .bottomLeading)
+                        .combined(with: .opacity).combined(with: .offset(y: 8))
+                }
+                return .bubblePop(fromUser: fromUser)
+            }()
+        )
     }
 
     // MARK: - Tool cards
@@ -422,7 +449,17 @@ struct JeniChatView: View {
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(Palette.textInverse)
                         .frame(width: 38, height: 38)
-                        .background(Circle().fill(sendEnabled ? Palette.cocoaPrimary : Palette.cocoaPrimary.opacity(0.35)))
+                        .background(
+                            Circle().fill(
+                                (sendEnabled || session.isStreaming)
+                                    ? Palette.cocoaPrimary : Palette.cocoaPrimary.opacity(0.32)
+                            )
+                        )
+                        // The button wakes with a little spring the moment
+                        // there's something to send.
+                        .scaleEffect((sendEnabled || session.isStreaming) ? 1 : 0.88)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.6),
+                                   value: sendEnabled || session.isStreaming)
                 }
                 .buttonStyle(JKPress())
                 .disabled(!sendEnabled && !session.isStreaming)
@@ -454,10 +491,13 @@ struct JeniChatView: View {
 
     private func sendTapped() {
         if session.isStreaming {
+            Haptics.light()
             session.stopStreaming()
             return
         }
         guard sendEnabled else { return }
+        // The send pop — the bubble launches off the composer.
+        Haptics.light()
         Analytics.track(.jeniChatMessageSent)
         session.send()
     }
@@ -648,31 +688,5 @@ private struct JeniStreamShimmer: ViewModifier {
         )
     }
 }
-
-// MARK: - JeniThinkingIndicator
-
-struct JeniThinkingIndicator: View {
-    @State private var pulse = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        HStack(spacing: 5) {
-            ForEach(0..<3, id: \.self) { i in
-                Circle()
-                    .fill(Palette.cocoaTertiary)
-                    .frame(width: 5, height: 5)
-                    .opacity(pulse ? 0.9 : 0.3)
-                    .animation(
-                        reduceMotion ? .none :
-                            Motion.breathing
-                            .repeatForever(autoreverses: true)
-                            .delay(Double(i) * 0.18),
-                        value: pulse
-                    )
-            }
-        }
-        .padding(.vertical, 6)
-        .onAppear { pulse = true }
-        .accessibilityLabel("jeni is thinking")
-    }
-}
+// JeniThinkingIndicator retired 1.1.5 — the loading state is now
+// ChatTypingDots inside a jeni bubble (see ChatBubbles.swift).
