@@ -125,6 +125,11 @@ struct PlankAIApp: App {
             UserDefaults.standard.removeObject(forKey: "programEraEnabled")
             UserDefaults.standard.removeObject(forKey: "planFirstRunHintSeen")
             UserDefaults.standard.removeObject(forKey: "planChecksMigratedV1")
+            // Keep-wall recovery flags reset so every QA run exercises
+            // the full chain (downsell / smaller-step are once-per-
+            // install and would otherwise be consumed by run 1).
+            UserDefaults.standard.removeObject(forKey: "downsellShownOnce")
+            UserDefaults.standard.removeObject(forKey: "smallerStepShownOnce")
             // v4: a prior run's re-signing must not silence this
             // run's (records + consent knobs are QA state too).
             // --uitest-keep-reviews opts out for multi-launch legs
@@ -822,19 +827,21 @@ struct PlankAIApp: App {
                     // `xcrun simctl launch booted com.bk.plankAI --debug-medication`
                     OnboardingView(onComplete: { _ in })
                 } else if ProcessInfo.processInfo.arguments.contains("--debug-paywall") {
-                    // 2026-06-29 - neat one-screen paywall redesign preview.
-                    // Renders PaywallView with DEBUG mock pricing + mock
-                    // projection data (no RC packages / no UserRecord needed
-                    // in-sim) so the full layout - projection hero, yearly
-                    // card, per-day + save anchor, docked CTA - renders for
+                    // 2026-07-07 - keep-wall design preview. Renders
+                    // PaywallView with DEBUG mock pricing + mock day-one
+                    // data (no RC packages / no UserRecord needed in-sim)
+                    // so the full layout - ownership hero, day-one card,
+                    // three tier rows, receipt-confirm - renders for
                     // visual verification. Launch:
                     // `xcrun simctl launch booted com.bk.plankAI --debug-paywall`
+                    // Add `--uitest-pricing-fail` to preview the pricing
+                    // failure + retry states.
                     PaywallView(
                         dismissable: true,
                         onSubscribed: {},
                         onRestore: {},
                         onDismiss: {},
-                        onPurchaseCancelled: {}
+                        onPurchaseCancelled: { _, _ in }
                     )
                 } else {
                     RootView()
