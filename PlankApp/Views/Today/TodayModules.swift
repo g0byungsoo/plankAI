@@ -245,11 +245,17 @@ final class TodayModuleState {
         // plates hand to jeni; weigh-ins hand to the trend.
         switch beat {
         case .lesson:
+            // Breath used to be the method's follow-on rep — but it's a
+            // permanent rhythm row now, so that chain just pointed at a
+            // row already on screen (founder: redundant). Hand the read
+            // to jeni instead: apply the one reframe to how today
+            // actually went.
             chainSuggestion = ChainSuggestion(
                 lead: "put it to work",
-                text: "sixty seconds of breath",
-                italic: ["breath"],
-                route: .breath
+                text: "talk it through with jeni",
+                italic: ["jeni"],
+                route: nil,
+                chatSeed: "she just finished a method lesson. help her apply that one reframe to how today actually went — one concrete, kind next move, no lecture."
             )
         case .workout:
             chainSuggestion = ChainSuggestion(
