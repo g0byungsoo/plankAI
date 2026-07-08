@@ -97,6 +97,42 @@ enum AnalyticsEvent: String {
     case downsellCtaTapped          = "downsell_cta_tapped"
     case downsellPurchaseSheetShown = "downsell_purchase_sheet_shown"
     case downsellDismissed          = "downsell_dismissed"
+    /// 2026-07-07 v2: once unlocked (first auto-show), the discount is
+    /// a persistent STATE — a reclaim row on the wall reopens it, so a
+    /// user anchored to the discounted price is never stranded against
+    /// full price. This event = she came back for it.
+    case downsellReclaimTapped      = "downsell_reclaim_tapped"
+
+    // ── Keep-flow paywall events (2026-07-07 no-trial redesign) ───
+    // The 48h post-trial-removal funnel showed two breaks: paywall_view
+    // → cta 23% (was 43%) and purchase_sheet_shown → purchase 0/17 with
+    // a 3s median time-to-cancel (price recoil, not payment friction).
+    // The redesign inserts an in-brand receipt-confirm between the CTA
+    // and StoreKit so the billed-today number is ACCEPTED before Apple
+    // restates it. These events make that new step measurable:
+    //   paywall_tier_selected     — she touched a tier card (active
+    //                               choice vs default-riding). `plan`,
+    //                               `previous_plan`.
+    //   purchase_confirm_shown    — receipt-confirm presented. `plan`,
+    //                               `product_id`, `price`.
+    //   purchase_confirm_accepted — confirm tapped → StoreKit handoff
+    //                               follows (purchase_sheet_shown next).
+    //   purchase_confirm_declined — "not this plan" / dim tap; she's
+    //                               back on the tiers, NOT lost.
+    case paywallTierSelected        = "paywall_tier_selected"
+    case purchaseConfirmShown       = "purchase_confirm_shown"
+    case purchaseConfirmAccepted    = "purchase_confirm_accepted"
+    case purchaseConfirmDeclined    = "purchase_confirm_declined"
+
+    // ── Smaller-step recovery (2026-07-07) ───────────────────────
+    // Post-abandon fork for the quarterly tier: the recovery isn't a
+    // discount (no quarterly discount SKU in the live offering) — it's
+    // a de-escalation to the weekly product ("start with one week").
+    // Yearly abandons keep routing to the existing downsell sheet.
+    case smallerStepViewed          = "smaller_step_viewed"
+    case smallerStepCtaTapped       = "smaller_step_cta_tapped"
+    case smallerStepSheetShown      = "smaller_step_sheet_shown"
+    case smallerStepDismissed       = "smaller_step_dismissed"
 
     // ── First activation ─────────────────────────────────────────
     /// App v2 — the entitled shell mounted. Fires ONLY in the .main
