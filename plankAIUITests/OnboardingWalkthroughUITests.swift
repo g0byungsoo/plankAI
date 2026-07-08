@@ -981,17 +981,8 @@ final class KeepWallUITests: XCTestCase {
         tapButton("12 weeks", shotName: nil, settle: 0.8)
         snap("wall_quarterly_reselected")
 
-        // CTA → receipt-confirm (the Apple-sheet lead-in).
-        tapButton("keep my plan", settle: 1.2)
-        snap("receipt_confirm")
-
-        // Decline path first — she's back on the tiers, nothing lost.
-        tapButton("not this plan", settle: 1.0)
-        snap("wall_after_decline")
-
-        // Again, and through: confirm → the REAL StoreKit sheet.
-        tapButton("keep my plan", settle: 1.2)
-        tapButton("confirm", settle: 2.5)
+        // CTA → straight to the REAL StoreKit sheet (no interstitial).
+        tapButton("keep my plan", settle: 2.5)
         snap("storekit_sheet")
 
         // Cancel the purchase sheet. Under a StoreKit configuration
@@ -1036,8 +1027,7 @@ final class KeepWallUITests: XCTestCase {
         tapButton("maybe later", settle: 1.6)
 
         // Ladder step 2: a SECOND abandon → the smaller step.
-        tapButton("keep my plan", settle: 1.2)
-        tapButton("confirm", settle: 2.5)
+        tapButton("keep my plan", settle: 2.5)
         var cancelled2 = false
         for host in [app!, springboard] {
             for label in ["Cancel", "Close"] {
@@ -1077,7 +1067,7 @@ final class KeepWallUITests: XCTestCase {
     }
 
     /// Accessibility XXL text — the wall's fixed-size fold convention
-    /// must hold (no overlap, docked CTA visible, receipt legible).
+    /// must hold (no overlap, all three tiers + docked CTA legible).
     func testKeepWallDynamicTypeXXL() throws {
         app = XCUIApplication()
         app.launchArguments += [
@@ -1089,8 +1079,10 @@ final class KeepWallUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 3.0)
         snap("wall_dynamic_type_axl")
 
-        tapButton("keep my plan", settle: 1.2)
-        snap("receipt_confirm_dynamic_type_axl")
+        let cta = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "keep my plan")
+        ).firstMatch
+        XCTAssertTrue(cta.waitForExistence(timeout: 8), "CTA must stay on-screen at AXL")
     }
 }
 

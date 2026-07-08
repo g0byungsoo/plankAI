@@ -107,22 +107,15 @@ enum AnalyticsEvent: String {
     // The 48h post-trial-removal funnel showed two breaks: paywall_view
     // → cta 23% (was 43%) and purchase_sheet_shown → purchase 0/17 with
     // a 3s median time-to-cancel (price recoil, not payment friction).
-    // The redesign inserts an in-brand receipt-confirm between the CTA
-    // and StoreKit so the billed-today number is ACCEPTED before Apple
-    // restates it. These events make that new step measurable:
-    //   paywall_tier_selected     — she touched a tier card (active
-    //                               choice vs default-riding). `plan`,
-    //                               `previous_plan`.
-    //   purchase_confirm_shown    — receipt-confirm presented. `plan`,
-    //                               `product_id`, `price`.
-    //   purchase_confirm_accepted — confirm tapped → StoreKit handoff
-    //                               follows (purchase_sheet_shown next).
-    //   purchase_confirm_declined — "not this plan" / dim tap; she's
-    //                               back on the tiers, NOT lost.
+    // The redesign carries the billed-today number inline (tier row +
+    // CTA + terms line) so the price is framed BEFORE the CTA; the CTA
+    // then goes straight to StoreKit (a receipt-confirm interstitial
+    // was tried 2026-07-07 and cut same-day — redundant restatement +
+    // a fresh exit ramp at peak intent).
+    //   paywall_tier_selected — she touched a tier card (active choice
+    //                           vs default-riding). `plan`,
+    //                           `previous_plan`.
     case paywallTierSelected        = "paywall_tier_selected"
-    case purchaseConfirmShown       = "purchase_confirm_shown"
-    case purchaseConfirmAccepted    = "purchase_confirm_accepted"
-    case purchaseConfirmDeclined    = "purchase_confirm_declined"
 
     // ── Smaller-step recovery (2026-07-07) ───────────────────────
     // Post-abandon fork for the quarterly tier: the recovery isn't a

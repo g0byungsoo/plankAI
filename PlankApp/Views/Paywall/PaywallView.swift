@@ -142,12 +142,6 @@ struct PaywallView: View {
     @State private var loadingOfferings = true
     @State private var offeringsLoadFailed = false
     @State private var restoreAlert: RestoreAlert?
-    /// Receipt-confirm overlay (the Apple-sheet lead-in). True between
-    /// the CTA tap and either confirm (→ StoreKit) or decline (→ back
-    /// to the tiers, nothing lost).
-    @State private var confirmingPurchase = false
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Captures the moment PaywallView first appears so the issue #2
     /// diagnostic events can report `time_on_paywall_ms` (a deceptively
@@ -435,28 +429,6 @@ struct PaywallView: View {
         return f.string(from: date).lowercased()
     }
 
-    /// What the selected tier covers, in her plan's own terms. The
-    /// quarterly copy is data-tied: her derived plan length decides
-    /// "covers your whole plan" vs "your first 12 weeks" so the claim
-    /// is never bigger than the math.
-    private func coversLine(for plan: Plan) -> String {
-        let planWeeks = derivedProgramDays.map { max(1, Int((Double($0) / 7.0).rounded())) }
-        switch plan {
-        case .quarterly:
-            if let weeks = planWeeks, weeks <= 13 {
-                return "your whole \(weeks)-week plan"
-            }
-            return "your first 12 weeks"
-        case .yearly:
-            if let weeks = planWeeks, weeks <= 13 {
-                return "your plan + the keeping months"
-            }
-            return "a full year of the plan"
-        case .weekly:
-            return "your first week"
-        }
-    }
-
     /// CTA label — "keep my plan · $24.99 today". The verb is the
     /// endowment ("keep" what she built, not "start" something new) and
     /// the billed-TODAY number rides the button at full contrast so the
@@ -634,17 +606,6 @@ struct PaywallView: View {
             topBar
                 .padding(.horizontal, Space.lg)
                 .padding(.top, Space.sm)
-
-            // The Apple-sheet lead-in. Dim + receipt card; the exact
-            // billed-today number in cream-and-cocoa one breath before
-            // StoreKit restates it in white.
-            if confirmingPurchase {
-                receiptConfirmOverlay
-                    .transition(reduceMotion
-                        ? .opacity
-                        : .opacity.combined(with: .move(edge: .bottom)))
-                    .zIndex(2)
-            }
         }
         .sheet(item: $legalDoc) { doc in
             SafariView(url: doc.url).ignoresSafeArea()
@@ -1093,15 +1054,17 @@ struct PaywallView: View {
     }
 
     /// Near-black CTA. One button, three honest states: resolved →
-    /// "keep my plan · $24.99 today" opens the receipt-confirm; failed
-    /// → "try pricing again" retries the offerings load; loading →
-    /// disabled "loading your pricing…". Never purchasable without a
-    /// real localized price on screen.
+    /// "keep my plan · $24.99 today" goes STRAIGHT to Apple's sheet
+    /// (no interstitial — the billed-today number is already on the row,
+    /// the button, and the terms line, so a fourth restatement was pure
+    /// friction at peak intent); failed → "try pricing again" retries
+    /// the offerings load; loading → disabled "loading your pricing…".
+    /// Never purchasable without a real localized price on screen.
     private var ctaButton: some View {
         Button {
             if billedPrice(for: selectedPlan) != nil, selectedPackage != nil || debugMockPricing || debugPaywallPreview {
-                Haptics.light()
-                beginConfirm()
+                Haptics.medium()
+                startPurchase()
             } else if offeringsLoadFailed {
                 Haptics.light()
                 Task { await loadOfferings() }
@@ -1150,125 +1113,17 @@ struct PaywallView: View {
         return offeringsLoadFailed   // failed state repurposes the CTA as retry
     }
 
-    // MARK: - Receipt-confirm (the Apple-sheet lead-in)
-
-    /// She tapped keep — show the receipt. paywall_cta_tapped keeps its
-    /// place in the funnel (comparable across builds); the confirm
-    /// events wrap the new step.
-    private func beginConfirm() {
-        let timeOnPaywallMs = Int(Date().timeIntervalSince(viewOpenTime) * 1000)
+    /// CTA tapped → straight to StoreKit. Fires paywall_cta_tapped
+    /// (keeps its funnel position, comparable across builds), flips the
+    /// spinner, and hands off to purchase() which presents Apple's
+    /// sheet and fires purchase_sheet_shown.
+    private func startPurchase() {
         Analytics.track(.paywallCtaTapped, properties: [
             "plan": selectedPlan.rawValue,
-            "time_on_paywall_ms": timeOnPaywallMs
+            "time_on_paywall_ms": Int(Date().timeIntervalSince(viewOpenTime) * 1000)
         ])
-        Analytics.track(.purchaseConfirmShown, properties: [
-            "plan": selectedPlan.rawValue,
-            "product_id": selectedPackage?.storeProduct.productIdentifier ?? "unresolved",
-            "price": billedPrice(for: selectedPlan) ?? "unresolved"
-        ])
-        withAnimation(reduceMotion ? nil : Motion.gentleSpring) {
-            confirmingPurchase = true
-        }
-        Haptics.soft()
-    }
-
-    private func declineConfirm() {
-        Analytics.track(.purchaseConfirmDeclined, properties: [
-            "plan": selectedPlan.rawValue
-        ])
-        Haptics.light()
-        withAnimation(reduceMotion ? nil : Motion.exit) {
-            confirmingPurchase = false
-        }
-    }
-
-    private func acceptConfirm() {
-        Analytics.track(.purchaseConfirmAccepted, properties: [
-            "plan": selectedPlan.rawValue
-        ])
-        Haptics.medium()
-        withAnimation(reduceMotion ? nil : Motion.exit) {
-            confirmingPurchase = false
-        }
         working = true
         Task { await purchase() }
-    }
-
-    /// The receipt: dim + a docked cream card carrying exactly three
-    /// rows — today / covers / renews — then confirm. The same number
-    /// she picked on the tier row, restated in the brand's own hand one
-    /// breath before StoreKit's white sheet. Dim tap or "not this plan"
-    /// returns to the tiers; nothing is lost.
-    private var receiptConfirmOverlay: some View {
-        ZStack(alignment: .bottom) {
-            Palette.bgInverse.opacity(0.32)
-                .ignoresSafeArea()
-                .onTapGesture { declineConfirm() }
-                .accessibilityLabel("dismiss receipt")
-
-            VStack(spacing: 0) {
-                Text("before anything is charged")
-                    .font(Typo.captionTracked)
-                    .kerning(1.6)
-                    .foregroundStyle(Palette.cocoaTertiary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.bottom, 6)
-
-                JKReceiptRow(
-                    lead: "today",
-                    punch: billedPrice(for: selectedPlan) ?? "—",
-                    showsRule: false
-                )
-                JKReceiptRow(
-                    lead: "covers",
-                    punch: coversLine(for: selectedPlan)
-                )
-                JKReceiptRow(
-                    lead: "renews",
-                    punch: "\(renewalDateText(for: selectedPlan)) · cancel anytime"
-                )
-
-                Button {
-                    acceptConfirm()
-                } label: {
-                    Text("confirm")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Palette.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Palette.textPrimary)
-                        )
-                }
-                .buttonStyle(PressFeedbackStyle())
-                .padding(.top, 14)
-
-                Button {
-                    declineConfirm()
-                } label: {
-                    Text("not this plan")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Palette.textSecondary)
-                        .padding(.vertical, 10)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, Space.lg)
-            .padding(.top, 18)
-            .padding(.bottom, 24)
-            .background(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 24, bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 0, topTrailingRadius: 24,
-                    style: .continuous
-                )
-                .fill(Palette.bgPrimary)
-                .ignoresSafeArea(edges: .bottom)
-            )
-            .shadow(color: Palette.cocoaPrimary.opacity(0.18), radius: 30, x: 0, y: -6)
-        }
-        .accessibilityElement(children: .contain)
     }
 
     // MARK: - Compact paywall helpers
