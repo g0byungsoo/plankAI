@@ -72,6 +72,12 @@ struct TodayView: View {
                                 modules.shrinkWorkoutToFloor()
                             }
                         }
+                        // 1.1.5 — open the breath intro for the chip audit.
+                        if ProcessInfo.processInfo.arguments.contains("--uitest-breath-preview") {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                                modules.present(cover: .breathSession)
+                            }
+                        }
                         #endif
                     }
             }
@@ -316,7 +322,7 @@ struct TodayView: View {
     @ViewBuilder
     private func rhythmRows(_ snapshot: TodaySnapshot, includeOneThing: Bool) -> some View {
         if let day = snapshot.day {
-            let rows = includeOneThing ? day.beats : day.rhythm
+            let rows = rhythmBeats(day: day, includeOneThing: includeOneThing)
             VStack(spacing: 0) {
                 ForEach(Array(rows.enumerated()), id: \.element.itemKey) { idx, beat in
                     VStack(spacing: 0) {
@@ -344,6 +350,19 @@ struct TodayView: View {
                 }
             }
         }
+    }
+
+    /// The rows the rhythm renders. Breathwork is an always-reachable
+    /// reset: when the day's prescription didn't already call for it
+    /// (rest-day hero / high-stress companion), we surface it as the
+    /// final quiet row so it's never more than a tap from home. We build
+    /// a LOCAL list — the day's completion math reads `day.beats`, so an
+    /// appended reset never inflates the day's required count.
+    private func rhythmBeats(day: PrescriptionEngineV2.Day, includeOneThing: Bool) -> [ProgramDayPrescription] {
+        let base = includeOneThing ? day.beats : day.rhythm
+        let dayHasBreath = day.beats.contains { if case .breath = $0 { return true } else { return false } }
+        guard !dayHasBreath else { return base }
+        return base + [.breath(minutes: 1, style: isEvening ? .calming : .energizing)]
     }
 
     private func liveTrailing(_ beat: ProgramDayPrescription) -> String? {
